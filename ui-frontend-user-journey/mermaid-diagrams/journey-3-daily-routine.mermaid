@@ -1,0 +1,169 @@
+graph TB
+    Start([8:00 AM Morning Login])
+    
+    subgraph "Morning Check - Dashboard"
+        D1[Dashboard Home]
+        D1_Overview[Quick Overview Stats]
+        D1_Watchlist[Watchlist Summary]
+        D1_Alerts[Recent Alerts Status]
+        D1_Decision{What to Review First?}
+    end
+    
+    subgraph "Review Triggered Alert with TradingView"
+        D2[Open XAUUSD Chart H1]
+        D2_Load[TradingView Chart Loads]
+        D2_Interact[Interactive Crosshair Analysis]
+        D2_Zoom[Zoom In for Detail]
+        D2_Analyze[Complete Chart Analysis]
+        D2_Decision{Trading Decision}
+        D2_Trade[Execute Trade in Broker]
+        D2_Notes[Document Setup Notes]
+    end
+    
+    subgraph "Check Next Symbol - EURUSD"
+        D3[Open EURUSD Chart H4]
+        D3_TradingView[TradingView Loads Chart]
+        D3_Crosshair[Use Crosshair Tool]
+        D3_Near[Price Approaching Resistance]
+        D3_Decision{Create Alert?}
+        D3_Alert[Create Alert Modal]
+        D3_Config[Configure Alert Settings]
+        D3_Submit[Alert Created Successfully]
+    end
+    
+    subgraph "Scan Other Symbols - BTCUSD M15"
+        D4[Open BTCUSD Chart M15]
+        D4_Render[TradingView M15 Renders]
+        D4_Pan[Pan Through History]
+        D4_Fractals[New Fractals Detected]
+        D4_ZoomAnalyze[Zoom Analysis Detail]
+        D4_Decision{Monitor This Symbol?}
+        D4_Watchlist[Add to Watchlist]
+        D4_Alert2[Create Alert on Line]
+    end
+    
+    subgraph "Mid-Day Monitoring"
+        D5[Return to Dashboard]
+        D5_Check[Quick Checks Throughout Day]
+        D5_Updates[Real-time TradingView Updates]
+        D5_Charts[Quick Chart Reviews]
+        D5_Notifications[Receive Notifications]
+    end
+    
+    subgraph "Alert Management"
+        D6[Alerts Page]
+        D6_Active[View Active Alerts]
+        D6_Triggered[Triggered Alerts Today]
+        D6_Actions{Alert Actions}
+        D6_Edit[Edit Alert Settings]
+        D6_ViewChart[View on TradingView Chart]
+        D6_Delete[Delete Alert]
+        D6_Similar[Create Similar Alert]
+    end
+    
+    subgraph "Evening Review with Charts"
+        D7[Settings and Usage Page]
+        D7_Usage[Check Usage Statistics]
+        D7_Billing[Review Subscription Status]
+        D7_Performance[Performance This Week]
+    end
+    
+    subgraph "End of Day - Chart Analysis"
+        D8[Review and Plan Tomorrow]
+        D8_Charts[Review All TradingView Charts]
+        D8_Screenshot[Document Chart Setups]
+        D8_Watchlist[Update Watchlist]
+        D8_Alerts[Setup Tomorrow Alerts]
+        D8_Final[Final Preparation Complete]
+    end
+    
+    Start --> D1
+    D1 --> D1_Overview
+    D1_Overview --> D1_Watchlist
+    D1_Watchlist --> D1_Alerts
+    D1_Alerts --> D1_Decision
+    
+    D1_Decision -->|Check Triggered Alert| D2
+    D1_Decision -->|Review Approaching| D3
+    D1_Decision -->|Scan New Patterns| D4
+    
+    D2 --> D2_Load
+    D2_Load --> D2_Interact
+    D2_Interact --> D2_Zoom
+    D2_Zoom --> D2_Analyze
+    D2_Analyze --> D2_Decision
+    D2_Decision -->|Enter Trade| D2_Trade
+    D2_Decision -->|Skip| D2_Notes
+    D2_Trade --> D2_Notes
+    D2_Notes --> D3
+    
+    D3 --> D3_TradingView
+    D3_TradingView --> D3_Crosshair
+    D3_Crosshair --> D3_Near
+    D3_Near --> D3_Decision
+    D3_Decision -->|Yes Create Alert| D3_Alert
+    D3_Decision -->|No Just Watch| D4
+    D3_Alert --> D3_Config
+    D3_Config --> D3_Submit
+    D3_Submit --> D4
+    
+    D4 --> D4_Render
+    D4_Render --> D4_Pan
+    D4_Pan --> D4_Fractals
+    D4_Fractals --> D4_ZoomAnalyze
+    D4_ZoomAnalyze --> D4_Decision
+    D4_Decision -->|Yes Add to Watch| D4_Watchlist
+    D4_Watchlist --> D4_Alert2
+    D4_Alert2 --> D5
+    
+    D5 --> D5_Check
+    D5_Check --> D5_Updates
+    D5_Updates --> D5_Charts
+    D5_Charts --> D5_Notifications
+    D5_Notifications --> D6
+    
+    D6 --> D6_Active
+    D6_Active --> D6_Triggered
+    D6_Triggered --> D6_Actions
+    D6_Actions -->|Edit Settings| D6_Edit
+    D6_Actions -->|View Chart| D6_ViewChart
+    D6_Actions -->|Delete| D6_Delete
+    D6_Actions -->|Duplicate| D6_Similar
+    D6_Edit --> D7
+    D6_ViewChart --> D7
+    D6_Delete --> D7
+    D6_Similar --> D7
+    
+    D7 --> D7_Usage
+    D7_Usage --> D7_Billing
+    D7_Billing --> D7_Performance
+    D7_Performance --> D8
+    
+    D8 --> D8_Charts
+    D8_Charts --> D8_Screenshot
+    D8_Screenshot --> D8_Watchlist
+    D8_Watchlist --> D8_Alerts
+    D8_Alerts --> D8_Final
+    
+    style Start fill:#8B5CF6,color:#fff
+    style D1 fill:#8B5CF6,color:#fff
+    style D2_Load fill:#2196F3,color:#fff
+    style D2_Interact fill:#2196F3,color:#fff
+    style D2_Zoom fill:#2196F3,color:#fff
+    style D2_Trade fill:#10B981,color:#fff
+    style D3_TradingView fill:#2196F3,color:#fff
+    style D3_Crosshair fill:#2196F3,color:#fff
+    style D3_Submit fill:#10B981,color:#fff
+    style D4_Render fill:#2196F3,color:#fff
+    style D4_Pan fill:#2196F3,color:#fff
+    style D4_ZoomAnalyze fill:#2196F3,color:#fff
+    style D4_Alert2 fill:#10B981,color:#fff
+    style D5_Updates fill:#2196F3,color:#fff
+    style D5_Charts fill:#2196F3,color:#fff
+    style D5_Notifications fill:#F59E0B,color:#000
+    style D6 fill:#3B82F6,color:#fff
+    style D6_ViewChart fill:#2196F3,color:#fff
+    style D7 fill:#6B7280,color:#fff
+    style D8_Charts fill:#2196F3,color:#fff
+    style D8_Screenshot fill:#2196F3,color:#fff
+    style D8_Final fill:#10B981,color:#fff

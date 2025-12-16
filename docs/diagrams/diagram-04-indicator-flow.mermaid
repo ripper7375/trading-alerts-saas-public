@@ -1,0 +1,93 @@
+sequenceDiagram
+    participant User as User<br/>(FREE/PRO)
+    participant Browser as Browser<br/>(TradingView Chart)
+    participant NextAPI as Next.js<br/>API Route
+    participant TierGuard as Tier Guard<br/>Middleware
+    participant Redis as Redis<br/>Cache
+    participant Flask as Flask<br/>MT5 Service
+    participant TierVal as Flask<br/>Tier Validator
+    participant MT5 as YOUR MT5<br/>Terminal
+    participant Indicators as MQL5<br/>Indicators
+
+    User->>Browser: Select Symbol + Timeframe<br/>(e.g., XAUUSD H1)
+    Browser->>NextAPI: GET /api/indicators/XAUUSD/H1<br/>Authorization: Bearer {JWT}
+    
+    NextAPI->>NextAPI: Extract session<br/>Get user tier (FREE/PRO)
+    NextAPI->>TierGuard: Validate access
+    
+    alt FREE Tier Accessing PRO Symbol
+        TierGuard-->>NextAPI: ❌ Access Denied
+        NextAPI-->>Browser: 403 Forbidden<br/>"Upgrade to PRO"
+        Browser-->>User: Show upgrade prompt
+    else Valid Access
+        TierGuard->>TierGuard: ✅ Tier can access symbol
+        
+        NextAPI->>Redis: Check cache<br/>indicators:XAUUSD:H1
+        
+        alt Cache Hit
+            Redis-->>NextAPI: ✅ Cached data
+            NextAPI-->>Browser: 200 OK<br/>{cached: true, data: {...}}
+            Browser->>Browser: Render chart<br/>with indicators
+            Browser-->>User: Display chart
+        else Cache Miss
+            Redis-->>NextAPI: ❌ No cache
+            
+            NextAPI->>Flask: GET /api/indicators/XAUUSD/H1<br/>X-API-Key: {key}<br/>X-User-Tier: FREE
+            
+            Flask->>TierVal: Validate tier access
+            TierVal->>TierVal: Check FREE can access XAUUSD
+            
+            alt Tier Validation Failed
+                TierVal-->>Flask: ❌ Access denied
+                Flask-->>NextAPI: 403 Forbidden
+                NextAPI-->>Browser: 403 Error
+            else Tier Validation Passed
+                TierVal->>TierVal: ✅ Access granted
+                
+                Flask->>MT5: Initialize connection<br/>Login, Password, Server
+                MT5-->>Flask: ✅ Connected
+                
+                Flask->>MT5: Select symbol XAUUSD
+                Flask->>MT5: Set timeframe H1
+                
+                Flask->>MT5: Get OHLC data<br/>copy_rates_from_pos()
+                MT5-->>Flask: Return bars[]
+                
+                Flask->>Indicators: Get indicator handle<br/>iCustom("Fractal Horizontal Line_V5.mq5")
+                Indicators-->>Flask: Handle ID
+
+                Flask->>Indicators: Read buffer 4-9<br/>(Peak/Bottom Lines)
+                Indicators-->>Flask: Line data[]
+
+                Flask->>Indicators: Get indicator handle<br/>iCustom("Fractal Diagonal Line_V4.mq5")
+                Indicators-->>Flask: Handle ID
+
+                Flask->>Indicators: Read buffer 0-5<br/>(Ascending/Descending)
+                Indicators-->>Flask: Line data[]
+                
+                Flask->>Indicators: Read buffer 0-1<br/>(Fractal markers)
+                Indicators-->>Flask: Fractal points[]
+                
+                Flask->>Flask: Filter EMPTY_VALUE<br/>Format JSON response
+                
+                Flask-->>NextAPI: 200 OK<br/>{success: true, data: {...}}
+                
+                NextAPI->>Redis: Cache data<br/>TTL: 5 minutes
+                Redis-->>NextAPI: ✅ Cached
+                
+                NextAPI->>NextAPI: Log API usage<br/>tier, symbol, timeframe
+                
+                NextAPI-->>Browser: 200 OK<br/>{cached: false, data: {...}}
+                
+                Browser->>Browser: Parse indicator data
+                Browser->>Browser: Render TradingView chart<br/>+ OHLC candlesticks
+                Browser->>Browser: Draw horizontal lines<br/>(peak_1, peak_2, peak_3)
+                Browser->>Browser: Draw diagonal lines<br/>(ascending, descending)
+                Browser->>Browser: Add fractal markers<br/>(peaks, bottoms)
+                
+                Browser-->>User: ✅ Display complete chart<br/>with all indicators
+            end
+        end
+    end
+
+    Note over User,Indicators: Real-time updates via WebSocket<br/>(separate flow)

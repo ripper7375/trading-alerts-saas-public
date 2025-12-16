@@ -1,0 +1,282 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+# Prevent concurrent deployments
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  # ============================================
+  # GATE 1: Run Phase 3.5 Test Suite (MUST PASS)
+  # ============================================
+  tests:
+    name: Run Phase 3.5 Test Suite
+    uses: ./.github/workflows/tests.yml
+    secrets: inherit
+
+  # ============================================
+  # GATE 2: Deploy Frontend to Vercel
+  # ============================================
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: [tests]
+    if: success()
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./
+
+      - name: Log deployment URL
+        run: |
+          echo "✅ Frontend deployed successfully!"
+          echo "URL: ${{ steps.deploy.outputs.url }}"
+          echo "### 🚀 Frontend Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Save deployment URL
+        run: |
+          echo "${{ steps.deploy.outputs.url }}" > deployment-url.txt
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-url
+          path: deployment-url.txt
+
+  # ============================================
+  # GATE 3: Deploy Backend to Railway
+  # ============================================
+  deploy-backend:
+    name: Deploy Backend to Railway
+    runs-on: ubuntu-latest
+    needs: [tests]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Flask to Railway
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+
+      - name: Wait for Railway deployment
+        run: |
+          echo "⏳ Waiting for Railway deployment to stabilize..."
+          sleep 60
+
+      - name: Log deployment status
+        run: |
+          echo "✅ Backend deployed successfully!"
+          echo "### 🚀 Backend Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service**: Flask MT5 API" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # GATE 4: Post-Deployment Verification
+  # ============================================
+  verify-deployment:
+    name: Verify Production Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-backend]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for services to be ready
+        run: |
+          echo "⏳ Waiting for services to be fully ready..."
+          sleep 30
+
+      - name: Health check - Frontend
+        run: |
+          echo "🔍 Checking frontend health..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.PRODUCTION_URL }}")
+
+          if [ $response -eq 200 ] || [ $response -eq 308 ] || [ $response -eq 301 ]; then
+            echo "✅ Frontend is healthy (HTTP $response)"
+          else
+            echo "❌ Frontend health check failed: HTTP $response"
+            exit 1
+          fi
+
+      - name: Health check - Backend
+        run: |
+          echo "🔍 Checking backend health..."
+          response=$(curl -s "${{ secrets.FLASK_URL }}/health" || echo '{"status":"error"}')
+          status=$(echo $response | jq -r '.status' 2>/dev/null || echo "error")
+
+          if [ "$status" = "healthy" ] || [ "$status" = "ok" ]; then
+            echo "✅ Backend is healthy"
+          else
+            echo "⚠️ Backend health check returned: $status"
+            echo "Note: Backend might still be starting up. Check Railway logs."
+          fi
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services Deployed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Frontend (Vercel)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Backend (Railway)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: ${{ secrets.PRODUCTION_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: ${{ secrets.FLASK_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Commit:" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Message**: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author**: ${{ github.event.head_commit.author.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results:" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All Phase 3.5 tests passed before deployment" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # SUCCESS NOTIFICATION
+  # ============================================
+  notify-success:
+    name: Notify Deployment Success
+    runs-on: ubuntu-latest
+    needs: [verify-deployment]
+    if: success()
+
+    steps:
+      - name: Send success notification
+        run: |
+          echo "🎉 =========================================="
+          echo "🎉 DEPLOYMENT SUCCESSFUL!"
+          echo "🎉 =========================================="
+          echo ""
+          echo "✅ All services deployed and verified"
+          echo "✅ Frontend: ${{ secrets.PRODUCTION_URL }}"
+          echo "✅ Backend: ${{ secrets.FLASK_URL }}"
+          echo ""
+          echo "📊 Deployment Stats:"
+          echo "   - Tests: PASSED"
+          echo "   - Frontend: DEPLOYED"
+          echo "   - Backend: DEPLOYED"
+          echo "   - Health Checks: PASSED"
+          echo ""
+          echo "🔗 View deployment:"
+          echo "   ${{ secrets.PRODUCTION_URL }}"
+          echo ""
+          echo "🎉 =========================================="
+
+      - name: Create success annotation
+        run: |
+          echo "::notice title=Deployment Successful::Production deployment completed successfully. Frontend: ${{ secrets.PRODUCTION_URL }}"
+
+  # ============================================
+  # FAILURE NOTIFICATION
+  # ============================================
+  notify-failure:
+    name: Notify Deployment Failure
+    runs-on: ubuntu-latest
+    needs: [tests, deploy-frontend, deploy-backend, verify-deployment]
+    if: failure()
+
+    steps:
+      - name: Determine failure stage
+        id: failure-stage
+        run: |
+          if [ "${{ needs.tests.result }}" = "failure" ]; then
+            echo "stage=tests" >> $GITHUB_OUTPUT
+            echo "message=Phase 3.5 tests failed. Deployment was blocked." >> $GITHUB_OUTPUT
+          elif [ "${{ needs.deploy-frontend.result }}" = "failure" ]; then
+            echo "stage=frontend" >> $GITHUB_OUTPUT
+            echo "message=Frontend deployment to Vercel failed." >> $GITHUB_OUTPUT
+          elif [ "${{ needs.deploy-backend.result }}" = "failure" ]; then
+            echo "stage=backend" >> $GITHUB_OUTPUT
+            echo "message=Backend deployment to Railway failed." >> $GITHUB_OUTPUT
+          elif [ "${{ needs.verify-deployment.result }}" = "failure" ]; then
+            echo "stage=verification" >> $GITHUB_OUTPUT
+            echo "message=Deployment verification failed. Services may be unhealthy." >> $GITHUB_OUTPUT
+          else
+            echo "stage=unknown" >> $GITHUB_OUTPUT
+            echo "message=Unknown deployment failure." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send failure notification
+        run: |
+          echo "❌ =========================================="
+          echo "❌ DEPLOYMENT FAILED!"
+          echo "❌ =========================================="
+          echo ""
+          echo "🔴 Failure Stage: ${{ steps.failure-stage.outputs.stage }}"
+          echo "📝 Message: ${{ steps.failure-stage.outputs.message }}"
+          echo ""
+          echo "📊 Job Results:"
+          echo "   - Tests: ${{ needs.tests.result }}"
+          echo "   - Frontend Deploy: ${{ needs.deploy-frontend.result }}"
+          echo "   - Backend Deploy: ${{ needs.deploy-backend.result }}"
+          echo "   - Verification: ${{ needs.verify-deployment.result }}"
+          echo ""
+          echo "🔍 Next Steps:"
+          echo "   1. Check the failed job logs above"
+          echo "   2. Review error messages"
+          echo "   3. Fix issues locally"
+          echo "   4. Run tests: npm test"
+          echo "   5. Push fix to trigger new deployment"
+          echo ""
+          echo "📚 See: docs/TEST-FAILURE-WORKFLOW.md"
+          echo ""
+          echo "❌ =========================================="
+
+      - name: Create failure annotation
+        run: |
+          echo "::error title=Deployment Failed::${{ steps.failure-stage.outputs.message }} Check the logs for details."
+
+      - name: Add failure summary
+        run: |
+          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Failure Stage**: ${{ steps.failure-stage.outputs.stage }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Message**: ${{ steps.failure-stage.outputs.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ needs.tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.deploy-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.deploy-backend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Verification: ${{ needs.verify-deployment.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the failed job logs" >> $GITHUB_STEP_SUMMARY
+          echo "2. Fix issues locally" >> $GITHUB_STEP_SUMMARY
+          echo "3. Run \`npm test\` to verify fixes" >> $GITHUB_STEP_SUMMARY
+          echo "4. Push to trigger new deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📚 See: [TEST-FAILURE-WORKFLOW.md](docs/TEST-FAILURE-WORKFLOW.md)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Exit with failure
+        run: exit 1

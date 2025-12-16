@@ -1,0 +1,97 @@
+graph TB
+    subgraph Client["Client Layer"]
+        Browser["Web Browser<br/>(Desktop/Mobile)"]
+        PWA["PWA<br/>(iOS/Android)"]
+    end
+
+    subgraph NextJS["Next.js 15 Application"]
+        subgraph Frontend["Frontend Layer"]
+            Pages["Pages<br/>---<br/>• Landing (SSG)<br/>• Dashboard (SSR)<br/>• Charts (CSR)<br/>• Alerts (SSR)<br/>• Settings (SSR)"]
+            Components["Components<br/>---<br/>• TradingChart<br/>• AlertList<br/>• Watchlist<br/>• TierBanner<br/>• PricingCard"]
+        end
+
+        subgraph Middleware["Middleware Layer"]
+            AuthMW["Auth Middleware<br/>NextAuth.js v5"]
+            TierMW["Tier Guard<br/>Access Control"]
+            RateLimit["Rate Limiter<br/>Upstash"]
+        end
+
+        subgraph API["API Routes Layer"]
+            AuthAPI["Auth API<br/>/api/auth/*"]
+            IndicatorAPI["Indicator API<br/>/api/indicators/*<br/>(Tier-gated)"]
+            AlertAPI["Alert API<br/>/api/alerts/*"]
+            WatchlistAPI["Watchlist API<br/>/api/watchlist/*"]
+            UserAPI["User API<br/>/api/user/*"]
+            StripeAPI["Stripe Webhook<br/>/api/webhooks/stripe"]
+        end
+
+        subgraph Services["Service Layer"]
+            MT5Client["MT5 Client<br/>Flask Caller"]
+            EmailService["Email Service<br/>Resend"]
+            JobQueue["Background Jobs<br/>BullMQ"]
+            TierService["Tier Service<br/>Access Validation"]
+        end
+    end
+
+    subgraph Flask["Flask Microservice"]
+        Routes["Routes<br/>/api/indicators<br/>/api/symbols<br/>/api/timeframes"]
+        MT5Service["MT5 Service<br/>---<br/>• Connect to MT5<br/>• Read buffers<br/>• Tier validation<br/>• Error handling"]
+        TierValidator["Tier Validator<br/>---<br/>• Symbol access<br/>• FREE: 1 symbol<br/>• PRO: 10 symbols"]
+    end
+
+    subgraph Data["Data Layer"]
+        Prisma["Prisma ORM"]
+        Postgres[("PostgreSQL<br/>---<br/>15 Tables:<br/>• User<br/>• Subscription<br/>• Alert<br/>• Watchlist<br/>• WatchlistItem<br/>• ApiUsage")]
+        RedisDB[("Redis<br/>---<br/>• Sessions<br/>• Cache<br/>• Queue<br/>• Pub/Sub")]
+    end
+
+    subgraph ErrorTracking["Error Tracking & Monitoring"]
+        Sentry["Sentry<br/>Error Logging"]
+        Analytics["Vercel Analytics"]
+        Logging["System Logs<br/>Prisma SystemLog"]
+    end
+
+    subgraph MT5External["MT5 Terminal (External)"]
+        Terminal["YOUR MT5 Terminal<br/>---<br/>Indicators:<br/>• Horizontal V5<br/>• Diagonal V4"]
+    end
+
+    Browser --> Pages
+    PWA --> Pages
+    Pages --> Components
+    Pages --> AuthMW
+    AuthMW --> TierMW
+    TierMW --> RateLimit
+    RateLimit --> API
+
+    AuthAPI --> AuthMW
+    IndicatorAPI --> TierMW
+    IndicatorAPI --> MT5Client
+    AlertAPI --> JobQueue
+    WatchlistAPI --> TierService
+    UserAPI --> EmailService
+    StripeAPI --> TierService
+
+    API --> Services
+    Services --> Prisma
+    Prisma --> Postgres
+    Services --> RedisDB
+
+    MT5Client -->|"HTTP + X-User-Tier"| Routes
+    Routes --> MT5Service
+    MT5Service --> TierValidator
+    MT5Service -->|"MetaTrader5 Library"| Terminal
+
+    API --> Sentry
+    Services --> Logging
+    Pages --> Analytics
+
+    style Client fill:#e9ecef,stroke:#868e96
+    style NextJS fill:#339af0,stroke:#1864ab,color:#fff
+    style Frontend fill:#74c0fc,stroke:#1971c2,color:#000
+    style Middleware fill:#4dabf7,stroke:#1864ab,color:#fff
+    style API fill:#339af0,stroke:#1864ab,color:#fff
+    style Services fill:#1c7ed6,stroke:#1864ab,color:#fff
+    style Flask fill:#4ecdc4,stroke:#087f5b,color:#fff
+    style Data fill:#ffd43b,stroke:#f08c00,color:#000
+    style ErrorTracking fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style MT5External fill:#ff8787,stroke:#c92a2a,color:#fff

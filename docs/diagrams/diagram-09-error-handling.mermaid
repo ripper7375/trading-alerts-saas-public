@@ -1,0 +1,74 @@
+flowchart TD
+    Start([API Request]) --> Auth{Authenticated?}
+    
+    Auth -->|No| E1[401 Unauthorized]
+    Auth -->|Yes| TierCheck{Tier Access<br/>Valid?}
+    
+    TierCheck -->|FREE accessing PRO| E2[403 Symbol not<br/>available in tier]
+    TierCheck -->|Yes| RateLimit{Rate Limit<br/>OK?}
+    
+    RateLimit -->|Exceeded| E3[429 Rate limit<br/>exceeded]
+    RateLimit -->|OK| Cache{Data in<br/>Cache?}
+    
+    Cache -->|Yes| CacheReturn[Return cached data]
+    Cache -->|No| MT5Call[Call Flask MT5 Service]
+    
+    MT5Call --> MT5Check{MT5 Service<br/>Available?}
+    
+    MT5Check -->|No| Retry1{Retry<br/>Attempt 1}
+    Retry1 -->|Failed| Retry2{Retry<br/>Attempt 2}
+    Retry2 -->|Failed| E4[500 MT5 service<br/>unavailable]
+    Retry1 -->|Success| ProcessData
+    Retry2 -->|Success| ProcessData
+    
+    MT5Check -->|Yes| MT5Response{MT5 Response<br/>Status?}
+    
+    MT5Response -->|MT5 Not Connected| E5[500 MT5 terminal<br/>not connected]
+    MT5Response -->|Symbol Not Available| E6[500 Symbol not<br/>available on broker]
+    MT5Response -->|Indicator Not Found| E7[500 Indicator not<br/>attached to chart]
+    MT5Response -->|Invalid Timeframe| E8[400 Invalid<br/>timeframe]
+    MT5Response -->|Success| ProcessData[Process Indicator Data]
+    
+    ProcessData --> ValidateData{Data<br/>Valid?}
+    
+    ValidateData -->|Missing OHLC| E9[500 Incomplete<br/>indicator data]
+    ValidateData -->|Empty Buffers| E10[500 Empty indicator<br/>buffers]
+    ValidateData -->|Valid| CacheData[Cache Data]
+    
+    CacheData --> LogSuccess[Log API Usage]
+    LogSuccess --> Return200[200 Success Response]
+    
+    E1 --> LogError[Log Error to DB]
+    E2 --> LogError
+    E3 --> LogError
+    E4 --> LogError
+    E5 --> LogError
+    E6 --> LogError
+    E7 --> LogError
+    E8 --> LogError
+    E9 --> LogError
+    E10 --> LogError
+    
+    LogError --> CheckCritical{Critical<br/>Error?}
+    
+    CheckCritical -->|Yes| NotifyAdmin[Notify Admin via<br/>Email + Notification]
+    CheckCritical -->|No| EndError([Return Error Response])
+    
+    NotifyAdmin --> CreateIncident[Create System Log<br/>with ERROR level]
+    CreateIncident --> EndError
+    
+    Return200 --> End([Request Complete])
+    CacheReturn --> End
+    
+    style E1 fill:#ff6b6b
+    style E2 fill:#ff6b6b
+    style E3 fill:#ffd93d
+    style E4 fill:#ff6b6b
+    style E5 fill:#ff6b6b
+    style E6 fill:#ff6b6b
+    style E7 fill:#ff6b6b
+    style E8 fill:#ffd93d
+    style E9 fill:#ff6b6b
+    style E10 fill:#ff6b6b
+    style Return200 fill:#6bcf7f
+    style CacheReturn fill:#6bcf7f

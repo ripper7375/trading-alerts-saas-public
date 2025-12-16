@@ -1,0 +1,137 @@
+graph TB
+    Start([New Visitor Arrives])
+    
+    subgraph "Public Pages"
+        P1[Homepage<br/>/]
+        P1_Explore[Explore Features<br/>& Benefits]
+        P1_Action{User Decision}
+        
+        P2[Pricing Page<br/>/pricing]
+        P2_Compare[Compare FREE vs PRO<br/>Tiers]
+        P2_Decision{Choose Plan}
+    end
+    
+    subgraph "Registration"
+        P3[Register Page<br/>/register]
+        P3_Form[Fill Form:<br/>Name, Email, Password]
+        P3_Validate[Real-time Validation<br/>Zod + React Hook Form]
+        P3_Submit[Submit Registration]
+        P3_Backend[Backend Process:<br/>Hash Password<br/>Create User Record<br/>Send Welcome Email]
+    end
+    
+    subgraph "First Dashboard Experience"
+        P4[Dashboard Home<br/>/dashboard]
+        P4_Welcome[See Welcome Message<br/>Quick Start Tips<br/>Usage Stats 0/5]
+        P4_Empty[Empty State:<br/>No Watchlist<br/>No Alerts]
+        P4_Action{What to Do First?}
+    end
+    
+    subgraph "Building Watchlist"
+        P5[Watchlist Page<br/>/dashboard/watchlist]
+        P5_Select[Select Symbol<br/>XAUUSD]
+        P5_Timeframe[Select Timeframe<br/>H1]
+        P5_Add[Click Add to Watchlist]
+        P5_Success[Success!<br/>1/5 Slots Used]
+    end
+    
+    subgraph "Viewing TradingView Charts"
+        P6[Live Charts<br/>/dashboard/charts?symbol=XAUUSD&timeframe=H1]
+        P6_Load[Chart Loading:<br/>Initialize TradingView<br/>Fetch Candlestick Data<br/>Calculate Fractals]
+        P6_Render[TradingView Chart Rendered:<br/>Professional Candlesticks<br/>Fractal Markers ▲▼<br/>Support/Resistance Lines]
+        P6_Display[Interactive Features:<br/>Crosshair with OHLC<br/>Zoom with Scroll<br/>Pan with Drag<br/>Price Scale Auto-adjust]
+        P6_Lines[Fractal Line Details:<br/>P-P1: $2,655.20 Resistance<br/>B-B1: $2,645.00 Support<br/>B-P1: Ascending Support<br/>P-B1: Descending Resistance]
+        P6_Interact[User Explores Chart:<br/>Hover for Crosshair<br/>Scroll to Zoom<br/>Click-Drag to Pan<br/>Examine Fractals]
+        P6_Action{User Action}
+    end
+    
+    subgraph "Creating Alert from Chart"
+        P7[Create Alert Modal]
+        P7_Prefill[Pre-filled with:<br/>Symbol: XAUUSD<br/>Timeframe: H1<br/>Target: B-B1 Support<br/>From TradingView Click]
+        P7_Config[Configure:<br/>Tolerance: ±0.10%<br/>Notifications: Email + Push<br/>Name: Gold H1 Support]
+        P7_Submit[Create Alert]
+        P7_Validate[Validate:<br/>✓ Symbol in FREE tier<br/>✓ Timeframe allowed<br/>✓ Alerts: 0/5]
+        P7_Success[Alert Created!<br/>Chart Updates<br/>No Page Reload]
+    end
+    
+    subgraph "Managing Alerts"
+        P8[Alerts Page<br/>/dashboard/alerts]
+        P8_View[View Active Alerts:<br/>1/5 Active<br/>Status: Watching<br/>Distance: -$5.50]
+        P8_Monitor[Real-time Updates<br/>Current Price<br/>Distance to Target<br/>Background Sync]
+        P8_Trigger[Alert Triggered!<br/>Email + Push Sent<br/>View on TradingView Chart]
+    end
+    
+    subgraph "Account Management"
+        P9[Settings Page<br/>/dashboard/settings]
+        P9_Profile[View Profile Info<br/>Email Verified]
+        P9_Notif[Notification Preferences<br/>Email + Push Enabled]
+        P9_Usage[View Usage Stats:<br/>Alerts: 1/5<br/>Watchlist: 1/5<br/>API: 45/60 per hour]
+        P9_Upgrade[See Upgrade Prompt<br/>PRO: $29/month<br/>15 symbols, 9 timeframes<br/>Faster Chart Updates 30s]
+    end
+    
+    Start --> P1
+    P1 --> P1_Explore
+    P1_Explore --> P1_Action
+    
+    P1_Action -->|Click See Pricing| P2
+    P1_Action -->|Click Get Started Free| P3
+    
+    P2 --> P2_Compare
+    P2_Compare --> P2_Decision
+    P2_Decision -->|Select FREE Tier| P3
+    
+    P3 --> P3_Form
+    P3_Form --> P3_Validate
+    P3_Validate --> P3_Submit
+    P3_Submit --> P3_Backend
+    P3_Backend -->|Auto Login| P4
+    
+    P4 --> P4_Welcome
+    P4_Welcome --> P4_Empty
+    P4_Empty --> P4_Action
+    
+    P4_Action -->|Add Symbol to Watchlist| P5
+    P4_Action -->|View Charts Directly| P6
+    
+    P5 --> P5_Select
+    P5_Select --> P5_Timeframe
+    P5_Timeframe --> P5_Add
+    P5_Add --> P5_Success
+    P5_Success -->|Click View| P6
+    
+    P6 --> P6_Load
+    P6_Load --> P6_Render
+    P6_Render --> P6_Display
+    P6_Display --> P6_Lines
+    P6_Lines --> P6_Interact
+    P6_Interact --> P6_Action
+    
+    P6_Action -->|Click Line to Create Alert| P7
+    P6_Action -->|Navigate to Alerts Page| P8
+    
+    P7 --> P7_Prefill
+    P7_Prefill --> P7_Config
+    P7_Config --> P7_Submit
+    P7_Submit --> P7_Validate
+    P7_Validate --> P7_Success
+    P7_Success --> P8
+    
+    P8 --> P8_View
+    P8_View --> P8_Monitor
+    P8_Monitor --> P8_Trigger
+    P8_Trigger --> P9
+    
+    P9 --> P9_Profile
+    P9_Profile --> P9_Notif
+    P9_Notif --> P9_Usage
+    P9_Usage --> P9_Upgrade
+    
+    style Start fill:#3B82F6,color:#fff
+    style P4 fill:#10B981,color:#fff
+    style P6 fill:#10B981,color:#fff
+    style P6_Render fill:#2196F3,color:#fff
+    style P6_Display fill:#2196F3,color:#fff
+    style P6_Interact fill:#2196F3,color:#fff
+    style P8 fill:#10B981,color:#fff
+    style P7_Success fill:#10B981,color:#fff
+    style P8_Trigger fill:#F59E0B,color:#000
+    style P9_Upgrade fill:#EF4444,color:#fff

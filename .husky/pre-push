@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+# ============================================================================
+# Pre-Push Hook - Local Quality Gate (Layer 2)
+# ============================================================================
+# Runs BEFORE code is pushed to catch type errors and test failures
+# Part of shift-left testing strategy - prevents CI/CD failures
+# Takes 10-30 seconds - ensures only quality code reaches GitHub
+# See: docs/principles/shift-left-testing.md
+
+echo "🔍 Running pre-push validation..."
+echo ""
+
+# Check TypeScript types
+echo "📝 Type checking..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed. Fix errors before pushing."
+  exit 1
+fi
+echo "✅ Type check passed"
+echo ""
+
+# Run quick tests (only related tests, bail on first failure)
+echo "🧪 Running quick tests..."
+npm run test:quick
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Fix tests before pushing."
+  exit 1
+fi
+echo "✅ Tests passed"
+echo ""
+
+echo "✅ Pre-push validation complete! Pushing to remote..."

@@ -1,0 +1,185 @@
+{
+  "info": {
+    "name": "Trading Alerts SaaS - Flask MT5 API",
+    "description": "Complete API test suite for Flask MT5 backend (4 endpoints)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "flask-mt5-api-v7",
+    "version": "7.0.0"
+  },
+  "variable": [
+    {
+      "key": "flaskUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Service is healthy', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.status).to.equal('healthy');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{flaskUrl}}/health",
+          "host": ["{{flaskUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Get Price Data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has price data', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('symbol');",
+              "  pm.expect(json).to.have.property('bid');",
+              "  pm.expect(json).to.have.property('ask');",
+              "  pm.expect(json).to.have.property('spread');",
+              "});",
+              "",
+              "pm.test('Symbol matches request', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.symbol).to.equal('XAUUSD');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{flaskUrl}}/api/price/XAUUSD",
+          "host": ["{{flaskUrl}}"],
+          "path": ["api", "price", "XAUUSD"]
+        }
+      }
+    },
+    {
+      "name": "Get Historical Data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is array of candles', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.be.an('array');",
+              "  pm.expect(json.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Each candle has OHLCV data', () => {",
+              "  const json = pm.response.json();",
+              "  const candle = json[0];",
+              "  pm.expect(candle).to.have.property('time');",
+              "  pm.expect(candle).to.have.property('open');",
+              "  pm.expect(candle).to.have.property('high');",
+              "  pm.expect(candle).to.have.property('low');",
+              "  pm.expect(candle).to.have.property('close');",
+              "  pm.expect(candle).to.have.property('volume');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{flaskUrl}}/api/history/XAUUSD?timeframe=H1&bars=100",
+          "host": ["{{flaskUrl}}"],
+          "path": ["api", "history", "XAUUSD"],
+          "query": [
+            {
+              "key": "timeframe",
+              "value": "H1"
+            },
+            {
+              "key": "bars",
+              "value": "100"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Indicators Data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', () => {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has indicator data', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('symbol');",
+              "  pm.expect(json).to.have.property('timeframe');",
+              "  pm.expect(json).to.have.property('indicators');",
+              "});",
+              "",
+              "pm.test('Has fractal analysis', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.indicators).to.have.property('fractals');",
+              "});",
+              "",
+              "pm.test('Has moving averages', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.indicators).to.have.property('ma');",
+              "});",
+              "",
+              "pm.test('Has RSI', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.indicators).to.have.property('rsi');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{flaskUrl}}/api/indicators/XAUUSD/H1",
+          "host": ["{{flaskUrl}}"],
+          "path": ["api", "indicators", "XAUUSD", "H1"]
+        }
+      }
+    }
+  ]
+}

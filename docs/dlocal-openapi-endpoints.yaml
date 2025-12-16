@@ -1,0 +1,852 @@
+openapi: 3.0.3
+
+info:
+  title: Trading Alerts - dLocal Payment Integration
+  description: |
+    dLocal payment endpoints for emerging markets integration.
+    These endpoints should be merged into the main trading_alerts_openapi.yaml specification.
+  version: 1.0.0
+  contact:
+    name: Trading Alerts API Support
+    email: support@tradingalerts.com
+
+servers:
+  - url: https://api.tradingalerts.com
+    description: Production server
+  - url: http://localhost:5000
+    description: Development server
+
+# ==============================================================================
+# TAGS
+# ==============================================================================
+
+tags:
+  - name: dLocal Payments
+    description: dLocal payment processing for emerging markets (IN, NG, PK, VN, ID, TH, ZA, TR)
+
+# ==============================================================================
+# PATHS: dLocal Payment Endpoints
+# ==============================================================================
+
+paths:
+  # ------------------------------------------------------------------------------
+  # Get payment methods for country
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/methods:
+    get:
+      tags:
+        - dLocal Payments
+      summary: Get available payment methods for a country
+      description: |
+        Returns list of dLocal payment methods available for the specified country.
+        Combines dLocal methods (UPI, Paytm, etc.) with Stripe card option.
+        Falls back to Stripe only if dLocal unavailable.
+      security: []
+      parameters:
+        - name: country
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          description: Two-letter country code
+          example: IN
+      responses:
+        '200':
+          description: Payment methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentMethod'
+              example:
+                - id: UP
+                  name: UPI
+                  type: BANK_TRANSFER
+                  flow: REDIRECT
+                  provider: dlocal
+                  icon: 📲
+                  description: Pay via GPay, PhonePe, Paytm
+                  processingTime: Instant
+                  recommended: true
+                  popular: true
+                - id: CARD
+                  name: Credit/Debit Card
+                  type: CARD
+                  flow: DIRECT
+                  provider: stripe
+                  icon: 💳
+                  description: Visa, Mastercard, Amex
+                  processingTime: Instant
+                  recommended: false
+        '400':
+          description: Invalid country code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Failed to fetch payment methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ------------------------------------------------------------------------------
+  # Get exchange rate
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/exchange-rate:
+    get:
+      tags:
+        - dLocal Payments
+      summary: Get USD to local currency exchange rate
+      description: Returns current exchange rate from USD to specified currency
+      security: []
+      parameters:
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          description: Target currency code
+          example: INR
+      responses:
+        '200':
+          description: Exchange rate retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRate'
+              example:
+                from: USD
+                to: INR
+                rate: 83
+                timestamp: '2025-11-16T10:30:00Z'
+        '400':
+          description: Invalid currency code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ------------------------------------------------------------------------------
+  # Convert USD to local currency
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/convert:
+    get:
+      tags:
+        - dLocal Payments
+      summary: Convert USD amount to local currency
+      description: Converts USD amount to local currency for pricing display
+      security: []
+      parameters:
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: number
+            minimum: 0.01
+          description: Amount in USD
+          example: 29.00
+        - name: currency
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          description: Target currency
+          example: INR
+      responses:
+        '200':
+          description: Conversion successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrencyConversion'
+              example:
+                amountUSD: 29.00
+                amountLocal: 2407
+                currency: INR
+                exchangeRate: 83
+
+  # ------------------------------------------------------------------------------
+  # Create dLocal payment
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/create:
+    post:
+      tags:
+        - dLocal Payments
+      summary: Create a dLocal payment
+      description: |
+        Creates a new dLocal payment for PRO subscription.
+        Supports both 3-day and monthly plans.
+        Discount codes only allowed for monthly plans.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDLocalPaymentRequest'
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DLocalPaymentResponse'
+              example:
+                id: PAY_dlocal_123
+                status: PENDING
+                amount: 2407
+                currency: INR
+                country: IN
+                paymentMethodId: UP
+                paymentMethodFlow: REDIRECT
+                redirectUrl: https://checkout.dlocal.com/pay/xyz
+                expiresAt: '2025-11-16T11:00:00Z'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                discountOnThreeDay:
+                  summary: Discount code not allowed on 3-day plan
+                  value:
+                    error: Validation Error
+                    message: Discount codes are not available for 3-day plans
+                invalidCountry:
+                  summary: Country not supported
+                  value:
+                    error: Validation Error
+                    message: Country US is not supported by dLocal
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: User already has active subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ------------------------------------------------------------------------------
+  # Get dLocal payment status
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/{paymentId}:
+    get:
+      tags:
+        - dLocal Payments
+      summary: Get payment status
+      description: Retrieves current status of a dLocal payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: dLocal payment ID
+      responses:
+        '200':
+          description: Payment status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DLocalPaymentStatus'
+              examples:
+                pending:
+                  summary: Payment pending
+                  value:
+                    id: PAY_dlocal_123
+                    status: PENDING
+                    amount: 2407
+                    currency: INR
+                completed:
+                  summary: Payment completed
+                  value:
+                    id: PAY_dlocal_123
+                    status: COMPLETED
+                    amount: 2407
+                    currency: INR
+                    completedAt: '2025-11-16T10:45:00Z'
+                    subscription:
+                      id: sub_xyz
+                      tier: PRO
+                      expiresAt: '2025-12-16T10:45:00Z'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ------------------------------------------------------------------------------
+  # dLocal webhook endpoint
+  # ------------------------------------------------------------------------------
+  /api/webhooks/dlocal:
+    post:
+      tags:
+        - dLocal Payments
+      summary: dLocal payment webhook
+      description: |
+        Receives payment status updates from dLocal.
+        Verifies signature before processing.
+        Updates subscription and user tier on successful payment.
+      security: [] # Uses webhook signature verification instead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DLocalWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+        '401':
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ------------------------------------------------------------------------------
+  # Validate discount code for dLocal
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/validate-discount:
+    post:
+      tags:
+        - dLocal Payments
+      summary: Validate discount code
+      description: |
+        Validates discount code for dLocal payment.
+        Rejects discount codes for 3-day plans.
+        Returns discount percentage if valid.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: Discount code to validate
+                  example: WELCOME20
+                planType:
+                  type: string
+                  enum: [THREE_DAY, MONTHLY]
+                  description: Plan type
+                  example: MONTHLY
+              required:
+                - code
+                - planType
+      responses:
+        '200':
+          description: Discount code validated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscountValidationResponse'
+              examples:
+                valid:
+                  summary: Valid discount code
+                  value:
+                    valid: true
+                    discountPercentage: 20
+                    finalAmount: 23.20
+                    savings: 5.80
+                notAllowedOnThreeDay:
+                  summary: Not allowed on 3-day plan
+                  value:
+                    valid: false
+                    reason: Discount codes not available for 3-day plans
+                invalidCode:
+                  summary: Invalid code
+                  value:
+                    valid: false
+                    reason: Invalid discount code
+
+# ==============================================================================
+# COMPONENTS: Schemas, Security, Responses
+# ==============================================================================
+
+components:
+  # ------------------------------------------------------------------------------
+  # Security Schemes
+  # ------------------------------------------------------------------------------
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from authentication endpoint
+
+  # ------------------------------------------------------------------------------
+  # Reusable Responses
+  # ------------------------------------------------------------------------------
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+            message: Invalid or missing authentication token
+
+  # ------------------------------------------------------------------------------
+  # Schemas
+  # ------------------------------------------------------------------------------
+  schemas:
+    # Payment Method
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment method ID
+          example: UP
+        name:
+          type: string
+          description: Display name
+          example: UPI
+        type:
+          type: string
+          enum: [WALLET, BANK_TRANSFER, CARD, USSD, TICKET]
+          description: Payment method type
+        flow:
+          type: string
+          enum: [REDIRECT, DIRECT]
+          description: Payment flow type
+        provider:
+          type: string
+          enum: [dlocal, stripe]
+          description: Payment provider
+        icon:
+          type: string
+          description: Emoji icon
+          example: 📲
+        description:
+          type: string
+          description: User-friendly description
+          example: Pay via GPay, PhonePe, Paytm
+        processingTime:
+          type: string
+          description: Expected processing time
+          example: Instant
+        recommended:
+          type: boolean
+          description: Whether this method is recommended
+          default: false
+        popular:
+          type: boolean
+          description: Whether this method is popular
+          default: false
+      required:
+        - id
+        - name
+        - type
+        - flow
+        - provider
+
+    # Exchange Rate
+    ExchangeRate:
+      type: object
+      properties:
+        from:
+          type: string
+          example: USD
+        to:
+          type: string
+          example: INR
+        rate:
+          type: number
+          format: float
+          example: 83
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - from
+        - to
+        - rate
+        - timestamp
+
+    # Currency Conversion
+    CurrencyConversion:
+      type: object
+      properties:
+        amountUSD:
+          type: number
+          format: float
+          description: Amount in USD
+          example: 29.00
+        amountLocal:
+          type: number
+          format: float
+          description: Amount in local currency (rounded)
+          example: 2407
+        currency:
+          type: string
+          description: Local currency code
+          example: INR
+        exchangeRate:
+          type: number
+          format: float
+          description: Exchange rate used
+          example: 83
+      required:
+        - amountUSD
+        - amountLocal
+        - currency
+        - exchangeRate
+
+    # Create dLocal Payment Request
+    CreateDLocalPaymentRequest:
+      type: object
+      properties:
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          description: Subscription plan type
+          example: MONTHLY
+        paymentMethodId:
+          type: string
+          description: dLocal payment method ID
+          example: UP
+        country:
+          type: string
+          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          description: User's country code
+          example: IN
+        currency:
+          type: string
+          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          description: Payment currency
+          example: INR
+        amount:
+          type: number
+          format: float
+          description: Amount in local currency
+          example: 2407
+        amountUSD:
+          type: number
+          format: float
+          description: Equivalent amount in USD
+          example: 29.00
+        discountCode:
+          type: string
+          description: Discount code (monthly plans only)
+          example: WELCOME20
+          nullable: true
+        payer:
+          type: object
+          properties:
+            name:
+              type: string
+              example: John Doe
+            email:
+              type: string
+              format: email
+              example: john@example.com
+            document:
+              type: string
+              description: Tax ID (required for some countries)
+              example: '123456789'
+              nullable: true
+            phone:
+              type: string
+              example: +91-9876543210
+              nullable: true
+          required:
+            - name
+            - email
+      required:
+        - planType
+        - paymentMethodId
+        - country
+        - currency
+        - amount
+        - amountUSD
+        - payer
+
+    # dLocal Payment Response
+    DLocalPaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+          example: PAY_dlocal_123
+        status:
+          type: string
+          enum: [PENDING, PAID, REJECTED, CANCELLED]
+          description: Payment status
+        amount:
+          type: number
+          format: float
+          description: Amount in local currency
+        currency:
+          type: string
+          description: Currency code
+        country:
+          type: string
+          description: Country code
+        paymentMethodId:
+          type: string
+          description: Selected payment method
+        paymentMethodType:
+          type: string
+          description: Payment method type
+        paymentMethodFlow:
+          type: string
+          enum: [REDIRECT, DIRECT]
+          description: Payment flow
+        redirectUrl:
+          type: string
+          format: uri
+          description: URL to redirect user for payment
+          nullable: true
+        qrCode:
+          type: string
+          description: QR code data for direct payments
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          description: Payment link expiry time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - amount
+        - currency
+        - paymentMethodFlow
+
+    # dLocal Payment Status
+    DLocalPaymentStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID
+        status:
+          type: string
+          enum: [PENDING, PAID, REJECTED, CANCELLED]
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        subscription:
+          type: object
+          description: Created subscription (if payment successful)
+          nullable: true
+          properties:
+            id:
+              type: string
+            tier:
+              type: string
+              enum: [FREE, PRO]
+            expiresAt:
+              type: string
+              format: date-time
+      required:
+        - id
+        - status
+        - amount
+        - currency
+
+    # dLocal Webhook Payload
+    DLocalWebhookPayload:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Payment ID from dLocal
+        status:
+          type: string
+          enum: [PENDING, PAID, REJECTED, CANCELLED]
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        payment_method_id:
+          type: string
+        payment_method_type:
+          type: string
+        order_id:
+          type: string
+          description: Our internal order/subscription ID
+        created_date:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          description: Custom metadata we sent
+      required:
+        - id
+        - status
+        - amount
+        - currency
+
+    # Discount Validation Response
+    DiscountValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Whether discount code is valid
+        discountPercentage:
+          type: number
+          format: int32
+          description: Discount percentage (if valid)
+          example: 20
+          nullable: true
+        finalAmount:
+          type: number
+          format: float
+          description: Final amount after discount
+          nullable: true
+        savings:
+          type: number
+          format: float
+          description: Amount saved
+          nullable: true
+        reason:
+          type: string
+          description: Reason if invalid
+          nullable: true
+      required:
+        - valid
+
+    # Generic Error Response
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: Validation Error
+        message:
+          type: string
+          description: Error message
+          example: Invalid country code
+        details:
+          type: object
+          description: Additional error details
+          nullable: true
+      required:
+        - error
+        - message
+
+    # ------------------------------------------------------------------------------
+    # SUBSCRIPTION SCHEMA UPDATES
+    # ------------------------------------------------------------------------------
+    # NOTE: These fields should be ADDED to your existing Subscription schema
+    # in the main trading_alerts_openapi.yaml file
+    # ------------------------------------------------------------------------------
+
+    Subscription:
+      type: object
+      description: |
+        Complete Subscription schema with dLocal payment fields.
+        Merge these with your existing Subscription schema.
+      properties:
+        # ... existing fields (id, userId, tier, status, etc.) ...
+
+        # NEW FIELDS for dLocal integration
+        paymentProvider:
+          type: string
+          enum: [STRIPE, DLOCAL]
+          description: Payment provider for this subscription
+          default: STRIPE
+
+        dlocalPaymentId:
+          type: string
+          description: dLocal payment ID (null for Stripe subscriptions)
+          nullable: true
+
+        dlocalPaymentMethod:
+          type: string
+          description: dLocal payment method used (e.g., UP, PAYTM)
+          example: UP
+          nullable: true
+
+        dlocalCountry:
+          type: string
+          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          description: Country for dLocal payment
+          nullable: true
+
+        dlocalCurrency:
+          type: string
+          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          description: Currency for dLocal payment
+          nullable: true
+
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          description: Subscription plan type
+          example: MONTHLY
+
+        amount:
+          type: number
+          format: float
+          description: Amount paid in local currency
+          example: 2407
+
+        amountUSD:
+          type: number
+          format: float
+          description: Equivalent amount in USD
+          example: 29.00
+
+        expiresAt:
+          type: string
+          format: date-time
+          description: Subscription expiry date (for dLocal manual renewal)
+          nullable: true
+
+        renewalReminderSent:
+          type: boolean
+          description: Whether renewal reminder email was sent
+          default: false
+
+    # Subscription Status Enum
+    SubscriptionStatus:
+      type: string
+      enum:
+        - ACTIVE # Subscription is active
+        - CANCELLED # User cancelled subscription
+        - PAST_DUE # Payment failed (Stripe only)
+        - EXPIRED # Subscription expired (dLocal)
+        - PENDING # Awaiting payment confirmation
+      description: Current status of the subscription

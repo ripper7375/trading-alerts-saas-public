@@ -1,0 +1,251 @@
+%% Admin Affiliate Management Journey
+%% Admin panel for managing affiliates and viewing reports
+
+graph TB
+    Start([Admin Daily Routine]) --> Login[Login to Admin Panel]
+
+    Login --> AuthCheck{Admin<br/>Authenticated?}
+
+    AuthCheck -->|No| LoginError[Access Denied]
+    LoginError --> End1([End])
+
+    AuthCheck -->|Yes| AdminPanel[Navigate to /admin/affiliates]
+
+    AdminPanel --> LoadList[GET /api/admin/affiliates]
+
+    LoadList --> ShowList[Display Affiliate List:<br/>47 affiliates<br/>Filter & Search Options]
+
+    ShowList --> AdminChoice{What to Do?}
+
+    %% Path 1: View Affiliate Details
+    AdminChoice -->|View Affiliate| SelectAffiliate[Click View on Specific Affiliate]
+
+    SelectAffiliate --> AffDetailPage[Navigate to /admin/affiliates/:id]
+
+    AffDetailPage --> LoadDetail[GET /api/admin/affiliates/:id]
+
+    LoadDetail --> ShowDetail[Display Affiliate Details:<br/>- Basic Info<br/>- Social Media<br/>- Payment Info<br/>- Performance<br/>- Code History<br/>- Payment History]
+
+    ShowDetail --> AffActions{Admin Action?}
+
+    %% Path 1a: Manual Code Distribution
+    AffActions -->|Distribute Codes| ClickDistribute[Click Distribute Codes Manually]
+
+    ClickDistribute --> DistributeForm[Fill Distribution Form:<br/>- Quantity max 50<br/>- Discount % default 10<br/>- Commission % default 30<br/>- Expiry date<br/>- Reason notes]
+
+    DistributeForm --> SubmitDistribute[Submit Form]
+
+    SubmitDistribute --> APIDistribute[POST /api/admin/affiliates/:id/distribute-codes]
+
+    APIDistribute --> GenerateCodes[Generate Requested Codes<br/>with Random Generator]
+
+    GenerateCodes --> CreateCodesDB[Create AffiliateCode Records]
+
+    CreateCodesDB --> SendDistEmail[Send Email to Affiliate:<br/>Bonus codes distributed]
+
+    SendDistEmail --> DistSuccess[Success: Codes distributed]
+
+    DistSuccess --> BackToDetail1[Back to Affiliate Details]
+
+    %% Path 1b: Suspend Account
+    AffActions -->|Suspend| ClickSuspend[Click Suspend Account]
+
+    ClickSuspend --> SuspendForm[Fill Suspension Form:<br/>- Reason<br/>- Details<br/>- Deactivate codes?<br/>- Hold commissions?]
+
+    SuspendForm --> SubmitSuspend[Submit Suspension]
+
+    SubmitSuspend --> APISuspend[POST /api/admin/affiliates/:id/suspend]
+
+    APISuspend --> UpdateStatus[Update Affiliate Status:<br/>ACTIVE → SUSPENDED]
+
+    UpdateStatus --> DeactivateCodes{Deactivate<br/>Codes?}
+
+    DeactivateCodes -->|Yes| UpdateCodes[Set All Active Codes<br/>Status = CANCELLED]
+    UpdateCodes --> SendSuspendEmail[Send Suspension Email<br/>to Affiliate]
+
+    DeactivateCodes -->|No| SendSuspendEmail
+
+    SendSuspendEmail --> SuspendSuccess[Success: Account suspended]
+
+    SuspendSuccess --> BackToDetail1
+
+    %% Path 1c: Cancel Specific Code
+    AffActions -->|Cancel Code| SelectCode[Select Code from History]
+
+    SelectCode --> ClickCancel[Click Cancel Code]
+
+    ClickCancel --> CancelForm[Fill Cancellation Form:<br/>- Reason<br/>- Notes<br/>- Notify affiliate?]
+
+    CancelForm --> SubmitCancel[Submit Cancellation]
+
+    SubmitCancel --> APICancel[POST /api/admin/codes/:id/cancel]
+
+    APICancel --> UpdateCodeStatus[Update Code:<br/>Status = CANCELLED]
+
+    UpdateCodeStatus --> CancelEmailCheck{Notify<br/>Affiliate?}
+
+    CancelEmailCheck -->|Yes| SendCancelEmail[Send Code Cancelled Email]
+    SendCancelEmail --> CancelSuccess[Success: Code cancelled]
+
+    CancelEmailCheck -->|No| CancelSuccess
+
+    CancelSuccess --> BackToDetail1
+
+    AffActions -->|Back to List| BackToList1[Back to Affiliate List]
+
+    BackToDetail1 --> BackToList1
+
+    %% Path 2: View Business Intelligence Reports
+    AdminChoice -->|View Reports| ReportsMenu[Navigate to /admin/reports]
+
+    ReportsMenu --> ReportChoice{Which Report?}
+
+    %% Report 2a: P&L Report
+    ReportChoice -->|P&L| PLReport[Navigate to /admin/reports/profit-loss]
+
+    PLReport --> LoadPL[GET /api/admin/reports/profit-loss?months=3]
+
+    LoadPL --> ShowPL[Display P&L Report:<br/>- Total Revenue<br/>- Discounts Given<br/>- Net Revenue<br/>- Commissions Paid<br/>- Profit<br/>- Margin %<br/>Monthly Breakdown]
+
+    ShowPL --> ExportPL{Export?}
+
+    ExportPL -->|Yes| DownloadPL[Download PDF/CSV]
+    DownloadPL --> BackToReports1[Back to Reports Menu]
+
+    ExportPL -->|No| BackToReports1
+
+    %% Report 2b: Sales Performance
+    ReportChoice -->|Sales Performance| SalesReport[Navigate to /admin/reports/sales-performance]
+
+    SalesReport --> LoadSales[GET /api/admin/reports/sales-performance?month=current]
+
+    LoadSales --> ShowSales[Display Sales Report:<br/>- Top Performers Ranked<br/>- Conversion Rates<br/>- Revenue by Affiliate<br/>- Aggregate Statistics<br/>- Conversion Distribution]
+
+    ShowSales --> ExportSales{Export?}
+
+    ExportSales -->|Yes| DownloadSales[Download PDF/CSV]
+    DownloadSales --> BackToReports1
+
+    ExportSales -->|No| BackToReports1
+
+    %% Report 2c: Commission Owings
+    ReportChoice -->|Commission Owings| OwingsReport[Navigate to /admin/reports/commission-owings]
+
+    OwingsReport --> LoadOwings[GET /api/admin/reports/commission-owings]
+
+    LoadOwings --> ShowOwings[Display Owings Report:<br/>- Total Owed: $5,240<br/>- 28 Affiliates Pending<br/>- Payment Method Breakdown<br/>- Last Paid Dates]
+
+    ShowOwings --> OwingsAction{Action?}
+
+    %% Pay individual affiliate
+    OwingsAction -->|Pay Individual| SelectAffPay[Click Pay on Affiliate Row]
+
+    SelectAffPay --> PaymentForm[Navigate to /admin/commissions/pay/:id]
+
+    PaymentForm --> ShowPayDetail[Show Payment Details:<br/>- Pending Amount<br/>- Payment Method<br/>- Bank/Crypto/Wallet Info<br/>- Commission Breakdown]
+
+    ShowPayDetail --> FillPayment[Fill Payment Confirmation:<br/>- Payment Date<br/>- Reference Number<br/>- Send email?]
+
+    FillPayment --> SubmitPayment[Submit Payment]
+
+    SubmitPayment --> APIPayment[POST /api/admin/commissions/pay]
+
+    APIPayment --> UpdateCommissions[Update All Pending Commissions:<br/>Status = PAID<br/>paidAt = date<br/>paymentReference = ref]
+
+    UpdateCommissions --> UpdateAffStats[Update Affiliate:<br/>totalPaidCommissions += amount]
+
+    UpdateAffStats --> PayEmailCheck{Send<br/>Email?}
+
+    PayEmailCheck -->|Yes| SendPayEmail[Send Payment Processed Email<br/>to Affiliate]
+    SendPayEmail --> PaySuccess[Success: Payment recorded]
+
+    PayEmailCheck -->|No| PaySuccess
+
+    PaySuccess --> BackToOwings[Back to Owings Report]
+
+    BackToOwings --> BackToReports1
+
+    %% Bulk pay all
+    OwingsAction -->|Bulk Pay| SelectAll[Select All or Multiple]
+
+    SelectAll --> BulkPayConfirm[Confirm Bulk Payment]
+
+    BulkPayConfirm --> APIBulkPay[POST /api/admin/commissions/bulk-pay]
+
+    APIBulkPay --> ProcessBulk[Process Each Affiliate:<br/>- Mark commissions paid<br/>- Update stats<br/>- Send emails]
+
+    ProcessBulk --> BulkSuccess[Success: All payments recorded]
+
+    BulkSuccess --> BackToReports1
+
+    OwingsAction -->|Back| BackToReports1
+
+    %% Report 2d: Code Inventory
+    ReportChoice -->|Code Inventory| InventoryReport[Navigate to /admin/reports/code-inventory]
+
+    InventoryReport --> LoadInventory[GET /api/admin/reports/code-inventory?month=current]
+
+    LoadInventory --> ShowInventory[Display Aggregate Inventory:<br/>- Opening Balance<br/>- Distributed<br/>- Used<br/>- Expired<br/>- Cancelled<br/>- Closing Balance<br/>Monthly History]
+
+    ShowInventory --> ExportInventory{Export?}
+
+    ExportInventory -->|Yes| DownloadInventory[Download PDF/CSV]
+    DownloadInventory --> BackToReports1
+
+    ExportInventory -->|No| BackToReports1
+
+    BackToReports1 --> ReportsDone{More Reports?}
+
+    ReportsDone -->|Yes| ReportChoice
+
+    ReportsDone -->|No| BackToPanel[Back to Admin Panel]
+
+    %% All paths converge
+    BackToList1 --> AdminChoice
+
+    BackToPanel --> AdminChoice
+
+    AdminChoice -->|Logout| Logout[Logout from Admin Panel]
+
+    Logout --> End2([Session Ended])
+
+    %% Monthly Automation Reminder
+    LoadList -.->|1st of Month| CronDistribute[AUTO: Cron Job<br/>Distribute 15 codes<br/>to all active affiliates]
+
+    CronDistribute -.-> CronEmail[Emails Sent to Affiliates]
+
+    CronEmail -.-> CronNotify[Admin Email:<br/>Distribution complete]
+
+    CronNotify -.-> RefreshList[Refresh Affiliate List<br/>to see updated counts]
+
+    RefreshList -.-> LoadList
+
+    LoadOwings -.->|End of Month| CronExpire[AUTO: Cron Job<br/>Expire unused codes]
+
+    CronExpire -.-> ExpireEmail[Admin Email:<br/>Expiry report]
+
+    ExpireEmail -.-> RefreshOwings[Refresh Reports]
+
+    RefreshOwings -.-> LoadOwings
+
+    %% Styling
+    classDef processNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef decisionNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef errorNode fill:#ffebee,stroke:#c62828,stroke-width:2px
+    classDef successNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef autoNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef apiNode fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    classDef reportNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+
+    class Login,AdminPanel,SelectAffiliate,AffDetailPage,ClickDistribute,DistributeForm,SubmitDistribute,ClickSuspend,SuspendForm,SubmitSuspend,SelectCode,ClickCancel,CancelForm,SubmitCancel processNode
+    class ReportsMenu,PLReport,SalesReport,OwingsReport,InventoryReport,SelectAffPay,PaymentForm,ShowPayDetail,FillPayment,SubmitPayment,SelectAll,BulkPayConfirm processNode
+    class AuthCheck,AdminChoice,AffActions,DeactivateCodes,CancelEmailCheck,ReportChoice,ExportPL,ExportSales,OwingsAction,ExportInventory,ReportsDone,PayEmailCheck decisionNode
+    class LoginError,End1,End2 errorNode
+    class ShowList,ShowDetail,DistSuccess,SuspendSuccess,CancelSuccess,PaySuccess,BulkSuccess successNode
+    class LoadList,LoadDetail,APIDistribute,APISuspend,APICancel,LoadPL,LoadSales,LoadOwings,APIPayment,APIBulkPay,LoadInventory apiNode
+    class GenerateCodes,CreateCodesDB,UpdateStatus,UpdateCodes,UpdateCodeStatus,UpdateCommissions,UpdateAffStats,ProcessBulk autoNode
+    class ShowPL,ShowSales,ShowOwings,ShowInventory reportNode
+    class SendDistEmail,SendSuspendEmail,SendCancelEmail,SendPayEmail autoNode
+    class DownloadPL,DownloadSales,DownloadInventory processNode
+    class BackToDetail1,BackToList1,BackToReports1,BackToPanel,BackToOwings,Logout processNode
+    class CronDistribute,CronEmail,CronNotify,RefreshList,CronExpire,ExpireEmail,RefreshOwings autoNode

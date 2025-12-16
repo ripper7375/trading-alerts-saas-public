@@ -1,0 +1,169 @@
+name: Dependencies Security Scan
+
+# Purpose: Scan npm and Python dependencies for security vulnerabilities
+# Active: Phase 1-4 (always active)
+# Design: Non-blocking, informative feedback for autonomous development
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'mt5-service/requirements*.txt'
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  npm-security:
+    name: npm Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check if package.json exists
+        id: check_npm
+        run: |
+          if [ -f "package.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ package.json found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⏭️  package.json not found, skipping npm audit"
+          fi
+
+      - name: Install dependencies
+        if: steps.check_npm.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Run npm audit
+        if: steps.check_npm.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          echo "🔍 Running npm security audit..."
+          npm audit --audit-level=moderate || echo "⚠️  Security vulnerabilities detected"
+          echo ""
+          echo "Note: This is informative during development phase"
+          echo "Action: Review vulnerabilities and update dependencies when appropriate"
+
+      - name: Check for outdated dependencies
+        if: steps.check_npm.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          echo "📦 Checking for outdated npm packages..."
+          npm outdated || true
+          echo ""
+          echo "Note: Consider updating packages periodically"
+
+  python-security:
+    name: Python Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Check if Python requirements exist
+        id: check_python
+        run: |
+          if [ -f "mt5-service/requirements.txt" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Python requirements found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Python requirements not found, skipping safety scan"
+          fi
+
+      - name: Install dependencies
+        if: steps.check_python.outputs.exists == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r mt5-service/requirements.txt
+          pip install pip-audit bandit
+
+      - name: Run pip-audit security scan
+        if: steps.check_python.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          echo "🔍 Running Python pip-audit security scan..."
+          cd mt5-service
+          pip-audit --desc || {
+            echo "⚠️  Security vulnerabilities detected (see above)"
+            echo ""
+            echo "Note: This is informative during development phase"
+            echo "Action: Review vulnerabilities and update dependencies when appropriate"
+            exit 0
+          }
+          echo "✅ No security vulnerabilities detected"
+
+      - name: Run Bandit security analysis
+        if: steps.check_python.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          echo "🔍 Running Bandit static security analysis..."
+          cd mt5-service
+          if [ -d "app" ] && [ "$(ls -A app)" ]; then
+            bandit -r app/ -f json -o bandit-report.json || true
+            echo "✅ Bandit analysis completed"
+
+            # Show summary if issues found
+            if [ -f "bandit-report.json" ]; then
+              echo ""
+              echo "📋 Bandit Report Summary:"
+              python -c "import json; data=json.load(open('bandit-report.json')); print(f\"Total issues: {len(data.get('results', []))}\")" || true
+            fi
+          else
+            echo "⏭️  app/ directory is empty, skipping Bandit analysis"
+            echo "   This is normal during Phase 1-2 (planning phase)"
+          fi
+
+      - name: Upload security reports
+        if: steps.check_python.outputs.exists == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-security-reports
+          path: |
+            mt5-service/bandit-report.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+  summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    needs: [npm-security, python-security]
+    if: always()
+
+    steps:
+      - name: Report summary
+        run: |
+          echo "🔐 Security Scan Summary"
+          echo "======================="
+          echo ""
+          echo "✅ Security scans completed"
+          echo ""
+          echo "📝 Notes:"
+          echo "  - Security scans are informative during development (Phase 1-3)"
+          echo "  - They do not block commits or pull requests"
+          echo "  - Review findings and address critical vulnerabilities"
+          echo "  - Vulnerabilities will be enforced in Phase 4 (production prep)"
+          echo ""
+          echo "🔗 Check the 'npm-security' and 'python-security' job outputs for details"

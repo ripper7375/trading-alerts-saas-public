@@ -1,0 +1,92 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    // ============================================================================
+    // TypeScript Specific Rules (CRITICAL for Type Safety)
+    // ============================================================================
+    // CRITICAL: Forbids 'any' type - ensures all code is properly typed
+    // Violation blocks CI/CD - use proper types or 'unknown' with type guards
+    "@typescript-eslint/no-explicit-any": "error",
+
+    // CRITICAL: Requires explicit return types on all functions
+    // Improves code clarity and catches type mismatches early
+    "@typescript-eslint/explicit-function-return-type": "warn",
+
+    // CRITICAL: Prevents unused variables/imports from cluttering codebase
+    // Prefix with underscore (_var) if intentionally unused
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+
+    // ============================================================================
+    // Code Quality Rules (CRITICAL for Production Code)
+    // ============================================================================
+    // CRITICAL: Prevents debug console.log() in production
+    // Only console.warn and console.error are allowed for proper error logging
+    "no-console": [
+      "warn",
+      {
+        "allow": ["warn", "error"]
+      }
+    ],
+
+    // CRITICAL: Enforces const for immutable variables (performance + safety)
+    "prefer-const": "error",
+
+    // CRITICAL: Bans var keyword - use const or let for block scoping
+    "no-var": "error",
+
+    // CRITICAL: Enforces strict equality (===) to prevent type coercion bugs
+    "eqeqeq": ["error", "always"],
+
+    // ============================================================================
+    // React Specific Rules (CRITICAL for React Correctness)
+    // ============================================================================
+    // CRITICAL: Enforces React Hooks rules (must be at top level, not in loops/conditions)
+    "react-hooks/rules-of-hooks": "error",
+
+    // IMPORTANT: Warns about missing dependencies in useEffect/useCallback/useMemo
+    "react-hooks/exhaustive-deps": "warn",
+
+    // ============================================================================
+    // Import Organization (Improves Code Readability)
+    // ============================================================================
+    // Organizes imports into groups: builtin → external → internal → relative
+    // Auto-fixable with 'npm run lint:fix'
+    "import/order": [
+      "warn",
+      {
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          "parent",
+          "sibling",
+          "index"
+        ],
+        "newlines-between": "always",
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        }
+      }
+    ]
+  },
+  // ============================================================================
+  // Test File Overrides (Relaxed Rules for Testing)
+  // ============================================================================
+  // Test files can use 'any' for mocking and test setup simplicity
+  // This is acceptable in test contexts but forbidden in production code
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
+}

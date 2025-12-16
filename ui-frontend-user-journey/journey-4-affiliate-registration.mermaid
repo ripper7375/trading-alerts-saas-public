@@ -1,0 +1,111 @@
+%% Affiliate Registration & Onboarding Journey
+%% From registration to first dashboard access
+
+graph TB
+    Start([Affiliate Discovers Program]) --> RegPage[Visit /affiliate/register]
+
+    RegPage --> FillForm[Fill Registration Form]
+
+    FillForm --> FormDetails[<b>Required Info:</b><br/>- Email<br/>- Password<br/>- Full Name<br/>- Country<br/>- Payment Preferences<br/>- Social Media Optional]
+
+    FormDetails --> ChoosePayment[Choose Payment Method]
+
+    ChoosePayment --> PaymentA[Bank Transfer]
+    ChoosePayment --> PaymentB[Cryptocurrency]
+    ChoosePayment --> PaymentC[Global E-Wallet]
+    ChoosePayment --> PaymentD[Local E-Wallet]
+
+    PaymentA --> Submit[Submit Registration]
+    PaymentB --> Submit
+    PaymentC --> Submit
+    PaymentD --> Submit
+
+    Submit --> ValidateForm{Form Valid?}
+
+    ValidateForm -->|No| ErrorMsg[Show Validation Errors]
+    ErrorMsg --> FillForm
+
+    ValidateForm -->|Yes| APICall[POST /api/affiliate/auth/register]
+
+    APICall --> CheckEmail{Email<br/>Already<br/>Exists?}
+
+    CheckEmail -->|Yes| DupError[Error: Email already registered]
+    DupError --> FillForm
+
+    CheckEmail -->|No| CreateAccount[Create Affiliate Record<br/>Status: PENDING_VERIFICATION]
+
+    CreateAccount --> GenToken[Generate Verification Token<br/>Expires in 24h]
+
+    GenToken --> SendVerifyEmail[Send Verification Email]
+
+    SendVerifyEmail --> SuccessMsg[Show Success Message:<br/>Check your email to verify]
+
+    SuccessMsg --> WaitEmail[Affiliate Checks Email]
+
+    WaitEmail --> ClickLink[Click Verification Link]
+
+    ClickLink --> VerifyPage[Visit /affiliate/verify?token=xyz]
+
+    VerifyPage --> ValidateToken{Token Valid<br/>& Not Expired?}
+
+    ValidateToken -->|No| TokenError[Error: Token expired<br/>or invalid]
+    TokenError --> ResendOption[Option to Resend Email]
+    ResendOption --> SendVerifyEmail
+
+    ValidateToken -->|Yes| UpdateStatus[Update Affiliate:<br/>emailVerified = now<br/>status = ACTIVE]
+
+    UpdateStatus --> DistributeCodes[AUTO: Generate 15 Codes<br/>- Random >12 chars<br/>- Discount 10%<br/>- Commission 30%<br/>- Expires end of month]
+
+    DistributeCodes --> CreateCodes[Create 15 AffiliateCode Records<br/>Status: ACTIVE]
+
+    CreateCodes --> UpdateStats[Update Affiliate:<br/>codesDistributed += 15]
+
+    UpdateStats --> SendWelcome[Send Welcome Email<br/>with Dashboard Login Link]
+
+    SendWelcome --> VerifySuccess[Show: Email Verified!<br/>15 codes distributed]
+
+    VerifySuccess --> ClickLogin[Click Go to Login]
+
+    ClickLogin --> LoginPage[Visit /affiliate/login]
+
+    LoginPage --> EnterCreds[Enter Email & Password]
+
+    EnterCreds --> LoginAPI[POST /api/affiliate/auth/login]
+
+    LoginAPI --> CheckCreds{Credentials<br/>Valid?}
+
+    CheckCreds -->|No| LoginError[Error: Invalid credentials]
+    LoginError --> EnterCreds
+
+    CheckCreds -->|Yes| CheckStatus{Status =<br/>ACTIVE?}
+
+    CheckStatus -->|No| StatusError[Error: Account not verified<br/>or suspended]
+    StatusError --> EnterCreds
+
+    CheckStatus -->|Yes| GenJWT[Generate JWT Token<br/>Expires in 7 days]
+
+    GenJWT --> UpdateLogin[Update lastLoginAt timestamp]
+
+    UpdateLogin --> RedirectDash[Redirect to /affiliate/dashboard]
+
+    RedirectDash --> LoadDash[Load Dashboard<br/>- Quick Stats<br/>- 15 Active Codes<br/>- $0 Commissions<br/>- Getting Started Tips]
+
+    LoadDash --> End([First Login Complete!<br/>Ready to Share Codes])
+
+    %% Styling
+    classDef processNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef decisionNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef errorNode fill:#ffebee,stroke:#c62828,stroke-width:2px
+    classDef successNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef autoNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef apiNode fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+
+    class RegPage,FillForm,FormDetails,ChoosePayment,Submit,WaitEmail,ClickLink,VerifyPage,ClickLogin,LoginPage,EnterCreds,RedirectDash processNode
+    class ValidateForm,CheckEmail,ValidateToken,CheckCreds,CheckStatus decisionNode
+    class ErrorMsg,DupError,TokenError,LoginError,StatusError errorNode
+    class SuccessMsg,VerifySuccess,End successNode
+    class CreateAccount,GenToken,UpdateStatus,DistributeCodes,CreateCodes,UpdateStats,SendWelcome,GenJWT,UpdateLogin autoNode
+    class APICall,LoginAPI apiNode
+    class SendVerifyEmail,LoadDash successNode
+    class PaymentA,PaymentB,PaymentC,PaymentD processNode
+    class ResendOption processNode

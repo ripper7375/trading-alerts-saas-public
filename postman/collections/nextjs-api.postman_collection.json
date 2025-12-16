@@ -1,0 +1,827 @@
+{
+  "info": {
+    "name": "Trading Alerts SaaS - Next.js API",
+    "description": "Complete API test suite for Next.js backend (38 endpoints)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "nextjs-api-v7",
+    "version": "7.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication (5 endpoints)",
+      "item": [
+        {
+          "name": "Register - Email/Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has user object', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('user');",
+                  "  pm.expect(json.user).to.have.property('id');",
+                  "  pm.expect(json.user).to.have.property('email');",
+                  "  pm.collectionVariables.set('userId', json.user.id);",
+                  "});",
+                  "",
+                  "pm.test('Default tier is FREE', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.user.tier).to.equal('FREE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"name\": \"Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login - Email/Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has session token', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('token');",
+                  "  pm.collectionVariables.set('authToken', json.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePass123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login - Google OAuth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google"]
+            }
+          }
+        },
+        {
+          "name": "Get Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Session contains user data', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('user');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "session"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Management (6 endpoints)",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Profile has required fields', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json).to.have.property('email');",
+                  "  pm.expect(json).to.have.property('tier');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"SecurePass123!\",\n  \"newPassword\": \"NewSecurePass123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "password"]
+            }
+          }
+        },
+        {
+          "name": "Get User Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Update User Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailNotifications\": true,\n  \"pushNotifications\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "account"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Watchlist (8 endpoints)",
+      "item": [
+        {
+          "name": "Get Watchlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is array', () => {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist"]
+            }
+          }
+        },
+        {
+          "name": "Add Symbol to Watchlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Symbol added successfully', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.symbol).to.equal('XAUUSD');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"XAUUSD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist"]
+            }
+          }
+        },
+        {
+          "name": "Get Watchlist Symbol",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist/{{symbolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist", "{{symbolId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Watchlist Symbol",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Updated notes\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist/{{symbolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist", "{{symbolId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete from Watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist/{{symbolId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist", "{{symbolId}}"]
+            }
+          }
+        },
+        {
+          "name": "Check Symbol Access (Tier Validation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist/validate?symbol=EURUSD",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist", "validate"],
+              "query": [
+                {
+                  "key": "symbol",
+                  "value": "EURUSD"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Watchlist Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Clear Watchlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/watchlist/clear",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "watchlist", "clear"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Alerts (7 endpoints)",
+      "item": [
+        {
+          "name": "Get All Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts"]
+            }
+          }
+        },
+        {
+          "name": "Create Alert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"XAUUSD\",\n  \"condition\": \"price_above\",\n  \"value\": 2050,\n  \"timeframe\": \"H1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts"]
+            }
+          }
+        },
+        {
+          "name": "Get Alert by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Alert",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 2100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Alert",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}"]
+            }
+          }
+        },
+        {
+          "name": "Toggle Alert Status",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/{{alertId}}/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "{{alertId}}", "toggle"]
+            }
+          }
+        },
+        {
+          "name": "Get Alert History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Subscription (4 endpoints)",
+      "item": [
+        {
+          "name": "Get Subscription Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscription",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscription"]
+            }
+          }
+        },
+        {
+          "name": "Upgrade to PRO",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"PRO\",\n  \"billingCycle\": \"monthly\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscription/upgrade",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscription", "upgrade"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Subscription",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscription/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscription", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Get Usage Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscription/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscription", "usage"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payments (5 endpoints)",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"PRO\",\n  \"billingCycle\": \"monthly\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/create-intent",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "create-intent"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/methods",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "methods"]
+            }
+          }
+        },
+        {
+          "name": "Add Payment Method",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethodId\": \"pm_test_123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/methods",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "methods"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "history"]
+            }
+          }
+        },
+        {
+          "name": "Stripe Webhook",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Admin (3 endpoints)",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Update User Tier",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"PRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/tier",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}", "tier"]
+            }
+          }
+        },
+        {
+          "name": "Get System Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "stats"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

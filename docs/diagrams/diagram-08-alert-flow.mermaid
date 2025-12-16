@@ -1,0 +1,77 @@
+sequenceDiagram
+    participant User
+    participant Next.js
+    participant DB as Database
+    participant BG as Background Worker
+    participant MT5 as Flask MT5 Service
+    participant Email
+    participant WS as WebSocket
+    participant Push
+
+    Note over User,Push: Alert Creation Phase
+    User->>Next.js: POST /api/alerts
+    Note right of User: {symbol: XAUUSD,<br/>timeframe: H1,<br/>type: PRICE_CROSS_LINE,<br/>condition: {...}}
+    
+    Next.js->>Next.js: Validate tier access
+    alt FREE tier with PRO symbol
+        Next.js-->>User: 403 Symbol not available
+    end
+    
+    Next.js->>DB: Check alert limit
+    alt Limit exceeded
+        Next.js-->>User: 403 Alert limit reached
+    end
+    
+    Next.js->>DB: Create alert record
+    DB-->>Next.js: Alert created
+    Next.js-->>User: 201 Alert created
+    
+    Note over User,Push: Background Checking Phase (Every 1 min)
+    
+    loop Every 1 minute
+        BG->>DB: Get active alerts
+        DB-->>BG: Alert list
+        
+        loop For each alert
+            BG->>MT5: GET /api/indicators/{symbol}/{timeframe}
+            MT5-->>BG: Current indicator data
+            
+            BG->>BG: Evaluate condition
+            
+            alt Condition met
+                BG->>DB: Update lastTriggered, triggerCount
+                
+                Note over BG,Push: Multi-channel Notification
+                
+                par Email notification
+                    BG->>Email: sendAlertNotification()
+                    Email-->>BG: Sent
+                and WebSocket notification
+                    BG->>WS: Emit alert event
+                    WS-->>User: Real-time notification
+                and Push notification (if enabled)
+                    BG->>Push: Send push
+                    Push-->>User: Mobile notification
+                and Database notification
+                    BG->>DB: Create notification record
+                end
+                
+                alt One-time alert
+                    BG->>DB: Set isActive = false
+                end
+            end
+        end
+    end
+    
+    Note over User,Push: Alert Management
+    
+    User->>Next.js: PUT /api/alerts/{id}
+    Note right of User: Update or pause
+    Next.js->>DB: Update alert
+    DB-->>Next.js: Updated
+    Next.js-->>User: 200 Alert updated
+    
+    User->>Next.js: DELETE /api/alerts/{id}
+    Next.js->>DB: Delete alert
+    DB-->>Next.js: Deleted
+    Next.js-->>User: 200 Alert deleted

@@ -1,0 +1,135 @@
+sequenceDiagram
+    actor User
+    participant UI as Registration Form
+    participant API as /api/auth/register
+    participant DB as PostgreSQL
+    participant Email as Email Service
+    participant Verify as /api/auth/verify-email
+    participant Login as /api/auth/login
+    participant NextAuth as NextAuth.js
+    participant Session as Session Manager
+
+    %% REGISTRATION FLOW
+    rect rgb(240, 248, 255)
+        Note over User,Email: 1. REGISTRATION (Sign Up)
+        User->>UI: Fill registration form<br/>(name, email, password)
+        UI->>UI: Client-side validation
+        UI->>API: POST /register<br/>{name, email, password, acceptTerms}
+        
+        API->>API: Validate schema (Zod)
+        API->>API: Check password strength<br/>(min 8 chars, upper, lower, number)
+        
+        API->>DB: Check if email exists
+        alt Email already exists
+            DB-->>API: User found
+            API-->>UI: 409 Conflict<br/>"Email already registered"
+            UI-->>User: Show error message
+        else Email available
+            DB-->>API: Email available
+            API->>API: Hash password (bcrypt, rounds=12)
+            API->>DB: CREATE User<br/>(tier: FREE, isActive: false)
+            DB-->>API: User created (id)
+            
+            API->>API: Generate verification token<br/>(24h expiry)
+            API->>DB: CREATE VerificationToken<br/>(identifier: email, token, expires)
+            DB-->>API: Token stored
+            
+            API->>Email: Send verification email<br/>(token, user info)
+            Email-->>User: Email: "Verify your account"
+            
+            API->>DB: Log system event<br/>("New user registered: FREE tier")
+            
+            API-->>UI: 201 Created<br/>{success, message, user: {tier: FREE}}
+            UI-->>User: "Check your email to verify"
+        end
+    end
+
+    %% EMAIL VERIFICATION FLOW
+    rect rgb(240, 255, 240)
+        Note over User,Session: 2. EMAIL VERIFICATION
+        User->>User: Open email
+        User->>Verify: Click verification link<br/>GET /verify-email?token=xxx
+        
+        Verify->>DB: Find VerificationToken by token
+        alt Token not found or expired
+            DB-->>Verify: Invalid/expired token
+            Verify-->>User: 400 Bad Request<br/>"Invalid verification token"
+        else Token valid
+            DB-->>Verify: Token found
+            Verify->>DB: UPDATE User<br/>(emailVerified: now(), isActive: true)
+            DB-->>Verify: User activated
+            
+            Verify->>DB: DELETE VerificationToken
+            DB-->>Verify: Token removed
+            
+            Verify->>Email: Send welcome email<br/>(with tier info: FREE)
+            Email-->>User: Email: "Welcome! You have FREE tier"
+            
+            Verify-->>User: 200 Success<br/>{success, message, tier: FREE}
+            User->>User: Redirect to login page
+        end
+    end
+
+    %% LOGIN FLOW
+    rect rgb(255, 248, 240)
+        Note over User,Session: 3. LOGIN (Sign In)
+        User->>Login: Submit credentials<br/>(email, password, rememberMe)
+        
+        Login->>NextAuth: signIn('credentials', {email, password})
+        
+        NextAuth->>DB: Find User by email
+        alt User not found
+            DB-->>NextAuth: No user
+            NextAuth-->>Login: Error: "Invalid credentials"
+            Login-->>User: 401 Unauthorized
+        else User found
+            DB-->>NextAuth: User data (passwordHash, tier)
+            NextAuth->>NextAuth: Compare password with hash<br/>(bcrypt.compare)
+            
+            alt Password invalid
+                NextAuth-->>Login: Error: "Invalid credentials"
+                Login-->>User: 401 Unauthorized
+            else Password valid
+                NextAuth->>DB: UPDATE User.lastLogin = now()
+                DB-->>NextAuth: Updated
+                
+                NextAuth->>NextAuth: Create JWT token<br/>(id, email, name, tier)
+                Note over NextAuth: JWT includes:<br/>- user.id<br/>- user.tier (FREE/PRO)<br/>- expires in 30d
+                
+                NextAuth->>Session: Create session<br/>(user + tier data)
+                Session->>DB: CREATE Session<br/>(sessionToken, userId, expires)
+                DB-->>Session: Session stored
+                
+                Session-->>NextAuth: Session created
+                NextAuth-->>Login: {success, token, user: {tier}}
+                Login-->>User: 200 OK + Set-Cookie<br/>Redirect to /dashboard
+                
+                User->>User: Navigate to dashboard
+            end
+        end
+    end
+
+    %% SESSION VALIDATION
+    rect rgb(255, 240, 245)
+        Note over User,Session: 4. SESSION MANAGEMENT
+        User->>UI: Access protected route<br/>/dashboard
+        
+        UI->>NextAuth: getServerSession()
+        NextAuth->>DB: Validate session token
+        
+        alt Session invalid/expired
+            DB-->>NextAuth: No session
+            NextAuth-->>UI: null session
+            UI-->>User: Redirect to /login
+        else Session valid
+            DB-->>NextAuth: Session data
+            NextAuth->>NextAuth: Decode JWT<br/>(extract tier info)
+            NextAuth-->>UI: Session {user: {id, email, tier}}
+            
+            UI->>UI: Apply tier-based access control<br/>(FREE: XAUUSD only | PRO: 10 symbols)
+            UI-->>User: Render dashboard<br/>(with tier badge)
+        end
+    end
+
+    %% NOTES
+    Note over User,Session: V5 Features:<br/>✓ Default FREE tier on registration<br/>✓ Email verification required<br/>✓ JWT includes tier info<br/>✓ Tier-based access control<br/>✓ Session persists tier data

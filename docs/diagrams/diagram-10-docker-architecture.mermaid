@@ -1,0 +1,64 @@
+graph TB
+    subgraph "Local Development Environment"
+        subgraph "Network: trading-alerts-network"
+            
+            subgraph "Next.js Container"
+                Next[Next.js 15 App<br/>:3000<br/>Turbopack]
+                Next -.->|.env| NextEnv[DATABASE_URL<br/>REDIS_URL<br/>MT5_API_URL<br/>NEXTAUTH_SECRET]
+            end
+            
+            subgraph "Flask MT5 Container"
+                Flask[Flask MT5 Service<br/>:5001<br/>Python 3.11]
+                Flask -.->|.env| FlaskEnv[MT5_LOGIN<br/>MT5_PASSWORD<br/>MT5_SERVER<br/>API_KEY]
+                Flask -->|MT5 API| MT5Term[MT5 Terminal<br/>Wine/Windows]
+            end
+            
+            subgraph "PostgreSQL Container"
+                PG[(PostgreSQL 15<br/>:5432)]
+                PG -.-> PGVol[/postgres_data<br/>volume/]
+            end
+            
+            subgraph "Redis Container"
+                Redis[(Redis 7<br/>:6379)]
+            end
+            
+        end
+        
+        Next -->|HTTP| Flask
+        Next -->|SQL| PG
+        Next -->|Cache| Redis
+        Flask -->|Pub/Sub| Redis
+        
+        Dev[Developer<br/>Browser] -->|http://localhost:3000| Next
+        Dev -->|Prisma Studio<br/>:5555| PG
+        
+    end
+    
+    subgraph "External Services"
+        Stripe[Stripe API<br/>Payments]
+        Resend[Resend API<br/>Email]
+        Sentry[Sentry<br/>Error Tracking]
+    end
+    
+    Next -.->|HTTPS| Stripe
+    Next -.->|HTTPS| Resend
+    Next -.->|HTTPS| Sentry
+    
+    subgraph "Development Tools"
+        VSCode[VS Code<br/>Dev Container]
+        Prisma[Prisma Studio<br/>DB GUI]
+        Thunder[Thunder Client<br/>API Testing]
+    end
+    
+    VSCode -->|Docker Exec| Next
+    Prisma -->|:5555| PG
+    Thunder -->|API Calls| Next
+    
+    style Next fill:#0070f3
+    style Flask fill:#000
+    style PG fill:#336791
+    style Redis fill:#dc382d
+    style Dev fill:#ffd93d
+    style Stripe fill:#635bff
+    style Resend fill:#000
+    style Sentry fill:#362d59

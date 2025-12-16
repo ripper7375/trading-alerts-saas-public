@@ -1,0 +1,60 @@
+gantt
+    title Trading Alerts SaaS V5 Implementation Timeline
+    dateFormat YYYY-MM-DD
+    axisFormat %b %d
+    
+    section Week 1-2 Foundation
+    Next.js 15 Setup                    :done, a1, 2025-01-06, 2d
+    Database Schema Prisma              :done, a2, 2025-01-08, 2d
+    SERVICE 1 Registration              :active, a3, 2025-01-10, 3d
+    SERVICE 2 Login                     :a4, 2025-01-13, 3d
+    Protected Routes                    :a5, 2025-01-16, 2d
+    Basic UI Components                 :a6, 2025-01-18, 2d
+    
+    section Week 3-4 Core
+    Flask MT5 Setup                     :crit, b1, 2025-01-20, 3d
+    Indicator API Routes                :crit, b2, 2025-01-23, 3d
+    Trading Chart Component             :b3, 2025-01-26, 3d
+    Dashboard Layout                    :b4, 2025-01-29, 2d
+    WebSocket Setup                     :b5, 2025-01-31, 2d
+    Basic Settings                      :b6, 2025-02-02, 2d
+    
+    section Week 5-6 Settings
+    Privacy Settings                    :c1, 2025-02-04, 2d
+    Billing Integration                 :crit, c2, 2025-02-06, 3d
+    Help and Support                    :c3, 2025-02-09, 3d
+    Documentation Pages                 :c4, 2025-02-12, 2d
+    Alert System                        :c5, 2025-02-14, 4d
+    
+    section Week 7-10 Admin
+    Admin Dashboard                     :d1, 2025-02-18, 4d
+    User Management                     :d2, 2025-02-22, 3d
+    Analytics Reports                   :d3, 2025-02-25, 3d
+    API Monitoring                      :d4, 2025-02-28, 2d
+    Pricing Plans Page                  :crit, d5, 2025-03-02, 2d
+    Stripe Integration                  :crit, d6, 2025-03-04, 4d
+    Subscription Management             :crit, d7, 2025-03-08, 4d
+    Invoice System                      :d8, 2025-03-12, 3d
+    MVP Deploy                          :milestone, d9, 2025-03-15, 1d
+    
+    section Week 11-16 Notifications
+    Notification Bell                   :e1, 2025-03-16, 3d
+    Real-time WebSocket                 :e2, 2025-03-19, 3d
+    Email Notifications                 :e3, 2025-03-22, 3d
+    System Health Monitor               :crit, e4, 2025-03-25, 3d
+    Alert Configuration                 :e5, 2025-03-28, 4d
+    Push Notifications                  :e6, 2025-04-01, 4d
+    Multi-indicator Support             :e7, 2025-04-05, 5d
+    Symbol Watchlist                    :e8, 2025-04-10, 4d
+    Advanced Charts                     :e9, 2025-04-14, 5d
+    Performance Optimization            :e10, 2025-04-19, 4d
+    
+    section Week 17-20 Mobile
+    PWA Configuration                   :f1, 2025-04-23, 3d
+    Service Worker                      :f2, 2025-04-26, 2d
+    Offline Support                     :f3, 2025-04-28, 3d
+    Mobile UI Optimization              :f4, 2025-05-01, 4d
+    Mobile Push Notifications           :f5, 2025-05-05, 3d
+    App Store Prep                      :f6, 2025-05-08, 3d
+    Mobile Testing                      :f7, 2025-05-11, 3d
+    Production Launch                   :milestone, f8, 2025-05-14, 1d

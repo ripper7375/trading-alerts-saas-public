@@ -1,0 +1,37 @@
+# Flask MT5 Service Dependencies
+# Updated during Phase 3 - Part 6 implementation
+
+# Core Flask dependencies
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# MT5 integration
+# MetaTrader5==5.0.45  # Windows-only package, not available on Linux/GitHub Actions
+# NOTE: MetaTrader5 will be installed manually on production Windows server
+# For CI/CD testing on Linux, we skip this dependency
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# API utilities
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Validation
+pydantic==2.5.0
+
+# Logging
+colorlog==6.8.0
+
+# Production server
+gunicorn==21.2.0
+gevent==23.9.1
+
+# Testing (dev dependencies)
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-flask==1.3.0

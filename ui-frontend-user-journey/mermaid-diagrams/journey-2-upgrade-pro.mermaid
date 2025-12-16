@@ -1,0 +1,123 @@
+graph TB
+    Start([User Decides to Upgrade])
+    
+    subgraph "Upgrade Entry Points"
+        E1[From Dashboard<br/>Upgrade Banner]
+        E2[From Settings<br/>Subscription Section]
+        E3[From Pricing Page<br/>Direct Upgrade]
+        E4[From Feature Limit<br/>Hit 5/5 Alerts Limit]
+    end
+    
+    subgraph "Billing Page"
+        P10[Billing & Subscription<br/>/dashboard/settings/billing]
+        P10_View[View PRO Benefits:<br/>✓ 15 Symbols<br/>✓ 9 Timeframes M5-D1<br/>✓ 20 Alerts<br/>✓ 50 Watchlist Items<br/>✓ 300 API req/hour<br/>✓ 30s Chart Updates<br/>✓ SMS Notifications]
+        P10_Pricing[Choose Plan:<br/>◉ Monthly - $29/month<br/>○ Yearly - $290/year]
+        P10_Trial[7-Day Free Trial<br/>No charge until Jan 22]
+    end
+    
+    subgraph "Payment Form"
+        P10_Form[Payment Information<br/>Stripe Embedded Form]
+        P10_Card[Enter Card Details:<br/>Card Number<br/>Expiry & CVV<br/>Name on Card]
+        P10_Billing[Billing Address:<br/>Same as Account]
+        P10_Save[Save Card Option]
+        P10_Validate[Real-time Validation<br/>Card Type Detection<br/>Security Checks]
+    end
+    
+    subgraph "Payment Processing"
+        P10_Submit[Click Start 7-Day Trial]
+        P10_Backend[Backend Process:<br/>POST /api/webhooks/stripe<br/>Create Stripe Customer<br/>Create Subscription<br/>If Discount Code Used:<br/>- Mark Code as USED<br/>- Create Commission Record<br/>- Notify Affiliate +$7.83<br/>Update User Tier to PRO<br/>Store Subscription Record]
+        P10_Confirm[Payment Confirmed<br/>Trial Started<br/>Discount Applied if Used]
+    end
+    
+    subgraph "Welcome to PRO"
+        P11[Dashboard After Upgrade<br/>/dashboard]
+        P11_Welcome[🎉 Welcome Message:<br/>PRO TIER ⭐<br/>Trial Period: 7 days<br/>Next billing: Jan 22]
+        P11_Stats[Updated Usage Stats:<br/>Watchlist: 1/50<br/>Alerts: 1/20<br/>API: 45/300]
+        P11_Features[New Features Unlocked:<br/>✓ 10 More Symbols<br/>✓ 6 More Timeframes<br/>✓ 15 More Alerts<br/>✓ Faster Chart Updates 30s]
+    end
+    
+    subgraph "Exploring PRO TradingView Charts"
+        P11_Charts[Live Charts Page<br/>/dashboard/charts]
+        P11_Symbols[Symbol Dropdown:<br/>AUDJPY 🎉 NEW<br/>AUDUSD 🎉 NEW<br/>BTCUSD<br/>ETHUSD 🎉 NEW<br/>EURUSD<br/>GBPJPY 🎉 NEW<br/>GBPUSD 🎉 NEW<br/>NDX100 🎉 NEW<br/>NZDUSD 🎉 NEW<br/>US30<br/>USDCAD 🎉 NEW<br/>USDCHF 🎉 NEW<br/>USDJPY<br/>XAGUSD 🎉 NEW<br/>XAUUSD]
+        P11_Timeframes[Timeframe Dropdown:<br/>M5 🎉 NEW<br/>M15 🎉 NEW<br/>M30 🎉 NEW<br/>H1<br/>H2 🎉 NEW<br/>H4<br/>H8 🎉 NEW<br/>H12 🎉 NEW<br/>D1]
+        P11_Speed[Enhanced Chart Performance:<br/>⚡ Updates Every 30s<br/>Previously: 60s<br/>Progress Bar: 3s<br/>Smooth TradingView Refresh]
+        P11_TradingView[Try Advanced Features:<br/>Zoom into M5 Detail<br/>Pan Through History<br/>Crosshair Analysis<br/>Multiple Timeframe Study]
+    end
+    
+    subgraph "Expanded Usage with Charts"
+        P11_Watchlist[Add More to Watchlist<br/>Try GBPUSD H1<br/>Try EURUSD M15<br/>Try BTCUSD M5<br/>View All on TradingView]
+        P11_Analysis[Advanced Chart Analysis:<br/>Use Zoom for Detail<br/>Compare Timeframes<br/>Study Fractal Patterns<br/>Professional Tools]
+        P11_Alerts[Create Multiple Alerts<br/>Different Symbols<br/>Different Timeframes<br/>Click Lines on Charts<br/>Multiple Strategies]
+        P11_SMS[Enable SMS Notifications<br/>Now Available! 📱<br/>Get Alerts Anywhere]
+    end
+    
+    subgraph "Subscription Management"
+        P12[Billing Page<br/>/dashboard/settings/billing]
+        P12_Status[View Subscription:<br/>Status: Active Trial<br/>Trial Ends: 5 days<br/>Next Payment: $29.00]
+        P12_Card[Payment Method:<br/>💳 Visa ****4242<br/>Expires: 12/2026]
+        P12_Actions[Available Actions:<br/>Switch to Annual<br/>Update Payment<br/>Pause Subscription<br/>Cancel Anytime]
+        P12_Usage[Usage This Period:<br/>Alerts: 3/20 15%<br/>Watchlist: 5/50 10%<br/>API: 1,245/300 peak<br/>Chart Views: 150+]
+    end
+    
+    Start --> E1
+    Start --> E2
+    Start --> E3
+    Start --> E4
+    
+    E1 --> P10
+    E2 --> P10
+    E3 --> P10
+    E4 --> P10
+    
+    P10 --> P10_View
+    P10_View --> P10_Pricing
+    P10_Pricing --> P10_Trial
+    P10_Trial --> P10_Discount[Optional Discount Code<br/>Enter Code from Affiliate<br/>Apply & Validate]
+    P10_Discount --> P10_DiscountApplied{Code Valid?}
+    P10_DiscountApplied -->|Yes| P10_DiscountSuccess[✅ Discount Applied!<br/>$29 → $26.10<br/>Save $2.90/month]
+    P10_DiscountApplied -->|No/Skip| P10_Form
+    P10_DiscountSuccess --> P10_Form
+    
+    P10_Form --> P10_Card
+    P10_Card --> P10_Billing
+    P10_Billing --> P10_Save
+    P10_Save --> P10_Validate
+    P10_Validate --> P10_Submit
+    
+    P10_Submit --> P10_Backend
+    P10_Backend --> P10_Confirm
+    P10_Confirm --> P11
+    
+    P11 --> P11_Welcome
+    P11_Welcome --> P11_Stats
+    P11_Stats --> P11_Features
+    P11_Features --> P11_Charts
+    
+    P11_Charts --> P11_Symbols
+    P11_Symbols --> P11_Timeframes
+    P11_Timeframes --> P11_Speed
+    P11_Speed --> P11_TradingView
+    P11_TradingView --> P11_Watchlist
+    
+    P11_Watchlist --> P11_Analysis
+    P11_Analysis --> P11_Alerts
+    P11_Alerts --> P11_SMS
+    P11_SMS --> P12
+    
+    P12 --> P12_Status
+    P12_Status --> P12_Card
+    P12_Card --> P12_Actions
+    P12_Actions --> P12_Usage
+    
+    style Start fill:#F59E0B,color:#000
+    style P10_Discount fill:#FEF3C7,color:#000
+    style P10_DiscountApplied fill:#FCD34D,color:#000
+    style P10_DiscountSuccess fill:#10B981,color:#fff
+    style P10_Confirm fill:#10B981,color:#fff
+    style P11 fill:#F59E0B,color:#000
+    style P11_Welcome fill:#10B981,color:#fff
+    style P11_Features fill:#10B981,color:#fff
+    style P11_Speed fill:#2196F3,color:#fff
+    style P11_TradingView fill:#2196F3,color:#fff
+    style P11_Analysis fill:#2196F3,color:#fff
+    style P12 fill:#8B5CF6,color:#fff

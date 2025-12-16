@@ -1,0 +1,170 @@
+%% Affiliate Dashboard Daily Workflow
+%% Daily activities for active affiliates
+
+graph TB
+    Start([Affiliate Daily Routine]) --> Login[Login to /affiliate/dashboard]
+
+    Login --> AuthCheck{Authenticated<br/>& Active?}
+
+    AuthCheck -->|No| LoginPage[Redirect to /affiliate/login]
+    LoginPage --> Login
+
+    AuthCheck -->|Yes| LoadDash[Load Dashboard]
+
+    LoadDash --> APIStats[GET /api/affiliate/dashboard/stats]
+    LoadDash --> APIInventory[GET /api/affiliate/dashboard/code-inventory]
+    LoadDash --> APICommission[GET /api/affiliate/dashboard/commission-report]
+
+    APIStats --> ShowStats[Display Quick Stats:<br/>- Total Codes: 15<br/>- Active: 5<br/>- Used: 10<br/>- Total Earned: $87]
+
+    APIInventory --> ShowInventory[Display Code Inventory:<br/>Opening: 0<br/>+ Received: 15<br/>- Used: 10<br/>= Closing: 5]
+
+    APICommission --> ShowCommission[Display Commission Report:<br/>Opening: $0<br/>+ Earned: $87<br/>- Paid: $0<br/>= Owing: $87]
+
+    ShowStats --> DashActions{What to Do?}
+    ShowInventory --> DashActions
+    ShowCommission --> DashActions
+
+    %% Path 1: Check Detailed Commission Report
+    DashActions -->|View Commissions| ClickCommission[Click View Detailed Report]
+
+    ClickCommission --> CommissionPage[Navigate to /affiliate/dashboard/commissions]
+
+    CommissionPage --> LoadCommissions[Load Commission Details:<br/>- 10 transactions<br/>- Click to see breakdown]
+
+    LoadCommissions --> DrillDown[Drill Down:<br/>Date | Code | Tier | Price | Commission]
+
+    DrillDown --> ExportComm{Export Report?}
+
+    ExportComm -->|Yes| DownloadPDF[Download PDF/CSV]
+    DownloadPDF --> BackToDash1[Back to Dashboard]
+
+    ExportComm -->|No| BackToDash1
+
+    %% Path 2: View and Copy Codes
+    DashActions -->|Share Codes| ClickCodes[Click View All Codes]
+
+    ClickCodes --> CodesPage[Navigate to /affiliate/dashboard/codes]
+
+    CodesPage --> LoadCodes[Load Active Codes:<br/>5 active codes with details]
+
+    LoadCodes --> SelectCode[Select Code to Share]
+
+    SelectCode --> CopyCode[Click Copy Button 📋]
+
+    CopyCode --> ClipboardAPI[navigator.clipboard.writeText]
+
+    ClipboardAPI --> Toast[Show Toast:<br/>Code copied to clipboard!]
+
+    Toast --> ShareSocial[Share on Social Media:<br/>- Facebook<br/>- Instagram<br/>- YouTube<br/>- TikTok<br/>- Twitter]
+
+    ShareSocial --> WaitConversion[Wait for Conversions...]
+
+    WaitConversion --> CodeUsed{Code Used<br/>by Customer?}
+
+    CodeUsed -->|Yes| EmailNotif[Receive Email:<br/>Your code was used!<br/>+$7.83 earned]
+
+    EmailNotif --> DashNotif[Dashboard Notification Badge:<br/>🔔 1 new notification]
+
+    DashNotif --> CheckNotif[Click Notification]
+
+    CheckNotif --> ViewUsage[View Code Usage Details:<br/>Code | Customer | Amount]
+
+    ViewUsage --> BackToDash2[Back to Dashboard]
+
+    CodeUsed -->|No| KeepSharing[Keep Sharing Codes]
+    KeepSharing --> BackToDash2
+
+    %% Path 3: Update Profile/Payment
+    DashActions -->|Update Profile| ClickProfile[Click Profile Settings]
+
+    ClickProfile --> ProfilePage[Navigate to /affiliate/profile]
+
+    ProfilePage --> ViewProfile[View Current Info:<br/>- Personal details<br/>- Social media<br/>- Payment method]
+
+    ViewProfile --> WhatUpdate{What to Update?}
+
+    WhatUpdate -->|Payment| ClickPayment[Click Payment Settings]
+
+    ClickPayment --> PaymentPage[Navigate to /affiliate/profile/payment]
+
+    PaymentPage --> ShowCurrent[Show Current Payment Method]
+
+    ShowCurrent --> ChangeMethod[Change Payment Method:<br/>Bank → Crypto]
+
+    ChangeMethod --> FillCrypto[Fill Crypto Wallet Details:<br/>- Address<br/>- Preferred Currency]
+
+    FillCrypto --> UpdateAPI[PUT /api/affiliate/profile/payment]
+
+    UpdateAPI --> SavePayment[Update Database]
+
+    SavePayment --> SuccessMsg[Success: Payment method updated]
+
+    SuccessMsg --> BackToDash3[Back to Dashboard]
+
+    WhatUpdate -->|Social Media| UpdateSocial[Update Social Media URLs]
+
+    UpdateSocial --> SaveSocial[PUT /api/affiliate/profile]
+
+    SaveSocial --> BackToDash3
+
+    WhatUpdate -->|Nothing| BackToDash3
+
+    %% Path 4: Check Inventory Report
+    DashActions -->|Check Inventory| ViewInventory[Click View Detailed Inventory]
+
+    ViewInventory --> InventoryPage[Navigate to /affiliate/dashboard/code-inventory]
+
+    InventoryPage --> LoadInventoryDetail[Load Inventory Movements:<br/>Received | Used | Expired | Cancelled]
+
+    LoadInventoryDetail --> DrillInventory[Drill Down Each Movement:<br/>Date | Quantity | Notes]
+
+    DrillInventory --> ExportInv{Export?}
+
+    ExportInv -->|Yes| DownloadInv[Download PDF/CSV]
+    DownloadInv --> BackToDash4[Back to Dashboard]
+
+    ExportInv -->|No| BackToDash4
+
+    %% All paths converge
+    BackToDash1 --> Logout{Logout or<br/>Continue?}
+    BackToDash2 --> Logout
+    BackToDash3 --> Logout
+    BackToDash4 --> Logout
+
+    Logout -->|Continue| DashActions
+
+    Logout -->|Logout| LogoutAPI[POST /api/affiliate/auth/logout]
+
+    LogoutAPI --> ClearToken[Clear JWT Token]
+
+    ClearToken --> End([Session Ended])
+
+    %% Monthly automation reminder
+    WaitConversion -.->|1st of Month| MonthlyDistribution[AUTO: 15 New Codes<br/>Distributed via Cron Job]
+
+    MonthlyDistribution -.-> EmailNewCodes[Email: Monthly codes<br/>distributed!]
+
+    EmailNewCodes -.-> LoginNext[Login Next Day to See<br/>New Codes]
+
+    LoginNext -.-> Login
+
+    %% Styling
+    classDef processNode fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef decisionNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef errorNode fill:#ffebee,stroke:#c62828,stroke-width:2px
+    classDef successNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef autoNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef apiNode fill:#e0f2f1,stroke:#00796b,stroke-width:2px
+    classDef socialNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+
+    class Login,LoadDash,ClickCommission,CommissionPage,ClickCodes,CodesPage,SelectCode,CopyCode,ClickProfile,ProfilePage,ClickPayment,PaymentPage,ChangeMethod,FillCrypto,UpdateSocial,ViewInventory,InventoryPage processNode
+    class AuthCheck,DashActions,ExportComm,CodeUsed,WhatUpdate,ExportInv,Logout decisionNode
+    class LoginPage errorNode
+    class ShowStats,ShowInventory,ShowCommission,Toast,SuccessMsg,End successNode
+    class APIStats,APIInventory,APICommission,ClipboardAPI,UpdateAPI,SavePayment,SaveSocial,LogoutAPI,ClearToken apiNode
+    class LoadCommissions,DrillDown,LoadCodes,EmailNotif,DashNotif,CheckNotif,ViewUsage,ShowCurrent,LoadInventoryDetail,DrillInventory processNode
+    class ShareSocial,WaitConversion,KeepSharing socialNode
+    class MonthlyDistribution,EmailNewCodes,LoginNext autoNode
+    class DownloadPDF,DownloadInv,BackToDash1,BackToDash2,BackToDash3,BackToDash4 processNode
+    class ViewProfile processNode

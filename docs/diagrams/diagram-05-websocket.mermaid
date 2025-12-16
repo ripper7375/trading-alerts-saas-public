@@ -1,0 +1,111 @@
+sequenceDiagram
+    participant User as User<br/>(Browser)
+    participant Socket as Socket.IO<br/>Client
+    participant WSServer as WebSocket<br/>Server
+    participant Redis as Redis<br/>Pub/Sub
+    participant AlertJob as Alert Checker<br/>Background Job
+    participant NextAPI as Next.js<br/>API
+    participant MT5 as Flask<br/>MT5 Service
+    participant DB as PostgreSQL
+
+    Note over User,DB: CONNECTION PHASE
+
+    User->>Socket: Open page (Dashboard/Charts)
+    Socket->>WSServer: Connect with JWT
+    WSServer->>WSServer: Validate JWT<br/>Extract userId + tier
+    
+    alt Invalid Token
+        WSServer-->>Socket: ❌ Disconnect
+    else Valid Token
+        WSServer->>WSServer: ✅ Create session<br/>Store userId + tier
+        WSServer-->>Socket: ✅ Connected
+        
+        Socket->>WSServer: Subscribe to channels<br/>['alerts', 'indicators:XAUUSD:H1']
+        WSServer->>Redis: SUBSCRIBE alerts:{userId}
+        WSServer->>Redis: SUBSCRIBE indicators:XAUUSD:H1
+        Redis-->>WSServer: ✅ Subscribed
+        WSServer-->>Socket: ✅ Subscribed
+    end
+
+    Note over User,DB: INDICATOR UPDATE FLOW
+
+    MT5->>MT5: New bar formed<br/>or indicator update
+    MT5->>NextAPI: POST /api/webhooks/indicator-update<br/>{symbol, timeframe, data}
+    NextAPI->>Redis: PUBLISH indicators:XAUUSD:H1<br/>{ohlc, lines, fractals}
+    Redis->>WSServer: Message: indicators:XAUUSD:H1
+    WSServer->>WSServer: Check subscribed clients
+    WSServer->>Socket: Emit 'indicators:XAUUSD:H1'<br/>{data: {...}}
+    Socket->>Socket: Update chart in real-time
+    Socket-->>User: ✅ Chart updated
+
+    Note over User,DB: ALERT NOTIFICATION FLOW
+
+    AlertJob->>AlertJob: Run every 1 minute<br/>(cron job)
+    AlertJob->>DB: SELECT * FROM Alert<br/>WHERE isActive = true
+    DB-->>AlertJob: Return active alerts
+    
+    loop For each alert
+        AlertJob->>MT5: GET /api/indicators/:symbol/:timeframe
+        MT5-->>AlertJob: Current data
+        
+        AlertJob->>AlertJob: Check alert condition<br/>(price touch line, cross, etc)
+        
+        alt Condition Met
+            AlertJob->>DB: INSERT INTO AlertNotification<br/>{alertId, triggeredAt}
+            AlertJob->>DB: UPDATE Alert<br/>SET lastTriggered, triggerCount++
+            
+            AlertJob->>Redis: PUBLISH alerts:{userId}<br/>{alert, symbol, price, type}
+            
+            Redis->>WSServer: Message: alerts:{userId}
+            
+            WSServer->>WSServer: Find user's socket<br/>by userId
+            
+            WSServer->>Socket: Emit 'alert-triggered'<br/>{alertName, symbol, price}
+            
+            Socket->>Socket: Show toast notification
+            Socket->>Socket: Play sound alert
+            Socket-->>User: 🔔 Alert notification
+            
+            AlertJob->>NextAPI: Send email notification<br/>POST /api/notifications/email
+            NextAPI->>NextAPI: Send via Resend
+            
+            AlertJob->>DB: INSERT INTO Notification<br/>{userId, type: ALERT, ...}
+        else Condition Not Met
+            AlertJob->>AlertJob: Continue to next alert
+        end
+    end
+
+    Note over User,DB: PRICE UPDATE FLOW (Real-time Streaming)
+
+    loop Every 1 second (tick updates)
+        MT5->>MT5: New tick received
+        MT5->>NextAPI: POST /api/webhooks/price-update<br/>{symbol, bid, ask, time}
+        NextAPI->>NextAPI: Check if any users<br/>watching this symbol
+        NextAPI->>Redis: PUBLISH price:{symbol}<br/>{bid, ask, time}
+        Redis->>WSServer: Message: price:{symbol}
+        WSServer->>Socket: Emit 'price-update'<br/>{symbol, bid, ask}
+        Socket->>Socket: Update price display
+        Socket-->>User: ✅ Live price
+    end
+
+    Note over User,DB: SYSTEM NOTIFICATION FLOW
+
+    NextAPI->>NextAPI: System event occurs<br/>(maintenance, error, etc)
+    NextAPI->>DB: INSERT INTO Notification<br/>{type: SYSTEM, ...}
+    NextAPI->>Redis: PUBLISH system-broadcast<br/>{title, message}
+    Redis->>WSServer: Message: system-broadcast
+    
+    loop For each connected user
+        WSServer->>Socket: Emit 'system-notification'<br/>{title, message}
+        Socket->>Socket: Show system banner
+    end
+    Socket-->>User: ⚠️ System notification
+
+    Note over User,DB: DISCONNECTION
+
+    User->>Socket: Close page/Navigate away
+    Socket->>WSServer: Disconnect
+    WSServer->>Redis: UNSUBSCRIBE alerts:{userId}
+    WSServer->>Redis: UNSUBSCRIBE indicators:*
+    WSServer->>WSServer: Remove session
+    WSServer-->>Socket: ✅ Disconnected

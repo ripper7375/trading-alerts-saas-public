@@ -1,0 +1,1412 @@
+openapi: 3.0.3
+info:
+  title: Flask MT5 Microservice API
+  version: 5.0.0
+  description: |
+    MT5 integration microservice for Trading Alerts SaaS platform.
+
+    **Purpose:** Reads indicator data from multiple MT5 terminals with custom MQL5 indicators.
+
+    **Architecture (Multi-Terminal):**
+    - Manages 15 MT5 terminal connections (one per symbol)
+    - Each terminal handles single symbol with all 9 timeframes
+    - Symbol-to-terminal routing handled internally
+    - Automatic connection pooling and health monitoring
+    - Reads custom indicator buffers from each terminal:
+      - Fractal Horizontal Line_V5.mq5 (horizontal support/resistance lines)
+      - Fractal Diagonal Line_V4.mq5 (diagonal trend lines)
+
+    **Additional MQL5 Tools (Seed Code Reference):**
+    - OHLC Download_V4.mq5 (utility for exporting OHLC data to files - not used by Flask service)
+
+    **Why Multiple Terminals:**
+    - PRO tier requires 135 chart combinations (15 symbols × 9 timeframes)
+    - Single MT5 cannot efficiently handle 135 chart windows
+    - Solution: 15 terminals × 9 charts each = distributed load
+    - Fault isolation: if one terminal fails, others continue working
+
+    **Tier-Based Access Control:**
+    - FREE tier: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1)
+    - PRO tier: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+
+    **Timeframes:** M5 (PRO only), M15, M30, H1, H2, H4, H8, H12 (PRO only), D1
+
+    **Authentication:** API key via X-API-Key header (called by Next.js backend only)
+  contact:
+    name: MT5 Service Support
+    email: support@tradingalerts.com
+  license:
+    name: Proprietary
+    url: https://tradingalerts.com/license
+
+servers:
+  - url: http://localhost:5001
+    description: Local development
+  - url: http://mt5-service:5001
+    description: Docker container (internal)
+  - url: https://mt5.tradingalerts.com
+    description: Production (internal - not public)
+
+tags:
+  - name: System
+    description: Health checks and service status
+  - name: Indicators
+    description: Indicator data retrieval (tier-gated)
+  - name: Metadata
+    description: Symbols and timeframes information
+  - name: Admin
+    description: Administrative endpoints for MT5 terminal management (admin-only)
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # ============================================
+  # SYSTEM ENDPOINTS
+  # ============================================
+  /api/health:
+    get:
+      tags:
+        - System
+      summary: Health check (all MT5 terminals)
+      description: |
+        Check if MT5 service is running and status of all 15 MT5 terminal connections.
+        Returns overall status and per-terminal connection details.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy (at least 1 terminal connected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                all_connected:
+                  summary: All terminals connected
+                  value:
+                    status: ok
+                    version: v5.0.0
+                    total_terminals: 15
+                    connected_terminals: 15
+                    terminals:
+                      AUDJPY:
+                        {
+                          connected: true,
+                          terminal_id: MT5_01,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      AUDUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_02,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      BTCUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_03,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      ETHUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_04,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      EURUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_05,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      GBPJPY:
+                        {
+                          connected: true,
+                          terminal_id: MT5_06,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      GBPUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_07,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      NDX100:
+                        {
+                          connected: true,
+                          terminal_id: MT5_08,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      NZDUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_09,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      US30:
+                        {
+                          connected: true,
+                          terminal_id: MT5_10,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      USDCAD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_11,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      USDCHF:
+                        {
+                          connected: true,
+                          terminal_id: MT5_12,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      USDJPY:
+                        {
+                          connected: true,
+                          terminal_id: MT5_13,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      XAGUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_14,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      XAUUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_15,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                partial_outage:
+                  summary: Some terminals disconnected
+                  value:
+                    status: degraded
+                    version: v5.0.0
+                    total_terminals: 15
+                    connected_terminals: 14
+                    terminals:
+                      AUDJPY:
+                        {
+                          connected: true,
+                          terminal_id: MT5_01,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      AUDUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_02,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      BTCUSD:
+                        {
+                          connected: false,
+                          terminal_id: MT5_03,
+                          last_check: '2025-11-17T10:30:00Z',
+                          error: 'Connection timeout',
+                        }
+                      ETHUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_04,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      EURUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_05,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      GBPJPY:
+                        {
+                          connected: true,
+                          terminal_id: MT5_06,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      GBPUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_07,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      NDX100:
+                        {
+                          connected: true,
+                          terminal_id: MT5_08,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      NZDUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_09,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      US30:
+                        {
+                          connected: true,
+                          terminal_id: MT5_10,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      USDCAD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_11,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      USDCHF:
+                        {
+                          connected: true,
+                          terminal_id: MT5_12,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      USDJPY:
+                        {
+                          connected: true,
+                          terminal_id: MT5_13,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      XAGUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_14,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+                      XAUUSD:
+                        {
+                          connected: true,
+                          terminal_id: MT5_15,
+                          last_check: '2025-11-17T10:30:00Z',
+                        }
+        '503':
+          description: Service unavailable (all terminals disconnected)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: All MT5 terminals are disconnected
+
+  # ============================================
+  # METADATA ENDPOINTS
+  # ============================================
+  /api/symbols:
+    get:
+      tags:
+        - Metadata
+      summary: Get accessible symbols by tier
+      description: |
+        Returns list of symbols accessible by the requesting tier.
+        Tier is determined from X-User-Tier header.
+      parameters:
+        - $ref: '#/components/parameters/UserTierHeader'
+      responses:
+        '200':
+          description: List of accessible symbols
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymbolsResponse'
+              examples:
+                free_tier:
+                  summary: FREE tier response
+                  value:
+                    success: true
+                    tier: FREE
+                    symbols:
+                      - BTCUSD
+                      - EURUSD
+                      - USDJPY
+                      - US30
+                      - XAUUSD
+                pro_tier:
+                  summary: PRO tier response
+                  value:
+                    success: true
+                    tier: PRO
+                    symbols:
+                      - AUDJPY
+                      - AUDUSD
+                      - BTCUSD
+                      - ETHUSD
+                      - EURUSD
+                      - GBPJPY
+                      - GBPUSD
+                      - NDX100
+                      - NZDUSD
+                      - US30
+                      - USDCAD
+                      - USDCHF
+                      - USDJPY
+                      - XAGUSD
+                      - XAUUSD
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/timeframes:
+    get:
+      tags:
+        - Metadata
+      summary: Get available timeframes
+      description: Returns list of all supported timeframes (V7 - 9 timeframes)
+      parameters:
+        - $ref: '#/components/parameters/UserTierHeader'
+      responses:
+        '200':
+          description: List of timeframes (tier-filtered)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeframesResponse'
+              examples:
+                free_tier:
+                  summary: FREE tier timeframes
+                  value:
+                    success: true
+                    tier: FREE
+                    timeframes:
+                      - H1
+                      - H4
+                      - D1
+                pro_tier:
+                  summary: PRO tier timeframes
+                  value:
+                    success: true
+                    tier: PRO
+                    timeframes:
+                      - M5
+                      - M15
+                      - M30
+                      - H1
+                      - H2
+                      - H4
+                      - H8
+                      - H12
+                      - D1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # INDICATORS ENDPOINT (MAIN)
+  # ============================================
+  /api/indicators/{symbol}/{timeframe}:
+    get:
+      tags:
+        - Indicators
+      summary: Get indicator data from MT5
+      description: |
+        Retrieves indicator data from custom MQL5 indicators running on centralized MT5 terminal.
+
+        **Access Control:**
+        - Validates tier access to BOTH symbol AND timeframe before reading data
+        - FREE tier: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1)
+        - PRO tier: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+        - Timeframe restrictions: M5 and H12 are PRO-only
+
+        **Data Sources:**
+        - OHLC: Direct from MT5 terminal (via CopyRates)
+        - Horizontal lines: Fractal Horizontal Line_V5.mq5 indicator (buffers 4-9)
+        - Diagonal lines: Fractal Diagonal Line_V4.mq5 indicator (buffers 0-5)
+        - Fractals: Fractal Horizontal Line_V5.mq5 indicator (buffers 0-1)
+
+        **Note:** The OHLC Download_V4.mq5 tool is included in seed-code for reference but is NOT used by this service.
+        It's a standalone utility for exporting OHLC data to files.
+
+        **Requirements:**
+        - Both indicators must be compiled and attached to chart in MT5
+        - MT5 terminal must be running
+        - Symbol must be available on broker
+      parameters:
+        - $ref: '#/components/parameters/SymbolPath'
+        - $ref: '#/components/parameters/TimeframePath'
+        - $ref: '#/components/parameters/BarsQuery'
+        - $ref: '#/components/parameters/UserTierHeader'
+      responses:
+        '200':
+          description: Indicator data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndicatorDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Symbol not accessible for tier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessDeniedResponse'
+              examples:
+                free_tier_symbol_denied:
+                  summary: FREE tier accessing PRO-only symbol
+                  value:
+                    success: false
+                    error: FREE tier cannot access AUDJPY
+                    tier: FREE
+                    accessible_symbols:
+                      - BTCUSD
+                      - EURUSD
+                      - USDJPY
+                      - US30
+                      - XAUUSD
+                    upgrade_required: true
+                free_tier_timeframe_denied:
+                  summary: FREE tier accessing PRO-only timeframe
+                  value:
+                    success: false
+                    error: FREE tier cannot access M5 timeframe
+                    tier: FREE
+                    accessible_timeframes:
+                      - H1
+                      - H4
+                      - D1
+                    upgrade_required: true
+        '500':
+          description: MT5 error or indicator read failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                indicator_not_attached:
+                  summary: Indicator not found in MT5
+                  value:
+                    success: false
+                    error: Failed to get handle for Fractal Horizontal Line_V5. Is the indicator attached to the chart in MT5?
+                symbol_not_available:
+                  summary: Symbol not available on broker
+                  value:
+                    success: false
+                    error: Failed to select symbol BTCUSD
+                invalid_timeframe:
+                  summary: Invalid timeframe provided
+                  value:
+                    success: false
+                    error: Invalid timeframe M1. Valid options M5, M15, M30, H1, H2, H4, H8, H12, D1
+
+  # ============================================
+  # ADMIN ENDPOINTS (Terminal Management)
+  # ============================================
+  /api/admin/terminals/health:
+    get:
+      tags:
+        - Admin
+      summary: Get health status of all MT5 terminals (Admin only)
+      description: |
+        Retrieve detailed health status for all 15 MT5 terminals.
+        Includes admin-specific metrics like uptime percentage, reconnect counts, and error history.
+
+        **Authentication:** Requires admin API key via X-Admin-API-Key header
+      security:
+        - AdminApiKeyAuth: []
+      responses:
+        '200':
+          description: Terminal health data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminHealthResponse'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/terminals/{terminal_id}/restart:
+    post:
+      tags:
+        - Admin
+      summary: Restart a specific MT5 terminal (Admin only)
+      description: |
+        Restart/reconnect a specific MT5 terminal by its ID.
+        Use this when a terminal is experiencing connection issues.
+
+        **Authentication:** Requires admin API key
+      security:
+        - AdminApiKeyAuth: []
+      parameters:
+        - name: terminal_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: MT5_15
+          description: Terminal ID (MT5_01 through MT5_15)
+      responses:
+        '200':
+          description: Terminal restarted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalRestartResponse'
+        '404':
+          description: Terminal not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Admin access required
+
+  /api/admin/terminals/restart-all:
+    post:
+      tags:
+        - Admin
+      summary: Restart ALL MT5 terminals (Admin only - Use with caution)
+      description: |
+        Restart/reconnect ALL 15 MT5 terminals simultaneously.
+
+        **WARNING:** This will temporarily interrupt service for all users.
+        Only use during maintenance windows or critical outages.
+
+        **Authentication:** Requires admin API key
+      security:
+        - AdminApiKeyAuth: []
+      responses:
+        '200':
+          description: Terminals restart initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestartAllResponse'
+        '403':
+          description: Admin access required
+
+  /api/admin/terminals/{terminal_id}/logs:
+    get:
+      tags:
+        - Admin
+      summary: Get recent logs for a specific terminal (Admin only)
+      description: |
+        Retrieve recent log entries for a specific MT5 terminal.
+        Useful for debugging connection issues.
+
+        **Authentication:** Requires admin API key
+      security:
+        - AdminApiKeyAuth: []
+      parameters:
+        - name: terminal_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: MT5_15
+          description: Terminal ID (MT5_01 through MT5_15)
+        - name: lines
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+          description: Number of log lines to return
+      responses:
+        '200':
+          description: Log entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalLogsResponse'
+        '404':
+          description: Terminal not found
+        '403':
+          description: Admin access required
+
+  /api/admin/terminals/stats:
+    get:
+      tags:
+        - Admin
+      summary: Get aggregate statistics for all terminals (Admin only)
+      description: |
+        Retrieve aggregate statistics across all MT5 terminals.
+        Includes overall uptime, reconnect counts, and most problematic terminals.
+
+        **Authentication:** Requires admin API key
+      security:
+        - AdminApiKeyAuth: []
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalStatsResponse'
+        '403':
+          description: Admin access required
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key for authenticating requests from Next.js backend.
+        This service should NOT be exposed publicly - only accessed by Next.js API routes.
+
+    AdminApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Admin-API-Key
+      description: |
+        Admin API key for authenticating administrative requests.
+        Used for MT5 terminal management endpoints.
+        Separate from regular API key for enhanced security.
+
+  parameters:
+    SymbolPath:
+      name: symbol
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Symbol'
+      description: Trading symbol
+      example: XAUUSD
+
+    TimeframePath:
+      name: timeframe
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Timeframe'
+      description: Chart timeframe
+      example: H1
+
+    BarsQuery:
+      name: bars
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 100
+        maximum: 5000
+        default: 1000
+      description: Number of historical bars to retrieve
+      example: 1000
+
+    UserTierHeader:
+      name: X-User-Tier
+      in: header
+      required: false
+      schema:
+        $ref: '#/components/schemas/UserTier'
+      description: |
+        User tier from Next.js session. Used for access control validation.
+        Defaults to FREE if not provided.
+      example: PRO
+
+  schemas:
+    # ============================================
+    # ENUMS
+    # ============================================
+    UserTier:
+      type: string
+      enum:
+        - FREE
+        - PRO
+      description: |
+        User subscription tier for access control:
+        - FREE: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1)
+        - PRO: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+
+    Symbol:
+      type: string
+      enum:
+        - AUDJPY # NEW - Forex
+        - AUDUSD
+        - BTCUSD
+        - ETHUSD
+        - EURUSD
+        - GBPJPY # NEW - Forex
+        - GBPUSD
+        - NDX100
+        - NZDUSD # NEW - Forex
+        - US30
+        - USDCAD # NEW - Forex
+        - USDCHF # NEW - Forex
+        - USDJPY
+        - XAGUSD
+        - XAUUSD
+      description: |
+        Trading symbols available on platform (15 total).
+        Access is tier-based:
+        - FREE: BTCUSD, EURUSD, USDJPY, US30, XAUUSD (5 symbols)
+        - PRO: All 15 symbols
+
+    Timeframe:
+      type: string
+      enum:
+        - M5 # NEW - PRO only (scalping)
+        - M15
+        - M30
+        - H1
+        - H2
+        - H4
+        - H8
+        - H12 # NEW - PRO only (swing trading)
+        - D1
+      description: |
+        Chart timeframes (V7 - 9 timeframes).
+        FREE tier: H1, H4, D1 (3 timeframes)
+        PRO tier: All 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+
+    # ============================================
+    # RESPONSE SCHEMAS
+    # ============================================
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - degraded
+            - error
+          description: |
+            Overall service status:
+            - ok: All terminals connected
+            - degraded: Some terminals disconnected
+            - error: All terminals disconnected
+        version:
+          type: string
+          description: Service version identifier
+          example: v5.0.0
+        total_terminals:
+          type: integer
+          description: Total number of MT5 terminals configured
+          example: 15
+        connected_terminals:
+          type: integer
+          description: Number of terminals currently connected
+          example: 15
+        terminals:
+          type: object
+          description: Per-symbol terminal connection status
+          additionalProperties:
+            $ref: '#/components/schemas/TerminalStatus'
+          example:
+            XAUUSD:
+              connected: true
+              terminal_id: MT5_15
+              last_check: '2025-11-17T10:30:00Z'
+            BTCUSD:
+              connected: false
+              terminal_id: MT5_03
+              last_check: '2025-11-17T10:30:00Z'
+              error: 'Connection timeout'
+      required:
+        - status
+        - version
+        - total_terminals
+        - connected_terminals
+        - terminals
+
+    TerminalStatus:
+      type: object
+      description: Status of a single MT5 terminal connection
+      properties:
+        connected:
+          type: boolean
+          description: Whether terminal is currently connected
+          example: true
+        terminal_id:
+          type: string
+          description: Terminal identifier (MT5_01 through MT5_15)
+          example: MT5_01
+        last_check:
+          type: string
+          format: date-time
+          description: Timestamp of last health check
+          example: '2025-11-17T10:30:00Z'
+        error:
+          type: string
+          description: Error message if connection failed (only present when connected=false)
+          example: 'Connection timeout'
+      required:
+        - connected
+        - terminal_id
+        - last_check
+
+    SymbolsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        symbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/Symbol'
+          description: List of symbols accessible by tier
+      required:
+        - success
+        - tier
+        - symbols
+
+    TimeframesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        timeframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timeframe'
+          description: List of all supported timeframes
+      required:
+        - success
+        - timeframes
+
+    IndicatorDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/IndicatorData'
+      required:
+        - success
+        - data
+
+    IndicatorData:
+      type: object
+      description: Complete indicator data package from MT5
+      properties:
+        ohlc:
+          type: array
+          items:
+            $ref: '#/components/schemas/OHLCBar'
+          description: OHLC candlestick data
+        horizontal:
+          $ref: '#/components/schemas/HorizontalLines'
+        diagonal:
+          $ref: '#/components/schemas/DiagonalLines'
+        fractals:
+          $ref: '#/components/schemas/Fractals'
+        metadata:
+          $ref: '#/components/schemas/IndicatorMetadata'
+      required:
+        - ohlc
+        - horizontal
+        - diagonal
+        - fractals
+        - metadata
+
+    OHLCBar:
+      type: object
+      description: Single candlestick bar
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp
+          example: 1699632000
+        open:
+          type: number
+          format: double
+          description: Opening price
+          example: 1985.50
+        high:
+          type: number
+          format: double
+          description: Highest price
+          example: 1987.25
+        low:
+          type: number
+          format: double
+          description: Lowest price
+          example: 1984.75
+        close:
+          type: number
+          format: double
+          description: Closing price
+          example: 1986.00
+        volume:
+          type: integer
+          description: Tick volume
+          example: 1234
+      required:
+        - time
+        - open
+        - high
+        - low
+        - close
+        - volume
+
+    HorizontalLines:
+      type: object
+      description: |
+        Horizontal support/resistance lines from Fractal Horizontal Line_V5.mq5.
+        Read from indicator buffers 4-9.
+      properties:
+        peak_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: First peak line (buffer 4)
+        peak_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Second peak line (buffer 5)
+        peak_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Third peak line (buffer 6)
+        bottom_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: First bottom line (buffer 7)
+        bottom_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Second bottom line (buffer 8)
+        bottom_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Third bottom line (buffer 9)
+      required:
+        - peak_1
+        - peak_2
+        - peak_3
+        - bottom_1
+        - bottom_2
+        - bottom_3
+
+    DiagonalLines:
+      type: object
+      description: |
+        Diagonal trend lines from Fractal Diagonal Line_V4.mq5.
+        Read from indicator buffers 0-5.
+      properties:
+        ascending_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: First ascending trend line (buffer 0)
+        ascending_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Second ascending trend line (buffer 1)
+        ascending_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Third ascending trend line (buffer 2)
+        descending_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: First descending trend line (buffer 3)
+        descending_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Second descending trend line (buffer 4)
+        descending_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+          description: Third descending trend line (buffer 5)
+      required:
+        - ascending_1
+        - ascending_2
+        - ascending_3
+        - descending_1
+        - descending_2
+        - descending_3
+
+    LinePoint:
+      type: object
+      description: Single point on a line (filtered EMPTY_VALUE)
+      properties:
+        index:
+          type: integer
+          description: Bar index (0 = most recent)
+          example: 15
+        value:
+          type: number
+          format: double
+          description: Price level at this point
+          example: 1985.50
+      required:
+        - index
+        - value
+
+    Fractals:
+      type: object
+      description: |
+        Fractal markers from Fractal Horizontal Line_V5.mq5.
+        Peaks from buffer 0, bottoms from buffer 1.
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/FractalPoint'
+          description: Upper fractals (resistance points)
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FractalPoint'
+          description: Lower fractals (support points)
+      required:
+        - peaks
+        - bottoms
+
+    FractalPoint:
+      type: object
+      description: Single fractal marker
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp of fractal
+          example: 1699632000
+        price:
+          type: number
+          format: double
+          description: Price level of fractal
+          example: 1987.50
+      required:
+        - time
+        - price
+
+    IndicatorMetadata:
+      type: object
+      description: Metadata about the indicator data
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        bars_returned:
+          type: integer
+          description: Actual number of bars returned
+          example: 1000
+      required:
+        - symbol
+        - timeframe
+        - tier
+        - bars_returned
+
+    # ============================================
+    # ERROR SCHEMAS
+    # ============================================
+    AccessDeniedResponse:
+      type: object
+      description: Returned when tier cannot access requested symbol
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Human-readable error message
+          example: FREE tier cannot access EURUSD
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        accessible_symbols:
+          type: array
+          items:
+            type: string
+          description: List of symbols accessible by this tier
+        upgrade_required:
+          type: boolean
+          description: Whether upgrade to PRO is needed
+      required:
+        - success
+        - error
+        - tier
+        - accessible_symbols
+        - upgrade_required
+
+    ErrorResponse:
+      type: object
+      description: Generic error response
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: Failed to get handle for indicator
+      required:
+        - success
+        - error
+
+    # ============================================
+    # ADMIN RESPONSE SCHEMAS
+    # ============================================
+    AdminHealthResponse:
+      type: object
+      description: Admin health response with additional metrics
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, error]
+        version:
+          type: string
+        total_terminals:
+          type: integer
+        connected_terminals:
+          type: integer
+        terminals:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AdminTerminalStatus'
+      required:
+        - status
+        - version
+        - total_terminals
+        - connected_terminals
+        - terminals
+
+    AdminTerminalStatus:
+      type: object
+      description: Admin view of terminal status with additional metrics
+      properties:
+        connected:
+          type: boolean
+        terminal_id:
+          type: string
+        last_check:
+          type: string
+          format: date-time
+        error:
+          type: string
+        uptime_percentage:
+          type: number
+          description: Uptime percentage (0-100)
+        reconnect_count:
+          type: integer
+          description: Number of reconnections
+        last_error:
+          type: string
+          description: Last error message (if any)
+      required:
+        - connected
+        - terminal_id
+        - last_check
+
+    TerminalRestartResponse:
+      type: object
+      description: Response from terminal restart operation
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        terminal_id:
+          type: string
+        symbol:
+          type: string
+        connected:
+          type: boolean
+        last_error:
+          type: string
+      required:
+        - success
+        - terminal_id
+        - symbol
+
+    RestartAllResponse:
+      type: object
+      description: Response from restart all terminals operation
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        total_terminals:
+          type: integer
+        successful_restarts:
+          type: integer
+        failed_restarts:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              terminal_id:
+                type: string
+              symbol:
+                type: string
+              success:
+                type: boolean
+              error:
+                type: string
+      required:
+        - success
+        - total_terminals
+        - successful_restarts
+        - failed_restarts
+        - results
+
+    TerminalLogsResponse:
+      type: object
+      description: Terminal log entries
+      properties:
+        success:
+          type: boolean
+        terminal_id:
+          type: string
+        symbol:
+          type: string
+        logs:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              level:
+                type: string
+                enum: [INFO, WARNING, ERROR, DEBUG]
+              message:
+                type: string
+      required:
+        - success
+        - terminal_id
+        - symbol
+        - logs
+
+    TerminalStatsResponse:
+      type: object
+      description: Aggregate statistics for all terminals
+      properties:
+        success:
+          type: boolean
+        stats:
+          type: object
+          properties:
+            total_uptime_percentage:
+              type: number
+            total_reconnects_24h:
+              type: integer
+            avg_response_time_ms:
+              type: number
+            terminals_by_status:
+              type: object
+              properties:
+                connected:
+                  type: integer
+                disconnected:
+                  type: integer
+                reconnecting:
+                  type: integer
+            most_problematic_terminals:
+              type: array
+              items:
+                type: object
+                properties:
+                  terminal_id:
+                    type: string
+                  symbol:
+                    type: string
+                  reconnect_count:
+                    type: integer
+                  uptime:
+                    type: number
+      required:
+        - success
+        - stats
+
+  responses:
+    Unauthorized:
+      description: Invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Unauthorized
+
+  # ============================================
+  # EXAMPLES
+  # ============================================
+  examples:
+    CompleteIndicatorData:
+      summary: Complete indicator data response
+      description: Full example of indicator data from XAUUSD H1
+      value:
+        success: true
+        data:
+          ohlc:
+            - time: 1699632000
+              open: 1985.50
+              high: 1987.25
+              low: 1984.75
+              close: 1986.00
+              volume: 1234
+            - time: 1699628400
+              open: 1984.25
+              high: 1986.00
+              low: 1983.50
+              close: 1985.50
+              volume: 1156
+          horizontal:
+            peak_1:
+              - index: 10
+                value: 1987.50
+              - index: 11
+                value: 1987.50
+            peak_2:
+              - index: 5
+                value: 1989.25
+            peak_3: []
+            bottom_1:
+              - index: 15
+                value: 1983.00
+            bottom_2:
+              - index: 20
+                value: 1981.50
+            bottom_3: []
+          diagonal:
+            ascending_1:
+              - index: 0
+                value: 1986.00
+              - index: 1
+                value: 1985.75
+              - index: 2
+                value: 1985.50
+            ascending_2: []
+            ascending_3: []
+            descending_1:
+              - index: 0
+                value: 1986.00
+              - index: 1
+                value: 1986.25
+              - index: 2
+                value: 1986.50
+            descending_2: []
+            descending_3: []
+          fractals:
+            peaks:
+              - time: 1699632000
+                price: 1987.50
+              - time: 1699614000
+                price: 1989.25
+            bottoms:
+              - time: 1699625200
+                price: 1983.00
+              - time: 1699610400
+                price: 1981.50
+          metadata:
+            symbol: XAUUSD
+            timeframe: H1
+            tier: FREE
+            bars_returned: 1000

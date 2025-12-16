@@ -1,0 +1,53 @@
+graph TB
+    Users[Users - Web/Mobile]
+    Admin[Admin Dashboard]
+    
+    Users --> DNS[DNS - tradingalerts.com]
+    Admin --> DNS
+    DNS --> CF[Cloudflare CDN]
+    
+    CF --> Edge[Vercel Edge Runtime<br/>Middleware & Auth]
+    
+    Edge --> API1[API: /auth/*]
+    Edge --> API2[API: /indicators/*]
+    Edge --> API3[API: /alerts/*]
+    Edge --> API4[API: /subscription/*]
+    Edge --> API5[API: /user/*]
+    Edge --> API6[API: /admin/*]
+    Edge --> Static[Static Assets<br/>_next/static/*]
+    
+    API2 --> Flask[Railway: Flask MT5 Service]
+    Flask --> MT5[MT5 Terminal<br/>Custom Indicators]
+    
+    API1 --> PG[(Railway: PostgreSQL 15)]
+    API3 --> PG
+    API5 --> PG
+    API6 --> PG
+    
+    API2 --> Redis[(Upstash: Redis Cache)]
+    API3 --> Redis
+    Flask --> Redis
+    
+    API4 --> Stripe[Stripe Payment API]
+    API1 --> Resend[Resend Email API]
+    API3 --> Resend
+    
+    API1 --> Sentry[Sentry Monitoring]
+    API2 --> Sentry
+    API3 --> Sentry
+    Flask --> Sentry
+    
+    Edge --> Analytics[Vercel Analytics]
+    Flask --> Metrics[Railway Metrics]
+    
+    style Users fill:#ffd93d
+    style Admin fill:#ff6b6b
+    style CF fill:#f38020
+    style Edge fill:#0070f3
+    style Flask fill:#000
+    style MT5 fill:#2e7d32
+    style PG fill:#336791
+    style Redis fill:#dc382d
+    style Stripe fill:#635bff
+    style Resend fill:#000
+    style Sentry fill:#362d59

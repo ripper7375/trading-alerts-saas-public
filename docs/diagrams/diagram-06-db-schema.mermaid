@@ -1,0 +1,330 @@
+erDiagram
+    %% USER MANAGEMENT
+    User ||--o{ Account : "has many"
+    User ||--o{ Session : "has many"
+    User ||--o{ Alert : "creates"
+    User ||--o{ Watchlist : "owns"
+    User ||--o{ UserPreference : "has"
+    User ||--o| Subscription : "has one"
+    User ||--o{ ApiUsage : "generates"
+    User ||--o{ Notification : "receives"
+    User ||--o{ Payment : "makes"
+    User ||--o{ FraudAlert : "triggers"
+
+    User {
+        string id PK
+        string email UK
+        string name
+        string passwordHash
+        datetime emailVerified
+        string image
+        string tier "FREE or PRO"
+        boolean hasUsedThreeDayPlan "default false"
+        datetime threeDayPlanUsedAt "nullable"
+        boolean hasUsedStripeTrial "default false: Stripe trial tracking"
+        datetime stripeTrialStartedAt "nullable: when Stripe trial started"
+        string signupIP "nullable: IP at registration for fraud detection"
+        string lastLoginIP "nullable: most recent login IP"
+        string deviceFingerprint "nullable: browser fingerprint for fraud detection"
+        datetime createdAt
+        datetime updatedAt
+        datetime lastLogin
+        boolean isActive
+    }
+
+    %% AUTHENTICATION
+    Account {
+        string id PK
+        string userId FK
+        string type
+        string provider
+        string providerAccountId
+        text refresh_token
+        text access_token
+        int expires_at
+        string token_type
+        string scope
+        text id_token
+        string session_state
+    }
+
+    Session {
+        string id PK
+        string sessionToken UK
+        string userId FK
+        datetime expires
+    }
+
+    VerificationToken {
+        string identifier
+        string token UK
+        datetime expires
+    }
+
+    %% ALERTS
+    Alert ||--o{ AlertNotification : "triggers"
+    
+    Alert {
+        string id PK
+        string userId FK
+        string name
+        string symbol
+        string timeframe
+        string alertType
+        json condition
+        boolean isActive
+        datetime lastTriggered
+        int triggerCount
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    AlertNotification {
+        string id PK
+        string alertId FK
+        datetime triggeredAt
+        float price
+        json details
+        boolean isRead
+        datetime readAt
+    }
+
+    %% WATCHLISTS (V5)
+    Watchlist ||--o{ WatchlistItem : "contains"
+    
+    Watchlist {
+        string id PK
+        string userId FK
+        string name
+        int order
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    WatchlistItem {
+        string id PK
+        string watchlistId FK
+        string symbol
+        string timeframe
+        int order
+        datetime createdAt
+    }
+
+    %% USER PREFERENCES
+    UserPreference {
+        string id PK
+        string userId FK
+        string category
+        string key
+        json value
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    %% SUBSCRIPTIONS (V7: DUAL PAYMENT PROVIDERS)
+    Subscription ||--o| AffiliateCode : "may use"
+    Subscription ||--o{ Payment : "has payments"
+
+    Subscription {
+        string id PK
+        string userId FK
+        string paymentProvider "STRIPE or DLOCAL"
+        string stripeCustomerId UK "nullable: Stripe only"
+        string stripeSubscriptionId UK "nullable: Stripe only"
+        string stripePriceId "nullable: Stripe only"
+        datetime stripeCurrentPeriodEnd "nullable: Stripe only"
+        string dLocalPaymentId UK "nullable: dLocal only"
+        string dLocalCountry "nullable: dLocal country code"
+        string dLocalCurrency "nullable: dLocal local currency"
+        float dLocalAmount "nullable: dLocal local amount"
+        string planType "MONTHLY or THREE_DAY"
+        float amountUsd "USD amount for both providers"
+        string status "active|canceled|past_due|expired"
+        datetime expiresAt "Explicit expiry date (critical for dLocal)"
+        boolean renewalReminderSent "default false"
+        datetime createdAt
+        datetime updatedAt
+        datetime canceledAt "nullable"
+        boolean cancelAtPeriodEnd "default false"
+        string affiliateCodeId FK "nullable: discount code used"
+        json metadata "affiliate code, discount amount, etc"
+    }
+
+    %% NOTIFICATIONS
+    Notification {
+        string id PK
+        string userId FK
+        string type
+        string title
+        text message
+        json data
+        boolean isRead
+        datetime readAt
+        datetime createdAt
+    }
+
+    %% INDICATOR CACHE
+    IndicatorCache {
+        string id PK
+        string symbol
+        string timeframe
+        datetime timestamp
+        string dataType
+        json data
+        datetime createdAt
+        datetime expiresAt
+    }
+
+    %% API USAGE
+    ApiUsage {
+        string id PK
+        string userId FK
+        string endpoint
+        string method
+        int status
+        int duration
+        string symbol
+        string timeframe
+        string tier
+        datetime createdAt
+    }
+
+    %% AFFILIATE MARKETING (2-SIDED MARKETPLACE)
+    Affiliate ||--o{ AffiliateCode : "owns"
+    Affiliate ||--o{ Commission : "earns"
+    AffiliateCode ||--o| Commission : "generates"
+    User ||--o| Commission : "customer_of"
+
+    Affiliate {
+        string id PK
+        string email UK
+        string password "hashed with bcrypt"
+        datetime emailVerified
+        string fullName
+        string country "ISO country code"
+        string facebookUrl "nullable"
+        string instagramUrl "nullable"
+        string twitterUrl "nullable"
+        string youtubeUrl "nullable"
+        string tiktokUrl "nullable"
+        string paymentMethod "BANK_TRANSFER|CRYPTO|GLOBAL_WALLET|LOCAL_WALLET"
+        string bankName "nullable"
+        string bankAccountNumber "nullable"
+        string bankAccountHolderName "nullable"
+        string cryptoWalletAddress "nullable"
+        string preferredCryptocurrency "nullable: BTC, ETH, USDT"
+        string globalWalletType "nullable: PayPal, Payoneer, Wise"
+        string globalWalletIdentifier "nullable"
+        string localWalletType "nullable: GCash, Maya, TrueMoney"
+        string localWalletIdentifier "nullable"
+        string status "PENDING_VERIFICATION|ACTIVE|SUSPENDED"
+        int codesDistributed "default 0"
+        float totalEarnings "default 0"
+        datetime createdAt
+        datetime updatedAt
+        datetime lastLoginAt
+    }
+
+    AffiliateCode {
+        string id PK
+        string code UK "cryptographically random >12 chars"
+        string affiliateId FK
+        string status "ACTIVE|USED|EXPIRED|CANCELLED"
+        float discountPercent "default 20.0"
+        float commissionPercent "default 20.0"
+        datetime createdAt
+        datetime expiresAt "end of month"
+        datetime usedAt "nullable"
+        string usedByUserId FK "nullable: User who used this code"
+        datetime cancelledAt "nullable"
+        string cancelReason "nullable"
+    }
+
+    Commission {
+        string id PK
+        string affiliateId FK
+        string affiliateCodeId FK
+        string userId FK "customer who upgraded"
+        string subscriptionId FK "nullable"
+        float regularPrice "e.g., 29.00"
+        float discountAmount "e.g., 5.80 (20%)"
+        float netRevenue "e.g., 23.20"
+        float commissionPercent "20.0"
+        float commissionAmount "e.g., 4.64"
+        string status "PENDING|PAID"
+        datetime createdAt
+        datetime paidAt "nullable"
+        string paymentReference "nullable: bank txn ID, crypto hash, etc"
+    }
+
+    %% SYSTEM CONFIGURATION (CENTRALIZED SETTINGS)
+    SystemConfig {
+        string id PK
+        string key UK "e.g., affiliate_discount_percent"
+        string value "stored as string, parsed as needed"
+        string valueType "number|boolean|string"
+        string description "nullable: human-readable description"
+        string category "affiliate|payment|general"
+        string updatedBy FK "nullable: admin user ID"
+        datetime updatedAt
+        datetime createdAt
+    }
+
+    SystemConfigHistory {
+        string id PK
+        string configKey "which setting was changed"
+        string oldValue "previous value"
+        string newValue "new value"
+        string changedBy "admin user ID or email"
+        datetime changedAt
+        string reason "nullable: why the change was made"
+    }
+
+    %% PAYMENT TRANSACTIONS (PART 18: DLOCAL INTEGRATION)
+    Payment {
+        string id PK
+        string userId FK
+        string subscriptionId FK "nullable"
+        string provider "STRIPE or DLOCAL"
+        float amount "Amount in original currency"
+        string currency "USD, INR, NGN, PKR, VND, etc"
+        float amountUsd "Amount converted to USD"
+        string providerPaymentId UK "Stripe charge ID or dLocal txn ID"
+        string providerStatus "Provider-specific status"
+        string country "nullable: User's country for dLocal"
+        string paymentMethod "nullable: card, UPI, PIX, etc"
+        string ipAddress "nullable: for fraud detection"
+        string deviceFingerprint "nullable: for fraud detection"
+        string status "pending|completed|failed|refunded"
+        datetime completedAt "nullable"
+        datetime failedAt "nullable"
+        string failedReason "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    FraudAlert {
+        string id PK
+        string userId FK
+        string alertType "3DAY_PLAN_REUSE|MULTIPLE_ACCOUNTS|SUSPICIOUS_IP"
+        string severity "LOW|MEDIUM|HIGH"
+        string description "Human-readable description"
+        datetime detectedAt
+        string ipAddress "nullable"
+        string deviceFingerprint "nullable"
+        json additionalData "nullable: flexible context"
+        string reviewedBy FK "nullable: admin user ID"
+        datetime reviewedAt "nullable"
+        string resolution "nullable: FALSE_POSITIVE|BLOCKED|WARNING_SENT"
+        string notes "nullable: admin notes"
+    }
+
+    %% SYSTEM LOGS
+    SystemLog {
+        string id PK
+        string level
+        string source
+        text message
+        json metadata
+        datetime createdAt
+    }

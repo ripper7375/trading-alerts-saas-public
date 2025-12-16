@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# ============================================================================
+# Pre-Commit Hook - Local Quality Gate (Layer 2)
+# ============================================================================
+# Runs BEFORE code is committed to catch issues in 5-10 seconds
+# Part of shift-left testing strategy - prevents CI/CD failures
+# See: docs/principles/shift-left-testing.md
+
+# Run lint-staged to check and auto-fix staged files
+npx lint-staged

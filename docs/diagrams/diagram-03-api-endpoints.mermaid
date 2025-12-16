@@ -1,0 +1,116 @@
+graph LR
+    subgraph Auth["Authentication & Registration"]
+        A1[POST /api/auth/register]
+        A2[POST /api/auth/login]
+        A3[POST /api/auth/logout]
+        A4[GET /api/auth/verify-email]
+        A5[POST /api/auth/forgot-password]
+        A6[POST /api/auth/reset-password]
+    end
+
+    subgraph Indicators["Indicators (Tier-Gated)"]
+        I1[GET /api/indicators/:symbol/:timeframe]
+        I2[GET /api/mt5/:symbol/:timeframe]
+        I1 -.->|"Calls Flask"| Flask
+    end
+
+    subgraph Alerts["Alert Management"]
+        AL1[GET /api/alerts]
+        AL2[POST /api/alerts]
+        AL3[GET /api/alerts/:id]
+        AL4[PUT /api/alerts/:id]
+        AL5[DELETE /api/alerts/:id]
+    end
+
+    subgraph Watchlist["Watchlist (Symbol+Timeframe)"]
+        W1[GET /api/watchlists]
+        W2[POST /api/watchlists]
+        W3[GET /api/watchlists/:id]
+        W4[PUT /api/watchlists/:id]
+        W5[DELETE /api/watchlists/:id]
+        W6[POST /api/watchlists/:id/items]
+        W7[DELETE /api/watchlists/:id/items/:itemId]
+    end
+
+    subgraph User["User Profile & Settings"]
+        U1[GET /api/user/profile]
+        U2[PUT /api/user/profile]
+        U3[GET /api/user/preferences]
+        U4[PUT /api/user/preferences]
+        U5[PUT /api/user/appearance]
+        U6[PUT /api/user/privacy]
+        U7[DELETE /api/user/account]
+        U8[GET /api/user/billing]
+        U9[PUT /api/user/language]
+        U10[GET /api/user/tier]
+    end
+
+    subgraph Admin["Admin Dashboard"]
+        AD1[GET /api/admin/users]
+        AD2[GET /api/admin/analytics]
+        AD3[GET /api/admin/revenue]
+        AD4[GET /api/admin/api-usage]
+        AD5[GET /api/admin/error-logs]
+        AD6[PUT /api/admin/user/:id]
+        AD7[DELETE /api/admin/user/:id]
+        AD8[PUT /api/admin/user/:id/tier]
+    end
+
+    subgraph Ecommerce["E-commerce (2-Tier System)"]
+        E1[GET /api/plans]
+        E2[POST /api/checkout]
+        E3[GET /api/subscription]
+        E4[PUT /api/subscription/cancel]
+        E5[PUT /api/subscription/upgrade]
+        E6[GET /api/invoices]
+        E7[POST /api/webhooks/stripe]
+    end
+
+    subgraph Notifications["Notifications"]
+        N1[GET /api/notifications]
+        N2[PUT /api/notifications/:id/read]
+        N3[DELETE /api/notifications/:id]
+    end
+
+    subgraph System["System Health"]
+        S1[GET /api/system/health]
+    end
+
+    subgraph Flask["Flask MT5 Service"]
+        F1[GET /api/health]
+        F2[GET /api/symbols]
+        F3[GET /api/timeframes]
+        F4[GET /api/indicators/:symbol/:timeframe]
+    end
+
+    subgraph DB["Database Operations"]
+        Postgres[("PostgreSQL<br/>15 Tables")]
+        Redis[("Redis<br/>Cache & Queue")]
+    end
+
+    Auth --> Postgres
+    Indicators --> Redis
+    Indicators --> Postgres
+    Alerts --> Postgres
+    Alerts --> Redis
+    Watchlist --> Postgres
+    User --> Postgres
+    Admin --> Postgres
+    Ecommerce --> Postgres
+    Notifications --> Postgres
+    System --> Postgres
+    System --> Redis
+
+    Flask --> MT5[("MT5 Terminal<br/>Your Indicators")]
+
+    style Auth fill:#51cf66,stroke:#2f9e44,color:#000
+    style Indicators fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style Alerts fill:#ffd43b,stroke:#f08c00,color:#000
+    style Watchlist fill:#74c0fc,stroke:#1971c2,color:#000
+    style User fill:#a9e34b,stroke:#5c940d,color:#000
+    style Admin fill:#ff8787,stroke:#e03131,color:#fff
+    style Ecommerce fill:#da77f2,stroke:#9c36b5,color:#fff
+    style Notifications fill:#ffa94d,stroke:#e8590c,color:#000
+    style System fill:#94d82d,stroke:#66a80f,color:#000
+    style Flask fill:#4ecdc4,stroke:#087f5b,color:#fff
+    style DB fill:#868e96,stroke:#495057,color:#fff

@@ -1,0 +1,529 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ENUMS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum UserTier {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+enum TrialStatus {
+  NOT_STARTED
+  ACTIVE
+  EXPIRED
+  CONVERTED
+  CANCELLED
+}
+
+enum AffiliateStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum CodeStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum DistributionReason {
+  INITIAL
+  MONTHLY
+  ADMIN_BONUS
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MODELS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  password      String?  // Nullable for OAuth-only users
+  image         String?
+  emailVerified DateTime? // CRITICAL for verified-only OAuth linking
+  tier          UserTier @default(FREE)
+  role          String   @default("USER")
+  isActive      Boolean  @default(true)
+
+  // Affiliate System (Unified Auth)
+  isAffiliate   Boolean  @default(false)  // Can be both SaaS user AND affiliate
+
+  // General Trial Period Management (7-day PRO trial)
+  trialStatus       TrialStatus  @default(NOT_STARTED)
+  trialStartDate    DateTime?    // When user started 7-day trial
+  trialEndDate      DateTime?    // When trial expires (trialStartDate + 7 days)
+  trialConvertedAt  DateTime?    // When trial converted to paid subscription
+  trialCancelledAt  DateTime?    // When user cancelled trial
+  hasUsedFreeTrial  Boolean      @default(false)  // Prevent multiple 7-day trials
+
+  // Stripe Trial fields (Part 18: Anti-abuse)
+  hasUsedStripeTrial      Boolean  @default(false)
+  stripeTrialStartedAt    DateTime?
+
+  // dLocal 3-day plan fields (Part 18: Anti-abuse)
+  hasUsedThreeDayPlan     Boolean  @default(false)
+  threeDayPlanUsedAt      DateTime?
+  
+  // Fraud detection fields
+  signupIP          String?
+  lastLoginIP       String?
+  deviceFingerprint String?
+  
+  // Email verification and password reset
+  verificationToken String? @unique
+  resetToken        String? @unique
+  resetTokenExpiry  DateTime?
+  
+  accounts          Account[]
+  alerts            Alert[]
+  watchlists        Watchlist[]
+  subscription      Subscription?
+  payments          Payment[]
+  fraudAlerts       FraudAlert[]
+  affiliateProfile  AffiliateProfile?  // Nullable - only if isAffiliate = true
+  preferences       UserPreferences?   // User preferences (settings)
+
+  sessions          Session[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([email])
+  @@index([tier])
+  @@index([isAffiliate])
+  @@index([trialStatus])
+  @@index([trialEndDate])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model UserPreferences {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Preferences stored as JSON for flexibility
+  preferences Json    @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model AccountDeletionRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
+  expiresAt DateTime
+
+  confirmedAt  DateTime?
+  cancelledAt  DateTime?
+  completedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+  @@index([status])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Affiliate tracking
+  affiliateCodeId    String?  // Track which affiliate code was used (nullable)
+
+  // Stripe fields (nullable for dLocal subscriptions)
+  stripeCustomerId       String?  @unique
+  stripeSubscriptionId   String?  @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  
+  // dLocal fields (nullable for Stripe subscriptions)
+  dLocalPaymentId        String?  @unique
+  dLocalPaymentMethod    String?  // 'UPI', 'PAYTM', 'GOPAY', etc.
+  dLocalCountry          String?  // 'IN', 'ID', 'PK', etc.
+  dLocalCurrency         String?  // 'INR', 'IDR', 'PKR', etc.
+  
+  // Common fields
+  planType               String?  // 'MONTHLY', 'THREE_DAY' (dLocal only)
+  amountUsd              Float
+  status                 SubscriptionStatus
+  expiresAt              DateTime? // Explicit expiry date (critical for dLocal)
+  renewalReminderSent    Boolean  @default(false)
+  
+  payments               Payment[]
+  
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([affiliateCodeId])
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Alert configuration
+  name        String?
+  symbol      String
+  timeframe   String
+  condition   String   // JSON string for complex conditions
+  alertType   String   @default("PRICE_TOUCH_LINE")
+  
+  // Alert state
+  isActive    Boolean  @default(true)
+  lastTriggered DateTime?
+  triggerCount Int     @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([symbol, timeframe])
+  @@index([isActive])
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int      @default(0)
+  items     WatchlistItem[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])  // <-- ADD THIS LINE
+  @@index([userId])
+}
+
+model WatchlistItem {
+  id          String   @id @default(cuid())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  userId      String
+  symbol      String
+  timeframe   String
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, symbol, timeframe])
+  @@index([watchlistId])
+  @@index([userId])
+}
+
+model Payment {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId     String?
+  subscription       Subscription? @relation(fields: [subscriptionId], references: [id])
+  
+  // Payment Provider
+  provider           String   // 'STRIPE' or 'DLOCAL'
+  
+  // Transaction Details
+  providerPaymentId  String   @unique
+  providerStatus     String
+  
+  // Amount and Currency
+  amount             Decimal
+  amountUSD          Decimal
+  currency           String
+  country            String?
+  paymentMethod      String?
+  
+  // Additional Data
+  planType           String?  // 'THREE_DAY', 'MONTHLY'
+  duration           Int?     // Days (3 or 30)
+  discountCode       String?
+  discountAmount     Decimal?
+  
+  // Status and Timestamps
+  status             String   // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'
+  failureReason      String?
+  
+  // Fraud Detection Metadata
+  ipAddress          String?
+  deviceFingerprint  String?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FraudAlert {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Alert Details
+  alertType         String   // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'SUSPICIOUS_IP_CHANGE', etc.
+  severity          String   // 'LOW', 'MEDIUM', 'HIGH'
+  description       String
+  
+  // Detection Metadata
+  detectedAt        DateTime @default(now())
+  ipAddress         String?
+  deviceFingerprint String?
+  additionalData    Json?    // Flexible field for extra context
+  
+  // Admin Review
+  reviewedBy        String?  // Admin user ID who reviewed
+  reviewedAt        DateTime?
+  resolution        String?  // 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED', etc.
+  notes             String?  // Admin notes
+  
+  @@index([userId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([detectedAt])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AFFILIATE MARKETING SYSTEM (Unified Auth)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model AffiliateProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Affiliate Info
+  fullName          String
+  country           String
+
+  // Social Media (optional)
+  facebookUrl       String?
+  instagramUrl      String?
+  twitterUrl        String?
+  youtubeUrl        String?
+  tiktokUrl         String?
+
+  // Payment Preferences
+  paymentMethod     String   // 'BANK_TRANSFER', 'CRYPTO_USDT', 'PAYPAL', 'LOCAL_WALLET'
+  paymentDetails    Json     // Flexible field for payment info
+
+  // Stats
+  totalCodesDistributed  Int      @default(0)
+  totalCodesUsed         Int      @default(0)
+  totalEarnings          Decimal  @default(0)
+  pendingCommissions     Decimal  @default(0)
+  paidCommissions        Decimal  @default(0)
+
+  // Status
+  status            AffiliateStatus   @default(PENDING_VERIFICATION)
+  verifiedAt        DateTime?
+  suspendedAt       DateTime?
+  suspensionReason  String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  affiliateCodes    AffiliateCode[]
+  commissions       Commission[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([country])
+}
+
+model AffiliateCode {
+  id               String   @id @default(cuid())
+  code             String   @unique
+
+  // Ownership
+  affiliateProfileId String
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  // Configuration
+  discountPercent  Int      // 0-50%
+  commissionPercent Int     // 0-50%
+
+  // Lifecycle
+  status           CodeStatus   @default(ACTIVE)
+  distributedAt    DateTime     @default(now())
+  expiresAt        DateTime
+  usedAt           DateTime?
+  cancelledAt      DateTime?
+  distributionReason DistributionReason @default(MONTHLY)
+
+  // Usage tracking
+  usedBy           String?  // userId (if redeemed)
+  subscriptionId   String?  // subscription created from this code
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  commissions      Commission[]
+
+  @@index([affiliateProfileId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([code])
+}
+
+model Commission {
+  id                 String   @id @default(cuid())
+
+  // Ownership
+  affiliateProfileId String
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  affiliateCodeId    String
+  affiliateCode      AffiliateCode @relation(fields: [affiliateCodeId], references: [id])
+
+  // Transaction
+  userId             String   // SaaS user who upgraded
+  subscriptionId     String?  // Subscription created
+
+  // Amounts
+  grossRevenue       Decimal  // Full subscription amount
+  discountAmount     Decimal  // Discount given to user
+  netRevenue         Decimal  // After discount
+  commissionAmount   Decimal  // Affiliate earns this
+
+  // Status
+  status             CommissionStatus @default(PENDING)
+  earnedAt           DateTime @default(now())
+  approvedAt         DateTime?
+  paidAt             DateTime?
+  cancelledAt        DateTime?
+
+  // Payment tracking
+  paymentBatchId     String?
+  paymentMethod      String?
+  paymentReference   String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([affiliateProfileId])
+  @@index([status])
+  @@index([earnedAt])
+  @@index([paidAt])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NOTIFICATIONS SYSTEM (Part 15)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum NotificationType {
+  ALERT
+  SUBSCRIPTION
+  PAYMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+
+  // Notification content
+  type      NotificationType
+  title     String
+  body      String
+  priority  NotificationPriority @default(MEDIUM)
+
+  // Read status
+  read      Boolean  @default(false)
+  readAt    DateTime?
+
+  // Optional link to related resource
+  link      String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+}

@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+:root {
+  --background: 255 255 255;
+  --foreground: 0 0 0;
+}
+
+.dark {
+  --background: 0 0 0;
+  --foreground: 255 255 255;
+}
+
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  body {
+    @apply bg-white text-black;
+  }
+  .dark body {
+    @apply bg-black text-white;
+  }
+}
