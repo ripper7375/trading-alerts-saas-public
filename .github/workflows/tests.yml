@@ -114,8 +114,8 @@ jobs:
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "Bundle size: ${BUNDLE_SIZE}MB"
           # Threshold increased from 180MB to 200MB for PR #123 (Part 13 Settings System)
-          if [ $BUNDLE_SIZE -gt 250 ]; then
-            echo "❌ Bundle size exceeds 200MB"
+          if [ $BUNDLE_SIZE -gt 250 ]; then   # <--- CHANGE THIS NUMBER
+            echo "❌ Bundle size exceeds 250MB"
             exit 1
           fi
           echo "✅ Bundle size is acceptable"
