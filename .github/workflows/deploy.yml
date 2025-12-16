@@ -78,13 +78,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy Backend to Railway
-        uses: bervProject/railway-deploy@main
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service flask-api --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        with:
-          service: flask-api
-          detach: true
 
       - name: Wait for Railway deployment
         run: |
