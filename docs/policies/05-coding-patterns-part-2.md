@@ -2156,3 +2156,342 @@ def test_live_mt5_connection():
 1. Run `flake8 . --max-line-length=88` locally before push
 2. Verify all imports are in requirements.txt
 3. Ensure tests handle CI environment (no external services)
+
+---
+
+## PATTERN 17: NEXT.JS APP ROUTER ROUTE CONFLICTS
+
+**Purpose:** Avoid duplicate route errors in Next.js 15 App Router
+
+### The Problem
+
+Next.js App Router allows route groups (folders in parentheses like `(marketing)`) that don't affect the URL path. This can cause conflicts:
+
+```
+app/
+├── page.tsx                    → serves "/"
+└── (marketing)/
+    └── page.tsx                → ALSO serves "/" (CONFLICT!)
+```
+
+This causes Vercel build errors like:
+```
+Error: ENOENT: no such file or directory, open '.next/server/app/page_client-reference-manifest.js'
+```
+
+### The Solution
+
+**Rule:** Only ONE `page.tsx` can serve each route path.
+
+```
+# ❌ WRONG: Both serve "/" route
+app/page.tsx                    → "/"
+app/(marketing)/page.tsx        → "/" (duplicate!)
+
+# ✅ CORRECT: Use route group OR root, not both
+# Option 1: Use route group for marketing pages
+app/(marketing)/page.tsx        → "/"
+app/(marketing)/pricing/page.tsx → "/pricing"
+app/(dashboard)/dashboard/page.tsx → "/dashboard"
+
+# Option 2: Use root page, no route group for home
+app/page.tsx                    → "/"
+app/pricing/page.tsx            → "/pricing"
+```
+
+### Pre-deployment Checklist
+
+Before deploying, verify no duplicate routes:
+
+```bash
+# Check for potential conflicts
+find app -name "page.tsx" | sort
+
+# If you see both of these, you have a conflict:
+# app/page.tsx
+# app/(something)/page.tsx
+```
+
+---
+
+## PATTERN 18: JEST SETUP FOR JSDOM ENVIRONMENT
+
+**Purpose:** Configure Jest polyfills for testing Next.js code in jsdom environment
+
+### The Problem
+
+Jest with jsdom environment doesn't have certain Node.js and Web API globals that Next.js code depends on:
+
+- `TextEncoder` / `TextDecoder` - Required by `resend`, `@react-email/render`
+- `ReadableStream` / `WritableStream` - Required by `undici`
+- `Request` / `Response` / `Headers` / `fetch` - Required by `next/server`
+
+### The Solution
+
+**File:** `jest.setup.js`
+
+```javascript
+// Jest setup file for Next.js 15 with TypeScript
+// This file runs before each test file
+
+// 1. Polyfill TextEncoder/TextDecoder for jsdom environment
+// Required by packages like resend and @react-email/render
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// 2. Polyfill Web Streams API for jsdom environment
+// Required by undici and other packages that use Web Streams
+// Note: stream/web is available in Node.js 16.5+ but not exposed to jsdom
+if (typeof global.ReadableStream === 'undefined') {
+  const { ReadableStream, WritableStream, TransformStream } = require('stream/web');
+  global.ReadableStream = ReadableStream;
+  global.WritableStream = WritableStream;
+  global.TransformStream = TransformStream;
+}
+
+// 3. Polyfill Web API globals (Request, Response, Headers, etc.) for jsdom
+// Required by next/server and other packages that use Web APIs
+// IMPORTANT: This must come AFTER Web Streams polyfill
+if (typeof global.Request === 'undefined') {
+  const { Request, Response, Headers, fetch } = require('undici');
+  global.Request = Request;
+  global.Response = Response;
+  global.Headers = Headers;
+  global.fetch = fetch;
+}
+
+// 4. Extend Jest matchers with @testing-library/jest-dom
+import '@testing-library/jest-dom';
+```
+
+**CRITICAL:** Order matters! Web Streams must be polyfilled BEFORE importing from `undici`.
+
+### Required devDependencies
+
+```json
+{
+  "devDependencies": {
+    "undici": "^6.19.2"
+  }
+}
+```
+
+---
+
+## PATTERN 19: ZOD SCHEMA TRANSFORM ORDER
+
+**Purpose:** Correct ordering of Zod transforms and validations
+
+### The Problem
+
+Zod applies transforms in order. If validation comes before transform, validation sees untransformed input:
+
+```typescript
+// ❌ WRONG: .email() validates BEFORE .trim()
+// Input: "  user@example.com  " fails email validation (has spaces!)
+const emailSchema = z
+  .string()
+  .email('Invalid email format')  // Validates raw input with spaces
+  .trim()                          // Trim happens AFTER validation
+  .toLowerCase();
+```
+
+### The Solution
+
+Always put transforms BEFORE validations:
+
+```typescript
+// ✅ CORRECT: .trim() and .toLowerCase() BEFORE .email()
+const emailSchema = z
+  .string()
+  .trim()                          // 1. Remove whitespace first
+  .toLowerCase()                   // 2. Normalize case
+  .email('Invalid email format')   // 3. NOW validate clean input
+  .min(5, 'Email is required')
+  .max(254, 'Email must not exceed 254 characters');
+```
+
+### Common Patterns
+
+```typescript
+// ✅ Username validation
+const usernameSchema = z
+  .string()
+  .trim()                          // Transform first
+  .toLowerCase()
+  .min(3, 'Username too short')    // Then validate
+  .max(30, 'Username too long')
+  .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, underscores');
+
+// ✅ Phone number validation
+const phoneSchema = z
+  .string()
+  .trim()                          // Transform first
+  .replace(/\D/g, '')              // Remove non-digits
+  .min(10, 'Phone number too short')  // Then validate
+  .max(15, 'Phone number too long');
+```
+
+---
+
+## PATTERN 20: JSDOM ENVIRONMENT AWARENESS IN TESTS
+
+**Purpose:** Write tests that correctly handle jsdom's browser-like environment
+
+### The Problem
+
+jsdom simulates a browser environment by defining `window`, `document`, etc. This affects environment detection:
+
+```typescript
+// In real Node.js: typeof window === 'undefined' → true
+// In jsdom: typeof window === 'undefined' → false (window IS defined)
+
+// ❌ WRONG: Assumes Node.js behavior in jsdom
+it('should detect server environment', () => {
+  expect(isServer()).toBe(true);  // FAILS! jsdom has window
+});
+```
+
+### The Solution
+
+Write tests that acknowledge jsdom's browser-like behavior:
+
+```typescript
+// ✅ CORRECT: Test acknowledges jsdom defines window
+describe('isBrowser / isServer', () => {
+  it('should detect environment correctly', () => {
+    // Jest uses jsdom which defines window, so it behaves like a browser
+    // In real Node.js (without jsdom), isServer() would return true
+    expect(typeof isBrowser()).toBe('boolean');
+    expect(typeof isServer()).toBe('boolean');
+    // In jsdom environment, window is defined
+    expect(isBrowser()).toBe(!isServer());
+  });
+});
+```
+
+### Testing Server-Only Code
+
+For code that must run in Node.js environment:
+
+```typescript
+// Option 1: Use jest.config.js testEnvironment per file
+/**
+ * @jest-environment node
+ */
+describe('Server-side utils', () => {
+  it('should detect server environment', () => {
+    expect(isServer()).toBe(true);  // Works! No jsdom
+  });
+});
+
+// Option 2: Mock window
+describe('isServer', () => {
+  const originalWindow = global.window;
+
+  beforeEach(() => {
+    // @ts-ignore
+    delete global.window;
+  });
+
+  afterEach(() => {
+    global.window = originalWindow;
+  });
+
+  it('returns true when window is undefined', () => {
+    expect(isServer()).toBe(true);
+  });
+});
+```
+
+---
+
+## PATTERN 21: CI/CD WORKFLOW CONFIGURATION
+
+**Purpose:** Configure GitHub Actions workflows for Next.js + pnpm projects
+
+### GitHub Actions Runner Selection
+
+```yaml
+# ❌ WRONG: self-hosted runners may not be available
+jobs:
+  build:
+    runs-on: self-hosted  # Requires configured self-hosted runners
+
+# ✅ CORRECT: Use GitHub-hosted runners
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Always available
+```
+
+### pnpm Configuration
+
+```yaml
+# ✅ CORRECT: Full pnpm setup
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+```
+
+### Bundle Size Checks
+
+Set realistic thresholds that account for growth:
+
+```yaml
+- name: Check bundle size
+  run: |
+    BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
+    echo "Bundle size: ${BUNDLE_SIZE}MB"
+    # Set threshold with ~20% headroom above current size
+    if [ $BUNDLE_SIZE -gt 250 ]; then
+      echo "❌ Bundle size exceeds 250MB"
+      exit 1
+    fi
+    echo "✅ Bundle size is acceptable"
+```
+
+---
+
+## UPDATED SUMMARY: LESSONS LEARNED FROM CI FAILURES
+
+| Issue | Prevention |
+|-------|------------|
+| Line too long | Use 88 char limit for Python (Black's default) |
+| Unused imports | Only import what you use, remove unused |
+| Unnecessary `global` | Don't use `global` when only reading module-level variables |
+| Missing dependencies | Add all imports to requirements.txt |
+| Tuple assertion errors | Always unpack `Tuple[bool, str]` before asserting |
+| Health check failures in CI | Accept both connected (200) and disconnected (503) states |
+| **Duplicate Next.js routes** | Only ONE `page.tsx` per URL path (Pattern 17) |
+| **TextEncoder/ReadableStream not defined** | Add polyfills to `jest.setup.js` in correct order (Pattern 18) |
+| **Zod validation failures** | Put `.trim()/.toLowerCase()` BEFORE `.email()` (Pattern 19) |
+| **isServer() test failures** | Account for jsdom defining `window` (Pattern 20) |
+| **CI stuck on self-hosted** | Use `ubuntu-latest` runners (Pattern 21) |
+| **Bundle size exceeded** | Set thresholds with ~20% headroom (Pattern 21) |
+
+**Pre-commit checklist for Next.js/TypeScript:**
+1. Run `pnpm run test:quick` locally before push
+2. Check for duplicate routes: `find app -name "page.tsx" | sort`
+3. Verify jest.setup.js has required polyfills
+4. Ensure Zod schemas have transforms before validations
+5. Use GitHub-hosted runners in CI workflows
