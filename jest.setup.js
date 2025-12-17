@@ -7,6 +7,17 @@ import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+// Polyfill Web API globals (Request, Response, Headers, etc.) for jsdom environment
+// Required by next/server and other packages that use Web APIs
+// Note: These are available in Node.js 18+ but not exposed to jsdom by default
+if (typeof global.Request === 'undefined') {
+  const { Request, Response, Headers, fetch } = require('undici');
+  global.Request = Request;
+  global.Response = Response;
+  global.Headers = Headers;
+  global.fetch = fetch;
+}
+
 // Extend Jest matchers with @testing-library/jest-dom
 import '@testing-library/jest-dom';
 
