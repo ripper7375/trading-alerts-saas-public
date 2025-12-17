@@ -7,6 +7,16 @@ import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+// Polyfill Web Streams API for jsdom environment
+// Required by undici and other packages that use Web Streams
+// Note: stream/web is available in Node.js 16.5+ but not exposed to jsdom by default
+if (typeof global.ReadableStream === 'undefined') {
+  const { ReadableStream, WritableStream, TransformStream } = require('stream/web');
+  global.ReadableStream = ReadableStream;
+  global.WritableStream = WritableStream;
+  global.TransformStream = TransformStream;
+}
+
 // Polyfill Web API globals (Request, Response, Headers, etc.) for jsdom environment
 // Required by next/server and other packages that use Web APIs
 // Note: These are available in Node.js 18+ but not exposed to jsdom by default
