@@ -1,6 +1,12 @@
 // Jest setup file for Next.js 15 with TypeScript
 // This file runs before each test file
 
+// Polyfill TextEncoder/TextDecoder for jsdom environment
+// Required by packages like resend and @react-email/render
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 // Extend Jest matchers with @testing-library/jest-dom
 import '@testing-library/jest-dom';
 

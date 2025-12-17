@@ -32,14 +32,16 @@ const simplePasswordSchema = z
 
 /**
  * Email validation schema
+ * Note: trim() and toLowerCase() must come BEFORE email validation
+ * so that input like '  TEST@Example.COM  ' passes validation
  */
 const emailSchema = z
   .string()
+  .trim()
+  .toLowerCase()
   .email('Invalid email format')
   .min(5, 'Email is required')
-  .max(254, 'Email must not exceed 254 characters')
-  .toLowerCase()
-  .trim();
+  .max(254, 'Email must not exceed 254 characters');
 
 /**
  * Name validation schema
