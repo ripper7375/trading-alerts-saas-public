@@ -157,3 +157,13 @@ docker-compose.override.yml
 *.bak
 RAILWAY-INFO.md
 tsconfig.tsbuildinfo
+
+# ============================================================================
+# Add to .gitignore
+# ============================================================================
+.aider.conf.yml
+Archive/start-aider.bat
+start-aider-anthropic.bat
+stripe.exe
+test-minimax-api.bat
+test-minimax-api.py
