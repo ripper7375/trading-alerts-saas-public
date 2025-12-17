@@ -9,7 +9,6 @@ import { z } from 'zod';
 import {
   SYMBOLS,
   FREE_SYMBOLS,
-  TIMEFRAMES,
   symbolEnum,
   timeframeEnum,
 } from './alert';
@@ -134,10 +133,10 @@ export function validateSymbolTimeframeCombination(
  * @returns Zod schema with tier-specific validation
  */
 export function addToWatchlistSchemaForTier(tier: 'FREE' | 'PRO') {
-  const allowedSymbols = tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
+  const allowedSymbols: readonly string[] = tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
 
   return addToWatchlistSchema.refine(
-    (data) => allowedSymbols.includes(data.symbol as typeof allowedSymbols[number]),
+    (data) => allowedSymbols.includes(data.symbol),
     {
       message: `Symbol not available for ${tier} tier`,
       path: ['symbol'],

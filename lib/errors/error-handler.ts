@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { APIError, isAPIError } from './api-error';
+import { isAPIError } from './api-error';
 import { logError } from './error-logger';
 
 /**
@@ -149,13 +149,12 @@ export function handleAPIError(
  * Check if error is a Prisma error
  */
 function isPrismaError(error: unknown): error is { code: string; message: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof (error as Record<string, unknown>).code === 'string' &&
-    (error as Record<string, unknown>).code.toString().startsWith('P')
-  );
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return false;
+  }
+  const errorRecord = error as Record<string, unknown>;
+  const code = errorRecord['code'];
+  return typeof code === 'string' && code.startsWith('P');
 }
 
 /**

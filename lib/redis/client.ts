@@ -5,7 +5,7 @@
  * Supports connection URL from environment variables.
  */
 
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 // Singleton instance
 let redisClient: Redis | null = null;
@@ -13,7 +13,7 @@ let redisClient: Redis | null = null;
 /**
  * Redis connection options
  */
-const REDIS_OPTIONS: Redis.RedisOptions = {
+const REDIS_OPTIONS: RedisOptions = {
   maxRetriesPerRequest: 3,
   retryStrategy: (times: number): number | null => {
     // Retry with exponential backoff, max 30 seconds

@@ -171,10 +171,10 @@ export function getAllowedSymbols(tier: 'FREE' | 'PRO'): readonly string[] {
  * @returns Zod schema with tier-specific symbol validation
  */
 export function createAlertSchemaForTier(tier: 'FREE' | 'PRO') {
-  const allowedSymbols = tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
+  const allowedSymbols: readonly string[] = tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
 
   return createAlertSchema.refine(
-    (data) => allowedSymbols.includes(data.symbol as typeof allowedSymbols[number]),
+    (data) => allowedSymbols.includes(data.symbol),
     {
       message: `Symbol not available for ${tier} tier`,
       path: ['symbol'],

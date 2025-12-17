@@ -56,7 +56,7 @@ export async function sendEmail(
       to,
       subject,
       html,
-      replyTo: EMAIL_CONFIG.replyTo,
+      reply_to: EMAIL_CONFIG.replyTo,
     });
 
     if (result.error) {
