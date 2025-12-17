@@ -61,11 +61,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Install pnpm
+        if: steps.check_project.outputs.project_exists == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Install dependencies
         if: steps.check_project.outputs.project_exists == 'true'
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Setup test environment
         if: steps.check_project.outputs.project_exists == 'true'
@@ -97,12 +102,12 @@ jobs:
 
       - name: Build Next.js application
         if: steps.check_project.outputs.project_exists == 'true'
-        run: npm run build
+        run: pnpm run build
 
       - name: Start Next.js server
         if: steps.check_project.outputs.project_exists == 'true'
         run: |
-          npm run start &
+          pnpm run start &
           echo $! > server.pid
           sleep 10
         env:

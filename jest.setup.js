@@ -1,6 +1,33 @@
 // Jest setup file for Next.js 15 with TypeScript
 // This file runs before each test file
 
+// Polyfill TextEncoder/TextDecoder for jsdom environment
+// Required by packages like resend and @react-email/render
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Polyfill Web Streams API for jsdom environment
+// Required by undici and other packages that use Web Streams
+// Note: stream/web is available in Node.js 16.5+ but not exposed to jsdom by default
+if (typeof global.ReadableStream === 'undefined') {
+  const { ReadableStream, WritableStream, TransformStream } = require('stream/web');
+  global.ReadableStream = ReadableStream;
+  global.WritableStream = WritableStream;
+  global.TransformStream = TransformStream;
+}
+
+// Polyfill Web API globals (Request, Response, Headers, etc.) for jsdom environment
+// Required by next/server and other packages that use Web APIs
+// Note: These are available in Node.js 18+ but not exposed to jsdom by default
+if (typeof global.Request === 'undefined') {
+  const { Request, Response, Headers, fetch } = require('undici');
+  global.Request = Request;
+  global.Response = Response;
+  global.Headers = Headers;
+  global.fetch = fetch;
+}
+
 // Extend Jest matchers with @testing-library/jest-dom
 import '@testing-library/jest-dom';
 
