@@ -60,23 +60,29 @@ const config = {
   // ============================================================================
   // Coverage Thresholds (QUALITY GATE - Blocks CI/CD if not met)
   // ============================================================================
-  // TECHNICAL DEBT: Thresholds temporarily lowered to current baseline
-  // to unblock PRs while new features are being implemented
-  // TODO: Add comprehensive tests and restore thresholds to:
-  //   - statements: 6%
-  //   - branches: 5%
-  //   - lines: 6%
-  //   - functions: 10%
+  // These thresholds are enforced by Jest and will fail the build if not met.
+  // Thresholds updated after Phase 1 Testing Framework implementation.
+  //
+  // Current coverage (as of Phase 1 completion):
+  //   - statements: 21.41%
+  //   - branches: 13.75%
+  //   - functions: 18.68%
+  //   - lines: 21.72%
+  //
+  // Thresholds set with ~3-4% safety margin to allow for new code additions
+  // while maintaining quality. If adding new features causes coverage to drop
+  // below thresholds, add tests for the new code before merging.
+  //
   // Long-term target: statements: 45%, branches: 50%, lines: 45%, functions: 60%
   // WHY THIS MATTERS: Low coverage = untested code = production bugs
-  // PR #122: Lowered to accommodate Part 14 Admin Dashboard implementation
-  // PR #123: Lowered to accommodate Part 13 Settings System (17 new files)
+  //
+  // To check detailed coverage by path: npm run coverage:report
   coverageThreshold: {
     global: {
-      statements: 2.0, // Lowered from 2.3% (current: 2.07%) for Part 15 notifications
-      branches: 1.5,
-      lines: 2.0, // Lowered from 2.3% (current: 2.12%) for Part 15 notifications
-      functions: 2.8, // Lowered from 3.2% (current: 2.88%) for Part 15 notifications
+      statements: 18, // Current: 21.41%, Margin: +3.41%
+      branches: 10, // Current: 13.75%, Margin: +3.75%
+      functions: 15, // Current: 18.68%, Margin: +3.68%
+      lines: 18, // Current: 21.72%, Margin: +3.72%
     },
   },
 

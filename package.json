@@ -13,8 +13,10 @@
     "test": "jest",
     "test:quick": "jest --bail --passWithNoTests",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --coverage --coverageReporters=text --coverageReporters=json-summary --coverageReporters=lcov",
     "test:ci": "jest --ci --coverage --maxWorkers=2 --silent",
+    "coverage:report": "node scripts/check-coverage.js",
+    "coverage:full": "npm run test:coverage && npm run coverage:report",
     "test:api": "newman run postman/collections/nextjs-api.postman_collection.json -e postman/environments/local.postman_environment.json",
     "test:api:flask": "newman run postman/collections/flask-mt5.postman_collection.json -e postman/environments/local.postman_environment.json",
     "test:api:all": "npm run test:api && npm run test:api:flask",
@@ -127,7 +129,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": "24.x",
     "npm": ">=9.0.0"
   },
   "keywords": [
