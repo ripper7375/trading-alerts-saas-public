@@ -157,11 +157,3 @@ docker-compose.override.yml
 *.bak
 RAILWAY-INFO.md
 tsconfig.tsbuildinfo
-
-============================================================================
-
-# Local scripts and secrets
-*.bat
-*.exe
-test-minimax-api.py
-.aider.conf.yml
