@@ -1,54 +1,17 @@
+import type {
+  User as PrismaUser,
+  Alert,
+  Watchlist,
+  Subscription,
+} from '@prisma/client';
 import type { Tier } from './tier';
-import type { Alert } from './alert';
 
 /**
- * User type
+ * User type (extends Prisma User)
+ *
+ * Note: This is a re-export with additional type safety
  */
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  image: string | null;
-  password: string | null;
-  tier: Tier;
-  role: string;
-  stripeCustomerId: string | null;
-  stripePriceId: string | null;
-  subscriptionId: string | null;
-  isActive: boolean;
-  emailVerified: Date | null;
-  hasUsedStripeTrial: boolean;
-  hasUsedThreeDayPlan: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Watchlist type
- */
-export interface Watchlist {
-  id: string;
-  userId: string;
-  name: string;
-  order: number;
-  createdAt: Date;
-}
-
-/**
- * Subscription type
- */
-export interface Subscription {
-  id: string;
-  userId: string;
-  stripeSubscriptionId: string | null;
-  status: string;
-  plan: string;
-  currentPeriodStart: Date | null;
-  currentPeriodEnd: Date | null;
-  cancelAtPeriodEnd: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type User = PrismaUser;
 
 /**
  * Public user profile (safe for client-side)

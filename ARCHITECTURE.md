@@ -66,12 +66,10 @@ Trading Alerts SaaS is a web application that enables traders to monitor multipl
 
 ### External Services
 
-- **MT5 Terminal:** MetaTrader 5 (Windows VPS only)
+- **MT5 Terminal:** MetaTrader 5 (Windows/Linux VPS)
 - **Payments:** Stripe (international cards) + dLocal (emerging market local payments)
 - **Email:** Resend
-- **Deployment:** Vercel (Next.js), Railway (PostgreSQL), Windows VPS (Flask + MT5)
-
-> **Important:** The MetaTrader5 Python package only runs on Windows. The Flask MT5 service must run on the same Windows VPS as the MT5 terminals, not in a Docker container on Railway.
+- **Deployment:** Vercel (Next.js), Railway (PostgreSQL + Flask)
 
 ### AI Development
 
@@ -109,39 +107,36 @@ Trading Alerts SaaS is a web application that enables traders to monitor multipl
             │                          │
             │                          │
     ┌───────▼──────────────┐      ┌────────▼──────────────────────┐
-    │  PostgreSQL DB   │      │  Windows VPS                │
-    │   (Railway)      │      │  (Flask + 15 MT5 Terminals) │
-    │                  │      │                             │
-    │ - Users          │      │ ┌─────────────────────────┐ │
-    │ - Alerts         │      │ │ Flask MT5 Service       │ │
-    │ - Watchlists     │      │ │ - MT5 Connection Pool   │ │
-    │ - Subscriptions  │      │ │ - Symbol Router         │ │
-    │ - Affiliates     │      │ │ - Fractal Detection     │ │
-    │ - AffiliateCodes │      │ │ - Tier Validation       │ │
-    │ - Commissions    │      │ │ - Health Monitoring     │ │
-    └──────────────────┘      │ └───────────┬─────────────┘ │
-                              │             │ Local Access  │
-                              │             ▼               │
-                              │ ┌─────────────────────────┐ │
-                              │ │ 15 MT5 Terminals        │ │
-                              │ │ Each: 1 symbol × 9 TFs  │ │
-                              │ ├─────────────────────────┤ │
-                              │ │ MT5_01-08 │ MT5_09-15   │ │
-                              │ │ AUDJPY    │ NZDUSD      │ │
-                              │ │ AUDUSD    │ US30        │ │
-                              │ │ BTCUSD    │ USDCAD      │ │
-                              │ │ ETHUSD    │ USDCHF      │ │
-                              │ │ EURUSD    │ USDJPY      │ │
-                              │ │ GBPJPY    │ XAGUSD      │ │
-                              │ │ GBPUSD    │ XAUUSD      │ │
-                              │ │ NDX100    │             │ │
-                              │ ├─────────────────────────┤ │
-                              │ │ 9 TFs per terminal:     │ │
-                              │ │ M5,M15,M30,H1,H2,H4,    │ │
-                              │ │ H8,H12,D1               │ │
-                              │ │ With fractal indicators │ │
-                              │ └─────────────────────────┘ │
-                              └─────────────────────────────┘
+    │  PostgreSQL DB   │      │  Flask MT5 Service        │
+    │   (Railway)      │      │    (Railway)              │
+    │                  │      │                           │
+    │ - Users          │      │ - MT5 Connection Pool     │
+    │ - Alerts         │      │ - Symbol Router           │
+    │ - Watchlists     │      │ - Fractal Detection       │
+    │ - Subscriptions  │      │ - Trendline Calc          │
+    │ - Affiliates     │      │ - Tier Validation         │
+    │ - AffiliateCodes │      │ - Health Monitoring       │
+    │ - Commissions    │      └────────┬──────────────────┘
+    └──────────────────┘               │ Manages 15 connections
+                                       │ (1 per symbol)
+                                       ▼
+                    ┌──────────────────────────────────────┐
+                    │   15 MT5 Terminals (VPS)             │
+                    │   Each: 1 symbol × 9 timeframes      │
+                    ├──────────────────────────────────────┤
+                    │ MT5_01 (AUDJPY)  │ MT5_09 (NZDUSD)  │
+                    │ MT5_02 (AUDUSD)  │ MT5_10 (US30)    │
+                    │ MT5_03 (BTCUSD)  │ MT5_11 (USDCAD)  │
+                    │ MT5_04 (ETHUSD)  │ MT5_12 (USDCHF)  │
+                    │ MT5_05 (EURUSD)  │ MT5_13 (USDJPY)  │
+                    │ MT5_06 (GBPJPY)  │ MT5_14 (XAGUSD)  │
+                    │ MT5_07 (GBPUSD)  │ MT5_15 (XAUUSD)  │
+                    │ MT5_08 (NDX100)  │                  │
+                    ├──────────────────────────────────────┤
+                    │ Each runs 9 chart windows:           │
+                    │ M5, M15, M30, H1, H2, H4, H8, H12, D1│
+                    │ With fractal indicators loaded       │
+                    └──────────────────────────────────────┘
 
     External Services:
     ├─ Stripe (Int'l Cards + Commissions) ─┐
@@ -768,13 +763,9 @@ model FraudAlert {
 
 ---
 
-### 4.5 Flask MT5 Service (Windows VPS) - Multi-Terminal Architecture
+### 4.5 Flask MT5 Service (Railway) - Multi-Terminal Architecture
 
 **Location:** `mt5-service/` directory
-
-**Deployment:** Windows VPS (NOT Docker/Railway)
-
-> **Critical:** The MetaTrader5 Python package (`MetaTrader5==5.0.45+`) only runs on Windows because it interfaces directly with the MT5 terminal executable. The Flask service MUST run on the same Windows machine as the MT5 terminals.
 
 **Responsibilities:**
 
@@ -794,14 +785,6 @@ model FraudAlert {
 - Single MT5 terminal cannot efficiently handle 135 chart windows
 - Solution: 15 terminals × 9 charts each = distributed load (manageable)
 - Fault isolation: if one terminal fails, others continue working
-
-**Why Windows VPS (Not Docker on Railway):**
-
-- MetaTrader5 Python package requires Windows OS
-- MT5 terminals must be installed on the same machine
-- `mt5.initialize()` and `mt5.login()` require local MT5 installation
-- Railway runs Linux containers - incompatible with MT5
-- Flask service needs direct access to MT5 terminal processes
 
 **Symbol-to-Terminal Mapping:**
 
@@ -839,9 +822,9 @@ mt5-service/
 │   ├── Fractal_Horizontal_Line_V5.mq5
 │   └── Fractal_Diagonal_Line_V4.mq5
 ├── requirements.txt                     # Python dependencies
-├── Dockerfile                           # Local dev only (production runs directly on Windows)
+├── Dockerfile                           # Container config
 ├── .env.example
-└── run.py                               # Entry point (use with Gunicorn on Windows VPS)
+└── run.py                               # Entry point
 ```
 
 **Key Endpoint (Multi-Terminal):**
@@ -2422,29 +2405,25 @@ Both indicators include advanced optimizations:
 └──────────┬───────────────────────────┬─────────────────────┘
            │                        │
            ▼                        ▼
-┌──────────────────┐      ┌─────────────────────────────────┐
-│  RAILWAY         │      │  WINDOWS VPS                     │
-│  PostgreSQL      │      │  (Flask + 15 MT5 Terminals)      │
-│                  │      │                                  │
-│  - Production DB │      │  ┌──────────────────────────┐   │
-│  - Auto backups  │      │  │ Flask MT5 Service        │   │
-│  - Migrations    │      │  │ - Python 3.11 + Gunicorn │   │
-└──────────────────┘      │  │ - REST API endpoints     │   │
-                          │  │ - Connection pool        │   │
-                          │  └────────────┬─────────────┘   │
-                          │               │ Local Access    │
-                          │               ▼                 │
-                          │  ┌──────────────────────────┐   │
-                          │  │ 15 MT5 Terminals         │   │
-                          │  │ - Broker: [Your]         │   │
-                          │  │ - Real-time data         │   │
-                          │  │ - Fractal Indicators     │   │
-                          │  └──────────────────────────┘   │
-                          └─────────────────────────────────┘
+┌──────────────────┐      ┌──────────────────────┐
+│  RAILWAY         │      │  RAILWAY             │
+│  PostgreSQL      │      │  Flask MT5 Service   │
+│                  │      │                      │
+│  - Production DB │      │  - Docker container  │
+│  - Auto backups  │      │  - Python 3.11       │
+│  - Migrations    │      │  - MT5 connection    │
+└──────────────────┘      └──────────┬───────────┘
+                                     │
+                                     ▼
+                          ┌──────────────────────┐
+                          │  MT5 Terminal        │
+                          │  (Windows VPS)       │
+                          │                      │
+                          │  - Broker: [Your]    │
+                          │  - Real-time data    │
+                          │  - Fractal Indicators│
+                          └──────────────────────┘
 ```
-
-> **Why Windows VPS instead of Railway Docker?**
-> The MetaTrader5 Python package only runs on Windows and requires the MT5 terminal executable to be installed on the same machine. Railway's Linux containers cannot run MT5. The Flask service and all 15 MT5 terminals must be co-located on Windows VPS.
 
 ### 9.2 Deployment Steps
 
@@ -2472,59 +2451,29 @@ git push origin main
 DATABASE_URL=[Railway URL] npx prisma migrate deploy
 ```
 
-**3. Flask MT5 Service + MT5 Terminals (Windows VPS):**
-
-> **Important:** The Flask service and MT5 terminals MUST run on the same Windows machine. Railway (Linux Docker) cannot be used for this component.
+**3. Flask MT5 Service (Railway):**
 
 ```bash
-# On Windows VPS:
+# Push to Railway
+railway up
 
-# 1. Install Python 3.11+
-# Download from python.org and install
-
-# 2. Clone repository and install dependencies
-git clone <repo-url>
-cd mt5-service
-pip install -r requirements.txt
-
-# 3. Install 15 MT5 terminal instances
-# Each terminal needs unique installation folder and account
-# MT5_01 through MT5_15
-
-# 4. Copy indicator files to each MT5 Indicators folder:
-#    - Fractal_Horizontal_Line_V5.mq5
-#    - Fractal_Diagonal_Line_V4.mq5
-
-# 5. Compile indicators in MetaEditor for each terminal
-
-# 6. Configure environment variables (.env file):
-MT5_TERMINALS_CONFIG=config/mt5_terminals.json
-FLASK_API_KEY=[same as Next.js FLASK_API_KEY]
-ADMIN_API_KEY=[secure key for admin endpoints]
-
-# 7. Start Flask service with Gunicorn
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5001 run:app
-
-# 8. (Optional) Set up as Windows Service for auto-restart
-# Use NSSM (Non-Sucking Service Manager) or similar
+# Configure environment variables:
+MT5_SERVER=[broker server]
+MT5_LOGIN=[MT5 account]
+MT5_PASSWORD=[MT5 password]
+FLASK_API_KEY=[same as Next.js]
 ```
 
-**4. Windows VPS Requirements:**
+**4. MT5 Terminal Setup:**
 
 ```
-Minimum Specifications:
-- OS: Windows Server 2019/2022 or Windows 10/11 Pro
-- RAM: 32GB (15 MT5 terminals × ~1.5GB each + Flask)
-- CPU: 8 cores (recommended for 15 terminals)
-- Storage: 100GB SSD
-- Network: Static IP with firewall rules for port 5001
-
-Recommended Providers:
-- Vultr Windows VPS (~$80-150/month)
-- AWS EC2 Windows (t3.xlarge or larger)
-- Azure Windows VM (Standard_D4s_v3)
-- Contabo Windows VPS (budget option)
+1. Install MT5 on Windows VPS or local machine
+2. Copy indicator files to MT5 Indicators folder:
+   - Fractal_Horizontal_Line_V5.mq5
+   - Fractal_Diagonal_Line_V4.mq5
+3. Compile indicators in MetaEditor
+4. Connect Flask service to MT5 terminal
+5. Test indicator data retrieval
 ```
 
 ---

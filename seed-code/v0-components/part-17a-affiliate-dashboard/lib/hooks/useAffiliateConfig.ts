@@ -1,11 +1,11 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react"
 
 interface AffiliateConfig {
-  discountPercent: number;
-  commissionPercent: number;
-  calculateDiscountedPrice: (price: number) => number;
+  discountPercent: number
+  commissionPercent: number
+  calculateDiscountedPrice: (price: number) => number
 }
 
 /**
@@ -15,8 +15,8 @@ interface AffiliateConfig {
  */
 export function useAffiliateConfig(): AffiliateConfig {
   // Default values - these would typically come from an API or context
-  const [discountPercent, setDiscountPercent] = useState(20);
-  const [commissionPercent, setCommissionPercent] = useState(20);
+  const [discountPercent, setDiscountPercent] = useState(20)
+  const [commissionPercent, setCommissionPercent] = useState(20)
 
   // In a real implementation, you would fetch these from your backend/API
   useEffect(() => {
@@ -26,15 +26,15 @@ export function useAffiliateConfig(): AffiliateConfig {
     //     setDiscountPercent(data.discountPercent);
     //     setCommissionPercent(data.commissionPercent);
     //   });
-  }, []);
+  }, [])
 
   const calculateDiscountedPrice = (price: number): number => {
-    return price * (1 - discountPercent / 100);
-  };
+    return price * (1 - discountPercent / 100)
+  }
 
   return {
     discountPercent,
     commissionPercent,
     calculateDiscountedPrice,
-  };
+  }
 }

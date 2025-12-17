@@ -116,15 +116,11 @@ function generateCombinations(tier: Tier): Combination[] {
 function buildTimeframeInfo(tier: Tier): TimeframeInfo[] {
   const accessibleTimeframes = getTimeframesForTier(tier);
 
-  return [...PRO_TIMEFRAMES]
-    .map((tf) => ({
-      value: tf,
-      label: TIMEFRAME_LABELS[tf] || tf,
-      proOnly: !FREE_TIMEFRAMES.includes(
-        tf as (typeof FREE_TIMEFRAMES)[number]
-      ),
-    }))
-    .filter((tf) => accessibleTimeframes.includes(tf.value));
+  return [...PRO_TIMEFRAMES].map((tf) => ({
+    value: tf,
+    label: TIMEFRAME_LABELS[tf] || tf,
+    proOnly: !FREE_TIMEFRAMES.includes(tf as typeof FREE_TIMEFRAMES[number]),
+  })).filter((tf) => accessibleTimeframes.includes(tf.value));
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -216,8 +212,7 @@ export async function GET(): Promise<NextResponse> {
     //───────────────────────────────────────────────────────
     if (userTier === 'FREE') {
       const additionalSymbols = PRO_SYMBOLS.length - FREE_SYMBOLS.length;
-      const additionalTimeframes =
-        PRO_TIMEFRAMES.length - FREE_TIMEFRAMES.length;
+      const additionalTimeframes = PRO_TIMEFRAMES.length - FREE_TIMEFRAMES.length;
       const additionalCombinations = proCombinations - combinations.length;
 
       response.upgrade = {
@@ -243,8 +238,7 @@ export async function GET(): Promise<NextResponse> {
       {
         success: false,
         error: 'Failed to fetch combinations',
-        message:
-          'An error occurred while fetching available combinations. Please try again.',
+        message: 'An error occurred while fetching available combinations. Please try again.',
       },
       { status: 500 }
     );

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserTier } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -8,11 +8,6 @@ import bcrypt from 'bcryptjs';
  * Used by both the seed script and application initialization
  * Follows Prisma best practices for database operations
  */
-
-/**
- * User tier type
- */
-type UserTier = 'FREE' | 'PRO';
 
 /**
  * Created admin user result
@@ -54,7 +49,7 @@ export async function seedAdmin(
     update: {
       name,
       password: hashedPassword,
-      tier: 'PRO',
+      tier: UserTier.PRO,
       role: 'ADMIN',
       emailVerified: new Date(),
       isActive: true,
@@ -65,7 +60,7 @@ export async function seedAdmin(
       email,
       name,
       password: hashedPassword,
-      tier: 'PRO',
+      tier: UserTier.PRO,
       role: 'ADMIN',
       emailVerified: new Date(),
       isActive: true,

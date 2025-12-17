@@ -4,7 +4,6 @@ PART 17 - PROMPT 1: Affiliate Registration Page
 Create an affiliate registration page for a trading alerts SaaS using **Next.js 15 App Router, TypeScript, Tailwind CSS, and shadcn/ui components**.
 
 **CRITICAL: Use SystemConfig for Dynamic Percentages**
-
 - DO NOT hardcode commission percentages (e.g., "$5 per sale" or "20%")
 - MUST use `useAffiliateConfig()` hook for commission display
 - Commission amount should be calculated dynamically
@@ -14,7 +13,6 @@ Create an affiliate registration page for a trading alerts SaaS using **Next.js 
 ## REQUIREMENTS:
 
 ### 1. PAGE LAYOUT:
-
 - Two-column layout: Form (left) + Benefits (right)
 - Centered container, max-width 1200px
 - Padding: p-8
@@ -23,12 +21,11 @@ Create an affiliate registration page for a trading alerts SaaS using **Next.js 
 ### 2. LEFT COLUMN - REGISTRATION FORM:
 
 **Header:**
-
 - Icon: Handshake (lucide-react, text-4xl, text-purple-600, mb-4)
 - Heading: "Become an Affiliate Partner" (text-3xl, font-bold, text-gray-900, mb-2)
 - Subheading: "Earn ${commissionAmount} for every PRO upgrade using your codes" (text-lg, text-gray-600)
-  - Calculate commissionAmount dynamically: calculateDiscountedPrice(29) \* (commissionPercent / 100)
-  - Use useAffiliateConfig() hook
+  * Calculate commissionAmount dynamically: calculateDiscountedPrice(29) * (commissionPercent / 100)
+  * Use useAffiliateConfig() hook
 
 **Form Fields:**
 
@@ -48,32 +45,32 @@ Create an affiliate registration page for a trading alerts SaaS using **Next.js 
    - Label: "Country" (text-sm, font-medium, text-gray-700)
    - Select: shadcn/ui Select component
    - Options with flag emojis:
-     - 🇮🇳 India
-     - 🇳🇬 Nigeria
-     - 🇵🇰 Pakistan
-     - 🇻🇳 Vietnam
-     - 🇮🇩 Indonesia
-     - 🇹🇭 Thailand
-     - 🇿🇦 South Africa
-     - 🇹🇷 Turkey
-     - 🌍 Other
+     * 🇮🇳 India
+     * 🇳🇬 Nigeria
+     * 🇵🇰 Pakistan
+     * 🇻🇳 Vietnam
+     * 🇮🇩 Indonesia
+     * 🇹🇭 Thailand
+     * 🇿🇦 South Africa
+     * 🇹🇷 Turkey
+     * 🌍 Other
 
 4. **Payment Method** (required, radio buttons)
    - Label: "Preferred Payment Method" (text-sm, font-medium, text-gray-700)
    - Radio options (shadcn/ui RadioGroup):
-     - 🏦 Bank Transfer
-     - ₿ Crypto Wallet (BTC/USDT)
-     - 💳 PayPal
-     - 💰 Payoneer
+     * 🏦 Bank Transfer
+     * ₿ Crypto Wallet (BTC/USDT)
+     * 💳 PayPal
+     * 💰 Payoneer
 
 5. **Payment Details** (required, conditional textarea)
    - Label: "Payment Details" (text-sm, font-medium, text-gray-700)
    - Textarea: shadcn/ui Textarea component
    - Conditional placeholder based on payment method:
-     - Bank Transfer: "Bank name, Account number, SWIFT/IFSC code"
-     - Crypto Wallet: "Wallet address (BTC or USDT)"
-     - PayPal: "PayPal email address"
-     - Payoneer: "Payoneer email address"
+     * Bank Transfer: "Bank name, Account number, SWIFT/IFSC code"
+     * Crypto Wallet: "Wallet address (BTC or USDT)"
+     * PayPal: "PayPal email address"
+     * Payoneer: "Payoneer email address"
    - Rows: 4
    - Helper text: "This information will be used to send your commissions" (text-xs, text-gray-500)
 
@@ -83,19 +80,16 @@ Create an affiliate registration page for a trading alerts SaaS using **Next.js 
    - Links: "Terms & Conditions" and "Privacy Policy" (text-blue-600, underline)
 
 **Submit Button:**
-
 - Button: "Register as Affiliate" (w-full, py-3, text-lg, gradient bg-purple-600 to bg-blue-600, text-white, hover effect, disabled if form invalid)
 - Loading state: Spinner + "Registering..." text
 
 ### 3. RIGHT COLUMN - BENEFITS SECTION:
 
 **Header:**
-
 - Title: "What You'll Get" (text-2xl, font-bold, text-gray-900, mb-6)
 
 **Benefits List (with icons):**
 Each item:
-
 - Icon (lucide-react, text-purple-600, size-6)
 - Title (text-lg, font-semibold, text-gray-900)
 - Description (text-sm, text-gray-600)
@@ -122,36 +116,32 @@ Each item:
    - Description: "Get paid whenever you request. No waiting until you reach $100 or $500."
 
 **Commission Flow Illustration (Bottom):**
-
 - Visual diagram:
-  - Customer uses your code
-  - ↓
-  - Gets {discountPercent}% off ($29 → ${calculateDiscountedPrice(29)})
-  - ↓
-  - You earn ${commissionAmount} commission
-  - ↓
-  - Payment sent to your account
+  * Customer uses your code
+  * ↓
+  * Gets {discountPercent}% off ($29 → ${calculateDiscountedPrice(29)})
+  * ↓
+  * You earn ${commissionAmount} commission
+  * ↓
+  * Payment sent to your account
 - Use dynamic values from useAffiliateConfig()
 - Styled with arrows, boxes, colors
 
 ### 4. RESPONSIVE DESIGN:
-
 - Desktop: Two columns side by side
 - Tablet: Stack columns (form on top, benefits below)
 - Mobile: Single column, full width, form stacks vertically
 
 ### 5. FORM VALIDATION:
-
 - Real-time validation on blur
 - Error messages in red below each field
 - Disable submit button if:
-  - Any required field is empty
-  - Email is invalid
-  - Terms checkbox not checked
+  * Any required field is empty
+  * Email is invalid
+  * Terms checkbox not checked
 - Success message after submission: Toast notification
 
 ### 6. TECHNICAL REQUIREMENTS:
-
 - Component must be client component ('use client')
 - Export as default component
 - TypeScript with proper types
@@ -166,40 +156,20 @@ Each item:
 ## SYSTEMCONFIG INTEGRATION:
 
 ```typescript
-'use client';
+'use client'
 
-import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from '@/components/ui/button';
-import {
-  Handshake,
-  Gift,
-  DollarSign,
-  LineChart,
-  FileText,
-  Zap,
-} from 'lucide-react';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Button } from '@/components/ui/button'
+import { Handshake, Gift, DollarSign, LineChart, FileText, Zap } from 'lucide-react'
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -207,23 +177,21 @@ const formSchema = z.object({
   country: z.string().min(1, 'Please select a country'),
   paymentMethod: z.enum(['bank', 'crypto', 'paypal', 'payoneer']),
   paymentDetails: z.string().min(10, 'Please provide payment details'),
-  termsAccepted: z
-    .boolean()
-    .refine((val) => val === true, 'You must accept the terms'),
-});
+  termsAccepted: z.boolean().refine((val) => val === true, 'You must accept the terms')
+})
 
 export default function AffiliateRegistrationPage() {
   // ✅ CRITICAL: Use SystemConfig hook for dynamic commission
-  const { discountPercent, commissionPercent, calculateDiscountedPrice } =
-    useAffiliateConfig();
+  const {
+    discountPercent,
+    commissionPercent,
+    calculateDiscountedPrice
+  } = useAffiliateConfig()
 
   // Calculate commission amount dynamically
-  const regularPrice = 29.0;
-  const discountedPrice = calculateDiscountedPrice(regularPrice);
-  const commissionAmount = (
-    discountedPrice *
-    (commissionPercent / 100)
-  ).toFixed(2);
+  const regularPrice = 29.00
+  const discountedPrice = calculateDiscountedPrice(regularPrice)
+  const commissionAmount = (discountedPrice * (commissionPercent / 100)).toFixed(2)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -233,9 +201,9 @@ export default function AffiliateRegistrationPage() {
       country: '',
       paymentMethod: 'bank',
       paymentDetails: '',
-      termsAccepted: false,
-    },
-  });
+      termsAccepted: false
+    }
+  })
 
   // ... rest of component
 }
@@ -244,7 +212,6 @@ export default function AffiliateRegistrationPage() {
 ---
 
 ## CHECKLIST:
-
 - ✅ Imported useAffiliateConfig hook
 - ✅ No hardcoded commission amounts ($5, etc.)
 - ✅ Uses {commissionPercent}% for display

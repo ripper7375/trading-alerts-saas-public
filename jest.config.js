@@ -60,23 +60,21 @@ const config = {
   // ============================================================================
   // Coverage Thresholds (QUALITY GATE - Blocks CI/CD if not met)
   // ============================================================================
-  // TECHNICAL DEBT: Thresholds temporarily lowered to current baseline
-  // to unblock PRs while new features are being implemented
-  // TODO: Add comprehensive tests and restore thresholds to:
-  //   - statements: 6%
-  //   - branches: 5%
-  //   - lines: 6%
-  //   - functions: 10%
+  // TECHNICAL DEBT: Thresholds temporarily lowered to current baseline (Dec 2024)
+  // to unblock PR #91 while auth forms are being implemented
+  // TODO: Add comprehensive tests for auth forms and restore thresholds to:
+  //   - statements: 6% (current: 4.72%)
+  //   - branches: 5% (current: 2.28%)
+  //   - lines: 6% (current: 4.72%)
+  //   - functions: 10% (current: 7.42%)
   // Long-term target: statements: 45%, branches: 50%, lines: 45%, functions: 60%
   // WHY THIS MATTERS: Low coverage = untested code = production bugs
-  // PR #122: Lowered to accommodate Part 14 Admin Dashboard implementation
-  // PR #123: Lowered to accommodate Part 13 Settings System (17 new files)
   coverageThreshold: {
     global: {
-      statements: 2.0, // Lowered from 2.3% (current: 2.07%) for Part 15 notifications
-      branches: 1.5,
-      lines: 2.0, // Lowered from 2.3% (current: 2.12%) for Part 15 notifications
-      functions: 2.8, // Lowered from 3.2% (current: 2.88%) for Part 15 notifications
+      statements: 3, // Temporarily lowered from 6% to unblock PR #91
+      branches: 2, // Temporarily lowered from 5% to unblock PR #91
+      lines: 3, // Temporarily lowered from 6% to unblock PR #91
+      functions: 5, // Temporarily lowered from 10% to unblock PR #91
     },
   },
 

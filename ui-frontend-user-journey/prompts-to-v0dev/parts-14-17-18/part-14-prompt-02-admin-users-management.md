@@ -8,26 +8,22 @@ Create an admin users management page for a SaaS platform using **Next.js 15 App
 ## REQUIREMENTS:
 
 ### 1. PAGE HEADER:
-
 - Breadcrumb: "Admin > Users" (text-sm, text-gray-500)
 - Main heading: "User Management" (text-4xl, font-bold, text-gray-900)
 - Right side: Export CSV button (variant="outline", with Download icon from lucide-react)
 
 ### 2. FILTER BAR (Below header):
-
 - Search bar: "Search by email or name..." (w-full md:w-96, with Search icon)
 - Filter dropdowns (flex gap-4):
-  - Tier Filter: Select component with options (All Tiers, FREE Only, PRO Only)
-  - Status Filter: Select component with options (All Status, Active, Inactive, Suspended)
-  - Join Date: Select component with options (All Time, Last 7 days, Last 30 days, Last 90 days)
+  * Tier Filter: Select component with options (All Tiers, FREE Only, PRO Only)
+  * Status Filter: Select component with options (All Status, Active, Inactive, Suspended)
+  * Join Date: Select component with options (All Time, Last 7 days, Last 30 days, Last 90 days)
 - Clear Filters button (ghost variant, text-sm)
 
 ### 3. DATA TABLE:
-
 Use shadcn/ui Table component with following columns:
 
 **Columns:**
-
 1. **Avatar** (40x40px circle)
    - Show user image or initials
    - Fallback: First letter of email in colored circle
@@ -61,13 +57,12 @@ Use shadcn/ui Table component with following columns:
 8. **Actions** (dropdown menu)
    - Button: "•••" (MoreHorizontal icon from lucide-react)
    - Dropdown items:
-     - View Details (Eye icon)
-     - Edit User (Edit icon)
-     - Suspend Account (Ban icon, text-red-600)
-     - Delete User (Trash icon, text-red-600)
+     * View Details (Eye icon)
+     * Edit User (Edit icon)
+     * Suspend Account (Ban icon, text-red-600)
+     * Delete User (Trash icon, text-red-600)
 
 ### 4. TABLE FEATURES:
-
 - Sortable columns (name, email, join date) - click header to sort
 - Hover effect on rows (hover:bg-gray-50)
 - Alternating row colors (subtle)
@@ -75,36 +70,31 @@ Use shadcn/ui Table component with following columns:
 - Loading skeleton when fetching data
 
 ### 5. PAGINATION (Bottom of table):
-
 - Controls: Previous | 1 | 2 | 3 | ... | 10 | Next
 - Info text: "Showing 1-20 of 450 users" (text-sm, text-gray-600)
 - Previous/Next buttons (variant="outline")
 - Current page highlighted (bg-blue-600, text-white)
 
 ### 6. EMPTY STATE (when no users match filters):
-
 - Icon: UserX (lucide-react, text-gray-400, size-12)
 - Heading: "No users found" (text-xl, font-semibold, text-gray-900)
 - Text: "Try adjusting your filters or search query" (text-sm, text-gray-600)
 - Button: "Clear Filters" (variant="outline")
 
 ### 7. MODALS (Not shown but mentioned in actions):
-
 - View User Details Modal
 - Edit User Modal
 - Suspend Account Confirmation
 - Delete User Confirmation
 
 ### 8. RESPONSIVE DESIGN:
-
 - Desktop: Full table layout
 - Tablet: Horizontal scroll
 - Mobile: Card layout instead of table
-  - Each user as a card with all info stacked
-  - Actions dropdown in top-right of card
+  * Each user as a card with all info stacked
+  * Actions dropdown in top-right of card
 
 ### 9. TECHNICAL REQUIREMENTS:
-
 - Component must be client component ('use client')
 - Export as default component
 - TypeScript with proper types (User interface)
@@ -121,14 +111,14 @@ Use shadcn/ui Table component with following columns:
 
 ```typescript
 interface User {
-  id: string;
-  name: string | null;
-  email: string;
-  tier: 'FREE' | 'PRO';
-  joinDate: Date;
-  lastActive: Date;
-  subscriptionStatus: 'ACTIVE' | 'CANCELLED' | 'TRIAL' | 'FREE';
-  avatarUrl?: string;
+  id: string
+  name: string | null
+  email: string
+  tier: 'FREE' | 'PRO'
+  joinDate: Date
+  lastActive: Date
+  subscriptionStatus: 'ACTIVE' | 'CANCELLED' | 'TRIAL' | 'FREE'
+  avatarUrl?: string
 }
 ```
 
@@ -137,57 +127,28 @@ interface User {
 ## TECHNICAL IMPLEMENTATION:
 
 ```typescript
-'use client';
+'use client'
 
-import { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Search,
-  Download,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Ban,
-  Trash,
-  ArrowUpDown,
-} from 'lucide-react';
+import { useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Search, Download, MoreHorizontal, Eye, Edit, Ban, Trash, ArrowUpDown } from 'lucide-react'
 
 export default function AdminUsersPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tierFilter, setTierFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortColumn, setSortColumn] = useState<'name' | 'email' | 'joinDate'>(
-    'joinDate'
-  );
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [searchQuery, setSearchQuery] = useState('')
+  const [tierFilter, setTierFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sortColumn, setSortColumn] = useState<'name' | 'email' | 'joinDate'>('joinDate')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Mock data
   const users = [
     // ... sample users array
-  ];
+  ]
 
   // ... rest of component
 }
@@ -196,7 +157,6 @@ export default function AdminUsersPage() {
 ---
 
 ## CHECKLIST:
-
 - ✅ Uses shadcn/ui Table, Badge, Button, Select, DropdownMenu
 - ✅ Client component with 'use client' directive
 - ✅ TypeScript with proper interfaces

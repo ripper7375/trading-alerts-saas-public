@@ -4,7 +4,6 @@ PART 18 - PROMPT 4: Price Display Component (Multi-Currency)
 Create a price display component with real-time currency conversion using **Next.js 15 App Router, TypeScript, Tailwind CSS, and shadcn/ui components**.
 
 **CRITICAL: Use SystemConfig for Dynamic Percentages**
-
 - MUST use `useAffiliateConfig()` hook for discount calculations
 - All discount percentages should be dynamic
 
@@ -13,26 +12,22 @@ Create a price display component with real-time currency conversion using **Next
 ## REQUIREMENTS:
 
 ### 1. COMPONENT STRUCTURE:
-
 - Card container (shadcn/ui Card)
 - Title: "Plan Pricing" (text-xl, font-bold, mb-4)
 - Compact layout, max-width 400px
 
 ### 2. MAIN PRICE DISPLAY (Large):
-
 - Local currency price (e.g., "₹2,407")
 - Font: text-5xl, font-bold
 - Gradient text: from blue-600 to purple-600
 - Currency name below: "Indian Rupee" (text-sm, text-gray-500)
 
 ### 3. USD EQUIVALENT (Small):
-
 - Text: "≈ $29.00 USD" (text-lg, text-gray-600)
 - Below main price
 - Approximately symbol (≈)
 
 ### 4. EXCHANGE RATE INFO:
-
 - Small badge: "Exchange rate: 1 USD = 83 INR"
 - Font: text-xs, text-gray-500
 - Background: bg-gray-100, rounded-full, px-3, py-1
@@ -40,83 +35,73 @@ Create a price display component with real-time currency conversion using **Next
 - Refresh icon button (lucide-react RefreshCw, clickable)
 
 ### 5. DISCOUNT BREAKDOWN (if discount applied):
-
 - Show only if affiliate code is active
 - Original price: "₹2,407" (text-2xl, line-through, text-gray-400)
 - Discount badge: "-₹200 (AFFILIATE10)" (bg-green-100, text-green-700, rounded, px-3, py-1)
-  - Calculate discount using: regularPrice - calculateDiscountedPrice(regularPrice)
-  - Show discount code name
+  * Calculate discount using: regularPrice - calculateDiscountedPrice(regularPrice)
+  * Show discount code name
 - Final price: "₹2,207" (text-4xl, font-bold, text-green-600)
 - Savings text: "You save {discountPercent}%" (text-sm, text-green-600, font-semibold)
-  - Use dynamic discountPercent from useAffiliateConfig()
+  * Use dynamic discountPercent from useAffiliateConfig()
 
 ### 6. PRICE BREAKDOWN TABLE:
-
 - Container: bg-gray-50, rounded-lg, padding 16px, mb-4
 - Table rows (key-value pairs):
-  - Base Price: ₹2,407 ($29.00)
-  - Discount: -₹200 (-${discountUSD}) (green text)
-  - Total: ₹2,207 ($26.58) (bold, large)
+  * Base Price: ₹2,407 ($29.00)
+  * Discount: -₹200 (-${discountUSD}) (green text)
+  * Total: ₹2,207 ($26.58) (bold, large)
 - Horizontal lines between rows
 
 ### 7. PLAN COMPARISON (Toggle buttons):
-
 - Toggle between "3-Day Plan" and "Monthly Plan"
 - Active button highlighted (bg-blue-600, text-white)
 - Inactive button (bg-gray-100, text-gray-700)
 
 **3-Day Plan Card:**
-
 - Price: "₹165 ($1.99)"
 - Badge: "Save 94% vs Monthly" (bg-purple-100, text-purple-700)
 
 **Monthly Plan Card:**
-
 - Price: "₹2,407 ($29.00)" (or discounted if code applied)
 - Badge: "Best Value" (bg-blue-100, text-blue-700)
 
 ### 8. CURRENCY SELECTOR (Dropdown):
-
 - Label: "Display in:" (text-sm, text-gray-600)
 - Select component with country flags
 - Options:
-  - 🇮🇳 INR (₹) - India
-  - 🇳🇬 NGN (₦) - Nigeria
-  - 🇵🇰 PKR (Rs) - Pakistan
-  - 🇻🇳 VND (₫) - Vietnam
-  - 🇮🇩 IDR (Rp) - Indonesia
-  - 🇹🇭 THB (฿) - Thailand
-  - 🇿🇦 ZAR (R) - South Africa
-  - 🇹🇷 TRY (₺) - Turkey
-  - 🇺🇸 USD ($) - United States
+  * 🇮🇳 INR (₹) - India
+  * 🇳🇬 NGN (₦) - Nigeria
+  * 🇵🇰 PKR (Rs) - Pakistan
+  * 🇻🇳 VND (₫) - Vietnam
+  * 🇮🇩 IDR (Rp) - Indonesia
+  * 🇹🇭 THB (฿) - Thailand
+  * 🇿🇦 ZAR (R) - South Africa
+  * 🇹🇷 TRY (₺) - Turkey
+  * 🇺🇸 USD ($) - United States
 - onChange updates entire component
 
 ### 9. LOADING STATE:
-
 - Show spinner when fetching exchange rate
 - Skeleton animation for price text
 - Duration: ~500ms
 
 ### 10. ERROR STATE:
-
 - If currency API fails
 - Show fallback: "Unable to load exchange rate"
 - Retry button
 
 ### 11. RESPONSIVE DESIGN:
-
 - Full width on mobile
 - Fixed width on desktop (max-w-md)
 - Font sizes adjust on mobile
 
 ### 12. TECHNICAL REQUIREMENTS:
-
 - Client component ('use client')
 - TypeScript with proper types
 - Props:
-  - planType: '3day' | 'monthly'
-  - hasDiscount: boolean
-  - discountCode?: string
+  * planType: '3day' | 'monthly'
+  * hasDiscount: boolean
+  * discountCode?: string
 - Use shadcn/ui Card, Select, Button, Badge components
 - Use lucide-react RefreshCw icon
 - MUST use useAffiliateConfig() hook
@@ -288,7 +273,6 @@ export default function PriceDisplayComponent({
 ---
 
 ## CHECKLIST:
-
 - ✅ Uses useAffiliateConfig hook
 - ✅ Calculates discount dynamically
 - ✅ Uses {discountPercent}% for display

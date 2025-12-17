@@ -1,4 +1,4 @@
-import RenewalReminderEmail from './renewal-reminder-email';
+import RenewalReminderEmail from "./renewal-reminder-email"
 
 // Test with different scenarios
 export function RenewalReminderEmail7Days() {
@@ -10,7 +10,7 @@ export function RenewalReminderEmail7Days() {
       priceInr="₹2,407"
       paymentMethod="UPI (dLocal)"
     />
-  );
+  )
 }
 
 export function RenewalReminderEmail1Day() {
@@ -22,7 +22,7 @@ export function RenewalReminderEmail1Day() {
       priceInr="₹2,407"
       paymentMethod="UPI (dLocal)"
     />
-  );
+  )
 }
 
 export function RenewalReminderEmailAnnual() {
@@ -34,7 +34,7 @@ export function RenewalReminderEmailAnnual() {
       priceInr="₹24,070"
       paymentMethod="Bank Transfer (dLocal)"
     />
-  );
+  )
 }
 
-export default RenewalReminderEmail;
+export default RenewalReminderEmail

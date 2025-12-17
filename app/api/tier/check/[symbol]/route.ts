@@ -11,7 +11,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
-import { FREE_SYMBOLS, PRO_SYMBOLS } from '@/lib/tier-config';
+import {
+  FREE_SYMBOLS,
+  PRO_SYMBOLS,
+} from '@/lib/tier-config';
 import type { Tier } from '@/types/tier';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -42,7 +45,7 @@ interface RouteParams {
  * Check if a symbol is valid (exists in PRO tier list)
  */
 function isValidSymbol(symbol: string): boolean {
-  return PRO_SYMBOLS.includes(symbol as (typeof PRO_SYMBOLS)[number]);
+  return PRO_SYMBOLS.includes(symbol as typeof PRO_SYMBOLS[number]);
 }
 
 /**
@@ -50,9 +53,9 @@ function isValidSymbol(symbol: string): boolean {
  */
 function canAccessSymbol(tier: Tier, symbol: string): boolean {
   if (tier === 'PRO') {
-    return PRO_SYMBOLS.includes(symbol as (typeof PRO_SYMBOLS)[number]);
+    return PRO_SYMBOLS.includes(symbol as typeof PRO_SYMBOLS[number]);
   }
-  return FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number]);
+  return FREE_SYMBOLS.includes(symbol as typeof FREE_SYMBOLS[number]);
 }
 
 /**
@@ -179,8 +182,7 @@ export async function GET(
       {
         success: false,
         error: 'Failed to check symbol access',
-        message:
-          'An error occurred while checking symbol access. Please try again.',
+        message: 'An error occurred while checking symbol access. Please try again.',
       },
       { status: 500 }
     );

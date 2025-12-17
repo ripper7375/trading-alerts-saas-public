@@ -1,13 +1,13 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react"
 
 interface AffiliateConfig {
-  discountPercent: number;
-  commissionPercent: number;
-  calculateDiscountedPrice: (price: number) => number;
-  isLoading: boolean;
-  error: string | null;
+  discountPercent: number
+  commissionPercent: number
+  calculateDiscountedPrice: (price: number) => number
+  isLoading: boolean
+  error: string | null
 }
 
 /**
@@ -15,21 +15,21 @@ interface AffiliateConfig {
  * In production, this would fetch from your SystemConfig API
  */
 export function useAffiliateConfig(): AffiliateConfig {
-  const [discountPercent, setDiscountPercent] = useState(20);
-  const [commissionPercent, setCommissionPercent] = useState(20);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [discountPercent, setDiscountPercent] = useState(20)
+  const [commissionPercent, setCommissionPercent] = useState(20)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // In production, fetch from your SystemConfig API
     // For now, using default values
-    setIsLoading(false);
-    setError(null);
-  }, []);
+    setIsLoading(false)
+    setError(null)
+  }, [])
 
   const calculateDiscountedPrice = (price: number): number => {
-    return price * (1 - discountPercent / 100);
-  };
+    return price * (1 - discountPercent / 100)
+  }
 
   return {
     discountPercent,
@@ -37,5 +37,5 @@ export function useAffiliateConfig(): AffiliateConfig {
     calculateDiscountedPrice,
     isLoading,
     error,
-  };
+  }
 }

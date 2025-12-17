@@ -5,7 +5,6 @@ on:
     branches: [main, develop, claude/**]
   pull_request:
     branches: [main, develop]
-  workflow_call:   # <--- ADD THIS LINE EXACTLY HERE
 
 jobs:
   unit-and-component-tests:
@@ -113,9 +112,8 @@ jobs:
         run: |
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "Bundle size: ${BUNDLE_SIZE}MB"
-          # Threshold increased from 180MB to 200MB for PR #123 (Part 13 Settings System)
-          if [ $BUNDLE_SIZE -gt 250 ]; then   # <--- CHANGE THIS NUMBER
-            echo "❌ Bundle size exceeds 250MB"
+          if [ $BUNDLE_SIZE -gt 100 ]; then
+            echo "❌ Bundle size exceeds 100MB"
             exit 1
           fi
           echo "✅ Bundle size is acceptable"

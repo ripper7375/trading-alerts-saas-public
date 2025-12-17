@@ -1,22 +1,10 @@
+import type { Alert as PrismaAlert } from '@prisma/client';
 import type { Symbol, Timeframe } from './tier';
 
 /**
- * Alert type
+ * Alert type (extends Prisma Alert)
  */
-export interface Alert {
-  id: string;
-  userId: string;
-  name: string | null;
-  symbol: string;
-  timeframe: string;
-  condition: string;
-  alertType: string;
-  isActive: boolean;
-  lastTriggered: Date | null;
-  triggerCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type Alert = PrismaAlert;
 
 /**
  * Alert status

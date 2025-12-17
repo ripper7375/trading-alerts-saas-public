@@ -111,7 +111,6 @@ model User {
   payments          Payment[]
   fraudAlerts       FraudAlert[]
   affiliateProfile  AffiliateProfile?  // Nullable - only if isAffiliate = true
-  preferences       UserPreferences?   // User preferences (settings)
 
   sessions          Session[]
   
@@ -160,39 +159,6 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model UserPreferences {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Preferences stored as JSON for flexibility
-  preferences Json    @default("{}")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model AccountDeletionRequest {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
-  expiresAt DateTime
-
-  confirmedAt  DateTime?
-  cancelledAt  DateTime?
-  completedAt  DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([token])
-  @@index([status])
 }
 
 model Subscription {
@@ -483,47 +449,4 @@ model Commission {
   @@index([status])
   @@index([earnedAt])
   @@index([paidAt])
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// NOTIFICATIONS SYSTEM (Part 15)
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-enum NotificationType {
-  ALERT
-  SUBSCRIPTION
-  PAYMENT
-  SYSTEM
-}
-
-enum NotificationPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-
-  // Notification content
-  type      NotificationType
-  title     String
-  body      String
-  priority  NotificationPriority @default(MEDIUM)
-
-  // Read status
-  read      Boolean  @default(false)
-  readAt    DateTime?
-
-  // Optional link to related resource
-  link      String?
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-  @@index([userId, read])
-  @@index([createdAt])
 }

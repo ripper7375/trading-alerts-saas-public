@@ -1,23 +1,11 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useState } from "react"
+import { useAffiliateConfig } from "@/lib/hooks/useAffiliateConfig"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -25,19 +13,13 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import {
   MoreHorizontal,
   Eye,
@@ -53,216 +35,208 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-} from 'lucide-react';
+} from "lucide-react"
 
 interface Affiliate {
-  id: string;
-  name: string;
-  email: string;
-  country: string;
-  countryFlag: string;
-  codesActive: number;
-  codesTotal: number;
-  codesUsed: number;
-  status: 'active' | 'pending' | 'suspended' | 'deleted';
-  avatar?: string;
+  id: string
+  name: string
+  email: string
+  country: string
+  countryFlag: string
+  codesActive: number
+  codesTotal: number
+  codesUsed: number
+  status: "active" | "pending" | "suspended" | "deleted"
+  avatar?: string
 }
 
 // Mock data
 const mockAffiliates: Affiliate[] = [
   {
-    id: '1',
-    name: 'Rajesh Kumar',
-    email: 'rajesh@example.com',
-    country: 'IN',
-    countryFlag: '🇮🇳',
+    id: "1",
+    name: "Rajesh Kumar",
+    email: "rajesh@example.com",
+    country: "IN",
+    countryFlag: "🇮🇳",
     codesActive: 12,
     codesTotal: 15,
     codesUsed: 8,
-    status: 'active',
+    status: "active",
   },
   {
-    id: '2',
-    name: 'Oluwaseun Adeyemi',
-    email: 'oluwaseun@example.com',
-    country: 'NG',
-    countryFlag: '🇳🇬',
+    id: "2",
+    name: "Oluwaseun Adeyemi",
+    email: "oluwaseun@example.com",
+    country: "NG",
+    countryFlag: "🇳🇬",
     codesActive: 8,
     codesTotal: 10,
     codesUsed: 5,
-    status: 'active',
+    status: "active",
   },
   {
-    id: '3',
-    name: 'Ahmed Hassan',
-    email: 'ahmed@example.com',
-    country: 'PK',
-    countryFlag: '🇵🇰',
+    id: "3",
+    name: "Ahmed Hassan",
+    email: "ahmed@example.com",
+    country: "PK",
+    countryFlag: "🇵🇰",
     codesActive: 5,
     codesTotal: 20,
     codesUsed: 12,
-    status: 'pending',
+    status: "pending",
   },
   {
-    id: '4',
-    name: 'Nguyen Van Tuan',
-    email: 'nguyen@example.com',
-    country: 'VN',
-    countryFlag: '🇻🇳',
+    id: "4",
+    name: "Nguyen Van Tuan",
+    email: "nguyen@example.com",
+    country: "VN",
+    countryFlag: "🇻🇳",
     codesActive: 18,
     codesTotal: 20,
     codesUsed: 15,
-    status: 'active',
+    status: "active",
   },
   {
-    id: '5',
-    name: 'Budi Santoso',
-    email: 'budi@example.com',
-    country: 'ID',
-    countryFlag: '🇮🇩',
+    id: "5",
+    name: "Budi Santoso",
+    email: "budi@example.com",
+    country: "ID",
+    countryFlag: "🇮🇩",
     codesActive: 3,
     codesTotal: 10,
     codesUsed: 2,
-    status: 'suspended',
+    status: "suspended",
   },
   {
-    id: '6',
-    name: 'Somchai Patel',
-    email: 'somchai@example.com',
-    country: 'TH',
-    countryFlag: '🇹🇭',
+    id: "6",
+    name: "Somchai Patel",
+    email: "somchai@example.com",
+    country: "TH",
+    countryFlag: "🇹🇭",
     codesActive: 10,
     codesTotal: 15,
     codesUsed: 9,
-    status: 'active',
+    status: "active",
   },
   {
-    id: '7',
-    name: 'Thabo Mokoena',
-    email: 'thabo@example.com',
-    country: 'ZA',
-    countryFlag: '🇿🇦',
+    id: "7",
+    name: "Thabo Mokoena",
+    email: "thabo@example.com",
+    country: "ZA",
+    countryFlag: "🇿🇦",
     codesActive: 0,
     codesTotal: 5,
     codesUsed: 0,
-    status: 'deleted',
+    status: "deleted",
   },
   {
-    id: '8',
-    name: 'Mehmet Yilmaz',
-    email: 'mehmet@example.com',
-    country: 'TR',
-    countryFlag: '🇹🇷',
+    id: "8",
+    name: "Mehmet Yilmaz",
+    email: "mehmet@example.com",
+    country: "TR",
+    countryFlag: "🇹🇷",
     codesActive: 14,
     codesTotal: 15,
     codesUsed: 11,
-    status: 'active',
+    status: "active",
   },
-];
+]
 
 export default function AdminAffiliatesPage() {
   // ✅ CRITICAL: Use SystemConfig hook
-  const { commissionPercent, calculateDiscountedPrice } = useAffiliateConfig();
+  const { commissionPercent, calculateDiscountedPrice } = useAffiliateConfig()
 
-  const regularPrice = 29.0;
-  const discountedPrice = calculateDiscountedPrice(regularPrice);
-  const commissionAmount = discountedPrice * (commissionPercent / 100);
+  const regularPrice = 29.0
+  const discountedPrice = calculateDiscountedPrice(regularPrice)
+  const commissionAmount = discountedPrice * (commissionPercent / 100)
 
   // State
-  const [affiliates, setAffiliates] = useState<Affiliate[]>(mockAffiliates);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [countryFilter, setCountryFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [affiliates, setAffiliates] = useState<Affiliate[]>(mockAffiliates)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [countryFilter, setCountryFilter] = useState("all")
+  const [paymentFilter, setPaymentFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 20
 
   // Modals
-  const [distributeCodesModal, setDistributeCodesModal] = useState(false);
-  const [suspendModal, setSuspendModal] = useState(false);
-  const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(
-    null
-  );
-  const [codeCount, setCodeCount] = useState(10);
-  const [reason, setReason] = useState('');
-  const [suspendReason, setSuspendReason] = useState('');
+  const [distributeCodesModal, setDistributeCodesModal] = useState(false)
+  const [suspendModal, setSuspendModal] = useState(false)
+  const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null)
+  const [codeCount, setCodeCount] = useState(10)
+  const [reason, setReason] = useState("")
+  const [suspendReason, setSuspendReason] = useState("")
 
   // Calculate stats
-  const totalAffiliates = affiliates.length;
-  const activeThisMonth = affiliates.filter(
-    (a) => a.status === 'active'
-  ).length;
+  const totalAffiliates = affiliates.length
+  const activeThisMonth = affiliates.filter((a) => a.status === "active").length
   const totalPending = affiliates.reduce((sum, affiliate) => {
-    return sum + affiliate.codesUsed * commissionAmount;
-  }, 0);
+    return sum + affiliate.codesUsed * commissionAmount
+  }, 0)
 
   // Filter affiliates
   const filteredAffiliates = affiliates.filter((affiliate) => {
     const matchesSearch =
       affiliate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      affiliate.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' || affiliate.status === statusFilter;
-    const matchesCountry =
-      countryFilter === 'all' || affiliate.country === countryFilter;
+      affiliate.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || affiliate.status === statusFilter
+    const matchesCountry = countryFilter === "all" || affiliate.country === countryFilter
 
-    return matchesSearch && matchesStatus && matchesCountry;
-  });
+    return matchesSearch && matchesStatus && matchesCountry
+  })
 
   // Pagination
-  const totalPages = Math.ceil(filteredAffiliates.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedAffiliates = filteredAffiliates.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredAffiliates.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedAffiliates = filteredAffiliates.slice(startIndex, endIndex)
 
-  const getStatusBadge = (status: Affiliate['status']) => {
+  const getStatusBadge = (status: Affiliate["status"]) => {
     const variants = {
-      active: 'bg-green-100 text-green-700 hover:bg-green-100',
-      pending: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
-      suspended: 'bg-red-100 text-red-700 hover:bg-red-100',
-      deleted: 'bg-gray-100 text-gray-700 hover:bg-gray-100',
-    };
+      active: "bg-green-100 text-green-700 hover:bg-green-100",
+      pending: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
+      suspended: "bg-red-100 text-red-700 hover:bg-red-100",
+      deleted: "bg-gray-100 text-gray-700 hover:bg-gray-100",
+    }
 
     const labels = {
-      active: 'Active',
-      pending: 'Pending Verification',
-      suspended: 'Suspended',
-      deleted: 'Deleted',
-    };
+      active: "Active",
+      pending: "Pending Verification",
+      suspended: "Suspended",
+      deleted: "Deleted",
+    }
 
-    return <Badge className={variants[status]}>{labels[status]}</Badge>;
-  };
+    return <Badge className={variants[status]}>{labels[status]}</Badge>
+  }
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
-      .slice(0, 2);
-  };
+      .slice(0, 2)
+  }
 
   const handleDistributeCodes = () => {
-    console.log(
-      `Distributing ${codeCount} codes to ${selectedAffiliate?.name}`
-    );
-    setDistributeCodesModal(false);
-    setCodeCount(10);
-    setReason('');
-  };
+    console.log(`Distributing ${codeCount} codes to ${selectedAffiliate?.name}`)
+    setDistributeCodesModal(false)
+    setCodeCount(10)
+    setReason("")
+  }
 
   const handleSuspend = () => {
-    console.log(`Suspending ${selectedAffiliate?.name}: ${suspendReason}`);
-    setSuspendModal(false);
-    setSuspendReason('');
-  };
+    console.log(`Suspending ${selectedAffiliate?.name}: ${suspendReason}`)
+    setSuspendModal(false)
+    setSuspendReason("")
+  }
 
   const clearFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('all');
-    setCountryFilter('all');
-    setPaymentFilter('all');
-  };
+    setSearchTerm("")
+    setStatusFilter("all")
+    setCountryFilter("all")
+    setPaymentFilter("all")
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -272,9 +246,7 @@ export default function AdminAffiliatesPage() {
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">
-            Affiliate Management
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900">Affiliate Management</h1>
           <Button variant="default">
             <Plus className="w-4 h-4 mr-2" />
             Add Affiliate
@@ -285,9 +257,7 @@ export default function AdminAffiliatesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Total Affiliates
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Total Affiliates</CardTitle>
               <Users className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
@@ -297,9 +267,7 @@ export default function AdminAffiliatesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Active This Month
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Active This Month</CardTitle>
               <TrendingUp className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
@@ -309,23 +277,17 @@ export default function AdminAffiliatesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Commission Payout
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Commission Payout</CardTitle>
               <DollarSign className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                ${totalPending.toFixed(2)}
-              </div>
+              <div className="text-2xl font-bold">${totalPending.toFixed(2)}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Current Commission Rate
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">Current Commission Rate</CardTitle>
               <Percent className="w-4 h-4 text-gray-500" />
             </CardHeader>
             <CardContent>
@@ -418,12 +380,9 @@ export default function AdminAffiliatesPage() {
                 </TableHeader>
                 <TableBody>
                   {paginatedAffiliates.map((affiliate) => {
-                    const pendingEarnings =
-                      affiliate.codesUsed * commissionAmount;
-                    const totalEarnings =
-                      affiliate.codesTotal * commissionAmount;
-                    const progressPercent =
-                      (affiliate.codesActive / affiliate.codesTotal) * 100;
+                    const pendingEarnings = affiliate.codesUsed * commissionAmount
+                    const totalEarnings = affiliate.codesTotal * commissionAmount
+                    const progressPercent = (affiliate.codesActive / affiliate.codesTotal) * 100
 
                     return (
                       <TableRow key={affiliate.id}>
@@ -432,12 +391,8 @@ export default function AdminAffiliatesPage() {
                             {getInitials(affiliate.name)}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {affiliate.name}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {affiliate.email}
-                        </TableCell>
+                        <TableCell className="font-medium text-sm">{affiliate.name}</TableCell>
+                        <TableCell className="text-sm text-gray-600">{affiliate.email}</TableCell>
                         <TableCell className="text-sm">
                           <span className="inline-flex items-center gap-1">
                             {affiliate.countryFlag} {affiliate.country}
@@ -448,26 +403,18 @@ export default function AdminAffiliatesPage() {
                             <div className="text-sm font-medium">
                               {affiliate.codesActive}/{affiliate.codesTotal}
                             </div>
-                            <Progress
-                              value={progressPercent}
-                              className="h-1 w-20"
-                            />
+                            <Progress value={progressPercent} className="h-1 w-20" />
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">
                           <div className="space-y-1">
                             <div className="font-medium">
-                              ${pendingEarnings.toFixed(2)} / $
-                              {totalEarnings.toFixed(2)}
+                              ${pendingEarnings.toFixed(2)} / ${totalEarnings.toFixed(2)}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Pending / Total
-                            </div>
+                            <div className="text-xs text-gray-500">Pending / Total</div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {getStatusBadge(affiliate.status)}
-                        </TableCell>
+                        <TableCell>{getStatusBadge(affiliate.status)}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -482,8 +429,8 @@ export default function AdminAffiliatesPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  setSelectedAffiliate(affiliate);
-                                  setDistributeCodesModal(true);
+                                  setSelectedAffiliate(affiliate)
+                                  setDistributeCodesModal(true)
                                 }}
                               >
                                 <Gift className="w-4 h-4 mr-2" />
@@ -492,8 +439,8 @@ export default function AdminAffiliatesPage() {
                               <DropdownMenuItem
                                 className="text-red-600"
                                 onClick={() => {
-                                  setSelectedAffiliate(affiliate);
-                                  setSuspendModal(true);
+                                  setSelectedAffiliate(affiliate)
+                                  setSuspendModal(true)
                                 }}
                               >
                                 <Ban className="w-4 h-4 mr-2" />
@@ -507,7 +454,7 @@ export default function AdminAffiliatesPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })}
                 </TableBody>
               </Table>
@@ -516,9 +463,8 @@ export default function AdminAffiliatesPage() {
             {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
               <div className="text-sm text-gray-600">
-                Showing {startIndex + 1}-
-                {Math.min(endIndex, filteredAffiliates.length)} of{' '}
-                {filteredAffiliates.length} affiliates
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredAffiliates.length)} of {filteredAffiliates.length}{" "}
+                affiliates
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -530,13 +476,10 @@ export default function AdminAffiliatesPage() {
                   <ChevronLeft className="w-4 h-4" />
                   Previous
                 </Button>
-                {Array.from(
-                  { length: Math.min(3, totalPages) },
-                  (_, i) => i + 1
-                ).map((page) => (
+                {Array.from({ length: Math.min(3, totalPages) }, (_, i) => i + 1).map((page) => (
                   <Button
                     key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
+                    variant={currentPage === page ? "default" : "outline"}
                     size="sm"
                     onClick={() => setCurrentPage(page)}
                   >
@@ -546,9 +489,7 @@ export default function AdminAffiliatesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                 >
                   Next
@@ -560,17 +501,11 @@ export default function AdminAffiliatesPage() {
         </Card>
 
         {/* Distribute Codes Modal */}
-        <Dialog
-          open={distributeCodesModal}
-          onOpenChange={setDistributeCodesModal}
-        >
+        <Dialog open={distributeCodesModal} onOpenChange={setDistributeCodesModal}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Distribute Bonus Codes</DialogTitle>
-              <DialogDescription>
-                Distribute additional referral codes to{' '}
-                {selectedAffiliate?.name}
-              </DialogDescription>
+              <DialogDescription>Distribute additional referral codes to {selectedAffiliate?.name}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -603,10 +538,7 @@ export default function AdminAffiliatesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDistributeCodesModal(false)}
-              >
+              <Button variant="outline" onClick={() => setDistributeCodesModal(false)}>
                 Cancel
               </Button>
               <Button onClick={handleDistributeCodes}>Distribute Codes</Button>
@@ -619,9 +551,7 @@ export default function AdminAffiliatesPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Suspend Affiliate Account</DialogTitle>
-              <DialogDescription>
-                This will suspend all active codes for {selectedAffiliate?.name}
-              </DialogDescription>
+              <DialogDescription>This will suspend all active codes for {selectedAffiliate?.name}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -635,20 +565,14 @@ export default function AdminAffiliatesPage() {
                 />
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ This will suspend all active codes for this affiliate
-                </p>
+                <p className="text-sm text-yellow-800">⚠️ This will suspend all active codes for this affiliate</p>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSuspendModal(false)}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleSuspend}
-                disabled={!suspendReason.trim()}
-              >
+              <Button variant="destructive" onClick={handleSuspend} disabled={!suspendReason.trim()}>
                 Confirm Suspension
               </Button>
             </DialogFooter>
@@ -656,5 +580,5 @@ export default function AdminAffiliatesPage() {
         </Dialog>
       </div>
     </div>
-  );
+  )
 }

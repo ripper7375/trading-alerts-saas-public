@@ -277,47 +277,46 @@ IF current file will import from files not yet built:
 **Placeholder Types by File:**
 
 **React Component Placeholder:**
-
 ```tsx
 // components/alerts/alert-form.tsx (placeholder for Part 16)
 // TODO: Properly implement in Part 16
 
 export default function AlertFormPlaceholder() {
-  return null;
+  return null
 }
 ```
 
 **API Route Placeholder:**
-
 ```typescript
 // app/api/indicators/[symbol]/route.ts (placeholder for Part 7)
 // TODO: Properly implement in Part 7
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
 
 export async function GET() {
-  return NextResponse.json({ error: 'Not implemented' }, { status: 501 });
+  return NextResponse.json(
+    { error: 'Not implemented' },
+    { status: 501 }
+  )
 }
 ```
 
 **Utility Function Placeholder:**
-
 ```typescript
 // lib/tier-validation.ts (placeholder for Part 15)
 // TODO: Properly implement in Part 15
 
 export function validateTierAccess(): boolean {
-  throw new Error('Not implemented - will be built in Part 15');
+  throw new Error('Not implemented - will be built in Part 15')
 }
 ```
 
 **Type Definition Placeholder:**
-
 ```typescript
 // types/alert.ts (placeholder for Part 8)
 // TODO: Properly type in Part 8
 
-export type Alert = any;
+export type Alert = any
 ```
 
 **Workflow:**

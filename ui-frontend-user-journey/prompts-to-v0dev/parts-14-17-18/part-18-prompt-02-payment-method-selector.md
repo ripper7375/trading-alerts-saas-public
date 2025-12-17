@@ -8,31 +8,26 @@ Create a payment method selector component grid for emerging markets using **Nex
 ## REQUIREMENTS:
 
 ### 1. COMPONENT HEADER:
-
 - Title: "Choose Payment Method" (text-2xl, font-bold, mb-2)
 - Subtitle: "Select your preferred local payment option" (text-gray-600, mb-6)
 
 ### 2. PAYMENT METHOD GRID:
-
 - Layout: Grid with 4 columns (desktop), 2 (tablet), 1 (mobile)
 - Gap between cards: gap-4
 - Each method as a clickable card
 
 ### 3. PAYMENT METHOD CARD STRUCTURE:
-
 Each card contains:
-
 - Logo/Icon (centered, 64x64px, mb-3)
 - Method name (text-lg, font-semibold, text-gray-900, mb-2)
 - Processing time badge (text-xs, rounded-full, px-3, py-1)
-  - "Instant" - green (bg-green-100, text-green-700)
-  - "1-2 hours" - yellow (bg-yellow-100, text-yellow-700)
+  * "Instant" - green (bg-green-100, text-green-700)
+  * "1-2 hours" - yellow (bg-yellow-100, text-yellow-700)
 - Checkmark icon (top-right corner, only when selected)
-  - Check circle icon (lucide-react)
-  - Green color (text-green-600)
+  * Check circle icon (lucide-react)
+  * Green color (text-green-600)
 
 ### 4. CARD STATES:
-
 - Default: border-gray-200, bg-white, hover:shadow-md
 - Hover: transform scale-105, shadow-lg, cursor-pointer
 - Selected: border-2 border-blue-600, bg-blue-50, checkmark visible
@@ -41,7 +36,6 @@ Each card contains:
 ### 5. COUNTRY-SPECIFIC PAYMENT METHODS:
 
 **India (IN):**
-
 1. UPI - Logo + "UPI" - Instant
 2. Paytm - Logo + "Paytm Wallet" - Instant
 3. PhonePe - Logo + "PhonePe" - Instant
@@ -49,7 +43,6 @@ Each card contains:
 5. Card (Stripe) - Card icon + "Card Payment" - Instant (sub: "International cards")
 
 **Nigeria (NG):**
-
 1. Bank Transfer - Bank icon + "Bank Transfer" - 1-2 hours
 2. USSD - Phone icon + "USSD" - Instant
 3. Paystack - Logo + "Paystack" - Instant
@@ -57,13 +50,11 @@ Each card contains:
 5. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 **Pakistan (PK):**
-
 1. JazzCash - Logo + "JazzCash" - Instant
 2. Easypaisa - Logo + "Easypaisa" - Instant
 3. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 **Indonesia (ID):**
-
 1. GoPay - Logo + "GoPay" - Instant
 2. OVO - Logo + "OVO" - Instant
 3. Dana - Logo + "Dana" - Instant
@@ -71,52 +62,45 @@ Each card contains:
 5. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 **Vietnam (VN):**
-
 1. VNPay - Logo + "VNPay" - Instant
 2. MoMo - Logo + "MoMo" - Instant
 3. ZaloPay - Logo + "ZaloPay" - Instant
 4. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 **Thailand (TH):**
-
 1. TrueMoney - Logo + "TrueMoney" - Instant
 2. Rabbit LINE Pay - Logo + "Rabbit LINE Pay" - Instant
 3. Thai QR - QR icon + "Thai QR" - Instant
 4. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 **South Africa (ZA):**
-
 1. Instant EFT - Bank icon + "Instant EFT" - Instant
 2. EFT - Bank icon + "EFT" - 1-2 hours
 3. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 **Turkey (TR):**
-
 1. Bank Transfer - Bank icon + "Bank Transfer" - 1-2 hours
 2. Local Cards - Card icon + "Turkish Cards" - Instant
 3. Card (Stripe) - Card icon + "Card Payment" - Instant
 
 ### 6. INTERACTION:
-
 - Click card to select (only one selection allowed - radio behavior)
 - Visual feedback on hover and click
 - onClick callback to parent component
 - Keyboard navigation support (arrow keys)
 
 ### 7. ACCESSIBILITY:
-
 - ARIA labels for each card
 - Keyboard focus visible (outline-blue-600)
 - Screen reader friendly
 
 ### 8. TECHNICAL REQUIREMENTS:
-
 - Client component ('use client')
 - TypeScript with proper types
 - Props:
-  - country: 'IN' | 'NG' | 'PK' | 'VN' | 'ID' | 'TH' | 'ZA' | 'TR'
-  - selectedMethod: string | null
-  - onSelectMethod: (method: string) => void
+  * country: 'IN' | 'NG' | 'PK' | 'VN' | 'ID' | 'TH' | 'ZA' | 'TR'
+  * selectedMethod: string | null
+  * onSelectMethod: (method: string) => void
 - Use shadcn/ui Card, Badge components
 - Use lucide-react icons
 - Responsive grid layout
@@ -210,7 +194,6 @@ export default function PaymentMethodSelector({
 ---
 
 ## CHECKLIST:
-
 - ✅ Grid layout (4 columns desktop, responsive)
 - ✅ Payment method cards with logos
 - ✅ Processing time badges (color-coded)

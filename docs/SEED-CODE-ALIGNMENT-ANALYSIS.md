@@ -34,17 +34,15 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 241, 258, 288, 317
 
-| ❌ Build Order Says                                          | ✅ Should Be                                                          |
-| ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `seed-code/v0-components/auth/login-page.tsx`                | `seed-code/v0-components/next-js-login-form/app/page.tsx`             |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
+| `seed-code/v0-components/auth/login-page.tsx` | `seed-code/v0-components/next-js-login-form/app/page.tsx` |
 | `seed-code/v0-components/public-pages/registration-page.tsx` | `seed-code/v0-components/registration-form-component-v2/app/page.tsx` |
-| `seed-code/v0-components/auth/forgot-password-page.tsx`      | `seed-code/v0-components/forgot-password-form/app/page.tsx`           |
+| `seed-code/v0-components/auth/forgot-password-page.tsx` | `seed-code/v0-components/forgot-password-form/app/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/next-js-login-form/components/login-form.tsx`
 - `seed-code/v0-components/forgot-password-form/components/forgot-password-flow.tsx`
 ```
@@ -56,10 +54,8 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 **Issue:** NO seed code references at all
 
 **Should add:**
-
 ```markdown
 **Seed Reference (AI Engine):**
-
 - `seed-code/market_ai_engine.py` - Market AI engine logic and patterns
 ```
 
@@ -71,16 +67,14 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 53, 80
 
-| ❌ Build Order Says                                        | ✅ Should Be                                                    |
-| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
 | `seed-code/v0-components/dashboard/dashboard-overview.tsx` | `seed-code/v0-components/dashboard-home-component/app/page.tsx` |
-| `seed-code/v0-components/components/footer.tsx`            | `seed-code/v0-components/footer-component/app/page.tsx`         |
+| `seed-code/v0-components/components/footer.tsx` | `seed-code/v0-components/footer-component/app/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/dashboard-home-component/components/dashboard-home.tsx`
 - `seed-code/v0-components/footer-component/components/marketing-footer.tsx`
 ```
@@ -91,16 +85,14 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 61, 76
 
-| ❌ Build Order Says                                     | ✅ Should Be                                                    |
-| ------------------------------------------------------- | --------------------------------------------------------------- |
-| `seed-code/v0-components/charts/trading-chart.tsx`      | `seed-code/v0-components/trading-chart-component/app/page.tsx`  |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
+| `seed-code/v0-components/charts/trading-chart.tsx` | `seed-code/v0-components/trading-chart-component/app/page.tsx` |
 | `seed-code/v0-components/components/chart-controls.tsx` | `seed-code/v0-components/chart-controls-component/app/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/trading-chart-component/components/trading-chart.tsx`
 - `seed-code/v0-components/chart-controls-component/components/chart-controls.tsx`
 - `seed-code/v0-components/chart-controls-component/components/symbol-selector.tsx`
@@ -114,8 +106,8 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 41
 
-| ❌ Build Order Says                                    | ✅ Should Be                                                              |
-| ------------------------------------------------------ | ------------------------------------------------------------------------- |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
 | `seed-code/v0-components/dashboard/watchlist-page.tsx` | `seed-code/v0-components/watchlist-page-component/app/watchlist/page.tsx` |
 
 ---
@@ -124,17 +116,15 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 39, 79, 87
 
-| ❌ Build Order Says                                          | ✅ Should Be                                                    |
-| ------------------------------------------------------------ | --------------------------------------------------------------- |
-| `seed-code/v0-components/dashboard/alerts-list.tsx`          | `seed-code/v0-components/alerts-management-page/app/page.tsx`   |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
+| `seed-code/v0-components/dashboard/alerts-list.tsx` | `seed-code/v0-components/alerts-management-page/app/page.tsx` |
 | `seed-code/v0-components/dashboard/alert-creation-modal.tsx` | `seed-code/v0-components/create-price-alert-modal/app/page.tsx` |
-| `seed-code/v0-components/alerts/alert-card.tsx`              | `seed-code/v0-components/alert-card-component/app/page.tsx`     |
+| `seed-code/v0-components/alerts/alert-card.tsx` | `seed-code/v0-components/alert-card-component/app/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/alert-card-component/components/alert-card.tsx`
 - `seed-code/v0-components/create-price-alert-modal/components/create-alert-modal.tsx`
 ```
@@ -145,8 +135,8 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 45
 
-| ❌ Build Order Says                                     | ✅ Should Be                                                             |
-| ------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
 | `seed-code/v0-components/public-pages/pricing-page.tsx` | `seed-code/v0-components/pricing-page-component-v3/app/pricing/page.tsx` |
 
 ---
@@ -155,17 +145,15 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 38, 44, 68
 
-| ❌ Build Order Says                                      | ✅ Should Be                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `seed-code/v0-components/dashboard/settings-layout.tsx`  | `seed-code/v0-components/settings-page-with-tabs-v3/app/settings/page.tsx`      |
-| `seed-code/v0-components/dashboard/profile-settings.tsx` | `seed-code/v0-components/profile-settings-form/app/profile/settings/page.tsx`   |
-| `seed-code/v0-components/dashboard/billing-page.tsx`     | `seed-code/v0-components/billing-and-subscription-page-v3/app/billing/page.tsx` |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
+| `seed-code/v0-components/dashboard/settings-layout.tsx` | `seed-code/v0-components/settings-page-with-tabs-v3/app/settings/page.tsx` |
+| `seed-code/v0-components/dashboard/profile-settings.tsx` | `seed-code/v0-components/profile-settings-form/app/profile/settings/page.tsx` |
+| `seed-code/v0-components/dashboard/billing-page.tsx` | `seed-code/v0-components/billing-and-subscription-page-v3/app/billing/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/profile-settings-form/components/photo-upload-modal.tsx`
 - `seed-code/v0-components/profile-settings-form/components/unsaved-changes-modal.tsx`
 ```
@@ -176,15 +164,13 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 53
 
-| ❌ Build Order Says                                        | ✅ Should Be                                                     |
-| ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
 | `seed-code/v0-components/components/notification-bell.tsx` | `seed-code/v0-components/notification-component-v3/app/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/notification-component-v3/components/notification-bell.tsx`
 ```
 
@@ -194,36 +180,32 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 
 **Lines with errors:** 140
 
-| ❌ Build Order Says                                 | ✅ Should Be                                                         |
-| --------------------------------------------------- | -------------------------------------------------------------------- |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
 | `seed-code/v0-components/public-pages/homepage.tsx` | `seed-code/v0-components/next-js-marketing-homepage-v2/app/page.tsx` |
 
 **Additional references to add:**
-
 ```markdown
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/empty-states-components/components/empty-states.tsx`
 - `seed-code/v0-components/user-profile-dropdown/components/user-profile-dropdown.tsx`
 ```
 
 ---
 
-#### Part 17/17A/17B: Affiliate (docs/build-orders/part-17\*.md)
+#### Part 17/17A/17B: Affiliate (docs/build-orders/part-17*.md)
 
 **Lines with errors:** Multiple files (part-17-affiliate.md, part-17a-affiliate-portal.md, part-17b-admin-automation.md)
 
-| ❌ Build Order Says                                      | ✅ Should Be                                                                              |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `seed-code/v0-components/dashboard/settings-layout.tsx`  | `seed-code/v0-components/part-17a-affiliate-dashboard/app/affiliate/dashboard/page.tsx`   |
+| ❌ Build Order Says | ✅ Should Be |
+|---------------------|--------------|
+| `seed-code/v0-components/dashboard/settings-layout.tsx` | `seed-code/v0-components/part-17a-affiliate-dashboard/app/affiliate/dashboard/page.tsx` |
 | `seed-code/v0-components/dashboard/profile-settings.tsx` | `seed-code/v0-components/part-17a-affiliate-registration/app/affiliate/register/page.tsx` |
-| `seed-code/v0-components/dashboard/stats-card.tsx`       | _(doesn't exist - remove reference)_                                                      |
+| `seed-code/v0-components/dashboard/stats-card.tsx` | *(doesn't exist - remove reference)* |
 
 **Should add for 17B:**
-
 ```markdown
 **Seed Reference (Admin Components):**
-
 - `seed-code/v0-components/part-17b-admin-affiliate-management/app/admin/affiliates/page.tsx`
 - `seed-code/v0-components/part-17b-admin-pnl-report/app/admin/affiliates/pnl-report/page.tsx`
 ```
@@ -235,17 +217,14 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 **Currently:** No V0 seed references
 
 **Should add:**
-
 ```markdown
 **Seed Reference (V0 Components):**
-
 - `seed-code/v0-components/part-18-payment-method-selector/app/page.tsx`
 - `seed-code/v0-components/part-18-price-display-component/app/page.tsx`
 - `seed-code/v0-components/part-18-renewal-reminder-email/app/preview-renewal-email/page.tsx`
 - `seed-code/v0-components/part-18-unified-checkout/app/checkout/page.tsx`
 
 **Seed Reference (Custom Components):**
-
 - `seed-code/v0-components/part-18-payment-method-selector/components/payment-method-selector.tsx`
 - `seed-code/v0-components/part-18-price-display-component/components/price-display.tsx`
 ```
@@ -286,7 +265,6 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 12. ✅ `docs/build-orders/part-18-dlocal.md` - Add 4 V0 components + 2 custom components
 
 ### Total Corrections Needed:
-
 - **24 incorrect V0 paths** to fix
 - **1 missing Python seed reference** to add (market_ai_engine.py)
 - **18 custom component references** to add
@@ -299,7 +277,6 @@ The build orders reference a **planned** V0 folder structure that doesn't match 
 **Priority:** HIGH - These corrections are critical for Aider to find the correct seed code files during Phase 3 building.
 
 **Next Steps:**
-
 1. Update all 11 build order files with correct paths
 2. Ensure consistency with `.aider.conf.yml` references
 3. Test that all referenced seed code files exist

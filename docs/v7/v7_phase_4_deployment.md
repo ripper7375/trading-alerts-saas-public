@@ -137,9 +137,9 @@ jobs:
               body: '✅ Deployed to production: ' + '${{ steps.deploy.outputs.url }}'
             })
 
-  # GATE 3: Verify Backend Health (Flask on Windows VPS - manually deployed)
-  verify-backend:
-    name: Verify Flask MT5 Service
+  # GATE 3: Deploy Backend (only if tests pass)
+  deploy-backend:
+    name: Deploy Backend to Railway
     runs-on: ubuntu-latest
     needs: [tests]
 
@@ -147,17 +147,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Health check - Flask MT5 Service
+      - name: Deploy Flask to Railway
         run: |
-          # Flask runs on Windows VPS, not Railway (due to MT5 Windows requirement)
-          # This step verifies the service is healthy
-          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.FLASK_URL }}/api/health || echo "000")
-          if [ "$response" -eq "200" ]; then
-            echo "✅ Flask MT5 service is healthy"
-          else
-            echo "⚠️ Flask MT5 service health check returned: $response"
-            echo "Note: Flask is deployed on Windows VPS (manual deployment)"
-          fi
+          curl -X POST https://railway.app/api/deploy \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "service": "${{ secrets.RAILWAY_SERVICE_ID }}",
+              "branch": "main"
+            }'
+
+      - name: Wait for Railway deployment
+        run: sleep 60
 
   # GATE 4: Post-deployment verification
   verify-deployment:
@@ -225,10 +226,10 @@ Add these secrets:
 | `VERCEL_TOKEN`       | Vercel → Settings → Tokens → Create | Authenticate Vercel deployment  |
 | `VERCEL_ORG_ID`      | Vercel project settings             | Your organization ID            |
 | `VERCEL_PROJECT_ID`  | Vercel project settings             | Your project ID                 |
+| `RAILWAY_TOKEN`      | Railway → Account → Tokens          | Authenticate Railway deployment |
+| `RAILWAY_SERVICE_ID` | Railway service settings            | Flask service ID                |
 | `PRODUCTION_URL`     | https://your-app.vercel.app         | Frontend URL for health check   |
-| `FLASK_URL`          | http://[VPS-IP]:5001                | Flask on Windows VPS (not Railway) |
-
-> **Note:** Flask MT5 service runs on Windows VPS, not Railway. The `FLASK_URL` should point to your Windows VPS IP address.
+| `FLASK_URL`          | https://your-flask.railway.app      | Backend URL for health check    |
 
 **Getting Vercel Tokens:**
 
@@ -243,9 +244,12 @@ vercel link
 cat .vercel/project.json
 ```
 
-**Note on Flask Deployment:**
+**Getting Railway Token:**
 
-> Flask MT5 service is deployed manually on Windows VPS (see MILESTONE 4.3), not via GitHub Actions. The CI/CD pipeline only verifies Flask is healthy, not deploy it.
+1. Go to railway.app → Account Settings
+2. Click "Tokens" tab
+3. Click "Create New Token"
+4. Copy token immediately (shown only once!)
 
 ☐ STEP 3: Test Deployment Workflow (10 minutes)
 
@@ -370,26 +374,6 @@ git push
 
 💡 BEGINNER NOTE: This is ONE-TIME SETUP. After this, GitHub Actions handles all deployments automatically!
 
-☐ STEP 0: Verify next.config.js (5 minutes)
-
-Before deploying, ensure `next.config.js` exists in project root with production settings:
-
-```javascript
-// next.config.js - Key production features:
-// ✅ Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
-// ✅ Image optimization for Google/GitHub OAuth avatars
-// ✅ Static asset caching (1 year for /static/*)
-// ✅ Webpack config for lightweight-charts compatibility
-// ✅ poweredByHeader: false (security)
-```
-
-Verify file exists:
-```bash
-cat next.config.js | head -20
-```
-
-If missing, the file was created in Phase 3 preparation. Check git history or regenerate.
-
 ☐ STEP 1: Create Vercel Project (15 minutes)
 
 1.  Go to vercel.com
@@ -408,8 +392,7 @@ Add these for Production, Preview, and Development:
 | NEXTAUTH_SECRET                    | [generate: openssl rand -base64 32] | Auth encryption key        |
 | NEXTAUTH_URL                       | https://your-app.vercel.app         | Your Vercel URL            |
 | DATABASE_URL                       | [from Railway]                      | PostgreSQL connection      |
-| MT5_SERVICE_URL                    | http://[VPS-IP]:5001                | Windows VPS Flask URL      |
-| MT5_API_KEY                        | [generate: openssl rand -hex 32]    | Flask service auth key     |
+| MT5_API_URL                        | [from Railway Flask]                | Will add after 4.3         |
 | STRIPE_SECRET_KEY                  | [from Stripe dashboard]             | sk*live*... or sk*test*... |
 | STRIPE_WEBHOOK_SECRET              | [from Stripe webhooks]              | whsec\_...                 |
 | NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY | [from Stripe]                       | pk*live*... or pk*test*... |
@@ -429,83 +412,21 @@ Add these for Production, Preview, and Development:
 
 ---
 
-### MILESTONE 4.3: Windows VPS Flask + MT5 Setup (2-3 hours)
+### MILESTONE 4.3: Railway Flask Configuration (1 hour)
 
-**What:** Deploy Flask MT5 service on Windows VPS
+**What:** Configure Flask service on Railway
 **Why:** Backend for real-time market data
 
-> **CRITICAL:** The MetaTrader5 Python package ONLY runs on Windows and requires local MT5 terminal installation. Railway's Linux containers CANNOT run MT5. The Flask service must be deployed on Windows VPS alongside the 15 MT5 terminals.
+☐ STEP 1: Prepare Flask for Railway (20 minutes)
 
-☐ STEP 1: Provision Windows VPS (30 minutes)
+Verify these files exist in `mt5-service/`:
 
-**Recommended Specifications:**
-- OS: Windows Server 2019/2022 or Windows 10/11 Pro
-- RAM: 32GB (15 MT5 terminals × ~1.5GB each + Flask)
-- CPU: 8 cores
-- Storage: 100GB SSD
-- Network: Static IP, firewall rules for port 5001
+☐ `requirements.txt` (Python dependencies)
+☐ `Dockerfile` (container config)
+☐ `.dockerignore`
+☐ `railway.json` or start command
 
-**Recommended Providers:**
-- **Contabo Windows VPS (~$30-50/month) ✅ RECOMMENDED FOR MVP**
-  - Best value: 8 vCPU, 32GB RAM, 200GB SSD
-  - Order at: https://contabo.com/en/windows-vps/
-  - Windows Server included in price
-  - Static IP included
-- Vultr Windows VPS (~$80-150/month)
-- Hetzner Windows VPS (~$60-80/month)
-- AWS EC2 Windows (t3.xlarge or larger, ~$200+/month)
-
-☐ STEP 2: Install Prerequisites on VPS (30 minutes)
-
-```powershell
-# 1. Install Python 3.11+
-# Download from https://www.python.org/downloads/
-# Check "Add to PATH" during installation
-
-# 2. Verify installation
-python --version
-pip --version
-
-# 3. Install Git
-# Download from https://git-scm.com/download/win
-```
-
-☐ STEP 3: Install 15 MT5 Terminals (45 minutes)
-
-```
-1. Download MT5 from your broker (15 separate installations)
-2. Install each to unique folder:
-   - C:\MT5\MT5_01 (AUDJPY)
-   - C:\MT5\MT5_02 (AUDUSD)
-   - ... through MT5_15 (XAUUSD)
-
-3. Configure each terminal with unique account credentials
-4. Copy indicator files to each terminal's MQL5\Indicators folder:
-   - Fractal_Horizontal_Line_V5.mq5
-   - Fractal_Diagonal_Line_V4.mq5
-5. Compile indicators in MetaEditor for each terminal
-6. Open 9 chart windows per terminal (M5, M15, M30, H1, H2, H4, H8, H12, D1)
-7. Apply fractal indicators to all charts
-```
-
-☐ STEP 4: Deploy Flask Service (30 minutes)
-
-```powershell
-# Clone repository
-git clone <your-repo-url>
-cd mt5-service
-
-# Create virtual environment
-python -m venv venv
-.\venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-copy .env.example .env
-# Edit .env with your configuration
-```
+If missing, create them:
 
 **requirements.txt:**
 
@@ -516,75 +437,68 @@ MetaTrader5==5.0.4500
 pandas==2.1.4
 numpy==1.26.2
 python-dotenv==1.0.0
+psycopg2-binary==2.9.9
 gunicorn==21.2.0
-waitress==2.1.2  # Windows-compatible WSGI server
 ```
 
-☐ STEP 5: Configure Environment Variables (15 minutes)
+**Dockerfile:**
 
-Create `.env` file in `mt5-service/`:
+```dockerfile
+FROM python:3.11-slim
 
-| Variable             | Value                            |
-| -------------------- | -------------------------------- |
-| MT5_TERMINALS_CONFIG | config/mt5_terminals.json        |
-| FLASK_API_KEY        | [generate: openssl rand -hex 32] |
-| ADMIN_API_KEY        | [generate: openssl rand -hex 32] |
-| FLASK_ENV            | production                       |
-| PORT                 | 5001                             |
+WORKDIR /app
 
-☐ STEP 6: Start Flask Service (15 minutes)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-```powershell
-# Option A: Waitress (Windows-native, recommended)
-pip install waitress
-waitress-serve --port=5001 run:app
+COPY . .
 
-# Option B: Gunicorn (requires WSL or Windows workaround)
-# gunicorn -w 4 -b 0.0.0.0:5001 run:app
+EXPOSE 5000
+
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
 ```
 
-☐ STEP 7: Configure as Windows Service (Optional, 15 minutes)
+**.dockerignore:**
 
-```powershell
-# Install NSSM (Non-Sucking Service Manager)
-# Download from https://nssm.cc/download
-
-nssm install FlaskMT5Service
-# Path: C:\path\to\venv\Scripts\waitress-serve.exe
-# Arguments: --port=5001 run:app
-# Startup directory: C:\path\to\mt5-service
-
-nssm start FlaskMT5Service
+```
+__pycache__
+*.pyc
+.env
+venv/
+.git/
 ```
 
-☐ STEP 8: Configure Firewall (10 minutes)
+☐ STEP 2: Create Railway Service (15 minutes)
 
-```powershell
-# Allow inbound connections on port 5001
-netsh advfirewall firewall add rule name="Flask MT5 Service" ^
-  dir=in action=allow protocol=tcp localport=5001
-```
+1.  Go to railway.app
+2.  Open project: "trading-alerts-saas-v7"
+3.  Click "+ New" → "GitHub Repo"
+4.  Root Directory: `mt5-service`
+5.  Builder: Dockerfile
+6.  Click "Deploy"
 
-☐ STEP 9: Update Vercel Environment (5 minutes)
+☐ STEP 3: Configure Environment Variables (20 minutes)
 
-1. Get VPS public IP address
-2. Update Vercel environment variable:
-   - `MT5_API_URL=http://[VPS-IP]:5001`
-3. Update GitHub secret: `FLASK_URL`
+Railway Flask service → Variables:
 
-☐ STEP 10: Verify Deployment (10 minutes)
+| Variable     | Value                            |
+| ------------ | -------------------------------- |
+| MT5_LOGIN    | [your MT5 login]                 |
+| MT5_PASSWORD | [your MT5 password]              |
+| MT5_SERVER   | [e.g., "MetaQuotes-Demo"]        |
+| MT5_API_KEY  | [generate: openssl rand -hex 32] |
+| FLASK_ENV    | production                       |
+| DATABASE_URL | ${{Postgres.DATABASE_URL}}       |
+| PORT         | 5000                             |
 
-```bash
-# From your local machine, test the health endpoint
-curl http://[VPS-IP]:5001/api/health
+☐ STEP 4: Get Flask Service URL (5 minutes)
 
-# Expected response:
-# {"status": "ok", "connected_terminals": 15, "total_terminals": 15}
-```
+1.  Railway → Flask service → Settings
+2.  Generate Domain → Copy URL
+3.  Update Vercel environment variable `MT5_API_URL`
+4.  Update GitHub secret `FLASK_URL`
 
-✅ CHECKPOINT: Windows VPS Flask + MT5 configured!
-
-> **Note:** Unlike Vercel/Railway auto-deployments, the Flask service requires manual deployment on Windows VPS. Plan for periodic updates via git pull + service restart.
+✅ CHECKPOINT: Railway Flask configured!
 
 ---
 
@@ -627,21 +541,14 @@ Check Vercel logs: "Webhook received" ✅
 **What:** Setup error tracking and monitoring
 **Why:** Know when things break!
 
-☐ STEP 1: Windows VPS Monitoring (15 minutes)
+☐ STEP 1: Railway Monitoring (10 minutes)
 
-> **Note:** Flask runs on Windows VPS, not Railway. Use these monitoring approaches:
-
-**Option A: Windows Event Viewer**
-- Monitor application crashes and errors
-- Set up email alerts via Task Scheduler
-
-**Option B: External Monitoring (Recommended)**
-- Use UptimeRobot (free) or Pingdom to monitor `/api/health` endpoint
-- Configure alerts for downtime
-
-**Option C: Windows Performance Monitor**
-- Track CPU, memory, disk usage
-- Set alerts for high resource usage
+1.  Railway → Observability
+2.  Configure alerts:
+    - Service crashes
+    - High CPU/memory
+    - Deployment failures
+3.  Add notification email
 
 ☐ STEP 2: Vercel Analytics (10 minutes)
 
@@ -793,7 +700,7 @@ All tests passing? ✅ → **APPLICATION IS LIVE!** 🌐🎉
 ☐ Verified Phase 3.5 protection system active
 ☐ Created automated deployment workflow with test gates
 ☐ Configured Vercel with environment variables
-☐ Configured Windows VPS with Flask + MT5 terminals
+☐ Configured Railway Flask service
 ☐ Set up Stripe webhooks
 ☐ Configured production monitoring
 ☐ **Verified deployment blocks on test failures** ✅
@@ -806,8 +713,7 @@ All tests passing? ✅ → **APPLICATION IS LIVE!** 🌐🎉
 ✓ Automated deployment workflows
 ✓ Test gates and deployment blocking
 ✓ Environment variable management
-✓ Service integration (Vercel + Railway + Windows VPS)
-✓ Windows VPS deployment for Flask + MT5
+✓ Service integration (Vercel + Railway)
 ✓ Webhook configuration
 ✓ Production monitoring
 ✓ Emergency manual deployment procedures
@@ -832,7 +738,7 @@ You now have:
 
 - **Frontend:** https://your-app.vercel.app
 - **API:** https://your-app.vercel.app/api
-- **Flask MT5 Service:** http://[VPS-IP]:5001 (Windows VPS)
+- **Flask Service:** https://your-flask.railway.app
 - **GitHub Actions:** https://github.com/your-username/trading-alerts-saas-v7/actions
 
 ### Deployment Flow:
@@ -846,11 +752,11 @@ Run Phase 3.5 tests (GATE)
     ├─ ❌ Tests fail → Deployment BLOCKED
     └─ ✅ Tests pass → Continue
          ↓
-    Deploy to Vercel (auto)
+    Deploy to Vercel
          ↓
-    Verify Flask health (Windows VPS - manually deployed)
+    Deploy to Railway
          ↓
-    All health checks pass
+    Health checks
          ↓
     ✅ Production updated!
 ```

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Providers } from './providers'; // Import the new component
 
 export const metadata: Metadata = {
   title: 'Trading Alerts SaaS V7',
@@ -13,11 +12,7 @@ export default function RootLayout({
 }): React.ReactElement {
   return (
     <html lang="en">
-      <body>
-        <Providers>
-          {children}
-        </Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

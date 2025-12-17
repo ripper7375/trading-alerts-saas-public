@@ -72,14 +72,14 @@ const ALL_TIMEFRAMES = PRO_TIMEFRAMES;
  * Check if symbol is valid (exists in system)
  */
 function isValidSymbol(symbol: string): boolean {
-  return ALL_SYMBOLS.includes(symbol as (typeof ALL_SYMBOLS)[number]);
+  return ALL_SYMBOLS.includes(symbol as typeof ALL_SYMBOLS[number]);
 }
 
 /**
  * Check if timeframe is valid (exists in system)
  */
 function isValidTimeframe(timeframe: string): boolean {
-  return ALL_TIMEFRAMES.includes(timeframe as (typeof ALL_TIMEFRAMES)[number]);
+  return ALL_TIMEFRAMES.includes(timeframe as typeof ALL_TIMEFRAMES[number]);
 }
 
 /**
@@ -87,9 +87,9 @@ function isValidTimeframe(timeframe: string): boolean {
  */
 function canAccessSymbol(tier: Tier, symbol: string): boolean {
   if (tier === 'PRO') {
-    return PRO_SYMBOLS.includes(symbol as (typeof PRO_SYMBOLS)[number]);
+    return PRO_SYMBOLS.includes(symbol as typeof PRO_SYMBOLS[number]);
   }
-  return FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number]);
+  return FREE_SYMBOLS.includes(symbol as typeof FREE_SYMBOLS[number]);
 }
 
 /**
@@ -97,13 +97,9 @@ function canAccessSymbol(tier: Tier, symbol: string): boolean {
  */
 function canAccessTimeframe(tier: Tier, timeframe: string): boolean {
   if (tier === 'PRO') {
-    return PRO_TIMEFRAMES.includes(
-      timeframe as (typeof PRO_TIMEFRAMES)[number]
-    );
+    return PRO_TIMEFRAMES.includes(timeframe as typeof PRO_TIMEFRAMES[number]);
   }
-  return FREE_TIMEFRAMES.includes(
-    timeframe as (typeof FREE_TIMEFRAMES)[number]
-  );
+  return FREE_TIMEFRAMES.includes(timeframe as typeof FREE_TIMEFRAMES[number]);
 }
 
 /**
@@ -197,9 +193,7 @@ export async function GET(
     // Get bars parameter from query string (default: 1000)
     const { searchParams } = new URL(request.url);
     const barsParam = searchParams.get('bars');
-    const bars = barsParam
-      ? Math.min(Math.max(parseInt(barsParam, 10) || 1000, 100), 5000)
-      : 1000;
+    const bars = barsParam ? Math.min(Math.max(parseInt(barsParam, 10) || 1000, 100), 5000) : 1000;
 
     //───────────────────────────────────────────────────────
     // STEP 3: Validate Symbol
@@ -323,8 +317,7 @@ export async function GET(
         {
           success: false,
           error: 'MT5 service error',
-          message:
-            'Failed to fetch indicator data from MT5 service. Please try again later.',
+          message: 'Failed to fetch indicator data from MT5 service. Please try again later.',
         } as ErrorResponse,
         { status: 500 }
       );

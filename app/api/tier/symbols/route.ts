@@ -11,7 +11,10 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
-import { FREE_SYMBOLS, PRO_SYMBOLS } from '@/lib/tier-config';
+import {
+  FREE_SYMBOLS,
+  PRO_SYMBOLS,
+} from '@/lib/tier-config';
 import type { Tier } from '@/types/tier';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -76,19 +79,15 @@ function getSymbolsForTier(tier: Tier): readonly string[] {
 function buildSymbolInfo(tier: Tier): SymbolInfo[] {
   const accessibleSymbols = getSymbolsForTier(tier);
 
-  return [...PRO_SYMBOLS]
-    .map((symbol) => {
-      const info = SYMBOL_INFO[symbol];
-      return {
-        symbol,
-        name: info?.name || symbol,
-        category: info?.category || 'forex',
-        proOnly: !FREE_SYMBOLS.includes(
-          symbol as (typeof FREE_SYMBOLS)[number]
-        ),
-      };
-    })
-    .filter((s) => accessibleSymbols.includes(s.symbol));
+  return [...PRO_SYMBOLS].map((symbol) => {
+    const info = SYMBOL_INFO[symbol];
+    return {
+      symbol,
+      name: info?.name || symbol,
+      category: info?.category || 'forex',
+      proOnly: !FREE_SYMBOLS.includes(symbol as typeof FREE_SYMBOLS[number]),
+    };
+  }).filter((s) => accessibleSymbols.includes(s.symbol));
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -171,8 +170,7 @@ export async function GET(): Promise<NextResponse> {
       {
         success: false,
         error: 'Failed to fetch symbols',
-        message:
-          'An error occurred while fetching available symbols. Please try again.',
+        message: 'An error occurred while fetching available symbols. Please try again.',
       },
       { status: 500 }
     );

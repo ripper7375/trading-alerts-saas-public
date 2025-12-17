@@ -1043,21 +1043,5 @@ python test_connection_pool.py
 
 ---
 
-**ARCHITECTURE**
-
-Flask App
-↓
-init_connection_pool() → MT5ConnectionPool (15 connections)
-↓
-HealthMonitor (daemon thread, 60s interval)
-↓
-GET /api/indicators/XAUUSD/H1
-→ pool.get_connection_by_symbol('XAUUSD')
-→ MT5_15 terminal
-→ fetch_indicator_data() with thread lock
-→ Return OHLC + indicators
-
----
-
 **Last Updated:** 2025-11-17
 **Version:** 1.0.0

@@ -51,14 +51,14 @@ import RenewalReminderEmail from '@/emails/renewal-reminder-email'
 
 ### Props
 
-| Prop            | Type   | Default            | Description              |
-| --------------- | ------ | ------------------ | ------------------------ |
-| `expiryDate`    | string | "December 5, 2024" | Subscription expiry date |
-| `daysRemaining` | number | 3                  | Days until expiration    |
-| `price`         | string | "$29.00"           | Price in USD             |
-| `priceInr`      | string | "₹2,407"           | Price in INR             |
-| `paymentMethod` | string | "UPI (dLocal)"     | Payment method used      |
-| `userName`      | string | "Valued Customer"  | User's name              |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `expiryDate` | string | "December 5, 2024" | Subscription expiry date |
+| `daysRemaining` | number | 3 | Days until expiration |
+| `price` | string | "$29.00" | Price in USD |
+| `priceInr` | string | "₹2,407" | Price in INR |
+| `paymentMethod` | string | "UPI (dLocal)" | Payment method used |
+| `userName` | string | "Valued Customer" | User's name |
 
 ### Sending the Email
 
@@ -71,16 +71,16 @@ import RenewalReminderEmail from '@/emails/renewal-reminder-email'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 await resend.emails.send({
-from: 'Trading Alerts <noreply@tradingalerts.com>',
-to: user.email,
-subject: '⏰ Your PRO Subscription Expires in 3 Days',
-react: RenewalReminderEmail({
-expiryDate: subscription.expiryDate,
-daysRemaining: subscription.daysRemaining,
-price: '$29.00',
-priceInr: '₹2,407',
-paymentMethod: 'UPI (dLocal)',
-}),
+  from: 'Trading Alerts <noreply@tradingalerts.com>',
+  to: user.email,
+  subject: '⏰ Your PRO Subscription Expires in 3 Days',
+  react: RenewalReminderEmail({
+    expiryDate: subscription.expiryDate,
+    daysRemaining: subscription.daysRemaining,
+    price: '$29.00',
+    priceInr: '₹2,407',
+    paymentMethod: 'UPI (dLocal)',
+  }),
 })
 \`\`\`
 
@@ -91,27 +91,26 @@ import nodemailer from 'nodemailer'
 import { render } from '@react-email/render'
 import RenewalReminderEmail from '@/emails/renewal-reminder-email'
 
-const transporter = nodemailer.createTransport({ /_ config _/ })
+const transporter = nodemailer.createTransport({ /* config */ })
 
 const emailHtml = render(RenewalReminderEmail({
-expiryDate: 'December 5, 2024',
-daysRemaining: 3,
-price: '$29.00',
-priceInr: '₹2,407',
+  expiryDate: 'December 5, 2024',
+  daysRemaining: 3,
+  price: '$29.00',
+  priceInr: '₹2,407',
 }))
 
 await transporter.sendMail({
-from: 'noreply@tradingalerts.com',
-to: user.email,
-subject: '⏰ Your PRO Subscription Expires in 3 Days',
-html: emailHtml,
+  from: 'noreply@tradingalerts.com',
+  to: user.email,
+  subject: '⏰ Your PRO Subscription Expires in 3 Days',
+  html: emailHtml,
 })
 \`\`\`
 
 ## Email Client Testing
 
 Tested and verified in:
-
 - ✅ Gmail (Web, iOS, Android)
 - ✅ Outlook (Web, Desktop)
 - ✅ Apple Mail (iOS, macOS)
@@ -140,7 +139,6 @@ background: 'linear-gradient(135deg, #your-color-1 0%, #your-color-2 100%)'
 Replace text logo with image:
 
 \`\`\`tsx
-
 <Section style={headerStyle}>
   <img
     src="https://yourdomain.com/logo-white.png"
@@ -155,7 +153,7 @@ Replace text logo with image:
 ## Best Practices
 
 - **Subject Lines**: Use emojis and urgency (e.g., "⏰ 3 Days Left!")
-- **Send Schedule**:
+- **Send Schedule**: 
   - 7 days before expiry
   - 3 days before expiry
   - 1 day before expiry
@@ -165,7 +163,6 @@ Replace text logo with image:
 ## Support
 
 For issues or questions:
-
 - Email: support@tradingalerts.com
 - Docs: https://tradingalerts.com/docs
 

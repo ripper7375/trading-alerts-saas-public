@@ -5,13 +5,12 @@ Validates symbol and timeframe access based on user tier (FREE/PRO).
 Mirrors the tier validation logic from Next.js frontend.
 """
 
-from typing import List, Tuple
-
+from typing import Tuple
 from app.utils.constants import (
     FREE_TIER_SYMBOLS,
-    FREE_TIER_TIMEFRAMES,
     PRO_TIER_SYMBOLS,
-    PRO_TIER_TIMEFRAMES,
+    FREE_TIER_TIMEFRAMES,
+    PRO_TIER_TIMEFRAMES
 )
 
 
@@ -103,64 +102,4 @@ def validate_chart_access(
         return False, timeframe_error
 
     # Both validations passed
-    return True, None
-
-
-def get_accessible_symbols(tier: str) -> List[str]:
-    """
-    Get list of symbols accessible by a tier.
-
-    Args:
-        tier: User tier (FREE or PRO)
-
-    Returns:
-        List[str]: List of accessible symbol strings
-    """
-    if tier == 'PRO':
-        return list(PRO_TIER_SYMBOLS)
-    return list(FREE_TIER_SYMBOLS)
-
-
-def get_accessible_timeframes(tier: str) -> List[str]:
-    """
-    Get list of timeframes accessible by a tier.
-
-    Args:
-        tier: User tier (FREE or PRO)
-
-    Returns:
-        List[str]: List of accessible timeframe strings
-    """
-    if tier == 'PRO':
-        return list(PRO_TIER_TIMEFRAMES)
-    return list(FREE_TIER_TIMEFRAMES)
-
-
-def validate_symbol_access_simple(symbol: str, tier: str) -> bool:
-    """
-    Simple boolean check for symbol access.
-
-    Args:
-        symbol: Trading symbol
-        tier: User tier
-
-    Returns:
-        bool: True if access allowed
-    """
-    allowed, _ = validate_symbol_access(symbol, tier)
-    return allowed
-
-
-def validate_timeframe_access_simple(timeframe: str, tier: str) -> bool:
-    """
-    Simple boolean check for timeframe access.
-
-    Args:
-        timeframe: Chart timeframe
-        tier: User tier
-
-    Returns:
-        bool: True if access allowed
-    """
-    allowed, _ = validate_timeframe_access(timeframe, tier)
-    return allowed
+    return True, ''

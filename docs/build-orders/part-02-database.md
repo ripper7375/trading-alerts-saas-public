@@ -211,19 +211,16 @@
 
              // Log queries taking > 100ms
              if (duration > 100) {
-               console.log(
-                 `⚠️ Slow query: ${model}.${operation} - ${duration.toFixed(2)}ms`
-               );
+               console.log(`⚠️ Slow query: ${model}.${operation} - ${duration.toFixed(2)}ms`);
              }
 
              return result;
-           },
-         },
-       },
+           }
+         }
+       }
      });
 
-   if (process.env['NODE_ENV'] !== 'production')
-     globalForPrisma.prisma = prisma;
+   if (process.env['NODE_ENV'] !== 'production') globalForPrisma.prisma = prisma;
    ```
 
 2. **Key Points**

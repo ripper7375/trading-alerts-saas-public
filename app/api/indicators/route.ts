@@ -159,8 +159,7 @@ export async function GET(): Promise<NextResponse> {
       {
         success: false,
         error: 'Failed to fetch indicator types',
-        message:
-          'An error occurred while fetching indicator types. Please try again.',
+        message: 'An error occurred while fetching indicator types. Please try again.',
       },
       { status: 500 }
     );

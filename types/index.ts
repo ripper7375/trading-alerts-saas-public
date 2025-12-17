@@ -15,6 +15,16 @@ export * from './alert';
 export * from './indicator';
 export * from './api';
 
+// ADD THESE LINES:
 // Type aliases for authentication system compatibility
 export type { Tier as UserTier } from './tier';
 export type UserRole = 'USER' | 'ADMIN';
+
+// Re-export Prisma types
+export type {
+  User,
+  Alert,
+  Subscription,
+  Watchlist,
+  WatchlistItem,
+} from '@prisma/client';

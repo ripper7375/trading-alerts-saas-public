@@ -102,18 +102,11 @@ class TestIndicatorsEndpoint:
     """Test indicators API endpoint"""
 
     def test_health_check(self, client):
-        """Test health check endpoint works correctly.
-
-        Note: In CI environment, MT5 terminals are not available so health
-        returns 503 (degraded). In production with MT5 connected, returns 200.
-        Both are valid responses indicating the endpoint works correctly.
-        """
+        """Test health check endpoint"""
         response = client.get('/api/health')
-        # Accept both 200 (connected) and 503 (disconnected in CI)
-        assert response.status_code in (200, 503)
+        assert response.status_code == 200
         data = response.get_json()
-        # Status reflects connection state
-        assert data['status'] in ('ok', 'degraded', 'error')
+        assert data['status'] == 'ok'
         assert 'version' in data
 
     def test_free_tier_blocked_symbol(self, client):

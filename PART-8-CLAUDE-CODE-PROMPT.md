@@ -13,7 +13,6 @@
 You are Claude Code, tasked with building **Part 8: Dashboard & Layout Components** for the Trading Alerts SaaS V7 project. You will build 9 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
-
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -28,7 +27,6 @@ You are Claude Code, tasked with building **Part 8: Dashboard & Layout Component
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1️⃣ **Project Overview & Current State**
-
 ```
 PROGRESS.md                  # Current project status (Parts 6 & 7 complete)
 README.md                    # Project overview
@@ -37,7 +35,6 @@ IMPLEMENTATION-GUIDE.md      # Implementation best practices
 ```
 
 ### 2️⃣ **Policy Files (MUST READ - These are your rules)**
-
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -49,21 +46,18 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3️⃣ **Part 8 Requirements & Build Order**
-
 ```
 docs/build-orders/part-08-dashboard.md               # Build order for all 9 files
 docs/implementation-guides/v5_part_h.md              # Detailed specifications for Part 8
 ```
 
 ### 4️⃣ **OpenAPI Specifications**
-
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 docs/flask_mt5_openapi.yaml                          # Flask MT5 API contracts
 ```
 
 ### 5️⃣ **Seed Code References (for patterns and components)**
-
 ```
 seed-code/next-shadcn-dashboard-starter/             # Dashboard layout patterns
 seed-code/v0-components/dashboard-home-component/    # Dashboard home component
@@ -72,14 +66,12 @@ seed-code/saas-starter/                              # SaaS authentication patte
 ```
 
 ### 6️⃣ **Validation & Testing**
-
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Aider automated validation guide
 ```
 
 ### 7️⃣ **Previous Work (for context)**
-
 ```
 docs/build-orders/part-05-authentication.md          # Authentication (dependency)
 docs/build-orders/part-04-tier-system.md             # Tier system (dependency)
@@ -94,14 +86,12 @@ docs/build-orders/part-07-indicators-api.md          # Indicators API (Part 7 co
 Build these 9 files in sequence:
 
 ### **File 1/9:** `app/(dashboard)/layout.tsx`
-
 - Dashboard layout with sidebar
 - Show tier badge in header
 - Tier-based menu items (hide PRO features for FREE users)
 - **Commit:** `feat(dashboard): add layout with tier badge`
 
 ### **File 2/9:** `app/(dashboard)/dashboard/page.tsx`
-
 - Dashboard overview page with stats cards
 - Stats: alerts count, watchlists, tier info
 - Recent alerts widget
@@ -110,44 +100,37 @@ Build these 9 files in sequence:
 - **Commit:** `feat(dashboard): add overview page`
 
 ### **File 3/9:** `components/layout/header.tsx`
-
 - Top header with logo
 - User menu (tier badge, settings, logout)
 - Notification bell
 - **Commit:** `feat(layout): add header with tier display`
 
 ### **File 4/9:** `components/layout/sidebar.tsx`
-
 - Navigation menu with active link highlighting
 - Hide PRO features for FREE tier users
 - **Commit:** `feat(layout): add sidebar with tier-based menu`
 
 ### **File 5/9:** `components/layout/mobile-nav.tsx`
-
 - Mobile navigation drawer
 - Same tier-based logic as sidebar
 - **Commit:** `feat(layout): add mobile navigation`
 
 ### **File 6/9:** `components/layout/footer.tsx`
-
 - Dashboard footer with links and copyright
 - **Reference:** `seed-code/v0-components/footer-component/`
 - **Commit:** `feat(layout): add footer`
 
 ### **File 7/9:** `components/dashboard/stats-card.tsx`
-
 - Reusable stats card component
 - Props: icon, title, value, change percentage
 - **Commit:** `feat(dashboard): add stats card component`
 
 ### **File 8/9:** `components/dashboard/recent-alerts.tsx`
-
 - Recent alerts widget showing last 5 alerts
 - Link to full alerts page
 - **Commit:** `feat(dashboard): add recent alerts widget`
 
 ### **File 9/9:** `components/dashboard/watchlist-widget.tsx`
-
 - Watchlist preview widget
 - Shows top watchlists
 - Link to full watchlist page
@@ -158,7 +141,6 @@ Build these 9 files in sequence:
 ## 🔧 GIT WORKFLOW
 
 ### **Branch Strategy**
-
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/dashboard-layout-01PyqZfNHS1Kdj5ii9BmFW2c
@@ -169,9 +151,7 @@ git push -u origin claude/dashboard-layout-01PyqZfNHS1Kdj5ii9BmFW2c
 ```
 
 ### **Commit Message Format**
-
 Use conventional commits:
-
 ```
 feat(dashboard): add layout with tier badge
 feat(layout): add header with tier display
@@ -179,7 +159,6 @@ fix(dashboard): correct TypeScript type error in stats card
 ```
 
 ### **Push Requirements**
-
 - ✅ Branch MUST start with `claude/`
 - ✅ Branch MUST end with session ID
 - ✅ Push ONLY after all validations pass
@@ -206,14 +185,12 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
-
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
-
 - ✅ 0 TypeScript errors
 - ✅ 0 ESLint errors (warnings OK if < 3)
 - ✅ All files properly formatted
@@ -225,7 +202,6 @@ npm run fix
 ## 🎯 KEY REQUIREMENTS FOR PART 8
 
 ### **1. Tier-Based UI (CRITICAL)**
-
 - ✅ Show user's tier badge in header (FREE or PRO)
 - ✅ Hide PRO features in navigation for FREE users
 - ✅ Dashboard stats must reflect tier limitations:
@@ -233,7 +209,6 @@ npm run fix
   - PRO: 15 symbols, 9 timeframes
 
 ### **2. TypeScript Compliance (CRITICAL)**
-
 - ✅ NO `any` types allowed
 - ✅ All function parameters typed
 - ✅ All return types specified
@@ -241,28 +216,24 @@ npm run fix
 - ✅ Use proper React types (`FC`, `ReactNode`, etc.)
 
 ### **3. Authentication Integration**
-
 - ✅ Use `getServerSession()` in server components
 - ✅ Use `useSession()` in client components
 - ✅ Redirect to login if not authenticated
 - ✅ Show loading state while checking session
 
 ### **4. Component Patterns**
-
 - ✅ Use shadcn/ui components (Button, Card, Badge, etc.)
 - ✅ Use Lucide icons for consistency
 - ✅ Follow Next.js 14 App Router patterns
 - ✅ Server components by default, mark client components with `"use client"`
 
 ### **5. Error Handling**
-
 - ✅ Try-catch blocks in async operations
 - ✅ User-friendly error messages
 - ✅ Loading states for async operations
 - ✅ Error boundaries where appropriate
 
 ### **6. Responsive Design**
-
 - ✅ Mobile-first approach
 - ✅ Use Tailwind responsive classes (`sm:`, `md:`, `lg:`)
 - ✅ Mobile navigation for small screens
@@ -275,14 +246,12 @@ npm run fix
 After building all 9 files:
 
 ### **1. Start Development Server**
-
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
-
 - [ ] Visit `http://localhost:3000/dashboard`
 - [ ] Verify dashboard loads without errors
 - [ ] Check tier badge displays correctly in header
@@ -295,13 +264,11 @@ npm run dev
 - [ ] Check responsive layout on mobile/tablet/desktop
 
 ### **3. Console Checks**
-
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] No missing key props warnings
 
 ### **4. TypeScript Build**
-
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -312,7 +279,6 @@ npm run build
 ## 📝 CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Server Component with Session**
-
 ```typescript
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
@@ -336,7 +302,6 @@ export default async function DashboardPage() {
 ```
 
 ### **Pattern 2: Client Component with Session**
-
 ```typescript
 'use client';
 
@@ -370,35 +335,19 @@ export function Header() {
 ```
 
 ### **Pattern 3: Tier-Based Navigation**
-
 ```typescript
 const navigationItems = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    tier: 'FREE',
-  },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, tier: 'FREE' },
   { name: 'Charts', href: '/charts', icon: LineChart, tier: 'FREE' },
   { name: 'Alerts', href: '/alerts', icon: Bell, tier: 'FREE' },
   { name: 'Watchlist', href: '/watchlist', icon: Eye, tier: 'FREE' },
-  {
-    name: 'Advanced Analytics',
-    href: '/analytics',
-    icon: BarChart,
-    tier: 'PRO',
-  }, // PRO only
-  {
-    name: 'Custom Indicators',
-    href: '/indicators',
-    icon: TrendingUp,
-    tier: 'PRO',
-  }, // PRO only
+  { name: 'Advanced Analytics', href: '/analytics', icon: BarChart, tier: 'PRO' }, // PRO only
+  { name: 'Custom Indicators', href: '/indicators', icon: TrendingUp, tier: 'PRO' }, // PRO only
 ];
 
 // Filter based on user tier
 const userTier = session?.user?.tier || 'FREE';
-const allowedItems = navigationItems.filter((item) => {
+const allowedItems = navigationItems.filter(item => {
   if (item.tier === 'PRO') {
     return userTier === 'PRO';
   }
@@ -407,7 +356,6 @@ const allowedItems = navigationItems.filter((item) => {
 ```
 
 ### **Pattern 4: Stats Card Component**
-
 ```typescript
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
@@ -444,7 +392,6 @@ export function StatsCard({ title, value, change, icon: Icon }: StatsCardProps) 
 ## 🚨 CRITICAL RULES
 
 ### **DO:**
-
 - ✅ Read ALL policy files before writing code
 - ✅ Follow tier-based access control patterns
 - ✅ Use TypeScript strictly (no `any` types)
@@ -455,7 +402,6 @@ export function StatsCard({ title, value, change, icon: Icon }: StatsCardProps) 
 - ✅ Test thoroughly before pushing
 
 ### **DON'T:**
-
 - ❌ Skip reading policy files
 - ❌ Use `any` types
 - ❌ Commit multiple files at once (commit one-by-one)
@@ -517,7 +463,6 @@ Use the TodoWrite tool to track your progress:
    - `docs/implementation-guides/v5_part_h.md` - Detailed specs
 
 2. **Then, create your git branch:**
-
    ```bash
    git checkout main
    git pull origin main

@@ -1,17 +1,10 @@
-import RenewalReminderEmail from '@/emails/renewal-reminder-email';
+import RenewalReminderEmail from "@/emails/renewal-reminder-email"
 
 export default function PreviewRenewalEmail() {
   return (
-    <div style={{ padding: '40px', backgroundColor: '#f3f4f6' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h1
-          style={{
-            textAlign: 'center',
-            marginBottom: '32px',
-            fontSize: '32px',
-            fontWeight: 'bold',
-          }}
-        >
+    <div style={{ padding: "40px", backgroundColor: "#f3f4f6" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+        <h1 style={{ textAlign: "center", marginBottom: "32px", fontSize: "32px", fontWeight: "bold" }}>
           Renewal Reminder Email Preview
         </h1>
         <RenewalReminderEmail
@@ -24,5 +17,5 @@ export default function PreviewRenewalEmail() {
         />
       </div>
     </div>
-  );
+  )
 }

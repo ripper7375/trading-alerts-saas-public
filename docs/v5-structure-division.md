@@ -279,10 +279,6 @@ prisma/schema.prisma            # Updated: User.password nullable, Account model
 
 **Scope:** Complete Flask microservice
 
-**Deployment:** Windows VPS (NOT Docker/Railway)
-
-> **CRITICAL:** The MetaTrader5 Python package only runs on Windows and requires local MT5 terminal installation. This service MUST be deployed on Windows VPS alongside the 15 MT5 terminals, not in Docker containers on Railway.
-
 **Folders & Files:**
 
 ```
@@ -306,7 +302,7 @@ mt5-service/
 │   └── Fractal Diagonal Line_V4.mq5
 ├── tests/
 │   └── test_indicators.py
-├── Dockerfile              # LOCAL DEV ONLY - production uses Windows VPS directly
+├── Dockerfile
 ├── .dockerignore
 ├── requirements.txt
 ├── run.py
@@ -323,13 +319,6 @@ mt5-service/
 - ✅ FREE tier validation: 5 symbols × 3 timeframes only
 - ✅ PRO tier validation: 15 symbols × 9 timeframes
 - ✅ 5 new symbols in MT5 symbol mapping: AUDJPY, GBPJPY, NZDUSD, USDCAD, USDCHF
-
-**Deployment Notes:**
-
-- **Why Windows VPS?** MetaTrader5 Python package requires Windows OS
-- **Co-location:** Flask runs on same Windows machine as 15 MT5 terminals
-- **Dockerfile:** For local development only; production runs directly via Waitress/Gunicorn
-- **No Railway:** Railway's Linux containers cannot run MT5
 
 **File Count:** ~15 files
 
@@ -988,22 +977,22 @@ seed-code/
 
 **Component Categories:**
 
-| Category         | Components | Purpose                                                  |
-| ---------------- | ---------- | -------------------------------------------------------- |
-| Authentication   | 3          | Login, register, password reset                          |
-| Dashboard        | 3          | Layout, home page, footer                                |
-| Charts           | 2          | Trading chart, chart controls with tier filtering        |
-| Watchlist        | 1          | Symbol+timeframe management                              |
-| Alerts           | 3          | Alert list, create modal, alert card                     |
-| E-commerce       | 2          | Pricing page, billing/subscription                       |
-| Settings         | 2          | Settings layout, profile with modals                     |
-| Admin Dashboard  | 3          | Admin overview, user management, API analytics           |
-| Notifications    | 1          | Notification bell dropdown                               |
-| Utilities        | 3          | Marketing homepage, empty states, user menu              |
-| Affiliate Portal | 2          | Affiliate dashboard, registration                        |
-| Affiliate Admin  | 2          | Admin affiliate management, P&L reports                  |
-| dLocal Payments  | 4          | Payment methods, price display, email, checkout          |
-| **Total**        | **31**     | **Complete UI frontend coverage + 20 custom components** |
+| Category              | Components | Purpose                                                      |
+| --------------------- | ---------- | ------------------------------------------------------------ |
+| Authentication        | 3          | Login, register, password reset                              |
+| Dashboard             | 3          | Layout, home page, footer                                    |
+| Charts                | 2          | Trading chart, chart controls with tier filtering            |
+| Watchlist             | 1          | Symbol+timeframe management                                  |
+| Alerts                | 3          | Alert list, create modal, alert card                         |
+| E-commerce            | 2          | Pricing page, billing/subscription                           |
+| Settings              | 2          | Settings layout, profile with modals                         |
+| Admin Dashboard       | 3          | Admin overview, user management, API analytics               |
+| Notifications         | 1          | Notification bell dropdown                                   |
+| Utilities             | 3          | Marketing homepage, empty states, user menu                  |
+| Affiliate Portal      | 2          | Affiliate dashboard, registration                            |
+| Affiliate Admin       | 2          | Admin affiliate management, P&L reports                      |
+| dLocal Payments       | 4          | Payment methods, price display, email, checkout              |
+| **Total**             | **31**     | **Complete UI frontend coverage + 20 custom components**     |
 
 **How Aider Uses These Files:**
 

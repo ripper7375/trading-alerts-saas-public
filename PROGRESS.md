@@ -1,9 +1,9 @@
 # Trading Alerts SaaS V7 - Development Progress & Roadmap
 
-**Last Updated:** 2025-12-11
+**Last Updated:** 2025-12-09
 **Project Start:** 2025-11-09
 **Target Completion:** Week 12 (from start)
-**Current Phase:** Phase 3 - Autonomous Building (Parts 1-10 Complete)
+**Current Phase:** Phase 3 - Autonomous Building (Parts 6 & 7 Complete)
 
 ---
 
@@ -100,14 +100,14 @@ This document is your **complete step-by-step guide** from start to finish. Foll
 
 ## 📊 Overall Progress
 
-| Metric                       | Status        | Notes                                                               |
-| ---------------------------- | ------------- | ------------------------------------------------------------------- |
-| **Current Phase**            | Phase 3       | Autonomous Building - Parts 1-10 Complete                           |
-| **Total Files**              | 94 / 289 (33%)| Parts 1-10: 12+4+8+4+20+15+6+9+8+8 = 94 files                       |
-| **Parts Completed**          | 10 / 18 (56%) | Parts 1-10 merged to main                                           |
-| **Milestones Done**          | 9 / 9 Phase 1 | Milestones 1.0-1.9 complete ✅                                      |
-| **Estimated Time Remaining** | ~243 hours    | Parts 11-18 remaining + Part 17 (120h) + Part 18 (120h)             |
-| **Recent Completion**        | Part 10       | Watchlist System (PR #103, Dec 11, 2025)                            |
+| Metric                       | Status        | Notes                                                        |
+| ---------------------------- | ------------- | ------------------------------------------------------------ |
+| **Current Phase**            | Phase 3       | Autonomous Building - Parts 6 & 7 Complete                   |
+| **Total Files**              | 21 / 289 (7%) | Phase 3: 170 base + 67 affiliate + 52 dLocal (15 Part 6 + 6 Part 7) |
+| **Parts Completed**          | 2 / 18 (11%)  | Parts 6 & 7 merged to main (Dec 9, 2025)                     |
+| **Milestones Done**          | 9 / 9 Phase 1 | Milestones 1.0-1.9 complete ✅                               |
+| **Estimated Time Remaining** | ~283 hours    | Remaining parts + Part 17 (120h) + Part 18 (120h)            |
+| **Recent Completion**        | Parts 6 & 7   | Flask MT5 Service + Indicators API (PRs #94 & #96)           |
 
 ---
 
@@ -1905,60 +1905,50 @@ Build in this order for proper dependencies:
 
 ---
 
-### PART 1-4: Foundation (Week 3, 10 hours) ✅ COMPLETE
+### PART 1-4: Foundation (Week 3, 10 hours)
 
 **What:** Core infrastructure, types, tier system.
 
-#### Part 1: Foundation & Root Configuration (2 hours) ✅ COMPLETE
+#### Part 1: Foundation & Root Configuration (2 hours)
 
-**Status:** ✅ Completed and merged to main
+- [ ] Files: 12 files (config files, package.json, etc.)
+- [ ] Start Aider: `py -3.11 -m aider --model anthropic/MiniMax-M2`
+- [ ] Command: `Build Part 1: Foundation from v5_part_a.md`
+- [ ] Aider builds all config files
+- [ ] Test: `npm run dev` should work
 
-- [x] Files: 12 files (config files, package.json, etc.)
-- [x] Start Aider: `py -3.11 -m aider --model anthropic/MiniMax-M2`
-- [x] Command: `Build Part 1: Foundation from v5_part_a.md`
-- [x] Aider builds all config files
-- [x] Test: `npm run dev` should work
+#### Part 2: Database Schema & Migrations (2 hours)
 
-#### Part 2: Database Schema & Migrations (2 hours) ✅ COMPLETE
+- [ ] Files: 4 files (Prisma schema, seed scripts)
+- [ ] Command: `Build Part 2: Database from v5_part_b.md`
+- [ ] Test: `npx prisma migrate dev`
+- [ ] Test: `npx prisma studio` - verify tables
 
-**Status:** ✅ Completed and merged to main (2025-11-26)
+#### Part 3: Type Definitions (2 hours)
 
-- [x] Files: 4 files (Prisma schema, seed scripts)
-- [x] Command: `Build Part 2: Database from v5_part_b.md`
-- [x] Test: `npx prisma migrate dev`
-- [x] Test: `npx prisma studio` - verify tables
+- [ ] Files: 6 files (TypeScript type definitions)
+- [ ] Command: `Build Part 3: Types from v5_part_c.md`
+- [ ] Test: `npm run build` - no TypeScript errors
 
-#### Part 3: Type Definitions (2 hours) ✅ COMPLETE
+#### Part 4: Tier System & Constants (4 hours)
 
-**Status:** ✅ Completed and merged to main (2025-11-26)
-
-- [x] Files: 8 files (TypeScript type definitions)
-- [x] Command: `Build Part 3: Types from v5_part_c.md`
-- [x] Test: `npm run build` - no TypeScript errors
-
-#### Part 4: Tier System & Constants (4 hours) ✅ COMPLETE
-
-**Status:** ✅ Completed and merged to main
-
-- [x] Files: 4 files (tier validation, middleware, constants)
-- [x] Command: `Build Part 4: Tier System from v5_part_d.md`
-- [x] Test: Import tier functions, test validation logic
+- [ ] Files: 4 files (tier validation, middleware, constants)
+- [ ] Command: `Build Part 4: Tier System from v5_part_d.md`
+- [ ] Test: Import tier functions, test validation logic
 
 **After Parts 1-4:**
 
-- [x] Run: `npm run build` - should compile successfully
-- [x] Commit all changes
-- [x] Take a break! 🎉 Foundation complete!
+- [ ] Run: `npm run build` - should compile successfully
+- [ ] Commit all changes
+- [ ] Take a break! 🎉 Foundation complete!
 
 ---
 
-### PART 5: Authentication System (Week 4, 6 hours) ✅ COMPLETE
-
-**Status:** ✅ Completed and merged to main (2025-12-03)
+### PART 5: Authentication System (Week 4, 6 hours)
 
 **What:** User authentication, registration, login, session management.
 
-**Files:** 20 files (all completed in 4 batches)
+**Files:** 18 files
 
 **Command:**
 
@@ -1975,13 +1965,13 @@ Follow the workflow:
 5. Notify me every 3 files
 ```
 
-**Built files:**
+**Aider will build:**
 
-- [x] Auth pages (login, register, forgot-password, verify-email, reset-password)
-- [x] API routes (NextAuth, registration, verification, password reset)
-- [x] Auth components (login-form, register-form, social-auth-buttons)
-- [x] Auth utilities (auth-options, session, permissions)
-- [x] Middleware for protected routes
+- [ ] Auth pages (login, register, forgot-password, etc.)
+- [ ] API routes (NextAuth, registration, verification)
+- [ ] Auth components (forms, social auth buttons)
+- [ ] Auth utilities (auth-options, session, permissions)
+- [ ] Middleware for protected routes
 
 **Testing with Postman (MILESTONE 1.3 IN USE!):**
 
@@ -2159,56 +2149,30 @@ After Aider completes Part 7:
 
 ---
 
-### PART 8-10: UI Components (Week 6, 10 hours) ✅ COMPLETE
+### PART 8-10: UI Components (Week 6, 10 hours)
 
 **What:** Dashboard, charts, watchlist UI components.
 
-#### Part 8: Dashboard & Layout Components (3 hours) ✅ COMPLETE
+#### Part 8: Dashboard & Layout Components (3 hours)
 
-**Status:** ✅ Completed and merged to main
+- [ ] Files: 9 files
+- [ ] Command: `Build Part 8: Dashboard from v5_part_h.md`
+- [ ] Reference: seed-code/next-shadcn-dashboard-starter/
+- [ ] Test: Visit http://localhost:3000/dashboard
 
-- [x] Files: 9 files (all completed)
-- [x] Command: `Build Part 8: Dashboard from v5_part_h.md`
-- [x] Reference: seed-code/next-shadcn-dashboard-starter/
-- [x] Test: Visit http://localhost:3000/dashboard
+#### Part 9: Charts & Visualization (4 hours)
 
-#### Part 9: Charts & Visualization (4 hours) ✅ COMPLETE
+- [ ] Files: 8 files
+- [ ] Command: `Build Part 9: Charts from v5_part_i.md`
+- [ ] Test: Visit http://localhost:3000/charts
+- [ ] Verify: Timeframe selector shows only H1, H4, D1 for FREE user
 
-**Status:** ✅ Completed and merged to main
+#### Part 10: Watchlist System (3 hours)
 
-- [x] Files: 8 files (all completed)
-- [x] Command: `Build Part 9: Charts from v5_part_i.md`
-- [x] Test: Visit http://localhost:3000/charts
-- [x] Verify: Timeframe selector shows only H1, H4, D1 for FREE user
-
-#### Part 10: Watchlist System (3 hours) ✅ COMPLETE
-
-**Status:** ✅ Completed and merged to main on 2025-12-11
-**PR:** #103
-**Branch:** `claude/build-watchlist-system-01TM46ALfYugxp8oRQEBFToY`
-
-- [x] Files: 8 files (all completed)
-- [x] Command: `Build Part 10: Watchlist from v5_part_j.md`
-- [x] Test: Visit http://localhost:3000/watchlist
-- [x] Verify: Can add symbol+timeframe combinations
-
-**Built files:**
-- [x] `app/(dashboard)/watchlist/page.tsx` - Server component with auth
-- [x] `app/(dashboard)/watchlist/watchlist-client.tsx` - Client component with add/remove UI
-- [x] `app/api/watchlist/route.ts` - GET/POST endpoints
-- [x] `app/api/watchlist/[id]/route.ts` - GET/PATCH/DELETE endpoints
-- [x] `app/api/watchlist/reorder/route.ts` - POST reorder endpoint
-- [x] `components/watchlist/symbol-selector.tsx` - Symbol dropdown with tier filtering
-- [x] `components/watchlist/timeframe-grid.tsx` - Timeframe selection grid
-- [x] `components/watchlist/watchlist-item.tsx` - Item card component
-- [x] `hooks/use-watchlist.ts` - React hook for watchlist operations
-
-**Features implemented:**
-- [x] Tier-based limits: FREE (5 items), PRO (50 items)
-- [x] Symbol+timeframe combination management
-- [x] Tier validation on add
-- [x] Ownership validation on CRUD operations
-- [x] Reorder functionality
+- [ ] Files: 8 files
+- [ ] Command: `Build Part 10: Watchlist from v5_part_j.md`
+- [ ] Test: Visit http://localhost:3000/watchlist
+- [ ] Verify: Can add symbol+timeframe combinations
 
 **Testing UI Components:**
 

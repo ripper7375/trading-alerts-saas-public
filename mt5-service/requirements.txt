@@ -10,10 +10,6 @@ Flask-CORS==4.0.0
 # NOTE: MetaTrader5 will be installed manually on production Windows server
 # For CI/CD testing on Linux, we skip this dependency
 
-# Data processing
-pandas>=2.0.0
-numpy>=1.24.0
-
 # Database
 psycopg2-binary==2.9.9
 

@@ -48,7 +48,7 @@ A commercial SaaS platform providing real-time trading alerts and chart visualiz
 - **MT5 Integration:** Custom Python service reading from centralized MT5 terminal
 - **Payments:** Stripe (international cards) + dLocal (local payment methods for emerging markets)
 - **Affiliate System:** 2-sided marketplace with commission tracking
-- **Deployment:** Vercel (frontend) + Railway (database) + Windows VPS (Flask + MT5)
+- **Deployment:** Vercel (frontend) + Railway (database + Flask)
 - **AI Development:** MiniMax M2 for cost-effective autonomous building
 
 ---
@@ -315,9 +315,7 @@ Follow remaining phases for autonomous building with MiniMax M2.
 - **Language:** Python 3.11+
 - **Framework:** Flask 3.0+
 - **MT5 API:** MetaTrader5 Python library 5.0.45+
-- **Deployment:** Windows VPS (co-located with MT5 terminals)
-
-> **Note:** The MetaTrader5 Python package only runs on Windows. The Flask service must run on the same Windows machine as the MT5 terminals, not in a Linux Docker container.
+- **Deployment:** Docker containers
 
 ### **Payments**
 
@@ -335,10 +333,8 @@ Follow remaining phases for autonomous building with MiniMax M2.
 
 - **Frontend:** Vercel (Next.js)
 - **Database:** Railway (PostgreSQL)
-- **Flask MT5 Service:** Windows VPS (same machine as MT5 terminals)
+- **Backend:** Railway (Flask Docker)
 - **CI/CD:** GitHub Actions
-
-> **Why Windows VPS for Flask?** The MetaTrader5 Python package requires Windows and direct access to MT5 terminal instances. Railway's Linux containers cannot run MT5. The Flask service and 15 MT5 terminals run together on Windows VPS.
 
 ---
 
@@ -374,7 +370,7 @@ trading-alerts-saas-v7/
 ├── mt5-service/                   # ← Created in Phase 3
 │   ├── app/                       # Flask application
 │   ├── indicators/                # MQL5 indicators
-│   ├── Dockerfile                 # Local dev only (production uses Windows VPS)
+│   ├── Dockerfile                 # Container config
 │   └── requirements.txt           # Python dependencies
 │
 ├── scripts/                       # Build scripts

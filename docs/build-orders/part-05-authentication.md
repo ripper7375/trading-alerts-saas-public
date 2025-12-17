@@ -479,10 +479,8 @@ async function main() {
   });
 
   // Admin 2: Admin + Affiliate
-  const admin2Email =
-    process.env['ADMIN_AFFILIATE_EMAIL'] || 'admin-affiliate@tradingalerts.com';
-  const admin2Password =
-    process.env['ADMIN_AFFILIATE_PASSWORD'] || 'AdminAffiliate123!@#';
+  const admin2Email = process.env['ADMIN_AFFILIATE_EMAIL'] || 'admin-affiliate@tradingalerts.com';
+  const admin2Password = process.env['ADMIN_AFFILIATE_PASSWORD'] || 'AdminAffiliate123!@#';
   const admin2PasswordHash = await bcrypt.hash(admin2Password, 10);
 
   const admin2 = await prisma.user.upsert({
