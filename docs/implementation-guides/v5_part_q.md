@@ -20,7 +20,7 @@ Enable external affiliates to promote the Trading Alerts SaaS, earn commissions 
 
 - Self-service affiliate registration and onboarding
 - Automated monthly discount code distribution (15 codes per affiliate)
-- Commission tracking ($5 USD per PRO upgrade)
+- Commission tracking (20% of net revenue per PRO upgrade)
 - Unified authentication system (NextAuth with isAffiliate flag for dual roles)
 - Accounting-style reports with opening/closing balances
 - Admin BI dashboard with 4 key reports
@@ -38,19 +38,28 @@ Enable external affiliates to promote the Trading Alerts SaaS, earn commissions 
 - External partner who promotes Trading Alerts to earn commissions
 - Can be existing SaaS user or dedicated affiliate (dual roles supported)
 - Receives monthly allocation of discount codes (15 codes)
-- Earns $5 USD commission per PRO subscription via their code
+- Earns 20% commission on net revenue per PRO subscription via their code
 - Accesses affiliate portal at /affiliate/\* routes (same login as SaaS users)
 - Gets paid monthly when commission balance ≥ $50 USD
 
 **Commission Structure:**
 
 ```typescript
+// Commission is percentage-based, calculated dynamically from SystemConfig
+// Default values (can be changed via admin panel):
 const COMMISSION = {
-  perUpgrade: 5.0, // $5 per PRO subscription
-  minimumPayout: 50.0, // Must have ≥$50 to request payment
+  discountPercent: 20.0,    // 20% discount for customers using affiliate code
+  commissionPercent: 20.0,  // 20% of net revenue goes to affiliate
+  minimumPayout: 50.0,      // Must have ≥$50 to request payment
   paymentMethods: ['BANK_TRANSFER', 'PAYPAL', 'CRYPTOCURRENCY', 'WISE'],
   paymentFrequency: 'MONTHLY',
 };
+
+// Example calculation:
+// Regular price: $29.00
+// Discount: $29.00 × 20% = $5.80
+// Customer pays (net revenue): $29.00 - $5.80 = $23.20
+// Commission: $23.20 × 20% = $4.64
 ```
 
 **Code Distribution:**
@@ -192,7 +201,7 @@ interface CodeCommission {
   date: Date;
   code: string;
   userEmail: string; // Masked: "u***@example.com"
-  amount: number; // $5.00
+  amount: number; // Commission amount (e.g., $4.64 at 20% of $23.20 net revenue)
   status: 'PENDING' | 'PAID';
 }
 
@@ -323,7 +332,7 @@ model Commission {
   userId            String          // SaaS user who used the code
   user              User            @relation(fields: [userId], references: [id])
 
-  amount            Decimal         // $5.00 fixed
+  amount            Decimal         // Commission amount (percentage-based, e.g., $4.64)
   status            CommissionStatus @default(PENDING)
 
   earnedAt          DateTime        @default(now())
@@ -583,6 +592,10 @@ async function distributeCodes(
      return NextResponse.json({ error: 'Code expired' }, { status: 400 });
    }
 
+   // Get discount/commission percentages from affiliate code (snapshot values)
+   const discountPercent = affiliateCode.discountPercent; // e.g., 20.0
+   const commissionPercent = affiliateCode.commissionPercent; // e.g., 20.0
+
    // Create Stripe checkout session
    const session = await stripe.checkout.sessions.create({
      // ... normal checkout fields
@@ -591,10 +604,12 @@ async function distributeCodes(
        tier: 'PRO',
        affiliateCodeId: affiliateCode.id, // ← Store code ID
        affiliateProfileId: affiliateCode.affiliateProfileId, // ← Store affiliate profile ID (unified auth)
+       discountPercent: discountPercent.toString(), // Store for commission calculation
+       commissionPercent: commissionPercent.toString(), // Store for commission calculation
      },
      discounts: [
        {
-         coupon: '10PERCENTOFF', // $29 → $26.10
+         coupon: '20PERCENTOFF', // $29 → $23.20 (20% discount)
        },
      ],
    });
@@ -607,12 +622,17 @@ async function distributeCodes(
 
    if (event.type === 'checkout.session.completed') {
      const session = event.data.object;
-     const { userId, affiliateCodeId, affiliateProfileId } = session.metadata; // Unified auth
+     const { userId, affiliateCodeId, affiliateProfileId, discountPercent, commissionPercent } = session.metadata; // Unified auth
 
      if (affiliateCodeId && affiliateProfileId) {
-       // Calculate commission
-       const netRevenue = 26.1; // $29 - $2.90 discount
-       const commissionAmount = 5.0; // Fixed $5 per upgrade
+       // Calculate commission using percentage-based model
+       const regularPrice = 29.0; // PRO subscription price
+       const discountPct = parseFloat(discountPercent) || 20.0; // Default 20%
+       const commissionPct = parseFloat(commissionPercent) || 20.0; // Default 20%
+
+       const discountAmount = regularPrice * (discountPct / 100); // $29 × 20% = $5.80
+       const netRevenue = regularPrice - discountAmount; // $29 - $5.80 = $23.20
+       const commissionAmount = netRevenue * (commissionPct / 100); // $23.20 × 20% = $4.64
 
        // Create commission
        await prisma.commission.create({
@@ -620,9 +640,9 @@ async function distributeCodes(
            affiliateProfileId, // Unified auth: links to AffiliateProfile
            affiliateCodeId,
            userId,
-           amount: commissionAmount,
-           netRevenue,
-           discount: 2.9,
+           amount: commissionAmount, // e.g., $4.64
+           netRevenue, // e.g., $23.20
+           discount: discountAmount, // e.g., $5.80
            status: 'PENDING',
            earnedAt: new Date(),
            stripePaymentId: session.payment_intent,
@@ -658,7 +678,12 @@ async function distributeCodes(
        await sendEmail({
          to: affiliateProfile.user.email, // Unified auth: user email
          template: 'code-used',
-         data: { code, commission: commissionAmount },
+         data: {
+           code,
+           commission: commissionAmount, // e.g., $4.64
+           netRevenue, // e.g., $23.20
+           commissionPercent: commissionPct, // e.g., 20%
+         },
        });
      }
    }
@@ -1068,7 +1093,7 @@ async function sendMonthlyReports() {
 
 3. **Code Used** (when user redeems code)
    - Code redeemed: [CODE]
-   - Commission earned: $5.00
+   - Commission earned: [AMOUNT] (e.g., $4.64)
    - Current balance
    - Link to dashboard
 
@@ -1187,7 +1212,7 @@ model Commission {
   user                 User     @relation(fields: [userId], references: [id])
 
   // Amounts
-  amount               Decimal               // Commission amount ($5)
+  amount               Decimal               // Commission amount (percentage-based, e.g., $4.64)
   netRevenue           Decimal               // Net revenue from subscription
   discount             Decimal               // Discount given via code
 
