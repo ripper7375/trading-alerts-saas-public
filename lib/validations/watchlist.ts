@@ -6,12 +6,7 @@
  */
 
 import { z } from 'zod';
-import {
-  SYMBOLS,
-  FREE_SYMBOLS,
-  symbolEnum,
-  timeframeEnum,
-} from './alert';
+import { SYMBOLS, FREE_SYMBOLS, symbolEnum, timeframeEnum } from './alert';
 
 /**
  * Add item to watchlist schema
@@ -34,12 +29,14 @@ export const removeFromWatchlistSchema = z.object({
  * Reorder watchlist items schema
  */
 export const reorderWatchlistSchema = z.object({
-  items: z.array(
-    z.object({
-      id: z.string().min(1, 'Item ID is required'),
-      position: z.number().int().min(0, 'Position must be non-negative'),
-    })
-  ).min(1, 'At least one item is required'),
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1, 'Item ID is required'),
+        position: z.number().int().min(0, 'Position must be non-negative'),
+      })
+    )
+    .min(1, 'At least one item is required'),
 });
 
 /**
@@ -111,12 +108,15 @@ export function validateSymbolTimeframeCombination(
   tier: 'FREE' | 'PRO'
 ): { valid: boolean; error?: string } {
   // Check if symbol is valid
-  if (!SYMBOLS.includes(symbol as typeof SYMBOLS[number])) {
+  if (!SYMBOLS.includes(symbol as (typeof SYMBOLS)[number])) {
     return { valid: false, error: `Invalid symbol: ${symbol}` };
   }
 
   // Check tier access
-  if (tier === 'FREE' && !FREE_SYMBOLS.includes(symbol as typeof FREE_SYMBOLS[number])) {
+  if (
+    tier === 'FREE' &&
+    !FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number])
+  ) {
     return {
       valid: false,
       error: `Symbol ${symbol} is not available for FREE tier. Upgrade to PRO.`,
@@ -133,7 +133,8 @@ export function validateSymbolTimeframeCombination(
  * @returns Zod schema with tier-specific validation
  */
 export function addToWatchlistSchemaForTier(tier: 'FREE' | 'PRO') {
-  const allowedSymbols: readonly string[] = tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
+  const allowedSymbols: readonly string[] =
+    tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
 
   return addToWatchlistSchema.refine(
     (data) => allowedSymbols.includes(data.symbol),
@@ -196,7 +197,9 @@ export function validateWatchlistItemLimit(
 
 // Type exports
 export type AddToWatchlistInput = z.infer<typeof addToWatchlistSchema>;
-export type RemoveFromWatchlistInput = z.infer<typeof removeFromWatchlistSchema>;
+export type RemoveFromWatchlistInput = z.infer<
+  typeof removeFromWatchlistSchema
+>;
 export type ReorderWatchlistInput = z.infer<typeof reorderWatchlistSchema>;
 export type CreateWatchlistInput = z.infer<typeof createWatchlistSchema>;
 export type UpdateWatchlistInput = z.infer<typeof updateWatchlistSchema>;

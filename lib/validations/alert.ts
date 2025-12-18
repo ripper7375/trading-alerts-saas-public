@@ -74,10 +74,7 @@ export const createAlertSchema = z.object({
     .string()
     .max(100, 'Alert name must not exceed 100 characters')
     .optional(),
-  notes: z
-    .string()
-    .max(500, 'Notes must not exceed 500 characters')
-    .optional(),
+  notes: z.string().max(500, 'Notes must not exceed 500 characters').optional(),
   enabled: z.boolean().optional().default(true),
   notifyEmail: z.boolean().optional().default(true),
   notifyPush: z.boolean().optional().default(true),
@@ -149,9 +146,9 @@ export function isSymbolValidForTier(
   tier: 'FREE' | 'PRO'
 ): boolean {
   if (tier === 'PRO') {
-    return SYMBOLS.includes(symbol as typeof SYMBOLS[number]);
+    return SYMBOLS.includes(symbol as (typeof SYMBOLS)[number]);
   }
-  return FREE_SYMBOLS.includes(symbol as typeof FREE_SYMBOLS[number]);
+  return FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number]);
 }
 
 /**
@@ -171,7 +168,8 @@ export function getAllowedSymbols(tier: 'FREE' | 'PRO'): readonly string[] {
  * @returns Zod schema with tier-specific symbol validation
  */
 export function createAlertSchemaForTier(tier: 'FREE' | 'PRO') {
-  const allowedSymbols: readonly string[] = tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
+  const allowedSymbols: readonly string[] =
+    tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
 
   return createAlertSchema.refine(
     (data) => allowedSymbols.includes(data.symbol),
@@ -188,6 +186,6 @@ export type UpdateAlertInput = z.infer<typeof updateAlertSchema>;
 export type DeleteAlertInput = z.infer<typeof deleteAlertSchema>;
 export type GetAlertInput = z.infer<typeof getAlertSchema>;
 export type ListAlertsInput = z.infer<typeof listAlertsSchema>;
-export type Symbol = typeof SYMBOLS[number];
-export type Timeframe = typeof TIMEFRAMES[number];
-export type ConditionType = typeof CONDITION_TYPES[number];
+export type Symbol = (typeof SYMBOLS)[number];
+export type Timeframe = (typeof TIMEFRAMES)[number];
+export type ConditionType = (typeof CONDITION_TYPES)[number];

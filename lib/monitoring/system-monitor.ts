@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/db/prisma';
-import { getConnectedUsersCount, isUserConnected } from '@/lib/websocket/server';
+import {
+  getConnectedUsersCount,
+  isUserConnected,
+} from '@/lib/websocket/server';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -163,11 +166,12 @@ async function getTierMetrics(tier: 'FREE' | 'PRO'): Promise<TierMetrics> {
     });
 
     // Get active subscriptions for PRO tier
-    const activeSubscriptions = tier === 'PRO'
-      ? await prisma.subscription.count({
-          where: { status: 'ACTIVE' },
-        })
-      : 0;
+    const activeSubscriptions =
+      tier === 'PRO'
+        ? await prisma.subscription.count({
+            where: { status: 'ACTIVE' },
+          })
+        : 0;
 
     // Placeholder metrics - in production, these would come from
     // a metrics collection system (e.g., Prometheus, DataDog)
@@ -293,18 +297,26 @@ export function getAlertReasons(health: SystemHealth): string[] {
   // Check service status
   Object.entries(health.checks).forEach(([service, check]) => {
     if (check.status === 'down') {
-      reasons.push(`${service} service is down: ${check.error || 'Unknown error'}`);
+      reasons.push(
+        `${service} service is down: ${check.error || 'Unknown error'}`
+      );
     } else if (check.status === 'degraded') {
-      reasons.push(`${service} service is degraded: ${check.error || 'Performance issues'}`);
+      reasons.push(
+        `${service} service is degraded: ${check.error || 'Performance issues'}`
+      );
     }
   });
 
   // Check error rates
   if (health.tierMetrics.FREE.errorRate > 5) {
-    reasons.push(`FREE tier error rate is ${health.tierMetrics.FREE.errorRate.toFixed(2)}% (threshold: 5%)`);
+    reasons.push(
+      `FREE tier error rate is ${health.tierMetrics.FREE.errorRate.toFixed(2)}% (threshold: 5%)`
+    );
   }
   if (health.tierMetrics.PRO.errorRate > 5) {
-    reasons.push(`PRO tier error rate is ${health.tierMetrics.PRO.errorRate.toFixed(2)}% (threshold: 5%)`);
+    reasons.push(
+      `PRO tier error rate is ${health.tierMetrics.PRO.errorRate.toFixed(2)}% (threshold: 5%)`
+    );
   }
 
   // Check response times
@@ -313,7 +325,9 @@ export function getAlertReasons(health: SystemHealth): string[] {
       health.tierMetrics.PRO.avgResponseTime) /
     2;
   if (avgResponseTime > 2000) {
-    reasons.push(`Average response time is ${avgResponseTime.toFixed(0)}ms (threshold: 2000ms)`);
+    reasons.push(
+      `Average response time is ${avgResponseTime.toFixed(0)}ms (threshold: 2000ms)`
+    );
   }
 
   return reasons;

@@ -46,15 +46,15 @@ describe('Alert Checker Job', () => {
   describe('checkAlertCondition', () => {
     describe('price_above condition', () => {
       it('should return true when current price is above target', () => {
-        expect(checkAlertCondition(1950.50, 'price_above', 1900)).toBe(true);
+        expect(checkAlertCondition(1950.5, 'price_above', 1900)).toBe(true);
       });
 
       it('should return false when current price is below target', () => {
-        expect(checkAlertCondition(1850.00, 'price_above', 1900)).toBe(false);
+        expect(checkAlertCondition(1850.0, 'price_above', 1900)).toBe(false);
       });
 
       it('should return false when current price equals target', () => {
-        expect(checkAlertCondition(1900.00, 'price_above', 1900)).toBe(false);
+        expect(checkAlertCondition(1900.0, 'price_above', 1900)).toBe(false);
       });
 
       it('should handle small differences correctly', () => {
@@ -65,15 +65,15 @@ describe('Alert Checker Job', () => {
 
     describe('price_below condition', () => {
       it('should return true when current price is below target', () => {
-        expect(checkAlertCondition(1850.00, 'price_below', 1900)).toBe(true);
+        expect(checkAlertCondition(1850.0, 'price_below', 1900)).toBe(true);
       });
 
       it('should return false when current price is above target', () => {
-        expect(checkAlertCondition(1950.50, 'price_below', 1900)).toBe(false);
+        expect(checkAlertCondition(1950.5, 'price_below', 1900)).toBe(false);
       });
 
       it('should return false when current price equals target', () => {
-        expect(checkAlertCondition(1900.00, 'price_below', 1900)).toBe(false);
+        expect(checkAlertCondition(1900.0, 'price_below', 1900)).toBe(false);
       });
 
       it('should handle small differences correctly', () => {
@@ -84,25 +84,25 @@ describe('Alert Checker Job', () => {
 
     describe('price_equals condition', () => {
       it('should return true when price equals target exactly', () => {
-        expect(checkAlertCondition(1900.00, 'price_equals', 1900)).toBe(true);
+        expect(checkAlertCondition(1900.0, 'price_equals', 1900)).toBe(true);
       });
 
       it('should return true within 0.5% tolerance', () => {
         // 0.5% of 1900 = 9.5
-        expect(checkAlertCondition(1905.00, 'price_equals', 1900)).toBe(true);
-        expect(checkAlertCondition(1895.00, 'price_equals', 1900)).toBe(true);
+        expect(checkAlertCondition(1905.0, 'price_equals', 1900)).toBe(true);
+        expect(checkAlertCondition(1895.0, 'price_equals', 1900)).toBe(true);
       });
 
       it('should return false outside 0.5% tolerance', () => {
         // More than 9.5 away from 1900
-        expect(checkAlertCondition(1915.00, 'price_equals', 1900)).toBe(false);
-        expect(checkAlertCondition(1885.00, 'price_equals', 1900)).toBe(false);
+        expect(checkAlertCondition(1915.0, 'price_equals', 1900)).toBe(false);
+        expect(checkAlertCondition(1885.0, 'price_equals', 1900)).toBe(false);
       });
 
       it('should handle edge cases at tolerance boundary', () => {
         // Exactly at 0.5% boundary (9.5)
-        expect(checkAlertCondition(1909.50, 'price_equals', 1900)).toBe(true);
-        expect(checkAlertCondition(1890.50, 'price_equals', 1900)).toBe(true);
+        expect(checkAlertCondition(1909.5, 'price_equals', 1900)).toBe(true);
+        expect(checkAlertCondition(1890.5, 'price_equals', 1900)).toBe(true);
         // Just outside
         expect(checkAlertCondition(1909.51, 'price_equals', 1900)).toBe(false);
         expect(checkAlertCondition(1890.49, 'price_equals', 1900)).toBe(false);
@@ -135,8 +135,12 @@ describe('Alert Checker Job', () => {
       });
 
       it('should handle decimal precision', () => {
-        expect(checkAlertCondition(1.23456789, 'price_above', 1.23456788)).toBe(true);
-        expect(checkAlertCondition(1.23456787, 'price_below', 1.23456788)).toBe(true);
+        expect(checkAlertCondition(1.23456789, 'price_above', 1.23456788)).toBe(
+          true
+        );
+        expect(checkAlertCondition(1.23456787, 'price_below', 1.23456788)).toBe(
+          true
+        );
       });
     });
   });
@@ -367,7 +371,9 @@ describe('Alert Checker Job', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      mockAlertFindMany.mockRejectedValue(new Error('Database connection failed'));
+      mockAlertFindMany.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');

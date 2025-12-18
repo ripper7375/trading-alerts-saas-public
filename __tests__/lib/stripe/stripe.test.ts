@@ -3,7 +3,14 @@
  * Tests all Stripe utilities in lib/stripe/stripe.ts
  */
 
-import { describe, it, expect, beforeEach, beforeAll, afterAll } from '@jest/globals';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+} from '@jest/globals';
 
 // Mock the Stripe SDK
 const mockCheckoutSessionsCreate = jest.fn();
@@ -81,7 +88,10 @@ describe('Stripe Client Functions', () => {
       const { STRIPE_PRO_PRICE_ID } = await import('@/lib/stripe/stripe');
       // Since module was cached before env vars, it may be undefined
       // Test that the value is either undefined (cached) or correct (fresh load)
-      expect(STRIPE_PRO_PRICE_ID === undefined || STRIPE_PRO_PRICE_ID === 'price_test_pro').toBe(true);
+      expect(
+        STRIPE_PRO_PRICE_ID === undefined ||
+          STRIPE_PRO_PRICE_ID === 'price_test_pro'
+      ).toBe(true);
     });
   });
 
@@ -405,7 +415,9 @@ describe('Stripe Client Functions', () => {
       };
       mockBillingPortalSessionsCreate.mockResolvedValue(mockPortalSession);
 
-      const { createBillingPortalSession } = await import('@/lib/stripe/stripe');
+      const { createBillingPortalSession } = await import(
+        '@/lib/stripe/stripe'
+      );
       const result = await createBillingPortalSession(
         'cus_test_123',
         'https://example.com/settings'

@@ -43,16 +43,28 @@ jest.mock('@/lib/db/prisma', () => ({
 jest.mock('@/lib/email/subscription-emails', () => ({
   __esModule: true,
   sendUpgradeEmail: (...args: unknown[]) => mockSendUpgradeEmail(...args),
-  sendCancellationEmail: (...args: unknown[]) => mockSendCancellationEmail(...args),
+  sendCancellationEmail: (...args: unknown[]) =>
+    mockSendCancellationEmail(...args),
   sendPaymentFailedEmail: jest.fn(),
   sendPaymentReceiptEmail: jest.fn(),
 }));
 
 // Import after mocks
-import { hasPermission, getUserPermissions, checkFeatureAccess } from '@/lib/auth/permissions';
-import { validateTierAccess, canAccessSymbol, canCreateAlert } from '@/lib/tier-validation';
+import {
+  hasPermission,
+  getUserPermissions,
+  checkFeatureAccess,
+} from '@/lib/auth/permissions';
+import {
+  validateTierAccess,
+  canAccessSymbol,
+  canCreateAlert,
+} from '@/lib/tier-validation';
 import { FREE_TIER_CONFIG, PRO_TIER_CONFIG } from '@/lib/tier-config';
-import { handleCheckoutCompleted, handleSubscriptionDeleted } from '@/lib/stripe/webhook-handlers';
+import {
+  handleCheckoutCompleted,
+  handleSubscriptionDeleted,
+} from '@/lib/stripe/webhook-handlers';
 import type Stripe from 'stripe';
 
 describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
@@ -243,7 +255,7 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
     it('should validate tier access matches config limits', () => {
       // Validate symbol counts match
       const freeSymbols = ['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD'];
-      freeSymbols.forEach(symbol => {
+      freeSymbols.forEach((symbol) => {
         expect(canAccessSymbol('FREE', symbol)).toBe(true);
       });
       expect(freeSymbols.length).toBe(FREE_TIER_CONFIG.symbols);

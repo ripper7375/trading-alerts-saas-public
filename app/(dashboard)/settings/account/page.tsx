@@ -148,7 +148,9 @@ export default function AccountSettingsPage(): React.ReactElement {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const passwordStrength = newPassword ? getPasswordStrength(newPassword) : null;
+  const passwordStrength = newPassword
+    ? getPasswordStrength(newPassword)
+    : null;
 
   // Toggle password visibility
   const togglePasswordVisibility = (field: keyof PasswordVisibility): void => {
@@ -395,7 +397,9 @@ export default function AccountSettingsPage(): React.ReactElement {
               </button>
             </div>
             {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-xs text-red-600 mt-1">Passwords do not match</p>
+              <p className="text-xs text-red-600 mt-1">
+                Passwords do not match
+              </p>
             )}
           </div>
 
@@ -465,7 +469,9 @@ export default function AccountSettingsPage(): React.ReactElement {
               <Button
                 variant={twoFactorEnabled ? 'outline' : 'default'}
                 onClick={handleTwoFactorToggle}
-                className={twoFactorEnabled ? '' : 'bg-blue-600 hover:bg-blue-700'}
+                className={
+                  twoFactorEnabled ? '' : 'bg-blue-600 hover:bg-blue-700'
+                }
               >
                 {twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
               </Button>
@@ -504,7 +510,11 @@ export default function AccountSettingsPage(): React.ReactElement {
                     </div>
                   </div>
                   {!sessionItem.isCurrent && (
-                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
                       Revoke
                     </Button>
                   )}
@@ -538,10 +548,14 @@ export default function AccountSettingsPage(): React.ReactElement {
                   Delete Account
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Permanently delete your account and all associated data. This action cannot be undone.
+                  Permanently delete your account and all associated data. This
+                  action cannot be undone.
                 </p>
               </div>
-              <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+              <Dialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button variant="destructive">Delete Account</Button>
                 </DialogTrigger>
@@ -552,8 +566,8 @@ export default function AccountSettingsPage(): React.ReactElement {
                       Delete Account
                     </DialogTitle>
                     <DialogDescription>
-                      This action cannot be undone. This will permanently delete your
-                      account and remove all your data from our servers.
+                      This action cannot be undone. This will permanently delete
+                      your account and remove all your data from our servers.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="my-4">

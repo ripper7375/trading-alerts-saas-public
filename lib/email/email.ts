@@ -302,6 +302,12 @@ export async function sendAlertEmail(
   condition: string,
   currentPrice: number
 ): Promise<{ success: boolean; error?: string }> {
-  const html = getAlertTriggeredEmail(name, symbol, timeframe, condition, currentPrice);
+  const html = getAlertTriggeredEmail(
+    name,
+    symbol,
+    timeframe,
+    condition,
+    currentPrice
+  );
   return sendEmail(to, `Alert Triggered: ${symbol} ${timeframe}`, html);
 }

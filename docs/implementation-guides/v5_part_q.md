@@ -48,9 +48,9 @@ Enable external affiliates to promote the Trading Alerts SaaS, earn commissions 
 // Commission is percentage-based, calculated dynamically from SystemConfig
 // Default values (can be changed via admin panel):
 const COMMISSION = {
-  discountPercent: 20.0,    // 20% discount for customers using affiliate code
-  commissionPercent: 20.0,  // 20% of net revenue goes to affiliate
-  minimumPayout: 50.0,      // Must have ≥$50 to request payment
+  discountPercent: 20.0, // 20% discount for customers using affiliate code
+  commissionPercent: 20.0, // 20% of net revenue goes to affiliate
+  minimumPayout: 50.0, // Must have ≥$50 to request payment
   paymentMethods: ['BANK_TRANSFER', 'PAYPAL', 'CRYPTOCURRENCY', 'WISE'],
   paymentFrequency: 'MONTHLY',
 };
@@ -622,7 +622,13 @@ async function distributeCodes(
 
    if (event.type === 'checkout.session.completed') {
      const session = event.data.object;
-     const { userId, affiliateCodeId, affiliateProfileId, discountPercent, commissionPercent } = session.metadata; // Unified auth
+     const {
+       userId,
+       affiliateCodeId,
+       affiliateProfileId,
+       discountPercent,
+       commissionPercent,
+     } = session.metadata; // Unified auth
 
      if (affiliateCodeId && affiliateProfileId) {
        // Calculate commission using percentage-based model

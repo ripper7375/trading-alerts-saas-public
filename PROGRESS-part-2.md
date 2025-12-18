@@ -1056,6 +1056,7 @@ After Aider completes Part 7:
 - [x] Verify: Can add symbol+timeframe combinations
 
 **Built files:**
+
 - [x] `app/(dashboard)/watchlist/page.tsx` - Server component with auth
 - [x] `app/(dashboard)/watchlist/watchlist-client.tsx` - Client component with add/remove UI
 - [x] `app/api/watchlist/route.ts` - GET/POST endpoints
@@ -1067,6 +1068,7 @@ After Aider completes Part 7:
 - [x] `hooks/use-watchlist.ts` - React hook for watchlist operations
 
 **Features implemented:**
+
 - [x] Tier-based limits: FREE (5 items), PRO (50 items)
 - [x] Symbol+timeframe combination management
 - [x] Tier validation on add
@@ -1092,6 +1094,7 @@ After Aider completes Part 7:
 **Files:** 12 files (all completed)
 
 **Built files:**
+
 - [x] `app/(dashboard)/alerts/page.tsx` - Server component for alerts list
 - [x] `app/(dashboard)/alerts/alerts-client.tsx` - Client component with tabs, filtering, actions
 - [x] `app/(dashboard)/alerts/new/page.tsx` - Server component for create alert page
@@ -1106,6 +1109,7 @@ After Aider completes Part 7:
 - [x] `hooks/use-alerts.ts` - React hook for alerts CRUD operations
 
 **Features implemented:**
+
 - [x] Tier-based limits: FREE (5 alerts), PRO (20 alerts)
 - [x] Alert conditions: price_above, price_below, price_equals (0.5% tolerance)
 - [x] Status tracking: Active, Paused, Triggered
@@ -1114,6 +1118,7 @@ After Aider completes Part 7:
 - [x] API responses: Proper 401/403/404 status codes
 
 **Commits:**
+
 1. `feat(alerts): add alerts list page`
 2. `feat(alerts): add create alert page`
 3. `feat(api): add alerts CRUD endpoints`
@@ -1123,6 +1128,7 @@ After Aider completes Part 7:
 7. `fix: resolve TypeScript errors in types and API files`
 
 **Validation Results:**
+
 - TypeScript: All alerts files pass (0 errors)
 - ESLint: Warnings only (import order, console statements - expected for jobs)
 
@@ -1142,6 +1148,7 @@ After Aider completes Part 7:
 **Files:** 11 files (all completed)
 
 **Built files:**
+
 - [x] `lib/stripe/stripe.ts` - Stripe client with lazy initialization pattern
 - [x] `lib/stripe/webhook-handlers.ts` - Webhook event handlers for subscription lifecycle
 - [x] `lib/email/subscription-emails.ts` - Email templates for billing events
@@ -1155,6 +1162,7 @@ After Aider completes Part 7:
 - [x] `app/(marketing)/pricing/page.tsx` - Pricing comparison page
 
 **Features implemented:**
+
 - [x] 2-tier pricing system: FREE ($0), PRO ($29/month with 7-day trial)
 - [x] Stripe Checkout integration with affiliate code support
 - [x] Webhook handling for subscription lifecycle events
@@ -1164,6 +1172,7 @@ After Aider completes Part 7:
 - [x] Lazy initialization pattern for Stripe SDK (prevents build-time errors)
 
 **CI/CD Issues Fixed:**
+
 1. **Stripe build-time error** (`STRIPE_SECRET_KEY is not set`)
    - Root cause: Stripe SDK initialized at module load time during Next.js build
    - Fix: Implemented lazy initialization with `getStripeClient()` function
@@ -1180,10 +1189,12 @@ After Aider completes Part 7:
    - Commit: `7614022`
 
 **Documentation Updated:**
+
 - [x] Added Pattern #8 "Lazy Initialization for Third-Party SDKs" to `05-coding-patterns-part-1.md`
 - Commit: `583f459`
 
 **Commits:**
+
 1. `feat(stripe): add Stripe client library`
 2. `feat(email): add subscription email templates`
 3. `feat(stripe): add webhook handlers`
@@ -1202,6 +1213,7 @@ After Aider completes Part 7:
 16. `docs(patterns): add lazy initialization pattern for third-party SDKs`
 
 **Lessons Learned:**
+
 - Third-party SDKs requiring env vars must use lazy initialization in Next.js
 - Bundle size increases with payment integrations - adjust CI thresholds accordingly
 - Document new patterns discovered during development

@@ -37,7 +37,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'You must be logged in to view notifications' },
+        {
+          error: 'Unauthorized',
+          message: 'You must be logged in to view notifications',
+        },
         { status: 401 }
       );
     }
@@ -124,7 +127,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json(
-      { error: 'Failed to fetch notifications', message: 'An error occurred while fetching notifications' },
+      {
+        error: 'Failed to fetch notifications',
+        message: 'An error occurred while fetching notifications',
+      },
       { status: 500 }
     );
   }
@@ -145,7 +151,10 @@ export async function POST(): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'You must be logged in to update notifications' },
+        {
+          error: 'Unauthorized',
+          message: 'You must be logged in to update notifications',
+        },
         { status: 401 }
       );
     }
@@ -177,7 +186,10 @@ export async function POST(): Promise<NextResponse> {
     });
 
     return NextResponse.json(
-      { error: 'Failed to mark all as read', message: 'An error occurred while updating notifications' },
+      {
+        error: 'Failed to mark all as read',
+        message: 'An error occurred while updating notifications',
+      },
       { status: 500 }
     );
   }

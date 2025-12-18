@@ -19,7 +19,11 @@ import { prisma } from '@/lib/db/prisma';
 
 // Validation schema for profile updates
 const profileUpdateSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(50).optional(),
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(50)
+    .optional(),
   email: z.string().email('Invalid email address').optional(),
   avatarUrl: z.string().url('Invalid avatar URL').optional().nullable(),
 });
@@ -33,10 +37,7 @@ export async function GET(): Promise<NextResponse> {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Fetch user profile
@@ -56,10 +57,7 @@ export async function GET(): Promise<NextResponse> {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -86,10 +84,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse and validate request body
@@ -124,7 +119,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
       // In production, send verification email to new address
       // For now, we'll update directly (not recommended for production)
-      console.log(`[Profile] Email change requested: ${session.user.email} -> ${email}`);
+      console.log(
+        `[Profile] Email change requested: ${session.user.email} -> ${email}`
+      );
     }
 
     // Build update data

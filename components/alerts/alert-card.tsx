@@ -193,9 +193,7 @@ export function AlertCard({
                 <DropdownMenuItem onClick={onViewChart}>
                   View Chart
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onEdit}>
-                  Edit Alert
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onEdit}>Edit Alert</DropdownMenuItem>
                 {alert.status === 'active' && (
                   <DropdownMenuItem onClick={onPause}>
                     Pause Alert
@@ -420,7 +418,8 @@ export function SimpleAlertCard({
               <span
                 className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${distanceColor}`}
               >
-                {diff >= 0 ? '+' : ''}${diff.toFixed(2)} ({percent >= 0 ? '+' : ''}
+                {diff >= 0 ? '+' : ''}${diff.toFixed(2)} (
+                {percent >= 0 ? '+' : ''}
                 {percent.toFixed(2)}%)
               </span>
             </div>

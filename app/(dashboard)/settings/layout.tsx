@@ -95,7 +95,10 @@ export default function SettingsLayout({
       <div className="max-w-7xl mx-auto">
         {/* Breadcrumb */}
         <nav className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          <Link href="/dashboard" className="hover:text-gray-700 dark:hover:text-gray-300">
+          <Link
+            href="/dashboard"
+            className="hover:text-gray-700 dark:hover:text-gray-300"
+          >
             Dashboard
           </Link>
           {' > '}

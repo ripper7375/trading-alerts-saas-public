@@ -43,10 +43,7 @@ export const updateProfileSchema = z.object({
     .string()
     .max(50, 'Timezone must not exceed 50 characters')
     .optional(),
-  locale: z
-    .string()
-    .max(10, 'Locale must not exceed 10 characters')
-    .optional(),
+  locale: z.string().max(10, 'Locale must not exceed 10 characters').optional(),
 });
 
 /**
@@ -68,7 +65,9 @@ export const displayPreferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   compactMode: z.boolean().optional(),
   showPriceChange: z.boolean().optional(),
-  defaultTimeframe: z.enum(['M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'D1']).optional(),
+  defaultTimeframe: z
+    .enum(['M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'D1'])
+    .optional(),
   chartType: z.enum(['candlestick', 'line', 'bar']).optional(),
 });
 
@@ -95,11 +94,9 @@ export const updatePreferencesSchema = z.object({
  */
 export const deleteAccountSchema = z.object({
   password: z.string().min(1, 'Password is required to delete account'),
-  confirmText: z
-    .string()
-    .refine((val) => val === 'DELETE', {
-      message: 'Please type DELETE to confirm',
-    }),
+  confirmText: z.string().refine((val) => val === 'DELETE', {
+    message: 'Please type DELETE to confirm',
+  }),
   reason: z
     .string()
     .max(500, 'Reason must not exceed 500 characters')
@@ -169,12 +166,18 @@ export const DEFAULT_PREFERENCES = {
 
 // Type exports
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
-export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
+export type NotificationPreferences = z.infer<
+  typeof notificationPreferencesSchema
+>;
 export type DisplayPreferences = z.infer<typeof displayPreferencesSchema>;
 export type PrivacyPreferences = z.infer<typeof privacyPreferencesSchema>;
 export type UpdatePreferencesInput = z.infer<typeof updatePreferencesSchema>;
 export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
-export type RequestAccountDeletionInput = z.infer<typeof requestAccountDeletionSchema>;
-export type CancelAccountDeletionInput = z.infer<typeof cancelAccountDeletionSchema>;
+export type RequestAccountDeletionInput = z.infer<
+  typeof requestAccountDeletionSchema
+>;
+export type CancelAccountDeletionInput = z.infer<
+  typeof cancelAccountDeletionSchema
+>;
 export type ExportUserDataInput = z.infer<typeof exportUserDataSchema>;
 export type GetUserProfileInput = z.infer<typeof getUserProfileSchema>;

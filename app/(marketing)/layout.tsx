@@ -171,10 +171,12 @@ export default function MarketingLayout({
           {/* Bottom */}
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 md:flex-row">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Trading Alerts. All rights reserved.
+              &copy; {new Date().getFullYear()} Trading Alerts. All rights
+              reserved.
             </p>
             <p className="text-xs text-muted-foreground">
-              Trading involves risk. Past performance is not indicative of future results.
+              Trading involves risk. Past performance is not indicative of
+              future results.
             </p>
           </div>
         </div>

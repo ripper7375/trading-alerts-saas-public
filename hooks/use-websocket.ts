@@ -78,7 +78,9 @@ interface UseWebSocketReturn {
  * }
  * ```
  */
-export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
+export function useWebSocket(
+  options: UseWebSocketOptions = {}
+): UseWebSocketReturn {
   const {
     onNotification,
     onConnectionChange,
@@ -157,7 +159,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
             case 'notification':
               if (message.data && typeof message.data === 'object') {
-                const notificationData = (message.data as { data?: NotificationData }).data;
+                const notificationData = (
+                  message.data as { data?: NotificationData }
+                ).data;
                 if (notificationData) {
                   onNotification?.(notificationData);
                 }
@@ -202,13 +206,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         }
 
         // Attempt reconnect if enabled
-        if (autoReconnect && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+        if (
+          autoReconnect &&
+          reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
+        ) {
           reconnectAttemptsRef.current += 1;
           const delay = Math.min(
             reconnectInterval * Math.pow(1.5, reconnectAttemptsRef.current - 1),
             30000
           );
-          console.info(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+          console.info(
+            `Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`
+          );
           reconnectTimeoutRef.current = setTimeout(connect, delay);
         }
       };
@@ -280,12 +289,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   /**
    * Notify server that a notification was read
    */
-  const markNotificationRead = useCallback((notificationId: string): void => {
-    sendMessage({
-      type: 'notification_read',
-      data: { notificationId },
-    });
-  }, [sendMessage]);
+  const markNotificationRead = useCallback(
+    (notificationId: string): void => {
+      sendMessage({
+        type: 'notification_read',
+        data: { notificationId },
+      });
+    },
+    [sendMessage]
+  );
 
   // Connect on mount, disconnect on unmount
   useEffect(() => {

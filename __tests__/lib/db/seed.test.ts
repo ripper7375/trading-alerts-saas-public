@@ -210,7 +210,10 @@ describe('Database Seed Functions', () => {
       };
       mockWatchlistUpsert.mockResolvedValue(expectedWatchlist);
 
-      const result = await seedDefaultWatchlist(mockPrisma as never, 'user-123');
+      const result = await seedDefaultWatchlist(
+        mockPrisma as never,
+        'user-123'
+      );
 
       expect(mockWatchlistUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -238,7 +241,11 @@ describe('Database Seed Functions', () => {
         createdAt: new Date(),
       });
 
-      await seedDefaultWatchlist(mockPrisma as never, 'user-123', 'Custom Watchlist');
+      await seedDefaultWatchlist(
+        mockPrisma as never,
+        'user-123',
+        'Custom Watchlist'
+      );
 
       expect(mockWatchlistUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -273,14 +280,17 @@ describe('Database Seed Functions', () => {
   describe('seedSampleWatchlistItems', () => {
     it('should create 5 FREE tier watchlist items', async () => {
       const mockPrisma = createMockPrisma();
-      mockWatchlistItemCreate.mockImplementation((args: { data: { symbol: string; timeframe: string; order: number } }) =>
-        Promise.resolve({
-          id: `item-${args.data.order}`,
-          symbol: args.data.symbol,
-          timeframe: args.data.timeframe,
-          order: args.data.order,
-          createdAt: new Date(),
-        })
+      mockWatchlistItemCreate.mockImplementation(
+        (args: {
+          data: { symbol: string; timeframe: string; order: number };
+        }) =>
+          Promise.resolve({
+            id: `item-${args.data.order}`,
+            symbol: args.data.symbol,
+            timeframe: args.data.timeframe,
+            order: args.data.order,
+            createdAt: new Date(),
+          })
       );
 
       const result = await seedSampleWatchlistItems(
@@ -295,14 +305,17 @@ describe('Database Seed Functions', () => {
 
     it('should include BTCUSD as first item', async () => {
       const mockPrisma = createMockPrisma();
-      mockWatchlistItemCreate.mockImplementation((args: { data: { symbol: string; timeframe: string; order: number } }) =>
-        Promise.resolve({
-          id: `item-${args.data.order}`,
-          symbol: args.data.symbol,
-          timeframe: args.data.timeframe,
-          order: args.data.order,
-          createdAt: new Date(),
-        })
+      mockWatchlistItemCreate.mockImplementation(
+        (args: {
+          data: { symbol: string; timeframe: string; order: number };
+        }) =>
+          Promise.resolve({
+            id: `item-${args.data.order}`,
+            symbol: args.data.symbol,
+            timeframe: args.data.timeframe,
+            order: args.data.order,
+            createdAt: new Date(),
+          })
       );
 
       const result = await seedSampleWatchlistItems(
@@ -317,14 +330,17 @@ describe('Database Seed Functions', () => {
 
     it('should use H1 timeframe for all items', async () => {
       const mockPrisma = createMockPrisma();
-      mockWatchlistItemCreate.mockImplementation((args: { data: { symbol: string; timeframe: string; order: number } }) =>
-        Promise.resolve({
-          id: `item-${args.data.order}`,
-          symbol: args.data.symbol,
-          timeframe: args.data.timeframe,
-          order: args.data.order,
-          createdAt: new Date(),
-        })
+      mockWatchlistItemCreate.mockImplementation(
+        (args: {
+          data: { symbol: string; timeframe: string; order: number };
+        }) =>
+          Promise.resolve({
+            id: `item-${args.data.order}`,
+            symbol: args.data.symbol,
+            timeframe: args.data.timeframe,
+            order: args.data.order,
+            createdAt: new Date(),
+          })
       );
 
       const result = await seedSampleWatchlistItems(
@@ -341,18 +357,26 @@ describe('Database Seed Functions', () => {
     it('should include all FREE tier symbols', async () => {
       const mockPrisma = createMockPrisma();
       const createdSymbols: string[] = [];
-      mockWatchlistItemCreate.mockImplementation((args: { data: { symbol: string; timeframe: string; order: number } }) => {
-        createdSymbols.push(args.data.symbol);
-        return Promise.resolve({
-          id: `item-${args.data.order}`,
-          symbol: args.data.symbol,
-          timeframe: args.data.timeframe,
-          order: args.data.order,
-          createdAt: new Date(),
-        });
-      });
+      mockWatchlistItemCreate.mockImplementation(
+        (args: {
+          data: { symbol: string; timeframe: string; order: number };
+        }) => {
+          createdSymbols.push(args.data.symbol);
+          return Promise.resolve({
+            id: `item-${args.data.order}`,
+            symbol: args.data.symbol,
+            timeframe: args.data.timeframe,
+            order: args.data.order,
+            createdAt: new Date(),
+          });
+        }
+      );
 
-      await seedSampleWatchlistItems(mockPrisma as never, 'watchlist-123', 'user-123');
+      await seedSampleWatchlistItems(
+        mockPrisma as never,
+        'watchlist-123',
+        'user-123'
+      );
 
       expect(createdSymbols).toContain('BTCUSD');
       expect(createdSymbols).toContain('EURUSD');
@@ -364,18 +388,26 @@ describe('Database Seed Functions', () => {
     it('should set correct order for each item', async () => {
       const mockPrisma = createMockPrisma();
       const orders: number[] = [];
-      mockWatchlistItemCreate.mockImplementation((args: { data: { symbol: string; timeframe: string; order: number } }) => {
-        orders.push(args.data.order);
-        return Promise.resolve({
-          id: `item-${args.data.order}`,
-          symbol: args.data.symbol,
-          timeframe: args.data.timeframe,
-          order: args.data.order,
-          createdAt: new Date(),
-        });
-      });
+      mockWatchlistItemCreate.mockImplementation(
+        (args: {
+          data: { symbol: string; timeframe: string; order: number };
+        }) => {
+          orders.push(args.data.order);
+          return Promise.resolve({
+            id: `item-${args.data.order}`,
+            symbol: args.data.symbol,
+            timeframe: args.data.timeframe,
+            order: args.data.order,
+            createdAt: new Date(),
+          });
+        }
+      );
 
-      await seedSampleWatchlistItems(mockPrisma as never, 'watchlist-123', 'user-123');
+      await seedSampleWatchlistItems(
+        mockPrisma as never,
+        'watchlist-123',
+        'user-123'
+      );
 
       expect(orders).toEqual([0, 1, 2, 3, 4]);
     });
@@ -384,15 +416,16 @@ describe('Database Seed Functions', () => {
   describe('seedSampleAlerts', () => {
     it('should create 2 sample alerts', async () => {
       const mockPrisma = createMockPrisma();
-      mockAlertCreate.mockImplementation((args: { data: { symbol: string; name: string } }) =>
-        Promise.resolve({
-          id: 'alert-123',
-          symbol: args.data.symbol,
-          timeframe: 'H1',
-          name: args.data.name,
-          isActive: true,
-          createdAt: new Date(),
-        })
+      mockAlertCreate.mockImplementation(
+        (args: { data: { symbol: string; name: string } }) =>
+          Promise.resolve({
+            id: 'alert-123',
+            symbol: args.data.symbol,
+            timeframe: 'H1',
+            name: args.data.name,
+            isActive: true,
+            createdAt: new Date(),
+          })
       );
 
       const result = await seedSampleAlerts(mockPrisma as never, 'user-123');
@@ -404,17 +437,22 @@ describe('Database Seed Functions', () => {
     it('should create BTCUSD resistance alert', async () => {
       const mockPrisma = createMockPrisma();
       const createdAlerts: { symbol: string; name: string }[] = [];
-      mockAlertCreate.mockImplementation((args: { data: { symbol: string; name: string } }) => {
-        createdAlerts.push({ symbol: args.data.symbol, name: args.data.name });
-        return Promise.resolve({
-          id: 'alert-123',
-          symbol: args.data.symbol,
-          timeframe: 'H1',
-          name: args.data.name,
-          isActive: true,
-          createdAt: new Date(),
-        });
-      });
+      mockAlertCreate.mockImplementation(
+        (args: { data: { symbol: string; name: string } }) => {
+          createdAlerts.push({
+            symbol: args.data.symbol,
+            name: args.data.name,
+          });
+          return Promise.resolve({
+            id: 'alert-123',
+            symbol: args.data.symbol,
+            timeframe: 'H1',
+            name: args.data.name,
+            isActive: true,
+            createdAt: new Date(),
+          });
+        }
+      );
 
       await seedSampleAlerts(mockPrisma as never, 'user-123');
 
@@ -427,17 +465,22 @@ describe('Database Seed Functions', () => {
     it('should create EURUSD support alert', async () => {
       const mockPrisma = createMockPrisma();
       const createdAlerts: { symbol: string; name: string }[] = [];
-      mockAlertCreate.mockImplementation((args: { data: { symbol: string; name: string } }) => {
-        createdAlerts.push({ symbol: args.data.symbol, name: args.data.name });
-        return Promise.resolve({
-          id: 'alert-123',
-          symbol: args.data.symbol,
-          timeframe: 'H1',
-          name: args.data.name,
-          isActive: true,
-          createdAt: new Date(),
-        });
-      });
+      mockAlertCreate.mockImplementation(
+        (args: { data: { symbol: string; name: string } }) => {
+          createdAlerts.push({
+            symbol: args.data.symbol,
+            name: args.data.name,
+          });
+          return Promise.resolve({
+            id: 'alert-123',
+            symbol: args.data.symbol,
+            timeframe: 'H1',
+            name: args.data.name,
+            isActive: true,
+            createdAt: new Date(),
+          });
+        }
+      );
 
       await seedSampleAlerts(mockPrisma as never, 'user-123');
 
@@ -469,15 +512,16 @@ describe('Database Seed Functions', () => {
 
     it('should include condition JSON in alert creation', async () => {
       const mockPrisma = createMockPrisma();
-      mockAlertCreate.mockImplementation((args: { data: { condition: string } }) =>
-        Promise.resolve({
-          id: 'alert-123',
-          symbol: 'BTCUSD',
-          timeframe: 'H1',
-          name: 'Test Alert',
-          isActive: true,
-          createdAt: new Date(),
-        })
+      mockAlertCreate.mockImplementation(
+        (args: { data: { condition: string } }) =>
+          Promise.resolve({
+            id: 'alert-123',
+            symbol: 'BTCUSD',
+            timeframe: 'H1',
+            name: 'Test Alert',
+            isActive: true,
+            createdAt: new Date(),
+          })
       );
 
       await seedSampleAlerts(mockPrisma as never, 'user-123');
@@ -509,24 +553,28 @@ describe('Database Seed Functions', () => {
         name: 'My Watchlist',
         createdAt: new Date(),
       });
-      mockWatchlistItemCreate.mockImplementation((args: { data: { order: number; symbol: string; timeframe: string } }) =>
-        Promise.resolve({
-          id: `item-${args.data.order}`,
-          symbol: args.data.symbol,
-          timeframe: args.data.timeframe,
-          order: args.data.order,
-          createdAt: new Date(),
-        })
+      mockWatchlistItemCreate.mockImplementation(
+        (args: {
+          data: { order: number; symbol: string; timeframe: string };
+        }) =>
+          Promise.resolve({
+            id: `item-${args.data.order}`,
+            symbol: args.data.symbol,
+            timeframe: args.data.timeframe,
+            order: args.data.order,
+            createdAt: new Date(),
+          })
       );
-      mockAlertCreate.mockImplementation((args: { data: { symbol: string; name: string } }) =>
-        Promise.resolve({
-          id: 'alert-123',
-          symbol: args.data.symbol,
-          timeframe: 'H1',
-          name: args.data.name,
-          isActive: true,
-          createdAt: new Date(),
-        })
+      mockAlertCreate.mockImplementation(
+        (args: { data: { symbol: string; name: string } }) =>
+          Promise.resolve({
+            id: 'alert-123',
+            symbol: args.data.symbol,
+            timeframe: 'H1',
+            name: args.data.name,
+            isActive: true,
+            createdAt: new Date(),
+          })
       );
 
       const result = await seedCompleteSetup(
@@ -582,7 +630,11 @@ describe('Database Seed Functions', () => {
         createdAt: new Date(),
       });
 
-      await seedCompleteSetup(mockPrisma as never, 'admin@test.com', 'password123');
+      await seedCompleteSetup(
+        mockPrisma as never,
+        'admin@test.com',
+        'password123'
+      );
 
       // Watchlist should use admin ID
       expect(mockWatchlistUpsert).toHaveBeenCalledWith(

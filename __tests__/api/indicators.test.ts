@@ -24,7 +24,10 @@ class MockRequest {
   method: string;
   headers: MockHeaders;
 
-  constructor(url: string, init?: { method?: string; headers?: Record<string, string> }) {
+  constructor(
+    url: string,
+    init?: { method?: string; headers?: Record<string, string> }
+  ) {
     this.url = url;
     this.method = init?.method || 'GET';
     this.headers = new MockHeaders(init?.headers);
@@ -68,7 +71,12 @@ jest.mock('@/lib/api/mt5-client', () => ({
     tier: string;
     accessibleSymbols: readonly string[];
     accessibleTimeframes: readonly string[];
-    constructor(message: string, tier: string, symbols: readonly string[], timeframes: readonly string[]) {
+    constructor(
+      message: string,
+      tier: string,
+      symbols: readonly string[],
+      timeframes: readonly string[]
+    ) {
       super(message);
       this.tier = tier;
       this.accessibleSymbols = symbols;
@@ -169,8 +177,12 @@ describe('Indicators API Routes', () => {
     it('should return 401 when not authenticated', async () => {
       mockGetServerSession.mockResolvedValue(null);
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
@@ -182,10 +194,16 @@ describe('Indicators API Routes', () => {
     });
 
     it('should return 400 for invalid symbol', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/INVALID/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/INVALID/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'INVALID', timeframe: 'H1' }),
       });
@@ -197,10 +215,16 @@ describe('Indicators API Routes', () => {
     });
 
     it('should return 400 for invalid timeframe', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/INVALID');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/INVALID'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'INVALID' }),
       });
@@ -212,10 +236,16 @@ describe('Indicators API Routes', () => {
     });
 
     it('should return 403 when FREE tier accesses PRO symbol', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/AUDJPY/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/AUDJPY/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'AUDJPY', timeframe: 'H1' }),
       });
@@ -228,11 +258,17 @@ describe('Indicators API Routes', () => {
     });
 
     it('should return 403 when FREE tier accesses PRO timeframe', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
       // M5 is PRO-exclusive timeframe, not available in FREE tier
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/M5');
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/M5'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'M5' }),
       });
@@ -244,10 +280,14 @@ describe('Indicators API Routes', () => {
     });
 
     it('should return indicator data for FREE tier with valid symbol/timeframe', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const mockData = {
-        ohlc: [{ time: 1234567890, open: 1900, high: 1910, low: 1890, close: 1905 }],
+        ohlc: [
+          { time: 1234567890, open: 1900, high: 1910, low: 1890, close: 1905 },
+        ],
         horizontal: { peak_1: [], bottom_1: [] },
         diagonal: { ascending_1: [], descending_1: [] },
         fractals: { peaks: [], bottoms: [] },
@@ -255,8 +295,12 @@ describe('Indicators API Routes', () => {
       };
       mockFetchIndicatorData.mockResolvedValue(mockData);
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
@@ -269,7 +313,9 @@ describe('Indicators API Routes', () => {
     });
 
     it('should allow PRO tier to access PRO symbols', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'PRO' },
+      });
 
       const mockData = {
         ohlc: [],
@@ -280,8 +326,12 @@ describe('Indicators API Routes', () => {
       };
       mockFetchIndicatorData.mockResolvedValue(mockData);
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/AUDJPY/M5');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/AUDJPY/M5'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'AUDJPY', timeframe: 'M5' }),
       });
@@ -293,60 +343,108 @@ describe('Indicators API Routes', () => {
     });
 
     it('should handle bars query parameter', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockFetchIndicatorData.mockResolvedValue({});
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/H1?bars=500');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1?bars=500'
+      );
       await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
 
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith('XAUUSD', 'H1', 'FREE', 500);
+      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+        'XAUUSD',
+        'H1',
+        'FREE',
+        500
+      );
     });
 
     it('should clamp bars parameter to valid range', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockFetchIndicatorData.mockResolvedValue({});
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
 
       // Test minimum clamping
-      const request1 = new MockRequest('http://localhost/api/indicators/XAUUSD/H1?bars=10');
+      const request1 = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1?bars=10'
+      );
       await GET(request1 as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith('XAUUSD', 'H1', 'FREE', 100);
+      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+        'XAUUSD',
+        'H1',
+        'FREE',
+        100
+      );
 
       // Test maximum clamping
-      const request2 = new MockRequest('http://localhost/api/indicators/XAUUSD/H1?bars=10000');
+      const request2 = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1?bars=10000'
+      );
       await GET(request2 as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith('XAUUSD', 'H1', 'FREE', 5000);
+      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+        'XAUUSD',
+        'H1',
+        'FREE',
+        5000
+      );
     });
 
     it('should normalize symbol to uppercase', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockFetchIndicatorData.mockResolvedValue({});
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/xauusd/h1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/xauusd/h1'
+      );
       await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'xauusd', timeframe: 'h1' }),
       });
 
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith('XAUUSD', 'H1', 'FREE', 1000);
+      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+        'XAUUSD',
+        'H1',
+        'FREE',
+        1000
+      );
     });
 
     it('should handle MT5ServiceError', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const { MT5ServiceError } = await import('@/lib/api/mt5-client');
-      mockFetchIndicatorData.mockRejectedValue(new MT5ServiceError('Service unavailable', 503));
+      mockFetchIndicatorData.mockRejectedValue(
+        new MT5ServiceError('Service unavailable', 503)
+      );
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
@@ -358,15 +456,21 @@ describe('Indicators API Routes', () => {
     });
 
     it('should handle MT5AccessDeniedError', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const { MT5AccessDeniedError } = await import('@/lib/api/mt5-client');
       mockFetchIndicatorData.mockRejectedValue(
         new MT5AccessDeniedError('Access denied', 'FREE', ['XAUUSD'], ['H1'])
       );
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
@@ -378,11 +482,17 @@ describe('Indicators API Routes', () => {
     });
 
     it('should handle unknown errors gracefully', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockFetchIndicatorData.mockRejectedValue(new Error('Unknown error'));
 
-      const { GET } = await import('@/app/api/indicators/[symbol]/[timeframe]/route');
-      const request = new MockRequest('http://localhost/api/indicators/XAUUSD/H1');
+      const { GET } = await import(
+        '@/app/api/indicators/[symbol]/[timeframe]/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/indicators/XAUUSD/H1'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });

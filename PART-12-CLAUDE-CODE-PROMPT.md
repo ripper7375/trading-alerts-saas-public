@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 12: E-commerce & Billing** for the Trading Alerts SaaS V7 project. You will build 11 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -27,6 +28,7 @@ You are Claude Code, tasked with building **Part 12: E-commerce & Billing** for 
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1. **Project Overview & Current State**
+
 ```
 PROGRESS-part-2.md                   # Current project status (Parts 6-11 complete)
 README.md                            # Project overview
@@ -35,6 +37,7 @@ IMPLEMENTATION-GUIDE.md              # Implementation best practices
 ```
 
 ### 2. **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -47,29 +50,34 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3. **Part 12 Requirements & Build Order**
+
 ```
 docs/build-orders/part-12-ecommerce.md               # Build order for all 11 files
 docs/implementation-guides/v5_part_l.md              # E-commerce business logic
 ```
 
 ### 4. **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 5. **Seed Code References (CRITICAL - Use these patterns)**
+
 ```
 seed-code/v0-components/pricing-page-component-v3/app/pricing/page.tsx        # Pricing page
 seed-code/v0-components/settings-page-with-tabs-v3/app/settings/page.tsx      # Settings with billing tab
 ```
 
 ### 6. **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 7. **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-02-database.md                # Subscription model (DEPENDENCY)
 docs/build-orders/part-04-tier-system.md             # Tier validation (DEPENDENCY)
@@ -82,6 +90,7 @@ docs/build-orders/part-04-tier-system.md             # Tier validation (DEPENDEN
 Build these 11 files in sequence:
 
 ### **File 1/11:** `app/(marketing)/pricing/page.tsx`
+
 - Pricing page with FREE vs PRO comparison
 - Affiliate code support (?ref=CODE query param)
 - Dynamic discount calculation
@@ -91,12 +100,14 @@ Build these 11 files in sequence:
 - **Commit:** `feat(pricing): add pricing page for 2-tier system`
 
 ### **File 2/11:** `app/api/subscription/route.ts`
+
 - **GET:** Get user's current subscription
 - **POST:** Create PRO subscription (upgrade)
 - Return subscription status, tier, next billing date
 - **Commit:** `feat(api): add subscription management endpoints`
 
 ### **File 3/11:** `app/api/subscription/cancel/route.ts`
+
 - **POST:** Cancel subscription (downgrade to FREE)
 - Update user tier in database
 - Cancel Stripe subscription
@@ -104,6 +115,7 @@ Build these 11 files in sequence:
 - **Commit:** `feat(api): add subscription cancellation`
 
 ### **File 4/11:** `app/api/checkout/route.ts`
+
 - **POST:** Create Stripe checkout session
 - PRO upgrade only ($29/month)
 - Return checkout URL
@@ -111,12 +123,14 @@ Build these 11 files in sequence:
 - **Commit:** `feat(api): add Stripe checkout endpoint`
 
 ### **File 5/11:** `app/api/invoices/route.ts`
+
 - **GET:** List user invoices from Stripe
 - Return: date, amount, status, PDF URL
 - Pagination support
 - **Commit:** `feat(api): add invoices endpoint`
 
 ### **File 6/11:** `app/api/webhooks/stripe/route.ts`
+
 - **POST:** Stripe webhook handler
 - Events: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed
 - Verify webhook signature
@@ -124,6 +138,7 @@ Build these 11 files in sequence:
 - **Commit:** `feat(api): add Stripe webhook handler`
 
 ### **File 7/11:** `components/billing/subscription-card.tsx`
+
 - Current subscription display
 - Show tier badge (FREE/PRO)
 - Next billing date
@@ -132,6 +147,7 @@ Build these 11 files in sequence:
 - **Commit:** `feat(billing): add subscription card component`
 
 ### **File 8/11:** `components/billing/invoice-list.tsx`
+
 - Invoice history table
 - Columns: Date, Description, Amount, Status, Download
 - Download links to Stripe PDF
@@ -139,12 +155,14 @@ Build these 11 files in sequence:
 - **Commit:** `feat(billing): add invoice list component`
 
 ### **File 9/11:** `lib/stripe/stripe.ts`
+
 - Stripe client initialization
 - Helper functions for checkout, subscriptions
 - Environment variable validation
 - **Commit:** `feat(stripe): add Stripe client`
 
 ### **File 10/11:** `lib/stripe/webhook-handlers.ts`
+
 - Handler for each webhook event type
 - Update user tier on subscription change
 - Create notification records
@@ -152,6 +170,7 @@ Build these 11 files in sequence:
 - **Commit:** `feat(stripe): add webhook handlers for 2-tier system`
 
 ### **File 11/11:** `lib/email/subscription-emails.ts`
+
 - Upgrade confirmation email template
 - Cancellation confirmation email template
 - Payment failed email template
@@ -163,6 +182,7 @@ Build these 11 files in sequence:
 ## GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/ecommerce-billing-{SESSION_ID}
@@ -173,7 +193,9 @@ git push -u origin claude/ecommerce-billing-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(pricing): add pricing page for 2-tier system
 feat(api): add subscription management endpoints
@@ -182,6 +204,7 @@ fix(billing): correct TypeScript type error in invoice list
 ```
 
 ### **Push Requirements**
+
 - Branch MUST start with `claude/`
 - Branch MUST end with session ID
 - Push ONLY after all validations pass
@@ -208,12 +231,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - 0 TypeScript errors
 - 0 ESLint errors (warnings OK if < 3)
 - All files properly formatted
@@ -227,11 +252,13 @@ npm run fix
 ### **1. 2-Tier Pricing Model**
 
 **FREE Tier:**
+
 - Price: $0/month (no payment required)
 - 5 symbols, 3 timeframes, 5 alerts
 - Basic support
 
 **PRO Tier:**
+
 - Price: $29/month
 - 15 symbols, 9 timeframes, 20 alerts
 - Priority support
@@ -240,6 +267,7 @@ npm run fix
 ### **2. Stripe Integration**
 
 **Environment Variables Required:**
+
 ```env
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -248,6 +276,7 @@ STRIPE_PRO_PRICE_ID=price_...
 ```
 
 **Checkout Flow:**
+
 1. User clicks "Upgrade to PRO"
 2. System creates Stripe Checkout session
 3. User redirected to Stripe-hosted checkout
@@ -259,21 +288,25 @@ STRIPE_PRO_PRICE_ID=price_...
 ### **3. Webhook Events**
 
 **checkout.session.completed:**
+
 - Extract userId from metadata
 - Update user tier to PRO
 - Create Subscription record
 - Send upgrade confirmation email
 
 **customer.subscription.deleted:**
+
 - Update user tier to FREE
 - Mark subscription as cancelled
 - Send cancellation email
 
 **invoice.payment_failed:**
+
 - Send payment failure email
 - Keep PRO access for 3 days grace period
 
 ### **4. TypeScript Compliance (CRITICAL)**
+
 - NO `any` types allowed
 - All function parameters typed
 - All return types specified
@@ -281,6 +314,7 @@ STRIPE_PRO_PRICE_ID=price_...
 - Use Prisma-generated types where applicable
 
 ### **5. Security Requirements**
+
 - Verify webhook signature ALWAYS
 - Never store raw credit card data
 - Use environment variables for secrets
@@ -293,12 +327,14 @@ STRIPE_PRO_PRICE_ID=price_...
 After building all 11 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Visit `http://localhost:3000/pricing`
 - [ ] Verify pricing page loads without errors
 - [ ] Check FREE vs PRO comparison displays correctly
@@ -312,6 +348,7 @@ npm run dev
 - [ ] Verify invoices endpoint returns data
 
 ### **3. API Testing**
+
 ```bash
 # GET subscription
 curl http://localhost:3000/api/subscription
@@ -328,6 +365,7 @@ curl -X POST http://localhost:3000/api/subscription/cancel
 ```
 
 ### **4. Stripe Test Cards**
+
 ```
 # Successful payment
 4242 4242 4242 4242
@@ -340,11 +378,13 @@ curl -X POST http://localhost:3000/api/subscription/cancel
 ```
 
 ### **5. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] API calls return correct status codes
 
 ### **6. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -355,6 +395,7 @@ npm run build
 ## CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Stripe Client Initialization**
+
 ```typescript
 // lib/stripe/stripe.ts
 import Stripe from 'stripe';
@@ -416,6 +457,7 @@ export async function getCustomerInvoices(
 ```
 
 ### **Pattern 2: Checkout API Route**
+
 ```typescript
 // app/api/checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -469,6 +511,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 3: Stripe Webhook Handler**
+
 ```typescript
 // app/api/webhooks/stripe/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -504,22 +547,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
-    return NextResponse.json(
-      { error: 'Invalid signature' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session
+        );
         break;
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription
+        );
         break;
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription
+        );
         break;
       case 'invoice.payment_failed':
         await handleInvoiceFailed(event.data.object as Stripe.Invoice);
@@ -540,11 +586,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 4: Webhook Handlers**
+
 ```typescript
 // lib/stripe/webhook-handlers.ts
 import { prisma } from '@/lib/db/prisma';
 import Stripe from 'stripe';
-import { sendUpgradeEmail, sendCancellationEmail, sendPaymentFailedEmail } from '@/lib/email/subscription-emails';
+import {
+  sendUpgradeEmail,
+  sendCancellationEmail,
+  sendPaymentFailedEmail,
+} from '@/lib/email/subscription-emails';
 
 export async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session
@@ -652,7 +703,9 @@ export async function handleSubscriptionUpdated(
   }
 }
 
-export async function handleInvoiceFailed(invoice: Stripe.Invoice): Promise<void> {
+export async function handleInvoiceFailed(
+  invoice: Stripe.Invoice
+): Promise<void> {
   if (!invoice.customer) return;
 
   const dbSubscription = await prisma.subscription.findFirst({
@@ -679,6 +732,7 @@ export async function handleInvoiceFailed(invoice: Stripe.Invoice): Promise<void
 ```
 
 ### **Pattern 5: Subscription Card Component**
+
 ```typescript
 // components/billing/subscription-card.tsx
 'use client';
@@ -809,6 +863,7 @@ export function SubscriptionCard({
 ```
 
 ### **Pattern 6: Invoice List Component**
+
 ```typescript
 // components/billing/invoice-list.tsx
 'use client';
@@ -915,6 +970,7 @@ export function InvoiceList({ invoices, isLoading = false }: InvoiceListProps) {
 ```
 
 ### **Pattern 7: Subscription Emails**
+
 ```typescript
 // lib/email/subscription-emails.ts
 
@@ -1098,7 +1154,11 @@ export async function sendPaymentReceiptEmail(
   amount: number,
   nextBillingDate: Date
 ): Promise<void> {
-  const template = getPaymentReceiptEmailTemplate(name, amount, nextBillingDate);
+  const template = getPaymentReceiptEmailTemplate(
+    name,
+    amount,
+    nextBillingDate
+  );
   console.log(`[Email] Sending payment receipt to ${email}`);
   console.log(`[Email] Subject: ${template.subject}`);
 }
@@ -1109,6 +1169,7 @@ export async function sendPaymentReceiptEmail(
 ## CRITICAL RULES
 
 ### **DO:**
+
 - Read ALL policy files before writing code
 - Use Stripe SDK properly with TypeScript types
 - Verify webhook signatures ALWAYS
@@ -1123,6 +1184,7 @@ export async function sendPaymentReceiptEmail(
 - Test thoroughly before pushing
 
 ### **DON'T:**
+
 - Skip reading policy files
 - Use `any` types
 - Store raw credit card data
@@ -1195,6 +1257,7 @@ Use the TodoWrite tool to track your progress:
    - Seed code files for component patterns
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

@@ -213,10 +213,13 @@ export async function GET(
     const { startDate, endDate } = validation.data;
 
     // Default date range: last 7 days
-    const end = endDate ?? (new Date().toISOString().split('T')[0] ?? '');
+    const end = endDate ?? new Date().toISOString().split('T')[0] ?? '';
     const start =
       startDate ??
-      (new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] ?? '');
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0] ??
+      '';
 
     // Generate mock data (replace with real data query in production)
     const data = generateMockApiUsage(start, end);

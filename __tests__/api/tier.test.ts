@@ -38,9 +38,15 @@ global.Response = MockResponse as unknown as typeof Response;
 if (typeof global.Headers === 'undefined') {
   class MockHeaders {
     private headers: Map<string, string> = new Map();
-    set(key: string, value: string) { this.headers.set(key.toLowerCase(), value); }
-    get(key: string) { return this.headers.get(key.toLowerCase()); }
-    has(key: string) { return this.headers.has(key.toLowerCase()); }
+    set(key: string, value: string) {
+      this.headers.set(key.toLowerCase(), value);
+    }
+    get(key: string) {
+      return this.headers.get(key.toLowerCase());
+    }
+    has(key: string) {
+      return this.headers.has(key.toLowerCase());
+    }
   }
   global.Headers = MockHeaders as unknown as typeof Headers;
 }
