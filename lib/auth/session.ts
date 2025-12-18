@@ -1,11 +1,12 @@
 import { getServerSession as getServerSessionNext } from 'next-auth';
 import type { Session } from 'next-auth';
 
+import type { AffiliateProfile } from '@/lib/affiliate/types';
 import type { UserTier, UserRole } from '@/types';
+import { prisma } from '@/lib/db/prisma';
 
 import { authOptions } from './auth-options';
 import { AuthError } from './errors';
-// import { prisma } from '@/lib/db/prisma'; // TODO: Uncomment when affiliateProfile is implemented
 
 /**
  * Session Helper Functions
@@ -153,7 +154,7 @@ export async function requireAffiliate(): Promise<Session> {
  *
  * @returns Promise resolving to affiliate profile or null
  */
-export async function getAffiliateProfile(): Promise<null> {
+export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
   try {
     const session = await getSession();
 
@@ -161,14 +162,12 @@ export async function getAffiliateProfile(): Promise<null> {
       return null;
     }
 
-    // TODO: Uncomment when AffiliateProfile model is added to Prisma schema
     // Fetch affiliate profile from database
-    // const affiliateProfile = await prisma.affiliateProfile.findUnique({
-    //   where: { userId: session.user.id },
-    // });
+    const affiliateProfile = await prisma.affiliateProfile.findUnique({
+      where: { userId: session.user.id },
+    });
 
-    // return affiliateProfile;
-    return null; // Temporary: return null until schema is updated
+    return affiliateProfile;
   } catch (error) {
     console.error('Failed to fetch affiliate profile:', error);
     return null;
