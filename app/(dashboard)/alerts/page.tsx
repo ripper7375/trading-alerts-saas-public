@@ -11,7 +11,11 @@ import { redirect } from 'next/navigation';
 
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { FREE_TIER_CONFIG, PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
+import {
+  FREE_TIER_CONFIG,
+  PRO_TIER_CONFIG,
+  type Tier,
+} from '@/lib/tier-config';
 
 import { AlertsClient } from './alerts-client';
 
@@ -100,20 +104,22 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   });
 
   // Transform alerts with computed status
-  const alertsWithStatus: AlertWithStatus[] = (alerts as PrismaAlert[]).map((alert) => ({
-    id: alert.id,
-    name: alert.name,
-    symbol: alert.symbol,
-    timeframe: alert.timeframe,
-    condition: alert.condition,
-    alertType: alert.alertType,
-    isActive: alert.isActive,
-    lastTriggered: alert.lastTriggered,
-    triggerCount: alert.triggerCount,
-    createdAt: alert.createdAt,
-    updatedAt: alert.updatedAt,
-    status: computeAlertStatus(alert.isActive, alert.lastTriggered),
-  }));
+  const alertsWithStatus: AlertWithStatus[] = (alerts as PrismaAlert[]).map(
+    (alert) => ({
+      id: alert.id,
+      name: alert.name,
+      symbol: alert.symbol,
+      timeframe: alert.timeframe,
+      condition: alert.condition,
+      alertType: alert.alertType,
+      isActive: alert.isActive,
+      lastTriggered: alert.lastTriggered,
+      triggerCount: alert.triggerCount,
+      createdAt: alert.createdAt,
+      updatedAt: alert.updatedAt,
+      status: computeAlertStatus(alert.isActive, alert.lastTriggered),
+    })
+  );
 
   // Calculate counts
   const counts: AlertCounts = {

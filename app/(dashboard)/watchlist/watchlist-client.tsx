@@ -83,21 +83,111 @@ interface TimeframeInfo {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const SYMBOLS: SymbolInfo[] = [
-  { id: 'BTCUSD', name: 'BTCUSD', description: 'Bitcoin', icon: '₿', tier: 'FREE' },
-  { id: 'EURUSD', name: 'EURUSD', description: 'Euro / US Dollar', icon: '€', tier: 'FREE' },
-  { id: 'USDJPY', name: 'USDJPY', description: 'US Dollar / Japanese Yen', icon: '¥', tier: 'FREE' },
-  { id: 'US30', name: 'US30', description: 'Dow Jones', icon: '📈', tier: 'FREE' },
-  { id: 'XAUUSD', name: 'XAUUSD', description: 'Gold', icon: '🥇', tier: 'FREE' },
-  { id: 'AUDJPY', name: 'AUDJPY', description: 'Australian Dollar / Yen', icon: '🦘', tier: 'PRO' },
-  { id: 'AUDUSD', name: 'AUDUSD', description: 'Australian Dollar / USD', icon: '🇦🇺', tier: 'PRO' },
-  { id: 'ETHUSD', name: 'ETHUSD', description: 'Ethereum', icon: '⟠', tier: 'PRO' },
-  { id: 'GBPJPY', name: 'GBPJPY', description: 'British Pound / Yen', icon: '£', tier: 'PRO' },
-  { id: 'GBPUSD', name: 'GBPUSD', description: 'British Pound / USD', icon: '💷', tier: 'PRO' },
-  { id: 'NDX100', name: 'NDX100', description: 'Nasdaq 100', icon: '📊', tier: 'PRO' },
-  { id: 'NZDUSD', name: 'NZDUSD', description: 'New Zealand Dollar / USD', icon: '🥝', tier: 'PRO' },
-  { id: 'USDCAD', name: 'USDCAD', description: 'USD / Canadian Dollar', icon: '🍁', tier: 'PRO' },
-  { id: 'USDCHF', name: 'USDCHF', description: 'USD / Swiss Franc', icon: '🇨🇭', tier: 'PRO' },
-  { id: 'XAGUSD', name: 'XAGUSD', description: 'Silver', icon: '🥈', tier: 'PRO' },
+  {
+    id: 'BTCUSD',
+    name: 'BTCUSD',
+    description: 'Bitcoin',
+    icon: '₿',
+    tier: 'FREE',
+  },
+  {
+    id: 'EURUSD',
+    name: 'EURUSD',
+    description: 'Euro / US Dollar',
+    icon: '€',
+    tier: 'FREE',
+  },
+  {
+    id: 'USDJPY',
+    name: 'USDJPY',
+    description: 'US Dollar / Japanese Yen',
+    icon: '¥',
+    tier: 'FREE',
+  },
+  {
+    id: 'US30',
+    name: 'US30',
+    description: 'Dow Jones',
+    icon: '📈',
+    tier: 'FREE',
+  },
+  {
+    id: 'XAUUSD',
+    name: 'XAUUSD',
+    description: 'Gold',
+    icon: '🥇',
+    tier: 'FREE',
+  },
+  {
+    id: 'AUDJPY',
+    name: 'AUDJPY',
+    description: 'Australian Dollar / Yen',
+    icon: '🦘',
+    tier: 'PRO',
+  },
+  {
+    id: 'AUDUSD',
+    name: 'AUDUSD',
+    description: 'Australian Dollar / USD',
+    icon: '🇦🇺',
+    tier: 'PRO',
+  },
+  {
+    id: 'ETHUSD',
+    name: 'ETHUSD',
+    description: 'Ethereum',
+    icon: '⟠',
+    tier: 'PRO',
+  },
+  {
+    id: 'GBPJPY',
+    name: 'GBPJPY',
+    description: 'British Pound / Yen',
+    icon: '£',
+    tier: 'PRO',
+  },
+  {
+    id: 'GBPUSD',
+    name: 'GBPUSD',
+    description: 'British Pound / USD',
+    icon: '💷',
+    tier: 'PRO',
+  },
+  {
+    id: 'NDX100',
+    name: 'NDX100',
+    description: 'Nasdaq 100',
+    icon: '📊',
+    tier: 'PRO',
+  },
+  {
+    id: 'NZDUSD',
+    name: 'NZDUSD',
+    description: 'New Zealand Dollar / USD',
+    icon: '🥝',
+    tier: 'PRO',
+  },
+  {
+    id: 'USDCAD',
+    name: 'USDCAD',
+    description: 'USD / Canadian Dollar',
+    icon: '🍁',
+    tier: 'PRO',
+  },
+  {
+    id: 'USDCHF',
+    name: 'USDCHF',
+    description: 'USD / Swiss Franc',
+    icon: '🇨🇭',
+    tier: 'PRO',
+  },
+  {
+    id: 'XAGUSD',
+    name: 'XAGUSD',
+    description: 'Silver',
+    icon: '🥈',
+    tier: 'PRO',
+  },
 ];
 
 const TIMEFRAMES: TimeframeInfo[] = [
@@ -134,12 +224,14 @@ export function WatchlistClient({
 
   // Get available symbols and timeframes based on tier
   const availableSymbols = userTier === 'PRO' ? PRO_SYMBOLS : FREE_SYMBOLS;
-  const availableTimeframes = userTier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
+  const availableTimeframes =
+    userTier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
 
   // Check if combination already exists
   const isComboExists = useCallback((): boolean => {
     return items.some(
-      (item) => item.symbol === selectedSymbol && item.timeframe === selectedTimeframe
+      (item) =>
+        item.symbol === selectedSymbol && item.timeframe === selectedTimeframe
     );
   }, [items, selectedSymbol, selectedTimeframe]);
 
@@ -259,19 +351,25 @@ export function WatchlistClient({
       {showAddForm && (
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">Select Symbol and Timeframe:</CardTitle>
+            <CardTitle className="text-xl">
+              Select Symbol and Timeframe:
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Symbol Selector */}
             <div>
-              <label className="block font-medium text-gray-700 mb-2">Symbol</label>
+              <label className="block font-medium text-gray-700 mb-2">
+                Symbol
+              </label>
               <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a symbol" />
                 </SelectTrigger>
                 <SelectContent>
                   {SYMBOLS.map((symbol) => {
-                    const isLocked = !(availableSymbols as readonly string[]).includes(symbol.id);
+                    const isLocked = !(
+                      availableSymbols as readonly string[]
+                    ).includes(symbol.id);
                     return (
                       <SelectItem
                         key={symbol.id}
@@ -283,9 +381,13 @@ export function WatchlistClient({
                           <span className="text-lg">{symbol.icon}</span>
                           <div className="flex-1">
                             <div className="font-semibold">{symbol.name}</div>
-                            <div className="text-xs text-gray-500">{symbol.description}</div>
+                            <div className="text-xs text-gray-500">
+                              {symbol.description}
+                            </div>
                           </div>
-                          {isLocked && <Lock className="h-4 w-4 text-gray-400" />}
+                          {isLocked && (
+                            <Lock className="h-4 w-4 text-gray-400" />
+                          )}
                           {symbol.tier === 'PRO' && (
                             <Badge
                               variant="secondary"
@@ -304,16 +406,22 @@ export function WatchlistClient({
 
             {/* Timeframe Selector */}
             <div>
-              <label className="block font-medium text-gray-700 mb-2">Timeframe</label>
+              <label className="block font-medium text-gray-700 mb-2">
+                Timeframe
+              </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {TIMEFRAMES.map((timeframe) => {
-                  const isLocked = !(availableTimeframes as readonly string[]).includes(timeframe.id);
+                  const isLocked = !(
+                    availableTimeframes as readonly string[]
+                  ).includes(timeframe.id);
                   const isSelected = selectedTimeframe === timeframe.id;
                   return (
                     <button
                       key={timeframe.id}
                       type="button"
-                      onClick={() => !isLocked && setSelectedTimeframe(timeframe.id)}
+                      onClick={() =>
+                        !isLocked && setSelectedTimeframe(timeframe.id)
+                      }
                       disabled={isLocked}
                       className={`
                         border-2 rounded-lg px-4 py-3 text-center transition-all
@@ -329,7 +437,9 @@ export function WatchlistClient({
                         {isLocked && <Lock className="h-3 w-3" />}
                         <span className="font-semibold">{timeframe.id}</span>
                       </div>
-                      <div className="text-xs mt-1 text-gray-600">{timeframe.name}</div>
+                      <div className="text-xs mt-1 text-gray-600">
+                        {timeframe.name}
+                      </div>
                       {timeframe.tier === 'PRO' && (
                         <Badge
                           variant="secondary"
@@ -364,7 +474,8 @@ export function WatchlistClient({
 
             {usedSlots >= limit && (
               <p className="text-sm text-red-600 text-center">
-                You have reached your {limit} slot limit. Remove an item to add more.
+                You have reached your {limit} slot limit. Remove an item to add
+                more.
               </p>
             )}
           </CardContent>
@@ -401,13 +512,19 @@ export function WatchlistClient({
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/charts/${item.symbol}/${item.timeframe}`}>
+                            <Link
+                              href={`/charts/${item.symbol}/${item.timeframe}`}
+                            >
                               <BarChart3 className="h-4 w-4 mr-2" />
                               View Chart
                             </Link>
@@ -425,13 +542,19 @@ export function WatchlistClient({
                     </div>
 
                     {/* Status Badge */}
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 mb-3">
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-100 text-blue-800 mb-3"
+                    >
                       {timeframeInfo?.name || item.timeframe}
                     </Badge>
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 mt-4">
-                      <Button asChild className="flex-1 bg-blue-600 hover:bg-blue-700">
+                      <Button
+                        asChild
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      >
                         <Link href={`/charts/${item.symbol}/${item.timeframe}`}>
                           <BarChart3 className="h-4 w-4 mr-2" />
                           View Chart
@@ -460,9 +583,12 @@ export function WatchlistClient({
           <Card className="bg-gray-50 border-2 border-dashed border-gray-300">
             <CardContent className="p-16 text-center">
               <div className="text-8xl opacity-30 mb-4">📋</div>
-              <h3 className="text-2xl text-gray-500 mb-2">No watchlist items yet</h3>
+              <h3 className="text-2xl text-gray-500 mb-2">
+                No watchlist items yet
+              </h3>
               <p className="text-gray-400 mb-6">
-                Add your first symbol and timeframe combination above to start monitoring
+                Add your first symbol and timeframe combination above to start
+                monitoring
               </p>
               <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded text-sm text-gray-600">
                 <p className="mb-1">
@@ -503,8 +629,13 @@ export function WatchlistClient({
                   <strong>Timeframes:</strong> {FREE_TIMEFRAMES.join(', ')}
                 </p>
               </div>
-              <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white mt-3">
-                <Link href="/pricing">Upgrade to PRO for 50 watchlist items</Link>
+              <Button
+                asChild
+                className="bg-blue-600 hover:bg-blue-700 text-white mt-3"
+              >
+                <Link href="/pricing">
+                  Upgrade to PRO for 50 watchlist items
+                </Link>
               </Button>
             </div>
           ) : (
@@ -516,7 +647,8 @@ export function WatchlistClient({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <span>
-                    Using {usedSlots}/{limit} slots ({Math.round((usedSlots / limit) * 100)}%)
+                    Using {usedSlots}/{limit} slots (
+                    {Math.round((usedSlots / limit) * 100)}%)
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">

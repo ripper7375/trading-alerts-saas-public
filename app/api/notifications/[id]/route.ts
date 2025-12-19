@@ -32,7 +32,10 @@ export async function GET(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'You must be logged in to view notifications' },
+        {
+          error: 'Unauthorized',
+          message: 'You must be logged in to view notifications',
+        },
         { status: 401 }
       );
     }
@@ -68,7 +71,10 @@ export async function GET(
     // Ownership check - users can only access their own notifications
     if (notification.userId !== userId) {
       return NextResponse.json(
-        { error: 'Forbidden', message: 'You do not have permission to access this notification' },
+        {
+          error: 'Forbidden',
+          message: 'You do not have permission to access this notification',
+        },
         { status: 403 }
       );
     }
@@ -82,7 +88,10 @@ export async function GET(
     });
 
     return NextResponse.json(
-      { error: 'Failed to fetch notification', message: 'An error occurred while fetching the notification' },
+      {
+        error: 'Failed to fetch notification',
+        message: 'An error occurred while fetching the notification',
+      },
       { status: 500 }
     );
   }
@@ -108,7 +117,10 @@ export async function DELETE(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'You must be logged in to delete notifications' },
+        {
+          error: 'Unauthorized',
+          message: 'You must be logged in to delete notifications',
+        },
         { status: 401 }
       );
     }
@@ -132,7 +144,10 @@ export async function DELETE(
     // Ownership check
     if (notification.userId !== userId) {
       return NextResponse.json(
-        { error: 'Forbidden', message: 'You do not have permission to delete this notification' },
+        {
+          error: 'Forbidden',
+          message: 'You do not have permission to delete this notification',
+        },
         { status: 403 }
       );
     }
@@ -154,7 +169,10 @@ export async function DELETE(
     });
 
     return NextResponse.json(
-      { error: 'Failed to delete notification', message: 'An error occurred while deleting the notification' },
+      {
+        error: 'Failed to delete notification',
+        message: 'An error occurred while deleting the notification',
+      },
       { status: 500 }
     );
   }

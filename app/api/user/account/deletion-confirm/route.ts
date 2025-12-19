@@ -81,7 +81,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'Token expired',
-          message: 'The deletion request has expired. Please submit a new request.',
+          message:
+            'The deletion request has expired. Please submit a new request.',
         },
         { status: 400 }
       );
@@ -118,7 +119,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       success: true,
-      message: 'Account deletion confirmed. Your account will be deleted in 24 hours.',
+      message:
+        'Account deletion confirmed. Your account will be deleted in 24 hours.',
       scheduledDeletionTime,
     });
   } catch (error) {

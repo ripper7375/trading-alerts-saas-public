@@ -194,9 +194,7 @@ export default function ErrorLogsPage(): React.ReactElement {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Error Logs
           </h1>
-          <p className="text-gray-400 mt-1">
-            Monitor and track system errors
-          </p>
+          <p className="text-gray-400 mt-1">Monitor and track system errors</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

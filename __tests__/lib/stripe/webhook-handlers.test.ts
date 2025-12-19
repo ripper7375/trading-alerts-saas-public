@@ -37,9 +37,12 @@ const mockSendPaymentReceiptEmail = jest.fn();
 jest.mock('@/lib/email/subscription-emails', () => ({
   __esModule: true,
   sendUpgradeEmail: (...args: unknown[]) => mockSendUpgradeEmail(...args),
-  sendCancellationEmail: (...args: unknown[]) => mockSendCancellationEmail(...args),
-  sendPaymentFailedEmail: (...args: unknown[]) => mockSendPaymentFailedEmail(...args),
-  sendPaymentReceiptEmail: (...args: unknown[]) => mockSendPaymentReceiptEmail(...args),
+  sendCancellationEmail: (...args: unknown[]) =>
+    mockSendCancellationEmail(...args),
+  sendPaymentFailedEmail: (...args: unknown[]) =>
+    mockSendPaymentFailedEmail(...args),
+  sendPaymentReceiptEmail: (...args: unknown[]) =>
+    mockSendPaymentReceiptEmail(...args),
 }));
 
 import {

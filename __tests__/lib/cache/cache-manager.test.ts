@@ -96,7 +96,9 @@ describe('Cache Manager', () => {
     });
 
     it('should define getCachedUserSession function', async () => {
-      const { getCachedUserSession } = await import('@/lib/cache/cache-manager');
+      const { getCachedUserSession } = await import(
+        '@/lib/cache/cache-manager'
+      );
       expect(typeof getCachedUserSession).toBe('function');
     });
 

@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -91,7 +90,9 @@ export function NotificationBell(): React.JSX.Element {
       setUnreadCount(data.unreadCount);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load notifications');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load notifications'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +118,11 @@ export function NotificationBell(): React.JSX.Element {
 
       if (response.ok) {
         setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, read: true, readAt: new Date().toISOString() } : n))
+          prev.map((n) =>
+            n.id === id
+              ? { ...n, read: true, readAt: new Date().toISOString() }
+              : n
+          )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
@@ -135,7 +140,11 @@ export function NotificationBell(): React.JSX.Element {
 
       if (response.ok) {
         setNotifications((prev) =>
-          prev.map((n) => ({ ...n, read: true, readAt: new Date().toISOString() }))
+          prev.map((n) => ({
+            ...n,
+            read: true,
+            readAt: new Date().toISOString(),
+          }))
         );
         setUnreadCount(0);
       }
@@ -164,7 +173,9 @@ export function NotificationBell(): React.JSX.Element {
   };
 
   // Handle notification click
-  const handleNotificationClick = async (notification: Notification): Promise<void> => {
+  const handleNotificationClick = async (
+    notification: Notification
+  ): Promise<void> => {
     if (!notification.read) {
       await handleMarkAsRead(notification.id);
     }
@@ -180,12 +191,15 @@ export function NotificationBell(): React.JSX.Element {
     if (activeTab === 'unread') return !n.read;
     if (activeTab === 'alerts') return n.type === 'ALERT';
     if (activeTab === 'system') return n.type === 'SYSTEM';
-    if (activeTab === 'billing') return n.type === 'PAYMENT' || n.type === 'SUBSCRIPTION';
+    if (activeTab === 'billing')
+      return n.type === 'PAYMENT' || n.type === 'SUBSCRIPTION';
     return true;
   });
 
   // Get icon for notification type
-  const getNotificationIcon = (notification: Notification): React.JSX.Element => {
+  const getNotificationIcon = (
+    notification: Notification
+  ): React.JSX.Element => {
     const iconClass = 'w-5 h-5';
 
     switch (notification.type) {
@@ -314,7 +328,9 @@ export function NotificationBell(): React.JSX.Element {
           {isLoading ? (
             <div className="p-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-              <p className="text-sm text-gray-500 mt-2">Loading notifications...</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Loading notifications...
+              </p>
             </div>
           ) : error ? (
             <div className="p-8 text-center">
@@ -377,7 +393,8 @@ export function NotificationBell(): React.JSX.Element {
                   <div className="flex gap-2 text-xs text-gray-500 mt-2 flex-wrap">
                     <span>{formatTime(notification.createdAt)}</span>
                     <span className="bg-gray-100 px-2 py-0.5 rounded">
-                      {notification.type.charAt(0) + notification.type.slice(1).toLowerCase()}
+                      {notification.type.charAt(0) +
+                        notification.type.slice(1).toLowerCase()}
                     </span>
                     {notification.priority === 'HIGH' && (
                       <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">

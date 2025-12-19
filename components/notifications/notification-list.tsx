@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -111,7 +110,9 @@ export function NotificationList(): React.JSX.Element {
       setUnreadCount(data.unreadCount);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load notifications');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load notifications'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +137,11 @@ export function NotificationList(): React.JSX.Element {
 
       if (response.ok) {
         setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, read: true, readAt: new Date().toISOString() } : n))
+          prev.map((n) =>
+            n.id === id
+              ? { ...n, read: true, readAt: new Date().toISOString() }
+              : n
+          )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
@@ -154,7 +159,11 @@ export function NotificationList(): React.JSX.Element {
 
       if (response.ok) {
         setNotifications((prev) =>
-          prev.map((n) => ({ ...n, read: true, readAt: new Date().toISOString() }))
+          prev.map((n) => ({
+            ...n,
+            read: true,
+            readAt: new Date().toISOString(),
+          }))
         );
         setUnreadCount(0);
       }
@@ -184,7 +193,9 @@ export function NotificationList(): React.JSX.Element {
   };
 
   // Handle notification click
-  const handleNotificationClick = async (notification: Notification): Promise<void> => {
+  const handleNotificationClick = async (
+    notification: Notification
+  ): Promise<void> => {
     if (!notification.read) {
       await handleMarkAsRead(notification.id);
     }
@@ -194,7 +205,9 @@ export function NotificationList(): React.JSX.Element {
   };
 
   // Get icon for notification type
-  const getNotificationIcon = (notification: Notification): React.JSX.Element => {
+  const getNotificationIcon = (
+    notification: Notification
+  ): React.JSX.Element => {
     const iconClass = 'w-5 h-5';
 
     switch (notification.type) {
@@ -270,7 +283,9 @@ export function NotificationList(): React.JSX.Element {
             onClick={fetchNotifications}
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           {unreadCount > 0 && (
@@ -284,7 +299,11 @@ export function NotificationList(): React.JSX.Element {
 
       <CardContent>
         {/* Status Tabs */}
-        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="mb-4">
+        <Tabs
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+          className="mb-4"
+        >
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="unread">Unread ({unreadCount})</TabsTrigger>
@@ -301,29 +320,38 @@ export function NotificationList(): React.JSX.Element {
           >
             All Types
           </Button>
-          {(['ALERT', 'SUBSCRIPTION', 'PAYMENT', 'SYSTEM'] as const).map((type) => (
-            <Button
-              key={type}
-              variant={typeFilter === type ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setTypeFilter(type)}
-            >
-              {type.charAt(0) + type.slice(1).toLowerCase()}
-            </Button>
-          ))}
+          {(['ALERT', 'SUBSCRIPTION', 'PAYMENT', 'SYSTEM'] as const).map(
+            (type) => (
+              <Button
+                key={type}
+                variant={typeFilter === type ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTypeFilter(type)}
+              >
+                {type.charAt(0) + type.slice(1).toLowerCase()}
+              </Button>
+            )
+          )}
         </div>
 
         {/* Notifications List */}
         {isLoading ? (
           <div className="py-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-            <p className="text-sm text-gray-500 mt-2">Loading notifications...</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Loading notifications...
+            </p>
           </div>
         ) : error ? (
           <div className="py-12 text-center">
             <AlertTriangle className="h-8 w-8 mx-auto text-red-400" />
             <p className="text-sm text-red-500 mt-2">{error}</p>
-            <Button variant="outline" size="sm" onClick={fetchNotifications} className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchNotifications}
+              className="mt-4"
+            >
               Try again
             </Button>
           </div>
@@ -334,7 +362,7 @@ export function NotificationList(): React.JSX.Element {
             <p className="text-sm text-gray-400">
               {statusFilter === 'unread'
                 ? 'All caught up!'
-                : 'You don\'t have any notifications yet'}
+                : "You don't have any notifications yet"}
             </p>
           </div>
         ) : (
@@ -368,7 +396,9 @@ export function NotificationList(): React.JSX.Element {
                         )}
                         {notification.title}
                       </h4>
-                      <p className="text-gray-600 text-sm mt-1">{notification.body}</p>
+                      <p className="text-gray-600 text-sm mt-1">
+                        {notification.body}
+                      </p>
                     </div>
 
                     {/* Delete Button */}
@@ -390,7 +420,8 @@ export function NotificationList(): React.JSX.Element {
                     <span>{formatDate(notification.createdAt)}</span>
                     <span className="w-1 h-1 bg-gray-300 rounded-full" />
                     <span className="bg-gray-100 px-2 py-0.5 rounded">
-                      {notification.type.charAt(0) + notification.type.slice(1).toLowerCase()}
+                      {notification.type.charAt(0) +
+                        notification.type.slice(1).toLowerCase()}
                     </span>
                     {notification.priority === 'HIGH' && (
                       <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">

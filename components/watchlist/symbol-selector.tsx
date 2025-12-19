@@ -50,19 +50,38 @@ interface SymbolInfo {
 // SYMBOL DATA
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const SYMBOL_INFO: Record<string, { name: string; description: string; icon: string }> = {
+const SYMBOL_INFO: Record<
+  string,
+  { name: string; description: string; icon: string }
+> = {
   BTCUSD: { name: 'BTCUSD', description: 'Bitcoin', icon: '₿' },
   EURUSD: { name: 'EURUSD', description: 'Euro / US Dollar', icon: '€' },
-  USDJPY: { name: 'USDJPY', description: 'US Dollar / Japanese Yen', icon: '¥' },
+  USDJPY: {
+    name: 'USDJPY',
+    description: 'US Dollar / Japanese Yen',
+    icon: '¥',
+  },
   US30: { name: 'US30', description: 'Dow Jones', icon: '📈' },
   XAUUSD: { name: 'XAUUSD', description: 'Gold', icon: '🥇' },
-  AUDJPY: { name: 'AUDJPY', description: 'Australian Dollar / Yen', icon: '🦘' },
-  AUDUSD: { name: 'AUDUSD', description: 'Australian Dollar / USD', icon: '🇦🇺' },
+  AUDJPY: {
+    name: 'AUDJPY',
+    description: 'Australian Dollar / Yen',
+    icon: '🦘',
+  },
+  AUDUSD: {
+    name: 'AUDUSD',
+    description: 'Australian Dollar / USD',
+    icon: '🇦🇺',
+  },
   ETHUSD: { name: 'ETHUSD', description: 'Ethereum', icon: '⟠' },
   GBPJPY: { name: 'GBPJPY', description: 'British Pound / Yen', icon: '£' },
   GBPUSD: { name: 'GBPUSD', description: 'British Pound / USD', icon: '💷' },
   NDX100: { name: 'NDX100', description: 'Nasdaq 100', icon: '📊' },
-  NZDUSD: { name: 'NZDUSD', description: 'New Zealand Dollar / USD', icon: '🥝' },
+  NZDUSD: {
+    name: 'NZDUSD',
+    description: 'New Zealand Dollar / USD',
+    icon: '🥝',
+  },
   USDCAD: { name: 'USDCAD', description: 'USD / Canadian Dollar', icon: '🍁' },
   USDCHF: { name: 'USDCHF', description: 'USD / Swiss Franc', icon: '🇨🇭' },
   XAGUSD: { name: 'XAGUSD', description: 'Silver', icon: '🥈' },
@@ -77,7 +96,9 @@ function getAllSymbols(): SymbolInfo[] {
     name: SYMBOL_INFO[symbol]?.name || symbol,
     description: SYMBOL_INFO[symbol]?.description || symbol,
     icon: SYMBOL_INFO[symbol]?.icon || '📊',
-    tier: FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number]) ? 'FREE' : 'PRO',
+    tier: FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number])
+      ? 'FREE'
+      : 'PRO',
   }));
 }
 
@@ -138,9 +159,13 @@ export function SymbolSelector({
             <Input
               placeholder="Search symbols..."
               value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setSearchQuery(e.target.value)
+              }
               className="pl-8"
-              onClick={(e: React.MouseEvent<HTMLInputElement>) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent<HTMLInputElement>) =>
+                e.stopPropagation()
+              }
             />
           </div>
         </div>
@@ -148,7 +173,9 @@ export function SymbolSelector({
         {/* Symbol List */}
         {filteredSymbols.length > 0 ? (
           filteredSymbols.map((symbol) => {
-            const isLocked = !(availableSymbols as readonly string[]).includes(symbol.id);
+            const isLocked = !(availableSymbols as readonly string[]).includes(
+              symbol.id
+            );
 
             return (
               <SelectItem
@@ -165,7 +192,9 @@ export function SymbolSelector({
                       {symbol.description}
                     </div>
                   </div>
-                  {isLocked && <Lock className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+                  {isLocked && (
+                    <Lock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  )}
                   {symbol.tier === 'PRO' && (
                     <Badge
                       variant="secondary"

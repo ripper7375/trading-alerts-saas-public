@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 10: Watchlist System** for the Trading Alerts SaaS V7 project. You will build 8 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -27,6 +28,7 @@ You are Claude Code, tasked with building **Part 10: Watchlist System** for the 
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1️⃣ **Project Overview & Current State**
+
 ```
 PROGRESS.md                  # Current project status (Parts 6-9 complete)
 README.md                    # Project overview
@@ -35,6 +37,7 @@ IMPLEMENTATION-GUIDE.md      # Implementation best practices
 ```
 
 ### 2️⃣ **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -46,6 +49,7 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3️⃣ **Part 10 Requirements & Build Order**
+
 ```
 docs/build-orders/part-10-watchlist.md               # Build order for all 8 files
 docs/implementation-guides/v5_part_c.md              # Database schema with WatchlistItem model
@@ -53,22 +57,26 @@ docs/implementation-guides/v5_part_j.md              # Business requirements
 ```
 
 ### 4️⃣ **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 5️⃣ **Seed Code References (CRITICAL - Use these patterns)**
+
 ```
 seed-code/v0-components/watchlist-page-component/app/watchlist/page.tsx   # Main watchlist page
 ```
 
 ### 6️⃣ **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 7️⃣ **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-02-database.md                # WatchlistItem model (DEPENDENCY)
 docs/build-orders/part-04-tier-system.md             # Tier validation (DEPENDENCY)
@@ -82,6 +90,7 @@ docs/build-orders/part-09-charts.md                  # Charts (watchlist links t
 Build these 8 files in sequence:
 
 ### **File 1/8:** `app/(dashboard)/watchlist/page.tsx`
+
 - Watchlist page with list of watchlist items
 - "Add New" button to add symbol+timeframe combinations
 - Show slots used vs. tier limit (e.g., "3/5 slots used")
@@ -91,6 +100,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(watchlist): add watchlist page`
 
 ### **File 2/8:** `app/api/watchlist/route.ts`
+
 - **GET:** List user's watchlist items with symbol+timeframe
 - **POST:** Create new watchlist item
   - Validate tier limits (FREE: 5 items, PRO: 50 items)
@@ -101,6 +111,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(api): add watchlist CRUD endpoints`
 
 ### **File 3/8:** `app/api/watchlist/[id]/route.ts`
+
 - **GET:** Get single watchlist item by ID
 - **PATCH:** Update watchlist item (change order)
 - **DELETE:** Delete watchlist item
@@ -108,6 +119,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(api): add watchlist detail endpoints`
 
 ### **File 4/8:** `app/api/watchlist/reorder/route.ts`
+
 - **POST:** Reorder watchlist items
 - Accept array of item IDs in new order
 - Update order field for each item
@@ -115,6 +127,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(api): add watchlist reorder endpoint`
 
 ### **File 5/8:** `components/watchlist/symbol-selector.tsx`
+
 - Symbol dropdown component
 - Show only tier-allowed symbols
 - Lock icon on PRO-only symbols for FREE users
@@ -123,6 +136,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(watchlist): add tier-filtered symbol selector`
 
 ### **File 6/8:** `components/watchlist/timeframe-grid.tsx`
+
 - Timeframe selection grid/buttons
 - Disable PRO timeframes for FREE users (M5, M15, M30, H2, H8, H12)
 - Visual lock indicators
@@ -130,6 +144,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(watchlist): add timeframe grid with tier gates`
 
 ### **File 7/8:** `components/watchlist/watchlist-item.tsx`
+
 - Display single watchlist item card
 - Show: symbol, timeframe, current price, price change, status
 - "View Chart" button linking to `/charts/[symbol]/[timeframe]`
@@ -139,6 +154,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(watchlist): add watchlist item component`
 
 ### **File 8/8:** `hooks/use-watchlist.ts`
+
 - React hook for watchlist operations
 - Fetch watchlist items (useQuery)
 - Add item mutation (useMutation)
@@ -152,6 +168,7 @@ Build these 8 files in sequence:
 ## 🔧 GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/watchlist-system-{SESSION_ID}
@@ -162,7 +179,9 @@ git push -u origin claude/watchlist-system-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(watchlist): add watchlist page
 feat(api): add watchlist CRUD endpoints
@@ -171,6 +190,7 @@ fix(watchlist): correct TypeScript type error in item component
 ```
 
 ### **Push Requirements**
+
 - ✅ Branch MUST start with `claude/`
 - ✅ Branch MUST end with session ID
 - ✅ Push ONLY after all validations pass
@@ -197,12 +217,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - ✅ 0 TypeScript errors
 - ✅ 0 ESLint errors (warnings OK if < 3)
 - ✅ All files properly formatted
@@ -214,6 +236,7 @@ npm run fix
 ## 🎯 KEY REQUIREMENTS FOR PART 10
 
 ### **1. Watchlist Item Model (Database Structure)**
+
 The watchlist uses a **symbol+timeframe combination** model:
 
 ```typescript
@@ -252,16 +275,19 @@ model Watchlist {
 ### **2. Tier-Based Limits (CRITICAL)**
 
 **FREE Tier:**
+
 - Watchlist items: **5** symbol+timeframe combinations max
 - Symbols: 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
 - Timeframes: 3 (H1, H4, D1)
 
 **PRO Tier:**
+
 - Watchlist items: **50** symbol+timeframe combinations max
 - Symbols: 15 (all)
 - Timeframes: 9 (all)
 
 ### **3. TypeScript Compliance (CRITICAL)**
+
 - ✅ NO `any` types allowed
 - ✅ All function parameters typed
 - ✅ All return types specified
@@ -269,6 +295,7 @@ model Watchlist {
 - ✅ Use proper React types (`FC`, `ReactNode`, etc.)
 
 ### **4. API Route Patterns**
+
 - ✅ Authentication required (getServerSession)
 - ✅ Ownership validation (user can only access their own data)
 - ✅ Tier validation before creating items
@@ -276,6 +303,7 @@ model Watchlist {
 - ✅ Proper HTTP status codes (200, 201, 400, 401, 403, 404, 409)
 
 ### **5. Error Handling**
+
 - ✅ Try-catch blocks in async operations
 - ✅ User-friendly error messages
 - ✅ Handle duplicate combination (409 Conflict)
@@ -283,6 +311,7 @@ model Watchlist {
 - ✅ Loading states for operations
 
 ### **6. Component Patterns**
+
 - ✅ Use shadcn/ui components (Card, Button, Badge, Select, Dialog)
 - ✅ Use Lucide icons
 - ✅ Responsive design (mobile-first)
@@ -295,12 +324,14 @@ model Watchlist {
 After building all 8 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Visit `http://localhost:3000/watchlist`
 - [ ] Verify watchlist page loads without errors
 - [ ] Check empty state displays correctly
@@ -316,6 +347,7 @@ npm run dev
 - [ ] Test tier limit: FREE user cannot add more than 5 items
 
 ### **3. API Testing**
+
 ```bash
 # GET watchlist
 curl http://localhost:3000/api/watchlist
@@ -330,12 +362,14 @@ curl -X DELETE http://localhost:3000/api/watchlist/{id}
 ```
 
 ### **4. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] No missing key props warnings
 - [ ] API calls return correct status codes
 
 ### **5. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -346,12 +380,13 @@ npm run build
 ## 📝 CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Watchlist Tier Limits**
+
 ```typescript
 // lib/watchlist-config.ts
 
 export const WATCHLIST_LIMITS = {
-  FREE: 5,    // Max 5 symbol+timeframe combinations
-  PRO: 50,    // Max 50 symbol+timeframe combinations
+  FREE: 5, // Max 5 symbol+timeframe combinations
+  PRO: 50, // Max 50 symbol+timeframe combinations
 } as const;
 
 export type UserTier = 'FREE' | 'PRO';
@@ -360,12 +395,16 @@ export function getWatchlistLimit(tier: UserTier): number {
   return WATCHLIST_LIMITS[tier];
 }
 
-export function canAddWatchlistItem(tier: UserTier, currentCount: number): boolean {
+export function canAddWatchlistItem(
+  tier: UserTier,
+  currentCount: number
+): boolean {
   return currentCount < WATCHLIST_LIMITS[tier];
 }
 ```
 
 ### **Pattern 2: Watchlist Page (Server Component)**
+
 ```typescript
 // app/(dashboard)/watchlist/page.tsx
 import { getServerSession } from 'next-auth';
@@ -409,6 +448,7 @@ export default async function WatchlistPage() {
 ```
 
 ### **Pattern 3: Watchlist API Route**
+
 ```typescript
 // app/api/watchlist/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -484,7 +524,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Validate timeframe access
     if (!canAccessTimeframe(tier, timeframe)) {
       return NextResponse.json(
-        { error: `Timeframe ${timeframe} is not available in your ${tier} tier` },
+        {
+          error: `Timeframe ${timeframe} is not available in your ${tier} tier`,
+        },
         { status: 403 }
       );
     }
@@ -526,7 +568,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (existing) {
       return NextResponse.json(
-        { error: 'This symbol+timeframe combination already exists in your watchlist' },
+        {
+          error:
+            'This symbol+timeframe combination already exists in your watchlist',
+        },
         { status: 409 }
       );
     }
@@ -553,6 +598,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 4: Watchlist Item Component**
+
 ```typescript
 // components/watchlist/watchlist-item.tsx
 'use client';
@@ -690,6 +736,7 @@ export function WatchlistItem({
 ```
 
 ### **Pattern 5: useWatchlist Hook**
+
 ```typescript
 // hooks/use-watchlist.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -720,11 +767,7 @@ export function useWatchlist() {
   const limit = WATCHLIST_LIMITS[tier];
 
   // Fetch watchlist
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery<WatchlistResponse>({
+  const { data, isLoading, error } = useQuery<WatchlistResponse>({
     queryKey: ['watchlist'],
     queryFn: async () => {
       const res = await fetch('/api/watchlist');
@@ -737,7 +780,13 @@ export function useWatchlist() {
 
   // Add item mutation
   const addItem = useMutation({
-    mutationFn: async ({ symbol, timeframe }: { symbol: string; timeframe: string }) => {
+    mutationFn: async ({
+      symbol,
+      timeframe,
+    }: {
+      symbol: string;
+      timeframe: string;
+    }) => {
       const res = await fetch('/api/watchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -815,6 +864,7 @@ export function useWatchlist() {
 ```
 
 ### **Pattern 6: Symbol Selector Component**
+
 ```typescript
 // components/watchlist/symbol-selector.tsx
 'use client';
@@ -905,6 +955,7 @@ export function SymbolSelector({
 ## 🚨 CRITICAL RULES
 
 ### **DO:**
+
 - ✅ Read ALL policy files before writing code
 - ✅ Follow tier-based limits EXACTLY (FREE: 5, PRO: 50)
 - ✅ Validate symbol AND timeframe access
@@ -917,6 +968,7 @@ export function SymbolSelector({
 - ✅ Test thoroughly before pushing
 
 ### **DON'T:**
+
 - ❌ Skip reading policy files
 - ❌ Use `any` types
 - ❌ Allow users to exceed tier limits
@@ -982,6 +1034,7 @@ Use the TodoWrite tool to track your progress:
    - `seed-code/v0-components/watchlist-page-component/app/watchlist/page.tsx` - Reference implementation
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

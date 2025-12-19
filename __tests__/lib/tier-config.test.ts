@@ -321,7 +321,9 @@ describe('getAccessibleSymbols', () => {
   });
 
   it('should throw error for invalid tier', () => {
-    expect(() => getAccessibleSymbols('INVALID' as Tier)).toThrow('Invalid tier');
+    expect(() => getAccessibleSymbols('INVALID' as Tier)).toThrow(
+      'Invalid tier'
+    );
   });
 });
 
@@ -365,6 +367,8 @@ describe('getChartCombinations', () => {
   });
 
   it('should throw error for invalid tier', () => {
-    expect(() => getChartCombinations('INVALID' as Tier)).toThrow('Invalid tier');
+    expect(() => getChartCombinations('INVALID' as Tier)).toThrow(
+      'Invalid tier'
+    );
   });
 });

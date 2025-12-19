@@ -6,7 +6,10 @@
 
 import { NextResponse } from 'next/server';
 import { ZodError, z } from 'zod';
-import { handleAPIError, createErrorResponse } from '@/lib/errors/error-handler';
+import {
+  handleAPIError,
+  createErrorResponse,
+} from '@/lib/errors/error-handler';
 import { APIError, ValidationError } from '@/lib/errors/api-error';
 
 // Mock console.error to prevent test output noise
@@ -197,7 +200,9 @@ describe('Error Handler', () => {
 
 describe('Prisma Error Handling', () => {
   // Mock Prisma-like errors
-  const createPrismaError = (code: string): { code: string; message: string } => ({
+  const createPrismaError = (
+    code: string
+  ): { code: string; message: string } => ({
     code,
     message: `Prisma error: ${code}`,
   });

@@ -134,7 +134,8 @@ function generateMockErrorLogs(
       timestamp,
       type: sample.type,
       message: sample.message,
-      userId: Math.random() > 0.3 ? `user-${Math.floor(Math.random() * 1000)}` : null,
+      userId:
+        Math.random() > 0.3 ? `user-${Math.floor(Math.random() * 1000)}` : null,
       userTier: Math.random() > 0.2 ? userTier : null,
       endpoint: sample.endpoint,
       stackTrace: sample.stackTrace,

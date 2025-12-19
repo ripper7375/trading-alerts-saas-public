@@ -116,8 +116,8 @@ export function AlertList({
       {selectedAlerts.length > 0 && (
         <div className="bg-blue-600 text-white rounded-lg p-4 shadow-lg mb-6 flex flex-wrap items-center justify-between gap-4">
           <span className="font-semibold">
-            {selectedAlerts.length} alert{selectedAlerts.length !== 1 ? 's' : ''}{' '}
-            selected
+            {selectedAlerts.length} alert
+            {selectedAlerts.length !== 1 ? 's' : ''} selected
           </span>
           <div className="flex gap-2">
             <Button
@@ -176,11 +176,12 @@ export function AlertList({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-red-600">
-              Delete {selectedAlerts.length} Alert{selectedAlerts.length !== 1 ? 's' : ''}?
+              Delete {selectedAlerts.length} Alert
+              {selectedAlerts.length !== 1 ? 's' : ''}?
             </DialogTitle>
             <DialogDescription className="text-gray-700 pt-4">
-              Are you sure you want to delete these alerts? This action cannot be
-              undone.
+              Are you sure you want to delete these alerts? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -214,7 +214,9 @@ export function AlertsClient({
     };
 
     return (
-      <Badge className={`${config[status].className} hover:${config[status].className}`}>
+      <Badge
+        className={`${config[status].className} hover:${config[status].className}`}
+      >
         {status === 'active' && '🟢'} {status === 'paused' && '⏸️'}{' '}
         {status === 'triggered' && '✅'} {config[status].label}
       </Badge>
@@ -259,7 +261,10 @@ export function AlertsClient({
           <div className="mb-4">
             <p className="text-sm text-gray-600 mb-1">{conditionDisplay}</p>
             <p className="text-2xl font-bold text-gray-900">
-              ${targetValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              $
+              {targetValue.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+              })}
             </p>
           </div>
 
@@ -337,7 +342,9 @@ export function AlertsClient({
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
         <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-4">Dashboard &gt; Alerts</div>
+          <div className="text-sm text-gray-500 mb-4">
+            Dashboard &gt; Alerts
+          </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">Alerts</h1>
@@ -364,7 +371,10 @@ export function AlertsClient({
               </div>
               <div className="text-sm text-gray-500">alerts watching</div>
               {userTier === 'FREE' && counts.active >= limit && (
-                <Link href="/pricing" className="text-blue-600 text-sm underline mt-2 block">
+                <Link
+                  href="/pricing"
+                  className="text-blue-600 text-sm underline mt-2 block"
+                >
                   Upgrade for more alerts
                 </Link>
               )}

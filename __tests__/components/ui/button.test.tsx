@@ -14,7 +14,9 @@ describe('Button Component', () => {
   describe('rendering', () => {
     it('should render button with children', () => {
       render(<Button>Click me</Button>);
-      expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Click me' })
+      ).toBeInTheDocument();
     });
 
     it('should render with data-slot attribute', () => {
@@ -132,7 +134,11 @@ describe('Button Component', () => {
 
     it('should not call onClick when disabled', async () => {
       const handleClick = jest.fn();
-      render(<Button disabled onClick={handleClick}>Click me</Button>);
+      render(
+        <Button disabled onClick={handleClick}>
+          Click me
+        </Button>
+      );
 
       const button = screen.getByRole('button');
       await userEvent.click(button);

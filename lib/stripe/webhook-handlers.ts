@@ -20,6 +20,8 @@ import {
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
 } from '@/lib/email/subscription-emails';
+import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
+import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT COMPLETED
@@ -93,6 +95,12 @@ export async function handleCheckoutCompleted(
     // Send upgrade confirmation email
     if (user.email) {
       await sendUpgradeEmail(user.email, user.name || 'User', nextBillingDate);
+    }
+
+    // Handle affiliate code commission if present
+    const affiliateCode = session.metadata?.['affiliateCode'];
+    if (affiliateCode) {
+      await processAffiliateCommission(affiliateCode, userId, subscriptionId);
     }
 
     console.log(`[Webhook] User ${userId} upgraded to PRO`);
@@ -412,4 +420,101 @@ function mapStripeStatus(
   };
 
   return statusMap[stripeStatus] || 'INACTIVE';
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AFFILIATE COMMISSION PROCESSING
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Process affiliate commission for a completed checkout
+ *
+ * - Validates affiliate code
+ * - Marks code as used
+ * - Creates commission record
+ * - Updates affiliate balances
+ *
+ * @param code - Affiliate code string
+ * @param userId - User who made the purchase
+ * @param subscriptionId - Subscription created from purchase
+ */
+async function processAffiliateCommission(
+  code: string,
+  userId: string,
+  subscriptionId: string
+): Promise<void> {
+  try {
+    // Find the affiliate code
+    const affiliateCode = await prisma.affiliateCode.findUnique({
+      where: { code },
+      include: { affiliateProfile: true },
+    });
+
+    if (!affiliateCode) {
+      console.error('[Webhook] Affiliate code not found:', code);
+      return;
+    }
+
+    // Skip if code is not active
+    if (affiliateCode.status !== 'ACTIVE') {
+      console.log(
+        `[Webhook] Affiliate code ${code} is not active, skipping commission`
+      );
+      return;
+    }
+
+    // Calculate commission using percentage-based model
+    const breakdown = calculateFullBreakdown(
+      AFFILIATE_CONFIG.BASE_PRICE_USD,
+      affiliateCode.discountPercent,
+      affiliateCode.commissionPercent
+    );
+
+    // Mark code as used
+    await prisma.affiliateCode.update({
+      where: { id: affiliateCode.id },
+      data: {
+        status: 'USED',
+        usedAt: new Date(),
+        usedBy: userId,
+        subscriptionId,
+      },
+    });
+
+    // Create commission record
+    await prisma.commission.create({
+      data: {
+        affiliateProfileId: affiliateCode.affiliateProfileId,
+        affiliateCodeId: affiliateCode.id,
+        userId,
+        subscriptionId,
+        grossRevenue: breakdown.grossRevenue,
+        discountAmount: breakdown.discountAmount,
+        netRevenue: breakdown.netRevenue,
+        commissionAmount: breakdown.commissionAmount,
+        status: 'PENDING',
+        earnedAt: new Date(),
+      },
+    });
+
+    // Update affiliate profile stats
+    await prisma.affiliateProfile.update({
+      where: { id: affiliateCode.affiliateProfileId },
+      data: {
+        totalCodesUsed: { increment: 1 },
+        totalEarnings: { increment: breakdown.commissionAmount },
+        pendingCommissions: { increment: breakdown.commissionAmount },
+      },
+    });
+
+    console.log(
+      `[Webhook] Affiliate commission created: $${breakdown.commissionAmount} for code ${code}`
+    );
+
+    // TODO: Send commission notification email to affiliate
+    // await sendCodeUsedEmail(affiliateCode.affiliateProfile, code, breakdown.commissionAmount);
+  } catch (error) {
+    // Log but don't throw - we don't want to fail the checkout for affiliate issues
+    console.error('[Webhook] Error processing affiliate commission:', error);
+  }
 }

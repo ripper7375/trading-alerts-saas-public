@@ -101,7 +101,12 @@ export class APIError extends Error {
     code: string = 'RATE_LIMIT_EXCEEDED',
     retryAfter?: number
   ): APIError {
-    return new APIError(429, code, message, retryAfter ? { retryAfter } : undefined);
+    return new APIError(
+      429,
+      code,
+      message,
+      retryAfter ? { retryAfter } : undefined
+    );
   }
 
   /**

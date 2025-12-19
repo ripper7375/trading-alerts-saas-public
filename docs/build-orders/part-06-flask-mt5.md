@@ -391,14 +391,14 @@ MT5_01...MT5_15 (individual terminals)
 
 If rebuilding from existing Part 6 code:
 
-| Old File | Action | New File |
-|----------|--------|----------|
-| `app/services/mt5_service.py` | REPLACE | `app/services/mt5_connection_pool.py` + `app/services/indicator_reader.py` |
-| `app/__init__.py` | REFACTOR | Add connection pool init, health monitor |
-| `app/routes/indicators.py` | REFACTOR | Use pool.get_connection_by_symbol() |
-| (none) | ADD | `app/services/health_monitor.py` |
-| (none) | ADD | `app/routes/admin.py` |
-| (none) | ADD | `config/mt5_terminals.json` |
+| Old File                      | Action   | New File                                                                   |
+| ----------------------------- | -------- | -------------------------------------------------------------------------- |
+| `app/services/mt5_service.py` | REPLACE  | `app/services/mt5_connection_pool.py` + `app/services/indicator_reader.py` |
+| `app/__init__.py`             | REFACTOR | Add connection pool init, health monitor                                   |
+| `app/routes/indicators.py`    | REFACTOR | Use pool.get_connection_by_symbol()                                        |
+| (none)                        | ADD      | `app/services/health_monitor.py`                                           |
+| (none)                        | ADD      | `app/routes/admin.py`                                                      |
+| (none)                        | ADD      | `config/mt5_terminals.json`                                                |
 
 ---
 

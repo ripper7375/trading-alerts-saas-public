@@ -232,12 +232,7 @@ export const HTTP_STATUS = {
  * Environment variables (for reference)
  */
 export const ENV_VARS = {
-  required: [
-    'DATABASE_URL',
-    'NEXTAUTH_URL',
-    'NEXTAUTH_SECRET',
-    'REDIS_URL',
-  ],
+  required: ['DATABASE_URL', 'NEXTAUTH_URL', 'NEXTAUTH_SECRET', 'REDIS_URL'],
   optional: [
     'RESEND_API_KEY',
     'STRIPE_SECRET_KEY',
@@ -251,7 +246,7 @@ export const ENV_VARS = {
 /**
  * Get tier limits for a given tier
  */
-export function getTierLimits(tier: Tier): typeof TIER_LIMITS[Tier] {
+export function getTierLimits(tier: Tier): (typeof TIER_LIMITS)[Tier] {
   return TIER_LIMITS[tier];
 }
 

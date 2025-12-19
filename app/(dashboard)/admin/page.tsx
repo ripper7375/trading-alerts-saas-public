@@ -339,7 +339,9 @@ export default function AdminDashboardPage(): React.ReactElement {
                   <div className="flex-1">
                     <p className="text-white text-sm">{activity.description}</p>
                     {activity.userEmail && (
-                      <p className="text-gray-400 text-xs">{activity.userEmail}</p>
+                      <p className="text-gray-400 text-xs">
+                        {activity.userEmail}
+                      </p>
                     )}
                   </div>
                   <span className="text-gray-500 text-xs">

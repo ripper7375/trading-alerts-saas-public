@@ -142,9 +142,7 @@ describe('useWebSocket Hook', () => {
       renderHook(() => useWebSocket());
 
       // WebSocket should be created with a URL
-      expect(global.WebSocket).toHaveBeenCalledWith(
-        expect.any(String)
-      );
+      expect(global.WebSocket).toHaveBeenCalledWith(expect.any(String));
     });
   });
 
@@ -181,7 +179,9 @@ describe('useWebSocket Hook', () => {
       });
 
       // SendMessage function should be callable without error
-      expect(() => result.current.sendMessage({ type: 'test', data: { foo: 'bar' } })).not.toThrow();
+      expect(() =>
+        result.current.sendMessage({ type: 'test', data: { foo: 'bar' } })
+      ).not.toThrow();
     });
   });
 
@@ -194,7 +194,9 @@ describe('useWebSocket Hook', () => {
       });
 
       // markNotificationRead function should be callable without error
-      expect(() => result.current.markNotificationRead('notification-123')).not.toThrow();
+      expect(() =>
+        result.current.markNotificationRead('notification-123')
+      ).not.toThrow();
     });
   });
 
@@ -222,13 +224,17 @@ describe('useWebSocket Hook', () => {
     });
 
     it('should accept autoReconnect option', () => {
-      const { result } = renderHook(() => useWebSocket({ autoReconnect: false }));
+      const { result } = renderHook(() =>
+        useWebSocket({ autoReconnect: false })
+      );
 
       expect(typeof result.current.disconnect).toBe('function');
     });
 
     it('should accept reconnectInterval option', () => {
-      const { result } = renderHook(() => useWebSocket({ reconnectInterval: 10000 }));
+      const { result } = renderHook(() =>
+        useWebSocket({ reconnectInterval: 10000 })
+      );
 
       expect(typeof result.current.disconnect).toBe('function');
     });

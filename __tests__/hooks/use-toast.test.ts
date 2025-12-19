@@ -128,7 +128,10 @@ describe('useToast Hook', () => {
 
       let toastId: string = '';
       act(() => {
-        toastId = result.current.addToast({ type: 'info', title: 'Toast to remove' });
+        toastId = result.current.addToast({
+          type: 'info',
+          title: 'Toast to remove',
+        });
       });
 
       expect(result.current.toasts).toHaveLength(1);

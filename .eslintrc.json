@@ -89,7 +89,14 @@
       }
     },
     {
-      "files": ["lib/**/*.ts", "lib/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "app/**/*.ts", "app/**/*.tsx"],
+      "files": [
+        "lib/**/*.ts",
+        "lib/**/*.tsx",
+        "components/**/*.ts",
+        "components/**/*.tsx",
+        "app/**/*.ts",
+        "app/**/*.tsx"
+      ],
       "rules": {
         "no-console": "off",
         "@typescript-eslint/explicit-function-return-type": "off",

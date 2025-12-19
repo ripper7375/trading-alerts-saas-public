@@ -2143,16 +2143,17 @@ def test_live_mt5_connection():
 
 ## SUMMARY: LESSONS LEARNED FROM CI FAILURES
 
-| Issue | Prevention |
-|-------|------------|
-| Line too long | Use 88 char limit for Python (Black's default) |
-| Unused imports | Only import what you use, remove unused |
-| Unnecessary `global` | Don't use `global` when only reading module-level variables |
-| Missing dependencies | Add all imports to requirements.txt |
-| Tuple assertion errors | Always unpack `Tuple[bool, str]` before asserting |
-| Health check failures in CI | Accept both connected (200) and disconnected (503) states |
+| Issue                       | Prevention                                                  |
+| --------------------------- | ----------------------------------------------------------- |
+| Line too long               | Use 88 char limit for Python (Black's default)              |
+| Unused imports              | Only import what you use, remove unused                     |
+| Unnecessary `global`        | Don't use `global` when only reading module-level variables |
+| Missing dependencies        | Add all imports to requirements.txt                         |
+| Tuple assertion errors      | Always unpack `Tuple[bool, str]` before asserting           |
+| Health check failures in CI | Accept both connected (200) and disconnected (503) states   |
 
 **Pre-commit checklist for Python/Flask:**
+
 1. Run `flake8 . --max-line-length=88` locally before push
 2. Verify all imports are in requirements.txt
 3. Ensure tests handle CI environment (no external services)
@@ -2175,6 +2176,7 @@ app/
 ```
 
 This causes Vercel build errors like:
+
 ```
 Error: ENOENT: no such file or directory, open '.next/server/app/page_client-reference-manifest.js'
 ```
@@ -2244,7 +2246,11 @@ global.TextDecoder = TextDecoder;
 // Required by undici and other packages that use Web Streams
 // Note: stream/web is available in Node.js 16.5+ but not exposed to jsdom
 if (typeof global.ReadableStream === 'undefined') {
-  const { ReadableStream, WritableStream, TransformStream } = require('stream/web');
+  const {
+    ReadableStream,
+    WritableStream,
+    TransformStream,
+  } = require('stream/web');
   global.ReadableStream = ReadableStream;
   global.WritableStream = WritableStream;
   global.TransformStream = TransformStream;
@@ -2292,8 +2298,8 @@ Zod applies transforms in order. If validation comes before transform, validatio
 // Input: "  user@example.com  " fails email validation (has spaces!)
 const emailSchema = z
   .string()
-  .email('Invalid email format')  // Validates raw input with spaces
-  .trim()                          // Trim happens AFTER validation
+  .email('Invalid email format') // Validates raw input with spaces
+  .trim() // Trim happens AFTER validation
   .toLowerCase();
 ```
 
@@ -2305,9 +2311,9 @@ Always put transforms BEFORE validations:
 // ✅ CORRECT: .trim() and .toLowerCase() BEFORE .email()
 const emailSchema = z
   .string()
-  .trim()                          // 1. Remove whitespace first
-  .toLowerCase()                   // 2. Normalize case
-  .email('Invalid email format')   // 3. NOW validate clean input
+  .trim() // 1. Remove whitespace first
+  .toLowerCase() // 2. Normalize case
+  .email('Invalid email format') // 3. NOW validate clean input
   .min(5, 'Email is required')
   .max(254, 'Email must not exceed 254 characters');
 ```
@@ -2318,18 +2324,18 @@ const emailSchema = z
 // ✅ Username validation
 const usernameSchema = z
   .string()
-  .trim()                          // Transform first
+  .trim() // Transform first
   .toLowerCase()
-  .min(3, 'Username too short')    // Then validate
+  .min(3, 'Username too short') // Then validate
   .max(30, 'Username too long')
   .regex(/^[a-z0-9_]+$/, 'Only lowercase letters, numbers, underscores');
 
 // ✅ Phone number validation
 const phoneSchema = z
   .string()
-  .trim()                          // Transform first
-  .replace(/\D/g, '')              // Remove non-digits
-  .min(10, 'Phone number too short')  // Then validate
+  .trim() // Transform first
+  .replace(/\D/g, '') // Remove non-digits
+  .min(10, 'Phone number too short') // Then validate
   .max(15, 'Phone number too long');
 ```
 
@@ -2349,7 +2355,7 @@ jsdom simulates a browser environment by defining `window`, `document`, etc. Thi
 
 // ❌ WRONG: Assumes Node.js behavior in jsdom
 it('should detect server environment', () => {
-  expect(isServer()).toBe(true);  // FAILS! jsdom has window
+  expect(isServer()).toBe(true); // FAILS! jsdom has window
 });
 ```
 
@@ -2382,7 +2388,7 @@ For code that must run in Node.js environment:
  */
 describe('Server-side utils', () => {
   it('should detect server environment', () => {
-    expect(isServer()).toBe(true);  // Works! No jsdom
+    expect(isServer()).toBe(true); // Works! No jsdom
   });
 });
 
@@ -2474,22 +2480,23 @@ Set realistic thresholds that account for growth:
 
 ## UPDATED SUMMARY: LESSONS LEARNED FROM CI FAILURES
 
-| Issue | Prevention |
-|-------|------------|
-| Line too long | Use 88 char limit for Python (Black's default) |
-| Unused imports | Only import what you use, remove unused |
-| Unnecessary `global` | Don't use `global` when only reading module-level variables |
-| Missing dependencies | Add all imports to requirements.txt |
-| Tuple assertion errors | Always unpack `Tuple[bool, str]` before asserting |
-| Health check failures in CI | Accept both connected (200) and disconnected (503) states |
-| **Duplicate Next.js routes** | Only ONE `page.tsx` per URL path (Pattern 17) |
+| Issue                                      | Prevention                                                     |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| Line too long                              | Use 88 char limit for Python (Black's default)                 |
+| Unused imports                             | Only import what you use, remove unused                        |
+| Unnecessary `global`                       | Don't use `global` when only reading module-level variables    |
+| Missing dependencies                       | Add all imports to requirements.txt                            |
+| Tuple assertion errors                     | Always unpack `Tuple[bool, str]` before asserting              |
+| Health check failures in CI                | Accept both connected (200) and disconnected (503) states      |
+| **Duplicate Next.js routes**               | Only ONE `page.tsx` per URL path (Pattern 17)                  |
 | **TextEncoder/ReadableStream not defined** | Add polyfills to `jest.setup.js` in correct order (Pattern 18) |
-| **Zod validation failures** | Put `.trim()/.toLowerCase()` BEFORE `.email()` (Pattern 19) |
-| **isServer() test failures** | Account for jsdom defining `window` (Pattern 20) |
-| **CI stuck on self-hosted** | Use `ubuntu-latest` runners (Pattern 21) |
-| **Bundle size exceeded** | Set thresholds with ~20% headroom (Pattern 21) |
+| **Zod validation failures**                | Put `.trim()/.toLowerCase()` BEFORE `.email()` (Pattern 19)    |
+| **isServer() test failures**               | Account for jsdom defining `window` (Pattern 20)               |
+| **CI stuck on self-hosted**                | Use `ubuntu-latest` runners (Pattern 21)                       |
+| **Bundle size exceeded**                   | Set thresholds with ~20% headroom (Pattern 21)                 |
 
 **Pre-commit checklist for Next.js/TypeScript:**
+
 1. Run `pnpm run test:quick` locally before push
 2. Check for duplicate routes: `find app -name "page.tsx" | sort`
 3. Verify jest.setup.js has required polyfills

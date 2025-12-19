@@ -100,14 +100,14 @@ This document is your **complete step-by-step guide** from start to finish. Foll
 
 ## 📊 Overall Progress
 
-| Metric                       | Status        | Notes                                                               |
-| ---------------------------- | ------------- | ------------------------------------------------------------------- |
-| **Current Phase**            | Phase 3       | Autonomous Building - Parts 1-10 Complete                           |
-| **Total Files**              | 94 / 289 (33%)| Parts 1-10: 12+4+8+4+20+15+6+9+8+8 = 94 files                       |
-| **Parts Completed**          | 10 / 18 (56%) | Parts 1-10 merged to main                                           |
-| **Milestones Done**          | 9 / 9 Phase 1 | Milestones 1.0-1.9 complete ✅                                      |
-| **Estimated Time Remaining** | ~243 hours    | Parts 11-18 remaining + Part 17 (120h) + Part 18 (120h)             |
-| **Recent Completion**        | Part 10       | Watchlist System (PR #103, Dec 11, 2025)                            |
+| Metric                       | Status         | Notes                                                   |
+| ---------------------------- | -------------- | ------------------------------------------------------- |
+| **Current Phase**            | Phase 3        | Autonomous Building - Parts 1-10 Complete               |
+| **Total Files**              | 94 / 289 (33%) | Parts 1-10: 12+4+8+4+20+15+6+9+8+8 = 94 files           |
+| **Parts Completed**          | 10 / 18 (56%)  | Parts 1-10 merged to main                               |
+| **Milestones Done**          | 9 / 9 Phase 1  | Milestones 1.0-1.9 complete ✅                          |
+| **Estimated Time Remaining** | ~243 hours     | Parts 11-18 remaining + Part 17 (120h) + Part 18 (120h) |
+| **Recent Completion**        | Part 10        | Watchlist System (PR #103, Dec 11, 2025)                |
 
 ---
 
@@ -2193,6 +2193,7 @@ After Aider completes Part 7:
 - [x] Verify: Can add symbol+timeframe combinations
 
 **Built files:**
+
 - [x] `app/(dashboard)/watchlist/page.tsx` - Server component with auth
 - [x] `app/(dashboard)/watchlist/watchlist-client.tsx` - Client component with add/remove UI
 - [x] `app/api/watchlist/route.ts` - GET/POST endpoints
@@ -2204,6 +2205,7 @@ After Aider completes Part 7:
 - [x] `hooks/use-watchlist.ts` - React hook for watchlist operations
 
 **Features implemented:**
+
 - [x] Tier-based limits: FREE (5 items), PRO (50 items)
 - [x] Symbol+timeframe combination management
 - [x] Tier validation on add

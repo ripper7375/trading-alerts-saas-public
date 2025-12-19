@@ -5,6 +5,7 @@
 Trading Alerts SaaS is a web app for traders to monitor financial markets and set automated alerts based on fractal support/resistance levels. Integrates with MetaTrader 5 (MT5) and provides tiered subscriptions (FREE/PRO).
 
 **Key Features:**
+
 - Real-time MT5 market data visualization
 - Fractal-based support/resistance detection
 - Automated alert system
@@ -17,14 +18,14 @@ Trading Alerts SaaS is a web app for traders to monitor financial markets and se
 
 ## 2. Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS, shadcn/ui |
-| Backend | Next.js API Routes, NextAuth.js v4.24.5, Prisma 5, Zod |
-| MT5 Service | Flask 3.x, Python 3.11, MetaTrader5 package |
-| Database | PostgreSQL 15 (Railway) |
-| Payments | Stripe (global), dLocal (8 emerging markets) |
-| Deployment | Vercel (Next.js), Railway (PostgreSQL), Windows VPS (Flask + MT5) |
+| Layer       | Technology                                                        |
+| ----------- | ----------------------------------------------------------------- |
+| Frontend    | Next.js 15, React 19, TypeScript, Tailwind CSS, shadcn/ui         |
+| Backend     | Next.js API Routes, NextAuth.js v4.24.5, Prisma 5, Zod            |
+| MT5 Service | Flask 3.x, Python 3.11, MetaTrader5 package                       |
+| Database    | PostgreSQL 15 (Railway)                                           |
+| Payments    | Stripe (global), dLocal (8 emerging markets)                      |
+| Deployment  | Vercel (Next.js), Railway (PostgreSQL), Windows VPS (Flask + MT5) |
 
 > **Note:** The Flask MT5 service runs on Windows VPS (not Railway) because the MetaTrader5 Python package requires Windows and direct access to MT5 terminal executables.
 
@@ -62,14 +63,14 @@ Payment       → userId, provider, amount, currency, status
 
 ## 5. Tier System
 
-| Feature | FREE | PRO |
-|---------|------|-----|
-| Symbols | 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) | 15 (all) |
-| Timeframes | 3 (H1, H4, D1) | 9 (M5-D1) |
-| Chart Combinations | 15 | 135 |
-| Max Alerts | 5 | 20 |
-| Max Watchlist | 5 | 50 |
-| API Rate | 60 req/hr | 300 req/hr |
+| Feature            | FREE                                     | PRO        |
+| ------------------ | ---------------------------------------- | ---------- |
+| Symbols            | 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) | 15 (all)   |
+| Timeframes         | 3 (H1, H4, D1)                           | 9 (M5-D1)  |
+| Chart Combinations | 15                                       | 135        |
+| Max Alerts         | 5                                        | 20         |
+| Max Watchlist      | 5                                        | 50         |
+| API Rate           | 60 req/hr                                | 300 req/hr |
 
 **Enforcement:** Backend validates on ALL tier-restricted endpoints; frontend disables UI (UX only).
 
@@ -78,11 +79,13 @@ Payment       → userId, provider, amount, currency, status
 ## 6. Authentication
 
 ### User Auth (NextAuth.js)
+
 - Providers: Google OAuth + Email/Password (Credentials)
 - Sessions: JWT in httpOnly cookies (30 days)
 - Security: Verified-only OAuth account linking prevents account takeover
 
 ### Affiliate Auth (Separate JWT)
+
 - Custom JWT implementation with `AFFILIATE_JWT_SECRET`
 - Status-based access: Must be APPROVED before login works
 - Token stored in localStorage
@@ -92,6 +95,7 @@ Payment       → userId, provider, amount, currency, status
 ## 7. API Structure
 
 **Standard Pattern:**
+
 ```typescript
 export async function GET(req: Request) {
   // 1. Authentication (getServerSession)
@@ -103,6 +107,7 @@ export async function GET(req: Request) {
 ```
 
 **Key Endpoints:**
+
 - `/api/alerts` - Alert CRUD
 - `/api/fractals/{symbol}/{timeframe}` - Fractal data from MT5
 - `/api/watchlist` - Watchlist management
@@ -122,10 +127,12 @@ export async function GET(req: Request) {
 **Architecture:** 15 MT5 terminals (1 per symbol, 9 timeframes each)
 
 **Symbol Routing:**
+
 - Connection pool routes requests to correct terminal by symbol
 - Health monitoring with auto-reconnect
 
 **Fractal Detection:**
+
 - Horizontal Lines V5: Peak-to-Peak and Bottom-to-Bottom (3+ touches)
 - Diagonal Lines V4: Mixed Peak-Bottom with alternating pattern (4+ touches)
 - Uses 108-bar pattern for fractal detection
@@ -135,17 +142,20 @@ export async function GET(req: Request) {
 ## 9. Payment System
 
 ### Stripe (International)
+
 - Auto-renewal subscriptions
 - 7-day free trial
 - Monthly plan ($29 USD)
 
 ### dLocal (8 Emerging Markets)
+
 - Manual renewal (no auto-renewal)
 - 3-day plan + Monthly plan
 - Countries: IN, NG, PK, VN, ID, TH, ZA, TR
 - Local currency support
 
 **Key Features:**
+
 - Early renewal stacking (dLocal monthly)
 - 3-day plan one-time use enforcement
 - Fraud detection system
@@ -155,6 +165,7 @@ export async function GET(req: Request) {
 ## 10. Affiliate System
 
 **Flow:**
+
 1. Affiliate registers → Admin approves
 2. Affiliate generates referral code
 3. User uses code → Subscribes via Stripe/dLocal
@@ -162,6 +173,7 @@ export async function GET(req: Request) {
 5. Admin approves commission → Payout
 
 **Security:**
+
 - Crypto-secure code generation (`crypto.randomBytes`)
 - Commission calculation ONLY in webhooks
 - All payouts require admin approval
@@ -171,6 +183,7 @@ export async function GET(req: Request) {
 ## 11. Data Flows
 
 ### Alert Creation
+
 ```
 User → Frontend (form) → API (/api/alerts)
   → Auth check → Tier validation → Alert limit check
@@ -178,6 +191,7 @@ User → Frontend (form) → API (/api/alerts)
 ```
 
 ### Chart Data
+
 ```
 User → Frontend → API (/api/fractals)
   → Auth → Tier check → Flask MT5 Service
@@ -201,11 +215,11 @@ User → Frontend → API (/api/fractals)
 
 ## 13. Deployment
 
-| Component | Platform | Method |
-|-----------|----------|--------|
-| Next.js | Vercel | Auto-deploy on push to main |
-| PostgreSQL | Railway | Prisma migrations |
-| Flask MT5 | Windows VPS | Gunicorn (same machine as MT5) |
+| Component        | Platform    | Method                               |
+| ---------------- | ----------- | ------------------------------------ |
+| Next.js          | Vercel      | Auto-deploy on push to main          |
+| PostgreSQL       | Railway     | Prisma migrations                    |
+| Flask MT5        | Windows VPS | Gunicorn (same machine as MT5)       |
 | 15 MT5 Terminals | Windows VPS | Manual setup (co-located with Flask) |
 
 > **Note:** Flask and MT5 terminals share the same Windows VPS because the MetaTrader5 Python package requires Windows and direct access to MT5 terminal processes.
@@ -224,12 +238,14 @@ User → Frontend → API (/api/fractals)
 ## 15. Development with Aider
 
 **Workflow:**
+
 1. Aider reads policies and build order
 2. Generates code following patterns
 3. Runs validation (TypeScript, ESLint, Prettier, Policy checks)
 4. Auto-approves if passing, or escalates to human
 
 **Validation Criteria:**
+
 - 0 Critical issues → Auto-approve
 - ≤2 High issues (auto-fixable) → Auto-fix then approve
 - Otherwise → Escalate

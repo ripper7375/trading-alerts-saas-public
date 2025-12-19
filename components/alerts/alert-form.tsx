@@ -83,7 +83,9 @@ export function AlertForm({
 }: AlertFormProps): React.JSX.Element {
   // Form state
   const [symbol, setSymbol] = useState<string>(initialData?.symbol || '');
-  const [timeframe, setTimeframe] = useState<string>(initialData?.timeframe || '');
+  const [timeframe, setTimeframe] = useState<string>(
+    initialData?.timeframe || ''
+  );
   const [conditionType, setConditionType] = useState<ConditionType>(
     initialData?.conditionType || 'price_above'
   );
@@ -250,7 +252,9 @@ export function AlertForm({
                     />
                     <span className="ml-2 font-medium">{type.label}</span>
                   </div>
-                  <p className="ml-6 text-sm text-gray-500">{type.description}</p>
+                  <p className="ml-6 text-sm text-gray-500">
+                    {type.description}
+                  </p>
                 </div>
               ))}
             </div>
