@@ -33,9 +33,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Parse request body
     const body = await request.json();
-    const { code } = body;
+    const rawCode = body?.code;
 
-    if (!code) {
+    if (!rawCode) {
       return NextResponse.json(
         {
           valid: false,
@@ -47,8 +47,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Normalize code to uppercase before validation
+    const normalizedCode = String(rawCode).trim().toUpperCase();
+
     // Validate code format
-    const validation = affiliateCodeSchema.safeParse(code);
+    const validation = affiliateCodeSchema.safeParse(normalizedCode);
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -60,8 +63,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 }
       );
     }
-
-    const normalizedCode = validation.data;
 
     // Find affiliate code
     const affiliateCode = await prisma.affiliateCode.findUnique({
@@ -112,8 +113,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check if code is expired
-    if (affiliateCode.expiresAt < new Date()) {
+    // Check if code is expired (inclusive - code expiring at exactly now is considered expired)
+    if (affiliateCode.expiresAt <= new Date()) {
       return NextResponse.json(
         {
           valid: false,
