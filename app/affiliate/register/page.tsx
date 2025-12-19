@@ -234,7 +234,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   <input
                     type="email"
                     id="paypalEmail"
-                    value={formData.paymentDetails.email || ''}
+                    value={formData.paymentDetails['email'] || ''}
                     onChange={(e) =>
                       handlePaymentDetailChange('email', e.target.value)
                     }
@@ -258,7 +258,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                     <input
                       type="text"
                       id="bankName"
-                      value={formData.paymentDetails.bankName || ''}
+                      value={formData.paymentDetails['bankName'] || ''}
                       onChange={(e) =>
                         handlePaymentDetailChange('bankName', e.target.value)
                       }
@@ -276,7 +276,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                     <input
                       type="text"
                       id="accountNumber"
-                      value={formData.paymentDetails.accountNumber || ''}
+                      value={formData.paymentDetails['accountNumber'] || ''}
                       onChange={(e) =>
                         handlePaymentDetailChange('accountNumber', e.target.value)
                       }
@@ -299,7 +299,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   <input
                     type="text"
                     id="walletAddress"
-                    value={formData.paymentDetails.walletAddress || ''}
+                    value={formData.paymentDetails['walletAddress'] || ''}
                     onChange={(e) =>
                       handlePaymentDetailChange('walletAddress', e.target.value)
                     }
@@ -322,7 +322,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   <input
                     type="email"
                     id="wiseEmail"
-                    value={formData.paymentDetails.email || ''}
+                    value={formData.paymentDetails['email'] || ''}
                     onChange={(e) =>
                       handlePaymentDetailChange('email', e.target.value)
                     }
