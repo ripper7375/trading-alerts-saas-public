@@ -74,6 +74,7 @@ jest.mock('@/lib/auth/session', () => ({
 const mockBuildDashboardStats = jest.fn();
 const mockBuildCodeInventoryReport = jest.fn();
 const mockBuildCommissionReport = jest.fn();
+const mockBuildCommissionSummary = jest.fn();
 
 jest.mock('@/lib/affiliate/report-builder', () => ({
   __esModule: true,
@@ -82,11 +83,14 @@ jest.mock('@/lib/affiliate/report-builder', () => ({
     mockBuildCodeInventoryReport(profileId, opts),
   buildCommissionReport: (profileId: string, opts: unknown) =>
     mockBuildCommissionReport(profileId, opts),
+  buildCommissionSummary: (profileId: string) => mockBuildCommissionSummary(profileId),
 }));
 
 // Mock Prisma
 const mockAffiliateCodeFindMany = jest.fn();
 const mockAffiliateCodeCount = jest.fn();
+const mockCommissionFindMany = jest.fn();
+const mockCommissionCount = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -94,6 +98,10 @@ jest.mock('@/lib/db/prisma', () => ({
     affiliateCode: {
       findMany: (...args: unknown[]) => mockAffiliateCodeFindMany(...args),
       count: (...args: unknown[]) => mockAffiliateCodeCount(...args),
+    },
+    commission: {
+      findMany: (...args: unknown[]) => mockCommissionFindMany(...args),
+      count: (...args: unknown[]) => mockCommissionCount(...args),
     },
   },
 }));
@@ -376,29 +384,31 @@ describe('Affiliate Dashboard API Routes', () => {
       });
       mockGetAffiliateProfile.mockResolvedValue(mockAffiliateProfile);
 
-      const expectedReport = {
-        commissions: [
-          {
-            id: 'comm-1',
-            amount: 4.64,
-            status: 'PENDING',
-            earnedAt: '2024-01-15T10:00:00.000Z',
-            affiliateCode: { code: 'TEST1234' },
-          },
-          {
-            id: 'comm-2',
-            amount: 4.64,
-            status: 'PAID',
-            earnedAt: '2024-01-10T10:00:00.000Z',
-            paidAt: '2024-02-01T10:00:00.000Z',
-            affiliateCode: { code: 'TEST5678' },
-          },
-        ],
-        total: 2,
-        page: 1,
-        limit: 20,
-      };
-      mockBuildCommissionReport.mockResolvedValue(expectedReport);
+      const mockCommissions = [
+        {
+          id: 'comm-1',
+          amount: 4.64,
+          status: 'PENDING',
+          earnedAt: '2024-01-15T10:00:00.000Z',
+          affiliateCode: { code: 'TEST1234', usedAt: null },
+        },
+        {
+          id: 'comm-2',
+          amount: 4.64,
+          status: 'PAID',
+          earnedAt: '2024-01-10T10:00:00.000Z',
+          paidAt: '2024-02-01T10:00:00.000Z',
+          affiliateCode: { code: 'TEST5678', usedAt: '2024-01-10T10:00:00.000Z' },
+        },
+      ];
+
+      mockCommissionFindMany.mockResolvedValue(mockCommissions);
+      mockCommissionCount.mockResolvedValue(2);
+      mockBuildCommissionSummary.mockResolvedValue({
+        totalEarned: 9.28,
+        pending: 4.64,
+        paid: 4.64,
+      });
 
       const { GET } = await import('@/app/api/affiliate/dashboard/commission-report/route');
       const request = new MockRequest(
@@ -409,7 +419,7 @@ describe('Affiliate Dashboard API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.commissions).toHaveLength(2);
-      expect(data.total).toBe(2);
+      expect(data.pagination.total).toBe(2);
     });
 
     it('should filter by status', async () => {
@@ -417,11 +427,12 @@ describe('Affiliate Dashboard API Routes', () => {
         user: { id: 'user-1', isAffiliate: true },
       });
       mockGetAffiliateProfile.mockResolvedValue(mockAffiliateProfile);
-      mockBuildCommissionReport.mockResolvedValue({
-        commissions: [],
-        total: 0,
-        page: 1,
-        limit: 20,
+      mockCommissionFindMany.mockResolvedValue([]);
+      mockCommissionCount.mockResolvedValue(0);
+      mockBuildCommissionSummary.mockResolvedValue({
+        totalEarned: 0,
+        pending: 0,
+        paid: 0,
       });
 
       const { GET } = await import('@/app/api/affiliate/dashboard/commission-report/route');
@@ -430,10 +441,11 @@ describe('Affiliate Dashboard API Routes', () => {
       );
       await GET(request as unknown as Request);
 
-      expect(mockBuildCommissionReport).toHaveBeenCalledWith(
-        mockAffiliateProfile.id,
+      expect(mockCommissionFindMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'PAID',
+          where: expect.objectContaining({
+            status: 'PAID',
+          }),
         })
       );
     });

@@ -273,7 +273,7 @@ describe('Affiliate Registration API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('token');
+      expect(data.message).toContain('token');
     });
 
     it('should return 400 for invalid/expired token', async () => {

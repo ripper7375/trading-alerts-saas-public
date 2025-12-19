@@ -96,7 +96,7 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-// Mock AFFILIATE_CONFIG
+// Mock AFFILIATE_CONFIG and CODE_GENERATION
 jest.mock('@/lib/affiliate/constants', () => ({
   __esModule: true,
   AFFILIATE_CONFIG: {
@@ -108,6 +108,10 @@ jest.mock('@/lib/affiliate/constants', () => ({
     CODE_EXPIRY_DAYS: 30,
     PAYMENT_METHODS: ['BANK_TRANSFER', 'PAYPAL', 'CRYPTOCURRENCY', 'WISE'],
     PAYMENT_FREQUENCY: 'MONTHLY',
+  },
+  CODE_GENERATION: {
+    CODE_LENGTH: 8,
+    CHARSET: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
   },
 }));
 
