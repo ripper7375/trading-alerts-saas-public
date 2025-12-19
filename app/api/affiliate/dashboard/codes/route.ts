@@ -84,12 +84,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       codes,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
+      page,
+      limit,
     });
   } catch (error) {
     console.error('[Affiliate Codes] Error:', error);
