@@ -44,7 +44,7 @@ interface AffiliateProfile {
 export async function distributeCodesAdmin(
   affiliateId: string,
   count: number,
-  reason: string
+  _reason: string
 ): Promise<DistributeResult> {
   // Validate count
   if (count < 1 || count > 50) {

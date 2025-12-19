@@ -8,8 +8,8 @@
  * @module app/admin/affiliates/[id]/page
  */
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -64,7 +64,6 @@ interface AffiliateDetails {
 
 export default function AdminAffiliateDetailPage(): React.ReactElement {
   const params = useParams();
-  const router = useRouter();
   const affiliateId = params.id as string;
 
   const [affiliate, setAffiliate] = useState<AffiliateDetails | null>(null);
@@ -75,13 +74,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
   const [distributeCount, setDistributeCount] = useState(10);
   const [distributeReason, setDistributeReason] = useState('');
 
-  useEffect(() => {
-    if (affiliateId) {
-      fetchAffiliate();
-    }
-  }, [affiliateId]);
-
-  const fetchAffiliate = async (): Promise<void> => {
+  const fetchAffiliate = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -102,7 +95,13 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [affiliateId]);
+
+  useEffect(() => {
+    if (affiliateId) {
+      fetchAffiliate();
+    }
+  }, [affiliateId, fetchAffiliate]);
 
   const handleSuspend = async (): Promise<void> => {
     const reason = prompt('Enter suspension reason:');

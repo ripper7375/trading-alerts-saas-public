@@ -8,7 +8,7 @@
  * @module app/admin/affiliates/reports/sales-performance/page
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -54,11 +54,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<'3months' | '6months' | '1year'>('3months');
 
-  useEffect(() => {
-    fetchReport();
-  }, [period]);
-
-  const fetchReport = async (): Promise<void> => {
+  const fetchReport = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -76,7 +72,11 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   const formatCurrency = (amount: number): string => {
     return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

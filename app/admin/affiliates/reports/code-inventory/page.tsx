@@ -8,7 +8,7 @@
  * @module app/admin/affiliates/reports/code-inventory/page
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -58,11 +58,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<'3months' | '6months' | '1year'>('3months');
 
-  useEffect(() => {
-    fetchReport();
-  }, [period]);
-
-  const fetchReport = async (): Promise<void> => {
+  const fetchReport = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -80,7 +76,11 @@ export default function CodeInventoryReportPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   const formatDate = (date: string): string => {
     return new Date(date).toLocaleDateString('en-US', {

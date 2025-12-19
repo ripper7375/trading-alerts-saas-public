@@ -8,7 +8,7 @@
  * @module app/admin/affiliates/reports/commission-owings/page
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -59,11 +59,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
   const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchReport();
-  }, [page]);
-
-  const fetchReport = async (): Promise<void> => {
+  const fetchReport = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -81,7 +77,11 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
 
   const handlePayCommissions = async (affiliateId: string, fullName: string): Promise<void> => {
     const paymentMethod = prompt('Enter payment method (e.g., PayPal, Bank Transfer):');

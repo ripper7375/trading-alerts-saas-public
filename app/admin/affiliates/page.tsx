@@ -8,7 +8,7 @@
  * @module app/admin/affiliates/page
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -62,11 +62,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
     country: '',
   });
 
-  useEffect(() => {
-    fetchAffiliates();
-  }, [filters, pagination.page]);
-
-  const fetchAffiliates = async (): Promise<void> => {
+  const fetchAffiliates = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
@@ -95,7 +91,11 @@ export default function AdminAffiliatesPage(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.page, pagination.limit]);
+
+  useEffect(() => {
+    fetchAffiliates();
+  }, [fetchAffiliates]);
 
   const getStatusBadgeClass = (status: string): string => {
     switch (status) {
