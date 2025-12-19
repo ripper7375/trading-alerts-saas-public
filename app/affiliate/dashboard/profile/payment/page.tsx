@@ -199,7 +199,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
               <input
                 type="email"
                 id="paypalEmail"
-                value={paymentInfo.paymentDetails.email || ''}
+                value={paymentInfo.paymentDetails['email'] || ''}
                 onChange={(e) =>
                   handlePaymentDetailChange('email', e.target.value)
                 }
@@ -219,7 +219,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                 </label>
                 <input
                   type="text"
-                  value={paymentInfo.paymentDetails.bankName || ''}
+                  value={paymentInfo.paymentDetails['bankName'] || ''}
                   onChange={(e) =>
                     handlePaymentDetailChange('bankName', e.target.value)
                   }
@@ -233,7 +233,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                 </label>
                 <input
                   type="text"
-                  value={paymentInfo.paymentDetails.accountHolder || ''}
+                  value={paymentInfo.paymentDetails['accountHolder'] || ''}
                   onChange={(e) =>
                     handlePaymentDetailChange('accountHolder', e.target.value)
                   }
@@ -247,7 +247,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                 </label>
                 <input
                   type="text"
-                  value={paymentInfo.paymentDetails.accountNumber || ''}
+                  value={paymentInfo.paymentDetails['accountNumber'] || ''}
                   onChange={(e) =>
                     handlePaymentDetailChange('accountNumber', e.target.value)
                   }
@@ -261,7 +261,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                 </label>
                 <input
                   type="text"
-                  value={paymentInfo.paymentDetails.swiftCode || ''}
+                  value={paymentInfo.paymentDetails['swiftCode'] || ''}
                   onChange={(e) =>
                     handlePaymentDetailChange('swiftCode', e.target.value)
                   }
@@ -279,7 +279,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                   Cryptocurrency
                 </label>
                 <select
-                  value={paymentInfo.paymentDetails.currency || 'USDT'}
+                  value={paymentInfo.paymentDetails['currency'] || 'USDT'}
                   onChange={(e) =>
                     handlePaymentDetailChange('currency', e.target.value)
                   }
@@ -295,7 +295,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                   Network
                 </label>
                 <select
-                  value={paymentInfo.paymentDetails.network || 'TRC20'}
+                  value={paymentInfo.paymentDetails['network'] || 'TRC20'}
                   onChange={(e) =>
                     handlePaymentDetailChange('network', e.target.value)
                   }
@@ -312,7 +312,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
                 </label>
                 <input
                   type="text"
-                  value={paymentInfo.paymentDetails.walletAddress || ''}
+                  value={paymentInfo.paymentDetails['walletAddress'] || ''}
                   onChange={(e) =>
                     handlePaymentDetailChange('walletAddress', e.target.value)
                   }
@@ -332,7 +332,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
               </label>
               <input
                 type="email"
-                value={paymentInfo.paymentDetails.email || ''}
+                value={paymentInfo.paymentDetails['email'] || ''}
                 onChange={(e) =>
                   handlePaymentDetailChange('email', e.target.value)
                 }
