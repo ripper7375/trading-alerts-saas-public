@@ -58,11 +58,12 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const { paymentMethod, paymentDetails } = validation.data;
 
     // Update payment method
+    // Cast paymentDetails to satisfy Prisma's Json field type
     const updated = await prisma.affiliateProfile.update({
       where: { id: profile.id },
       data: {
         paymentMethod,
-        paymentDetails,
+        paymentDetails: JSON.parse(JSON.stringify(paymentDetails)),
       },
     });
 
