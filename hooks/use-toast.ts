@@ -115,45 +115,48 @@ export function useToast(): UseToastReturn {
   /**
    * Add a new toast notification
    */
-  const addToast = useCallback((options: ToastOptions): string => {
-    const id = generateId();
-    const duration = options.duration ?? DEFAULT_DURATION;
+  const addToast = useCallback(
+    (options: ToastOptions): string => {
+      const id = generateId();
+      const duration = options.duration ?? DEFAULT_DURATION;
 
-    const newToast: Toast = {
-      id,
-      type: options.type,
-      title: options.title,
-      description: options.description,
-      duration,
-    };
+      const newToast: Toast = {
+        id,
+        type: options.type,
+        title: options.title,
+        description: options.description,
+        duration,
+      };
 
-    setToasts((prev) => {
-      // Remove oldest toasts if we exceed the max
-      const updated = [...prev, newToast];
-      if (updated.length > MAX_TOASTS) {
-        const removed = updated.slice(0, updated.length - MAX_TOASTS);
-        removed.forEach((t) => {
-          const timeout = timeoutRefs.current.get(t.id);
-          if (timeout) {
-            clearTimeout(timeout);
-            timeoutRefs.current.delete(t.id);
-          }
-        });
-        return updated.slice(-MAX_TOASTS);
+      setToasts((prev) => {
+        // Remove oldest toasts if we exceed the max
+        const updated = [...prev, newToast];
+        if (updated.length > MAX_TOASTS) {
+          const removed = updated.slice(0, updated.length - MAX_TOASTS);
+          removed.forEach((t) => {
+            const timeout = timeoutRefs.current.get(t.id);
+            if (timeout) {
+              clearTimeout(timeout);
+              timeoutRefs.current.delete(t.id);
+            }
+          });
+          return updated.slice(-MAX_TOASTS);
+        }
+        return updated;
+      });
+
+      // Set up auto-dismiss
+      if (duration > 0) {
+        const timeout = setTimeout(() => {
+          removeToast(id);
+        }, duration);
+        timeoutRefs.current.set(id, timeout);
       }
-      return updated;
-    });
 
-    // Set up auto-dismiss
-    if (duration > 0) {
-      const timeout = setTimeout(() => {
-        removeToast(id);
-      }, duration);
-      timeoutRefs.current.set(id, timeout);
-    }
-
-    return id;
-  }, [removeToast]);
+      return id;
+    },
+    [removeToast]
+  );
 
   /**
    * Remove all toasts
@@ -234,7 +237,10 @@ export function useToast(): UseToastReturn {
 /**
  * Toast style classes by type (for use in toast components)
  */
-export const toastStyles: Record<ToastType, { bg: string; icon: string; border: string }> = {
+export const toastStyles: Record<
+  ToastType,
+  { bg: string; icon: string; border: string }
+> = {
   success: {
     bg: 'bg-green-50',
     icon: 'text-green-500',

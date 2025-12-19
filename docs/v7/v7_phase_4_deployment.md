@@ -220,13 +220,13 @@ Go to GitHub repo → Settings → Secrets and variables → Actions
 
 Add these secrets:
 
-| Secret               | How to Get                          | Purpose                         |
-| -------------------- | ----------------------------------- | ------------------------------- |
-| `VERCEL_TOKEN`       | Vercel → Settings → Tokens → Create | Authenticate Vercel deployment  |
-| `VERCEL_ORG_ID`      | Vercel project settings             | Your organization ID            |
-| `VERCEL_PROJECT_ID`  | Vercel project settings             | Your project ID                 |
-| `PRODUCTION_URL`     | https://your-app.vercel.app         | Frontend URL for health check   |
-| `FLASK_URL`          | http://[VPS-IP]:5001                | Flask on Windows VPS (not Railway) |
+| Secret              | How to Get                          | Purpose                            |
+| ------------------- | ----------------------------------- | ---------------------------------- |
+| `VERCEL_TOKEN`      | Vercel → Settings → Tokens → Create | Authenticate Vercel deployment     |
+| `VERCEL_ORG_ID`     | Vercel project settings             | Your organization ID               |
+| `VERCEL_PROJECT_ID` | Vercel project settings             | Your project ID                    |
+| `PRODUCTION_URL`    | https://your-app.vercel.app         | Frontend URL for health check      |
+| `FLASK_URL`         | http://[VPS-IP]:5001                | Flask on Windows VPS (not Railway) |
 
 > **Note:** Flask MT5 service runs on Windows VPS, not Railway. The `FLASK_URL` should point to your Windows VPS IP address.
 
@@ -384,6 +384,7 @@ Before deploying, ensure `next.config.js` exists in project root with production
 ```
 
 Verify file exists:
+
 ```bash
 cat next.config.js | head -20
 ```
@@ -439,6 +440,7 @@ Add these for Production, Preview, and Development:
 ☐ STEP 1: Provision Windows VPS (30 minutes)
 
 **Recommended Specifications:**
+
 - OS: Windows Server 2019/2022 or Windows 10/11 Pro
 - RAM: 32GB (15 MT5 terminals × ~1.5GB each + Flask)
 - CPU: 8 cores
@@ -446,6 +448,7 @@ Add these for Production, Preview, and Development:
 - Network: Static IP, firewall rules for port 5001
 
 **Recommended Providers:**
+
 - **Contabo Windows VPS (~$30-50/month) ✅ RECOMMENDED FOR MVP**
   - Best value: 8 vCPU, 32GB RAM, 200GB SSD
   - Order at: https://contabo.com/en/windows-vps/
@@ -632,14 +635,17 @@ Check Vercel logs: "Webhook received" ✅
 > **Note:** Flask runs on Windows VPS, not Railway. Use these monitoring approaches:
 
 **Option A: Windows Event Viewer**
+
 - Monitor application crashes and errors
 - Set up email alerts via Task Scheduler
 
 **Option B: External Monitoring (Recommended)**
+
 - Use UptimeRobot (free) or Pingdom to monitor `/api/health` endpoint
 - Configure alerts for downtime
 
 **Option C: Windows Performance Monitor**
+
 - Track CPU, memory, disk usage
 - Set alerts for high resource usage
 

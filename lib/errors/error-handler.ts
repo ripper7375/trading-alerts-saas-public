@@ -13,15 +13,16 @@ import { logError } from './error-logger';
 /**
  * Prisma error codes
  */
-const PRISMA_ERROR_CODES: Record<string, { status: number; message: string }> = {
-  P2002: { status: 409, message: 'Resource already exists' },
-  P2003: { status: 400, message: 'Invalid reference' },
-  P2025: { status: 404, message: 'Resource not found' },
-  P2014: { status: 400, message: 'Invalid relation' },
-  P2016: { status: 400, message: 'Query interpretation error' },
-  P2021: { status: 500, message: 'Database table not found' },
-  P2022: { status: 500, message: 'Database column not found' },
-};
+const PRISMA_ERROR_CODES: Record<string, { status: number; message: string }> =
+  {
+    P2002: { status: 409, message: 'Resource already exists' },
+    P2003: { status: 400, message: 'Invalid reference' },
+    P2025: { status: 404, message: 'Resource not found' },
+    P2014: { status: 400, message: 'Invalid relation' },
+    P2016: { status: 400, message: 'Query interpretation error' },
+    P2021: { status: 500, message: 'Database table not found' },
+    P2022: { status: 500, message: 'Database column not found' },
+  };
 
 /**
  * Error response interface
@@ -44,7 +45,9 @@ function generateRequestId(): string {
 /**
  * Format Zod validation errors into a readable format
  */
-function formatZodErrors(error: ZodError): Array<{ field: string; message: string }> {
+function formatZodErrors(
+  error: ZodError
+): Array<{ field: string; message: string }> {
   return error.issues.map((issue) => ({
     field: issue.path.join('.'),
     message: issue.message,
@@ -148,7 +151,9 @@ export function handleAPIError(
 /**
  * Check if error is a Prisma error
  */
-function isPrismaError(error: unknown): error is { code: string; message: string } {
+function isPrismaError(
+  error: unknown
+): error is { code: string; message: string } {
   if (typeof error !== 'object' || error === null || !('code' in error)) {
     return false;
   }

@@ -40,7 +40,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -108,7 +107,10 @@ const TIMEFRAME_NAMES: Record<string, string> = {
 // STATUS STYLES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const STATUS_STYLES: Record<WatchlistStatus, { border: string; badge: string; bg: string }> = {
+const STATUS_STYLES: Record<
+  WatchlistStatus,
+  { border: string; badge: string; bg: string }
+> = {
   support: {
     border: 'border-green-500',
     badge: 'bg-green-100 text-green-800',

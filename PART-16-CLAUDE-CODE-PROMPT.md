@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 16: Utilities & Infrastructure** for the Trading Alerts SaaS V7 project. You will build 25 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order (grouped by category)
 3. Follow coding patterns from policy files
@@ -28,6 +29,7 @@ You are Claude Code, tasked with building **Part 16: Utilities & Infrastructure*
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1. **Project Overview & Current State**
+
 ```
 PROGRESS-part-2.md                   # Current project status (Parts 6-15 complete)
 README.md                            # Project overview
@@ -36,6 +38,7 @@ IMPLEMENTATION-GUIDE.md              # Implementation best practices
 ```
 
 ### 2. **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -48,12 +51,14 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3. **Part 16 Requirements & Build Order**
+
 ```
 docs/build-orders/part-16-utilities.md               # Build order for all 25 files
 docs/implementation-guides/v5_part_p.md              # Utilities & infrastructure business logic
 ```
 
 ### 4. **Seed Code (MUST REFERENCE)**
+
 ```
 seed-code/v0-components/next-js-marketing-homepage-v2/app/page.tsx         # Landing page reference
 seed-code/v0-components/empty-states-components/components/empty-states.tsx # Empty states reference
@@ -61,11 +66,13 @@ seed-code/v0-components/user-profile-dropdown/components/user-profile-dropdown.t
 ```
 
 ### 5. **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 6. **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
@@ -80,11 +87,13 @@ Build these 25 files in sequence:
 ### **Category A: Email & Tokens (2 files)**
 
 ### **File 1/25:** `lib/email/email.ts`
+
 - Send email with Resend
 - Reusable email templates (welcome, verification, password reset)
 - **Commit:** `feat(email): add email service`
 
 ### **File 2/25:** `lib/tokens.ts`
+
 - Generate verification tokens
 - Generate password reset tokens
 - Hash tokens for storage
@@ -93,18 +102,21 @@ Build these 25 files in sequence:
 ### **Category B: Error Handling (3 files)**
 
 ### **File 3/25:** `lib/errors/error-handler.ts`
+
 - Global error handler for API routes
 - Handle Prisma errors, Zod errors, custom errors
 - Return consistent error responses
 - **Commit:** `feat(errors): add error handler`
 
 ### **File 4/25:** `lib/errors/api-error.ts`
+
 - APIError class with static factory methods
 - badRequest, unauthorized, forbidden, notFound, internal
 - Include status codes and error codes
 - **Commit:** `feat(errors): add API error classes`
 
 ### **File 5/25:** `lib/errors/error-logger.ts`
+
 - Error logging service
 - Log to console (development)
 - Log to external service placeholder (production)
@@ -114,12 +126,14 @@ Build these 25 files in sequence:
 ### **Category C: Caching (2 files)**
 
 ### **File 6/25:** `lib/redis/client.ts`
+
 - Redis client using ioredis
 - Connection to REDIS_URL env variable
 - Export redis instance
 - **Commit:** `feat(cache): add Redis client`
 
 ### **File 7/25:** `lib/cache/cache-manager.ts`
+
 - Cache manager with get, set, delete
 - TTL support (default 5 minutes)
 - Price caching functions (cachePrice, getCachedPrice)
@@ -128,24 +142,28 @@ Build these 25 files in sequence:
 ### **Category D: Validation Schemas (4 files)**
 
 ### **File 8/25:** `lib/validations/auth.ts`
+
 - signupSchema (email, password, name)
 - loginSchema (email, password)
 - resetPasswordSchema
 - **Commit:** `feat(validation): add auth schemas`
 
 ### **File 9/25:** `lib/validations/alert.ts`
+
 - createAlertSchema (symbol, timeframe, conditionType, targetValue)
 - updateAlertSchema
 - Use tier-based symbol/timeframe enums
 - **Commit:** `feat(validation): add alert schemas`
 
 ### **File 10/25:** `lib/validations/watchlist.ts`
+
 - addToWatchlistSchema (symbol, timeframe)
 - Symbol+timeframe combination validation
 - Tier validation refinement
 - **Commit:** `feat(validation): add watchlist schemas`
 
 ### **File 11/25:** `lib/validations/user.ts`
+
 - updateProfileSchema (name, email, image)
 - updatePreferencesSchema
 - changePasswordSchema
@@ -154,6 +172,7 @@ Build these 25 files in sequence:
 ### **Category E: Utilities (3 files)**
 
 ### **File 12/25:** `lib/utils/helpers.ts`
+
 - generateId (with optional prefix)
 - sleep utility
 - truncate string
@@ -161,6 +180,7 @@ Build these 25 files in sequence:
 - **Commit:** `feat(utils): add helper functions`
 
 ### **File 13/25:** `lib/utils/formatters.ts`
+
 - formatCurrency
 - formatDate
 - formatRelativeTime ("2 hours ago")
@@ -168,6 +188,7 @@ Build these 25 files in sequence:
 - **Commit:** `feat(utils): add formatters`
 
 ### **File 14/25:** `lib/utils/constants.ts`
+
 - TIMEFRAMES array (M15, M30, H1, H2, H4, H8, D1)
 - SYMBOLS array (XAUUSD, EURUSD, GBPUSD, etc.)
 - TIER_LIMITS (FREE vs PRO symbols, limits)
@@ -177,12 +198,14 @@ Build these 25 files in sequence:
 ### **Category F: Root App Files (3 files)**
 
 ### **File 15/25:** `app/layout.tsx`
+
 - Root layout with metadata
 - Providers: SessionProvider, QueryClientProvider, ThemeProvider
 - Global fonts (Inter)
 - **Commit:** `feat(app): add root layout`
 
 ### **File 16/25:** `app/globals.css`
+
 - Tailwind directives
 - CSS variables for theming
 - Dark mode variables
@@ -190,6 +213,7 @@ Build these 25 files in sequence:
 - **Commit:** `feat(app): add global styles`
 
 ### **File 17/25:** `app/error.tsx`
+
 - Global error page
 - "use client" component
 - Display error message
@@ -199,12 +223,14 @@ Build these 25 files in sequence:
 ### **Category G: Marketing (2 files)**
 
 ### **File 18/25:** `app/(marketing)/layout.tsx`
+
 - Marketing layout (public pages)
 - Simple header with logo and CTA buttons
 - Footer with links
 - **Commit:** `feat(marketing): add marketing layout`
 
 ### **File 19/25:** `app/(marketing)/page.tsx`
+
 - Landing page (public)
 - Hero section with value proposition
 - Features showcase (3 cards)
@@ -216,6 +242,7 @@ Build these 25 files in sequence:
 ### **Category H: Public Assets (1 file)**
 
 ### **File 20/25:** `public/manifest.json`
+
 - PWA manifest
 - App name, icons, theme colors
 - Display mode: standalone
@@ -224,18 +251,21 @@ Build these 25 files in sequence:
 ### **Category I: GitHub Actions (3 files)**
 
 ### **File 21/25:** `.github/workflows/ci-nextjs.yml`
+
 - Next.js CI pipeline
 - Checkout, setup Node, install deps
 - Run lint, type-check, tests, build
 - **Commit:** `ci: add Next.js CI workflow`
 
 ### **File 22/25:** `.github/workflows/ci-flask.yml`
+
 - Flask CI pipeline for MT5 service
 - Checkout, setup Python, install deps
 - Run pytest, flake8
 - **Commit:** `ci: add Flask CI workflow`
 
 ### **File 23/25:** `.github/workflows/deploy.yml`
+
 - Deployment workflow
 - Build Docker images
 - Push to registry
@@ -245,11 +275,13 @@ Build these 25 files in sequence:
 ### **Category J: Docker (2 files)**
 
 ### **File 24/25:** `docker-compose.yml`
+
 - All services: next-app, flask-app, postgres, redis
 - Networks, volumes, environment variables
 - **Commit:** `feat(docker): add docker-compose`
 
 ### **File 25/25:** `.dockerignore`
+
 - Ignore node_modules, .git, .env.local
 - Ignore build artifacts
 - **Commit:** `feat(docker): add dockerignore`
@@ -259,6 +291,7 @@ Build these 25 files in sequence:
 ## GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/utilities-infrastructure-{SESSION_ID}
@@ -269,7 +302,9 @@ git push -u origin claude/utilities-infrastructure-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(email): add email service
 feat(utils): add helper functions
@@ -279,6 +314,7 @@ feat(docker): add docker-compose
 ```
 
 ### **Push Requirements**
+
 - Branch MUST start with `claude/`
 - Branch MUST end with session ID
 - Push ONLY after all validations pass
@@ -305,12 +341,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - 0 TypeScript errors
 - 0 ESLint errors (warnings OK if < 3)
 - All files properly formatted
@@ -341,7 +379,7 @@ export const SYMBOLS = [
   'ETHUSD', // Ethereum/USD
   'XAGUSD', // Silver
   'NDX100', // Nasdaq 100
-  'US30',   // Dow Jones
+  'US30', // Dow Jones
 ] as const;
 export type Symbol = (typeof SYMBOLS)[number];
 
@@ -621,6 +659,7 @@ export function getPasswordResetEmail(name: string, token: string): string {
 ```
 
 ### **7. TypeScript Compliance (CRITICAL)**
+
 - NO `any` types allowed
 - All function parameters typed
 - All return types specified
@@ -634,12 +673,14 @@ export function getPasswordResetEmail(name: string, token: string): string {
 After building all 25 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Landing page renders at `/`
 - [ ] Hero section displays
 - [ ] Features cards display
@@ -650,6 +691,7 @@ npm run dev
 - [ ] Error page works (`/test-error`)
 
 ### **3. Validation Checks**
+
 ```bash
 # Test validation schemas
 import { signupSchema } from '@/lib/validations/auth';
@@ -667,6 +709,7 @@ console.log(TIER_LIMITS.PRO.symbols); // All 10 symbols
 ```
 
 ### **4. Docker Test**
+
 ```bash
 # Build and run with docker-compose
 docker-compose up -d
@@ -676,6 +719,7 @@ docker-compose down
 ```
 
 ### **5. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -686,12 +730,10 @@ npm run build
 ## CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Formatters**
+
 ```typescript
 // lib/utils/formatters.ts
-export function formatCurrency(
-  amount: number,
-  currency = 'USD'
-): string {
+export function formatCurrency(amount: number, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -733,6 +775,7 @@ export function formatCompactNumber(num: number): string {
 ```
 
 ### **Pattern 2: Helpers**
+
 ```typescript
 // lib/utils/helpers.ts
 export function generateId(prefix = ''): string {
@@ -781,6 +824,7 @@ export function omit<T extends object, K extends keyof T>(
 ```
 
 ### **Pattern 3: Root Layout**
+
 ```typescript
 // app/layout.tsx
 import type { Metadata } from 'next';
@@ -823,6 +867,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 ```
 
 ### **Pattern 4: Global CSS**
+
 ```css
 /* app/globals.css */
 @tailwind base;
@@ -891,6 +936,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 ```
 
 ### **Pattern 5: Error Page**
+
 ```typescript
 // app/error.tsx
 'use client';
@@ -934,6 +980,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 ```
 
 ### **Pattern 6: Docker Compose**
+
 ```yaml
 # docker-compose.yml
 version: '3.8'
@@ -1003,6 +1050,7 @@ volumes:
 ```
 
 ### **Pattern 7: GitHub Actions CI**
+
 ```yaml
 # .github/workflows/ci-nextjs.yml
 name: Next.js CI
@@ -1049,6 +1097,7 @@ jobs:
 ## CRITICAL RULES
 
 ### **DO:**
+
 - Read ALL policy files before writing code
 - Reference seed code for landing page
 - Use correct tier limits from constants
@@ -1061,6 +1110,7 @@ jobs:
 - Commit each file individually
 
 ### **DON'T:**
+
 - Use `any` types
 - Hardcode tier limits (use constants)
 - Skip TypeScript type exports
@@ -1133,6 +1183,7 @@ Use the TodoWrite tool to track your progress:
    - `seed-code/v0-components/next-js-marketing-homepage-v2/app/page.tsx` - Landing page reference
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

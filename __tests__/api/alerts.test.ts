@@ -28,7 +28,10 @@ class MockRequest {
   headers: MockHeaders;
   private bodyContent: string | null = null;
 
-  constructor(url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) {
+  constructor(
+    url: string,
+    init?: { method?: string; headers?: Record<string, string>; body?: string }
+  ) {
     this.url = url;
     this.method = init?.method || 'GET';
     this.headers = new MockHeaders(init?.headers);
@@ -136,7 +139,9 @@ describe('Alerts API Routes', () => {
       mockAlertFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/alerts/route');
-      const request = new MockRequest('http://localhost/api/alerts?status=active');
+      const request = new MockRequest(
+        'http://localhost/api/alerts?status=active'
+      );
       await GET(request as unknown as Request);
 
       expect(mockAlertFindMany).toHaveBeenCalledWith(
@@ -154,7 +159,9 @@ describe('Alerts API Routes', () => {
       mockAlertFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/alerts/route');
-      const request = new MockRequest('http://localhost/api/alerts?symbol=XAUUSD');
+      const request = new MockRequest(
+        'http://localhost/api/alerts?symbol=XAUUSD'
+      );
       await GET(request as unknown as Request);
 
       expect(mockAlertFindMany).toHaveBeenCalledWith(
@@ -379,7 +386,9 @@ describe('Alerts API Routes', () => {
       mockAlertFindUnique.mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/alerts/[id]/route');
-      const request = new MockRequest('http://localhost/api/alerts/nonexistent');
+      const request = new MockRequest(
+        'http://localhost/api/alerts/nonexistent'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ id: 'nonexistent' }),
       });
@@ -456,10 +465,13 @@ describe('Alerts API Routes', () => {
       mockAlertFindUnique.mockResolvedValue(null);
 
       const { PATCH } = await import('@/app/api/alerts/[id]/route');
-      const request = new MockRequest('http://localhost/api/alerts/nonexistent', {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive: false }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/alerts/nonexistent',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: false }),
+        }
+      );
       const response = await PATCH(request as unknown as Request, {
         params: Promise.resolve({ id: 'nonexistent' }),
       });
@@ -568,9 +580,12 @@ describe('Alerts API Routes', () => {
       mockAlertFindUnique.mockResolvedValue(null);
 
       const { DELETE } = await import('@/app/api/alerts/[id]/route');
-      const request = new MockRequest('http://localhost/api/alerts/nonexistent', {
-        method: 'DELETE',
-      });
+      const request = new MockRequest(
+        'http://localhost/api/alerts/nonexistent',
+        {
+          method: 'DELETE',
+        }
+      );
       const response = await DELETE(request as unknown as Request, {
         params: Promise.resolve({ id: 'nonexistent' }),
       });

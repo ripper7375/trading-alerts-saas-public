@@ -38,10 +38,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse and validate request body
@@ -72,10 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if user has a password (OAuth-only users don't)
@@ -91,7 +85,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await compare(currentPassword, user.password);
+    const isCurrentPasswordValid = await compare(
+      currentPassword,
+      user.password
+    );
     if (!isCurrentPasswordValid) {
       return NextResponse.json(
         { error: 'Current password is incorrect' },

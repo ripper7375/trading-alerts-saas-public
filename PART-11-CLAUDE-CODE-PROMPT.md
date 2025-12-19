@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 11: Alerts System** for the Trading Alerts SaaS V7 project. You will build 10 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -27,6 +28,7 @@ You are Claude Code, tasked with building **Part 11: Alerts System** for the Tra
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1️⃣ **Project Overview & Current State**
+
 ```
 PROGRESS-part-2.md                   # Current project status (Parts 6-10 complete)
 README.md                            # Project overview
@@ -35,6 +37,7 @@ IMPLEMENTATION-GUIDE.md              # Implementation best practices
 ```
 
 ### 2️⃣ **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -47,17 +50,20 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3️⃣ **Part 11 Requirements & Build Order**
+
 ```
 docs/build-orders/part-11-alerts.md                  # Build order for all 10 files
 docs/implementation-guides/v5_part_k.md              # Alerts system business logic
 ```
 
 ### 4️⃣ **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 5️⃣ **Seed Code References (CRITICAL - Use these patterns)**
+
 ```
 seed-code/v0-components/alerts-management-page/app/page.tsx               # Alerts list page
 seed-code/v0-components/alert-card-component/components/alert-card.tsx    # Alert card component
@@ -65,12 +71,14 @@ seed-code/v0-components/create-price-alert-modal/components/create-alert-modal.t
 ```
 
 ### 6️⃣ **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 7️⃣ **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-02-database.md                # Alert model (DEPENDENCY)
 docs/build-orders/part-04-tier-system.md             # Tier validation (DEPENDENCY)
@@ -84,6 +92,7 @@ docs/build-orders/part-07-indicators-api.md          # Flask MT5 API for prices
 Build these 10 files in sequence:
 
 ### **File 1/10:** `app/(dashboard)/alerts/page.tsx`
+
 - Alerts list page with tabs (Active/Paused/Triggered)
 - "Create New Alert" button
 - Summary cards (active count, paused count, triggered count)
@@ -93,6 +102,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add alerts list page`
 
 ### **File 2/10:** `app/(dashboard)/alerts/new/page.tsx`
+
 - Create alert page
 - Alert form with tier-filtered symbols
 - Condition type selector (price_above, price_below, price_equals)
@@ -101,6 +111,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add create alert page`
 
 ### **File 3/10:** `app/api/alerts/route.ts`
+
 - **GET:** List user alerts with filters
 - **POST:** Create alert with validations:
   - Check tier limits (FREE: 5, PRO: 20)
@@ -111,6 +122,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(api): add alerts CRUD endpoints`
 
 ### **File 4/10:** `app/api/alerts/[id]/route.ts`
+
 - **GET:** Get alert by ID (with ownership check)
 - **PATCH:** Update alert (status, target value)
 - **DELETE:** Delete alert (soft delete → set status to 'cancelled')
@@ -118,6 +130,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(api): add alert detail endpoints`
 
 ### **File 5/10:** `components/alerts/alert-list.tsx`
+
 - Alert list component
 - Status badges (Active=green, Paused=gray, Triggered=orange)
 - Display: symbol, timeframe, condition, target, status
@@ -125,6 +138,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add alert list component`
 
 ### **File 6/10:** `components/alerts/alert-form.tsx`
+
 - Create/edit alert form
 - Symbol selector (tier-filtered)
 - Timeframe selector
@@ -135,6 +149,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add alert form component`
 
 ### **File 7/10:** `components/alerts/alert-card.tsx`
+
 - Individual alert display card
 - Show: name, symbol, target price, current price, distance
 - Status badge
@@ -143,6 +158,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add alert card component`
 
 ### **File 8/10:** `lib/jobs/alert-checker.ts`
+
 - Background job to check alert conditions
 - Fetch current prices from MT5 service
 - Check condition (price_above, price_below, price_equals)
@@ -151,6 +167,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add alert checking job`
 
 ### **File 9/10:** `lib/jobs/queue.ts`
+
 - Job queue setup (simple setTimeout-based or BullMQ)
 - Schedule alert checker to run every minute
 - Job logging
@@ -158,6 +175,7 @@ Build these 10 files in sequence:
 - **Commit:** `feat(alerts): add job queue`
 
 ### **File 10/10:** `hooks/use-alerts.ts`
+
 - React hook for alerts operations
 - List alerts (useQuery)
 - Create alert mutation
@@ -171,6 +189,7 @@ Build these 10 files in sequence:
 ## 🔧 GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/alerts-system-{SESSION_ID}
@@ -181,7 +200,9 @@ git push -u origin claude/alerts-system-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(alerts): add alerts list page
 feat(api): add alerts CRUD endpoints
@@ -190,6 +211,7 @@ fix(alerts): correct TypeScript type error in alert card
 ```
 
 ### **Push Requirements**
+
 - ✅ Branch MUST start with `claude/`
 - ✅ Branch MUST end with session ID
 - ✅ Push ONLY after all validations pass
@@ -216,12 +238,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - ✅ 0 TypeScript errors
 - ✅ 0 ESLint errors (warnings OK if < 3)
 - ✅ All files properly formatted
@@ -233,6 +257,7 @@ npm run fix
 ## 🎯 KEY REQUIREMENTS FOR PART 11
 
 ### **1. Alert Data Model**
+
 ```typescript
 // From Prisma schema
 model Alert {
@@ -268,22 +293,26 @@ enum AlertStatus {
 ### **2. Tier-Based Alert Limits (CRITICAL)**
 
 **FREE Tier:**
+
 - Maximum **5** active alerts
 - Only tier-allowed symbols (5 symbols: BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
 - All 3 FREE timeframes (H1, H4, D1)
 
 **PRO Tier:**
+
 - Maximum **20** active alerts
 - All 15 PRO symbols
 - All 9 PRO timeframes
 
 **Validation Rules:**
+
 - Check current alert count before creating new alert
 - Return 403 if limit exceeded with upgrade prompt
 - Validate symbol is allowed for user's tier
 - Return 403 if symbol not allowed
 
 ### **3. Alert Condition Types**
+
 ```typescript
 type ConditionType = 'price_above' | 'price_below' | 'price_equals';
 
@@ -308,6 +337,7 @@ function checkCondition(
 ```
 
 ### **4. TypeScript Compliance (CRITICAL)**
+
 - ✅ NO `any` types allowed
 - ✅ All function parameters typed
 - ✅ All return types specified
@@ -315,6 +345,7 @@ function checkCondition(
 - ✅ Use proper React types (`FC`, `ReactNode`, etc.)
 
 ### **5. API Route Patterns**
+
 - ✅ Authentication required (getServerSession)
 - ✅ Ownership validation (user can only access their own alerts)
 - ✅ Tier validation before creating alerts
@@ -322,6 +353,7 @@ function checkCondition(
 - ✅ Proper HTTP status codes (200, 201, 400, 401, 403, 404)
 
 ### **6. Error Codes**
+
 ```typescript
 // Alert limit exceeded
 { status: 403, error: 'Alert limit exceeded', code: 'ALERT_LIMIT_EXCEEDED' }
@@ -343,12 +375,14 @@ function checkCondition(
 After building all 10 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Visit `http://localhost:3000/alerts`
 - [ ] Verify alerts page loads without errors
 - [ ] Check summary cards show correct counts
@@ -365,6 +399,7 @@ npm run dev
 - [ ] Test tier limit: FREE user cannot create more than 5 alerts
 
 ### **3. API Testing**
+
 ```bash
 # GET alerts
 curl http://localhost:3000/api/alerts
@@ -384,11 +419,13 @@ curl -X DELETE http://localhost:3000/api/alerts/{id}
 ```
 
 ### **4. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] API calls return correct status codes
 
 ### **5. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -399,12 +436,13 @@ npm run build
 ## 📝 CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Alert Tier Limits**
+
 ```typescript
 // lib/alert-config.ts
 
 export const ALERT_LIMITS = {
-  FREE: 5,    // Max 5 active alerts
-  PRO: 20,    // Max 20 active alerts
+  FREE: 5, // Max 5 active alerts
+  PRO: 20, // Max 20 active alerts
 } as const;
 
 export type UserTier = 'FREE' | 'PRO';
@@ -438,6 +476,7 @@ export function checkAlertCondition(
 ```
 
 ### **Pattern 2: Alerts API Route**
+
 ```typescript
 // app/api/alerts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -503,7 +542,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { symbol, timeframe, conditionType, targetValue, name } = validation.data;
+    const { symbol, timeframe, conditionType, targetValue, name } =
+      validation.data;
     const tier = (session.user.tier as 'FREE' | 'PRO') || 'FREE';
 
     // Validate symbol access
@@ -579,6 +619,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 3: Alert Card Component**
+
 ```typescript
 // components/alerts/alert-card.tsx
 'use client';
@@ -737,6 +778,7 @@ export function AlertCard({
 ```
 
 ### **Pattern 4: useAlerts Hook**
+
 ```typescript
 // hooks/use-alerts.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -771,11 +813,7 @@ export function useAlerts(status?: string) {
   const limit = ALERT_LIMITS[tier];
 
   // Fetch alerts
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery<{ alerts: Alert[] }>({
+  const { data, isLoading, error } = useQuery<{ alerts: Alert[] }>({
     queryKey: ['alerts', status],
     queryFn: async () => {
       const params = status ? `?status=${status}` : '';
@@ -810,7 +848,14 @@ export function useAlerts(status?: string) {
 
   // Update alert mutation
   const updateAlert = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; status?: string; targetValue?: number }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      status?: string;
+      targetValue?: number;
+    }) => {
       const res = await fetch(`/api/alerts/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -869,6 +914,7 @@ export function useAlerts(status?: string) {
 ```
 
 ### **Pattern 5: Alert Checker Job**
+
 ```typescript
 // lib/jobs/alert-checker.ts
 import { prisma } from '@/lib/db/prisma';
@@ -880,7 +926,10 @@ interface PriceData {
   price: number;
 }
 
-async function fetchCurrentPrice(symbol: string, timeframe: string): Promise<number> {
+async function fetchCurrentPrice(
+  symbol: string,
+  timeframe: string
+): Promise<number> {
   // Fetch from MT5 service or cached indicator data
   try {
     const response = await fetch(
@@ -937,7 +986,9 @@ export async function checkAlerts(): Promise<void> {
         );
 
         if (conditionMet) {
-          console.log(`[AlertChecker] Alert triggered: ${alert.id} (${alert.symbol} ${alert.conditionType} ${alert.targetValue})`);
+          console.log(
+            `[AlertChecker] Alert triggered: ${alert.id} (${alert.symbol} ${alert.conditionType} ${alert.targetValue})`
+          );
 
           // Update alert status
           await prisma.alert.update({
@@ -977,6 +1028,7 @@ export async function checkAlerts(): Promise<void> {
 ```
 
 ### **Pattern 6: Job Queue**
+
 ```typescript
 // lib/jobs/queue.ts
 
@@ -1018,6 +1070,7 @@ export { checkAlerts };
 ## 🚨 CRITICAL RULES
 
 ### **DO:**
+
 - ✅ Read ALL policy files before writing code
 - ✅ Follow tier-based alert limits EXACTLY (FREE: 5, PRO: 20)
 - ✅ Validate symbol AND timeframe access
@@ -1030,6 +1083,7 @@ export { checkAlerts };
 - ✅ Test thoroughly before pushing
 
 ### **DON'T:**
+
 - ❌ Skip reading policy files
 - ❌ Use `any` types
 - ❌ Allow users to exceed alert limits
@@ -1097,6 +1151,7 @@ Use the TodoWrite tool to track your progress:
    - Seed code files for component patterns
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

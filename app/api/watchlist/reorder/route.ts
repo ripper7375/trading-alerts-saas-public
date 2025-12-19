@@ -77,7 +77,8 @@ export async function POST(
         {
           success: false,
           error: 'Invalid input',
-          message: validation.error.errors[0]?.message || 'Invalid request data',
+          message:
+            validation.error.errors[0]?.message || 'Invalid request data',
         },
         { status: 400 }
       );

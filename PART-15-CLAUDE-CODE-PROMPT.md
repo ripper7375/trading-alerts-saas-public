@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 15: Notifications & Real-time** for the Trading Alerts SaaS V7 project. You will build 9 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -28,6 +29,7 @@ You are Claude Code, tasked with building **Part 15: Notifications & Real-time**
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1. **Project Overview & Current State**
+
 ```
 PROGRESS-part-2.md                   # Current project status (Parts 6-14 complete)
 README.md                            # Project overview
@@ -36,6 +38,7 @@ IMPLEMENTATION-GUIDE.md              # Implementation best practices
 ```
 
 ### 2. **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -48,29 +51,34 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3. **Part 15 Requirements & Build Order**
+
 ```
 docs/build-orders/part-15-notifications.md           # Build order for all 9 files
 docs/implementation-guides/v5_part_o.md              # Notifications & real-time business logic
 ```
 
 ### 4. **Seed Code (MUST REFERENCE)**
+
 ```
 seed-code/v0-components/notification-component-v3/app/page.tsx           # Demo page layout
 seed-code/v0-components/notification-component-v3/components/notification-bell.tsx  # MAIN REFERENCE
 ```
 
 ### 5. **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 6. **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 7. **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-05-authentication.md          # Authentication (DEPENDENCY)
 ```
@@ -84,6 +92,7 @@ Build these 9 files in sequence:
 ### **API Routes (3 routes)**
 
 ### **File 1/9:** `app/api/notifications/route.ts`
+
 - **GET:** List user notifications with pagination and status filter
 - **POST:** Mark all notifications as read
 - Query params: status (all/unread/read), page
@@ -91,12 +100,14 @@ Build these 9 files in sequence:
 - **Commit:** `feat(api): add notifications endpoints`
 
 ### **File 2/9:** `app/api/notifications/[id]/route.ts`
+
 - **GET:** Get single notification details
 - **DELETE:** Delete notification (soft delete)
 - Ownership check (user can only access their own notifications)
 - **Commit:** `feat(api): add notification detail endpoints`
 
 ### **File 3/9:** `app/api/notifications/[id]/read/route.ts`
+
 - **POST:** Mark notification as read
 - Update readAt timestamp
 - Return updated notification
@@ -105,6 +116,7 @@ Build these 9 files in sequence:
 ### **Components (2 components)**
 
 ### **File 4/9:** `components/notifications/notification-bell.tsx`
+
 - Notification bell icon with unread count badge
 - Dropdown with recent notifications
 - Mark as read on click
@@ -114,6 +126,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(notifications): add notification bell component`
 
 ### **File 5/9:** `components/notifications/notification-list.tsx`
+
 - Full notification list with all notifications
 - Tabs: All / Unread / Read
 - Filter by type (Alert / Subscription / Payment / System)
@@ -124,6 +137,7 @@ Build these 9 files in sequence:
 ### **WebSocket & Monitoring (2 files)**
 
 ### **File 6/9:** `lib/websocket/server.ts`
+
 - WebSocket server setup
 - Authentication using session token
 - Events: authenticate, ping/pong, notification, notification_read
@@ -132,6 +146,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(websocket): add WebSocket server`
 
 ### **File 7/9:** `lib/monitoring/system-monitor.ts`
+
 - System health monitoring
 - Track database, Redis, MT5, WebSocket status
 - Tier-specific metrics (per FREE/PRO)
@@ -141,6 +156,7 @@ Build these 9 files in sequence:
 ### **React Hooks (2 hooks)**
 
 ### **File 8/9:** `hooks/use-websocket.ts`
+
 - React hook for WebSocket connection
 - Auto-reconnect on disconnect
 - Handle notification events
@@ -148,6 +164,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(websocket): add WebSocket hook`
 
 ### **File 9/9:** `hooks/use-toast.ts`
+
 - React hook for toast notifications
 - Types: success, error, warning, info
 - Auto-dismiss after 5 seconds
@@ -160,6 +177,7 @@ Build these 9 files in sequence:
 ## GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/notifications-realtime-{SESSION_ID}
@@ -170,7 +188,9 @@ git push -u origin claude/notifications-realtime-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(api): add notifications endpoints
 feat(notifications): add notification bell component
@@ -179,6 +199,7 @@ fix(notifications): correct TypeScript type error in bell component
 ```
 
 ### **Push Requirements**
+
 - Branch MUST start with `claude/`
 - Branch MUST end with session ID
 - Push ONLY after all validations pass
@@ -205,12 +226,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - 0 TypeScript errors
 - 0 ESLint errors (warnings OK if < 3)
 - All files properly formatted
@@ -312,6 +335,7 @@ interface WebSocketMessage {
 ### **4. Notification Bell Behavior**
 
 From seed code reference:
+
 - Bell icon with red badge showing unread count
 - Badge shows 9+ if more than 9 unread
 - Click opens dropdown (width: 360px, max-height: 400px)
@@ -335,9 +359,9 @@ interface ToastOptions {
 // Visual styles
 const toastStyles = {
   success: 'bg-green-500', // Green background, checkmark icon
-  error: 'bg-red-500',     // Red background, X icon
+  error: 'bg-red-500', // Red background, X icon
   warning: 'bg-yellow-500', // Yellow background, exclamation icon
-  info: 'bg-blue-500',     // Blue background, info icon
+  info: 'bg-blue-500', // Blue background, info icon
 };
 ```
 
@@ -373,6 +397,7 @@ interface TierMetrics {
 ```
 
 ### **7. TypeScript Compliance (CRITICAL)**
+
 - NO `any` types allowed
 - All function parameters typed
 - All return types specified
@@ -386,12 +411,14 @@ interface TierMetrics {
 After building all 9 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Notification bell appears in header
 - [ ] Unread count badge displays correctly
 - [ ] Click bell opens dropdown
@@ -406,6 +433,7 @@ npm run dev
 - [ ] Toast notifications appear and auto-dismiss
 
 ### **3. API Testing**
+
 ```bash
 # GET notifications
 curl http://localhost:3000/api/notifications
@@ -427,11 +455,13 @@ curl -X DELETE http://localhost:3000/api/notifications/{id}
 ```
 
 ### **4. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] API calls return correct status codes
 
 ### **5. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -442,6 +472,7 @@ npm run build
 ## CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Notifications API Route**
+
 ```typescript
 // app/api/notifications/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -547,6 +578,7 @@ export async function POST(): Promise<NextResponse> {
 ```
 
 ### **Pattern 2: Notification Detail Route**
+
 ```typescript
 // app/api/notifications/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -636,6 +668,7 @@ export async function DELETE(
 ```
 
 ### **Pattern 3: Mark as Read Route**
+
 ```typescript
 // app/api/notifications/[id]/read/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -693,6 +726,7 @@ export async function POST(
 ```
 
 ### **Pattern 4: useToast Hook**
+
 ```typescript
 // hooks/use-toast.ts
 'use client';
@@ -784,6 +818,7 @@ export const toastInfo = (title: string, description?: string): void =>
 ```
 
 ### **Pattern 5: useWebSocket Hook**
+
 ```typescript
 // hooks/use-websocket.ts
 'use client';
@@ -807,7 +842,9 @@ interface UseWebSocketReturn {
   disconnect: () => void;
 }
 
-export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
+export function useWebSocket(
+  options: UseWebSocketOptions = {}
+): UseWebSocketReturn {
   const { data: session } = useSession();
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -826,10 +863,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       options.onConnectionChange?.(true);
 
       // Authenticate
-      ws.send(JSON.stringify({
-        type: 'authenticate',
-        data: { token: session.user.id },
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'authenticate',
+          data: { token: session.user.id },
+        })
+      );
 
       // Start ping interval
       pingIntervalRef.current = setInterval(() => {
@@ -913,6 +952,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 ```
 
 ### **Pattern 6: WebSocket Server (Next.js compatible)**
+
 ```typescript
 // lib/websocket/server.ts
 import { Server } from 'socket.io';
@@ -993,6 +1033,7 @@ export function isUserConnected(userId: string): boolean {
 ```
 
 ### **Pattern 7: System Monitor**
+
 ```typescript
 // lib/monitoring/system-monitor.ts
 import { prisma } from '@/lib/db/prisma';
@@ -1175,6 +1216,7 @@ export async function shouldAlertAdmin(health: SystemHealth): Promise<boolean> {
 ## CRITICAL RULES
 
 ### **DO:**
+
 - Read ALL policy files before writing code
 - Reference seed code for notification-bell.tsx
 - Use proper notification types and priorities
@@ -1188,6 +1230,7 @@ export async function shouldAlertAdmin(health: SystemHealth): Promise<boolean> {
 - Test notification flow manually
 
 ### **DON'T:**
+
 - Skip ownership checks on notifications
 - Use `any` types
 - Allow users to access other users' notifications
@@ -1258,6 +1301,7 @@ Use the TodoWrite tool to track your progress:
    - `seed-code/v0-components/notification-component-v3/components/notification-bell.tsx` - Bell component reference
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

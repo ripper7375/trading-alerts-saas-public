@@ -96,7 +96,11 @@ describe('APIError', () => {
     });
 
     it('should create a 429 Too Many Requests error', () => {
-      const error = APIError.tooManyRequests('Rate limit exceeded', 'RATE_LIMIT', 60);
+      const error = APIError.tooManyRequests(
+        'Rate limit exceeded',
+        'RATE_LIMIT',
+        60
+      );
 
       expect(error.statusCode).toBe(429);
       expect(error.code).toBe('RATE_LIMIT');
@@ -213,7 +217,10 @@ describe('AuthenticationError', () => {
   });
 
   it('should support custom code', () => {
-    const error = new AuthenticationError('Invalid credentials', 'INVALID_CREDENTIALS');
+    const error = new AuthenticationError(
+      'Invalid credentials',
+      'INVALID_CREDENTIALS'
+    );
 
     expect(error.code).toBe('INVALID_CREDENTIALS');
   });

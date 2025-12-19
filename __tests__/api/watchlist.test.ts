@@ -25,7 +25,10 @@ class MockRequest {
   headers: MockHeaders;
   private bodyContent: string | null = null;
 
-  constructor(url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) {
+  constructor(
+    url: string,
+    init?: { method?: string; headers?: Record<string, string>; body?: string }
+  ) {
     this.url = url;
     this.method = init?.method || 'GET';
     this.headers = new MockHeaders(init?.headers);
@@ -71,7 +74,8 @@ const mockValidateTimeframeAccess = jest.fn();
 jest.mock('@/lib/tier-validation', () => ({
   __esModule: true,
   canAccessSymbol: (...args: unknown[]) => mockCanAccessSymbol(...args),
-  validateTimeframeAccess: (...args: unknown[]) => mockValidateTimeframeAccess(...args),
+  validateTimeframeAccess: (...args: unknown[]) =>
+    mockValidateTimeframeAccess(...args),
 }));
 
 // Mock Prisma
@@ -120,7 +124,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return empty items when no watchlist exists', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistFindFirst.mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/watchlist/route');
@@ -134,14 +140,28 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return watchlist with items', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const watchlist = {
         id: 'watchlist-1',
         name: 'My Watchlist',
         items: [
-          { id: 'item-1', symbol: 'XAUUSD', timeframe: 'H1', order: 0, createdAt: new Date() },
-          { id: 'item-2', symbol: 'EURUSD', timeframe: 'D1', order: 1, createdAt: new Date() },
+          {
+            id: 'item-1',
+            symbol: 'XAUUSD',
+            timeframe: 'H1',
+            order: 0,
+            createdAt: new Date(),
+          },
+          {
+            id: 'item-2',
+            symbol: 'EURUSD',
+            timeframe: 'D1',
+            order: 1,
+            createdAt: new Date(),
+          },
         ],
       };
       mockWatchlistFindFirst.mockResolvedValue(watchlist);
@@ -157,7 +177,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should handle database errors', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistFindFirst.mockRejectedValue(new Error('Database error'));
 
       const { GET } = await import('@/app/api/watchlist/route');
@@ -187,7 +209,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 400 for invalid input', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const { POST } = await import('@/app/api/watchlist/route');
       const request = new MockRequest('http://localhost/api/watchlist', {
@@ -203,7 +227,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 403 for symbol not in tier', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockCanAccessSymbol.mockReturnValue(false);
 
       const { POST } = await import('@/app/api/watchlist/route');
@@ -220,9 +246,14 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 403 for timeframe not in tier', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockCanAccessSymbol.mockReturnValue(true);
-      mockValidateTimeframeAccess.mockReturnValue({ allowed: false, reason: 'M5 requires PRO' });
+      mockValidateTimeframeAccess.mockReturnValue({
+        allowed: false,
+        reason: 'M5 requires PRO',
+      });
 
       const { POST } = await import('@/app/api/watchlist/route');
       const request = new MockRequest('http://localhost/api/watchlist', {
@@ -238,7 +269,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 403 when watchlist limit reached', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockCanAccessSymbol.mockReturnValue(true);
       mockValidateTimeframeAccess.mockReturnValue({ allowed: true });
 
@@ -269,7 +302,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 409 for duplicate combination', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const watchlist = {
         id: 'watchlist-1',
@@ -291,7 +326,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should create watchlist item successfully', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const watchlist = { id: 'watchlist-1', items: [] };
       mockWatchlistFindFirst.mockResolvedValue(watchlist);
@@ -320,7 +357,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should create default watchlist if none exists', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       // First call returns null, second call (after create) returns the new watchlist
       mockWatchlistFindFirst.mockResolvedValue(null);
@@ -363,11 +402,15 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 404 when item not found', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistItemFindUnique.mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/watchlist/[id]/route');
-      const request = new MockRequest('http://localhost/api/watchlist/nonexistent');
+      const request = new MockRequest(
+        'http://localhost/api/watchlist/nonexistent'
+      );
       const response = await GET(request as unknown as Request, {
         params: Promise.resolve({ id: 'nonexistent' }),
       });
@@ -379,7 +422,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 403 when item belongs to another user', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistItemFindUnique.mockResolvedValue({
         id: 'item-1',
         userId: 'user-2', // Different user
@@ -400,7 +445,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return item when authorized', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const item = {
         id: 'item-1',
@@ -445,14 +492,19 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 404 when item not found', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistItemFindUnique.mockResolvedValue(null);
 
       const { PATCH } = await import('@/app/api/watchlist/[id]/route');
-      const request = new MockRequest('http://localhost/api/watchlist/nonexistent', {
-        method: 'PATCH',
-        body: JSON.stringify({ order: 5 }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/watchlist/nonexistent',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ order: 5 }),
+        }
+      );
       const response = await PATCH(request as unknown as Request, {
         params: Promise.resolve({ id: 'nonexistent' }),
       });
@@ -463,7 +515,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 403 when item belongs to another user', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistItemFindUnique.mockResolvedValue({
         id: 'item-1',
         userId: 'user-2',
@@ -484,7 +538,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should update item order successfully', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       const existingItem = {
         id: 'item-1',
@@ -532,13 +588,18 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 404 when item not found', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistItemFindUnique.mockResolvedValue(null);
 
       const { DELETE } = await import('@/app/api/watchlist/[id]/route');
-      const request = new MockRequest('http://localhost/api/watchlist/nonexistent', {
-        method: 'DELETE',
-      });
+      const request = new MockRequest(
+        'http://localhost/api/watchlist/nonexistent',
+        {
+          method: 'DELETE',
+        }
+      );
       const response = await DELETE(request as unknown as Request, {
         params: Promise.resolve({ id: 'nonexistent' }),
       });
@@ -549,7 +610,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should return 403 when item belongs to another user', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
       mockWatchlistItemFindUnique.mockResolvedValue({
         id: 'item-1',
         userId: 'user-2',
@@ -569,7 +632,9 @@ describe('Watchlist API Routes', () => {
     });
 
     it('should delete item successfully', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'FREE' },
+      });
 
       mockWatchlistItemFindUnique.mockResolvedValue({
         id: 'item-1',

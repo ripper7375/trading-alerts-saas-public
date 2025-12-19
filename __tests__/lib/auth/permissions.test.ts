@@ -54,7 +54,9 @@ describe('Permission System', () => {
         expect(TIER_PERMISSIONS.PRO).toContain('view_all_timeframes');
         expect(TIER_PERMISSIONS.PRO).toContain('export_data');
         expect(TIER_PERMISSIONS.PRO).toContain('priority_support');
-        expect(TIER_PERMISSIONS.PRO.length).toBeGreaterThan(TIER_PERMISSIONS.FREE.length);
+        expect(TIER_PERMISSIONS.PRO.length).toBeGreaterThan(
+          TIER_PERMISSIONS.FREE.length
+        );
       });
 
       it('should include all FREE permissions in PRO', () => {
@@ -162,13 +164,17 @@ describe('Permission System', () => {
         expires: '2025-12-31',
       });
 
-      await expect(checkFeatureAccess('view_dashboard')).resolves.toBeUndefined();
+      await expect(
+        checkFeatureAccess('view_dashboard')
+      ).resolves.toBeUndefined();
     });
 
     it('should throw AuthError for unauthenticated user', async () => {
       mockGetSession.mockResolvedValue(null);
 
-      await expect(checkFeatureAccess('view_dashboard')).rejects.toThrow(AuthError);
+      await expect(checkFeatureAccess('view_dashboard')).rejects.toThrow(
+        AuthError
+      );
     });
 
     it('should throw AuthError when user lacks permission', async () => {
@@ -177,7 +183,9 @@ describe('Permission System', () => {
         expires: '2025-12-31',
       });
 
-      await expect(checkFeatureAccess('view_all_symbols')).rejects.toThrow(AuthError);
+      await expect(checkFeatureAccess('view_all_symbols')).rejects.toThrow(
+        AuthError
+      );
     });
 
     it('should provide user-friendly message for PRO features', async () => {
@@ -189,7 +197,9 @@ describe('Permission System', () => {
       try {
         await checkFeatureAccess('view_all_symbols');
       } catch (error) {
-        expect((error as AuthError).message).toContain('PRO subscription required');
+        expect((error as AuthError).message).toContain(
+          'PRO subscription required'
+        );
       }
     });
 
@@ -202,7 +212,9 @@ describe('Permission System', () => {
       try {
         await checkFeatureAccess('admin_dashboard');
       } catch (error) {
-        expect((error as AuthError).message).toContain('Administrator access required');
+        expect((error as AuthError).message).toContain(
+          'Administrator access required'
+        );
       }
     });
 
@@ -215,7 +227,9 @@ describe('Permission System', () => {
       try {
         await checkFeatureAccess('affiliate_dashboard');
       } catch (error) {
-        expect((error as AuthError).message).toContain('Affiliate access required');
+        expect((error as AuthError).message).toContain(
+          'Affiliate access required'
+        );
       }
     });
   });
@@ -255,7 +269,9 @@ describe('Permission System', () => {
       const user = { tier: 'FREE' as const };
       const permissions = getUserPermissions(user);
 
-      expect(permissions).toEqual(expect.arrayContaining([...TIER_PERMISSIONS.FREE]));
+      expect(permissions).toEqual(
+        expect.arrayContaining([...TIER_PERMISSIONS.FREE])
+      );
       expect(permissions).not.toContain('view_all_symbols');
     });
 
@@ -263,7 +279,9 @@ describe('Permission System', () => {
       const user = { tier: 'PRO' as const };
       const permissions = getUserPermissions(user);
 
-      expect(permissions).toEqual(expect.arrayContaining([...TIER_PERMISSIONS.PRO]));
+      expect(permissions).toEqual(
+        expect.arrayContaining([...TIER_PERMISSIONS.PRO])
+      );
     });
 
     it('should include affiliate permissions for affiliate user', () => {
@@ -303,7 +321,9 @@ describe('Permission System', () => {
       const user = {};
       const permissions = getUserPermissions(user);
 
-      expect(permissions).toEqual(expect.arrayContaining([...TIER_PERMISSIONS.FREE]));
+      expect(permissions).toEqual(
+        expect.arrayContaining([...TIER_PERMISSIONS.FREE])
+      );
     });
   });
 

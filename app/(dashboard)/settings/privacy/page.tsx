@@ -71,7 +71,8 @@ export default function PrivacySettingsPage(): React.ReactElement {
           const data = await response.json();
           if (data.preferences) {
             setSettings({
-              profileVisibility: data.preferences.profileVisibility || 'private',
+              profileVisibility:
+                data.preferences.profileVisibility || 'private',
               showStats: data.preferences.showStats || false,
               showEmail: data.preferences.showEmail || false,
             });
@@ -201,7 +202,8 @@ export default function PrivacySettingsPage(): React.ReactElement {
                   Show Trading Statistics
                 </Label>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Display your alert count, chart views, and activity on your public profile
+                  Display your alert count, chart views, and activity on your
+                  public profile
                 </p>
               </div>
               <button
@@ -211,7 +213,9 @@ export default function PrivacySettingsPage(): React.ReactElement {
                 onClick={() => handleToggle('showStats')}
                 className={cn(
                   'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2',
-                  settings.showStats ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                  settings.showStats
+                    ? 'bg-blue-600'
+                    : 'bg-gray-200 dark:bg-gray-700'
                 )}
               >
                 <span
@@ -246,7 +250,9 @@ export default function PrivacySettingsPage(): React.ReactElement {
                 onClick={() => handleToggle('showEmail')}
                 className={cn(
                   'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2',
-                  settings.showEmail ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                  settings.showEmail
+                    ? 'bg-blue-600'
+                    : 'bg-gray-200 dark:bg-gray-700'
                 )}
               >
                 <span
@@ -272,9 +278,9 @@ export default function PrivacySettingsPage(): React.ReactElement {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Request a copy of all your data including your profile information, alerts,
-              watchlists, and activity history. We&apos;ll prepare your data and send you a
-              download link via email.
+              Request a copy of all your data including your profile
+              information, alerts, watchlists, and activity history. We&apos;ll
+              prepare your data and send you a download link via email.
             </p>
             <Button
               onClick={handleDataExport}
@@ -300,7 +306,8 @@ export default function PrivacySettingsPage(): React.ReactElement {
             </Button>
             {exportSuccess && (
               <p className="text-sm text-green-600 mt-2">
-                You&apos;ll receive an email with a download link within 24 hours.
+                You&apos;ll receive an email with a download link within 24
+                hours.
               </p>
             )}
           </CardContent>

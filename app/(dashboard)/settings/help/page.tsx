@@ -267,17 +267,25 @@ export default function HelpPage(): React.ReactElement {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="subject" className="text-sm font-medium mb-2 block">
+                  <Label
+                    htmlFor="subject"
+                    className="text-sm font-medium mb-2 block"
+                  >
                     Subject
                   </Label>
-                  <Select value={contactSubject} onValueChange={setContactSubject}>
+                  <Select
+                    value={contactSubject}
+                    onValueChange={setContactSubject}
+                  >
                     <SelectTrigger id="subject">
                       <SelectValue placeholder="Select a topic" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="general">General Question</SelectItem>
                       <SelectItem value="billing">Billing Issue</SelectItem>
-                      <SelectItem value="technical">Technical Support</SelectItem>
+                      <SelectItem value="technical">
+                        Technical Support
+                      </SelectItem>
                       <SelectItem value="feature">Feature Request</SelectItem>
                       <SelectItem value="bug">Bug Report</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
@@ -286,7 +294,10 @@ export default function HelpPage(): React.ReactElement {
                 </div>
 
                 <div>
-                  <Label htmlFor="message" className="text-sm font-medium mb-2 block">
+                  <Label
+                    htmlFor="message"
+                    className="text-sm font-medium mb-2 block"
+                  >
                     Message
                   </Label>
                   <textarea

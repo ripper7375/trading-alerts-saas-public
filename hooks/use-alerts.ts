@@ -254,9 +254,7 @@ export function useAlerts(status?: string): UseAlertsReturn {
   const pausedAlerts = alerts.filter(
     (a: Alert) => !a.isActive && !a.lastTriggered
   );
-  const triggeredAlerts = alerts.filter(
-    (a: Alert) => a.lastTriggered !== null
-  );
+  const triggeredAlerts = alerts.filter((a: Alert) => a.lastTriggered !== null);
 
   // Calculate limit usage
   const currentCount = activeAlerts.length;

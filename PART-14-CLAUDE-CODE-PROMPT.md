@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 14: Admin Dashboard** for the Trading Alerts SaaS V7 project. You will build 9 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -27,6 +28,7 @@ You are Claude Code, tasked with building **Part 14: Admin Dashboard** for the T
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1. **Project Overview & Current State**
+
 ```
 PROGRESS-part-2.md                   # Current project status (Parts 6-13 complete)
 README.md                            # Project overview
@@ -35,6 +37,7 @@ IMPLEMENTATION-GUIDE.md              # Implementation best practices
 ```
 
 ### 2. **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -47,23 +50,27 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3. **Part 14 Requirements & Build Order**
+
 ```
 docs/build-orders/part-14-admin.md                   # Build order for all 9 files
 docs/implementation-guides/v5_part_n.md              # Admin dashboard business logic
 ```
 
 ### 4. **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 5. **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 6. **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-05-authentication.md          # Authentication with admin role (DEPENDENCY)
 docs/build-orders/part-12-ecommerce.md               # Billing data for revenue metrics (DEPENDENCY)
@@ -78,6 +85,7 @@ Build these 9 files in sequence:
 ### **Admin Pages (5 pages)**
 
 ### **File 1/9:** `app/(dashboard)/admin/layout.tsx`
+
 - Admin layout with sidebar navigation
 - ADMIN role check (403 if not admin)
 - Sidebar: Dashboard, Users, Analytics, API Usage, Error Logs
@@ -86,6 +94,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(admin): add admin layout with role check`
 
 ### **File 2/9:** `app/(dashboard)/admin/page.tsx`
+
 - Admin dashboard overview
 - Metric cards: Total Users, FREE users, PRO users, MRR
 - User growth chart (line chart, last 12 months)
@@ -95,6 +104,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(admin): add admin dashboard page`
 
 ### **File 3/9:** `app/(dashboard)/admin/users/page.tsx`
+
 - User management table
 - Columns: Name, Email, Tier, Created, Last Login, Status
 - Search by name or email
@@ -105,6 +115,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(admin): add user management page`
 
 ### **File 4/9:** `app/(dashboard)/admin/api-usage/page.tsx`
+
 - API usage analytics by tier
 - Table: Endpoint, Calls (FREE), Calls (PRO), Avg Response Time, Error Rate
 - Usage over time chart (split by tier)
@@ -113,6 +124,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(admin): add API usage analytics`
 
 ### **File 5/9:** `app/(dashboard)/admin/errors/page.tsx`
+
 - Error logs table
 - Columns: Timestamp, Error Type, Message, User ID, Tier, Stack Trace
 - Filter by error type, tier, date range
@@ -123,6 +135,7 @@ Build these 9 files in sequence:
 ### **API Routes (4 routes)**
 
 ### **File 6/9:** `app/api/admin/users/route.ts`
+
 - **GET:** List all users with pagination
 - Query params: page, search, tier, sortBy
 - Return: users array, total count, pagination info
@@ -130,12 +143,14 @@ Build these 9 files in sequence:
 - **Commit:** `feat(api): add admin users endpoint`
 
 ### **File 7/9:** `app/api/admin/analytics/route.ts`
+
 - **GET:** Analytics data
 - Return: tier distribution, revenue metrics, conversion rates, engagement metrics
 - Admin role check
 - **Commit:** `feat(api): add admin analytics endpoint`
 
 ### **File 8/9:** `app/api/admin/api-usage/route.ts`
+
 - **GET:** API usage stats by tier
 - Query params: startDate, endDate
 - Return: endpoint stats, usage trends
@@ -143,6 +158,7 @@ Build these 9 files in sequence:
 - **Commit:** `feat(api): add API usage endpoint`
 
 ### **File 9/9:** `app/api/admin/error-logs/route.ts`
+
 - **GET:** Error logs with pagination
 - Query params: page, type, tier, startDate, endDate
 - Return: logs array, total count
@@ -154,6 +170,7 @@ Build these 9 files in sequence:
 ## GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/admin-dashboard-{SESSION_ID}
@@ -164,7 +181,9 @@ git push -u origin claude/admin-dashboard-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(admin): add admin layout with role check
 feat(admin): add admin dashboard page
@@ -173,6 +192,7 @@ fix(admin): correct TypeScript type error in analytics
 ```
 
 ### **Push Requirements**
+
 - Branch MUST start with `claude/`
 - Branch MUST end with session ID
 - Push ONLY after all validations pass
@@ -199,12 +219,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - 0 TypeScript errors
 - 0 ESLint errors (warnings OK if < 3)
 - All files properly formatted
@@ -248,6 +270,7 @@ const adminTabs = [
 ### **3. Dashboard Metrics**
 
 **Key Metrics to Display:**
+
 ```typescript
 interface AdminMetrics {
   totalUsers: number;
@@ -255,15 +278,16 @@ interface AdminMetrics {
   proUsers: number;
   freePercentage: number;
   proPercentage: number;
-  mrr: number;              // PRO users × $29
-  arr: number;              // MRR × 12
-  conversionRate: number;   // (PRO / Total) × 100
+  mrr: number; // PRO users × $29
+  arr: number; // MRR × 12
+  conversionRate: number; // (PRO / Total) × 100
   newUsersThisMonth: number;
   churnedThisMonth: number;
 }
 ```
 
 **Revenue Calculation:**
+
 ```typescript
 const PRO_MONTHLY_PRICE = 29;
 
@@ -279,6 +303,7 @@ function calculateARR(mrr: number): number {
 ### **4. User Management**
 
 **User List Response:**
+
 ```typescript
 interface AdminUserListResponse {
   users: AdminUser[];
@@ -305,14 +330,15 @@ interface AdminUser {
 ### **5. API Usage Tracking**
 
 **Endpoint Stats:**
+
 ```typescript
 interface EndpointStats {
   endpoint: string;
   method: string;
   callsFree: number;
   callsPro: number;
-  avgResponseTime: number;  // in ms
-  errorRate: number;        // percentage
+  avgResponseTime: number; // in ms
+  errorRate: number; // percentage
   lastCalled: Date;
 }
 ```
@@ -323,7 +349,12 @@ interface EndpointStats {
 interface ErrorLog {
   id: string;
   timestamp: Date;
-  type: 'API_ERROR' | 'DATABASE_ERROR' | 'AUTH_ERROR' | 'PAYMENT_ERROR' | 'MT5_ERROR';
+  type:
+    | 'API_ERROR'
+    | 'DATABASE_ERROR'
+    | 'AUTH_ERROR'
+    | 'PAYMENT_ERROR'
+    | 'MT5_ERROR';
   message: string;
   userId: string | null;
   userTier: 'FREE' | 'PRO' | null;
@@ -334,6 +365,7 @@ interface ErrorLog {
 ```
 
 ### **7. TypeScript Compliance (CRITICAL)**
+
 - NO `any` types allowed
 - All function parameters typed
 - All return types specified
@@ -347,12 +379,14 @@ interface ErrorLog {
 After building all 9 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Visit `http://localhost:3000/admin` as non-admin user
 - [ ] Verify 403 Forbidden response
 - [ ] Login as admin user
@@ -370,6 +404,7 @@ npm run dev
 - [ ] Test export to CSV
 
 ### **3. API Testing**
+
 ```bash
 # GET users (as admin)
 curl http://localhost:3000/api/admin/users
@@ -388,11 +423,13 @@ curl "http://localhost:3000/api/admin/error-logs?type=API_ERROR"
 ```
 
 ### **4. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] API calls return correct status codes
 
 ### **5. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -403,6 +440,7 @@ npm run build
 ## CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Admin Layout with Role Check**
+
 ```typescript
 // app/(dashboard)/admin/layout.tsx
 import { getServerSession } from 'next-auth';
@@ -489,6 +527,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
 ```
 
 ### **Pattern 2: Admin Users API Route**
+
 ```typescript
 // app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -606,6 +645,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 3: Admin Analytics API Route**
+
 ```typescript
 // app/api/admin/analytics/route.ts
 import { NextResponse } from 'next/server';
@@ -713,6 +753,7 @@ export async function GET(): Promise<NextResponse> {
 ```
 
 ### **Pattern 4: Admin Dashboard Page**
+
 ```typescript
 // app/(dashboard)/admin/page.tsx
 'use client';
@@ -937,6 +978,7 @@ export default function AdminDashboardPage() {
 ```
 
 ### **Pattern 5: Error Logs API Route**
+
 ```typescript
 // app/api/admin/error-logs/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -948,7 +990,16 @@ import { z } from 'zod';
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   pageSize: z.coerce.number().min(10).max(100).default(50),
-  type: z.enum(['ALL', 'API_ERROR', 'DATABASE_ERROR', 'AUTH_ERROR', 'PAYMENT_ERROR', 'MT5_ERROR']).default('ALL'),
+  type: z
+    .enum([
+      'ALL',
+      'API_ERROR',
+      'DATABASE_ERROR',
+      'AUTH_ERROR',
+      'PAYMENT_ERROR',
+      'MT5_ERROR',
+    ])
+    .default('ALL'),
   tier: z.enum(['ALL', 'FREE', 'PRO']).default('ALL'),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -995,11 +1046,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     if (startDate) {
-      where.timestamp = { ...where.timestamp as object, gte: new Date(startDate) };
+      where.timestamp = {
+        ...(where.timestamp as object),
+        gte: new Date(startDate),
+      };
     }
 
     if (endDate) {
-      where.timestamp = { ...where.timestamp as object, lte: new Date(endDate) };
+      where.timestamp = {
+        ...(where.timestamp as object),
+        lte: new Date(endDate),
+      };
     }
 
     // Get total count
@@ -1035,6 +1092,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 ## CRITICAL RULES
 
 ### **DO:**
+
 - Read ALL policy files before writing code
 - Check ADMIN role on EVERY admin route
 - Return 403 Forbidden for non-admin users
@@ -1048,6 +1106,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 - Test with both admin and non-admin users
 
 ### **DON'T:**
+
 - Skip admin role checks
 - Use `any` types
 - Expose sensitive user data
@@ -1115,6 +1174,7 @@ Use the TodoWrite tool to track your progress:
    - `docs/implementation-guides/v5_part_n.md` - Admin dashboard business logic
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

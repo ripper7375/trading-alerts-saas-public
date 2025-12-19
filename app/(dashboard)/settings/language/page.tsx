@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Globe, Clock, Calendar, DollarSign, Check, Loader2 } from 'lucide-react';
+import {
+  Globe,
+  Clock,
+  Calendar,
+  DollarSign,
+  Check,
+  Loader2,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -60,7 +67,11 @@ const timezones: TimezoneOption[] = [
   { value: 'America/New_York', label: 'Eastern Time (ET)', region: 'Americas' },
   { value: 'America/Chicago', label: 'Central Time (CT)', region: 'Americas' },
   { value: 'America/Denver', label: 'Mountain Time (MT)', region: 'Americas' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)', region: 'Americas' },
+  {
+    value: 'America/Los_Angeles',
+    label: 'Pacific Time (PT)',
+    region: 'Americas',
+  },
   { value: 'Europe/London', label: 'London (GMT)', region: 'Europe' },
   { value: 'Europe/Paris', label: 'Paris (CET)', region: 'Europe' },
   { value: 'Europe/Berlin', label: 'Berlin (CET)', region: 'Europe' },
@@ -262,9 +273,21 @@ export default function LanguageSettingsPage(): React.ReactElement {
             </Label>
             <div className="space-y-2">
               {[
-                { value: 'MDY' as const, label: 'MM/DD/YYYY', example: '12/25/2024' },
-                { value: 'DMY' as const, label: 'DD/MM/YYYY', example: '25/12/2024' },
-                { value: 'YMD' as const, label: 'YYYY-MM-DD', example: '2024-12-25' },
+                {
+                  value: 'MDY' as const,
+                  label: 'MM/DD/YYYY',
+                  example: '12/25/2024',
+                },
+                {
+                  value: 'DMY' as const,
+                  label: 'DD/MM/YYYY',
+                  example: '25/12/2024',
+                },
+                {
+                  value: 'YMD' as const,
+                  label: 'YYYY-MM-DD',
+                  example: '2024-12-25',
+                },
               ].map((format) => (
                 <label
                   key={format.value}
@@ -281,7 +304,9 @@ export default function LanguageSettingsPage(): React.ReactElement {
                   <span className="text-gray-700 dark:text-gray-300">
                     {format.label}
                   </span>
-                  <span className="text-gray-400 text-sm">({format.example})</span>
+                  <span className="text-gray-400 text-sm">
+                    ({format.example})
+                  </span>
                 </label>
               ))}
             </div>
@@ -315,7 +340,9 @@ export default function LanguageSettingsPage(): React.ReactElement {
                   <span className="text-gray-700 dark:text-gray-300">
                     {format.label}
                   </span>
-                  <span className="text-gray-400 text-sm">({format.example})</span>
+                  <span className="text-gray-400 text-sm">
+                    ({format.example})
+                  </span>
                 </label>
               ))}
             </div>

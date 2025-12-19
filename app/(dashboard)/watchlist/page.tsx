@@ -11,7 +11,11 @@ import { redirect } from 'next/navigation';
 
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { FREE_TIER_CONFIG, PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
+import {
+  FREE_TIER_CONFIG,
+  PRO_TIER_CONFIG,
+  type Tier,
+} from '@/lib/tier-config';
 
 import { WatchlistClient } from './watchlist-client';
 

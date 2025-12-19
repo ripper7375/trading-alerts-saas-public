@@ -69,7 +69,9 @@ interface SocketIOSocket {
  * @param httpServer - The HTTP server instance to attach Socket.IO to
  * @returns The Socket.IO server instance
  */
-export async function initWebSocketServer(httpServer: HTTPServer): Promise<SocketIOServer> {
+export async function initWebSocketServer(
+  httpServer: HTTPServer
+): Promise<SocketIOServer> {
   // Dynamically import socket.io to avoid build-time issues
   const { Server } = await import('socket.io');
 
@@ -143,7 +145,9 @@ export async function initWebSocketServer(httpServer: HTTPServer): Promise<Socke
           connectedUsers.set(socket.userId, filtered);
         }
 
-        console.info(`User ${socket.userId} disconnected from socket ${socket.id}`);
+        console.info(
+          `User ${socket.userId} disconnected from socket ${socket.id}`
+        );
       } else {
         console.info(`Unauthenticated client disconnected: ${socket.id}`);
       }
@@ -207,7 +211,9 @@ export function broadcastNotification(notification: NotificationPayload): void {
     ioInstance!.to(`user:${userId}`).emit('notification', message);
   });
 
-  console.info(`Broadcast notification sent to ${connectedUsers.size} users: ${notification.title}`);
+  console.info(
+    `Broadcast notification sent to ${connectedUsers.size} users: ${notification.title}`
+  );
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

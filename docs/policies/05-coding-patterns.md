@@ -60,7 +60,7 @@ Before importing from `@/components/ui/*`, verify the component file exists:
 
 ```typescript
 // ❌ WRONG: Importing component that doesn't exist
-import { Select } from '@/components/ui/select';  // File may not exist!
+import { Select } from '@/components/ui/select'; // File may not exist!
 
 // ✅ CORRECT: First check if file exists, or create it
 // Run: ls components/ui/ to see available components
@@ -68,6 +68,7 @@ import { Select } from '@/components/ui/select';  // File may not exist!
 ```
 
 **Available UI Components** (check `components/ui/` folder):
+
 - `button.tsx`, `card.tsx`, `badge.tsx`, `dropdown-menu.tsx`
 - `dialog.tsx`, `select.tsx`, `input.tsx`, `alert-dialog.tsx`
 - If a component doesn't exist, create it following shadcn/ui patterns
@@ -78,7 +79,7 @@ Before using Radix UI primitives, verify the package is installed in `package.js
 
 ```typescript
 // ❌ WRONG: Using package that isn't installed
-import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';  // Not in package.json!
+import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'; // Not in package.json!
 
 // ✅ CORRECT: Check package.json first, use installed packages
 // Installed: @radix-ui/react-dialog, @radix-ui/react-dropdown-menu, @radix-ui/react-select, etc.
@@ -94,15 +95,16 @@ ESLint fails on unused variables. Fix with underscore prefix or removal:
 
 ```typescript
 // ❌ WRONG: Unused variables fail ESLint
-const slotsRemaining = limit - usedSlots;  // Never used!
-import { TrendingUp, TrendingDown } from 'lucide-react';  // Never used!
+const slotsRemaining = limit - usedSlots; // Never used!
+import { TrendingUp, TrendingDown } from 'lucide-react'; // Never used!
 
-export async function GET(request: NextRequest, { params }) {  // 'request' unused!
+export async function GET(request: NextRequest, { params }) {
+  // 'request' unused!
   // ...
 }
 
 // ✅ CORRECT: Remove unused or prefix with underscore
-const usedSlots = items.length;  // Removed slotsRemaining
+const usedSlots = items.length; // Removed slotsRemaining
 
 // Only import what you use:
 import { Loader2, Trash2 } from 'lucide-react';
@@ -120,7 +122,7 @@ When using `.includes()` on typed arrays like `FREE_SYMBOLS`, cast to `readonly 
 ```typescript
 // ❌ WRONG: Type error - string not assignable to literal union
 const FREE_SYMBOLS = ['BTCUSD', 'EURUSD', 'XAUUSD'] as const;
-const isAllowed = FREE_SYMBOLS.includes(symbol);  // Error: string vs literal type
+const isAllowed = FREE_SYMBOLS.includes(symbol); // Error: string vs literal type
 
 // ✅ CORRECT: Cast to readonly string[] for .includes() check
 const isAllowed = (FREE_SYMBOLS as readonly string[]).includes(symbol);
@@ -149,13 +151,15 @@ Don't create empty interfaces that just extend another type:
 
 ```typescript
 // ❌ WRONG: ESLint error - empty interface equivalent to supertype
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 // ✅ CORRECT: Use type alias instead
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 // Or add at least one property if you need an interface:
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Custom error message */
   errorMessage?: string;
 }

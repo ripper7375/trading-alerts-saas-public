@@ -60,7 +60,7 @@ Before importing from `@/components/ui/*`, verify the component file exists:
 
 ```typescript
 // ❌ WRONG: Importing component that doesn't exist
-import { Select } from '@/components/ui/select';  // File may not exist!
+import { Select } from '@/components/ui/select'; // File may not exist!
 
 // ✅ CORRECT: First check if file exists, or create it
 // Run: ls components/ui/ to see available components
@@ -68,6 +68,7 @@ import { Select } from '@/components/ui/select';  // File may not exist!
 ```
 
 **Available UI Components** (check `components/ui/` folder):
+
 - `button.tsx`, `card.tsx`, `badge.tsx`, `dropdown-menu.tsx`
 - `dialog.tsx`, `select.tsx`, `input.tsx`, `alert-dialog.tsx`
 - `label.tsx`, `textarea.tsx`, `separator.tsx`, `switch.tsx`
@@ -79,7 +80,7 @@ Before using Radix UI primitives, verify the package is installed in `package.js
 
 ```typescript
 // ❌ WRONG: Using package that isn't installed
-import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';  // Not in package.json!
+import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'; // Not in package.json!
 
 // ✅ CORRECT: Check package.json first, use installed packages
 // Installed: @radix-ui/react-dialog, @radix-ui/react-dropdown-menu, @radix-ui/react-select, etc.
@@ -95,15 +96,16 @@ ESLint fails on unused variables. Fix with underscore prefix or removal:
 
 ```typescript
 // ❌ WRONG: Unused variables fail ESLint
-const slotsRemaining = limit - usedSlots;  // Never used!
-import { TrendingUp, TrendingDown } from 'lucide-react';  // Never used!
+const slotsRemaining = limit - usedSlots; // Never used!
+import { TrendingUp, TrendingDown } from 'lucide-react'; // Never used!
 
-export async function GET(request: NextRequest, { params }) {  // 'request' unused!
+export async function GET(request: NextRequest, { params }) {
+  // 'request' unused!
   // ...
 }
 
 // ✅ CORRECT: Remove unused or prefix with underscore
-const usedSlots = items.length;  // Removed slotsRemaining
+const usedSlots = items.length; // Removed slotsRemaining
 
 // Only import what you use:
 import { Loader2, Trash2 } from 'lucide-react';
@@ -121,7 +123,7 @@ When using `.includes()` on typed arrays like `FREE_SYMBOLS`, cast to `readonly 
 ```typescript
 // ❌ WRONG: Type error - string not assignable to literal union
 const FREE_SYMBOLS = ['BTCUSD', 'EURUSD', 'XAUUSD'] as const;
-const isAllowed = FREE_SYMBOLS.includes(symbol);  // Error: string vs literal type
+const isAllowed = FREE_SYMBOLS.includes(symbol); // Error: string vs literal type
 
 // ✅ CORRECT: Cast to readonly string[] for .includes() check
 const isAllowed = (FREE_SYMBOLS as readonly string[]).includes(symbol);
@@ -150,13 +152,15 @@ Don't create empty interfaces that just extend another type:
 
 ```typescript
 // ❌ WRONG: ESLint error - empty interface equivalent to supertype
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 // ✅ CORRECT: Use type alias instead
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 // Or add at least one property if you need an interface:
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Custom error message */
   errorMessage?: string;
 }
@@ -232,6 +236,7 @@ export async function POST(req: NextRequest) {
 ```
 
 **Apply this pattern to:**
+
 - Stripe SDK (`lib/stripe/stripe.ts`)
 - Email services (SendGrid, Resend)
 - Payment providers (dLocal)
@@ -243,7 +248,7 @@ export async function POST(req: NextRequest) {
 
 ```typescript
 // ❌ WRONG: Importing package that isn't installed
-import { ThemeProvider, useTheme } from 'next-themes';  // Package not in package.json!
+import { ThemeProvider, useTheme } from 'next-themes'; // Package not in package.json!
 
 // ✅ CORRECT: Either install the package OR implement custom solution
 // Option 1: Install the package first
@@ -254,6 +259,7 @@ import { ThemeProvider, useTheme } from '@/components/providers/theme-provider';
 ```
 
 **Before importing any external package, check:**
+
 1. Run: `grep "package-name" package.json` to verify it's installed
 2. If not installed, either `npm install package-name` OR create local implementation
 3. Common packages that might NOT be installed: `next-themes`, `framer-motion`, `@tanstack/react-query`
@@ -275,6 +281,7 @@ import { ThemeProvider, useTheme } from '@/components/providers/theme-provider';
 ```
 
 **Before using interface properties:**
+
 1. Find the type definition: `grep -r "interface TierLimits" --include="*.ts"`
 2. Read the actual properties defined
 3. Use exact property names, not assumed ones
@@ -289,7 +296,7 @@ import { ThemeProvider, useTheme } from '@/components/providers/theme-provider';
 export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');  // Build fails!
+    throw new Error('useTheme must be used within a ThemeProvider'); // Build fails!
   }
   return context;
 }
@@ -301,7 +308,7 @@ export function useTheme(): ThemeContextValue {
   if (context === undefined) {
     return {
       theme: 'system',
-      setTheme: () => {},  // No-op during SSR
+      setTheme: () => {}, // No-op during SSR
       resolvedTheme: 'light',
     };
   }
@@ -310,6 +317,7 @@ export function useTheme(): ThemeContextValue {
 ```
 
 **Apply this pattern to:**
+
 - Custom theme providers (`useTheme`)
 - Custom auth context hooks (`useAuth`)
 - Any context hook used in pre-rendered pages
@@ -321,14 +329,14 @@ export function useTheme(): ThemeContextValue {
 
 ```typescript
 // ❌ WRONG: Destructuring variables you don't use
-const { theme, setTheme, resolvedTheme } = useTheme();  // resolvedTheme unused!
-const { data: session } = useSession();  // session unused if only checking auth!
+const { theme, setTheme, resolvedTheme } = useTheme(); // resolvedTheme unused!
+const { data: session } = useSession(); // session unused if only checking auth!
 
 // ✅ CORRECT: Only destructure what you need
-const { theme, setTheme } = useTheme();  // Only using theme and setTheme
+const { theme, setTheme } = useTheme(); // Only using theme and setTheme
 
 // If you only need to trigger the hook but not use the value:
-useSession();  // Call without destructuring
+useSession(); // Call without destructuring
 ```
 
 ---
@@ -1619,4 +1627,3 @@ export async function GET(req: NextRequest) {
 ```
 
 ---
-

@@ -33,9 +33,21 @@ interface CreateAlertClientProps {
  * Condition type options
  */
 const CONDITION_TYPES = [
-  { value: 'price_above', label: 'Price Above', description: 'Triggers when price goes above target' },
-  { value: 'price_below', label: 'Price Below', description: 'Triggers when price goes below target' },
-  { value: 'price_equals', label: 'Price Equals', description: 'Triggers when price equals target (0.5% tolerance)' },
+  {
+    value: 'price_above',
+    label: 'Price Above',
+    description: 'Triggers when price goes above target',
+  },
+  {
+    value: 'price_below',
+    label: 'Price Below',
+    description: 'Triggers when price goes below target',
+  },
+  {
+    value: 'price_equals',
+    label: 'Price Equals',
+    description: 'Triggers when price equals target (0.5% tolerance)',
+  },
 ] as const;
 
 type ConditionType = (typeof CONDITION_TYPES)[number]['value'];
@@ -58,7 +70,8 @@ export function CreateAlertClient({
   // Form state
   const [symbol, setSymbol] = useState<string>('');
   const [timeframe, setTimeframe] = useState<string>('');
-  const [conditionType, setConditionType] = useState<ConditionType>('price_above');
+  const [conditionType, setConditionType] =
+    useState<ConditionType>('price_above');
   const [targetValue, setTargetValue] = useState<string>('');
   const [alertName, setAlertName] = useState<string>('');
 
@@ -135,7 +148,8 @@ export function CreateAlertClient({
                 Alert Limit Reached
               </h2>
               <p className="text-gray-600 mb-6">
-                You have reached your {userTier} tier limit of {limit} active alerts.
+                You have reached your {userTier} tier limit of {limit} active
+                alerts.
                 {userTier === 'FREE' && ' Upgrade to PRO for 20 alerts.'}
               </p>
               <div className="flex gap-4 justify-center">
@@ -162,7 +176,11 @@ export function CreateAlertClient({
       <div className="max-w-2xl mx-auto">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-500 mb-4">
-          Dashboard &gt; <Link href="/alerts" className="hover:text-blue-600">Alerts</Link> &gt; New Alert
+          Dashboard &gt;{' '}
+          <Link href="/alerts" className="hover:text-blue-600">
+            Alerts
+          </Link>{' '}
+          &gt; New Alert
         </div>
 
         {/* Page Header */}
@@ -174,7 +192,9 @@ export function CreateAlertClient({
         </div>
 
         {/* Alert Limit Progress */}
-        <Card className={`mb-6 ${progressPercent >= 80 ? 'border-yellow-300' : 'border-gray-200'}`}>
+        <Card
+          className={`mb-6 ${progressPercent >= 80 ? 'border-yellow-300' : 'border-gray-200'}`}
+        >
           <CardContent className="p-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">
@@ -185,8 +205,12 @@ export function CreateAlertClient({
             <Progress value={progressPercent} className="h-2" />
             {userTier === 'FREE' && currentCount >= limit - 1 && (
               <p className="text-sm text-yellow-600 mt-2">
-                You have {limit - currentCount} alert{limit - currentCount !== 1 ? 's' : ''} remaining.{' '}
-                <Link href="/pricing" className="underline">Upgrade to PRO</Link> for more.
+                You have {limit - currentCount} alert
+                {limit - currentCount !== 1 ? 's' : ''} remaining.{' '}
+                <Link href="/pricing" className="underline">
+                  Upgrade to PRO
+                </Link>{' '}
+                for more.
               </p>
             )}
           </CardContent>
@@ -274,7 +298,9 @@ export function CreateAlertClient({
                         />
                         <span className="ml-2 font-medium">{type.label}</span>
                       </div>
-                      <p className="ml-6 text-sm text-gray-500">{type.description}</p>
+                      <p className="ml-6 text-sm text-gray-500">
+                        {type.description}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -315,7 +341,11 @@ export function CreateAlertClient({
                   type="text"
                   value={alertName}
                   onChange={(e) => setAlertName(e.target.value)}
-                  placeholder={symbol && timeframe ? `${symbol} ${timeframe} Alert` : 'Enter alert name'}
+                  placeholder={
+                    symbol && timeframe
+                      ? `${symbol} ${timeframe} Alert`
+                      : 'Enter alert name'
+                  }
                   maxLength={100}
                 />
                 <p className="text-xs text-gray-500 mt-1">
