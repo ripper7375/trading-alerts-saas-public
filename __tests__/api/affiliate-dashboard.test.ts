@@ -28,6 +28,7 @@ class MockRequest {
   url: string;
   method: string;
   headers: MockHeaders;
+  nextUrl: URL;
   private bodyContent: string | null = null;
 
   constructor(
@@ -38,6 +39,7 @@ class MockRequest {
     this.method = init?.method || 'GET';
     this.headers = new MockHeaders(init?.headers);
     this.bodyContent = init?.body || null;
+    this.nextUrl = new URL(url);
   }
 
   async json(): Promise<unknown> {
