@@ -207,7 +207,11 @@ export async function cacheIndicators(
   indicators: Record<string, unknown>
 ): Promise<void> {
   const key = getIndicatorKey(symbol, timeframe);
-  await setCache(key, { indicators, timestamp: Date.now() }, CACHE_TTL.INDICATORS);
+  await setCache(
+    key,
+    { indicators, timestamp: Date.now() },
+    CACHE_TTL.INDICATORS
+  );
 }
 
 /**
@@ -222,7 +226,10 @@ export async function getCachedIndicators(
   timeframe: string
 ): Promise<Record<string, unknown> | null> {
   const key = getIndicatorKey(symbol, timeframe);
-  const cached = await getCache<{ indicators: Record<string, unknown>; timestamp: number }>(key);
+  const cached = await getCache<{
+    indicators: Record<string, unknown>;
+    timestamp: number;
+  }>(key);
   return cached?.indicators ?? null;
 }
 
@@ -296,8 +303,8 @@ export async function incrementRateLimit(
       return { count: 1, ttl: windowSeconds };
     }
 
-    const count = results[0]?.[1] as number ?? 1;
-    let ttl = results[1]?.[1] as number ?? -1;
+    const count = (results[0]?.[1] as number) ?? 1;
+    let ttl = (results[1]?.[1] as number) ?? -1;
 
     // Set expiry if key is new (ttl = -1 means no expiry set)
     if (ttl === -1) {

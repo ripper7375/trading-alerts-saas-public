@@ -97,7 +97,11 @@ describe('MT5 Client - API Functions', () => {
         total_terminals: 3,
         connected_terminals: 3,
         terminals: {
-          terminal_1: { connected: true, terminal_id: '1', last_check: '2025-12-15T00:00:00Z' },
+          terminal_1: {
+            connected: true,
+            terminal_id: '1',
+            last_check: '2025-12-15T00:00:00Z',
+          },
         },
       };
 
@@ -236,15 +240,30 @@ describe('MT5 Client - API Functions', () => {
       success: true,
       data: {
         ohlc: [
-          { time: 1702600800, open: 2020.5, high: 2025.0, low: 2018.0, close: 2023.5, volume: 1000 },
+          {
+            time: 1702600800,
+            open: 2020.5,
+            high: 2025.0,
+            low: 2018.0,
+            close: 2023.5,
+            volume: 1000,
+          },
         ],
         horizontal: {
-          peak_1: [], peak_2: [], peak_3: [],
-          bottom_1: [], bottom_2: [], bottom_3: [],
+          peak_1: [],
+          peak_2: [],
+          peak_3: [],
+          bottom_1: [],
+          bottom_2: [],
+          bottom_3: [],
         },
         diagonal: {
-          ascending_1: [], ascending_2: [], ascending_3: [],
-          descending_1: [], descending_2: [], descending_3: [],
+          ascending_1: [],
+          ascending_2: [],
+          ascending_3: [],
+          descending_1: [],
+          descending_2: [],
+          descending_3: [],
         },
         fractals: { peaks: [], bottoms: [] },
         metadata: {
@@ -300,9 +319,9 @@ describe('MT5 Client - API Functions', () => {
         }),
       });
 
-      await expect(
-        fetchIndicatorData('GBPUSD', 'H1', 'FREE')
-      ).rejects.toThrow(MT5AccessDeniedError);
+      await expect(fetchIndicatorData('GBPUSD', 'H1', 'FREE')).rejects.toThrow(
+        MT5AccessDeniedError
+      );
     });
 
     it('should throw MT5ServiceError for server errors', async () => {
@@ -314,9 +333,9 @@ describe('MT5 Client - API Functions', () => {
         }),
       });
 
-      await expect(
-        fetchIndicatorData('XAUUSD', 'H1', 'FREE')
-      ).rejects.toThrow(MT5ServiceError);
+      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
+        MT5ServiceError
+      );
     });
 
     it('should throw when response success is false', async () => {
@@ -328,9 +347,9 @@ describe('MT5 Client - API Functions', () => {
         }),
       });
 
-      await expect(
-        fetchIndicatorData('XAUUSD', 'H1', 'FREE')
-      ).rejects.toThrow(MT5ServiceError);
+      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
+        MT5ServiceError
+      );
     });
   });
 

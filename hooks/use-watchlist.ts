@@ -136,7 +136,8 @@ export function useWatchlist(): UseWatchlistResult {
       setWatchlist(data.watchlist || null);
       setItems(data.items || []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch watchlist';
+      const message =
+        err instanceof Error ? err.message : 'Failed to fetch watchlist';
       setError(message);
       console.error('fetchWatchlist error:', err);
     } finally {
@@ -170,7 +171,8 @@ export function useWatchlist(): UseWatchlistResult {
 
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to add item';
+        const message =
+          err instanceof Error ? err.message : 'Failed to add item';
         setError(message);
         console.error('addItem error:', err);
         return false;
@@ -199,7 +201,8 @@ export function useWatchlist(): UseWatchlistResult {
       setItems((prev) => prev.filter((item) => item.id !== id));
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to remove item';
+      const message =
+        err instanceof Error ? err.message : 'Failed to remove item';
       setError(message);
       console.error('removeItem error:', err);
       return false;
@@ -240,7 +243,8 @@ export function useWatchlist(): UseWatchlistResult {
 
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to reorder items';
+        const message =
+          err instanceof Error ? err.message : 'Failed to reorder items';
         setError(message);
         console.error('reorderItems error:', err);
         return false;

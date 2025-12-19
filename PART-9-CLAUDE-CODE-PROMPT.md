@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 9: Charts & Visualization** for the Trading Alerts SaaS V7 project. You will build 8 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -27,6 +28,7 @@ You are Claude Code, tasked with building **Part 9: Charts & Visualization** for
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1️⃣ **Project Overview & Current State**
+
 ```
 PROGRESS.md                  # Current project status (Parts 6-8 complete)
 README.md                    # Project overview
@@ -35,6 +37,7 @@ IMPLEMENTATION-GUIDE.md      # Implementation best practices
 ```
 
 ### 2️⃣ **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL for charts)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -46,18 +49,21 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3️⃣ **Part 9 Requirements & Build Order**
+
 ```
 docs/build-orders/part-09-charts.md                  # Build order for all 8 files
 docs/implementation-guides/v5_part_i.md              # Detailed specifications for charts
 ```
 
 ### 4️⃣ **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 docs/flask_mt5_openapi.yaml                          # Flask MT5 API contracts
 ```
 
 ### 5️⃣ **Seed Code References (CRITICAL - Use these patterns)**
+
 ```
 seed-code/v0-components/trading-chart-component/components/trading-chart.tsx   # Main chart component
 seed-code/v0-components/chart-controls-component/components/chart-controls.tsx # Controls component
@@ -67,12 +73,14 @@ seed-code/v0-components/chart-controls-component/components/upgrade-modal.tsx
 ```
 
 ### 6️⃣ **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 7️⃣ **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-04-tier-system.md             # Tier system (DEPENDENCY)
 docs/build-orders/part-07-indicators-api.md          # Indicators API (DEPENDENCY - charts use this)
@@ -86,6 +94,7 @@ docs/build-orders/part-08-dashboard.md               # Dashboard layout (Part 8 
 Build these 8 files in sequence:
 
 ### **File 1/8:** `app/(dashboard)/charts/page.tsx`
+
 - Charts page with symbol/timeframe selectors
 - Tier-filtered symbol list (5 for FREE, 15 for PRO)
 - Tier-filtered timeframe list (3 for FREE, 9 for PRO)
@@ -95,6 +104,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add charts page with tier filtering`
 
 ### **File 2/8:** `app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx`
+
 - Individual chart page with dynamic routing
 - Validate tier access to symbol AND timeframe combination
 - Return 403 if user tier doesn't allow access
@@ -103,6 +113,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add dynamic chart page with tier validation`
 
 ### **File 3/8:** `components/charts/trading-chart.tsx`
+
 - TradingView Lightweight Charts integration
 - Load candlestick data from `/api/indicators/[symbol]/[timeframe]`
 - Overlay indicators (fractal horizontal/diagonal lines)
@@ -112,6 +123,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add TradingView chart component`
 
 ### **File 4/8:** `components/charts/indicator-overlay.tsx`
+
 - Render indicator lines on chart
 - Support/resistance horizontal lines
 - Diagonal trend lines
@@ -120,6 +132,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add indicator overlay component`
 
 ### **File 5/8:** `components/charts/chart-controls.tsx`
+
 - Symbol selector (tier-filtered)
 - Timeframe selector (tier-filtered)
 - Refresh button with loading state
@@ -129,6 +142,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add chart controls with tier filtering`
 
 ### **File 6/8:** `components/charts/timeframe-selector.tsx`
+
 - Timeframe button group
 - Disable PRO timeframes for FREE users (M5, M15, M30, H2, H8, H12)
 - Show lock icon and upgrade prompt on disabled options
@@ -137,6 +151,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add timeframe selector with tier gates`
 
 ### **File 7/8:** `hooks/use-indicators.ts`
+
 - React hook for fetching indicator data
 - Call `/api/indicators/[symbol]/[timeframe]`
 - Handle loading, error, and success states
@@ -145,6 +160,7 @@ Build these 8 files in sequence:
 - **Commit:** `feat(charts): add indicators data hook`
 
 ### **File 8/8:** `hooks/use-auth.ts`
+
 - React hook for auth session
 - Get user tier from session
 - Check if authenticated
@@ -156,6 +172,7 @@ Build these 8 files in sequence:
 ## 🔧 GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/charts-visualization-{SESSION_ID}
@@ -166,7 +183,9 @@ git push -u origin claude/charts-visualization-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(charts): add charts page with tier filtering
 feat(charts): add dynamic chart page with tier validation
@@ -175,6 +194,7 @@ fix(charts): correct TypeScript type error in indicator overlay
 ```
 
 ### **Push Requirements**
+
 - ✅ Branch MUST start with `claude/`
 - ✅ Branch MUST end with session ID
 - ✅ Push ONLY after all validations pass
@@ -201,12 +221,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - ✅ 0 TypeScript errors
 - ✅ 0 ESLint errors (warnings OK if < 3)
 - ✅ All files properly formatted
@@ -218,25 +240,30 @@ npm run fix
 ## 🎯 KEY REQUIREMENTS FOR PART 9
 
 ### **1. Tier-Based Access Control (CRITICAL)**
+
 This is the MOST IMPORTANT requirement for Part 9.
 
 **FREE Tier Limits:**
+
 - Symbols: 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
 - Timeframes: 3 (H1, H4, D1)
 - Chart combinations: 15 total
 
 **PRO Tier Access:**
+
 - Symbols: 15 (AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD)
 - Timeframes: 9 (M5, M15, M30, H1, H2, H4, H8, H12, D1)
 - Chart combinations: 135 total
 
 **Validation Rules:**
+
 - ❌ FREE tier CANNOT access PRO-only symbols
 - ❌ FREE tier CANNOT access PRO-only timeframes (M5, M15, M30, H2, H8, H12)
 - ✅ Chart access requires BOTH symbol AND timeframe validation
 - ✅ Show upgrade prompt when accessing locked features
 
 ### **2. TypeScript Compliance (CRITICAL)**
+
 - ✅ NO `any` types allowed
 - ✅ All function parameters typed
 - ✅ All return types specified
@@ -244,6 +271,7 @@ This is the MOST IMPORTANT requirement for Part 9.
 - ✅ Use proper React types (`FC`, `ReactNode`, etc.)
 
 ### **3. TradingView Lightweight Charts**
+
 - ✅ Use `lightweight-charts` package (v4.x)
 - ✅ Dark theme colors matching TradingView:
   - Background: `#1e222d`
@@ -256,6 +284,7 @@ This is the MOST IMPORTANT requirement for Part 9.
 - ✅ Proper resize handling
 
 ### **4. Data Fetching from Indicators API**
+
 - ✅ Call `/api/indicators/{symbol}/{timeframe}` endpoint
 - ✅ Handle loading, error, and success states
 - ✅ Cache data appropriately
@@ -263,6 +292,7 @@ This is the MOST IMPORTANT requirement for Part 9.
 - ✅ Display "Data from: X seconds ago" indicator
 
 ### **5. Error Handling**
+
 - ✅ Try-catch blocks in async operations
 - ✅ User-friendly error messages
 - ✅ Loading states for chart rendering
@@ -270,6 +300,7 @@ This is the MOST IMPORTANT requirement for Part 9.
 - ✅ Handle 403 (tier access denied) gracefully
 
 ### **6. Responsive Design**
+
 - ✅ Chart resizes with container
 - ✅ Mobile-friendly controls
 - ✅ Use Tailwind responsive classes (`sm:`, `md:`, `lg:`)
@@ -281,12 +312,14 @@ This is the MOST IMPORTANT requirement for Part 9.
 After building all 8 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Visit `http://localhost:3000/charts`
 - [ ] Verify charts page loads without errors
 - [ ] Check symbol selector shows tier-appropriate options
@@ -302,12 +335,14 @@ npm run dev
 - [ ] Test responsive layout on mobile/tablet/desktop
 
 ### **3. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] No missing key props warnings
 - [ ] API calls return 200 status
 
 ### **4. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -318,23 +353,48 @@ npm run build
 ## 📝 CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Tier Constants (Use Exact Values)**
+
 ```typescript
 // lib/tier-config.ts or directly in components
 
 export const FREE_SYMBOLS = [
-  'BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD'
+  'BTCUSD',
+  'EURUSD',
+  'USDJPY',
+  'US30',
+  'XAUUSD',
 ] as const;
 
 export const PRO_SYMBOLS = [
-  'AUDJPY', 'AUDUSD', 'BTCUSD', 'ETHUSD', 'EURUSD',
-  'GBPJPY', 'GBPUSD', 'NDX100', 'NZDUSD', 'US30',
-  'USDCAD', 'USDCHF', 'USDJPY', 'XAGUSD', 'XAUUSD'
+  'AUDJPY',
+  'AUDUSD',
+  'BTCUSD',
+  'ETHUSD',
+  'EURUSD',
+  'GBPJPY',
+  'GBPUSD',
+  'NDX100',
+  'NZDUSD',
+  'US30',
+  'USDCAD',
+  'USDCHF',
+  'USDJPY',
+  'XAGUSD',
+  'XAUUSD',
 ] as const;
 
 export const FREE_TIMEFRAMES = ['H1', 'H4', 'D1'] as const;
 
 export const PRO_TIMEFRAMES = [
-  'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'H12', 'D1'
+  'M5',
+  'M15',
+  'M30',
+  'H1',
+  'H2',
+  'H4',
+  'H8',
+  'H12',
+  'D1',
 ] as const;
 
 export type UserTier = 'FREE' | 'PRO';
@@ -359,6 +419,7 @@ export function canAccessTimeframe(tier: UserTier, timeframe: string): boolean {
 ```
 
 ### **Pattern 2: Charts Page with Tier Filtering**
+
 ```typescript
 // app/(dashboard)/charts/page.tsx
 import { getServerSession } from 'next-auth';
@@ -407,6 +468,7 @@ export default async function ChartsPage() {
 ```
 
 ### **Pattern 3: Dynamic Chart Page with Tier Validation**
+
 ```typescript
 // app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx
 import { getServerSession } from 'next-auth';
@@ -487,6 +549,7 @@ export default async function ChartPage({ params }: ChartPageProps) {
 ```
 
 ### **Pattern 4: TradingChart Component**
+
 ```typescript
 // components/charts/trading-chart.tsx
 'use client';
@@ -598,6 +661,7 @@ export function TradingChart({ symbol, timeframe, tier }: TradingChartProps) {
 ```
 
 ### **Pattern 5: useIndicators Hook**
+
 ```typescript
 // hooks/use-indicators.ts
 import { useQuery } from '@tanstack/react-query';
@@ -648,6 +712,7 @@ export function useIndicators(symbol: string, timeframe: string) {
 ```
 
 ### **Pattern 6: useAuth Hook**
+
 ```typescript
 // hooks/use-auth.ts
 'use client';
@@ -692,6 +757,7 @@ export function useRequireAuth(redirectUrl = '/auth/login') {
 ```
 
 ### **Pattern 7: Timeframe Selector with Tier Gates**
+
 ```typescript
 // components/charts/timeframe-selector.tsx
 'use client';
@@ -756,6 +822,7 @@ export function TimeframeSelector({
 ## 🚨 CRITICAL RULES
 
 ### **DO:**
+
 - ✅ Read ALL policy files before writing code
 - ✅ Follow tier-based access control EXACTLY as specified
 - ✅ Use TypeScript strictly (no `any` types)
@@ -767,6 +834,7 @@ export function TimeframeSelector({
 - ✅ Use TradingView Lightweight Charts (v4.x)
 
 ### **DON'T:**
+
 - ❌ Skip reading policy files
 - ❌ Use `any` types
 - ❌ Allow FREE users to access PRO features
@@ -832,6 +900,7 @@ Use the TodoWrite tool to track your progress:
    - `seed-code/v0-components/trading-chart-component/` - Reference chart code
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

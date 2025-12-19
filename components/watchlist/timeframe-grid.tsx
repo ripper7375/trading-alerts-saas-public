@@ -80,7 +80,8 @@ export function TimeframeGrid({
   showUpgradePrompt: _showUpgradePrompt = true,
   disabled = false,
 }: TimeframeGridProps): React.JSX.Element {
-  const availableTimeframes = userTier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
+  const availableTimeframes =
+    userTier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
 
   const handleTimeframeClick = useCallback(
     (timeframe: string, isLocked: boolean) => {
@@ -98,7 +99,9 @@ export function TimeframeGrid({
     <div className="space-y-2">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {TIMEFRAME_INFO.map((timeframe) => {
-          const isLocked = !(availableTimeframes as readonly string[]).includes(timeframe.id);
+          const isLocked = !(availableTimeframes as readonly string[]).includes(
+            timeframe.id
+          );
           const isSelected = selectedTimeframe === timeframe.id;
 
           return (
@@ -186,8 +189,8 @@ export function TimeframeUpgradeDialog({
           <DialogDescription>
             {timeframeInfo ? (
               <>
-                The <strong>{timeframeInfo.id}</strong> ({timeframeInfo.name}) timeframe is
-                only available to PRO subscribers.
+                The <strong>{timeframeInfo.id}</strong> ({timeframeInfo.name})
+                timeframe is only available to PRO subscribers.
               </>
             ) : (
               'This timeframe is only available to PRO subscribers.'
@@ -201,7 +204,9 @@ export function TimeframeUpgradeDialog({
               PRO Tier Benefits
             </h4>
             <ul className="text-sm text-purple-800 space-y-1">
-              <li>• All 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)</li>
+              <li>
+                • All 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+              </li>
               <li>• All 15 trading symbols</li>
               <li>• 50 watchlist items (vs 5 for FREE)</li>
               <li>• 20 price alerts (vs 5 for FREE)</li>
@@ -212,7 +217,10 @@ export function TimeframeUpgradeDialog({
             <Button variant="outline" onClick={onClose} className="flex-1">
               Maybe Later
             </Button>
-            <Button asChild className="flex-1 bg-purple-600 hover:bg-purple-700">
+            <Button
+              asChild
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
+            >
               <Link href="/pricing">Upgrade to PRO - $29/mo</Link>
             </Button>
           </div>

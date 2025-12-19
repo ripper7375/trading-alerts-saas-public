@@ -45,14 +45,22 @@ describe('Card Component', () => {
     });
 
     it('should merge custom className', () => {
-      render(<Card className="custom-card" data-testid="card">Content</Card>);
+      render(
+        <Card className="custom-card" data-testid="card">
+          Content
+        </Card>
+      );
       const card = screen.getByTestId('card');
       expect(card.className).toContain('custom-card');
       expect(card.className).toContain('bg-card');
     });
 
     it('should forward additional props', () => {
-      render(<Card data-testid="card" id="my-card">Content</Card>);
+      render(
+        <Card data-testid="card" id="my-card">
+          Content
+        </Card>
+      );
       const card = screen.getByTestId('card');
       expect(card).toHaveAttribute('id', 'my-card');
     });
@@ -78,7 +86,11 @@ describe('Card Component', () => {
     });
 
     it('should merge custom className', () => {
-      render(<CardHeader className="custom-header" data-testid="header">Header</CardHeader>);
+      render(
+        <CardHeader className="custom-header" data-testid="header">
+          Header
+        </CardHeader>
+      );
       const header = screen.getByTestId('header');
       expect(header.className).toContain('custom-header');
     });
@@ -109,7 +121,11 @@ describe('Card Component', () => {
     });
 
     it('should merge custom className', () => {
-      render(<CardTitle className="custom-title" data-testid="title">Title</CardTitle>);
+      render(
+        <CardTitle className="custom-title" data-testid="title">
+          Title
+        </CardTitle>
+      );
       const title = screen.getByTestId('title');
       expect(title.className).toContain('custom-title');
     });
@@ -135,7 +151,11 @@ describe('Card Component', () => {
     });
 
     it('should merge custom className', () => {
-      render(<CardDescription className="custom-desc" data-testid="desc">Desc</CardDescription>);
+      render(
+        <CardDescription className="custom-desc" data-testid="desc">
+          Desc
+        </CardDescription>
+      );
       const desc = screen.getByTestId('desc');
       expect(desc.className).toContain('custom-desc');
     });
@@ -160,7 +180,11 @@ describe('Card Component', () => {
     });
 
     it('should merge custom className', () => {
-      render(<CardContent className="custom-content" data-testid="content">Content</CardContent>);
+      render(
+        <CardContent className="custom-content" data-testid="content">
+          Content
+        </CardContent>
+      );
       const content = screen.getByTestId('content');
       expect(content.className).toContain('custom-content');
     });
@@ -187,7 +211,11 @@ describe('Card Component', () => {
     });
 
     it('should merge custom className', () => {
-      render(<CardFooter className="custom-footer" data-testid="footer">Footer</CardFooter>);
+      render(
+        <CardFooter className="custom-footer" data-testid="footer">
+          Footer
+        </CardFooter>
+      );
       const footer = screen.getByTestId('footer');
       expect(footer.className).toContain('custom-footer');
     });
@@ -212,9 +240,15 @@ describe('Card Component', () => {
 
       expect(screen.getByTestId('card')).toBeInTheDocument();
       expect(screen.getByText('Welcome')).toBeInTheDocument();
-      expect(screen.getByText('Get started with our platform')).toBeInTheDocument();
-      expect(screen.getByText('This is the main content area.')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
+      expect(
+        screen.getByText('Get started with our platform')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('This is the main content area.')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Get Started' })
+      ).toBeInTheDocument();
     });
 
     it('should maintain proper nesting structure', () => {
@@ -240,7 +274,11 @@ describe('Card Component', () => {
 
   describe('Accessibility', () => {
     it('should support role attribute on card', () => {
-      render(<Card role="article" data-testid="card">Content</Card>);
+      render(
+        <Card role="article" data-testid="card">
+          Content
+        </Card>
+      );
       expect(screen.getByRole('article')).toBeInTheDocument();
     });
 

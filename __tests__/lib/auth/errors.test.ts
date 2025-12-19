@@ -403,7 +403,9 @@ describe('Authentication Error Classes', () => {
     it('should return true for AuthError instances', () => {
       expect(isOperationalError(new AuthError('Test'))).toBe(true);
       expect(isOperationalError(new InvalidCredentialsError())).toBe(true);
-      expect(isOperationalError(new TierAccessError('Test', 'PRO', 'FREE'))).toBe(true);
+      expect(
+        isOperationalError(new TierAccessError('Test', 'PRO', 'FREE'))
+      ).toBe(true);
     });
 
     it('should return false for regular errors', () => {

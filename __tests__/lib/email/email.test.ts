@@ -40,7 +40,10 @@ describe('Email Service', () => {
 
   describe('getVerificationEmail', () => {
     it('should generate verification email with token URL', () => {
-      const html = getVerificationEmail('Jane Doe', 'https://example.com/verify?token=abc123');
+      const html = getVerificationEmail(
+        'Jane Doe',
+        'https://example.com/verify?token=abc123'
+      );
 
       expect(html).toContain('Verify Your Email');
       expect(html).toContain('Jane Doe');
@@ -56,7 +59,10 @@ describe('Email Service', () => {
 
   describe('getPasswordResetEmail', () => {
     it('should generate password reset email with reset URL', () => {
-      const html = getPasswordResetEmail('Bob Smith', 'https://example.com/reset?token=xyz789');
+      const html = getPasswordResetEmail(
+        'Bob Smith',
+        'https://example.com/reset?token=xyz789'
+      );
 
       expect(html).toContain('Reset Your Password');
       expect(html).toContain('Bob Smith');
@@ -78,7 +84,7 @@ describe('Email Service', () => {
         'XAUUSD',
         'H1',
         'Price Above $2000',
-        2005.50
+        2005.5
       );
 
       expect(html).toContain('Alert Triggered');
@@ -90,7 +96,13 @@ describe('Email Service', () => {
     });
 
     it('should include view chart link', () => {
-      const html = getAlertTriggeredEmail('User', 'EURUSD', 'M15', 'test', 1.0850);
+      const html = getAlertTriggeredEmail(
+        'User',
+        'EURUSD',
+        'M15',
+        'test',
+        1.085
+      );
 
       expect(html).toContain('View Chart');
       expect(html).toContain('EURUSD');

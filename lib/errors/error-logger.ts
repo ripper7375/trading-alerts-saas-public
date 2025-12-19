@@ -92,7 +92,10 @@ export function logInfo(message: string, context?: ErrorContext): void {
   };
 
   // Only log info in development or if explicitly enabled
-  if (process.env['NODE_ENV'] !== 'production' || process.env['VERBOSE_LOGGING'] === 'true') {
+  if (
+    process.env['NODE_ENV'] !== 'production' ||
+    process.env['VERBOSE_LOGGING'] === 'true'
+  ) {
     console.info(JSON.stringify(entry));
   }
 }

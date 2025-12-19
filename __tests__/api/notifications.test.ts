@@ -65,7 +65,10 @@ class MockRequest {
   headers: MockHeaders;
   nextUrl: MockURL;
 
-  constructor(url: string, init?: { method?: string; headers?: Record<string, string> }) {
+  constructor(
+    url: string,
+    init?: { method?: string; headers?: Record<string, string> }
+  ) {
     this.url = url;
     this.method = init?.method || 'GET';
     this.headers = new MockHeaders(init?.headers);
@@ -180,7 +183,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?status=unread');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?status=unread'
+      );
       await GET(request as unknown as Request);
 
       expect(mockNotificationFindMany).toHaveBeenCalledWith(
@@ -199,7 +204,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?status=read');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?status=read'
+      );
       await GET(request as unknown as Request);
 
       expect(mockNotificationFindMany).toHaveBeenCalledWith(
@@ -218,7 +225,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?type=ALERT');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?type=ALERT'
+      );
       await GET(request as unknown as Request);
 
       expect(mockNotificationFindMany).toHaveBeenCalledWith(
@@ -237,7 +246,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?page=3&pageSize=25');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?page=3&pageSize=25'
+      );
       await GET(request as unknown as Request);
 
       expect(mockNotificationFindMany).toHaveBeenCalledWith(
@@ -268,7 +279,9 @@ describe('Notifications API Routes', () => {
       mockNotificationCount.mockResolvedValueOnce(10); // unread
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?pageSize=20');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?pageSize=20'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -354,7 +367,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?type=ALERT');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?type=ALERT'
+      );
       const response = await GET(request as unknown as Request);
 
       expect(response.status).toBe(200);
@@ -366,7 +381,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?type=SUBSCRIPTION');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?type=SUBSCRIPTION'
+      );
       const response = await GET(request as unknown as Request);
 
       expect(response.status).toBe(200);
@@ -378,7 +395,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?type=PAYMENT');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?type=PAYMENT'
+      );
       const response = await GET(request as unknown as Request);
 
       expect(response.status).toBe(200);
@@ -390,7 +409,9 @@ describe('Notifications API Routes', () => {
       mockNotificationFindMany.mockResolvedValue([]);
 
       const { GET } = await import('@/app/api/notifications/route');
-      const request = new MockRequest('http://localhost/api/notifications?type=SYSTEM');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?type=SYSTEM'
+      );
       const response = await GET(request as unknown as Request);
 
       expect(response.status).toBe(200);

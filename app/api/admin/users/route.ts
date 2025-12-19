@@ -112,7 +112,10 @@ export async function GET(
 
     // Build where clause
     type WhereClause = {
-      OR?: Array<{ name?: { contains: string; mode: 'insensitive' }; email?: { contains: string; mode: 'insensitive' } }>;
+      OR?: Array<{
+        name?: { contains: string; mode: 'insensitive' };
+        email?: { contains: string; mode: 'insensitive' };
+      }>;
       tier?: 'FREE' | 'PRO';
     };
 
@@ -156,18 +159,20 @@ export async function GET(
     });
 
     // Transform response
-    const transformedUsers: AdminUser[] = users.map((user: PrismaUserWithCounts) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      tier: user.tier as 'FREE' | 'PRO',
-      role: user.role,
-      status: user.isActive ? 'active' : 'suspended',
-      createdAt: user.createdAt,
-      lastLoginAt: null, // TODO: Track last login time
-      alertCount: user._count.alerts,
-      watchlistCount: user._count.watchlists,
-    }));
+    const transformedUsers: AdminUser[] = users.map(
+      (user: PrismaUserWithCounts) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        tier: user.tier as 'FREE' | 'PRO',
+        role: user.role,
+        status: user.isActive ? 'active' : 'suspended',
+        createdAt: user.createdAt,
+        lastLoginAt: null, // TODO: Track last login time
+        alertCount: user._count.alerts,
+        watchlistCount: user._count.watchlists,
+      })
+    );
 
     return NextResponse.json({
       users: transformedUsers,

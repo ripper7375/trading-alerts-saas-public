@@ -89,7 +89,9 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
   // Load preferences from localStorage
   useEffect(() => {
-    const savedColorScheme = localStorage.getItem('colorScheme') as ColorScheme | null;
+    const savedColorScheme = localStorage.getItem(
+      'colorScheme'
+    ) as ColorScheme | null;
     const savedGridOpacity = localStorage.getItem('gridOpacity');
     const savedChartUpColor = localStorage.getItem('chartUpColor');
     const savedChartDownColor = localStorage.getItem('chartDownColor');
@@ -120,10 +122,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
   };
 
   // Handle chart color changes
-  const handleChartColorChange = (
-    type: 'up' | 'down',
-    color: string
-  ): void => {
+  const handleChartColorChange = (type: 'up' | 'down', color: string): void => {
     if (type === 'up') {
       setChartUpColor(color);
       localStorage.setItem('chartUpColor', color);
@@ -183,18 +182,17 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                       {option.label}
                     </span>
                   </div>
-                  {isSelected && (
-                    <Check className="w-5 h-5 text-blue-600" />
-                  )}
+                  {isSelected && <Check className="w-5 h-5 text-blue-600" />}
                 </div>
                 <div
-                  className={cn(
-                    'rounded-lg p-4 space-y-2',
-                    option.preview.bg
-                  )}
+                  className={cn('rounded-lg p-4 space-y-2', option.preview.bg)}
                 >
-                  <div className={cn('h-2 rounded w-3/4', option.preview.content)} />
-                  <div className={cn('h-2 rounded w-1/2', option.preview.content)} />
+                  <div
+                    className={cn('h-2 rounded w-3/4', option.preview.content)}
+                  />
+                  <div
+                    className={cn('h-2 rounded w-1/2', option.preview.content)}
+                  />
                 </div>
               </button>
             );
@@ -221,7 +219,8 @@ export default function AppearanceSettingsPage(): React.ReactElement {
               className={cn(
                 'w-12 h-12 rounded-full transition-transform hover:scale-110',
                 scheme.color,
-                colorScheme === scheme.name && 'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-gray-800',
+                colorScheme === scheme.name &&
+                  'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-gray-800',
                 colorScheme === scheme.name && scheme.ring
               )}
               title={scheme.name.charAt(0).toUpperCase() + scheme.name.slice(1)}
@@ -255,7 +254,9 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                 onChange={(e) => handleChartColorChange('up', e.target.value)}
                 className="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700"
               />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Up (Bullish)</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Up (Bullish)
+              </span>
             </div>
             <div className="flex items-center gap-3">
               <input
@@ -264,7 +265,9 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                 onChange={(e) => handleChartColorChange('down', e.target.value)}
                 className="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700"
               />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Down (Bearish)</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Down (Bearish)
+              </span>
             </div>
           </div>
         </div>
@@ -284,7 +287,9 @@ export default function AppearanceSettingsPage(): React.ReactElement {
             min="0"
             max="100"
             value={gridOpacity}
-            onChange={(e) => handleGridOpacityChange(parseInt(e.target.value, 10))}
+            onChange={(e) =>
+              handleGridOpacityChange(parseInt(e.target.value, 10))
+            }
             className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -297,7 +302,8 @@ export default function AppearanceSettingsPage(): React.ReactElement {
       {/* Info Note */}
       <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <p className="text-sm text-blue-700 dark:text-blue-300">
-          All changes are saved automatically and apply immediately across all your sessions.
+          All changes are saved automatically and apply immediately across all
+          your sessions.
         </p>
       </div>
     </div>

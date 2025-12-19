@@ -13,6 +13,7 @@
 You are Claude Code, tasked with building **Part 13: Settings System** for the Trading Alerts SaaS V7 project. You will build 17 files autonomously following all project policies, architecture rules, and quality standards.
 
 **Your approach:**
+
 1. Read ALL essential files listed below (policies, architecture, requirements)
 2. Build files one-by-one in the specified order
 3. Follow coding patterns from policy files
@@ -27,6 +28,7 @@ You are Claude Code, tasked with building **Part 13: Settings System** for the T
 **CRITICAL:** Read these files in order before writing any code. These files contain the "AI constitution" that guides all development.
 
 ### 1. **Project Overview & Current State**
+
 ```
 PROGRESS-part-2.md                   # Current project status (Parts 6-12 complete)
 README.md                            # Project overview
@@ -35,6 +37,7 @@ IMPLEMENTATION-GUIDE.md              # Implementation best practices
 ```
 
 ### 2. **Policy Files (MUST READ - These are your rules)**
+
 ```
 docs/policies/00-tier-specifications.md              # FREE vs PRO tier rules (CRITICAL)
 docs/policies/01-approval-policies.md                # When to approve/fix/escalate
@@ -47,17 +50,20 @@ docs/policies/06-aider-instructions.md               # Build workflow instructio
 ```
 
 ### 3. **Part 13 Requirements & Build Order**
+
 ```
 docs/build-orders/part-13-settings.md                # Build order for all 17 files
 docs/implementation-guides/v5_part_m.md              # Settings system business logic
 ```
 
 ### 4. **OpenAPI Specifications**
+
 ```
 docs/trading_alerts_openapi.yaml                     # Next.js API contracts
 ```
 
 ### 5. **Seed Code References (CRITICAL - Use these patterns)**
+
 ```
 seed-code/v0-components/settings-page-with-tabs-v3/app/settings/page.tsx      # Settings with tabs
 seed-code/v0-components/profile-settings-form/app/profile/settings/page.tsx   # Profile form
@@ -67,12 +73,14 @@ seed-code/v0-components/billing-and-subscription-page-v3/app/billing/page.tsx # 
 ```
 
 ### 6. **Validation & Testing**
+
 ```
 VALIDATION-SETUP-GUIDE.md                            # Validation tools and process
 CLAUDE.md                                            # Automated validation guide
 ```
 
 ### 7. **Previous Work (for context and dependencies)**
+
 ```
 docs/build-orders/part-05-authentication.md          # Authentication (DEPENDENCY)
 docs/build-orders/part-12-ecommerce.md               # Billing/subscriptions (DEPENDENCY)
@@ -87,6 +95,7 @@ Build these 17 files in sequence:
 ### **Settings Pages (8 pages)**
 
 ### **File 1/17:** `app/(dashboard)/settings/layout.tsx`
+
 - Settings layout with sidebar navigation
 - Tabs: Profile, Appearance, Account, Privacy, Billing, Language, Help
 - Mobile-responsive collapsible sidebar
@@ -95,6 +104,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add settings layout`
 
 ### **File 2/17:** `app/(dashboard)/settings/profile/page.tsx`
+
 - Profile editing (name, email, avatar)
 - Photo upload with drag-and-drop
 - Username availability check
@@ -104,6 +114,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add profile settings page`
 
 ### **File 3/17:** `app/(dashboard)/settings/appearance/page.tsx`
+
 - Theme selection: Light, Dark, System
 - Color scheme selector
 - Chart preferences (candlestick colors, grid opacity)
@@ -111,6 +122,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add appearance settings`
 
 ### **File 4/17:** `app/(dashboard)/settings/account/page.tsx`
+
 - Change password section (current, new, confirm)
 - Password strength indicator
 - Two-factor authentication toggle
@@ -119,6 +131,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add account settings`
 
 ### **File 5/17:** `app/(dashboard)/settings/privacy/page.tsx`
+
 - Profile visibility (Public/Private/Connections Only)
 - Data export request button
 - Show trading statistics toggle
@@ -126,6 +139,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add privacy settings`
 
 ### **File 6/17:** `app/(dashboard)/settings/billing/page.tsx`
+
 - Current subscription card (FREE/PRO)
 - Upgrade/Cancel buttons
 - Payment method display
@@ -136,6 +150,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add billing settings for 2-tier system`
 
 ### **File 7/17:** `app/(dashboard)/settings/language/page.tsx`
+
 - Language selection dropdown
 - Timezone selection
 - Date format (MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD)
@@ -144,6 +159,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(settings): add language settings`
 
 ### **File 8/17:** `app/(dashboard)/settings/help/page.tsx`
+
 - Quick links (Documentation, Live Chat, Email Support, Report Bug)
 - FAQ accordion
 - Contact form (subject, message)
@@ -152,6 +168,7 @@ Build these 17 files in sequence:
 ### **API Routes (6 routes)**
 
 ### **File 9/17:** `app/api/user/profile/route.ts`
+
 - **GET:** Get user profile
 - **PATCH:** Update profile (name, email, avatar)
 - Email change triggers verification email
@@ -159,12 +176,14 @@ Build these 17 files in sequence:
 - **Commit:** `feat(api): add profile update endpoint`
 
 ### **File 10/17:** `app/api/user/preferences/route.ts`
+
 - **GET:** Get user preferences
 - **PUT:** Update preferences (theme, language, timezone, etc.)
 - Validate preference values
 - **Commit:** `feat(api): add preferences endpoint`
 
 ### **File 11/17:** `app/api/user/password/route.ts`
+
 - **POST:** Change password
 - Validate current password
 - Enforce password requirements (8+ chars, uppercase, lowercase, number)
@@ -172,6 +191,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(api): add password change endpoint`
 
 ### **File 12/17:** `app/api/user/account/deletion-request/route.ts`
+
 - **POST:** Request account deletion
 - Create deletion request record
 - Send confirmation email with link
@@ -179,6 +199,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(api): add account deletion request`
 
 ### **File 13/17:** `app/api/user/account/deletion-confirm/route.ts`
+
 - **POST:** Confirm account deletion
 - Verify token from email
 - Schedule account deletion (24 hours)
@@ -186,6 +207,7 @@ Build these 17 files in sequence:
 - **Commit:** `feat(api): add account deletion confirmation`
 
 ### **File 14/17:** `app/api/user/account/deletion-cancel/route.ts`
+
 - **POST:** Cancel deletion request
 - Mark request as cancelled
 - Return success
@@ -194,18 +216,21 @@ Build these 17 files in sequence:
 ### **Utilities & Providers (3 files)**
 
 ### **File 15/17:** `lib/preferences/defaults.ts`
+
 - Default user preferences object
 - Preference types and enums
 - Merge function for preferences
 - **Commit:** `feat(settings): add default preferences`
 
 ### **File 16/17:** `components/providers/theme-provider.tsx`
+
 - Dark mode provider using next-themes
 - System preference detection
 - Theme context
 - **Commit:** `feat(settings): add theme provider`
 
 ### **File 17/17:** `components/providers/websocket-provider.tsx`
+
 - WebSocket connection provider
 - Connection state management
 - Reconnection logic
@@ -217,6 +242,7 @@ Build these 17 files in sequence:
 ## GIT WORKFLOW
 
 ### **Branch Strategy**
+
 ```bash
 # Create new branch (MUST start with 'claude/' and end with session ID)
 git checkout -b claude/settings-system-{SESSION_ID}
@@ -227,7 +253,9 @@ git push -u origin claude/settings-system-{SESSION_ID}
 ```
 
 ### **Commit Message Format**
+
 Use conventional commits:
+
 ```
 feat(settings): add settings layout
 feat(settings): add profile settings page
@@ -236,6 +264,7 @@ fix(settings): correct TypeScript type error in preferences
 ```
 
 ### **Push Requirements**
+
 - Branch MUST start with `claude/`
 - Branch MUST end with session ID
 - Push ONLY after all validations pass
@@ -262,12 +291,14 @@ npm run validate
 ```
 
 ### **Auto-Fix Minor Issues**
+
 ```bash
 # Auto-fix ESLint and Prettier issues
 npm run fix
 ```
 
 ### **Validation Must Pass Before Committing**
+
 - 0 TypeScript errors
 - 0 ESLint errors (warnings OK if < 3)
 - All files properly formatted
@@ -281,10 +312,16 @@ npm run fix
 ### **1. Settings Navigation Structure**
 
 **Sidebar Tabs:**
+
 ```typescript
 const settingsTabs = [
   { id: 'profile', icon: '👤', label: 'Profile', href: '/settings/profile' },
-  { id: 'appearance', icon: '🎨', label: 'Appearance', href: '/settings/appearance' },
+  {
+    id: 'appearance',
+    icon: '🎨',
+    label: 'Appearance',
+    href: '/settings/appearance',
+  },
   { id: 'account', icon: '🔒', label: 'Account', href: '/settings/account' },
   { id: 'privacy', icon: '👁️', label: 'Privacy', href: '/settings/privacy' },
   { id: 'billing', icon: '💳', label: 'Billing', href: '/settings/billing' },
@@ -302,11 +339,11 @@ interface UserPreferences {
   colorScheme: 'blue' | 'purple' | 'green' | 'orange';
 
   // Language & Region
-  language: string;           // e.g., 'en-US'
-  timezone: string;           // e.g., 'America/New_York'
+  language: string; // e.g., 'en-US'
+  timezone: string; // e.g., 'America/New_York'
   dateFormat: 'MDY' | 'DMY' | 'YMD';
   timeFormat: '12h' | '24h';
-  currency: string;           // e.g., 'USD'
+  currency: string; // e.g., 'USD'
 
   // Privacy
   profileVisibility: 'public' | 'private' | 'connections';
@@ -326,7 +363,12 @@ interface UserPreferences {
 const profileUpdateSchema = z.object({
   name: z.string().min(2).max(50),
   email: z.string().email(),
-  username: z.string().min(3).max(30).regex(/^[a-z0-9_]+$/).optional(),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-z0-9_]+$/)
+    .optional(),
   bio: z.string().max(500).optional(),
   company: z.string().max(100).optional(),
   avatarUrl: z.string().url().optional(),
@@ -337,7 +379,8 @@ const profileUpdateSchema = z.object({
 
 ```typescript
 // Password validation
-const passwordSchema = z.string()
+const passwordSchema = z
+  .string()
   .min(8, 'Password must be at least 8 characters')
   .regex(/[A-Z]/, 'Password must contain uppercase letter')
   .regex(/[a-z]/, 'Password must contain lowercase letter')
@@ -361,6 +404,7 @@ function getPasswordStrength(password: string): 'weak' | 'medium' | 'strong' {
 ### **5. Account Deletion Flow**
 
 **Step 1: Request Deletion**
+
 - User clicks "Delete Account" button
 - Confirmation modal appears with warnings
 - User confirms → POST /api/user/account/deletion-request
@@ -368,16 +412,19 @@ function getPasswordStrength(password: string): 'weak' | 'medium' | 'strong' {
 - 7-day grace period to cancel
 
 **Step 2: Confirm Deletion (via email link)**
+
 - User clicks link in email
 - POST /api/user/account/deletion-confirm with token
 - Account scheduled for deletion in 24 hours
 - All user data deleted (GDPR compliance)
 
 **Step 3: Cancel Deletion (optional)**
+
 - User can cancel within 7 days
 - POST /api/user/account/deletion-cancel
 
 ### **6. TypeScript Compliance (CRITICAL)**
+
 - NO `any` types allowed
 - All function parameters typed
 - All return types specified
@@ -391,12 +438,14 @@ function getPasswordStrength(password: string): 'weak' | 'medium' | 'strong' {
 After building all 17 files:
 
 ### **1. Start Development Server**
+
 ```bash
 npm run dev
 # Should start on http://localhost:3000
 ```
 
 ### **2. Manual Testing Checklist**
+
 - [ ] Visit `http://localhost:3000/settings/profile`
 - [ ] Verify settings layout loads with sidebar
 - [ ] Test all tab navigation (Profile → Help)
@@ -410,6 +459,7 @@ npm run dev
 - [ ] Submit help form
 
 ### **3. API Testing**
+
 ```bash
 # GET profile
 curl http://localhost:3000/api/user/profile
@@ -434,11 +484,13 @@ curl -X POST http://localhost:3000/api/user/account/deletion-request
 ```
 
 ### **4. Console Checks**
+
 - [ ] No console errors
 - [ ] No React hydration warnings
 - [ ] API calls return correct status codes
 
 ### **5. TypeScript Build**
+
 ```bash
 npm run build
 # Should complete with 0 errors
@@ -449,6 +501,7 @@ npm run build
 ## CODING PATTERNS TO FOLLOW
 
 ### **Pattern 1: Settings Layout**
+
 ```typescript
 // app/(dashboard)/settings/layout.tsx
 'use client';
@@ -546,6 +599,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 ```
 
 ### **Pattern 2: Profile API Route**
+
 ```typescript
 // app/api/user/profile/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -557,7 +611,12 @@ import { z } from 'zod';
 const profileUpdateSchema = z.object({
   name: z.string().min(2).max(50).optional(),
   email: z.string().email().optional(),
-  username: z.string().min(3).max(30).regex(/^[a-z0-9_]+$/).optional(),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-z0-9_]+$/)
+    .optional(),
   bio: z.string().max(500).optional(),
   company: z.string().max(100).optional(),
   avatarUrl: z.string().url().optional(),
@@ -659,6 +718,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 3: Password Change Route**
+
 ```typescript
 // app/api/user/password/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -670,7 +730,8 @@ import { z } from 'zod';
 
 const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string()
+  newPassword: z
+    .string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain uppercase letter')
     .regex(/[a-z]/, 'Password must contain lowercase letter')
@@ -744,6 +805,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 4: Preferences Route**
+
 ```typescript
 // app/api/user/preferences/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -780,7 +842,7 @@ export async function GET(): Promise<NextResponse> {
     // Merge with defaults
     const preferences = {
       ...DEFAULT_PREFERENCES,
-      ...(userPreferences?.preferences as Record<string, unknown> || {}),
+      ...((userPreferences?.preferences as Record<string, unknown>) || {}),
     };
 
     return NextResponse.json({ preferences });
@@ -841,6 +903,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 ```
 
 ### **Pattern 5: Default Preferences**
+
 ```typescript
 // lib/preferences/defaults.ts
 
@@ -897,6 +960,7 @@ export function mergePreferences(
 ```
 
 ### **Pattern 6: Theme Provider**
+
 ```typescript
 // components/providers/theme-provider.tsx
 'use client';
@@ -920,6 +984,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 ```
 
 ### **Pattern 7: Account Deletion Request**
+
 ```typescript
 // app/api/user/account/deletion-request/route.ts
 import { NextResponse } from 'next/server';
@@ -996,6 +1061,7 @@ export async function POST(): Promise<NextResponse> {
 ## CRITICAL RULES
 
 ### **DO:**
+
 - Read ALL policy files before writing code
 - Use consistent settings layout across all pages
 - Implement unsaved changes warnings
@@ -1009,6 +1075,7 @@ export async function POST(): Promise<NextResponse> {
 - Test thoroughly before pushing
 
 ### **DON'T:**
+
 - Skip reading policy files
 - Use `any` types
 - Skip authentication checks in API routes
@@ -1086,6 +1153,7 @@ Use the TodoWrite tool to track your progress:
    - Seed code files for component patterns
 
 2. **Then, create your git branch:**
+
    ```bash
    git checkout main
    git pull origin main

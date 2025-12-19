@@ -174,7 +174,10 @@ export default function BillingSettingsPage(): React.ReactElement {
           ) : (
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
-              <Button variant="ghost" className="text-red-600 hover:text-red-700">
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:text-red-700"
+              >
                 Cancel Plan
               </Button>
             </div>
@@ -368,9 +371,7 @@ export default function BillingSettingsPage(): React.ReactElement {
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="text-4xl">🚀</div>
               <div className="flex-1 text-center sm:text-left">
-                <h3 className="text-xl font-bold mb-2">
-                  Unlock More with PRO
-                </h3>
+                <h3 className="text-xl font-bold mb-2">Unlock More with PRO</h3>
                 <p className="text-white/90 mb-4">
                   Get 15 symbols, 9 timeframes, 20 alerts, and priority support
                   for just $29/month.

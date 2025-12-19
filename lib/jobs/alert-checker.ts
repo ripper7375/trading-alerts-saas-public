@@ -109,7 +109,9 @@ async function fetchCurrentPrice(
     );
 
     if (!response.ok) {
-      console.error(`[AlertChecker] Failed to fetch price for ${symbol}: ${response.status}`);
+      console.error(
+        `[AlertChecker] Failed to fetch price for ${symbol}: ${response.status}`
+      );
       return 0;
     }
 

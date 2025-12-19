@@ -37,7 +37,7 @@ describe('Alert Validation Schemas', () => {
         symbol: 'EURUSD',
         timeframe: 'M15',
         conditionType: 'price_below',
-        targetValue: 1.0850,
+        targetValue: 1.085,
         name: 'My Alert',
         notes: 'Watch this level',
         enabled: true,
@@ -173,7 +173,7 @@ describe('Alert Validation Schemas', () => {
         symbol: 'EURUSD',
         timeframe: 'M30',
         conditionType: 'price_below',
-        targetValue: 1.0900,
+        targetValue: 1.09,
         name: 'Updated Alert',
         notes: 'New notes',
         enabled: true,
@@ -294,7 +294,7 @@ describe('Alert Validation Schemas', () => {
         symbol: 'EURUSD',
         timeframe: 'H1',
         conditionType: 'price_above',
-        targetValue: 1.0850,
+        targetValue: 1.085,
       };
 
       const result = schema.safeParse(invalid);

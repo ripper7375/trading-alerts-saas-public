@@ -105,7 +105,9 @@ describe('Tier 2 Integration - Feature Workflows', () => {
     });
 
     it('should reject alert for PRO-only symbol in FREE tier', async () => {
-      const { FREE_SYMBOLS, PRO_EXCLUSIVE_SYMBOLS } = await import('@/lib/tier-config');
+      const { FREE_SYMBOLS, PRO_EXCLUSIVE_SYMBOLS } = await import(
+        '@/lib/tier-config'
+      );
 
       // PRO-exclusive symbol should not be in FREE list
       const proSymbol = PRO_EXCLUSIVE_SYMBOLS[0];
@@ -143,7 +145,15 @@ describe('Tier 2 Integration - Feature Workflows', () => {
         json: async () => ({
           success: true,
           data: {
-            ohlc: [{ time: 1234567890, open: 1900, high: 1910, low: 1890, close: 1905 }],
+            ohlc: [
+              {
+                time: 1234567890,
+                open: 1900,
+                high: 1910,
+                low: 1890,
+                close: 1905,
+              },
+            ],
             horizontal: {},
             diagonal: {},
           },
@@ -177,7 +187,11 @@ describe('Tier 2 Integration - Feature Workflows', () => {
       const targetValue = 1900;
       const conditionType = 'price_above';
 
-      const conditionMet = checkAlertCondition(currentPrice, conditionType, targetValue);
+      const conditionMet = checkAlertCondition(
+        currentPrice,
+        conditionType,
+        targetValue
+      );
       expect(conditionMet).toBe(true);
 
       // Step 2: Alert would be updated
@@ -208,7 +222,11 @@ describe('Tier 2 Integration - Feature Workflows', () => {
       const targetValue = 1900;
       const conditionType = 'price_above';
 
-      const conditionMet = checkAlertCondition(currentPrice, conditionType, targetValue);
+      const conditionMet = checkAlertCondition(
+        currentPrice,
+        conditionType,
+        targetValue
+      );
       expect(conditionMet).toBe(false);
     });
   });
@@ -216,7 +234,9 @@ describe('Tier 2 Integration - Feature Workflows', () => {
   describe('Workflow 4: MT5 Health Check Integration', () => {
     it('should gracefully handle MT5 service unavailability', async () => {
       // Scenario: MT5 service is down, system should handle gracefully
-      const failingFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      const failingFetch = jest
+        .fn()
+        .mockRejectedValue(new Error('Network error'));
 
       // System should not crash
       let errorHandled = false;
@@ -232,7 +252,8 @@ describe('Tier 2 Integration - Feature Workflows', () => {
 
     it('should retry MT5 requests on transient failures', async () => {
       // Simulate retry logic - first call fails, second succeeds
-      const mockRetryFetch = jest.fn()
+      const mockRetryFetch = jest
+        .fn()
         .mockRejectedValueOnce(new Error('Timeout'))
         .mockResolvedValueOnce({
           ok: true,
@@ -257,7 +278,9 @@ describe('Tier 2 Integration - Feature Workflows', () => {
 
   describe('Workflow 5: Tier Upgrade Impact on Features', () => {
     it('should unlock PRO symbols after upgrade', async () => {
-      const { FREE_SYMBOLS, PRO_SYMBOLS, PRO_EXCLUSIVE_SYMBOLS } = await import('@/lib/tier-config');
+      const { FREE_SYMBOLS, PRO_SYMBOLS, PRO_EXCLUSIVE_SYMBOLS } = await import(
+        '@/lib/tier-config'
+      );
       const { canAccessSymbol } = await import('@/lib/tier-validation');
 
       const proOnlySymbol = PRO_EXCLUSIVE_SYMBOLS[0]; // e.g., 'AUDJPY'
@@ -275,7 +298,8 @@ describe('Tier 2 Integration - Feature Workflows', () => {
     });
 
     it('should unlock PRO timeframes after upgrade', async () => {
-      const { FREE_TIMEFRAMES, PRO_TIMEFRAMES, PRO_EXCLUSIVE_TIMEFRAMES } = await import('@/lib/tier-config');
+      const { FREE_TIMEFRAMES, PRO_TIMEFRAMES, PRO_EXCLUSIVE_TIMEFRAMES } =
+        await import('@/lib/tier-config');
       const { validateTimeframeAccess } = await import('@/lib/tier-validation');
 
       const proOnlyTimeframe = PRO_EXCLUSIVE_TIMEFRAMES[0]; // e.g., 'M5'
@@ -293,17 +317,25 @@ describe('Tier 2 Integration - Feature Workflows', () => {
     });
 
     it('should increase watchlist limit after upgrade', async () => {
-      const { FREE_TIER_CONFIG, PRO_TIER_CONFIG } = await import('@/lib/tier-config');
+      const { FREE_TIER_CONFIG, PRO_TIER_CONFIG } = await import(
+        '@/lib/tier-config'
+      );
 
-      expect(PRO_TIER_CONFIG.maxWatchlistItems).toBeGreaterThan(FREE_TIER_CONFIG.maxWatchlistItems);
+      expect(PRO_TIER_CONFIG.maxWatchlistItems).toBeGreaterThan(
+        FREE_TIER_CONFIG.maxWatchlistItems
+      );
       expect(FREE_TIER_CONFIG.maxWatchlistItems).toBe(5);
       expect(PRO_TIER_CONFIG.maxWatchlistItems).toBe(50);
     });
 
     it('should increase alert limit after upgrade', async () => {
-      const { FREE_TIER_CONFIG, PRO_TIER_CONFIG } = await import('@/lib/tier-config');
+      const { FREE_TIER_CONFIG, PRO_TIER_CONFIG } = await import(
+        '@/lib/tier-config'
+      );
 
-      expect(PRO_TIER_CONFIG.maxAlerts).toBeGreaterThan(FREE_TIER_CONFIG.maxAlerts);
+      expect(PRO_TIER_CONFIG.maxAlerts).toBeGreaterThan(
+        FREE_TIER_CONFIG.maxAlerts
+      );
       expect(FREE_TIER_CONFIG.maxAlerts).toBe(5);
       expect(PRO_TIER_CONFIG.maxAlerts).toBe(20); // PRO gets 4x the alerts
     });

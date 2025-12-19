@@ -47,11 +47,14 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
   // UI state
   const [photoUrl, setPhotoUrl] = useState<string>('');
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus['status']>('idle');
+  const [usernameStatus, setUsernameStatus] =
+    useState<UsernameStatus['status']>('idle');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof ProfileFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ProfileFormData, string>>
+  >({});
 
   // Initialize form with session data
   useEffect(() => {
@@ -129,7 +132,8 @@ export default function ProfileSettingsPage(): React.ReactElement {
     }
 
     if (formData.username && !/^[a-z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Username can only contain lowercase letters, numbers, and underscores';
+      newErrors.username =
+        'Username can only contain lowercase letters, numbers, and underscores';
     }
 
     if (formData.bio && formData.bio.length > 500) {
@@ -244,7 +248,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div className="flex items-center gap-4">
             <div className="relative group">
               <Avatar className="w-24 h-24 border-4 border-gray-200 dark:border-gray-700 shadow-lg">
-                <AvatarImage src={photoUrl || '/placeholder.svg'} alt={formData.name} />
+                <AvatarImage
+                  src={photoUrl || '/placeholder.svg'}
+                  alt={formData.name}
+                />
                 <AvatarFallback className="bg-blue-600 text-white text-2xl font-bold">
                   {getInitials(formData.name || 'U')}
                 </AvatarFallback>
@@ -258,7 +265,12 @@ export default function ProfileSettingsPage(): React.ReactElement {
               </button>
             </div>
             <div>
-              <Button type="button" variant="outline" size="sm" onClick={handlePhotoUpload}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePhotoUpload}
+              >
                 Upload Photo
               </Button>
               {photoUrl && (
@@ -287,7 +299,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
           {/* Full Name */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="name" className="font-medium text-gray-700 dark:text-gray-300">
+              <Label
+                htmlFor="name"
+                className="font-medium text-gray-700 dark:text-gray-300"
+              >
                 Full Name
               </Label>
               <span className="text-xs text-gray-500">
@@ -311,7 +326,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
           {/* Email */}
           <div>
-            <Label htmlFor="email" className="font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+            <Label
+              htmlFor="email"
+              className="font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2"
+            >
               Email
               <Badge className="bg-green-100 text-green-800 text-xs">
                 <Check className="w-3 h-3 mr-1" />
@@ -335,15 +353,22 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
           {/* Username */}
           <div>
-            <Label htmlFor="username" className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Label
+              htmlFor="username"
+              className="font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Username (optional)
             </Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">@</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                @
+              </span>
               <Input
                 id="username"
                 value={formData.username}
-                onChange={(e) => handleInputChange('username', e.target.value.toLowerCase())}
+                onChange={(e) =>
+                  handleInputChange('username', e.target.value.toLowerCase())
+                }
                 className={`pl-8 ${errors.username ? 'border-red-500' : ''}`}
                 placeholder="username"
               />
@@ -381,7 +406,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
           {/* Bio */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="bio" className="font-medium text-gray-700 dark:text-gray-300">
+              <Label
+                htmlFor="bio"
+                className="font-medium text-gray-700 dark:text-gray-300"
+              >
                 Bio (optional)
               </Label>
               <span className="text-xs text-gray-500">
@@ -407,7 +435,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
           {/* Company */}
           <div>
-            <Label htmlFor="company" className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Label
+              htmlFor="company"
+              className="font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Company/Organization (optional)
             </Label>
             <Input
@@ -432,7 +463,9 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <Button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={!hasUnsavedChanges || isSaving || usernameStatus === 'taken'}
+            disabled={
+              !hasUnsavedChanges || isSaving || usernameStatus === 'taken'
+            }
           >
             {isSaving ? (
               <>

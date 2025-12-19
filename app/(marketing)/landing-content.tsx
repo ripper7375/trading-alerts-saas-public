@@ -17,7 +17,8 @@ export default function LandingPageContent(): React.ReactElement {
       {affiliateCode && (
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 text-center">
           <p className="text-sm">
-            <span className="font-semibold">Special Offer!</span> Sign up with code{' '}
+            <span className="font-semibold">Special Offer!</span> Sign up with
+            code{' '}
             <code className="bg-white/20 px-2 py-0.5 rounded font-mono text-xs">
               {affiliateCode}
             </code>{' '}
@@ -40,8 +41,9 @@ export default function LandingPageContent(): React.ReactElement {
             Again
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Get real-time alerts when price touches key support and resistance levels.
-            Advanced fractal analysis for Gold, Forex, Crypto, and Indices.
+            Get real-time alerts when price touches key support and resistance
+            levels. Advanced fractal analysis for Gold, Forex, Crypto, and
+            Indices.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Link
@@ -63,11 +65,21 @@ export default function LandingPageContent(): React.ReactElement {
 
           {/* Trading symbols preview */}
           <div className="mt-12 flex flex-wrap justify-center gap-4 text-muted-foreground">
-            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">XAUUSD</span>
-            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">EURUSD</span>
-            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">BTCUSD</span>
-            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">NDX100</span>
-            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">+6 more</span>
+            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">
+              XAUUSD
+            </span>
+            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">
+              EURUSD
+            </span>
+            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">
+              BTCUSD
+            </span>
+            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">
+              NDX100
+            </span>
+            <span className="px-3 py-1 rounded-full border bg-card text-sm font-mono">
+              +6 more
+            </span>
           </div>
         </div>
       </section>
@@ -88,8 +100,18 @@ export default function LandingPageContent(): React.ReactElement {
             {/* Feature 1 */}
             <div className="bg-card rounded-xl border p-8 shadow-sm transition-shadow hover:shadow-md">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg
+                  className="w-6 h-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -114,8 +136,18 @@ export default function LandingPageContent(): React.ReactElement {
             {/* Feature 2 */}
             <div className="bg-card rounded-xl border p-8 shadow-sm transition-shadow hover:shadow-md">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                <svg
+                  className="w-6 h-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -140,8 +172,18 @@ export default function LandingPageContent(): React.ReactElement {
             {/* Feature 3 */}
             <div className="bg-card rounded-xl border p-8 shadow-sm transition-shadow hover:shadow-md">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                <svg
+                  className="w-6 h-6 text-primary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                  />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -153,8 +195,7 @@ export default function LandingPageContent(): React.ReactElement {
                   10 Major Symbols
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  7 Timeframe Options
+                  <span className="text-primary">•</span>7 Timeframe Options
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
@@ -192,32 +233,82 @@ export default function LandingPageContent(): React.ReactElement {
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   1 Symbol (XAUUSD)
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   All 7 Timeframes
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   5 Alerts
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   3 Watchlists
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   Email Alerts
                 </li>
@@ -250,7 +341,9 @@ export default function LandingPageContent(): React.ReactElement {
                 </span>
               </div>
               <div className="mb-6">
-                <span className="text-5xl font-bold text-foreground">{proPriceDisplay}</span>
+                <span className="text-5xl font-bold text-foreground">
+                  {proPriceDisplay}
+                </span>
                 <span className="text-muted-foreground">/month</span>
                 {affiliateCode && (
                   <p className="text-sm text-muted-foreground mt-1">
@@ -260,44 +353,106 @@ export default function LandingPageContent(): React.ReactElement {
               </div>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   All 10 Symbols
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   All 7 Timeframes
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   20 Alerts
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   10 Watchlists (50 items each)
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   Push Notifications
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-5 h-5 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   Priority Support
                 </li>
               </ul>
               <Link
-                href={affiliateCode ? `/register?ref=${affiliateCode}` : '/register'}
+                href={
+                  affiliateCode ? `/register?ref=${affiliateCode}` : '/register'
+                }
                 className="block w-full text-center rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Start 7-Day Free Trial
@@ -308,13 +463,17 @@ export default function LandingPageContent(): React.ReactElement {
       </section>
 
       {/* Affiliate Section */}
-      <section id="affiliate" className="py-20 px-4 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+      <section
+        id="affiliate"
+        className="py-20 px-4 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5"
+      >
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Become an Affiliate Partner
           </h2>
           <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Earn 20% commission for every PRO subscriber you refer. No approval required.
+            Earn 20% commission for every PRO subscriber you refer. No approval
+            required.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
@@ -356,7 +515,9 @@ export default function LandingPageContent(): React.ReactElement {
           <div className="flex flex-wrap justify-center gap-8 mb-12 text-center">
             <div>
               <div className="text-3xl font-bold text-primary">500+</div>
-              <div className="text-sm text-muted-foreground">Active Affiliates</div>
+              <div className="text-sm text-muted-foreground">
+                Active Affiliates
+              </div>
             </div>
             <div>
               <div className="text-3xl font-bold text-green-500">$50K+</div>

@@ -49,7 +49,8 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
   });
 
   // Get tier-allowed symbols and timeframes
-  const availableSymbols = tier === 'PRO' ? [...PRO_SYMBOLS] : [...FREE_SYMBOLS];
+  const availableSymbols =
+    tier === 'PRO' ? [...PRO_SYMBOLS] : [...FREE_SYMBOLS];
   const availableTimeframes =
     tier === 'PRO' ? [...PRO_TIMEFRAMES] : [...FREE_TIMEFRAMES];
 

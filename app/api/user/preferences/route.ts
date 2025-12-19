@@ -49,10 +49,7 @@ export async function GET(): Promise<NextResponse> {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Fetch user preferences
@@ -61,7 +58,8 @@ export async function GET(): Promise<NextResponse> {
     });
 
     // Merge with defaults
-    const storedPrefs = (userPreferences?.preferences as Partial<UserPreferences>) || {};
+    const storedPrefs =
+      (userPreferences?.preferences as Partial<UserPreferences>) || {};
     const preferences = mergePreferences(DEFAULT_PREFERENCES, storedPrefs);
 
     return NextResponse.json({ preferences });
@@ -82,10 +80,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse and validate request body
@@ -110,7 +105,8 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     });
 
     // Merge new preferences with existing
-    const existingData = (existingPrefs?.preferences as Partial<UserPreferences>) || {};
+    const existingData =
+      (existingPrefs?.preferences as Partial<UserPreferences>) || {};
     const mergedPreferences = {
       ...existingData,
       ...newPreferences,

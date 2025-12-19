@@ -15,7 +15,11 @@ import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
-import { FREE_TIER_CONFIG, PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
+import {
+  FREE_TIER_CONFIG,
+  PRO_TIER_CONFIG,
+  type Tier,
+} from '@/lib/tier-config';
 import {
   canAccessSymbol,
   validateTimeframeAccess,
@@ -142,7 +146,8 @@ export async function GET(): Promise<NextResponse<WatchlistResponse>> {
       {
         success: false,
         error: 'Failed to fetch watchlist',
-        message: 'An error occurred while fetching your watchlist. Please try again.',
+        message:
+          'An error occurred while fetching your watchlist. Please try again.',
       },
       { status: 500 }
     );
@@ -198,7 +203,8 @@ export async function POST(
         {
           success: false,
           error: 'Invalid input',
-          message: validation.error.errors[0]?.message || 'Invalid request data',
+          message:
+            validation.error.errors[0]?.message || 'Invalid request data',
         },
         { status: 400 }
       );
@@ -230,7 +236,9 @@ export async function POST(
         {
           success: false,
           error: 'Timeframe access denied',
-          message: timeframeResult.reason || `Timeframe ${timeframe} requires PRO tier.`,
+          message:
+            timeframeResult.reason ||
+            `Timeframe ${timeframe} requires PRO tier.`,
         },
         { status: 403 }
       );
@@ -269,7 +277,9 @@ export async function POST(
           success: false,
           error: 'Watchlist limit reached',
           message: `${tier} tier allows maximum ${limit} watchlist items. ${
-            tier === 'FREE' ? 'Upgrade to PRO for 50 items.' : 'Please remove an item to add more.'
+            tier === 'FREE'
+              ? 'Upgrade to PRO for 50 items.'
+              : 'Please remove an item to add more.'
           }`,
         },
         { status: 403 }
@@ -280,7 +290,8 @@ export async function POST(
     // STEP 7: Check for Duplicate Combination
     //───────────────────────────────────────────────────────
     const existingItem = watchlist.items.find(
-      (item: { symbol: string; timeframe: string }) => item.symbol === symbol && item.timeframe === timeframe
+      (item: { symbol: string; timeframe: string }) =>
+        item.symbol === symbol && item.timeframe === timeframe
     );
 
     if (existingItem) {
@@ -288,7 +299,8 @@ export async function POST(
         {
           success: false,
           error: 'Duplicate combination',
-          message: 'This symbol+timeframe combination already exists in your watchlist.',
+          message:
+            'This symbol+timeframe combination already exists in your watchlist.',
         },
         { status: 409 }
       );

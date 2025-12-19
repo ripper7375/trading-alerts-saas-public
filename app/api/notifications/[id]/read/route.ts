@@ -34,7 +34,10 @@ export async function POST(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'You must be logged in to update notifications' },
+        {
+          error: 'Unauthorized',
+          message: 'You must be logged in to update notifications',
+        },
         { status: 401 }
       );
     }
@@ -62,7 +65,10 @@ export async function POST(
     // Ownership check
     if (notification.userId !== userId) {
       return NextResponse.json(
-        { error: 'Forbidden', message: 'You do not have permission to update this notification' },
+        {
+          error: 'Forbidden',
+          message: 'You do not have permission to update this notification',
+        },
         { status: 403 }
       );
     }
@@ -128,7 +134,10 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: 'Failed to mark as read', message: 'An error occurred while updating the notification' },
+      {
+        error: 'Failed to mark as read',
+        message: 'An error occurred while updating the notification',
+      },
       { status: 500 }
     );
   }

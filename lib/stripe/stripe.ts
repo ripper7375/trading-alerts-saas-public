@@ -110,7 +110,8 @@ export async function createCheckoutSession(
     allow_promotion_codes: true, // Allow Stripe coupon codes
   };
 
-  const session = await getStripeClient().checkout.sessions.create(sessionParams);
+  const session =
+    await getStripeClient().checkout.sessions.create(sessionParams);
   return session;
 }
 
@@ -127,7 +128,8 @@ export async function createCheckoutSession(
 export async function cancelSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  const subscription = await getStripeClient().subscriptions.cancel(subscriptionId);
+  const subscription =
+    await getStripeClient().subscriptions.cancel(subscriptionId);
   return subscription;
 }
 
@@ -140,7 +142,8 @@ export async function cancelSubscription(
 export async function getSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  const subscription = await getStripeClient().subscriptions.retrieve(subscriptionId);
+  const subscription =
+    await getStripeClient().subscriptions.retrieve(subscriptionId);
   return subscription;
 }
 
