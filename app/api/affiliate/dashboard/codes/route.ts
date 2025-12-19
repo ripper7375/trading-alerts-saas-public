@@ -106,7 +106,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      if (error.message.includes('UNAUTHORIZED')) {
+      if (error.message.includes('UNAUTHORIZED') || error.message === 'Unauthorized') {
         return NextResponse.json(
           {
             error: 'Unauthorized',
