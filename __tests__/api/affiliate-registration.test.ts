@@ -67,11 +67,13 @@ jest.mock('@/lib/auth/session', () => ({
   requireAuth: () => mockRequireAuth(),
 }));
 
-// Mock registration function
+// Mock registration functions
 const mockRegisterAffiliate = jest.fn();
+const mockVerifyAffiliateEmail = jest.fn();
 jest.mock('@/lib/affiliate/registration', () => ({
   __esModule: true,
   registerAffiliate: (data: unknown) => mockRegisterAffiliate(data),
+  verifyAffiliateEmail: (token: string) => mockVerifyAffiliateEmail(token),
 }));
 
 // Mock Prisma
@@ -275,12 +277,12 @@ describe('Affiliate Registration API Routes', () => {
     });
 
     it('should return 400 for invalid/expired token', async () => {
-      mockAffiliateProfileFindUnique.mockResolvedValue(null);
+      mockVerifyAffiliateEmail.mockRejectedValue(new Error('Invalid verification token'));
 
       const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
       const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
         method: 'POST',
-        body: JSON.stringify({ token: 'invalid-token-123' }),
+        body: JSON.stringify({ token: 'invalid-token-1234567890123456789012' }),
       });
       const response = await POST(request as unknown as Request);
       const data = await response.json();
@@ -290,27 +292,16 @@ describe('Affiliate Registration API Routes', () => {
     });
 
     it('should verify email and activate affiliate successfully', async () => {
-      const mockProfile = {
-        id: 'aff-profile-123',
-        userId: 'user-1',
-        emailVerificationToken: 'valid-token-123',
-        status: 'PENDING_VERIFICATION',
-      };
-
-      mockAffiliateProfileFindUnique.mockResolvedValue(mockProfile);
-      mockAffiliateProfileUpdate.mockResolvedValue({
-        ...mockProfile,
-        status: 'ACTIVE',
-        emailVerificationToken: null,
-        verifiedAt: new Date(),
+      mockVerifyAffiliateEmail.mockResolvedValue({
+        success: true,
+        message: 'Email verified successfully',
+        codesDistributed: 15,
       });
-      mockUserUpdate.mockResolvedValue({ id: 'user-1', isAffiliate: true });
-      mockAffiliateCodeCreateMany.mockResolvedValue({ count: 15 });
 
       const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
       const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
         method: 'POST',
-        body: JSON.stringify({ token: 'valid-token-123' }),
+        body: JSON.stringify({ token: 'valid-token-12345678901234567890123' }),
       });
       const response = await POST(request as unknown as Request);
       const data = await response.json();
@@ -321,12 +312,12 @@ describe('Affiliate Registration API Routes', () => {
     });
 
     it('should handle verification errors gracefully', async () => {
-      mockAffiliateProfileFindUnique.mockRejectedValue(new Error('Database error'));
+      mockVerifyAffiliateEmail.mockRejectedValue(new Error('Database connection failed'));
 
       const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
       const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
         method: 'POST',
-        body: JSON.stringify({ token: 'some-token' }),
+        body: JSON.stringify({ token: 'some-token-with-32-characters-min' }),
       });
       const response = await POST(request as unknown as Request);
       const data = await response.json();
