@@ -18,7 +18,7 @@ export type AffiliateStatus =
   | 'PENDING_VERIFICATION'
   | 'ACTIVE'
   | 'SUSPENDED'
-  | 'DEACTIVATED';
+  | 'INACTIVE';
 
 export type CodeStatus = 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
 
