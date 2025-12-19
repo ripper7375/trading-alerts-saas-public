@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
@@ -81,11 +82,7 @@ export async function POST(
     }
 
     // Build where clause for commissions
-    const where: {
-      affiliateProfileId: string;
-      status: string;
-      id?: { in: string[] };
-    } = {
+    const where: Prisma.CommissionWhereInput = {
       affiliateProfileId: affiliateId,
       status: 'PENDING',
     };

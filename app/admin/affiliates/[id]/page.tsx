@@ -64,7 +64,7 @@ interface AffiliateDetails {
 
 export default function AdminAffiliateDetailPage(): React.ReactElement {
   const params = useParams();
-  const affiliateId = params.id as string;
+  const affiliateId = params['id'] as string;
 
   const [affiliate, setAffiliate] = useState<AffiliateDetails | null>(null);
   const [loading, setLoading] = useState(true);
