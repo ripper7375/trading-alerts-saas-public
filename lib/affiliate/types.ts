@@ -8,6 +8,7 @@
  */
 
 import type { Decimal } from '@prisma/client/runtime/library';
+import type { JsonValue } from '@prisma/client/runtime/library';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ENUMS
@@ -46,7 +47,7 @@ export interface AffiliateProfile {
 
   // Payment Preferences
   paymentMethod: string;
-  paymentDetails: Record<string, unknown>;
+  paymentDetails: JsonValue;
 
   // Stats
   totalCodesDistributed: number;

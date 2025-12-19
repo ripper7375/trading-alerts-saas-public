@@ -9,6 +9,8 @@
 
 import crypto from 'crypto';
 
+import type { InputJsonValue } from '@prisma/client/runtime/library';
+
 import { prisma } from '@/lib/db/prisma';
 
 import { AFFILIATE_CONFIG, type PaymentMethod } from './constants';
@@ -107,7 +109,7 @@ export async function registerAffiliate(
       fullName,
       country: country.toUpperCase(),
       paymentMethod,
-      paymentDetails,
+      paymentDetails: paymentDetails as InputJsonValue,
       facebookUrl: facebookUrl || null,
       instagramUrl: instagramUrl || null,
       twitterUrl: twitterUrl || null,

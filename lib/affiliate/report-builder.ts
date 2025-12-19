@@ -287,12 +287,11 @@ export async function buildCommissionSummary(
     }),
   ]);
 
-  type StatusGroup = {
-    status: string;
-    _sum: { commissionAmount: number | null };
-  };
   const getAmountByStatus = (status: string): number => {
-    const result = byStatus.find((b: StatusGroup) => b.status === status);
+    const result = byStatus.find(
+      (b: { status: string; _sum: { commissionAmount: unknown } }) =>
+        b.status === status
+    );
     return Number(result?._sum.commissionAmount ?? 0);
   };
 
