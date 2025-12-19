@@ -84,12 +84,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       codes,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
+      page,
+      limit,
     });
   } catch (error) {
     console.error('[Affiliate Codes] Error:', error);
@@ -106,7 +103,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      if (error.message.includes('UNAUTHORIZED')) {
+      if (error.message.includes('UNAUTHORIZED') || error.message === 'Unauthorized') {
         return NextResponse.json(
           {
             error: 'Unauthorized',
