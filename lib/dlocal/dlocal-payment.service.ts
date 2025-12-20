@@ -216,7 +216,7 @@ export function mapDLocalStatus(dLocalStatus: string): PaymentStatus {
 export function extractUserIdFromOrderId(orderId: string): string | null {
   const parts = orderId.split('-');
   if (parts.length >= 3 && parts[0] === 'order') {
-    return parts[1];
+    return parts[1] ?? null;
   }
   return null;
 }
