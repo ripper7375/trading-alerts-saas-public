@@ -122,7 +122,7 @@ export async function GET(
       // Get oldest pending commission date
       const oldestPending =
         affiliate.commissions.length > 0
-          ? affiliate.commissions[0].earnedAt
+          ? affiliate.commissions[0]?.earnedAt ?? null
           : null;
 
       return {

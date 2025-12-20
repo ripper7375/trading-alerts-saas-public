@@ -89,9 +89,9 @@ export async function getAffiliatesList(
 
   // Build where clause
   const where: Record<string, unknown> = {};
-  if (status) where.status = status;
-  if (country) where.country = country;
-  if (paymentMethod) where.paymentMethod = paymentMethod;
+  if (status) where['status'] = status;
+  if (country) where['country'] = country;
+  if (paymentMethod) where['paymentMethod'] = paymentMethod;
 
   // Execute queries in parallel
   const [affiliates, total] = await Promise.all([
