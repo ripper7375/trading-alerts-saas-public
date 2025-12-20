@@ -13,6 +13,9 @@ import { redirect } from 'next/navigation';
 
 import { getSession } from '@/lib/auth/session';
 
+// Force dynamic rendering since this layout uses headers via getSession
+export const dynamic = 'force-dynamic';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
