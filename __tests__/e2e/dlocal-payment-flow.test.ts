@@ -514,7 +514,10 @@ describe('E2E: dLocal Payment Flow', () => {
       await markThreeDayPlanUsed(userId);
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: userId },
-        data: { hasUsedThreeDayPlan: true },
+        data: {
+          hasUsedThreeDayPlan: true,
+          threeDayPlanUsedAt: expect.any(Date),
+        },
       });
     });
   });
