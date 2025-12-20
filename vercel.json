@@ -6,16 +6,8 @@
       "schedule": "0 0 1 * *"
     },
     {
-      "path": "/api/cron/expire-codes",
-      "schedule": "59 23 28-31 * *"
-    },
-    {
-      "path": "/api/cron/check-expiring-subscriptions",
+      "path": "/api/cron/daily-maintenance",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/downgrade-expired-subscriptions",
-      "schedule": "0 10 * * *"
     }
   ]
 }
