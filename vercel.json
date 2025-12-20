@@ -8,10 +8,6 @@
     {
       "path": "/api/cron/expire-codes",
       "schedule": "59 23 28-31 * *"
-    },
-    {
-      "path": "/api/cron/send-monthly-reports",
-      "schedule": "0 6 1 * *"
     }
   ]
 }

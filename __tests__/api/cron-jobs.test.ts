@@ -48,7 +48,7 @@ jest.mock('@/lib/db/prisma', () => ({
     affiliateProfile: {
       findMany: (...args: unknown[]) => mockAffiliateFindMany(...args),
     },
-    affiliateCommission: {
+    commission: {
       aggregate: (...args: unknown[]) => mockCommissionAggregate(...args),
     },
   },
