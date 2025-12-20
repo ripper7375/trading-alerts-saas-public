@@ -18,7 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyWebhookSignature, mapDLocalStatus, extractUserIdFromOrderId } from '@/lib/dlocal/dlocal-payment.service';
+import { verifyWebhookSignature, mapDLocalStatus } from '@/lib/dlocal/dlocal-payment.service';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { DLocalWebhookPayload } from '@/types/dlocal';

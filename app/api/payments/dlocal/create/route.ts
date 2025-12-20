@@ -24,7 +24,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { createPayment } from '@/lib/dlocal/dlocal-payment.service';
 import { convertUSDToLocal } from '@/lib/dlocal/currency-converter.service';
 import { isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
-import { PRICING, isDLocalCountry, getPlanDuration } from '@/lib/dlocal/constants';
+import { PRICING, getPlanDuration } from '@/lib/dlocal/constants';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { DLocalCountry, DLocalCurrency } from '@/types/dlocal';
@@ -129,10 +129,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       currency as DLocalCurrency
     );
 
-    // Calculate final amount (after discount if applicable)
-    // Note: Full discount validation would be in Part 18B
-    let finalAmount = localAmount;
-    let discountAmount = 0;
+    // Calculate discount amount (full discount validation would be in Part 18B)
+    const discountAmount = 0;
 
     logger.info('Creating payment', {
       userId,
@@ -142,9 +140,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       usdAmount,
       localAmount,
     });
-
-    // Generate order ID
-    const orderId = `order-${userId}-${Date.now()}`;
 
     // Create payment record FIRST (before calling dLocal)
     const payment = await prisma.payment.create({
