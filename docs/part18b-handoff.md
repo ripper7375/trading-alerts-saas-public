@@ -164,15 +164,20 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 
 ### 6. Cron Schedule Updates
 
-**vercel.json now includes:**
+**vercel.json consolidated to 2 crons (Vercel free tier limit):**
 ```json
 {
   "crons": [
-    { "path": "/api/cron/check-expiring-subscriptions", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/downgrade-expired-subscriptions", "schedule": "0 10 * * *" }
+    { "path": "/api/cron/distribute-codes", "schedule": "0 0 1 * *" },
+    { "path": "/api/cron/daily-maintenance", "schedule": "0 9 * * *" }
   ]
 }
 ```
+
+**Daily Maintenance Cron** (`/api/cron/daily-maintenance`) combines:
+1. Expire affiliate codes (previously end-of-month only)
+2. Check expiring dLocal subscriptions (3-day reminder)
+3. Downgrade expired dLocal subscriptions
 
 ---
 
@@ -331,22 +336,23 @@ CRON_SECRET=your_secure_cron_secret
 
 ## Files Created/Modified in Part 18B
 
-### New Files (7):
+### New Files (10):
 1. `lib/dlocal/three-day-validator.service.ts`
 2. `lib/cron/check-expiring-subscriptions.ts`
 3. `lib/cron/downgrade-expired-subscriptions.ts`
 4. `app/api/cron/check-expiring-subscriptions/route.ts`
 5. `app/api/cron/downgrade-expired-subscriptions/route.ts`
-6. `__tests__/lib/dlocal/three-day-validator.test.ts`
-7. `__tests__/lib/cron/check-expiring-subscriptions.test.ts`
-8. `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`
-9. `docs/part18b-handoff.md`
+6. `app/api/cron/daily-maintenance/route.ts` - Consolidated cron (used in vercel.json)
+7. `__tests__/lib/dlocal/three-day-validator.test.ts`
+8. `__tests__/lib/cron/check-expiring-subscriptions.test.ts`
+9. `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`
+10. `docs/part18b-handoff.md`
 
 ### Modified Files (4):
 1. `app/api/webhooks/dlocal/route.ts` - Added subscription creation
 2. `app/api/subscription/route.ts` - Added provider info
 3. `app/api/invoices/route.ts` - Added dLocal payments
-4. `vercel.json` - Added cron schedules
+4. `vercel.json` - Consolidated to 2 cron jobs (daily-maintenance + distribute-codes)
 
 ---
 
