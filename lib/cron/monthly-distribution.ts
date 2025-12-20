@@ -117,7 +117,9 @@ export async function runMonthlyDistribution(
 
     return result;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    result.errors.push(`Top-level: ${errorMessage}`);
     console.error('[CRON] Monthly distribution failed:', error);
-    throw error;
+    return result;
   }
 }
