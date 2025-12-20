@@ -23,6 +23,9 @@ import {
 
 import { CreateAlertClient } from './create-alert-client';
 
+// Force dynamic rendering since this page uses headers via getSession
+export const dynamic = 'force-dynamic';
+
 /**
  * Create Alert Page
  *

@@ -10,6 +10,9 @@ import {
   type Tier,
 } from '@/lib/tier-config';
 
+// Force dynamic rendering since this page uses headers via getSession
+export const dynamic = 'force-dynamic';
+
 /**
  * Charts Page
  *
