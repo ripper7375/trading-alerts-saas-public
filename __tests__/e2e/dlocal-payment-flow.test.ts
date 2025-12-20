@@ -19,7 +19,7 @@ import { convertUSDToLocal, clearExchangeRateCache } from '@/lib/dlocal/currency
 import { getPaymentMethodsForCountry, isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
 import { createPayment, verifyWebhookSignature, mapDLocalStatus } from '@/lib/dlocal/dlocal-payment.service';
 import { canPurchaseThreeDayPlan, markThreeDayPlanUsed } from '@/lib/dlocal/three-day-validator.service';
-import { isDLocalCountry, getCurrency, getPriceUSD, getPlanDuration, PRICING, DLOCAL_COUNTRIES } from '@/lib/dlocal/constants';
+import { isDLocalCountry, getCurrency, getPriceUSD, getPlanDuration, PRICING, DLOCAL_SUPPORTED_COUNTRIES } from '@/lib/dlocal/constants';
 import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
 import crypto from 'crypto';
 
@@ -341,11 +341,11 @@ describe('E2E: dLocal Payment Flow', () => {
     }> = [
       { country: 'IN', currency: 'INR', expectedMethods: ['UPI', 'Paytm', 'PhonePe'] },
       { country: 'NG', currency: 'NGN', expectedMethods: ['Bank Transfer'] },
-      { country: 'PK', currency: 'PKR', expectedMethods: ['JazzCash', 'EasyPaisa'] },
+      { country: 'PK', currency: 'PKR', expectedMethods: ['JazzCash', 'Easypaisa'] },
       { country: 'VN', currency: 'VND', expectedMethods: ['MoMo', 'VNPay'] },
-      { country: 'ID', currency: 'IDR', expectedMethods: ['OVO', 'GoPay', 'DANA'] },
-      { country: 'TH', currency: 'THB', expectedMethods: ['TrueMoney', 'PromptPay'] },
-      { country: 'ZA', currency: 'ZAR', expectedMethods: ['Bank Transfer'] },
+      { country: 'ID', currency: 'IDR', expectedMethods: ['OVO', 'GoPay', 'Dana'] },
+      { country: 'TH', currency: 'THB', expectedMethods: ['TrueMoney', 'Thai QR'] },
+      { country: 'ZA', currency: 'ZAR', expectedMethods: ['Instant EFT'] },
       { country: 'TR', currency: 'TRY', expectedMethods: ['Bank Transfer'] },
     ];
 
@@ -353,7 +353,7 @@ describe('E2E: dLocal Payment Flow', () => {
       'should support payment flow for $country',
       async ({ country, currency, expectedMethods }) => {
         // Verify country is supported
-        expect(DLOCAL_COUNTRIES).toContain(country);
+        expect(DLOCAL_SUPPORTED_COUNTRIES).toContain(country);
         expect(isDLocalCountry(country)).toBe(true);
 
         // Verify currency mapping
