@@ -60,7 +60,7 @@ async function generateAffiliateReport(
   });
 
   // Get commissions earned this month
-  const commissions = await prisma.affiliateCommission.aggregate({
+  const commissions = await prisma.commission.aggregate({
     where: {
       affiliateProfileId: affiliateId,
       earnedAt: {
@@ -76,7 +76,7 @@ async function generateAffiliateReport(
   return {
     codesDistributed,
     codesUsed,
-    commissionsEarned: commissions._sum.commissionAmount || 0,
+    commissionsEarned: Number(commissions._sum.commissionAmount ?? 0),
   };
 }
 
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret = process.env['CRON_SECRET'];
 
     if (!cronSecret) {
       console.error('[CRON] CRON_SECRET environment variable not set');
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           codesDistributed: reportData.codesDistributed,
           codesUsed: reportData.codesUsed,
           commissionsEarned: reportData.commissionsEarned,
-          balance: affiliate.pendingCommissions,
+          balance: Number(affiliate.pendingCommissions),
         };
 
         reports.push(report);
