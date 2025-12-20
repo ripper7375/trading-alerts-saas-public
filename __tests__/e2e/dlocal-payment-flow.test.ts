@@ -76,8 +76,11 @@ describe('E2E: dLocal Payment Flow', () => {
       expect(isDLocalCountry(detectedCountry)).toBe(true);
 
       // Step 2: Check 3-day plan eligibility
-      (mockPrisma.payment.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.subscription.findFirst as jest.Mock).mockResolvedValue(null);
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: userId,
+        hasUsedThreeDayPlan: false,
+        subscription: null,
+      });
 
       const eligibility = await canPurchaseThreeDayPlan(userId);
       expect(eligibility.canPurchase).toBe(true);
@@ -195,11 +198,12 @@ describe('E2E: dLocal Payment Flow', () => {
     it('should block 3-day plan for user who already used it', async () => {
       const userId = 'repeat-user-789';
 
-      // Mock: User already has a 3-day payment
-      (mockPrisma.payment.findFirst as jest.Mock).mockResolvedValue({
-        id: 'prev-payment',
-        planType: 'THREE_DAY',
-        status: 'COMPLETED',
+      // Mock: User has already used 3-day plan
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: userId,
+        hasUsedThreeDayPlan: true,
+        threeDayPlanUsedAt: new Date('2024-01-01'),
+        subscription: null,
       });
 
       const eligibility = await canPurchaseThreeDayPlan(userId);
@@ -210,11 +214,15 @@ describe('E2E: dLocal Payment Flow', () => {
     it('should block 3-day plan for user with active subscription', async () => {
       const userId = 'active-sub-user';
 
-      (mockPrisma.payment.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.subscription.findFirst as jest.Mock).mockResolvedValue({
-        id: 'active-sub',
-        status: 'ACTIVE',
-        tier: 'PRO',
+      // Mock: User has active subscription
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: userId,
+        hasUsedThreeDayPlan: false,
+        subscription: {
+          id: 'active-sub',
+          status: 'ACTIVE',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        },
       });
 
       const eligibility = await canPurchaseThreeDayPlan(userId);
