@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/distribute-codes",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/expire-codes",
+      "schedule": "59 23 28-31 * *"
+    }
+  ]
+}
