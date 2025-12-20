@@ -21,13 +21,19 @@ import {
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/**
+ * Unified subscription response supporting both Stripe and dLocal
+ */
 interface SubscriptionResponse {
   tier: 'FREE' | 'PRO';
   status: string;
   subscription: {
     id: string;
     status: string;
-    currentPeriodEnd: string | null;
+    provider: 'STRIPE' | 'DLOCAL' | null; // NEW: Payment provider
+    planType: string | null;               // NEW: Plan type (MONTHLY, THREE_DAY)
+    currentPeriodEnd: string | null;       // For Stripe
+    expiresAt: string | null;              // NEW: For dLocal explicit expiry
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;
     paymentMethod: {
@@ -36,6 +42,9 @@ interface SubscriptionResponse {
       expiryMonth: number;
       expiryYear: number;
     } | null;
+    // NEW: dLocal-specific fields
+    dLocalPaymentMethod: string | null;
+    dLocalCountry: string | null;
   } | null;
 }
 
@@ -139,20 +148,32 @@ export async function GET(): Promise<
       }
     }
 
-    // Build response
+    // Determine payment provider
+    const provider: 'STRIPE' | 'DLOCAL' | null = user.subscription.dLocalPaymentId
+      ? 'DLOCAL'
+      : user.subscription.stripeSubscriptionId
+        ? 'STRIPE'
+        : null;
+
+    // Build unified response
     const response: SubscriptionResponse = {
       tier: user.tier,
       status: user.subscription.status,
       subscription: {
         id: user.subscription.id,
         status: user.subscription.status,
+        provider,
+        planType: user.subscription.planType,
         currentPeriodEnd:
           user.subscription.stripeCurrentPeriodEnd?.toISOString() || null,
+        expiresAt: user.subscription.expiresAt?.toISOString() || null,
         cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
         trialEnd: stripeSubscription?.trial_end
           ? new Date(stripeSubscription.trial_end * 1000).toISOString()
           : null,
         paymentMethod,
+        dLocalPaymentMethod: user.subscription.dLocalPaymentMethod,
+        dLocalCountry: user.subscription.dLocalCountry,
       },
     };
 
