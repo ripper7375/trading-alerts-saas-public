@@ -14,11 +14,13 @@
  * @module components/billing/subscription-card
  */
 
-import { Calendar, CreditCard, Check } from 'lucide-react';
+import { Calendar, CreditCard, Check, Globe, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { PaymentProvider } from '@/types/dlocal';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -44,6 +46,10 @@ interface SubscriptionCardProps {
   cancelAtPeriodEnd?: boolean;
   /** Payment method details */
   paymentMethod?: PaymentMethod | null;
+  /** Payment provider (STRIPE or DLOCAL) */
+  paymentProvider?: PaymentProvider;
+  /** Plan type for dLocal (THREE_DAY or MONTHLY) */
+  planType?: string;
   /** Callback when upgrade button is clicked */
   onUpgrade: () => void;
   /** Callback when cancel button is clicked */
@@ -106,12 +112,16 @@ export function SubscriptionCard({
   trialEnd,
   cancelAtPeriodEnd = false,
   paymentMethod,
+  paymentProvider,
+  planType,
   onUpgrade,
   onCancel,
   isLoading = false,
 }: SubscriptionCardProps): React.ReactElement {
   const isPro = tier === 'PRO';
   const config = TIER_CONFIG[tier];
+  const isDLocal = paymentProvider === 'DLOCAL';
+  const isThreeDayPlan = planType === 'THREE_DAY';
 
   // Format dates
   const formattedBillingDate = currentPeriodEnd
@@ -192,8 +202,8 @@ export function SubscriptionCard({
           </div>
         )}
 
-        {/* Payment Method (PRO only) */}
-        {isPro && paymentMethod && (
+        {/* Payment Method (PRO only - Stripe) */}
+        {isPro && paymentMethod && !isDLocal && (
           <div className="flex items-center gap-2 text-sm">
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <span>
@@ -202,6 +212,40 @@ export function SubscriptionCard({
             <span className="text-muted-foreground">
               (expires {paymentMethod.expiryMonth}/{paymentMethod.expiryYear})
             </span>
+          </div>
+        )}
+
+        {/* Payment Provider (PRO only - dLocal) */}
+        {isPro && isDLocal && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Globe className="h-4 w-4 text-purple-600" />
+              <span>Paid via dLocal (Local Payment Methods)</span>
+            </div>
+
+            {/* Manual Renewal Notice for dLocal */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <RefreshCw className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-purple-800">
+                    <strong>Manual Renewal Required:</strong> dLocal payments do not auto-renew.
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    {isThreeDayPlan
+                      ? 'Your 3-day trial is a one-time offer. Subscribe to monthly for continued access.'
+                      : `Please renew before ${formattedBillingDate} to maintain access.`}
+                  </p>
+                  <Link
+                    href="/checkout"
+                    className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-purple-700 hover:text-purple-900"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Renew Now
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

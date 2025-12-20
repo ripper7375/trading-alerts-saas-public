@@ -13,10 +13,11 @@
  * @module app/(marketing)/pricing/page
  */
 
-import { Check, X } from 'lucide-react';
+import { Check, X, Globe, Clock } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,8 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
+import { DLOCAL_SUPPORTED_COUNTRIES, COUNTRY_NAMES, PRICING } from '@/lib/dlocal/constants';
+import type { DLocalCountry } from '@/types/dlocal';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
@@ -118,9 +121,55 @@ function PricingPageContent(): React.ReactElement {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
+  const [detectedCountry, setDetectedCountry] = useState<DLocalCountry | null>(null);
+  const [canUseThreeDayPlan, setCanUseThreeDayPlan] = useState(false);
+  const [threeDayEligibilityChecked, setThreeDayEligibilityChecked] = useState(false);
 
   // Get affiliate code from URL
   const affiliateCode = searchParams.get('ref');
+
+  // Detect user country for dLocal support
+  useEffect(() => {
+    const detectCountry = async (): Promise<void> => {
+      try {
+        const res = await fetch('/api/geo/detect');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.country && DLOCAL_SUPPORTED_COUNTRIES.includes(data.country)) {
+            setDetectedCountry(data.country as DLocalCountry);
+          }
+        }
+      } catch (error) {
+        console.error('Country detection failed:', error);
+      }
+    };
+    detectCountry();
+  }, []);
+
+  // Check 3-day plan eligibility
+  useEffect(() => {
+    const checkEligibility = async (): Promise<void> => {
+      if (!session?.user?.id || !detectedCountry) {
+        setThreeDayEligibilityChecked(true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/payments/dlocal/check-three-day-eligibility');
+        if (res.ok) {
+          const data = await res.json();
+          setCanUseThreeDayPlan(data.eligible === true);
+        }
+      } catch (error) {
+        console.error('Eligibility check failed:', error);
+      } finally {
+        setThreeDayEligibilityChecked(true);
+      }
+    };
+    checkEligibility();
+  }, [session?.user?.id, detectedCountry]);
+
+  const isDLocalCountry = detectedCountry !== null;
 
   // Calculate discounted price if affiliate code exists
   const discountedPrice = affiliateCode
@@ -201,8 +250,46 @@ function PricingPageContent(): React.ReactElement {
           </p>
         </div>
 
+        {/* dLocal 3-Day Trial Banner for supported countries */}
+        {isDLocalCountry && canUseThreeDayPlan && threeDayEligibilityChecked && (
+          <div className="mx-auto mb-8 max-w-4xl">
+            <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="flex-shrink-0">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
+                      <Clock className="h-8 w-8 text-purple-600" />
+                    </div>
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <Badge className="mb-2 bg-purple-600 text-white">
+                      One-Time Offer for {COUNTRY_NAMES[detectedCountry]}
+                    </Badge>
+                    <h3 className="text-2xl font-bold mb-2">Try PRO for Just ${PRICING.THREE_DAY_USD}</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Get 3 days of full PRO access to test all features before committing.
+                      Pay with local payment methods like{' '}
+                      {detectedCountry === 'IN' && 'UPI, Paytm, PhonePe'}
+                      {detectedCountry === 'NG' && 'Bank Transfer, Paystack'}
+                      {detectedCountry === 'ID' && 'GoPay, OVO, Dana'}
+                      {detectedCountry === 'TH' && 'TrueMoney, Thai QR'}
+                      {!['IN', 'NG', 'ID', 'TH'].includes(detectedCountry) && 'local wallets'}.
+                    </p>
+                    <Link href={`/checkout?country=${detectedCountry}&plan=THREE_DAY`}>
+                      <Button className="bg-purple-600 hover:bg-purple-700">
+                        <Globe className="mr-2 h-4 w-4" />
+                        Start 3-Day Trial - ${PRICING.THREE_DAY_USD}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Pricing Cards */}
-        <div className="mx-auto mb-16 grid max-w-5xl gap-8 md:grid-cols-2">
+        <div className={`mx-auto mb-16 grid max-w-5xl gap-8 ${isDLocalCountry ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           {/* FREE TIER */}
           <Card className="flex flex-col">
             <CardHeader>
@@ -337,8 +424,110 @@ function PricingPageContent(): React.ReactElement {
                 7-day free trial, then $
                 {affiliateCode ? discountedPrice.toFixed(2) : PRO_PRICE}/month
               </p>
+              {/* dLocal option for supported countries */}
+              {isDLocalCountry && userTier !== 'PRO' && (
+                <Link
+                  href={`/checkout?country=${detectedCountry}&plan=MONTHLY${affiliateCode ? `&ref=${affiliateCode}` : ''}`}
+                  className="mt-2 flex items-center justify-center gap-2 text-sm text-purple-600 hover:underline"
+                >
+                  <Globe className="h-4 w-4" />
+                  Pay with local payment methods
+                </Link>
+              )}
             </CardFooter>
           </Card>
+
+          {/* dLocal Monthly Card for supported countries */}
+          {isDLocalCountry && (
+            <Card className="flex flex-col border-2 border-purple-300">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Badge className="w-fit bg-purple-600 text-white">LOCAL PAYMENTS</Badge>
+                  <Globe className="h-4 w-4 text-purple-600" />
+                </div>
+                <CardTitle className="flex items-baseline gap-2 mt-4">
+                  <span className="text-4xl font-bold text-purple-600">${PRO_PRICE}</span>
+                  <span className="text-lg text-muted-foreground">/month</span>
+                </CardTitle>
+                <p className="text-muted-foreground">
+                  Pay in {COUNTRY_NAMES[detectedCountry]} with local methods
+                </p>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  All PRO features, paid with:
+                </p>
+                <ul className="space-y-2 text-sm">
+                  {detectedCountry === 'IN' && (
+                    <>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> UPI
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> Paytm
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> PhonePe
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> Net Banking
+                      </li>
+                    </>
+                  )}
+                  {detectedCountry === 'NG' && (
+                    <>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> Bank Transfer
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> USSD
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> Paystack
+                      </li>
+                    </>
+                  )}
+                  {detectedCountry === 'ID' && (
+                    <>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> GoPay
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> OVO
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-600" /> Dana
+                      </li>
+                    </>
+                  )}
+                  {!['IN', 'NG', 'ID'].includes(detectedCountry) && (
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-purple-600" /> Local payment methods
+                    </li>
+                  )}
+                </ul>
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Powered by dLocal. No international card fees.
+                </p>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-2">
+                <Link
+                  href={`/checkout?country=${detectedCountry}&plan=MONTHLY`}
+                  className="w-full"
+                >
+                  <Button
+                    className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
+                    disabled={userTier === 'PRO'}
+                  >
+                    {userTier === 'PRO' ? 'Current Plan' : 'Pay with Local Methods'}
+                  </Button>
+                </Link>
+                <p className="text-center text-sm text-muted-foreground">
+                  Manual renewal each month
+                </p>
+              </CardFooter>
+            </Card>
+          )}
         </div>
 
         {/* Affiliate Program Banner */}
