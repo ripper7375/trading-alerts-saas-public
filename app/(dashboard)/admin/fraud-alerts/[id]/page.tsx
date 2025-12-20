@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -98,7 +98,6 @@ const MOCK_ALERT: FraudAlertDetail = {
 
 export default function FraudAlertDetailPage(): React.ReactElement {
   const params = useParams();
-  const router = useRouter();
   const [alert, setAlert] = useState<FraudAlertDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -119,7 +118,8 @@ export default function FraudAlertDetailPage(): React.ReactElement {
     };
 
     fetchAlert();
-  }, [params.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params['id']]);
 
   const handleAction = async (action: 'review' | 'dismiss' | 'block'): Promise<void> => {
     setActionLoading(true);

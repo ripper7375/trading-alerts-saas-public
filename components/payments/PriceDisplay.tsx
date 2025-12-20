@@ -15,7 +15,7 @@
  * @module components/payments/PriceDisplay
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import type { DLocalCurrency } from '@/types/dlocal';
 
@@ -117,7 +117,7 @@ export function PriceDisplay({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchConversion = async (): Promise<void> => {
+  const fetchConversion = useCallback(async (): Promise<void> => {
     try {
       setError(null);
 
@@ -150,12 +150,12 @@ export function PriceDisplay({
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [usdAmount, currency]);
 
   useEffect(() => {
     setLoading(true);
     fetchConversion();
-  }, [usdAmount, currency]);
+  }, [fetchConversion]);
 
   const handleRefresh = (): void => {
     setRefreshing(true);

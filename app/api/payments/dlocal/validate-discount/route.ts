@@ -80,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         status: 'ACTIVE',
       },
       include: {
-        affiliate: {
+        affiliateProfile: {
           select: {
             id: true,
             status: true,
@@ -98,10 +98,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if affiliate is active
-    if (affiliateCode.affiliate?.status !== 'ACTIVE') {
+    if (affiliateCode.affiliateProfile?.status !== 'ACTIVE') {
       logger.info('Affiliate not active', {
         code: normalizedCode,
-        affiliateId: affiliateCode.affiliateId,
+        affiliateId: affiliateCode.affiliateProfileId,
       });
       return NextResponse.json({
         valid: false,

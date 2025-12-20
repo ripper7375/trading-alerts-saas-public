@@ -215,7 +215,7 @@ export function PaymentMethodSelector({
           setMethods(apiMethods);
 
           // Auto-select first method if none selected
-          if (!value && apiMethods.length > 0) {
+          if (!value && apiMethods.length > 0 && apiMethods[0]) {
             onChange(apiMethods[0].id);
           }
         } else {
@@ -223,7 +223,7 @@ export function PaymentMethodSelector({
           const fallbackMethods = PAYMENT_METHODS_BY_COUNTRY[country] || [];
           setMethods(fallbackMethods);
 
-          if (!value && fallbackMethods.length > 0) {
+          if (!value && fallbackMethods.length > 0 && fallbackMethods[0]) {
             onChange(fallbackMethods[0].id);
           }
         }
@@ -233,7 +233,7 @@ export function PaymentMethodSelector({
         const fallbackMethods = PAYMENT_METHODS_BY_COUNTRY[country] || [];
         setMethods(fallbackMethods);
 
-        if (!value && fallbackMethods.length > 0) {
+        if (!value && fallbackMethods.length > 0 && fallbackMethods[0]) {
           onChange(fallbackMethods[0].id);
         }
       } finally {

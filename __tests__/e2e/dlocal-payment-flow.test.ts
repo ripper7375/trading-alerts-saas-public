@@ -150,7 +150,7 @@ describe('E2E: dLocal Payment Flow', () => {
         id: 'aff-code-1',
         code: 'TRADER10',
         status: 'ACTIVE',
-        affiliate: { id: 'aff-1', status: 'ACTIVE' },
+        affiliateProfile: { id: 'aff-1', status: 'ACTIVE' },
       });
 
       // Simulate discount validation API call
@@ -418,7 +418,7 @@ describe('E2E: dLocal Payment Flow', () => {
         id: 'code-1',
         code: 'TRADER10',
         status: 'ACTIVE',
-        affiliate: { id: 'aff-1', status: 'ACTIVE' },
+        affiliateProfile: { id: 'aff-1', status: 'ACTIVE' },
       });
 
       const result = await validateDiscountCode('TRADER10', 'MONTHLY');
@@ -439,7 +439,7 @@ describe('E2E: dLocal Payment Flow', () => {
         id: 'code-2',
         code: 'SUSPENDED',
         status: 'ACTIVE',
-        affiliate: { id: 'aff-2', status: 'SUSPENDED' },
+        affiliateProfile: { id: 'aff-2', status: 'SUSPENDED' },
       });
 
       const result = await validateDiscountCode('SUSPENDED', 'MONTHLY');
@@ -576,7 +576,7 @@ async function validateDiscountCode(
       status: 'ACTIVE',
     },
     include: {
-      affiliate: {
+      affiliateProfile: {
         select: { id: true, status: true },
       },
     },
@@ -589,7 +589,7 @@ async function validateDiscountCode(
     };
   }
 
-  if (affiliateCode.affiliate?.status !== 'ACTIVE') {
+  if (affiliateCode.affiliateProfile?.status !== 'ACTIVE') {
     return {
       valid: false,
       message: 'This discount code is no longer valid',
