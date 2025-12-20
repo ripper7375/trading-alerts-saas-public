@@ -2,7 +2,9 @@
  * Invoices API Route
  *
  * GET /api/invoices
- * Returns user's invoice history from Stripe.
+ * Returns user's unified invoice history from both Stripe and dLocal.
+ *
+ * Part 18B: Now includes dLocal payments alongside Stripe invoices.
  *
  * @module app/api/invoices/route
  */
@@ -18,13 +20,19 @@ import { getCustomerInvoices } from '@/lib/stripe/stripe';
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/**
+ * Unified invoice item supporting both Stripe and dLocal
+ */
 interface InvoiceItem {
   id: string;
   date: string;
   amount: number;
+  currency: string;               // NEW: Currency code
   status: 'paid' | 'open' | 'failed';
   description: string;
   invoicePdfUrl: string | null;
+  provider: 'STRIPE' | 'DLOCAL';  // NEW: Payment provider
+  planType: string | null;        // NEW: Plan type (for dLocal)
 }
 
 interface InvoicesResponse {
@@ -78,43 +86,78 @@ export async function GET(
     const limitParam = searchParams.get('limit');
     const limit = Math.min(Math.max(parseInt(limitParam || '12', 10), 1), 100);
 
-    // Get user's subscription to find Stripe customer ID
+    // Collect invoices from all providers
+    const allInvoices: InvoiceItem[] = [];
+
+    // 1. Get dLocal payments (completed ones only)
+    const dLocalPayments = await prisma.payment.findMany({
+      where: {
+        userId,
+        provider: 'DLOCAL',
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    // Transform dLocal payments to invoice format
+    for (const payment of dLocalPayments) {
+      allInvoices.push({
+        id: payment.id,
+        date: payment.createdAt.toISOString(),
+        amount: Number(payment.amountUSD),
+        currency: payment.currency,
+        status: 'paid',
+        description: payment.planType === 'THREE_DAY'
+          ? 'Trading Alerts PRO - 3 Day'
+          : 'Trading Alerts PRO - Monthly',
+        invoicePdfUrl: null, // dLocal doesn't provide PDF invoices
+        provider: 'DLOCAL',
+        planType: payment.planType,
+      });
+    }
+
+    // 2. Get Stripe invoices if customer exists
     const subscription = await prisma.subscription.findUnique({
       where: { userId },
     });
 
-    // If no subscription or no Stripe customer, return empty list
-    if (!subscription?.stripeCustomerId) {
-      return NextResponse.json({
-        invoices: [],
-        hasMore: false,
-      });
+    if (subscription?.stripeCustomerId) {
+      try {
+        const stripeInvoices = await getCustomerInvoices(
+          subscription.stripeCustomerId,
+          limit
+        );
+
+        // Transform Stripe invoices to our format
+        for (const invoice of stripeInvoices) {
+          allInvoices.push({
+            id: invoice.id,
+            date: new Date((invoice.created || 0) * 1000).toISOString(),
+            amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
+            currency: (invoice.currency || 'usd').toUpperCase(),
+            status: mapInvoiceStatus(invoice.status),
+            description: getInvoiceDescription(invoice),
+            invoicePdfUrl: invoice.invoice_pdf || null,
+            provider: 'STRIPE',
+            planType: 'MONTHLY',
+          });
+        }
+      } catch (error) {
+        // Log but don't fail - dLocal invoices are still available
+        console.error('[Invoices] Error fetching Stripe invoices:', error);
+      }
     }
 
-    // Fetch invoices from Stripe
-    const stripeInvoices = await getCustomerInvoices(
-      subscription.stripeCustomerId,
-      limit + 1 // Fetch one extra to check if there are more
-    );
+    // Sort all invoices by date (newest first)
+    allInvoices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Check if there are more invoices
-    const hasMore = stripeInvoices.length > limit;
-    const invoicesToReturn = hasMore
-      ? stripeInvoices.slice(0, limit)
-      : stripeInvoices;
-
-    // Transform Stripe invoices to our format
-    const invoices: InvoiceItem[] = invoicesToReturn.map((invoice) => ({
-      id: invoice.id,
-      date: new Date((invoice.created || 0) * 1000).toISOString(),
-      amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
-      status: mapInvoiceStatus(invoice.status),
-      description: getInvoiceDescription(invoice),
-      invoicePdfUrl: invoice.invoice_pdf || null,
-    }));
+    // Apply limit and check for hasMore
+    const hasMore = allInvoices.length > limit;
+    const invoicesToReturn = allInvoices.slice(0, limit);
 
     return NextResponse.json({
-      invoices,
+      invoices: invoicesToReturn,
       hasMore,
     });
   } catch (error) {

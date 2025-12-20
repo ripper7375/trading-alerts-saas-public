@@ -1,11 +1,13 @@
 /**
  * POST /api/webhooks/dlocal
  *
- * Handles dLocal payment webhooks.
+ * Handles dLocal payment webhooks with full subscription lifecycle.
  *
- * This is the BASIC version for Part 18A.
- * Only handles payment success/failure and creates notifications.
- * Subscription creation will be added in Part 18B.
+ * Part 18B Enhanced Version:
+ * - Creates subscriptions on successful payment
+ * - Upgrades user to PRO tier
+ * - Marks 3-day plan as used (anti-abuse)
+ * - Creates notifications
  *
  * Headers:
  * - x-signature: HMAC signature for verification
@@ -19,6 +21,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhookSignature, mapDLocalStatus } from '@/lib/dlocal/dlocal-payment.service';
+import { markThreeDayPlanUsed } from '@/lib/dlocal/three-day-validator.service';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { DLocalWebhookPayload } from '@/types/dlocal';
@@ -112,41 +115,133 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 /**
+ * Payment record type for webhook processing
+ */
+interface PaymentRecord {
+  id: string;
+  userId: string;
+  planType: string | null;
+  amount: unknown;
+  currency: string;
+  country: string | null;
+  paymentMethod: string | null;
+  providerPaymentId: string;
+}
+
+/**
  * Handles successful payment completion
+ *
+ * Part 18B: Now creates subscriptions, upgrades users, and marks 3-day plan usage
  */
 async function handlePaymentCompleted(
-  payment: { id: string; userId: string; planType: string | null; amount: unknown; currency: string },
+  payment: PaymentRecord,
   webhookData: DLocalWebhookPayload
 ): Promise<void> {
   logger.info('Processing payment completion', {
     paymentId: payment.id,
     userId: payment.userId,
+    planType: payment.planType,
   });
 
-  // Update payment status
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      status: 'COMPLETED',
-      providerStatus: webhookData.status,
-      updatedAt: new Date(),
-    },
+  // Calculate subscription expiry based on plan type
+  const now = new Date();
+  const expiresAt = payment.planType === 'THREE_DAY'
+    ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)  // 3 days
+    : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+  // Use a transaction to ensure all updates succeed or fail together
+  await prisma.$transaction(async (tx) => {
+    // 1. Update payment status
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'COMPLETED',
+        providerStatus: webhookData.status,
+        updatedAt: new Date(),
+      },
+    });
+
+    // 2. Upgrade user to PRO tier
+    await tx.user.update({
+      where: { id: payment.userId },
+      data: { tier: 'PRO' },
+    });
+
+    // 3. Create or update subscription
+    const existingSubscription = await tx.subscription.findUnique({
+      where: { userId: payment.userId },
+    });
+
+    if (existingSubscription) {
+      // Update existing subscription
+      await tx.subscription.update({
+        where: { userId: payment.userId },
+        data: {
+          status: 'ACTIVE',
+          planType: payment.planType,
+          dLocalPaymentId: payment.providerPaymentId,
+          dLocalPaymentMethod: payment.paymentMethod,
+          dLocalCountry: payment.country,
+          dLocalCurrency: payment.currency,
+          expiresAt,
+          renewalReminderSent: false,
+          amountUsd: 29, // Standard PRO price
+        },
+      });
+    } else {
+      // Create new subscription
+      await tx.subscription.create({
+        data: {
+          userId: payment.userId,
+          status: 'ACTIVE',
+          planType: payment.planType,
+          dLocalPaymentId: payment.providerPaymentId,
+          dLocalPaymentMethod: payment.paymentMethod,
+          dLocalCountry: payment.country,
+          dLocalCurrency: payment.currency,
+          expiresAt,
+          renewalReminderSent: false,
+          amountUsd: 29,
+        },
+      });
+    }
+
+    // 4. Link payment to subscription
+    const subscription = await tx.subscription.findUnique({
+      where: { userId: payment.userId },
+    });
+
+    if (subscription) {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { subscriptionId: subscription.id },
+      });
+    }
   });
 
-  // Create notification for user
+  // 5. Mark 3-day plan as used if applicable (outside transaction for isolation)
+  if (payment.planType === 'THREE_DAY') {
+    await markThreeDayPlanUsed(payment.userId);
+    logger.info('3-day plan marked as used', { userId: payment.userId });
+  }
+
+  // 6. Create success notification
   await prisma.notification.create({
     data: {
       userId: payment.userId,
-      type: 'PAYMENT',
-      title: 'Payment Successful',
-      body: `Your payment of ${payment.currency} ${payment.amount} has been received. Your subscription is now active.`,
+      type: 'SUBSCRIPTION',
+      title: 'Welcome to PRO!',
+      body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
       priority: 'HIGH',
     },
   });
 
-  // NOTE: Subscription creation will be added in Part 18B
-  // For now, we just mark the payment as completed and notify the user
-  logger.info('Payment marked as completed', { paymentId: payment.id });
+  logger.info('Payment completed and subscription created', {
+    paymentId: payment.id,
+    userId: payment.userId,
+    planType: payment.planType,
+    expiresAt: expiresAt.toISOString(),
+  });
 }
 
 /**
