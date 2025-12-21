@@ -12,17 +12,21 @@
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [System Context](#system-context)
-3. [Architecture Overview](#architecture-overview)
-4. [Component Architecture](#component-architecture)
-5. [Data Architecture](#data-architecture)
-6. [Integration Architecture](#integration-architecture)
-7. [Security Architecture](#security-architecture)
-8. [Configuration Architecture](#configuration-architecture)
-9. [Testing Architecture](#testing-architecture)
-10. [Deployment Architecture](#deployment-architecture)
-11. [Monitoring & Observability](#monitoring--observability)
-12. [Future Considerations](#future-considerations)
+2. [Dependencies (Required Parts)](#dependencies-required-parts)
+3. [System Context](#system-context)
+4. [Architecture Overview](#architecture-overview)
+5. [Component Architecture](#component-architecture)
+6. [Data Architecture](#data-architecture)
+   - [Entity Relationship Diagram](#entity-relationship-diagram)
+   - [Table Specifications (SQL)](#table-specifications)
+   - [Prisma Schema (Part 19)](#prisma-schema-part-19---add-to-schemaprisma)
+7. [Integration Architecture](#integration-architecture)
+8. [Security Architecture](#security-architecture)
+9. [Configuration Architecture](#configuration-architecture)
+10. [Testing Architecture](#testing-architecture)
+11. [Deployment Architecture](#deployment-architecture)
+12. [Monitoring & Observability](#monitoring--observability)
+13. [Future Considerations](#future-considerations)
 
 ---
 
@@ -49,6 +53,74 @@ This document defines the architecture for integrating Rise.works payment infras
 - Comprehensive audit trail for financial compliance
 - Extensible to support multiple payment providers
 - Integration with existing V7 authentication and authorization
+
+---
+
+## Dependencies (Required Parts)
+
+Part 19 (RiseWorks Disbursement) depends on the following parts that must be implemented first:
+
+### Direct Dependencies
+
+| Part | Name | What Part 19 Needs |
+|------|------|-------------------|
+| **Part 2** | Database | PostgreSQL + Prisma ORM infrastructure |
+| **Part 5** | Authentication | `requireAdmin()` for API authorization, JWT tokens |
+| **Part 17** | Affiliate Marketing | `AffiliateProfile`, `Commission` models with pending amounts |
+
+### Indirect Dependencies (Connected via Part 17)
+
+| Part | Name | Connection |
+|------|------|-----------|
+| **Part 1** | User | `User.email` via `AffiliateProfile.userId` for affiliate contact info |
+| **Part 3** | Subscriptions | `Subscription.affiliateCodeId` triggers commission creation |
+| **Part 18** | Payments (Stripe/dLocal) | `Payment.discountCode` creates commission records |
+
+### Dependency Diagram
+
+```
+                         ┌─────────────────┐
+                         │    PART 19      │
+                         │   RiseWorks     │
+                         │  Disbursement   │
+                         └────────┬────────┘
+                                  │
+           ┌──────────────────────┼──────────────────────┐
+           │                      │                      │
+           ▼                      ▼                      ▼
+   ┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+   │    PART 2     │     │    PART 5     │     │    PART 17    │
+   │   Database    │     │Authentication │     │   Affiliate   │
+   │    (Prisma)   │     │   (Admin)     │     │   Marketing   │
+   └───────────────┘     └───────────────┘     └───────┬───────┘
+                                                       │
+                                  ┌────────────────────┼────────────────────┐
+                                  │                    │                    │
+                                  ▼                    ▼                    ▼
+                          ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+                          │    PART 3     │   │   PART 18     │   │    PART 1     │
+                          │ Subscriptions │   │   Payments    │   │     User      │
+                          │               │   │ Stripe/dLocal │   │   (email)     │
+                          └───────────────┘   └───────────────┘   └───────────────┘
+```
+
+### Existing Models Used (from Part 17)
+
+Part 19 reads from these existing Prisma models (DO NOT recreate):
+
+- `AffiliateProfile` - Affiliate info, pending/paid commissions
+- `Commission` - Individual commission records with status
+- `User` - Email addresses for affiliates
+
+### New Models Added (Part 19 only)
+
+Part 19 adds these NEW models to the Prisma schema:
+
+- `AffiliateRiseAccount` - RiseID mapping for each affiliate
+- `PaymentBatch` - Batch payment tracking
+- `DisbursementTransaction` - Individual payment transactions
+- `RiseWorksWebhookEvent` - Webhook event storage
+- `DisbursementAuditLog` - Compliance audit trail
 
 ---
 
@@ -813,6 +885,293 @@ CREATE INDEX idx_audit_batch ON audit_logs(batch_id);
 CREATE INDEX idx_audit_action ON audit_logs(action);
 CREATE INDEX idx_audit_created ON audit_logs(created_at);
 ```
+
+---
+
+### Prisma Schema (Part 19 - Add to schema.prisma)
+
+> **IMPORTANT**: The tables above are shown in SQL format for reference.
+> This project uses **Prisma ORM**. Add the following models to `prisma/schema.prisma`.
+>
+> **DO NOT recreate** `AffiliateProfile`, `Commission`, or `User` - they already exist in Part 17.
+
+#### New Enums for Part 19
+
+```prisma
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RISEWORKS DISBURSEMENT SYSTEM (Part 19)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum RiseWorksKycStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentBatchStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementTransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementProvider {
+  RISE
+  MOCK
+}
+
+enum AuditLogStatus {
+  SUCCESS
+  FAILURE
+  WARNING
+  INFO
+}
+```
+
+#### AffiliateRiseAccount (RiseID Mapping)
+
+```prisma
+model AffiliateRiseAccount {
+  id                   String   @id @default(cuid())
+
+  // Link to existing Part 17 AffiliateProfile
+  affiliateProfileId   String   @unique
+  affiliateProfile     AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  // RiseWorks Account Info
+  riseId               String   @unique  // Blockchain address (e.g., 0xA35b2F326F07...)
+  email                String             // Email used for RiseWorks invite
+
+  // KYC Status
+  kycStatus            RiseWorksKycStatus @default(PENDING)
+  kycCompletedAt       DateTime?
+
+  // Invitation Tracking
+  invitationSentAt     DateTime?
+  invitationAcceptedAt DateTime?
+
+  // Sync Status
+  lastSyncAt           DateTime?
+  metadata             Json?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relationships
+  disbursementTransactions DisbursementTransaction[]
+
+  @@index([affiliateProfileId])
+  @@index([riseId])
+  @@index([kycStatus])
+}
+```
+
+#### PaymentBatch (Batch Tracking)
+
+```prisma
+model PaymentBatch {
+  id              String   @id @default(cuid())
+
+  // Batch Identification
+  batchNumber     String   @unique  // Human-readable (e.g., BATCH-2025-001)
+
+  // Batch Summary
+  paymentCount    Int      @default(0)
+  totalAmount     Decimal  @default(0)
+  currency        String   @default("USD")
+
+  // Provider
+  provider        DisbursementProvider
+
+  // Status
+  status          PaymentBatchStatus @default(PENDING)
+
+  // Timestamps
+  scheduledAt     DateTime?
+  executedAt      DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+
+  // Error Handling
+  errorMessage    String?
+  metadata        Json?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  transactions    DisbursementTransaction[]
+  auditLogs       DisbursementAuditLog[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([provider])
+  @@index([batchNumber])
+}
+```
+
+#### DisbursementTransaction (Individual Payments)
+
+```prisma
+model DisbursementTransaction {
+  id                String   @id @default(cuid())
+
+  // Batch Reference
+  batchId           String
+  batch             PaymentBatch @relation(fields: [batchId], references: [id])
+
+  // Commission Reference (from Part 17)
+  commissionId      String
+  commission        Commission @relation(fields: [commissionId], references: [id])
+
+  // Transaction IDs
+  transactionId     String   @unique  // Internal ID
+  providerTxId      String?           // RiseWorks transaction ID
+
+  // Provider
+  provider          DisbursementProvider
+
+  // Payee Info
+  affiliateRiseAccountId String?
+  affiliateRiseAccount   AffiliateRiseAccount? @relation(fields: [affiliateRiseAccountId], references: [id])
+  payeeRiseId       String?           // RiseID of recipient
+
+  // Amount
+  amount            Decimal
+  amountRiseUnits   BigInt?           // Amount in 1e6 units for RiseWorks
+  currency          String   @default("USD")
+
+  // Status
+  status            DisbursementTransactionStatus @default(PENDING)
+
+  // Retry Logic
+  retryCount        Int      @default(0)
+  lastRetryAt       DateTime?
+
+  // Error Handling
+  errorMessage      String?
+  metadata          Json?
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+  failedAt          DateTime?
+
+  // Relationships
+  webhookEvents     RiseWorksWebhookEvent[]
+  auditLogs         DisbursementAuditLog[]
+
+  @@index([batchId])
+  @@index([commissionId])
+  @@index([status])
+  @@index([providerTxId])
+  @@index([createdAt])
+}
+```
+
+#### RiseWorksWebhookEvent (Webhook Storage)
+
+```prisma
+model RiseWorksWebhookEvent {
+  id              String   @id @default(cuid())
+
+  // Transaction Reference (optional - some webhooks aren't transaction-specific)
+  transactionId   String?
+  transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
+
+  // Event Info
+  eventType       String   // e.g., "payment.completed", "invite.accepted"
+  provider        DisbursementProvider
+
+  // Payload
+  payload         Json
+
+  // Verification
+  signature       String?  // x-rise-signature header
+  hash            String?  // x-rise-hash header
+  verified        Boolean  @default(false)
+
+  // Processing Status
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  errorMessage    String?
+
+  receivedAt      DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([eventType])
+  @@index([processed])
+  @@index([receivedAt])
+}
+```
+
+#### DisbursementAuditLog (Compliance Trail)
+
+```prisma
+model DisbursementAuditLog {
+  id              String   @id @default(cuid())
+
+  // References (optional)
+  transactionId   String?
+  transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
+
+  batchId         String?
+  batch           PaymentBatch? @relation(fields: [batchId], references: [id])
+
+  // Action Details
+  action          String   // e.g., "batch.created", "payment.executed", "webhook.received"
+  actor           String?  // User ID or "system"
+  status          AuditLogStatus
+
+  // Context
+  details         Json?
+  ipAddress       String?
+  userAgent       String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([batchId])
+  @@index([action])
+  @@index([createdAt])
+}
+```
+
+#### Update Existing Models (Part 17)
+
+Add these relations to existing Part 17 models:
+
+```prisma
+// Add to AffiliateProfile model in Part 17:
+model AffiliateProfile {
+  // ... existing fields ...
+
+  // Part 19: RiseWorks Integration
+  riseAccount       AffiliateRiseAccount?
+}
+
+// Add to Commission model in Part 17:
+model Commission {
+  // ... existing fields ...
+
+  // Part 19: Disbursement Tracking
+  disbursementTransaction DisbursementTransaction?
+}
+```
+
+---
 
 ### Data Flow Diagrams
 
