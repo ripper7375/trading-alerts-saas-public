@@ -4,6 +4,15 @@
  * Tests for the email service and template generation.
  */
 
+// Mock resend to avoid jsdom MessageChannel issues
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: {
+      send: jest.fn().mockResolvedValue({ id: 'test-id' }),
+    },
+  })),
+}));
+
 import {
   getWelcomeEmail,
   getVerificationEmail,
