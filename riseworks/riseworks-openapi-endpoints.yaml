@@ -1,0 +1,2137 @@
+openapi: 3.1.0
+info:
+  title: Trading Alerts SaaS - RiseWorks Disbursement Stack API
+  description: |
+    API endpoints for automated affiliate commission disbursement integrated with RiseWorks.io payment infrastructure.
+
+    This API connects Part 17 (Affiliate Marketing Stack) with Part 19 (Disbursement Stack) to enable:
+    - Automated fetching of affiliate names and commission amounts
+    - RiseWorks account management for affiliates
+    - Batch disbursement execution
+    - Payment status tracking and webhooks
+
+    ## Authentication
+    - Internal endpoints: JWT Bearer token (Trading Alerts SaaS authentication)
+    - RiseWorks integration: SIWE (Sign-In with Ethereum) for blockchain payments
+
+    ## Payment Flow
+    1. Fetch payable affiliates from Part 17 commission data
+    2. Map affiliates to their RiseID accounts
+    3. Execute batch disbursement via RiseWorks API
+    4. Track payment status via webhooks
+
+    ## Currency
+    All amounts are in USD. RiseWorks converts to 1e6 units for USDC payments.
+
+  version: 1.0.0
+  contact:
+    name: Trading Alerts Team
+    email: admin@tradingalerts.example
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.tradingalerts.example/v1
+    description: Production API
+  - url: https://staging-api.tradingalerts.example/v1
+    description: Staging API
+  - url: http://localhost:3000/api
+    description: Local Development
+
+tags:
+  - name: Disbursement
+    description: Commission disbursement operations
+  - name: Affiliates
+    description: Affiliate data for disbursement
+  - name: RiseWorks Accounts
+    description: RiseWorks account management
+  - name: Payment Batches
+    description: Batch payment operations
+  - name: Transactions
+    description: Individual payment transactions
+  - name: Webhooks
+    description: RiseWorks webhook handlers
+  - name: Reports
+    description: Disbursement reports and analytics
+
+paths:
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # AFFILIATE DATA ENDPOINTS (Connects to Part 17)
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/affiliates/payable:
+    get:
+      operationId: getPayableAffiliates
+      summary: Get affiliates eligible for disbursement
+      description: |
+        Fetches all active affiliates with pending commissions that meet the minimum payout threshold.
+        This endpoint pulls data from Part 17 (Affiliate Marketing Stack) and enriches it with RiseWorks account status.
+
+        Data returned includes:
+        - Affiliate profile information (name, email, country)
+        - Pending commission totals from Part 17
+        - RiseWorks account status and RiseID
+        - Payment readiness status
+      tags:
+        - Affiliates
+        - Disbursement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: minBalance
+          in: query
+          description: Minimum pending balance to include (default: $50)
+          schema:
+            type: number
+            format: float
+            default: 50.00
+            minimum: 0
+        - name: kycStatus
+          in: query
+          description: Filter by RiseWorks KYC status
+          schema:
+            type: string
+            enum: [pending, submitted, approved, rejected, all]
+            default: approved
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 50
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [pendingAmount, fullName, country, oldestPending]
+            default: pendingAmount
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of payable affiliates with commission data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayableAffiliatesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /disbursement/affiliates/{affiliateId}:
+    get:
+      operationId: getAffiliateForDisbursement
+      summary: Get single affiliate disbursement details
+      description: |
+        Fetches complete disbursement information for a specific affiliate including:
+        - All pending commissions from Part 17
+        - RiseWorks account details
+        - Payment history
+        - Commission breakdown by source
+      tags:
+        - Affiliates
+        - Disbursement
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/affiliateId'
+      responses:
+        '200':
+          description: Affiliate disbursement details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateDisbursementDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /disbursement/affiliates/{affiliateId}/commissions:
+    get:
+      operationId: getAffiliateCommissions
+      summary: Get affiliate pending commissions
+      description: |
+        Fetches all pending commissions for a specific affiliate from Part 17.
+        Returns individual commission records that can be included in a disbursement.
+      tags:
+        - Affiliates
+        - Disbursement
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/affiliateId'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, PAID, CANCELLED, all]
+            default: PENDING
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of affiliate commissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateCommissionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # RISEWORKS ACCOUNT MANAGEMENT
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/riseworks/accounts:
+    get:
+      operationId: listRiseWorksAccounts
+      summary: List all affiliate RiseWorks accounts
+      description: |
+        Lists all affiliate RiseWorks accounts with their KYC status and payment eligibility.
+        Syncs data from RiseWorks API GET /teams/{teamId}/talent.
+      tags:
+        - RiseWorks Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: kycStatus
+          in: query
+          schema:
+            type: string
+            enum: [pending, submitted, approved, rejected, expired, all]
+            default: all
+        - name: hasRiseId
+          in: query
+          schema:
+            type: boolean
+            description: Filter for accounts with valid RiseID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of RiseWorks accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiseWorksAccountsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: inviteAffiliateToRiseWorks
+      summary: Invite affiliate to RiseWorks
+      description: |
+        Sends a RiseWorks invitation to an affiliate who doesn't have a RiseID yet.
+        Uses RiseWorks API POST /invites endpoint.
+        The affiliate will receive an email to complete KYC/AML and create their RiseID.
+      tags:
+        - RiseWorks Accounts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiseWorksInviteRequest'
+      responses:
+        '201':
+          description: Invitation sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiseWorksInviteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Affiliate already has RiseWorks account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /disbursement/riseworks/accounts/{affiliateId}:
+    get:
+      operationId: getRiseWorksAccount
+      summary: Get affiliate RiseWorks account
+      description: |
+        Gets the RiseWorks account details for a specific affiliate.
+        Fetches fresh data from RiseWorks API if needed.
+      tags:
+        - RiseWorks Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/affiliateId'
+      responses:
+        '200':
+          description: RiseWorks account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiseWorksAccount'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /disbursement/riseworks/sync:
+    post:
+      operationId: syncRiseWorksAccounts
+      summary: Sync accounts from RiseWorks
+      description: |
+        Synchronizes affiliate RiseWorks accounts with the RiseWorks platform.
+        Updates KYC status, RiseID, and other account details from RiseWorks API.
+        Uses GET /teams/{teamId}/talent endpoint.
+      tags:
+        - RiseWorks Accounts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                affiliateIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Specific affiliates to sync (empty = sync all)
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # DISBURSEMENT BATCH OPERATIONS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/batches:
+    get:
+      operationId: listPaymentBatches
+      summary: List payment batches
+      description: Lists all payment batches with status and totals
+      tags:
+        - Payment Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, queued, processing, completed, failed, cancelled, all]
+            default: all
+        - name: provider
+          in: query
+          schema:
+            type: string
+            enum: [rise, mock, all]
+            default: all
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of payment batches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatchesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: createPaymentBatch
+      summary: Create a new payment batch
+      description: |
+        Creates a new payment batch for disbursement.
+
+        The batch can be created by:
+        1. Auto-selecting all payable affiliates (affiliateIds empty or omitted)
+        2. Specifying specific affiliates to include
+        3. Specifying specific commission IDs to include
+
+        Commission data is fetched from Part 17 automatically.
+      tags:
+        - Payment Batches
+        - Disbursement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentBatchRequest'
+      responses:
+        '201':
+          description: Payment batch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /disbursement/batches/preview:
+    post:
+      operationId: previewPaymentBatch
+      summary: Preview a disbursement batch
+      description: |
+        Generates a preview of what a disbursement batch would contain without creating it.
+        Useful for reviewing amounts and affiliates before committing to a disbursement.
+
+        Fetches all pending commission data from Part 17 and calculates totals.
+      tags:
+        - Payment Batches
+        - Disbursement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewBatchRequest'
+      responses:
+        '200':
+          description: Batch preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchPreview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /disbursement/batches/{batchId}:
+    get:
+      operationId: getPaymentBatch
+      summary: Get payment batch details
+      description: Gets a specific payment batch with all transactions
+      tags:
+        - Payment Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/batchId'
+      responses:
+        '200':
+          description: Payment batch details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatchDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: cancelPaymentBatch
+      summary: Cancel a payment batch
+      description: |
+        Cancels a payment batch that hasn't been executed yet.
+        Only batches with status 'pending' or 'queued' can be cancelled.
+        Commissions are released back to pending status in Part 17.
+      tags:
+        - Payment Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/batchId'
+      responses:
+        '200':
+          description: Batch cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatch'
+        '400':
+          description: Batch cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /disbursement/batches/{batchId}/execute:
+    post:
+      operationId: executePaymentBatch
+      summary: Execute a payment batch
+      description: |
+        Executes a pending payment batch via RiseWorks.
+
+        Flow:
+        1. Validates all affiliates have approved RiseIDs
+        2. Converts amounts to RiseWorks format (1e6 units)
+        3. Calls RiseWorks PUT /payments/batch-pay for signing data
+        4. Signs transaction with Ethereum wallet
+        5. Calls RiseWorks POST /payments/batch-pay to execute
+        6. Records all transactions
+        7. Updates commission statuses in Part 17 to PAID
+      tags:
+        - Payment Batches
+        - Disbursement
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/batchId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dryRun:
+                  type: boolean
+                  default: false
+                  description: If true, validates but doesn't execute
+      responses:
+        '200':
+          description: Batch execution initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchExecutionResult'
+        '400':
+          description: Batch cannot be executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /disbursement/batches/{batchId}/retry:
+    post:
+      operationId: retryFailedBatch
+      summary: Retry failed transactions in a batch
+      description: Retries all failed transactions in a batch
+      tags:
+        - Payment Batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/batchId'
+      responses:
+        '200':
+          description: Retry initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchExecutionResult'
+        '400':
+          description: No failed transactions to retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # INDIVIDUAL TRANSACTIONS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/transactions:
+    get:
+      operationId: listTransactions
+      summary: List all transactions
+      description: Lists all payment transactions across batches
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: affiliateId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: batchId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed, cancelled, all]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /disbursement/transactions/{transactionId}:
+    get:
+      operationId: getTransaction
+      summary: Get transaction details
+      description: Gets a specific transaction with full details
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/transactionId'
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /disbursement/transactions/{transactionId}/status:
+    get:
+      operationId: getTransactionStatus
+      summary: Get transaction status from RiseWorks
+      description: |
+        Fetches the latest status from RiseWorks API for a transaction.
+        Uses GET /payments/{tx_id} endpoint.
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/transactionId'
+      responses:
+        '200':
+          description: Transaction status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # QUICK SINGLE PAYMENT
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/pay:
+    post:
+      operationId: paySingleAffiliate
+      summary: Pay a single affiliate immediately
+      description: |
+        Executes an immediate payment to a single affiliate.
+        Bypasses batch creation for urgent payments.
+
+        Creates a batch with single transaction internally for audit trail.
+      tags:
+        - Disbursement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SinglePaymentRequest'
+      responses:
+        '200':
+          description: Payment executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SinglePaymentResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # WEBHOOKS (RiseWorks Callbacks)
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /webhooks/riseworks:
+    post:
+      operationId: handleRiseWorksWebhook
+      summary: Handle RiseWorks webhook events
+      description: |
+        Receives and processes webhook events from RiseWorks.
+
+        Supported event types:
+        - invite.accepted: Affiliate completed KYC and has RiseID
+        - payment.initiated: Payment started processing
+        - payment.completed: Payment successfully delivered
+        - payment.failed: Payment failed
+        - fund.received: Funds received in Rise account
+        - account.duplication_detected: Security alert
+
+        Webhook signature verification:
+        - x-rise-signature: Ethereum signature of payload
+        - x-rise-hash: Keccak-256 hash of payload
+      tags:
+        - Webhooks
+      parameters:
+        - name: x-rise-signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Ethereum signature for verification
+        - name: x-rise-hash
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Keccak-256 hash of payload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RiseWorksWebhookEvent'
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: acknowledged
+        '400':
+          description: Invalid signature or payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /webhooks/riseworks/events:
+    get:
+      operationId: listWebhookEvents
+      summary: List received webhook events
+      description: Lists all received webhook events for auditing
+      tags:
+        - Webhooks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventType
+          in: query
+          schema:
+            type: string
+        - name: processed
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of webhook events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEventsResponse'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # REPORTS & ANALYTICS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/reports/summary:
+    get:
+      operationId: getDisbursementSummary
+      summary: Get disbursement summary
+      description: |
+        Gets a summary of all disbursements including:
+        - Total paid to affiliates
+        - Pending commissions from Part 17
+        - Number of affiliates paid
+        - Failed payments requiring attention
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, quarter, year, all]
+            default: month
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Disbursement summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisbursementSummary'
+
+  /disbursement/reports/affiliate/{affiliateId}:
+    get:
+      operationId: getAffiliateDisbursementHistory
+      summary: Get affiliate disbursement history
+      description: Gets complete payment history for a specific affiliate
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/affiliateId'
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Affiliate disbursement history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateDisbursementHistory'
+
+  /disbursement/reports/export:
+    post:
+      operationId: exportDisbursementReport
+      summary: Export disbursement report
+      description: Generates a CSV/Excel export of disbursement data
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # AUDIT LOGS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/audit-logs:
+    get:
+      operationId: getAuditLogs
+      summary: Get disbursement audit logs
+      description: Gets audit trail for all disbursement operations
+      tags:
+        - Reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: transactionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: batchId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogsResponse'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # CONFIGURATION
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /disbursement/config:
+    get:
+      operationId: getDisbursementConfig
+      summary: Get disbursement configuration
+      description: Gets current disbursement settings
+      tags:
+        - Disbursement
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Disbursement configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisbursementConfig'
+
+    patch:
+      operationId: updateDisbursementConfig
+      summary: Update disbursement configuration
+      description: Updates disbursement settings
+      tags:
+        - Disbursement
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDisbursementConfigRequest'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisbursementConfig'
+
+  /disbursement/health:
+    get:
+      operationId: getDisbursementHealth
+      summary: Check disbursement system health
+      description: Checks connectivity to RiseWorks and system status
+      tags:
+        - Disbursement
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+components:
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # SECURITY SCHEMES
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Trading Alerts SaaS JWT authentication
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # PARAMETERS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  parameters:
+    affiliateId:
+      name: affiliateId
+      in: path
+      required: true
+      description: Affiliate profile ID from Part 17
+      schema:
+        type: string
+        format: uuid
+
+    batchId:
+      name: batchId
+      in: path
+      required: true
+      description: Payment batch ID
+      schema:
+        type: string
+        format: uuid
+
+    transactionId:
+      name: transactionId
+      in: path
+      required: true
+      description: Payment transaction ID
+      schema:
+        type: string
+        format: uuid
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # RESPONSE SCHEMAS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Not authorized (admin only)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # SCHEMAS
+  #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  schemas:
+    # Error Response
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+
+    # Pagination
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # AFFILIATE SCHEMAS (Data from Part 17)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    PayableAffiliate:
+      type: object
+      description: Affiliate with pending commissions eligible for disbursement
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Affiliate profile ID from Part 17
+        fullName:
+          type: string
+          description: Affiliate's full name
+        email:
+          type: string
+          format: email
+          description: Affiliate's email address
+        country:
+          type: string
+          description: Affiliate's country
+        balance:
+          type: object
+          properties:
+            pending:
+              type: number
+              format: float
+              description: Total pending commissions (USD)
+            paid:
+              type: number
+              format: float
+              description: Total paid commissions (USD)
+            total:
+              type: number
+              format: float
+              description: Total lifetime earnings (USD)
+        pendingCommissionCount:
+          type: integer
+          description: Number of pending commission records
+        oldestPendingDate:
+          type: string
+          format: date-time
+          description: Date of oldest pending commission
+        readyForPayout:
+          type: boolean
+          description: Whether balance meets minimum threshold
+        riseWorksAccount:
+          $ref: '#/components/schemas/RiseWorksAccountSummary'
+
+    PayableAffiliatesResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalAffiliatesPayable:
+              type: integer
+            totalPendingAmount:
+              type: number
+              format: float
+            affiliatesWithRiseId:
+              type: integer
+            affiliatesPendingKyc:
+              type: integer
+            minimumPayoutThreshold:
+              type: number
+              format: float
+        affiliates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayableAffiliate'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AffiliateDisbursementDetail:
+      type: object
+      properties:
+        affiliate:
+          $ref: '#/components/schemas/PayableAffiliate'
+        riseWorksAccount:
+          $ref: '#/components/schemas/RiseWorksAccount'
+        commissionBreakdown:
+          type: object
+          properties:
+            byStatus:
+              type: object
+              properties:
+                pending:
+                  type: number
+                approved:
+                  type: number
+                paid:
+                  type: number
+            byType:
+              type: object
+              properties:
+                newSubscription:
+                  type: number
+                renewal:
+                  type: number
+                upgrade:
+                  type: number
+        recentPayments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionSummary'
+        paymentPreferences:
+          type: object
+          properties:
+            method:
+              type: string
+            details:
+              type: object
+
+    Commission:
+      type: object
+      description: Commission record from Part 17
+      properties:
+        id:
+          type: string
+          format: uuid
+        affiliateProfileId:
+          type: string
+          format: uuid
+        affiliateCodeId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+          description: User who made the purchase
+        subscriptionId:
+          type: string
+          format: uuid
+        grossRevenue:
+          type: number
+          format: float
+          description: Original price before discount
+        discountAmount:
+          type: number
+          format: float
+          description: Discount given to customer
+        netRevenue:
+          type: number
+          format: float
+          description: Amount customer paid
+        commissionAmount:
+          type: number
+          format: float
+          description: Amount affiliate earns
+        commissionPercent:
+          type: number
+          format: float
+          description: Commission percentage applied
+        status:
+          type: string
+          enum: [PENDING, APPROVED, PAID, CANCELLED]
+        earnedAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+
+    AffiliateCommissionsResponse:
+      type: object
+      properties:
+        affiliateId:
+          type: string
+          format: uuid
+        affiliateName:
+          type: string
+        totals:
+          type: object
+          properties:
+            pending:
+              type: number
+            approved:
+              type: number
+            paid:
+              type: number
+        commissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Commission'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # RISEWORKS ACCOUNT SCHEMAS
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    RiseWorksAccountSummary:
+      type: object
+      properties:
+        hasAccount:
+          type: boolean
+        riseId:
+          type: string
+          description: RiseID blockchain address (e.g., 0xA35b2F326F07...)
+        kycStatus:
+          type: string
+          enum: [pending, submitted, approved, rejected, expired, none]
+        canReceivePayments:
+          type: boolean
+
+    RiseWorksAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        affiliateId:
+          type: string
+          format: uuid
+        riseId:
+          type: string
+          description: RiseID blockchain address
+        email:
+          type: string
+          format: email
+        kycStatus:
+          type: string
+          enum: [pending, submitted, approved, rejected, expired]
+        kycCompletedAt:
+          type: string
+          format: date-time
+        invitationSentAt:
+          type: string
+          format: date-time
+        invitationAcceptedAt:
+          type: string
+          format: date-time
+        lastSyncAt:
+          type: string
+          format: date-time
+        canReceivePayments:
+          type: boolean
+        metadata:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RiseWorksAccountsResponse:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            total:
+              type: integer
+            approved:
+              type: integer
+            pending:
+              type: integer
+            rejected:
+              type: integer
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiseWorksAccount'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    RiseWorksInviteRequest:
+      type: object
+      required:
+        - affiliateId
+      properties:
+        affiliateId:
+          type: string
+          format: uuid
+          description: Affiliate to invite
+        email:
+          type: string
+          format: email
+          description: Override email (optional, defaults to affiliate email)
+
+    RiseWorksInviteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        invitationId:
+          type: string
+        affiliateId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+
+    SyncResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        syncedAt:
+          type: string
+          format: date-time
+        accountsUpdated:
+          type: integer
+        accountsCreated:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              affiliateId:
+                type: string
+              error:
+                type: string
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # PAYMENT BATCH SCHEMAS
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    CreatePaymentBatchRequest:
+      type: object
+      properties:
+        affiliateIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Specific affiliates to include (empty = all payable)
+        commissionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Specific commissions to include
+        scheduledAt:
+          type: string
+          format: date-time
+          description: When to execute (null = manual execution)
+        description:
+          type: string
+          description: Optional batch description
+
+    PreviewBatchRequest:
+      type: object
+      properties:
+        affiliateIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        minBalance:
+          type: number
+          format: float
+          default: 50.00
+
+    BatchPreview:
+      type: object
+      properties:
+        affiliateCount:
+          type: integer
+        totalAmount:
+          type: number
+          format: float
+        currency:
+          type: string
+          default: USD
+        affiliatesWithRiseId:
+          type: integer
+        affiliatesMissingRiseId:
+          type: integer
+        affiliatesWithPendingKyc:
+          type: integer
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              affiliateId:
+                type: string
+                format: uuid
+              affiliateName:
+                type: string
+              amount:
+                type: number
+                format: float
+              commissionCount:
+                type: integer
+              riseIdStatus:
+                type: string
+                enum: [approved, pending, missing]
+        canExecute:
+          type: boolean
+        blockers:
+          type: array
+          items:
+            type: string
+
+    PaymentBatch:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchNumber:
+          type: string
+          description: Human-readable batch identifier (e.g., BATCH-2025-001)
+        paymentCount:
+          type: integer
+        totalAmount:
+          type: number
+          format: float
+        currency:
+          type: string
+        provider:
+          type: string
+          enum: [rise, mock]
+        status:
+          type: string
+          enum: [pending, queued, processing, completed, failed, cancelled]
+        scheduledAt:
+          type: string
+          format: date-time
+        executedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        failedAt:
+          type: string
+          format: date-time
+        errorMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentBatchDetail:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/PaymentBatch'
+        - type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Transaction'
+            summary:
+              type: object
+              properties:
+                successful:
+                  type: integer
+                failed:
+                  type: integer
+                pending:
+                  type: integer
+
+    PaymentBatchesResponse:
+      type: object
+      properties:
+        batches:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentBatch'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    BatchExecutionResult:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [processing, completed, partial_failure, failed]
+        transactionsInitiated:
+          type: integer
+        transactionsSuccessful:
+          type: integer
+        transactionsFailed:
+          type: integer
+        totalAmount:
+          type: number
+          format: float
+        riseWorksResponse:
+          type: object
+          description: Raw response from RiseWorks API
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              affiliateId:
+                type: string
+              error:
+                type: string
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # TRANSACTION SCHEMAS
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        commissionId:
+          type: string
+          format: uuid
+          description: Commission ID from Part 17
+        transactionId:
+          type: string
+          description: Internal transaction ID
+        providerTxId:
+          type: string
+          description: RiseWorks transaction ID
+        provider:
+          type: string
+          enum: [rise, mock]
+        affiliateId:
+          type: string
+          format: uuid
+        affiliateName:
+          type: string
+        payeeRiseId:
+          type: string
+          description: RiseID of recipient
+        amount:
+          type: number
+          format: float
+        amountRiseUnits:
+          type: integer
+          description: Amount in RiseWorks 1e6 units
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, cancelled]
+        retryCount:
+          type: integer
+        lastRetryAt:
+          type: string
+          format: date-time
+        errorMessage:
+          type: string
+        metadata:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        failedAt:
+          type: string
+          format: date-time
+
+    TransactionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    TransactionsResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    TransactionStatus:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+        providerTxId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        riseWorksStatus:
+          type: string
+          description: Raw status from RiseWorks
+        blockchainTxHash:
+          type: string
+          description: Arbitrum blockchain transaction hash
+        updatedAt:
+          type: string
+          format: date-time
+
+    SinglePaymentRequest:
+      type: object
+      required:
+        - affiliateId
+      properties:
+        affiliateId:
+          type: string
+          format: uuid
+        commissionIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Specific commissions to pay (empty = all pending)
+        note:
+          type: string
+          description: Payment note for audit
+
+    SinglePaymentResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactionId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+          description: Auto-created batch for audit
+        amount:
+          type: number
+          format: float
+        affiliateId:
+          type: string
+          format: uuid
+        affiliateName:
+          type: string
+        providerTxId:
+          type: string
+        status:
+          type: string
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # WEBHOOK SCHEMAS
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    RiseWorksWebhookEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum:
+            - invite.accepted
+            - fund.received
+            - pay_schedule.created
+            - payment.received
+            - payment.initiated
+            - payment.completed
+            - payment.failed
+            - account.duplication_detected
+        data:
+          type: object
+          description: Event-specific payload
+        timestamp:
+          type: string
+          format: date-time
+
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transactionId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        provider:
+          type: string
+        payload:
+          type: object
+        signature:
+          type: string
+        hash:
+          type: string
+        verified:
+          type: boolean
+        processed:
+          type: boolean
+        receivedAt:
+          type: string
+          format: date-time
+        processedAt:
+          type: string
+          format: date-time
+        errorMessage:
+          type: string
+
+    WebhookEventsResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEvent'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # REPORT SCHEMAS
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    DisbursementSummary:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date
+            end:
+              type: string
+              format: date
+        totals:
+          type: object
+          properties:
+            totalDisbursed:
+              type: number
+              format: float
+              description: Total amount paid to affiliates
+            totalPending:
+              type: number
+              format: float
+              description: Total pending commissions from Part 17
+            batchesCompleted:
+              type: integer
+            batchesFailed:
+              type: integer
+            transactionsCompleted:
+              type: integer
+            transactionsFailed:
+              type: integer
+        affiliateStats:
+          type: object
+          properties:
+            totalActive:
+              type: integer
+            withPendingPayments:
+              type: integer
+            withApprovedRiseId:
+              type: integer
+            pendingKyc:
+              type: integer
+        topAffiliates:
+          type: array
+          items:
+            type: object
+            properties:
+              affiliateId:
+                type: string
+              name:
+                type: string
+              totalPaid:
+                type: number
+
+    AffiliateDisbursementHistory:
+      type: object
+      properties:
+        affiliateId:
+          type: string
+          format: uuid
+        affiliateName:
+          type: string
+        lifetime:
+          type: object
+          properties:
+            totalDisbursed:
+              type: number
+            transactionCount:
+              type: integer
+            firstPaymentDate:
+              type: string
+              format: date
+            lastPaymentDate:
+              type: string
+              format: date
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ExportRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [csv, xlsx]
+          default: csv
+        type:
+          type: string
+          enum: [transactions, batches, affiliates, commissions]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        affiliateIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transactionId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          description: Action performed (e.g., batch.created, payment.executed)
+        actor:
+          type: string
+          description: User who performed action
+        status:
+          type: string
+          enum: [success, failure, warning, info]
+        details:
+          type: object
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # CONFIGURATION SCHEMAS
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    DisbursementConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [rise, mock]
+          description: Current payment provider
+        enabled:
+          type: boolean
+        minimumPayout:
+          type: number
+          format: float
+          description: Minimum payout threshold (USD)
+        batchSize:
+          type: integer
+          description: Maximum payments per batch
+        schedule:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            frequency:
+              type: string
+              enum: [daily, weekly, monthly]
+            dayOfWeek:
+              type: integer
+              description: 0-6 for weekly
+            dayOfMonth:
+              type: integer
+              description: 1-31 for monthly
+            time:
+              type: string
+              description: HH:MM format
+            timezone:
+              type: string
+        retryPolicy:
+          type: object
+          properties:
+            maxAttempts:
+              type: integer
+            initialDelay:
+              type: integer
+              description: Seconds
+            maxDelay:
+              type: integer
+            backoffMultiplier:
+              type: number
+        notifications:
+          type: object
+          properties:
+            emailOnSuccess:
+              type: boolean
+            emailOnFailure:
+              type: boolean
+            adminAlerts:
+              type: boolean
+
+    UpdateDisbursementConfigRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        minimumPayout:
+          type: number
+        batchSize:
+          type: integer
+        schedule:
+          type: object
+        notifications:
+          type: object
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          properties:
+            database:
+              type: boolean
+            riseWorksApi:
+              type: boolean
+            riseWorksAuth:
+              type: boolean
+            webhookEndpoint:
+              type: boolean
+        riseWorksBalance:
+          type: number
+          format: float
+          description: Available balance in RiseWorks account
+        lastSuccessfulPayment:
+          type: string
+          format: date-time
+        pendingDisbursements:
+          type: integer
