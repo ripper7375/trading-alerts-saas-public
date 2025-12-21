@@ -11,22 +11,29 @@
 
 ### Executive Summary
 
-| Metric | BEFORE | AFTER | Change | Target | Status |
-|--------|--------|-------|--------|--------|--------|
-| **Test Files** | 69 | 75 | +6 | - | ✅ +8.7% |
-| **Test Cases (Passed)** | 1,394 | 1,601 | +207 | - | ✅ +14.8% |
-| **Statement Coverage** | 26.68% | 30.32% | +3.64% | 18% | ✅ Exceeds |
-| **Branch Coverage** | 18.49% | 21.77% | +3.28% | 10% | ✅ Exceeds |
-| **Function Coverage** | 23.96% | 27.28% | +3.32% | 15% | ✅ Exceeds |
-| **Line Coverage** | 26.84% | 30.58% | +3.74% | 18% | ✅ Exceeds |
+| Metric | BEFORE | AFTER (Round 1) | AFTER (Round 2) | Total Change | Target | Status |
+|--------|--------|-----------------|-----------------|--------------|--------|--------|
+| **Test Files** | 69 | 75 | 83 | +14 | - | ✅ +20.3% |
+| **Test Cases (Passed)** | 1,394 | 1,601 | 1,832 | +438 | - | ✅ +31.4% |
+| **Statement Coverage** | 26.68% | 30.32% | 31.22% | +4.54% | 18% | ✅ Exceeds |
+| **Branch Coverage** | 18.49% | 21.77% | 22.91% | +4.42% | 10% | ✅ Exceeds |
+| **Function Coverage** | 23.96% | 27.28% | 29.29% | +5.33% | 15% | ✅ Exceeds |
+| **Line Coverage** | 26.84% | 30.58% | 31.51% | +4.67% | 18% | ✅ Exceeds |
 
-**Overall Status:** ✅ All coverage thresholds significantly exceeded with major improvements
+**Overall Status:** ✅ All coverage thresholds significantly exceeded with major improvements across two rounds
 
 ---
 
 ## Test Suite Health
 
-### Test Results Summary (AFTER)
+### Test Results Summary (AFTER Round 2)
+```
+Test Suites: 83 passed, 0 failed, 83 total
+Tests:       1,832 passed, 1,832 total
+Time:        ~43 seconds
+```
+
+### Test Results Summary (AFTER Round 1)
 ```
 Test Suites: 75 passed, 0 failed, 75 total
 Tests:       1,601 passed, 1,601 total
@@ -52,31 +59,69 @@ Time:        ~31 seconds
 
 ## 📈 Pre/Post Coverage by Part (All 18 Parts)
 
-| Part | Description | Test Files (PRE) | Test Files (POST) | Tests (PRE) | Tests (POST) | Change | Status |
-|------|-------------|------------------|-------------------|-------------|--------------|--------|--------|
-| **1** | Foundation & Root Config | 0 | 0 | 0 | 0 | - | ⬜ N/A |
-| **2** | Database Schema & Migrations | 2 | 2 | 45 | 45 | - | ✅ Good |
-| **3** | Type Definitions | 3 | 3 | 82 | 82 | - | ✅ Good |
-| **4** | Tier System & Constants | 4 | 4 | 151 | 151 | - | ✅ Excellent |
-| **5** | Authentication System | 4 | 4 | 154 | 154 | - | ✅ Excellent |
-| **6** | Flask MT5 Service | 1 | 1 | 22 | 22 | - | ⚠️ Moderate |
-| **7** | Indicators API & Tier Routes | 1 | 1 | 30 | 30 | - | ✅ Good |
-| **8** | Dashboard & Layout Components | 0 | **4** | 0 | **~111** | **+111** | 🆕 **NEW** |
-| **9** | Charts & Visualization | 0 | **1** | 0 | **26** | **+26** | 🆕 **NEW** |
-| **10** | Watchlist System | 2 | 2 | 43 | 43 | - | ✅ Good |
-| **11** | Alerts System | 2 | 2 | 54 | 54 | - | ✅ Good |
-| **12** | E-commerce & Billing | 5 | 5 | 119 | 119 | - | ✅ Good |
-| **13** | Settings System | 1 | **2** | 10 | **40** | **+30** | 🆕 **IMPROVED** |
-| **14** | Admin Dashboard | 4 | 4 | 34 | 34 | - | ⚠️ Moderate |
-| **15** | Notifications & Real-time | 3 | 3 | 66 | 66 | - | ✅ Good |
-| **16** | Utilities & Infrastructure | 6 | 6 | 164 | 164 | - | ✅ Excellent |
-| **17A** | Affiliate Portal | 6 | 6 | 102 | 102 | - | ✅ Excellent |
-| **17B** | Admin & Automation | 5 | 5 | 46 | 46 | - | ✅ Good |
-| **18** | dLocal Payment Integration | 7 | 7 | 111 | 111 | - | ✅ Excellent |
-| | **Cross-cutting (Integration/E2E)** | 6 | 6 | 94 | 94 | - | ✅ Good |
-| | **TOTAL** | **69** | **75** | **1,394** | **1,601** | **+207** | ✅ |
+| Part | Description | Test Files (PRE) | Test Files (R1) | Test Files (R2) | Tests (PRE) | Tests (R1) | Tests (R2) | Change | Status |
+|------|-------------|------------------|-----------------|-----------------|-------------|------------|------------|--------|--------|
+| **1** | Foundation & Root Config | 0 | 0 | 0 | 0 | 0 | 0 | - | ⬜ N/A |
+| **2** | Database Schema & Migrations | 2 | 2 | 2 | 45 | 45 | 45 | - | ✅ Good |
+| **3** | Type Definitions | 3 | 3 | 3 | 82 | 82 | 82 | - | ✅ Good |
+| **4** | Tier System & Constants | 4 | 4 | 4 | 151 | 151 | 151 | - | ✅ Excellent |
+| **5** | Authentication System | 4 | 4 | 4 | 154 | 154 | 154 | - | ✅ Excellent |
+| **6** | Flask MT5 Service | 1 | 1 | 1 | 22 | 22 | **43** | **+21** | 🆕 **IMPROVED** |
+| **7** | Indicators API & Tier Routes | 1 | 1 | 1 | 30 | 30 | 30 | - | ✅ Good |
+| **8** | Dashboard & Layout Components | 0 | 4 | 4 | 0 | ~111 | ~111 | +111 | ✅ NEW |
+| **9** | Charts & Visualization | 0 | 1 | 1 | 0 | 26 | 26 | +26 | ✅ NEW |
+| **10** | Watchlist System | 2 | 2 | 2 | 43 | 43 | 43 | - | ✅ Good |
+| **11** | Alerts System | 2 | 2 | 2 | 54 | 54 | 54 | - | ✅ Good |
+| **12** | E-commerce & Billing | 5 | 5 | 5 | 119 | 119 | 119 | - | ✅ Good |
+| **13** | Settings System | 1 | 2 | 2 | 10 | 40 | 40 | +30 | ✅ IMPROVED |
+| **14** | Admin Dashboard | 4 | 4 | **12** | 34 | 34 | **244** | **+210** | 🆕 **IMPROVED** |
+| **15** | Notifications & Real-time | 3 | 3 | 3 | 66 | 66 | 66 | - | ✅ Good |
+| **16** | Utilities & Infrastructure | 6 | 6 | 6 | 164 | 164 | 164 | - | ✅ Excellent |
+| **17A** | Affiliate Portal | 6 | 6 | 6 | 102 | 102 | 102 | - | ✅ Excellent |
+| **17B** | Admin & Automation | 5 | 5 | 5 | 46 | 46 | 46 | - | ✅ Good |
+| **18** | dLocal Payment Integration | 7 | 7 | 7 | 111 | 111 | 111 | - | ✅ Excellent |
+| | **Cross-cutting (Integration/E2E)** | 6 | 6 | 6 | 94 | 94 | 94 | - | ✅ Good |
+| | **TOTAL** | **69** | **75** | **83** | **1,394** | **1,601** | **1,832** | **+438** | ✅ |
 
-### Parts with Improvements
+### Round 2 Improvements (Part 6 & Part 14)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PART 6: Flask MT5 Service (Round 2)                                     │
+│ ──────────────────────────────────────────────────────────────────────  │
+│ BEFORE: 1 test file, 22 tests                                           │
+│ AFTER:  1 test file, 43 tests (+21 tests)                               │
+│                                                                         │
+│ New Test Coverage:                                                      │
+│   ✅ Timeout handling .............. AbortError scenarios               │
+│   ✅ Retry logic ................... 4xx errors should NOT retry        │
+│   ✅ Response handling ............. Empty responses, malformed JSON    │
+│   ✅ Headers & auth ................ Authorization header tests         │
+│   ✅ URL construction .............. Complex symbol names               │
+│   ✅ Health check scenarios ........ Healthy, unhealthy, degraded       │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PART 14: Admin Dashboard Components (Round 2)                           │
+│ ──────────────────────────────────────────────────────────────────────  │
+│ BEFORE: 4 test files, 34 tests                                          │
+│ AFTER:  12 test files, 244 tests (+210 tests)                           │
+│                                                                         │
+│ New Test Files:                                                         │
+│   ✅ fraud-pattern-badge.test.tsx .. 25 tests (severity, colors, sizes)│
+│   ✅ affiliate-stats-banner.test... 30 tests (stats, commission, code) │
+│   ✅ pnl-summary-cards.test.tsx .... 35 tests (revenue, costs, profit) │
+│   ✅ fraud-alert-card.test.tsx ..... 26 tests (severity, status, link) │
+│   ✅ affiliate-filters.test.tsx .... 25 tests (status, country, method)│
+│   ✅ pnl-breakdown-table.test.tsx .. 38 tests (formatting, totals)     │
+│   ✅ code-inventory-chart.test.tsx . 26 tests (segments, utilization)  │
+│   ✅ sales-performance-table.test .. 30 tests (ranks, conversion)      │
+│                                                                         │
+│ Status: Part 14 upgraded from ⚠️ Moderate → ✅ Excellent               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Round 1 Improvements (Parts 8, 9, 13)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -136,11 +181,11 @@ Time:        ~31 seconds
 
 ## Coverage by Source Type
 
-| Source Type | Total Files | Files with Tests | File Coverage | Test Cases |
-|-------------|-------------|------------------|---------------|------------|
+| Source Type | Total Files | Files with Tests | File Coverage | Test Cases (R2) |
+|-------------|-------------|------------------|---------------|-----------------|
 | **API Routes** | 67 | 13 | 19.4% | 200+ |
-| **Lib Modules** | 53 | 38 | 71.7% | 823 |
-| **Components** | 65 | 7 | 10.8% | 161 |
+| **Lib Modules** | 53 | 38 | 71.7% | 844 |
+| **Components** | 65 | 15 | 23.1% | 371 |
 | **Hooks** | 2 | 2 | 100% | 40 |
 | **Types** | - | 2 | - | 23 |
 | **Integration** | - | 5 | - | 72 |
