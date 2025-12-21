@@ -1,13 +1,31 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS API
-  version: 7.1.0
+  version: 7.2.0
   description: |
     Commercial SaaS platform for trading alerts and signal generation with real-time chart visualization.
-    **Stack:** Next.js 15 + Flask MT5 + Dual Payment (Stripe/dLocal)
-    **Auth:** NextAuth.js v4 (Google OAuth + Email/Password, JWT sessions)
-    **Tiers:** FREE (5 symbols × 3 timeframes = 15 combos), PRO (15 symbols × 9 timeframes = 135 combos)
-    **Payment:** Stripe (international, auto-renewal, 7-day trial), dLocal (8 markets: IN, NG, PK, VN, ID, TH, ZA, TR, manual renewal)
+
+    **Architecture:** Next.js 15 + Flask MT5 Microservice + Dual Payment Providers
+
+    **Authentication:** NextAuth.js v4 with Google OAuth + Email/Password (JWT sessions)
+
+    **Tier System:**
+    - FREE: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1) = 15 combinations
+    - PRO: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1) = 135 combinations
+
+    **Payment Providers:**
+    - Stripe: International cards (auto-renewal, 7-day trial, monthly only)
+    - dLocal: Local payment methods for 8 emerging markets (manual renewal, 3-day + monthly plans)
+
+    **dLocal Supported Countries:** India (INR), Nigeria (NGN), Pakistan (PKR), Vietnam (VND), Indonesia (IDR), Thailand (THB), South Africa (ZAR), Turkey (TRY)
+
+    **Additional API Specifications:**
+    - Flask MT5 API: See `docs/flask_mt5_openapi.yaml`
+    - dLocal Payment API: See `docs/dlocal-openapi-endpoints.yaml` (7 endpoints)
+
+    **Data Source:** Centralized MT5 terminal (users cannot connect their own MT5)
+
+    **Timeframes:** M5 (PRO only), M15, M30, H1, H2, H4, H8, H12 (PRO only), D1
   contact:
     name: API Support
     email: support@tradingalerts.com
@@ -25,31 +43,25 @@ servers:
 
 tags:
   - name: Authentication
-    description: User registration, login, and email verification
+    description: User registration and email verification (login/logout via NextAuth)
   - name: Indicators
-    description: Trading indicators data (tier-gated)
+    description: Trading indicators data and tier-based access
   - name: Alerts
     description: Alert management and notifications
   - name: Watchlists
-    description: User watchlists with symbol+timeframe combinations
+    description: User watchlist with symbol+timeframe combinations
   - name: User
-    description: User profile and preferences
+    description: User profile, preferences, password, and account management
   - name: Admin
     description: Administrative operations (admin only)
   - name: E-commerce
-    description: Subscription plans and payments (2-tier system)
+    description: Subscription and payments (2-tier system)
   - name: Notifications
     description: System and user notifications
   - name: Affiliate
     description: Affiliate marketing operations (affiliate portal)
-  - name: Configuration
-    description: System-wide configuration (public endpoints)
-  - name: Admin Settings
-    description: Administrative settings management (admin only)
   - name: Affiliate Admin
     description: Affiliate management and reporting (admin only)
-  - name: System
-    description: System health and monitoring
 
 security:
   - bearerAuth: []
@@ -63,7 +75,7 @@ paths:
       tags:
         - Authentication
       summary: Register a new user
-      description: Creates new user account with FREE tier by default
+      description: Creates a new user account with FREE tier by default
       security: []
       requestBody:
         required: true
@@ -87,46 +99,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/auth/login:
-    post:
-      tags:
-        - Authentication
-      summary: User login
-      description: Authenticates user and returns JWT token with tier information
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: Login successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '401':
-          description: Invalid credentials
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/auth/logout:
-    post:
-      tags:
-        - Authentication
-      summary: User logout
-      description: Terminates user session
-      responses:
-        '200':
-          description: Logout successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
+  # NOTE: Login and logout are handled by NextAuth.js via /api/auth/[...nextauth]
+  # Use NextAuth client library (signIn, signOut) rather than direct API calls
 
   /api/auth/verify-email:
     get:
@@ -224,112 +198,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  # ============================================
-  # OAUTH AUTHENTICATION ENDPOINTS
-  # ============================================
-  /api/auth/signin/google:
-    post:
-      tags:
-        - Authentication
-      summary: Initiate Google OAuth sign-in
-      description: |
-        Redirects to Google OAuth consent screen. On success, redirects to /api/auth/callback/google.
-        **Account Linking:** Verified-only (security-first). If email exists+verified → link accounts; if email exists+unverified → reject (prevents takeover); if new email → create user with FREE tier.
-      security: []
-      responses:
-        '302':
-          description: Redirect to Google OAuth consent screen
-          headers:
-            Location:
-              schema:
-                type: string
-                format: uri
-        '500':
-          description: OAuth initialization failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/auth/callback/google:
-    get:
-      tags:
-        - Authentication
-      summary: Google OAuth callback handler
-      description: |
-        Handles OAuth callback from Google. Creates or links user account based on verified-only strategy.
-        **New User:** Creates user with Google profile, emailVerified=now, password=null, FREE tier, Account record.
-        **Existing User:** If emailVerified=null → reject (security); if emailVerified exists → link Google account + update profile picture if null.
-      security: []
-      parameters:
-        - name: code
-          in: query
-          required: true
-          schema:
-            type: string
-          description: OAuth authorization code from Google
-        - name: state
-          in: query
-          required: true
-          schema:
-            type: string
-          description: CSRF protection state parameter
-      responses:
-        '302':
-          description: Redirect to dashboard after successful authentication
-          headers:
-            Location:
-              schema:
-                type: string
-            Set-Cookie:
-              schema:
-                type: string
-                description: NextAuth JWT session cookie
-        '400':
-          description: Invalid OAuth callback parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: OAuth callback processing failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/auth/providers:
-    get:
-      tags:
-        - Authentication
-      summary: Get available authentication providers
-      description: Returns list of configured authentication providers for login page
-      security: []
-      responses:
-        '200':
-          description: List of available providers
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  providers:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          enum: [google, credentials]
-                        name:
-                          type: string
-                        type:
-                          type: string
-                          enum: [oauth, credentials]
-                        signinUrl:
-                          type: string
-                        callbackUrl:
-                          type: string
+  # NOTE: Google OAuth (signin, callback, providers) handled by NextAuth.js via /api/auth/[...nextauth]
+  # Use NextAuth client library for OAuth flows
 
   # ============================================
   # INDICATORS ENDPOINTS (TIER-GATED)
@@ -341,8 +211,10 @@ paths:
       summary: Get indicator data for symbol and timeframe
       description: |
         Retrieves indicator data from centralized MT5 terminal. Access is tier-based:
-        FREE: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1)
-        PRO: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+        - FREE tier: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1)
+        - PRO tier: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+
+        Timeframe access control: M5 and H12 are PRO-only timeframes
       parameters:
         - name: symbol
           in: path
@@ -382,8 +254,10 @@ paths:
                 properties:
                   error:
                     type: string
+                    example: Symbol not available in your tier
                   message:
                     type: string
+                    example: Upgrade to PRO to access more symbols
         '429':
           $ref: '#/components/responses/RateLimitExceeded'
 
@@ -501,103 +375,40 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================
-  # WATCHLISTS ENDPOINTS (V5: Symbol+Timeframe)
+  # WATCHLIST ENDPOINTS (V5: Symbol+Timeframe)
   # ============================================
-  /api/watchlists:
+  /api/watchlist:
     get:
       tags:
         - Watchlists
-      summary: Get user's watchlists
+      summary: Get user's watchlist
+      description: Returns the user's watchlist with all items. Tier-based limits apply.
       responses:
         '200':
-          description: List of watchlists
+          description: Watchlist data
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  watchlists:
+                  success:
+                    type: boolean
+                  watchlist:
+                    $ref: '#/components/schemas/Watchlist'
+                  items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Watchlist'
+                      $ref: '#/components/schemas/WatchlistItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
-    post:
-      tags:
-        - Watchlists
-      summary: Create a new watchlist
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateWatchlistRequest'
-      responses:
-        '201':
-          description: Watchlist created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Watchlist'
-
-  /api/watchlists/{id}:
-    get:
-      tags:
-        - Watchlists
-      summary: Get watchlist by ID
-      parameters:
-        - $ref: '#/components/parameters/WatchlistId'
-      responses:
-        '200':
-          description: Watchlist details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Watchlist'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    put:
-      tags:
-        - Watchlists
-      summary: Update watchlist
-      parameters:
-        - $ref: '#/components/parameters/WatchlistId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateWatchlistRequest'
-      responses:
-        '200':
-          description: Watchlist updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Watchlist'
-
-    delete:
-      tags:
-        - Watchlists
-      summary: Delete watchlist
-      parameters:
-        - $ref: '#/components/parameters/WatchlistId'
-      responses:
-        '200':
-          description: Watchlist deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-
-  /api/watchlists/{id}/items:
     post:
       tags:
         - Watchlists
       summary: Add item to watchlist
-      description: Add a symbol+timeframe combination to watchlist
-      parameters:
-        - $ref: '#/components/parameters/WatchlistId'
+      description: |
+        Creates a new watchlist item with symbol+timeframe combination.
+        Validates tier limits (FREE: 5 items, PRO: 50 items) and access permissions.
       requestBody:
         required: true
         content:
@@ -609,6 +420,9 @@ paths:
                   $ref: '#/components/schemas/Symbol'
                 timeframe:
                   $ref: '#/components/schemas/Timeframe'
+                watchlistId:
+                  type: string
+                  description: Optional watchlist ID (creates default if not provided)
               required:
                 - symbol
                 - timeframe
@@ -618,33 +432,243 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WatchlistItem'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  item:
+                    $ref: '#/components/schemas/WatchlistItem'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Symbol not available in tier or limit reached
+          description: Symbol/timeframe not available in tier or limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Duplicate symbol+timeframe combination
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/watchlists/{id}/items/{itemId}:
+  /api/watchlist/{id}:
+    get:
+      tags:
+        - Watchlists
+      summary: Get watchlist item by ID
+      parameters:
+        - $ref: '#/components/parameters/WatchlistId'
+      responses:
+        '200':
+          description: Watchlist item details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags:
         - Watchlists
-      summary: Remove item from watchlist
+      summary: Delete watchlist item
       parameters:
         - $ref: '#/components/parameters/WatchlistId'
-        - name: itemId
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
         '200':
-          description: Item removed successfully
+          description: Item deleted successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/watchlist/reorder:
+    post:
+      tags:
+        - Watchlists
+      summary: Reorder watchlist items
+      description: Update the order of watchlist items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                itemIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of item IDs in desired order
+              required:
+                - itemIds
+      responses:
+        '200':
+          description: Items reordered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # TIER ENDPOINTS
+  # ============================================
+  /api/tier/symbols:
+    get:
+      tags:
+        - Indicators
+      summary: Get symbols accessible by user's tier
+      description: |
+        Returns list of symbols accessible by the authenticated user's tier.
+        Includes symbol metadata like display names and categories.
+      responses:
+        '200':
+          description: List of accessible symbols with metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tier:
+                    $ref: '#/components/schemas/UserTier'
+                  symbols:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Symbol'
+                  symbolsInfo:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        name:
+                          type: string
+                        category:
+                          type: string
+                          enum: [forex, crypto, index, commodity]
+                        proOnly:
+                          type: boolean
+                  count:
+                    type: integer
+                  totalAvailable:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tier/combinations:
+    get:
+      tags:
+        - Indicators
+      summary: Get allowed symbol+timeframe combinations
+      description: |
+        Returns all allowed symbol+timeframe combinations for the authenticated user's tier.
+        Used by frontend to populate dropdowns and validate selections.
+      responses:
+        '200':
+          description: List of allowed combinations with metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  tier:
+                    $ref: '#/components/schemas/UserTier'
+                  combinations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        timeframe:
+                          type: string
+                  count:
+                    type: integer
+                  totalPossible:
+                    type: integer
+                  symbols:
+                    type: array
+                    items:
+                      type: string
+                  timeframes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: string
+                        label:
+                          type: string
+                        proOnly:
+                          type: boolean
+                  limits:
+                    type: object
+                    properties:
+                      symbolCount:
+                        type: integer
+                      timeframeCount:
+                        type: integer
+                      totalCombinations:
+                        type: integer
+                  upgrade:
+                    type: object
+                    nullable: true
+                    description: Present for FREE tier users
+                    properties:
+                      additionalSymbols:
+                        type: integer
+                      additionalTimeframes:
+                        type: integer
+                      additionalCombinations:
+                        type: integer
+                      message:
+                        type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tier/check/{symbol}:
+    get:
+      tags:
+        - Indicators
+      summary: Check if symbol is accessible by user's tier
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Symbol'
+      responses:
+        '200':
+          description: Symbol access check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed:
+                    type: boolean
+                  tier:
+                    $ref: '#/components/schemas/UserTier'
+                  reason:
+                    type: string
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   # ============================================
   # USER ENDPOINTS
@@ -735,37 +759,104 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
 
-  /api/user/appearance:
-    put:
+  /api/user/password:
+    post:
       tags:
         - User
-      summary: Update page appearance settings
+      summary: Change password
+      description: |
+        Change the authenticated user's password.
+        Requires current password verification.
+        Password requirements: 8+ chars, uppercase, lowercase, number.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
-                theme:
+                currentPassword:
                   type: string
-                  enum: [light, dark, system]
-                layout:
+                  description: Current password for verification
+                newPassword:
                   type: string
-                  enum: [default, compact, comfortable]
+                  minLength: 8
+                  description: New password (8+ chars, uppercase, lowercase, number)
+              required:
+                - currentPassword
+                - newPassword
       responses:
         '200':
-          description: Appearance updated
+          description: Password changed successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid input or OAuth-only user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Current password incorrect or unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-  /api/user/account:
-    delete:
+  /api/user/account/deletion-request:
+    post:
       tags:
         - User
-      summary: Delete user account
-      description: Permanently deletes user account and all associated data
+      summary: Request account deletion
+      description: |
+        Initiates account deletion with 7-day grace period.
+        Sends confirmation email with link to confirm or cancel.
+      responses:
+        '200':
+          description: Deletion request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  requestId:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Deletion already requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/user/account/deletion-confirm:
+    post:
+      tags:
+        - User
+      summary: Confirm account deletion
+      description: Confirms and executes account deletion using token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Confirmation token from email
+              required:
+                - token
       responses:
         '200':
           description: Account deleted successfully
@@ -773,6 +864,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/user/account/deletion-cancel:
+    post:
+      tags:
+        - User
+      summary: Cancel account deletion request
+      description: Cancels a pending deletion request using token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Cancellation token from email
+              required:
+                - token
+      responses:
+        '200':
+          description: Deletion request cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid token or no pending request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # ============================================
   # ADMIN ENDPOINTS
@@ -846,30 +975,6 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
-  /api/admin/revenue:
-    get:
-      tags:
-        - Admin
-      summary: Get revenue reports (admin only)
-      parameters:
-        - name: from
-          in: query
-          schema:
-            type: string
-            format: date
-        - name: to
-          in: query
-          schema:
-            type: string
-            format: date
-      responses:
-        '200':
-          description: Revenue data from PRO subscriptions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RevenueReport'
-
   /api/admin/api-usage:
     get:
       tags:
@@ -888,93 +993,54 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiUsageStats'
 
-  /api/admin/user/{userId}:
-    put:
-      tags:
-        - Admin
-      summary: Update user (admin only)
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tier:
-                  $ref: '#/components/schemas/UserTier'
-                isActive:
-                  type: boolean
-      responses:
-        '200':
-          description: User updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserAdmin'
-
-    delete:
-      tags:
-        - Admin
-      summary: Delete user (admin only)
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-      responses:
-        '200':
-          description: User deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-
-  /api/admin/user/{userId}/tier:
-    put:
-      tags:
-        - Admin
-      summary: Change user tier (admin only)
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tier:
-                  $ref: '#/components/schemas/UserTier'
-              required:
-                - tier
-      responses:
-        '200':
-          description: Tier changed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-
-  # ============================================
-  # E-COMMERCE ENDPOINTS (2-TIER SYSTEM)
-  # ============================================
-  /api/plans:
+  /api/admin/error-logs:
     get:
       tags:
-        - E-commerce
-      summary: Get available subscription plans
-      security: []
+        - Admin
+      summary: Get system error logs (admin only)
+      description: Retrieves recent system error logs for debugging and monitoring
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [error, warn, info]
       responses:
         '200':
-          description: List of plans (FREE + PRO)
+          description: Error logs retrieved
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  plans:
+                  logs:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SubscriptionPlan'
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        level:
+                          type: string
+                        message:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                        metadata:
+                          type: object
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
+  # ============================================
+  # E-COMMERCE ENDPOINTS (2-TIER SYSTEM)
+  # ============================================
   /api/checkout:
     post:
       tags:
@@ -994,7 +1060,7 @@ paths:
                   type: string
                   enum: [monthly]
                   default: monthly
-                  description: Only monthly subscriptions available (no annual plans yet)
+                  description: Only monthly subscriptions available during early stage (no annual plans yet)
               required:
                 - tier
       responses:
@@ -1030,10 +1096,11 @@ paths:
                 $ref: '#/components/schemas/Subscription'
 
   /api/subscription/cancel:
-    put:
+    post:
       tags:
         - E-commerce
       summary: Cancel PRO subscription (downgrade to FREE)
+      description: Cancels the user's PRO subscription and downgrades to FREE tier
       responses:
         '200':
           description: Subscription cancelled
@@ -1041,23 +1108,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
-
-  /api/subscription/upgrade:
-    put:
-      tags:
-        - E-commerce
-      summary: Upgrade from FREE to PRO
-      responses:
-        '200':
-          description: Redirect to checkout
+        '400':
+          description: No active subscription to cancel
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  url:
-                    type: string
-                    format: uri
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/invoices:
     get:
@@ -1341,6 +1399,52 @@ paths:
         '401':
           description: Invalid credentials
 
+  /api/affiliate/profile:
+    get:
+      tags:
+        - Affiliate
+      summary: Get affiliate profile
+      description: Returns the authenticated affiliate's profile information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Affiliate profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  profile:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      fullName:
+                        type: string
+                      country:
+                        type: string
+                      status:
+                        type: string
+                        enum: [PENDING_VERIFICATION, ACTIVE, SUSPENDED]
+                      paymentMethod:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Affiliate access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/affiliate/dashboard/stats:
     get:
       tags:
@@ -1370,6 +1474,77 @@ paths:
                   pendingCommissions:
                     type: number
                     format: float
+
+  /api/affiliate/dashboard/codes:
+    get:
+      tags:
+        - Affiliate
+      summary: Get paginated list of affiliate codes
+      description: Returns paginated list of affiliate codes with optional status filter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, USED, EXPIRED, CANCELLED]
+          description: Filter by code status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  codes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        code:
+                          type: string
+                        status:
+                          type: string
+                          enum: [ACTIVE, USED, EXPIRED, CANCELLED]
+                        discountPercent:
+                          type: number
+                        commissionPercent:
+                          type: number
+                        distributedAt:
+                          type: string
+                          format: date-time
+                        usedAt:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        expiresAt:
+                          type: string
+                          format: date-time
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Affiliate access required
 
   /api/affiliate/dashboard/code-inventory:
     get:
@@ -1409,6 +1584,15 @@ paths:
                     type: integer
                   movements:
                     type: object
+                    properties:
+                      received:
+                        type: array
+                        items:
+                          type: object
+                      used:
+                        type: array
+                        items:
+                          type: object
                   activeCodes:
                     type: array
                     items:
@@ -1440,12 +1624,16 @@ paths:
                     type: string
                   openingBalance:
                     type: number
+                    format: float
                   earned:
                     type: number
+                    format: float
                   paid:
                     type: number
+                    format: float
                   closingBalance:
                     type: number
+                    format: float
                   commissions:
                     type: array
                     items:
@@ -1490,6 +1678,7 @@ paths:
                 paymentMethod:
                   type: string
                   enum: [BANK_TRANSFER, CRYPTO, GLOBAL_WALLET, LOCAL_WALLET]
+                # ... payment details fields (same as registration)
       responses:
         '200':
           description: Payment method updated
@@ -1725,6 +1914,45 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/admin/affiliates/{affiliateId}/reactivate:
+    post:
+      tags:
+        - Affiliate Admin
+      summary: Reactivate suspended affiliate account
+      description: Reactivates a previously suspended affiliate account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: affiliateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Affiliate reactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  affiliate:
+                    type: object
+        '400':
+          description: Affiliate is not suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/admin/codes/{codeId}/cancel:
     post:
       tags:
@@ -1949,304 +2177,6 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
-  /api/admin/commissions/bulk-pay:
-    post:
-      tags:
-        - Affiliate Admin
-      summary: Bulk mark multiple commissions as paid
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [affiliateIds, paymentDate]
-              properties:
-                affiliateIds:
-                  type: array
-                  items:
-                    type: string
-                paymentDate:
-                  type: string
-                  format: date
-                sendEmails:
-                  type: boolean
-                  default: true
-      responses:
-        '200':
-          description: Bulk payment recorded
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-  # ============================================
-  # CONFIGURATION ENDPOINTS
-  # ============================================
-  /api/config/affiliate:
-    get:
-      tags:
-        - Configuration
-      summary: Get current affiliate configuration (public)
-      description: |
-        Returns current affiliate discount and commission percentages. Public endpoint (no auth). Cached for 5 minutes.
-      security: []
-      responses:
-        '200':
-          description: Current affiliate configuration
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  discountPercent:
-                    type: number
-                    format: float
-                  commissionPercent:
-                    type: number
-                    format: float
-                  codesPerMonth:
-                    type: integer
-                  regularPrice:
-                    type: number
-                    format: float
-                  lastUpdated:
-                    type: string
-                    format: date-time
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/admin/settings/affiliate:
-    get:
-      tags:
-        - Admin Settings
-      summary: Get affiliate settings (admin)
-      description: Returns current affiliate settings with metadata (who changed it, when)
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Affiliate settings retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  discountPercent:
-                    type: object
-                    properties:
-                      value:
-                        type: number
-                      updatedBy:
-                        type: string
-                        nullable: true
-                      updatedAt:
-                        type: string
-                        format: date-time
-                  commissionPercent:
-                    type: object
-                    properties:
-                      value:
-                        type: number
-                      updatedBy:
-                        type: string
-                        nullable: true
-                      updatedAt:
-                        type: string
-                        format: date-time
-                  codesPerMonth:
-                    type: object
-                    properties:
-                      value:
-                        type: integer
-                      updatedBy:
-                        type: string
-                        nullable: true
-                      updatedAt:
-                        type: string
-                        format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-    patch:
-      tags:
-        - Admin Settings
-      summary: Update affiliate settings (admin)
-      description: |
-        Updates affiliate discount/commission percentages. Changes logged to SystemConfigHistory. New values propagate within 1-5 minutes (caching).
-        **IMPORTANT:** Existing codes retain original percentages. Only NEW codes use new percentages.
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                discountPercent:
-                  type: number
-                  format: float
-                  minimum: 0
-                  maximum: 100
-                commissionPercent:
-                  type: number
-                  format: float
-                  minimum: 0
-                  maximum: 100
-                codesPerMonth:
-                  type: integer
-                  minimum: 1
-                  maximum: 100
-                reason:
-                  type: string
-                  maxLength: 500
-      responses:
-        '200':
-          description: Settings updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-                  changes:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        setting:
-                          type: string
-                        oldValue:
-                          type: string
-                        newValue:
-                          type: string
-        '400':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-  /api/admin/settings/affiliate/history:
-    get:
-      tags:
-        - Admin Settings
-      summary: Get affiliate settings change history (admin)
-      description: Returns audit trail of all affiliate settings changes
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
-            minimum: 1
-            maximum: 200
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-        - name: configKey
-          in: query
-          schema:
-            type: string
-            enum:
-              [
-                affiliate_discount_percent,
-                affiliate_commission_percent,
-                affiliate_codes_per_month,
-              ]
-      responses:
-        '200':
-          description: Settings change history retrieved
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  history:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        configKey:
-                          type: string
-                        oldValue:
-                          type: string
-                        newValue:
-                          type: string
-                        changedBy:
-                          type: string
-                        changedAt:
-                          type: string
-                          format: date-time
-                        reason:
-                          type: string
-                          nullable: true
-                  total:
-                    type: integer
-                  limit:
-                    type: integer
-                  offset:
-                    type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-  # ============================================
-  # SYSTEM ENDPOINTS
-  # ============================================
-  /api/system/health:
-    get:
-      tags:
-        - System
-      summary: System health check
-      security: []
-      responses:
-        '200':
-          description: System health status
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [healthy, degraded, unhealthy]
-                  checks:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                        healthy:
-                          type: boolean
-                        details:
-                          type: object
-                  timestamp:
-                    type: string
-                    format: date-time
-
 components:
   securitySchemes:
     bearerAuth:
@@ -2290,44 +2220,49 @@ components:
         - FREE
         - PRO
       description: |
-        FREE: 5 symbols × 3 timeframes = 15 combinations
-        PRO: 15 symbols × 9 timeframes = 135 combinations
+        User subscription tier:
+        - FREE: 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1) = 15 combinations
+        - PRO: 15 symbols × 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1) = 135 combinations
 
     Symbol:
       type: string
       enum:
-        - AUDJPY
+        - AUDJPY # NEW - Forex
         - AUDUSD
         - BTCUSD
         - ETHUSD
         - EURUSD
-        - GBPJPY
+        - GBPJPY # NEW - Forex
         - GBPUSD
         - NDX100
-        - NZDUSD
+        - NZDUSD # NEW - Forex
         - US30
-        - USDCAD
-        - USDCHF
+        - USDCAD # NEW - Forex
+        - USDCHF # NEW - Forex
         - USDJPY
         - XAGUSD
         - XAUUSD
       description: |
-        15 total symbols. FREE: BTCUSD, EURUSD, USDJPY, US30, XAUUSD. PRO: All 15.
+        Trading symbols available on the platform (15 total).
+        FREE tier: BTCUSD, EURUSD, USDJPY, US30, XAUUSD (5 symbols)
+        PRO tier: All 15 symbols
 
     Timeframe:
       type: string
       enum:
-        - M5
+        - M5 # NEW - PRO only (scalping)
         - M15
         - M30
         - H1
         - H2
         - H4
         - H8
-        - H12
+        - H12 # NEW - PRO only (swing trading)
         - D1
       description: |
-        9 total timeframes. FREE: H1, H4, D1. PRO: All 9 (M5 and H12 are PRO-only).
+        Chart timeframes (9 total).
+        FREE tier: H1, H4, D1 (3 timeframes)
+        PRO tier: M5, M15, M30, H1, H2, H4, H8, H12, D1 (9 timeframes)
 
     AlertType:
       type: string
@@ -2367,17 +2302,21 @@ components:
         name:
           type: string
           minLength: 2
+          example: John Doe
         email:
           type: string
           format: email
+          example: john@example.com
         password:
           type: string
           minLength: 8
           pattern: ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$
           description: Must contain uppercase, lowercase, and number
+          example: SecurePass123
         acceptTerms:
           type: boolean
           enum: [true]
+          description: Must be true to accept terms
       required:
         - name
         - email
@@ -2459,6 +2398,7 @@ components:
                 properties:
                   time:
                     type: integer
+                    description: Unix timestamp
                   open:
                     type: number
                   high:
@@ -2534,14 +2474,17 @@ components:
                     $ref: '#/components/schemas/FractalPoint'
         cached:
           type: boolean
+          description: Whether data was served from cache
 
     LinePoint:
       type: object
       properties:
         time:
           type: integer
+          description: Unix timestamp
         value:
           type: number
+          description: Price level
 
     FractalPoint:
       type: object
@@ -2575,6 +2518,7 @@ components:
           $ref: '#/components/schemas/AlertType'
         condition:
           type: object
+          description: Flexible JSON for alert conditions
         isActive:
           type: boolean
         lastTriggered:
@@ -2697,7 +2641,7 @@ components:
         image:
           type: string
           nullable: true
-          description: Profile picture URL
+          description: Profile picture URL (from Google OAuth or user upload)
         tier:
           $ref: '#/components/schemas/UserTier'
         emailVerified:
@@ -2705,7 +2649,10 @@ components:
           format: date-time
           nullable: true
           description: |
-            Verification timestamp. Email/password users: set after verification. Google OAuth: auto-set. Critical for security.
+            Email verification timestamp.
+            - Email/password users: Set after email verification
+            - Google OAuth users: Auto-set on account creation
+            - CRITICAL for security: Prevents account takeover via OAuth linking
         isActive:
           type: boolean
         createdAt:
@@ -2718,7 +2665,11 @@ components:
         authMethod:
           type: string
           enum: [credentials, google, both]
-          description: credentials=email/password only, google=OAuth only, both=linked
+          description: |
+            Primary authentication method:
+            - credentials: Email/password only
+            - google: Google OAuth only
+            - both: Both methods linked (verified-only)
 
     UserPreference:
       type: object
@@ -2727,10 +2678,13 @@ components:
           type: string
         category:
           type: string
+          example: chart
         key:
           type: string
+          example: defaultTimeframe
         value:
           type: object
+          example: { 'timeframe': 'H1' }
 
     UserAdmin:
       allOf:
@@ -2740,7 +2694,10 @@ components:
             passwordHash:
               type: string
               nullable: true
-              description: Password hash for email/password auth. NULL for OAuth-only users.
+              description: |
+                Password hash for email/password authentication.
+                NULL for OAuth-only users (no password set).
+                IMPORTANT: Never expose this field to users.
             subscription:
               type: object
               nullable: true
@@ -2753,41 +2710,55 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Account'
+              description: OAuth provider accounts linked to this user
 
     Account:
       type: object
-      description: OAuth provider account linked to user
+      description: |
+        OAuth provider account linked to a user.
+        Created when user signs in with Google OAuth.
+        Enables account linking for verified users.
       properties:
         id:
           type: string
         userId:
           type: string
+          description: Reference to User.id
         type:
           type: string
           enum: [oauth]
+          description: Account type (always "oauth" for NextAuth v4)
         provider:
           type: string
           enum: [google]
+          description: OAuth provider name
         providerAccountId:
           type: string
+          description: Unique user ID from Google (sub claim from JWT)
         refresh_token:
           type: string
           nullable: true
+          description: OAuth refresh token (encrypted in database)
         access_token:
           type: string
           nullable: true
+          description: OAuth access token (encrypted in database)
         expires_at:
           type: integer
           nullable: true
+          description: Unix timestamp when access token expires
         token_type:
           type: string
           nullable: true
+          example: Bearer
         scope:
           type: string
           nullable: true
+          example: openid email profile
         id_token:
           type: string
           nullable: true
+          description: Google ID token (encrypted)
         session_state:
           type: string
           nullable: true
@@ -2860,7 +2831,7 @@ components:
           description: Monthly Recurring Revenue
         arr:
           type: number
-          description: Annual Recurring Revenue (projected from MRR × 12)
+          description: Annual Recurring Revenue (projected from MRR × 12, not from annual subscriptions)
         period:
           type: object
           properties:
@@ -2907,10 +2878,13 @@ components:
           $ref: '#/components/schemas/UserTier'
         name:
           type: string
+          example: Pro
         price:
           type: number
+          example: 29
         billing:
           type: string
+          example: per month
         features:
           type: array
           items:
@@ -2924,17 +2898,28 @@ components:
           properties:
             symbols:
               type: integer
+              description: Number of symbols allowed
+              example: 15 # PRO tier (FREE = 5)
             timeframes:
               type: integer
+              description: Number of timeframes allowed
+              example: 9 # PRO tier (FREE = 3)
             chartCombinations:
               type: integer
-              description: Total symbol×timeframe combinations
+              description: Total symbol×timeframe combinations (symbols × timeframes)
+              example: 135 # PRO tier: 15×9 (FREE = 15: 5×3)
             alerts:
               type: integer
+              description: Maximum alerts allowed
+              example: 20 # PRO tier (FREE = 5)
             watchlistItems:
               type: integer
+              description: Maximum watchlist items (symbol+timeframe combinations)
+              example: 50 # PRO tier (FREE = 5)
             apiCallsPerHour:
               type: integer
+              description: API rate limit per hour
+              example: 300 # PRO tier (FREE = 60)
 
     Subscription:
       type: object
@@ -3050,6 +3035,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+            message: Authentication required
 
     Forbidden:
       description: Insufficient permissions
@@ -3057,6 +3045,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error: Forbidden
+            message: Admin access required
 
     NotFound:
       description: Resource not found
@@ -3064,6 +3055,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error: Not Found
+            message: Resource does not exist
 
     ValidationError:
       description: Validation failed
@@ -3090,6 +3084,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error: Rate limit exceeded
+            message: Too many requests. Please try again later.
 
     InternalServerError:
       description: Internal server error
@@ -3097,3 +3094,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            error: Internal Server Error
+            message: An unexpected error occurred
