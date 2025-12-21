@@ -50,6 +50,90 @@ Time:        ~31 seconds
 
 ---
 
+## 📈 Pre/Post Coverage by Part (All 18 Parts)
+
+| Part | Description | Test Files (PRE) | Test Files (POST) | Tests (PRE) | Tests (POST) | Change | Status |
+|------|-------------|------------------|-------------------|-------------|--------------|--------|--------|
+| **1** | Foundation & Root Config | 0 | 0 | 0 | 0 | - | ⬜ N/A |
+| **2** | Database Schema & Migrations | 2 | 2 | 45 | 45 | - | ✅ Good |
+| **3** | Type Definitions | 3 | 3 | 82 | 82 | - | ✅ Good |
+| **4** | Tier System & Constants | 4 | 4 | 151 | 151 | - | ✅ Excellent |
+| **5** | Authentication System | 4 | 4 | 154 | 154 | - | ✅ Excellent |
+| **6** | Flask MT5 Service | 1 | 1 | 22 | 22 | - | ⚠️ Moderate |
+| **7** | Indicators API & Tier Routes | 1 | 1 | 30 | 30 | - | ✅ Good |
+| **8** | Dashboard & Layout Components | 0 | **4** | 0 | **~111** | **+111** | 🆕 **NEW** |
+| **9** | Charts & Visualization | 0 | **1** | 0 | **26** | **+26** | 🆕 **NEW** |
+| **10** | Watchlist System | 2 | 2 | 43 | 43 | - | ✅ Good |
+| **11** | Alerts System | 2 | 2 | 54 | 54 | - | ✅ Good |
+| **12** | E-commerce & Billing | 5 | 5 | 119 | 119 | - | ✅ Good |
+| **13** | Settings System | 1 | **2** | 10 | **40** | **+30** | 🆕 **IMPROVED** |
+| **14** | Admin Dashboard | 4 | 4 | 34 | 34 | - | ⚠️ Moderate |
+| **15** | Notifications & Real-time | 3 | 3 | 66 | 66 | - | ✅ Good |
+| **16** | Utilities & Infrastructure | 6 | 6 | 164 | 164 | - | ✅ Excellent |
+| **17A** | Affiliate Portal | 6 | 6 | 102 | 102 | - | ✅ Excellent |
+| **17B** | Admin & Automation | 5 | 5 | 46 | 46 | - | ✅ Good |
+| **18** | dLocal Payment Integration | 7 | 7 | 111 | 111 | - | ✅ Excellent |
+| | **Cross-cutting (Integration/E2E)** | 6 | 6 | 94 | 94 | - | ✅ Good |
+| | **TOTAL** | **69** | **75** | **1,394** | **1,601** | **+207** | ✅ |
+
+### Parts with Improvements
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PART 8: Dashboard & Layout Components                                   │
+│ ──────────────────────────────────────────────────────────────────────  │
+│ BEFORE: 0 test files, 0 tests                                           │
+│ AFTER:  4 test files, ~111 tests                                        │
+│                                                                         │
+│ New Files:                                                              │
+│   ✅ stats-card.test.tsx ........... 22 tests (rendering, change,      │
+│                                       usage variant, styling)           │
+│   ✅ recent-alerts.test.tsx ........ 27 tests (rendering, status,      │
+│                                       details, empty state)             │
+│   ✅ watchlist-widget.test.tsx ..... 32 tests (rendering, details,     │
+│                                       navigation, limits)               │
+│   ✅ header.test.tsx ............... 30 tests (rendering, tier badge,  │
+│                                       avatar, menu, mobile nav)         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PART 9: Charts & Visualization                                          │
+│ ──────────────────────────────────────────────────────────────────────  │
+│ BEFORE: 0 test files, 0 tests                                           │
+│ AFTER:  1 test file, 26 tests                                           │
+│                                                                         │
+│ New Files:                                                              │
+│   ✅ trading-chart.test.tsx ........ 26 tests (loading, fetching,      │
+│                                       error handling, status bar,       │
+│                                       auto-refresh, legend, cleanup)    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PART 13: Settings System                                                │
+│ ──────────────────────────────────────────────────────────────────────  │
+│ BEFORE: 1 test file, 10 tests (failing)                                 │
+│ AFTER:  2 test files, 40 tests (all passing)                            │
+│                                                                         │
+│ Changes:                                                                │
+│   ✅ email.test.ts ................. 10 tests (env issue FIXED)        │
+│   ✅ user.test.ts .................. 30 tests (NEW - profile,          │
+│                                       preferences, password APIs)       │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Coverage Status Legend
+
+| Symbol | Meaning |
+|--------|---------|
+| 🆕 **NEW** | New tests added in this update |
+| ✅ Excellent | 90%+ of critical paths tested |
+| ✅ Good | 70-89% coverage, core functionality tested |
+| ⚠️ Moderate | 40-69% coverage, basic tests present |
+| ❌ Gap | <40% coverage or missing critical tests |
+| ⬜ N/A | Not applicable (config/setup files)
+
+---
+
 ## Coverage by Source Type
 
 | Source Type | Total Files | Files with Tests | File Coverage | Test Cases |
