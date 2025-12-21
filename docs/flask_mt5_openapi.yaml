@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Flask MT5 Microservice API
-  version: 5.0.0
+  version: 5.0.1
   description: |
     MT5 integration microservice for Trading Alerts SaaS platform.
 

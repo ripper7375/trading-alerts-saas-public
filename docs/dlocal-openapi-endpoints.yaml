@@ -5,7 +5,7 @@ info:
   description: |
     dLocal payment endpoints for emerging markets integration.
     These endpoints should be merged into the main trading_alerts_openapi.yaml specification.
-  version: 1.0.0
+  version: 1.1.0
   contact:
     name: Trading Alerts API Support
     email: support@tradingalerts.com
@@ -170,6 +170,59 @@ paths:
                 amountLocal: 2407
                 currency: INR
                 exchangeRate: 83
+
+  # ------------------------------------------------------------------------------
+  # Check 3-day plan eligibility
+  # ------------------------------------------------------------------------------
+  /api/payments/dlocal/check-three-day-eligibility:
+    get:
+      tags:
+        - dLocal Payments
+      summary: Check if user is eligible for 3-day trial plan
+      description: |
+        Checks if the current user is eligible for the 3-day trial plan.
+
+        Eligibility rules:
+        1. User must not have already used the 3-day plan (lifetime limit)
+        2. User must not have an active subscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Eligibility check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eligible:
+                    type: boolean
+                    description: Whether user can purchase 3-day plan
+                  reason:
+                    type: string
+                    description: Reason if not eligible
+                    nullable: true
+                  details:
+                    type: object
+                    description: Additional eligibility details
+                    nullable: true
+              examples:
+                eligible:
+                  summary: User is eligible
+                  value:
+                    eligible: true
+                not_eligible_already_used:
+                  summary: User already used 3-day plan
+                  value:
+                    eligible: false
+                    reason: You have already used the 3-day trial plan
+                not_eligible_has_subscription:
+                  summary: User has active subscription
+                  value:
+                    eligible: false
+                    reason: You already have an active subscription
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   # ------------------------------------------------------------------------------
   # Create dLocal payment
