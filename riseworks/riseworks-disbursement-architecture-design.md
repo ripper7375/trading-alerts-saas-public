@@ -591,146 +591,161 @@ Batching Rules:
 
 ### Entity Relationship Diagram
 
+> **Note**: Models marked with `[Part 17]` already exist in `prisma/schema.prisma`.
+> Part 19 only adds the models marked with `[Part 19 - NEW]`.
+
 ```mermaid
 erDiagram
-    USERS ||--o{ AFFILIATES : "can be"
-    AFFILIATES ||--o{ COMMISSIONS : "earns"
-    USERS ||--o{ SUBSCRIPTIONS : "has"
-    SUBSCRIPTIONS ||--o{ COMMISSIONS : "generates"
-    COMMISSIONS }o--|| PAYMENT_BATCHES : "grouped in"
-    PAYMENT_BATCHES ||--o{ PAYMENT_TRANSACTIONS : "contains"
-    AFFILIATES ||--o{ AFFILIATE_RISE_ACCOUNTS : "has"
-    PAYMENT_TRANSACTIONS ||--o{ WEBHOOK_EVENTS : "triggers"
-    PAYMENT_TRANSACTIONS ||--o{ AUDIT_LOGS : "logged in"
+    %% EXISTING MODELS (Part 17 - DO NOT RECREATE)
+    User ||--o| AffiliateProfile : "can be"
+    AffiliateProfile ||--o{ Commission : "earns"
+    AffiliateProfile ||--o{ AffiliateCode : "owns"
+    User ||--o| Subscription : "has"
+    AffiliateCode ||--o{ Commission : "generates"
 
-    USERS {
-        uuid id PK
+    %% NEW MODELS (Part 19)
+    AffiliateProfile ||--o| AffiliateRiseAccount : "has"
+    Commission ||--o| DisbursementTransaction : "paid via"
+    PaymentBatch ||--o{ DisbursementTransaction : "contains"
+    AffiliateRiseAccount ||--o{ DisbursementTransaction : "receives"
+    DisbursementTransaction ||--o{ RiseWorksWebhookEvent : "triggers"
+    DisbursementTransaction ||--o{ DisbursementAuditLog : "logged in"
+    PaymentBatch ||--o{ DisbursementAuditLog : "logged in"
+
+    %% Part 17 - EXISTING (shown for reference)
+    User {
+        string id PK
         string email
         string name
-        timestamp created_at
+        boolean isAffiliate
     }
 
-    AFFILIATES {
-        uuid id PK
-        uuid user_id FK
-        string affiliate_code
-        decimal commission_rate
-        string status
-        timestamp joined_at
+    AffiliateProfile {
+        string id PK
+        string userId FK
+        string fullName
+        string country
+        string paymentMethod
+        json paymentDetails
+        decimal pendingCommissions
+        decimal paidCommissions
+        enum status
     }
 
-    AFFILIATE_RISE_ACCOUNTS {
-        uuid id PK
-        uuid affiliate_id FK
-        string rise_id
+    AffiliateCode {
+        string id PK
+        string affiliateProfileId FK
+        string code
+        int discountPercent
+        int commissionPercent
+        enum status
+    }
+
+    Commission {
+        string id PK
+        string affiliateProfileId FK
+        string affiliateCodeId FK
+        string userId FK
+        decimal grossRevenue
+        decimal netRevenue
+        decimal commissionAmount
+        enum status
+        datetime earnedAt
+        datetime paidAt
+    }
+
+    Subscription {
+        string id PK
+        string userId FK
+        string affiliateCodeId FK
+        decimal amountUsd
+        enum status
+    }
+
+    %% Part 19 - NEW MODELS
+    AffiliateRiseAccount {
+        string id PK
+        string affiliateProfileId FK
+        string riseId UK
         string email
-        string kyc_status
-        timestamp verified_at
+        enum kycStatus
+        datetime invitationSentAt
+        datetime invitationAcceptedAt
     }
 
-    SUBSCRIPTIONS {
-        uuid id PK
-        uuid user_id FK
-        uuid referred_by FK
-        string tier
-        decimal amount
-        string status
-        timestamp created_at
-    }
-
-    COMMISSIONS {
-        uuid id PK
-        uuid affiliate_id FK
-        uuid subscription_id FK
-        decimal amount
+    PaymentBatch {
+        string id PK
+        string batchNumber UK
+        int paymentCount
+        decimal totalAmount
         string currency
-        string status
-        string commission_type
-        timestamp calculated_at
-        timestamp paid_at
+        enum provider
+        enum status
+        datetime scheduledAt
+        datetime executedAt
     }
 
-    PAYMENT_BATCHES {
-        uuid id PK
-        string batch_number
-        integer payment_count
-        decimal total_amount
-        string currency
-        string status
-        string provider
-        timestamp scheduled_at
-        timestamp executed_at
-    }
-
-    PAYMENT_TRANSACTIONS {
-        uuid id PK
-        uuid batch_id FK
-        uuid commission_id FK
-        string transaction_id
-        string provider_tx_id
+    DisbursementTransaction {
+        string id PK
+        string batchId FK
+        string commissionId FK
+        string affiliateRiseAccountId FK
+        string transactionId UK
+        string providerTxId
         decimal amount
-        string currency
-        string status
-        json metadata
-        timestamp created_at
-        timestamp completed_at
+        enum status
+        datetime createdAt
+        datetime completedAt
     }
 
-    WEBHOOK_EVENTS {
-        uuid id PK
-        uuid transaction_id FK
-        string event_type
+    RiseWorksWebhookEvent {
+        string id PK
+        string transactionId FK
+        string eventType
         json payload
         string signature
         boolean verified
-        timestamp received_at
-        timestamp processed_at
+        boolean processed
     }
 
-    AUDIT_LOGS {
-        uuid id PK
-        uuid transaction_id FK
+    DisbursementAuditLog {
+        string id PK
+        string transactionId FK
+        string batchId FK
         string action
-        string status
+        string actor
+        enum status
         json details
-        timestamp created_at
     }
 ```
 
 ### Table Specifications
 
-#### **affiliates**
+> **⚠️ IMPORTANT**: The following SQL tables are shown for **reference only**.
+> This project uses **Prisma ORM**. See the [Prisma Schema section](#prisma-schema-part-19---add-to-schemaprisma) below for the actual implementation.
+
+#### Existing Tables (Part 17 - DO NOT CREATE)
+
+The following tables **already exist** in Part 17. Part 19 only reads from them:
+
+| Table Name | Prisma Model | Part 19 Usage |
+|------------|--------------|---------------|
+| `AffiliateProfile` | `AffiliateProfile` | Read affiliate info, pending commissions |
+| `Commission` | `Commission` | Read pending commissions, update status to PAID |
+| `User` | `User` | Read email addresses |
+
+#### New Tables (Part 19 - CREATE THESE)
+
+##### **affiliate_rise_accounts** (Maps affiliates to RiseWorks)
 
 ```sql
-CREATE TABLE affiliates (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id),
-    affiliate_code VARCHAR(50) UNIQUE NOT NULL,
-    commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00,
-    tier VARCHAR(50) DEFAULT 'standard',
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
-    minimum_payout DECIMAL(10,2) DEFAULT 50.00,
-    payment_schedule VARCHAR(50) DEFAULT 'monthly',
-    joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_commission_rate CHECK (commission_rate >= 0 AND commission_rate <= 100),
-    CONSTRAINT valid_status CHECK (status IN ('active', 'suspended', 'inactive'))
-);
-
-CREATE INDEX idx_affiliates_user_id ON affiliates(user_id);
-CREATE INDEX idx_affiliates_code ON affiliates(affiliate_code);
-CREATE INDEX idx_affiliates_status ON affiliates(status);
-```
-
-#### **affiliate_rise_accounts**
-
-```sql
+-- References existing AffiliateProfile from Part 17
 CREATE TABLE affiliate_rise_accounts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    affiliate_id UUID NOT NULL REFERENCES affiliates(id),
-    rise_id VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    kyc_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    id TEXT PRIMARY KEY,
+    affiliate_profile_id TEXT UNIQUE NOT NULL REFERENCES "AffiliateProfile"(id) ON DELETE CASCADE,
+    rise_id TEXT UNIQUE NOT NULL,
+    email TEXT NOT NULL,
+    kyc_status TEXT NOT NULL DEFAULT 'PENDING',
     kyc_completed_at TIMESTAMP,
     invitation_sent_at TIMESTAMP,
     invitation_accepted_at TIMESTAMP,
@@ -738,54 +753,26 @@ CREATE TABLE affiliate_rise_accounts (
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_kyc_status CHECK (kyc_status IN ('pending', 'submitted', 'approved', 'rejected', 'expired'))
+    CONSTRAINT valid_kyc_status CHECK (kyc_status IN ('PENDING', 'SUBMITTED', 'APPROVED', 'REJECTED', 'EXPIRED'))
 );
 
-CREATE INDEX idx_rise_accounts_affiliate ON affiliate_rise_accounts(affiliate_id);
+CREATE INDEX idx_rise_accounts_affiliate ON affiliate_rise_accounts(affiliate_profile_id);
 CREATE INDEX idx_rise_accounts_rise_id ON affiliate_rise_accounts(rise_id);
 CREATE INDEX idx_rise_accounts_kyc_status ON affiliate_rise_accounts(kyc_status);
 ```
 
-#### **commissions**
-
-```sql
-CREATE TABLE commissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    affiliate_id UUID NOT NULL REFERENCES affiliates(id),
-    subscription_id UUID NOT NULL REFERENCES subscriptions(id),
-    amount DECIMAL(10,2) NOT NULL,
-    currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-    commission_type VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    payment_batch_id UUID REFERENCES payment_batches(id),
-    calculated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    approved_at TIMESTAMP,
-    paid_at TIMESTAMP,
-    metadata JSONB,
-    CONSTRAINT valid_amount CHECK (amount >= 0),
-    CONSTRAINT valid_commission_type CHECK (commission_type IN ('new_subscription', 'renewal', 'upgrade', 'one_time')),
-    CONSTRAINT valid_status CHECK (status IN ('pending', 'approved', 'queued', 'paid', 'cancelled', 'failed'))
-);
-
-CREATE INDEX idx_commissions_affiliate ON commissions(affiliate_id);
-CREATE INDEX idx_commissions_subscription ON commissions(subscription_id);
-CREATE INDEX idx_commissions_status ON commissions(status);
-CREATE INDEX idx_commissions_batch ON commissions(payment_batch_id);
-CREATE INDEX idx_commissions_calculated_at ON commissions(calculated_at);
-```
-
-#### **payment_batches**
+##### **payment_batches**
 
 ```sql
 CREATE TABLE payment_batches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    batch_number VARCHAR(50) UNIQUE NOT NULL,
+    id TEXT PRIMARY KEY,
+    batch_number TEXT UNIQUE NOT NULL,
     payment_count INTEGER NOT NULL DEFAULT 0,
     total_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-    provider VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    scheduled_at TIMESTAMP NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    provider TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    scheduled_at TIMESTAMP,
     executed_at TIMESTAMP,
     completed_at TIMESTAMP,
     failed_at TIMESTAMP,
@@ -793,32 +780,32 @@ CREATE TABLE payment_batches (
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_payment_count CHECK (payment_count >= 0),
-    CONSTRAINT valid_total_amount CHECK (total_amount >= 0),
-    CONSTRAINT valid_provider CHECK (provider IN ('rise', 'mock')),
-    CONSTRAINT valid_status CHECK (status IN ('pending', 'queued', 'processing', 'completed', 'failed', 'cancelled'))
+    CONSTRAINT valid_provider CHECK (provider IN ('RISE', 'MOCK')),
+    CONSTRAINT valid_status CHECK (status IN ('PENDING', 'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'))
 );
 
 CREATE INDEX idx_batches_status ON payment_batches(status);
 CREATE INDEX idx_batches_scheduled ON payment_batches(scheduled_at);
 CREATE INDEX idx_batches_provider ON payment_batches(provider);
-CREATE INDEX idx_batches_number ON payment_batches(batch_number);
 ```
 
-#### **payment_transactions**
+##### **disbursement_transactions**
 
 ```sql
-CREATE TABLE payment_transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    batch_id UUID NOT NULL REFERENCES payment_batches(id),
-    commission_id UUID NOT NULL REFERENCES commissions(id),
-    transaction_id VARCHAR(100) UNIQUE NOT NULL,
-    provider_tx_id VARCHAR(255),
-    provider VARCHAR(50) NOT NULL,
-    payee_rise_id VARCHAR(255),
+-- References existing Commission from Part 17
+CREATE TABLE disbursement_transactions (
+    id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL REFERENCES payment_batches(id),
+    commission_id TEXT NOT NULL REFERENCES "Commission"(id),
+    affiliate_rise_account_id TEXT REFERENCES affiliate_rise_accounts(id),
+    transaction_id TEXT UNIQUE NOT NULL,
+    provider_tx_id TEXT,
+    provider TEXT NOT NULL,
+    payee_rise_id TEXT,
     amount DECIMAL(10,2) NOT NULL,
-    currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    amount_rise_units BIGINT,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    status TEXT NOT NULL DEFAULT 'PENDING',
     retry_count INTEGER DEFAULT 0,
     last_retry_at TIMESTAMP,
     error_message TEXT,
@@ -826,64 +813,61 @@ CREATE TABLE payment_transactions (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMP,
     failed_at TIMESTAMP,
-    CONSTRAINT valid_amount CHECK (amount > 0),
-    CONSTRAINT valid_provider CHECK (provider IN ('rise', 'mock')),
-    CONSTRAINT valid_status CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'cancelled'))
+    CONSTRAINT valid_provider CHECK (provider IN ('RISE', 'MOCK')),
+    CONSTRAINT valid_status CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'))
 );
 
-CREATE INDEX idx_transactions_batch ON payment_transactions(batch_id);
-CREATE INDEX idx_transactions_commission ON payment_transactions(commission_id);
-CREATE INDEX idx_transactions_status ON payment_transactions(status);
-CREATE INDEX idx_transactions_provider_tx ON payment_transactions(provider_tx_id);
-CREATE INDEX idx_transactions_created_at ON payment_transactions(created_at);
+CREATE INDEX idx_transactions_batch ON disbursement_transactions(batch_id);
+CREATE INDEX idx_transactions_commission ON disbursement_transactions(commission_id);
+CREATE INDEX idx_transactions_status ON disbursement_transactions(status);
+CREATE INDEX idx_transactions_provider_tx ON disbursement_transactions(provider_tx_id);
 ```
 
-#### **webhook_events**
+##### **riseworks_webhook_events**
 
 ```sql
-CREATE TABLE webhook_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    transaction_id UUID REFERENCES payment_transactions(id),
-    event_type VARCHAR(100) NOT NULL,
-    provider VARCHAR(50) NOT NULL,
+CREATE TABLE riseworks_webhook_events (
+    id TEXT PRIMARY KEY,
+    transaction_id TEXT REFERENCES disbursement_transactions(id),
+    event_type TEXT NOT NULL,
+    provider TEXT NOT NULL,
     payload JSONB NOT NULL,
-    signature VARCHAR(500),
-    hash VARCHAR(500),
+    signature TEXT,
+    hash TEXT,
     verified BOOLEAN DEFAULT FALSE,
     processed BOOLEAN DEFAULT FALSE,
     received_at TIMESTAMP NOT NULL DEFAULT NOW(),
     processed_at TIMESTAMP,
     error_message TEXT,
-    CONSTRAINT valid_provider CHECK (provider IN ('rise', 'mock'))
+    CONSTRAINT valid_provider CHECK (provider IN ('RISE', 'MOCK'))
 );
 
-CREATE INDEX idx_webhooks_transaction ON webhook_events(transaction_id);
-CREATE INDEX idx_webhooks_type ON webhook_events(event_type);
-CREATE INDEX idx_webhooks_processed ON webhook_events(processed);
-CREATE INDEX idx_webhooks_received ON webhook_events(received_at);
+CREATE INDEX idx_webhooks_transaction ON riseworks_webhook_events(transaction_id);
+CREATE INDEX idx_webhooks_type ON riseworks_webhook_events(event_type);
+CREATE INDEX idx_webhooks_processed ON riseworks_webhook_events(processed);
 ```
 
-#### **audit_logs**
+##### **disbursement_audit_logs**
 
 ```sql
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    transaction_id UUID REFERENCES payment_transactions(id),
-    batch_id UUID REFERENCES payment_batches(id),
-    action VARCHAR(100) NOT NULL,
-    actor VARCHAR(100),
-    status VARCHAR(50) NOT NULL,
+CREATE TABLE disbursement_audit_logs (
+    id TEXT PRIMARY KEY,
+    transaction_id TEXT REFERENCES disbursement_transactions(id),
+    batch_id TEXT REFERENCES payment_batches(id),
+    action TEXT NOT NULL,
+    actor TEXT,
+    status TEXT NOT NULL,
     details JSONB,
-    ip_address INET,
+    ip_address TEXT,
     user_agent TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT valid_status CHECK (status IN ('success', 'failure', 'warning', 'info'))
+    CONSTRAINT valid_status CHECK (status IN ('SUCCESS', 'FAILURE', 'WARNING', 'INFO'))
 );
 
-CREATE INDEX idx_audit_transaction ON audit_logs(transaction_id);
-CREATE INDEX idx_audit_batch ON audit_logs(batch_id);
-CREATE INDEX idx_audit_action ON audit_logs(action);
-CREATE INDEX idx_audit_created ON audit_logs(created_at);
+CREATE INDEX idx_audit_transaction ON disbursement_audit_logs(transaction_id);
+CREATE INDEX idx_audit_batch ON disbursement_audit_logs(batch_id);
+CREATE INDEX idx_audit_action ON disbursement_audit_logs(action);
+CREATE INDEX idx_audit_created ON disbursement_audit_logs(created_at);
 ```
 
 ---
