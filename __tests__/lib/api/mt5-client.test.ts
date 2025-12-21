@@ -37,6 +37,17 @@ describe('MT5 Client - Error Classes', () => {
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(MT5ServiceError);
     });
+
+    it('should handle undefined response body', () => {
+      const error = new MT5ServiceError('No body', 404);
+      expect(error.responseBody).toBeUndefined();
+    });
+
+    it('should preserve stack trace', () => {
+      const error = new MT5ServiceError('Stack test', 500);
+      expect(error.stack).toBeDefined();
+      expect(error.stack).toContain('MT5ServiceError');
+    });
   });
 
   describe('MT5AccessDeniedError', () => {
@@ -75,6 +86,18 @@ describe('MT5 Client - Error Classes', () => {
       expect(error.tier).toBe('PRO');
       expect(error.accessibleSymbols).toHaveLength(3);
       expect(error.accessibleTimeframes).toHaveLength(3);
+    });
+
+    it('should handle undefined accessible lists', () => {
+      const error = new MT5AccessDeniedError('Denied', 'FREE');
+      expect(error.accessibleSymbols).toBeUndefined();
+      expect(error.accessibleTimeframes).toBeUndefined();
+    });
+
+    it('should handle empty accessible lists', () => {
+      const error = new MT5AccessDeniedError('Denied', 'FREE', [], []);
+      expect(error.accessibleSymbols).toEqual([]);
+      expect(error.accessibleTimeframes).toEqual([]);
     });
   });
 });
@@ -411,6 +434,325 @@ describe('MT5 Client - API Functions', () => {
       const result = await isMT5ServiceAvailable();
 
       expect(result).toBe(false);
+    });
+  });
+
+  // ============================================================================
+  // Edge Cases - Timeout Handling
+  // ============================================================================
+  describe('timeout handling', () => {
+    it('should handle AbortError from aborted requests', async () => {
+      const abortError = new Error('Aborted');
+      abortError.name = 'AbortError';
+      mockFetch.mockRejectedValue(abortError);
+
+      // Should fail after max retries
+      await expect(checkMT5Health()).rejects.toThrow();
+    });
+
+    it('should clear timeout on successful response', async () => {
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'ok',
+          version: '1.0.0',
+          total_terminals: 1,
+          connected_terminals: 1,
+          terminals: {},
+        }),
+      });
+
+      await checkMT5Health();
+
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      clearTimeoutSpy.mockRestore();
+    });
+  });
+
+  // ============================================================================
+  // Edge Cases - Retry Logic
+  // ============================================================================
+  describe('retry logic', () => {
+    it('should not retry for 4xx client errors', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'Bad request' }),
+      });
+
+      await expect(getMT5Symbols('FREE')).rejects.toThrow(MT5ServiceError);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not retry for 401 unauthorized', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: 'Unauthorized' }),
+      });
+
+      await expect(getMT5Timeframes('FREE')).rejects.toThrow(MT5ServiceError);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not retry for 404 not found', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: 'Symbol not found' }),
+      });
+
+      await expect(fetchIndicatorData('INVALID', 'H1', 'FREE')).rejects.toThrow(MT5ServiceError);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not retry for access denied errors', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          error: 'Access denied',
+          upgrade_required: true,
+          tier: 'FREE',
+        }),
+      });
+
+      await expect(fetchIndicatorData('GBPJPY', 'M5', 'FREE')).rejects.toThrow(MT5AccessDeniedError);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ============================================================================
+  // Edge Cases - Response Handling
+  // ============================================================================
+  describe('response handling edge cases', () => {
+    it('should handle empty OHLC data', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            ohlc: [],
+            horizontal: { peak_1: [], peak_2: [], peak_3: [], bottom_1: [], bottom_2: [], bottom_3: [] },
+            diagonal: { ascending_1: [], ascending_2: [], ascending_3: [], descending_1: [], descending_2: [], descending_3: [] },
+            fractals: { peaks: [], bottoms: [] },
+            metadata: { symbol: 'XAUUSD', timeframe: 'H1', tier: 'FREE', bars_returned: 0 },
+          },
+        }),
+      });
+
+      const result = await fetchIndicatorData('XAUUSD', 'H1', 'FREE');
+      expect(result.ohlc).toEqual([]);
+      expect(result.metadata.bars_returned).toBe(0);
+    });
+
+    it('should handle missing data in success response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          // data is undefined
+        }),
+      });
+
+      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(MT5ServiceError);
+    });
+
+    it('should handle null response data', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: null,
+        }),
+      });
+
+      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(MT5ServiceError);
+    });
+
+    it('should use default error message when none provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}), // No error field
+      });
+
+      try {
+        await getMT5Symbols('FREE');
+      } catch (error) {
+        expect(error).toBeInstanceOf(MT5ServiceError);
+        expect((error as MT5ServiceError).message).toContain('500');
+      }
+    });
+
+    it('should handle missing error in success false response', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: false,
+          // No error field
+        }),
+      });
+
+      try {
+        await fetchIndicatorData('XAUUSD', 'H1', 'FREE');
+      } catch (error) {
+        expect(error).toBeInstanceOf(MT5ServiceError);
+        expect((error as MT5ServiceError).message).toContain('Failed to fetch');
+      }
+    });
+  });
+
+  // ============================================================================
+  // Edge Cases - Headers and Authentication
+  // ============================================================================
+  describe('headers and authentication', () => {
+    it('should include Content-Type header', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          tier: 'FREE',
+          symbols: [],
+        }),
+      });
+
+      await getMT5Symbols('FREE');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+          }),
+        })
+      );
+    });
+
+    it('should set X-User-Tier header for PRO', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          tier: 'PRO',
+          timeframes: ['M5', 'M15'],
+        }),
+      });
+
+      await getMT5Timeframes('PRO');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-User-Tier': 'PRO',
+          }),
+        })
+      );
+    });
+  });
+
+  // ============================================================================
+  // Edge Cases - URL Construction
+  // ============================================================================
+  describe('URL construction', () => {
+    it('should construct correct indicator URL with all params', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            ohlc: [],
+            horizontal: { peak_1: [], peak_2: [], peak_3: [], bottom_1: [], bottom_2: [], bottom_3: [] },
+            diagonal: { ascending_1: [], ascending_2: [], ascending_3: [], descending_1: [], descending_2: [], descending_3: [] },
+            fractals: { peaks: [], bottoms: [] },
+            metadata: { symbol: 'BTCUSD', timeframe: 'M15', tier: 'PRO', bars_returned: 100 },
+          },
+        }),
+      });
+
+      await fetchIndicatorData('BTCUSD', 'M15', 'PRO', 100);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/indicators/BTCUSD/M15?bars=100'),
+        expect.anything()
+      );
+    });
+
+    it('should use default bars count when not specified', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            ohlc: [],
+            horizontal: { peak_1: [], peak_2: [], peak_3: [], bottom_1: [], bottom_2: [], bottom_3: [] },
+            diagonal: { ascending_1: [], ascending_2: [], ascending_3: [], descending_1: [], descending_2: [], descending_3: [] },
+            fractals: { peaks: [], bottoms: [] },
+            metadata: { symbol: 'EURUSD', timeframe: 'H4', tier: 'FREE', bars_returned: 1000 },
+          },
+        }),
+      });
+
+      await fetchIndicatorData('EURUSD', 'H4', 'FREE');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('bars=1000'),
+        expect.anything()
+      );
+    });
+  });
+
+  // ============================================================================
+  // Edge Cases - Health Check Scenarios
+  // ============================================================================
+  describe('health check scenarios', () => {
+    it('should handle health check with no terminals', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'error',
+          version: '1.0.0',
+          total_terminals: 0,
+          connected_terminals: 0,
+          terminals: {},
+        }),
+      });
+
+      const result = await checkMT5Health();
+      expect(result.total_terminals).toBe(0);
+      expect(result.status).toBe('error');
+    });
+
+    it('should handle health check with terminal errors', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'degraded',
+          version: '1.0.0',
+          total_terminals: 2,
+          connected_terminals: 1,
+          terminals: {
+            terminal_1: {
+              connected: true,
+              terminal_id: '1',
+              last_check: '2025-12-15T00:00:00Z',
+            },
+            terminal_2: {
+              connected: false,
+              terminal_id: '2',
+              last_check: '2025-12-15T00:00:00Z',
+              error: 'Connection timeout',
+            },
+          },
+        }),
+      });
+
+      const result = await checkMT5Health();
+      expect(result.terminals['terminal_2'].error).toBe('Connection timeout');
+      expect(result.terminals['terminal_2'].connected).toBe(false);
     });
   });
 });
