@@ -655,7 +655,7 @@ model DisbursementTransaction {
   batch             PaymentBatch @relation(fields: [batchId], references: [id])
 
   // Commission Reference (from Part 17)
-  commissionId      String
+  commissionId      String   @unique
   commission        Commission @relation(fields: [commissionId], references: [id])
 
   // Transaction IDs
