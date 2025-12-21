@@ -9,17 +9,22 @@
 
 ---
 
-## ⚠️ Framework Compliance Notice
+## ⚠️ USE AS REFERENCE DESIGN ONLY - DO NOT COPY CODE
 
-> **IMPORTANT**: This project uses **Next.js 15 + TypeScript + Prisma ORM**.
+> **🚫 DO NOT USE THIS DOCUMENT FOR CODE IMPLEMENTATION**
 >
-> This architecture document defines the **conceptual design** (database schema, data flows, security).
-> For the **actual implementation**, refer to:
+> This document is for **DESIGN REFERENCE ONLY**:
+> - ✅ USE FOR: Understanding data flows, security architecture, ERD diagrams
+> - ❌ DO NOT USE FOR: Copying code, file paths, or implementation patterns
 >
-> **📖 Primary Implementation Guide:**
+> ---
+>
+> **📖 SINGLE SOURCE OF TRUTH FOR IMPLEMENTATION:**
 > `prompt-with-testing-framework-to-claude-code/Non-split with TDD/part19-riseworks-disbursement-tdd.md`
 >
-> **Framework Stack:**
+> ---
+>
+> **Framework Stack (NOT Flask/Python):**
 > - Frontend/Backend: Next.js 15 (App Router)
 > - Language: TypeScript (strict mode)
 > - ORM: Prisma 5
@@ -27,8 +32,8 @@
 > - Testing: Jest
 > - API Pattern: `app/api/disbursement/*/route.ts`
 >
-> The Python/Flask code examples in this document are for **conceptual reference only**.
-> All actual code MUST be implemented in TypeScript following the TDD prompt.
+> **⚠️ Any Python/Flask code in this document is CONCEPTUAL ONLY.**
+> **All actual implementation MUST follow the TDD prompt.**
 
 ---
 

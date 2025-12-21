@@ -9,22 +9,28 @@
 
 ---
 
-## ⚠️ DEPRECATED - Framework Migration Notice
+## ⚠️ USE AS REFERENCE PATTERNS ONLY - DO NOT COPY CODE
 
-> **IMPORTANT**: This document contains **Python/Flask/SQLAlchemy** implementation details.
+> **🚫 DO NOT USE THIS DOCUMENT FOR CODE IMPLEMENTATION**
 >
-> **The Trading Alerts SaaS project uses Next.js 15 + TypeScript + Prisma.**
+> This document contains **Python/Flask/SQLAlchemy** code that is **INCOMPATIBLE** with this project.
 >
-> This document is retained as **conceptual reference** for:
-> - Business logic patterns
-> - Algorithm documentation
-> - Data flow understanding
+> **USE THIS DOCUMENT ONLY FOR:**
+> - ✅ Understanding business logic patterns
+> - ✅ Algorithm documentation reference
+> - ✅ Data flow understanding
+>
+> **DO NOT USE THIS DOCUMENT FOR:**
+> - ❌ Copying code snippets
+> - ❌ File paths or directory structure
+> - ❌ Import statements
+> - ❌ Class/function implementations
 >
 > ---
 >
-> ## 📖 Use the Correct Implementation Guide
+> ## 📖 SINGLE SOURCE OF TRUTH FOR IMPLEMENTATION
 >
-> **For actual implementation, use:**
+> **For ALL actual implementation, use ONLY:**
 > `prompt-with-testing-framework-to-claude-code/Non-split with TDD/part19-riseworks-disbursement-tdd.md`
 >
 > **This TDD prompt provides:**
@@ -37,10 +43,10 @@
 >
 > ---
 >
-> ## Framework Mapping (Python → TypeScript)
+> ## Framework Mapping (For Understanding Only)
 >
-> | Python/Flask | Next.js/TypeScript |
-> |-------------|-------------------|
+> | Python/Flask (THIS DOC - DO NOT USE) | Next.js/TypeScript (USE INSTEAD) |
+> |--------------------------------------|----------------------------------|
 > | SQLAlchemy models | Prisma schema |
 > | Alembic migrations | Prisma migrate |
 > | Flask routes | `app/api/*/route.ts` |
