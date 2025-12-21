@@ -3,9 +3,57 @@
 **Project**: Trading Alerts SaaS V7
 **Component**: Automated Affiliate Commission Payment System
 **Integration**: Rise.works Payment API
-**Version**: 1.0.0
-**Date**: November 2025
+**Version**: 1.1.0
+**Date**: December 2025
 **Document Type**: Implementation Plan (How To Build)
+
+---
+
+## ⚠️ USE AS REFERENCE PATTERNS ONLY - DO NOT COPY CODE
+
+> **🚫 DO NOT USE THIS DOCUMENT FOR CODE IMPLEMENTATION**
+>
+> This document contains **Python/Flask/SQLAlchemy** code that is **INCOMPATIBLE** with this project.
+>
+> **USE THIS DOCUMENT ONLY FOR:**
+> - ✅ Understanding business logic patterns
+> - ✅ Algorithm documentation reference
+> - ✅ Data flow understanding
+>
+> **DO NOT USE THIS DOCUMENT FOR:**
+> - ❌ Copying code snippets
+> - ❌ File paths or directory structure
+> - ❌ Import statements
+> - ❌ Class/function implementations
+>
+> ---
+>
+> ## 📖 SINGLE SOURCE OF TRUTH FOR IMPLEMENTATION
+>
+> **For ALL actual implementation, use ONLY:**
+> `prompt-with-testing-framework-to-claude-code/Non-split with TDD/part19-riseworks-disbursement-tdd.md`
+>
+> **This TDD prompt provides:**
+> - ✅ Next.js 15 App Router API routes
+> - ✅ TypeScript interfaces and types
+> - ✅ Prisma schema additions
+> - ✅ Jest test files with TDD approach
+> - ✅ 54 files (38 production + 16 test)
+> - ✅ Consistent with Parts 1-18
+>
+> ---
+>
+> ## Framework Mapping (For Understanding Only)
+>
+> | Python/Flask (THIS DOC - DO NOT USE) | Next.js/TypeScript (USE INSTEAD) |
+> |--------------------------------------|----------------------------------|
+> | SQLAlchemy models | Prisma schema |
+> | Alembic migrations | Prisma migrate |
+> | Flask routes | `app/api/*/route.ts` |
+> | Pydantic schemas | Zod validation |
+> | pytest | Jest |
+> | `requirements.txt` | `package.json` |
+> | `.env` (dotenv) | `.env.local` (Next.js) |
 
 ---
 
