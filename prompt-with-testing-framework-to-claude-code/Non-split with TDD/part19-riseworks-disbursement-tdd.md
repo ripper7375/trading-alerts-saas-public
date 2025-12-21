@@ -174,34 +174,34 @@ CANCELLED  FAILED (can retry)
 
 ### Phase A: Database Schema & Types (3 production + 2 test = 5 files)
 
-| #   | File Path                                       | Type   | Description                                    |
-| --- | ----------------------------------------------- | ------ | ---------------------------------------------- |
-| 1   | `prisma/schema.prisma`                          | UPDATE | Add Part 19 models (5 new models, 5 enums)     |
-| 2   | `types/disbursement.ts`                         | NEW    | Disbursement type definitions                  |
-| 3   | `lib/disbursement/constants.ts`                 | NEW    | Provider constants, status values, thresholds  |
-| T1  | `__tests__/types/disbursement.test.ts`          | TEST   | Test type definitions and constants            |
-| T2  | `__tests__/lib/disbursement/constants.test.ts`  | TEST   | Test constant values and helpers               |
+| #   | File Path                                      | Type   | Description                                   |
+| --- | ---------------------------------------------- | ------ | --------------------------------------------- |
+| 1   | `prisma/schema.prisma`                         | UPDATE | Add Part 19 models (5 new models, 5 enums)    |
+| 2   | `types/disbursement.ts`                        | NEW    | Disbursement type definitions                 |
+| 3   | `lib/disbursement/constants.ts`                | NEW    | Provider constants, status values, thresholds |
+| T1  | `__tests__/types/disbursement.test.ts`         | TEST   | Test type definitions and constants           |
+| T2  | `__tests__/lib/disbursement/constants.test.ts` | TEST   | Test constant values and helpers              |
 
 ### Phase B: Provider Abstraction (3 production + 2 test = 5 files)
 
-| #   | File Path                                              | Type | Description                                 |
-| --- | ------------------------------------------------------ | ---- | ------------------------------------------- |
-| 4   | `lib/disbursement/providers/base-provider.ts`          | NEW  | Abstract payment provider interface         |
-| 5   | `lib/disbursement/providers/mock-provider.ts`          | NEW  | Mock provider for testing                   |
-| 6   | `lib/disbursement/providers/provider-factory.ts`       | NEW  | Factory for provider instantiation          |
-| T3  | `__tests__/lib/disbursement/providers/mock.test.ts`    | TEST | TDD: Mock provider behavior                 |
-| T4  | `__tests__/lib/disbursement/providers/factory.test.ts` | TEST | TDD: Factory pattern                        |
+| #   | File Path                                              | Type | Description                         |
+| --- | ------------------------------------------------------ | ---- | ----------------------------------- |
+| 4   | `lib/disbursement/providers/base-provider.ts`          | NEW  | Abstract payment provider interface |
+| 5   | `lib/disbursement/providers/mock-provider.ts`          | NEW  | Mock provider for testing           |
+| 6   | `lib/disbursement/providers/provider-factory.ts`       | NEW  | Factory for provider instantiation  |
+| T3  | `__tests__/lib/disbursement/providers/mock.test.ts`    | TEST | TDD: Mock provider behavior         |
+| T4  | `__tests__/lib/disbursement/providers/factory.test.ts` | TEST | TDD: Factory pattern                |
 
 ### Phase C: RiseWorks Integration (4 production + 2 test = 6 files)
 
-| #   | File Path                                                | Type | Description                                 |
-| --- | -------------------------------------------------------- | ---- | ------------------------------------------- |
-| 7   | `lib/disbursement/providers/rise/rise-provider.ts`       | NEW  | RiseWorks API client                        |
-| 8   | `lib/disbursement/providers/rise/siwe-auth.ts`           | NEW  | SIWE (Sign-In with Ethereum) authentication |
-| 9   | `lib/disbursement/providers/rise/webhook-verifier.ts`    | NEW  | Webhook signature verification              |
-| 10  | `lib/disbursement/providers/rise/amount-converter.ts`    | NEW  | USD to RiseWorks 1e6 units conversion       |
-| T5  | `__tests__/lib/disbursement/providers/rise/auth.test.ts` | TEST | TDD: SIWE authentication                    |
-| T6  | `__tests__/lib/disbursement/providers/rise/webhook.test.ts` | TEST | TDD: Webhook verification              |
+| #   | File Path                                                   | Type | Description                                 |
+| --- | ----------------------------------------------------------- | ---- | ------------------------------------------- |
+| 7   | `lib/disbursement/providers/rise/rise-provider.ts`          | NEW  | RiseWorks API client                        |
+| 8   | `lib/disbursement/providers/rise/siwe-auth.ts`              | NEW  | SIWE (Sign-In with Ethereum) authentication |
+| 9   | `lib/disbursement/providers/rise/webhook-verifier.ts`       | NEW  | Webhook signature verification              |
+| 10  | `lib/disbursement/providers/rise/amount-converter.ts`       | NEW  | USD to RiseWorks 1e6 units conversion       |
+| T5  | `__tests__/lib/disbursement/providers/rise/auth.test.ts`    | TEST | TDD: SIWE authentication                    |
+| T6  | `__tests__/lib/disbursement/providers/rise/webhook.test.ts` | TEST | TDD: Webhook verification                   |
 
 ### Phase D: Commission Service (3 production + 2 test = 5 files)
 
@@ -215,63 +215,63 @@ CANCELLED  FAILED (can retry)
 
 ### Phase E: Payment Orchestration (4 production + 2 test = 6 files)
 
-| #   | File Path                                                  | Type | Description                                |
-| --- | ---------------------------------------------------------- | ---- | ------------------------------------------ |
-| 14  | `lib/disbursement/services/payment-orchestrator.ts`        | NEW  | Coordinate payment execution               |
-| 15  | `lib/disbursement/services/batch-manager.ts`               | NEW  | Batch creation and tracking                |
-| 16  | `lib/disbursement/services/transaction-logger.ts`          | NEW  | Audit trail logging                        |
-| 17  | `lib/disbursement/services/retry-handler.ts`               | NEW  | Failed payment retry logic                 |
-| T9  | `__tests__/lib/disbursement/services/orchestrator.test.ts` | TEST | TDD: Payment orchestration                 |
-| T10 | `__tests__/lib/disbursement/services/batch.test.ts`        | TEST | TDD: Batch management                      |
+| #   | File Path                                                  | Type | Description                  |
+| --- | ---------------------------------------------------------- | ---- | ---------------------------- |
+| 14  | `lib/disbursement/services/payment-orchestrator.ts`        | NEW  | Coordinate payment execution |
+| 15  | `lib/disbursement/services/batch-manager.ts`               | NEW  | Batch creation and tracking  |
+| 16  | `lib/disbursement/services/transaction-logger.ts`          | NEW  | Audit trail logging          |
+| 17  | `lib/disbursement/services/retry-handler.ts`               | NEW  | Failed payment retry logic   |
+| T9  | `__tests__/lib/disbursement/services/orchestrator.test.ts` | TEST | TDD: Payment orchestration   |
+| T10 | `__tests__/lib/disbursement/services/batch.test.ts`        | TEST | TDD: Batch management        |
 
 ### Phase F: API Routes - Affiliates & RiseWorks Accounts (5 production + 1 test = 6 files)
 
-| #   | File Path                                                           | Type | Description                               |
-| --- | ------------------------------------------------------------------- | ---- | ----------------------------------------- |
-| 18  | `app/api/disbursement/affiliates/payable/route.ts`                  | NEW  | GET payable affiliates with commissions   |
-| 19  | `app/api/disbursement/affiliates/[affiliateId]/route.ts`            | NEW  | GET affiliate disbursement details        |
-| 20  | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts`| NEW  | GET affiliate pending commissions         |
-| 21  | `app/api/disbursement/riseworks/accounts/route.ts`                  | NEW  | GET/POST RiseWorks accounts               |
-| 22  | `app/api/disbursement/riseworks/sync/route.ts`                      | NEW  | POST sync accounts from RiseWorks         |
-| T11 | `__tests__/api/disbursement/affiliates/payable.test.ts`             | TEST | TDD: Payable affiliates API               |
+| #   | File Path                                                            | Type | Description                             |
+| --- | -------------------------------------------------------------------- | ---- | --------------------------------------- |
+| 18  | `app/api/disbursement/affiliates/payable/route.ts`                   | NEW  | GET payable affiliates with commissions |
+| 19  | `app/api/disbursement/affiliates/[affiliateId]/route.ts`             | NEW  | GET affiliate disbursement details      |
+| 20  | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` | NEW  | GET affiliate pending commissions       |
+| 21  | `app/api/disbursement/riseworks/accounts/route.ts`                   | NEW  | GET/POST RiseWorks accounts             |
+| 22  | `app/api/disbursement/riseworks/sync/route.ts`                       | NEW  | POST sync accounts from RiseWorks       |
+| T11 | `__tests__/api/disbursement/affiliates/payable.test.ts`              | TEST | TDD: Payable affiliates API             |
 
 ### Phase G: API Routes - Batches & Transactions (5 production + 1 test = 6 files)
 
-| #   | File Path                                                   | Type | Description                                |
-| --- | ----------------------------------------------------------- | ---- | ------------------------------------------ |
-| 23  | `app/api/disbursement/batches/route.ts`                     | NEW  | GET/POST payment batches                   |
-| 24  | `app/api/disbursement/batches/preview/route.ts`             | NEW  | POST preview batch before creation         |
-| 25  | `app/api/disbursement/batches/[batchId]/route.ts`           | NEW  | GET/DELETE batch details                   |
-| 26  | `app/api/disbursement/batches/[batchId]/execute/route.ts`   | NEW  | POST execute payment batch                 |
-| 27  | `app/api/disbursement/transactions/route.ts`                | NEW  | GET transactions list                      |
-| T12 | `__tests__/api/disbursement/batches/route.test.ts`          | TEST | TDD: Batch CRUD and execution              |
+| #   | File Path                                                 | Type | Description                        |
+| --- | --------------------------------------------------------- | ---- | ---------------------------------- |
+| 23  | `app/api/disbursement/batches/route.ts`                   | NEW  | GET/POST payment batches           |
+| 24  | `app/api/disbursement/batches/preview/route.ts`           | NEW  | POST preview batch before creation |
+| 25  | `app/api/disbursement/batches/[batchId]/route.ts`         | NEW  | GET/DELETE batch details           |
+| 26  | `app/api/disbursement/batches/[batchId]/execute/route.ts` | NEW  | POST execute payment batch         |
+| 27  | `app/api/disbursement/transactions/route.ts`              | NEW  | GET transactions list              |
+| T12 | `__tests__/api/disbursement/batches/route.test.ts`        | TEST | TDD: Batch CRUD and execution      |
 
 ### Phase H: Webhooks & Quick Payments (3 production + 1 test = 4 files)
 
-| #   | File Path                                          | Type | Description                               |
-| --- | -------------------------------------------------- | ---- | ----------------------------------------- |
-| 28  | `app/api/webhooks/riseworks/route.ts`              | NEW  | POST RiseWorks webhook handler            |
-| 29  | `app/api/disbursement/pay/route.ts`                | NEW  | POST single affiliate immediate payment   |
-| 30  | `lib/disbursement/webhook/event-processor.ts`      | NEW  | Process webhook events                    |
-| T13 | `__tests__/api/webhooks/riseworks/route.test.ts`   | TEST | TDD: Webhook handling                     |
+| #   | File Path                                        | Type | Description                             |
+| --- | ------------------------------------------------ | ---- | --------------------------------------- |
+| 28  | `app/api/webhooks/riseworks/route.ts`            | NEW  | POST RiseWorks webhook handler          |
+| 29  | `app/api/disbursement/pay/route.ts`              | NEW  | POST single affiliate immediate payment |
+| 30  | `lib/disbursement/webhook/event-processor.ts`    | NEW  | Process webhook events                  |
+| T13 | `__tests__/api/webhooks/riseworks/route.test.ts` | TEST | TDD: Webhook handling                   |
 
 ### Phase I: Reports & Audit (4 production + 1 test = 5 files)
 
-| #   | File Path                                                    | Type | Description                               |
-| --- | ------------------------------------------------------------ | ---- | ----------------------------------------- |
-| 31  | `app/api/disbursement/reports/summary/route.ts`              | NEW  | GET disbursement summary                  |
-| 32  | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts` | NEW | GET affiliate disbursement history       |
-| 33  | `app/api/disbursement/audit-logs/route.ts`                   | NEW  | GET audit logs                            |
-| 34  | `app/api/disbursement/config/route.ts`                       | NEW  | GET/PATCH disbursement configuration      |
-| T14 | `__tests__/api/disbursement/reports/summary.test.ts`         | TEST | TDD: Reports API                          |
+| #   | File Path                                                       | Type | Description                          |
+| --- | --------------------------------------------------------------- | ---- | ------------------------------------ |
+| 31  | `app/api/disbursement/reports/summary/route.ts`                 | NEW  | GET disbursement summary             |
+| 32  | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts` | NEW  | GET affiliate disbursement history   |
+| 33  | `app/api/disbursement/audit-logs/route.ts`                      | NEW  | GET audit logs                       |
+| 34  | `app/api/disbursement/config/route.ts`                          | NEW  | GET/PATCH disbursement configuration |
+| T14 | `__tests__/api/disbursement/reports/summary.test.ts`            | TEST | TDD: Reports API                     |
 
 ### Phase J: Configuration & Health (2 production + 1 test = 3 files)
 
-| #   | File Path                                              | Type | Description                               |
-| --- | ------------------------------------------------------ | ---- | ----------------------------------------- |
-| 35  | `app/api/disbursement/health/route.ts`                 | NEW  | GET system health check                   |
-| 36  | `lib/disbursement/config.ts`                           | NEW  | Configuration management                  |
-| T15 | `__tests__/api/disbursement/health/route.test.ts`      | TEST | TDD: Health check                         |
+| #   | File Path                                         | Type | Description              |
+| --- | ------------------------------------------------- | ---- | ------------------------ |
+| 35  | `app/api/disbursement/health/route.ts`            | NEW  | GET system health check  |
+| 36  | `lib/disbursement/config.ts`                      | NEW  | Configuration management |
+| T15 | `__tests__/api/disbursement/health/route.test.ts` | TEST | TDD: Health check        |
 
 ### Phase K: Cron Jobs (2 production + 1 test = 3 files)
 
@@ -527,12 +527,14 @@ model DisbursementAuditLog {
 **IMPORTANT: Add relation to existing Part 17 models:**
 
 In `AffiliateProfile` model, add:
+
 ```prisma
   // Add to existing AffiliateProfile model (Part 17)
   riseAccount          AffiliateRiseAccount?
 ```
 
 In `Commission` model, add:
+
 ```prisma
   // Add to existing Commission model (Part 17)
   disbursementTransaction DisbursementTransaction?
@@ -592,11 +594,11 @@ describe('Disbursement Types', () => {
     const request: PaymentRequest = {
       affiliateId: 'aff-123',
       riseId: '0xA35b2F326F07a7C92BedB0D318C237F30948E425',
-      amount: 50.00,
+      amount: 50.0,
       currency: 'USD',
       commissionId: 'comm-123',
     };
-    expect(request.amount).toBe(50.00);
+    expect(request.amount).toBe(50.0);
     expect(request.currency).toBe('USD');
   });
 });
@@ -739,7 +741,7 @@ export interface DisbursementConfig {
 import { DisbursementProvider } from '@/types/disbursement';
 
 // Minimum payout threshold in USD
-export const MINIMUM_PAYOUT_USD = 50.00;
+export const MINIMUM_PAYOUT_USD = 50.0;
 
 // Maximum payments per batch (RiseWorks API limit)
 export const MAX_BATCH_SIZE = 100;
@@ -791,7 +793,9 @@ export function riseUnitsToUsd(riseUnits: bigint): number {
   return Number(riseUnits) / RISE_AMOUNT_FACTOR;
 }
 
-export function isValidProvider(provider: string): provider is DisbursementProvider {
+export function isValidProvider(
+  provider: string
+): provider is DisbursementProvider {
   return SUPPORTED_PROVIDERS.includes(provider as DisbursementProvider);
 }
 
@@ -824,7 +828,7 @@ import {
 
 describe('Disbursement Constants', () => {
   it('should have correct minimum payout', () => {
-    expect(MINIMUM_PAYOUT_USD).toBe(50.00);
+    expect(MINIMUM_PAYOUT_USD).toBe(50.0);
   });
 
   it('should have correct max batch size', () => {
@@ -832,14 +836,14 @@ describe('Disbursement Constants', () => {
   });
 
   it('should convert USD to Rise units correctly', () => {
-    expect(usdToRiseUnits(50.00)).toBe(50_000_000n);
-    expect(usdToRiseUnits(100.50)).toBe(100_500_000n);
+    expect(usdToRiseUnits(50.0)).toBe(50_000_000n);
+    expect(usdToRiseUnits(100.5)).toBe(100_500_000n);
     expect(usdToRiseUnits(0.01)).toBe(10_000n);
   });
 
   it('should convert Rise units to USD correctly', () => {
-    expect(riseUnitsToUsd(50_000_000n)).toBe(50.00);
-    expect(riseUnitsToUsd(100_500_000n)).toBe(100.50);
+    expect(riseUnitsToUsd(50_000_000n)).toBe(50.0);
+    expect(riseUnitsToUsd(100_500_000n)).toBe(100.5);
   });
 
   it('should validate providers', () => {
@@ -904,7 +908,7 @@ describe('MockPaymentProvider', () => {
     const request: PaymentRequest = {
       affiliateId: 'aff-123',
       riseId: '0xA35b2F326F07a7C92BedB0D318C237F30948E425',
-      amount: 50.00,
+      amount: 50.0,
       currency: 'USD',
       commissionId: 'comm-123',
     };
@@ -913,7 +917,7 @@ describe('MockPaymentProvider', () => {
 
     expect(result.success).toBe(true);
     expect(result.transactionId).toBeDefined();
-    expect(result.amount).toBe(50.00);
+    expect(result.amount).toBe(50.0);
     expect(result.status).toBe('COMPLETED');
   });
 
@@ -922,14 +926,14 @@ describe('MockPaymentProvider', () => {
       {
         affiliateId: 'aff-123',
         riseId: '0xA35b...',
-        amount: 50.00,
+        amount: 50.0,
         currency: 'USD',
         commissionId: 'comm-123',
       },
       {
         affiliateId: 'aff-456',
         riseId: '0xB46c...',
-        amount: 75.00,
+        amount: 75.0,
         currency: 'USD',
         commissionId: 'comm-456',
       },
@@ -938,7 +942,7 @@ describe('MockPaymentProvider', () => {
     const result = await provider.sendBatchPayment(requests);
 
     expect(result.success).toBe(true);
-    expect(result.totalAmount).toBe(125.00);
+    expect(result.totalAmount).toBe(125.0);
     expect(result.successCount).toBe(2);
     expect(result.failedCount).toBe(0);
     expect(result.results).toHaveLength(2);
@@ -949,7 +953,7 @@ describe('MockPaymentProvider', () => {
     const request: PaymentRequest = {
       affiliateId: 'aff-123',
       riseId: '0xA35b...',
-      amount: 50.00,
+      amount: 50.0,
       currency: 'USD',
       commissionId: 'comm-123',
     };
@@ -975,7 +979,7 @@ describe('MockPaymentProvider', () => {
     const request: PaymentRequest = {
       affiliateId: 'aff-123',
       riseId: '0xA35b...',
-      amount: 50.00,
+      amount: 50.0,
       currency: 'USD',
       commissionId: 'comm-123',
     };
@@ -1011,9 +1015,13 @@ export abstract class PaymentProvider {
 
   abstract sendPayment(request: PaymentRequest): Promise<PaymentResult>;
 
-  abstract sendBatchPayment(requests: PaymentRequest[]): Promise<BatchPaymentResult>;
+  abstract sendBatchPayment(
+    requests: PaymentRequest[]
+  ): Promise<BatchPaymentResult>;
 
-  abstract getPaymentStatus(transactionId: string): Promise<DisbursementTransactionStatus>;
+  abstract getPaymentStatus(
+    transactionId: string
+  ): Promise<DisbursementTransactionStatus>;
 
   abstract getPayeeInfo(riseId: string): Promise<PayeeInfo>;
 
@@ -1112,7 +1120,9 @@ export class MockPaymentProvider extends PaymentProvider {
     };
   }
 
-  async sendBatchPayment(requests: PaymentRequest[]): Promise<BatchPaymentResult> {
+  async sendBatchPayment(
+    requests: PaymentRequest[]
+  ): Promise<BatchPaymentResult> {
     await this.simulateDelay();
 
     const results: PaymentResult[] = [];
@@ -1142,7 +1152,9 @@ export class MockPaymentProvider extends PaymentProvider {
     };
   }
 
-  async getPaymentStatus(transactionId: string): Promise<DisbursementTransactionStatus> {
+  async getPaymentStatus(
+    transactionId: string
+  ): Promise<DisbursementTransactionStatus> {
     await this.simulateDelay();
     return this.transactions.get(transactionId) ?? 'PENDING';
   }
@@ -1206,8 +1218,8 @@ This prompt was created using:
 2. **ARCHITECTURE-compress.md** - Overall system architecture
 3. **docs/policies/05-coding-patterns-part-1.md** - Coding standards and patterns
 4. **docs/policies/05-coding-patterns-part-2.md** - Additional patterns including crypto code generation
-5. **riseworks/riseworks-disbursement-architecture-design.md** - Complete architecture for Part 19
-6. **riseworks/riseworks-implementation-plan.md** - Detailed implementation phases
+5. **riseworks/riseworks-disbursement-architecture-design.md** - Complete architecture for Part 19 (use as reference design only)
+6. **riseworks/riseworks-implementation-plan.md** - Detailed implementation phases (use as reference patterns only)
 7. **riseworks/riseworks-api-overview-for-disbursement-integration.md** - RiseWorks API details
 8. **riseworks/riseworks-openapi-endpoints.yaml** - OpenAPI specification
 9. **riseworks/IMPLEMENTATION-SUMMARY.md** - Implementation progress summary
@@ -1218,24 +1230,26 @@ This prompt was created using:
 
 ### Test Coverage Targets
 
-| Component                | Target Coverage |
-| ------------------------ | --------------- |
-| Commission Aggregator    | 95%             |
-| Payment Providers        | 95%             |
-| Payment Orchestrator     | 90%             |
-| Webhook Handlers         | 90%             |
-| API Routes               | 85%             |
-| **Overall Target**       | **25%**         |
+| Component             | Target Coverage |
+| --------------------- | --------------- |
+| Commission Aggregator | 95%             |
+| Payment Providers     | 95%             |
+| Payment Orchestrator  | 90%             |
+| Webhook Handlers      | 90%             |
+| API Routes            | 85%             |
+| **Overall Target**    | **25%**         |
 
 ### Test Types
 
 #### Unit Tests
+
 - Commission calculation logic
 - Provider implementations
 - Amount conversion
 - Validation logic
 
 #### Integration Tests
+
 - Payment flow end-to-end
 - Webhook processing
 - Database operations
@@ -1246,6 +1260,7 @@ This prompt was created using:
 ## Success Metrics
 
 ### Technical Metrics
+
 - ✅ 25%+ test coverage
 - ✅ Type hints on all functions
 - ✅ No 'any' types
@@ -1254,6 +1269,7 @@ This prompt was created using:
 - ✅ Provider abstraction working
 
 ### Business Metrics (Post-Deployment)
+
 - Payment success rate > 99%
 - Average payment time < 30 seconds
 - Batch processing capacity: 100 payments
@@ -1271,6 +1287,7 @@ git commit -m "feat(disbursement): [phase] - [description]"
 ```
 
 Examples:
+
 - `feat(disbursement): phase-a - add database schema and types`
 - `feat(disbursement): phase-b - add provider abstraction`
 - `feat(disbursement): phase-c - add riseworks integration`
