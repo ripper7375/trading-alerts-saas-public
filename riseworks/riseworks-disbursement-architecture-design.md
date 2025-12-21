@@ -1,11 +1,34 @@
 # Rise Payment Integration Stack - Architecture Design Document
 
-**Project**: Trading Alerts SaaS V7  
-**Component**: Automated Affiliate Commission Payment System  
-**Integration**: Rise.works Payment API  
-**Version**: 1.0.0  
-**Date**: November 2025  
+**Project**: Trading Alerts SaaS V7
+**Component**: Automated Affiliate Commission Payment System
+**Integration**: Rise.works Payment API
+**Version**: 1.1.0
+**Date**: December 2025
 **Document Type**: Architecture Design (What Is)
+
+---
+
+## ⚠️ Framework Compliance Notice
+
+> **IMPORTANT**: This project uses **Next.js 15 + TypeScript + Prisma ORM**.
+>
+> This architecture document defines the **conceptual design** (database schema, data flows, security).
+> For the **actual implementation**, refer to:
+>
+> **📖 Primary Implementation Guide:**
+> `prompt-with-testing-framework-to-claude-code/Non-split with TDD/part19-riseworks-disbursement-tdd.md`
+>
+> **Framework Stack:**
+> - Frontend/Backend: Next.js 15 (App Router)
+> - Language: TypeScript (strict mode)
+> - ORM: Prisma 5
+> - Database: PostgreSQL 15
+> - Testing: Jest
+> - API Pattern: `app/api/disbursement/*/route.ts`
+>
+> The Python/Flask code examples in this document are for **conceptual reference only**.
+> All actual code MUST be implemented in TypeScript following the TDD prompt.
 
 ---
 

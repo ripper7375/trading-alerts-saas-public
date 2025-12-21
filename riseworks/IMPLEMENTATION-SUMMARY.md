@@ -1,8 +1,19 @@
 # Rise Payment Integration - Implementation Summary
 
 **Project**: Trading Alerts SaaS V7
-**Date**: November 2025
-**Status**: Implementation Plan Complete ✅
+**Date**: December 2025
+**Status**: TDD Implementation Prompt Ready ✅
+
+---
+
+## ⚠️ Framework Update Notice
+
+> **The actual implementation uses Next.js 15 + TypeScript + Prisma.**
+>
+> **📖 Primary Implementation Guide:**
+> `prompt-with-testing-framework-to-claude-code/Non-split with TDD/part19-riseworks-disbursement-tdd.md`
+>
+> The Python/Flask references in this summary are for **conceptual reference only**.
 
 ---
 

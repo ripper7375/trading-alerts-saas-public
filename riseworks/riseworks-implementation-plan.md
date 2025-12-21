@@ -3,9 +3,51 @@
 **Project**: Trading Alerts SaaS V7
 **Component**: Automated Affiliate Commission Payment System
 **Integration**: Rise.works Payment API
-**Version**: 1.0.0
-**Date**: November 2025
+**Version**: 1.1.0
+**Date**: December 2025
 **Document Type**: Implementation Plan (How To Build)
+
+---
+
+## ⚠️ DEPRECATED - Framework Migration Notice
+
+> **IMPORTANT**: This document contains **Python/Flask/SQLAlchemy** implementation details.
+>
+> **The Trading Alerts SaaS project uses Next.js 15 + TypeScript + Prisma.**
+>
+> This document is retained as **conceptual reference** for:
+> - Business logic patterns
+> - Algorithm documentation
+> - Data flow understanding
+>
+> ---
+>
+> ## 📖 Use the Correct Implementation Guide
+>
+> **For actual implementation, use:**
+> `prompt-with-testing-framework-to-claude-code/Non-split with TDD/part19-riseworks-disbursement-tdd.md`
+>
+> **This TDD prompt provides:**
+> - ✅ Next.js 15 App Router API routes
+> - ✅ TypeScript interfaces and types
+> - ✅ Prisma schema additions
+> - ✅ Jest test files with TDD approach
+> - ✅ 54 files (38 production + 16 test)
+> - ✅ Consistent with Parts 1-18
+>
+> ---
+>
+> ## Framework Mapping (Python → TypeScript)
+>
+> | Python/Flask | Next.js/TypeScript |
+> |-------------|-------------------|
+> | SQLAlchemy models | Prisma schema |
+> | Alembic migrations | Prisma migrate |
+> | Flask routes | `app/api/*/route.ts` |
+> | Pydantic schemas | Zod validation |
+> | pytest | Jest |
+> | `requirements.txt` | `package.json` |
+> | `.env` (dotenv) | `.env.local` (Next.js) |
 
 ---
 
