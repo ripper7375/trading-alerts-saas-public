@@ -115,7 +115,9 @@ describe('PaymentOrchestrator', () => {
           const txn = mockBatch.transactions.find(
             (t) => (t as any).transactionId === where.transactionId
           );
-          return Promise.resolve(txn ? { ...txn, commissionId: 'comm-1' } : null);
+          return Promise.resolve(
+            txn ? { ...txn, commissionId: (txn as any).commissionId } : null
+          );
         }
       );
       (mockPrisma.disbursementTransaction.update as jest.Mock).mockResolvedValue({});

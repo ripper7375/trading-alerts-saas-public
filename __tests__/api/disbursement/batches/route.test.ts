@@ -26,16 +26,42 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-// Mock BatchManager
-const mockGetAllBatches = jest.fn();
-const mockCreateBatch = jest.fn();
-
-jest.mock('@/lib/disbursement/services/batch-manager', () => ({
-  BatchManager: jest.fn().mockImplementation(() => ({
-    getAllBatches: mockGetAllBatches,
-    createBatch: mockCreateBatch,
-  })),
-}));
+// Mock BatchManager - use inline jest.fn() to avoid hoisting issues
+jest.mock('@/lib/disbursement/services/batch-manager', () => {
+  return {
+    BatchManager: jest.fn().mockImplementation(() => ({
+      getAllBatches: jest.fn().mockResolvedValue([
+        {
+          id: 'batch-001',
+          batchNumber: 'BATCH-2025-001',
+          paymentCount: 5,
+          totalAmount: 500.0,
+          status: 'PENDING',
+          transactions: [],
+          createdAt: new Date('2025-01-01'),
+        },
+        {
+          id: 'batch-002',
+          batchNumber: 'BATCH-2025-002',
+          paymentCount: 3,
+          totalAmount: 300.0,
+          status: 'COMPLETED',
+          transactions: [],
+          createdAt: new Date('2025-01-02'),
+        },
+      ]),
+      createBatch: jest.fn().mockResolvedValue({
+        id: 'batch-new',
+        batchNumber: 'BATCH-2025-NEW',
+        paymentCount: 2,
+        totalAmount: 200.0,
+        status: 'PENDING',
+        transactions: [],
+        createdAt: new Date(),
+      }),
+    })),
+  };
+});
 
 // Mock CommissionAggregator
 jest.mock('@/lib/disbursement/services/commission-aggregator', () => ({
@@ -74,27 +100,6 @@ import { requireAdmin } from '@/lib/auth/session';
 describe('GET /api/disbursement/batches', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Set up mock return values
-    mockGetAllBatches.mockResolvedValue([
-      {
-        id: 'batch-001',
-        batchNumber: 'BATCH-2025-001',
-        paymentCount: 5,
-        totalAmount: 500.0,
-        status: 'PENDING',
-        transactions: [],
-        createdAt: new Date('2025-01-01'),
-      },
-      {
-        id: 'batch-002',
-        batchNumber: 'BATCH-2025-002',
-        paymentCount: 3,
-        totalAmount: 300.0,
-        status: 'COMPLETED',
-        transactions: [],
-        createdAt: new Date('2025-01-02'),
-      },
-    ]);
   });
 
   it('should return all batches for admin', async () => {
@@ -148,16 +153,6 @@ describe('GET /api/disbursement/batches', () => {
 describe('POST /api/disbursement/batches', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Set up mock return values
-    mockCreateBatch.mockResolvedValue({
-      id: 'batch-new',
-      batchNumber: 'BATCH-2025-NEW',
-      paymentCount: 2,
-      totalAmount: 200.0,
-      status: 'PENDING',
-      transactions: [],
-      createdAt: new Date(),
-    });
   });
 
   it('should create a new batch', async () => {
