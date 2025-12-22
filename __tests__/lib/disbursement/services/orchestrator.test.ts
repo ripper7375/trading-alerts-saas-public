@@ -24,6 +24,7 @@ jest.mock('@/lib/db/prisma', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
+      createMany: jest.fn(),
     },
     commission: {
       update: jest.fn(),
@@ -52,6 +53,7 @@ describe('PaymentOrchestrator', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
+        createMany: jest.fn(),
       },
       commission: {
         update: jest.fn(),

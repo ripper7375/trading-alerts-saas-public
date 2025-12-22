@@ -104,15 +104,18 @@ describe('BatchManager', () => {
       expect(batch.id).toBe('batch-123');
       expect(batch.totalAmount).toBe(175.0);
       expect(batch.paymentCount).toBe(2);
-      expect(mockPrisma.paymentBatch.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          paymentCount: 2,
-          totalAmount: 175.0,
-          currency: 'USD',
-          provider: 'MOCK',
-          status: 'PENDING',
-        }),
-      });
+      expect(mockPrisma.paymentBatch.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            paymentCount: 2,
+            totalAmount: 175.0,
+            currency: 'USD',
+            provider: 'MOCK',
+            status: 'PENDING',
+          }),
+          include: expect.any(Object),
+        })
+      );
     });
 
     it('should create batch with single aggregate', async () => {
