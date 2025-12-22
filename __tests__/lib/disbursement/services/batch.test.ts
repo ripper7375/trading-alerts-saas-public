@@ -86,8 +86,14 @@ describe('BatchManager', () => {
         currency: 'USD',
         provider: 'MOCK',
         status: 'PENDING',
+        scheduledAt: null,
+        executedAt: null,
+        completedAt: null,
+        failedAt: null,
+        errorMessage: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        transactions: [],
       };
 
       (mockPrisma.paymentBatch.create as jest.Mock).mockResolvedValue(mockBatch);
@@ -129,8 +135,14 @@ describe('BatchManager', () => {
         currency: 'USD',
         provider: 'RISE',
         status: 'PENDING',
+        scheduledAt: null,
+        executedAt: null,
+        completedAt: null,
+        failedAt: null,
+        errorMessage: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        transactions: [],
       };
 
       (mockPrisma.paymentBatch.create as jest.Mock).mockResolvedValue(mockBatch);
