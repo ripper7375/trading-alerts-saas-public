@@ -106,7 +106,6 @@ export async function GET(
         pendingCommissions: profile.commissions.map((c) => ({
           id: c.id,
           amount: Number(c.commissionAmount),
-          type: c.commissionType,
           createdAt: c.createdAt,
         })),
       },

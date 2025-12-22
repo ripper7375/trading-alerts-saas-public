@@ -329,7 +329,7 @@ describe('BatchManager', () => {
     });
 
     it('should filter by status', async () => {
-      const mockBatches = [{ id: 'batch-1', status: 'COMPLETED' }];
+      const mockBatches = [{ id: 'batch-1', status: 'COMPLETED', transactions: [] }];
 
       (mockPrisma.paymentBatch.findMany as jest.Mock).mockResolvedValue(mockBatches);
 
