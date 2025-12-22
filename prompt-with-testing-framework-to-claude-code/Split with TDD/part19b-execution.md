@@ -1698,7 +1698,7 @@ npx prisma migrate dev
 
 ## Reference Documents
 
-1. **Part 19A completion** - Foundation layer
+1. **riseworks/completion-of-part19a.md** - Foundation layer
 2. **PROGRESS-part-2.md** - Database setup
 3. **docs/policies/05-coding-patterns-part-1.md** - Coding standards
 4. **riseworks/riseworks-api-overview-for-disbursement-integration.md** - API details
