@@ -51,10 +51,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     await requireAdmin();
 
     const { searchParams } = new URL(request.url);
-    const validation = querySchema.safeParse({
-      status: searchParams.get('status'),
-      limit: searchParams.get('limit'),
-    });
+    // Convert null to undefined so Zod can apply defaults properly
+    const statusParam = searchParams.get('status') || undefined;
+    const limitParam = searchParams.get('limit') || undefined;
+    const validation = querySchema.safeParse({ status: statusParam, limit: limitParam });
 
     if (!validation.success) {
       return NextResponse.json(

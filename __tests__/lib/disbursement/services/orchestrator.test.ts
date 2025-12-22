@@ -112,9 +112,11 @@ describe('PaymentOrchestrator', () => {
       (mockPrisma.paymentBatch.update as jest.Mock).mockResolvedValue({});
       (mockPrisma.disbursementTransaction.findUnique as jest.Mock).mockImplementation(
         ({ where }) => {
-          const txn = mockBatch.transactions.find(
-            (t) => (t as any).transactionId === where.transactionId
-          );
+          // Handle both transactionId lookup (orchestrator) and id lookup (retry handler)
+          const txn = mockBatch.transactions.find((t) => {
+            const txnAny = t as any;
+            return txnAny.transactionId === where.transactionId || txnAny.id === where.id;
+          });
           return Promise.resolve(
             txn ? { ...txn, commissionId: (txn as any).commissionId } : null
           );
@@ -163,13 +165,18 @@ describe('PaymentOrchestrator', () => {
 
       (mockPrisma.paymentBatch.findUnique as jest.Mock).mockResolvedValue(mockBatch);
       (mockPrisma.paymentBatch.update as jest.Mock).mockResolvedValue({});
-      (mockPrisma.disbursementTransaction.findUnique as jest.Mock).mockResolvedValue({
-        id: 'txn-1',
-        transactionId: 'TXN-001',
-        commissionId: 'comm-1',
-        retryCount: 0,
-        status: 'PENDING',
-      });
+      (mockPrisma.disbursementTransaction.findUnique as jest.Mock).mockImplementation(
+        ({ where }) => {
+          // Handle both transactionId lookup and id lookup
+          const txn = mockBatch.transactions.find((t) => {
+            const txnAny = t as any;
+            return txnAny.transactionId === where.transactionId || txnAny.id === where.id;
+          });
+          return Promise.resolve(
+            txn ? { ...txn, commissionId: (txn as any).commissionId } : null
+          );
+        }
+      );
       (mockPrisma.disbursementTransaction.update as jest.Mock).mockResolvedValue({});
       (mockPrisma.commission.update as jest.Mock).mockResolvedValue({});
       (mockPrisma.disbursementAuditLog.create as jest.Mock).mockResolvedValue({});

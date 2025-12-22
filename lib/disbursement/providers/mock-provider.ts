@@ -109,7 +109,8 @@ export class MockPaymentProvider extends PaymentProvider {
       `Sending payment of $${request.amount} to ${request.riseId}`
     );
 
-    const transactionId = generateTransactionId();
+    // Use provided transaction ID from metadata if available, otherwise generate one
+    const transactionId = request.metadata?.transactionId || generateTransactionId();
 
     // Validate request
     if (request.amount <= 0) {

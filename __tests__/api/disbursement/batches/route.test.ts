@@ -26,39 +26,52 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// Mock disbursement constants - ensure isValidProvider returns true
+jest.mock('@/lib/disbursement/constants', () => {
+  const actual = jest.requireActual('@/lib/disbursement/constants');
+  return {
+    ...actual,
+    isValidProvider: jest.fn().mockReturnValue(true),
+  };
+});
+
 // Mock BatchManager - use inline jest.fn() to avoid hoisting issues
 jest.mock('@/lib/disbursement/services/batch-manager', () => {
+  const mockBatches = [
+    {
+      id: 'batch-001',
+      batchNumber: 'BATCH-2025-001',
+      paymentCount: 5,
+      totalAmount: 500.0,
+      status: 'PENDING',
+      transactions: [],
+      createdAt: new Date('2025-01-01'),
+    },
+    {
+      id: 'batch-002',
+      batchNumber: 'BATCH-2025-002',
+      paymentCount: 3,
+      totalAmount: 300.0,
+      status: 'COMPLETED',
+      transactions: [],
+      createdAt: new Date('2025-01-02'),
+    },
+  ];
+
+  const mockNewBatch = {
+    id: 'batch-new',
+    batchNumber: 'BATCH-2025-NEW',
+    paymentCount: 2,
+    totalAmount: 200.0,
+    status: 'PENDING',
+    transactions: [],
+    createdAt: new Date(),
+  };
+
   return {
     BatchManager: jest.fn().mockImplementation(() => ({
-      getAllBatches: jest.fn().mockResolvedValue([
-        {
-          id: 'batch-001',
-          batchNumber: 'BATCH-2025-001',
-          paymentCount: 5,
-          totalAmount: 500.0,
-          status: 'PENDING',
-          transactions: [],
-          createdAt: new Date('2025-01-01'),
-        },
-        {
-          id: 'batch-002',
-          batchNumber: 'BATCH-2025-002',
-          paymentCount: 3,
-          totalAmount: 300.0,
-          status: 'COMPLETED',
-          transactions: [],
-          createdAt: new Date('2025-01-02'),
-        },
-      ]),
-      createBatch: jest.fn().mockResolvedValue({
-        id: 'batch-new',
-        batchNumber: 'BATCH-2025-NEW',
-        paymentCount: 2,
-        totalAmount: 200.0,
-        status: 'PENDING',
-        transactions: [],
-        createdAt: new Date(),
-      }),
+      getAllBatches: jest.fn().mockResolvedValue(mockBatches),
+      createBatch: jest.fn().mockResolvedValue(mockNewBatch),
     })),
   };
 });

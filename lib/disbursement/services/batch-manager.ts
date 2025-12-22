@@ -32,6 +32,11 @@ export interface PaymentBatchWithTransactions {
     id: string;
     status: string;
     amount: number;
+    transactionId?: string;
+    commissionId?: string;
+    payeeRiseId?: string | null;
+    currency?: string;
+    retryCount?: number;
     commission?: unknown;
     affiliateRiseAccount?: unknown;
   }>;
@@ -139,18 +144,27 @@ export class BatchManager {
     const batch = await this.prisma.paymentBatch.findUnique({
       where: { id: batchId },
       include: {
-        transactions: {
-          include: {
-            commission: true,
-            affiliateRiseAccount: true,
-          },
-        },
+        transactions: true,
       },
     });
 
     if (!batch) {
       return null;
     }
+
+    // Cast transaction to access all fields
+    type FullTransaction = {
+      id: string;
+      status: string;
+      amount: number | { toNumber?: () => number };
+      transactionId?: string;
+      commissionId?: string;
+      payeeRiseId?: string | null;
+      currency?: string;
+      retryCount?: number;
+      commission?: unknown;
+      affiliateRiseAccount?: unknown;
+    };
 
     return {
       id: batch.id,
@@ -167,13 +181,23 @@ export class BatchManager {
       errorMessage: batch.errorMessage,
       createdAt: batch.createdAt,
       updatedAt: batch.updatedAt,
-      transactions: batch.transactions.map((t) => ({
-        id: t.id,
-        status: t.status,
-        amount: Number(t.amount),
-        commission: t.commission,
-        affiliateRiseAccount: t.affiliateRiseAccount,
-      })),
+      transactions: batch.transactions.map((t) => {
+        const txn = t as unknown as FullTransaction;
+        return {
+          id: txn.id,
+          status: txn.status,
+          amount: typeof txn.amount === 'object' && txn.amount?.toNumber
+            ? txn.amount.toNumber()
+            : Number(txn.amount),
+          transactionId: txn.transactionId,
+          commissionId: txn.commissionId,
+          payeeRiseId: txn.payeeRiseId,
+          currency: txn.currency,
+          retryCount: txn.retryCount,
+          commission: txn.commission,
+          affiliateRiseAccount: txn.affiliateRiseAccount,
+        };
+      }),
     };
   }
 
