@@ -10,11 +10,8 @@ import type {
   PaymentBatch,
   DisbursementProvider,
   PaymentBatchStatus,
-  Prisma,
 } from '@prisma/client';
-
-// Transaction client type for $transaction callbacks
-type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+import { Prisma } from '@prisma/client';
 import type { CommissionAggregate } from '@/types/disbursement';
 import { generateBatchNumber, generateTransactionId, MAX_BATCH_SIZE } from '../constants';
 import { TransactionLogger } from './transaction-logger';
@@ -70,7 +67,7 @@ export class BatchManager {
     const batchNumber = generateBatchNumber();
 
     // Create batch with transactions in a transaction
-    const batch = await this.prisma.$transaction(async (tx: TransactionClient) => {
+    const batch = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Create the batch
       const newBatch = await tx.paymentBatch.create({
         data: {
@@ -279,7 +276,7 @@ export class BatchManager {
     }
 
     // Delete in transaction to ensure consistency
-    await this.prisma.$transaction(async (tx: TransactionClient) => {
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Delete audit logs first
       await tx.disbursementAuditLog.deleteMany({
         where: { batchId },
