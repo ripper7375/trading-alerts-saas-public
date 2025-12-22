@@ -5,7 +5,7 @@
  * Logs batch creation, execution, payment success/failure, and retries.
  */
 
-import type { PrismaClient, AuditLogStatus, Prisma } from '@prisma/client';
+import type { PrismaClient, AuditLogStatus, Prisma, DisbursementAuditLog } from '@prisma/client';
 
 /**
  * Audit log entry interface
@@ -275,7 +275,7 @@ export class TransactionLogger {
       take: limit,
     });
 
-    return logs.map((log) => ({
+    return logs.map((log: DisbursementAuditLog) => ({
       action: log.action,
       status: log.status,
       details: log.details as Record<string, unknown> | undefined,
@@ -300,7 +300,7 @@ export class TransactionLogger {
       take: limit,
     });
 
-    return logs.map((log) => ({
+    return logs.map((log: DisbursementAuditLog) => ({
       action: log.action,
       status: log.status,
       details: log.details as Record<string, unknown> | undefined,

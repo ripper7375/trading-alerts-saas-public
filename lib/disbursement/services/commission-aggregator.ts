@@ -5,8 +5,20 @@
  * Groups commissions and calculates totals for batch payment processing.
  */
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient, Commission, AffiliateProfile, AffiliateRiseAccount, User } from '@prisma/client';
 import type { CommissionAggregate, PayableAffiliate, RiseWorksKycStatus } from '@/types/disbursement';
+
+// Type for commission with affiliate profile
+type CommissionWithProfile = Commission & {
+  affiliateProfile: AffiliateProfile;
+};
+
+// Type for affiliate with commissions and rise account
+type AffiliateWithDetails = AffiliateProfile & {
+  user: Pick<User, 'email'>;
+  commissions: Commission[];
+  riseAccount: AffiliateRiseAccount | null;
+};
 import { MINIMUM_PAYOUT_USD } from '../constants';
 
 /**
@@ -37,7 +49,7 @@ export class CommissionAggregator {
     });
 
     const totalAmount = commissions.reduce(
-      (sum, comm) => sum + Number(comm.commissionAmount),
+      (sum: number, comm: Commission) => sum + Number(comm.commissionAmount),
       0
     );
 
@@ -45,7 +57,7 @@ export class CommissionAggregator {
 
     return {
       affiliateId,
-      commissionIds: commissions.map((c) => c.id),
+      commissionIds: commissions.map((c: Commission) => c.id),
       totalAmount,
       commissionCount: commissions.length,
       oldestDate: commissions[0]?.createdAt ?? new Date(),
@@ -77,9 +89,9 @@ export class CommissionAggregator {
     });
 
     // Group by affiliate
-    const groupedByAffiliate = new Map<string, typeof commissions>();
+    const groupedByAffiliate = new Map<string, CommissionWithProfile[]>();
 
-    for (const comm of commissions) {
+    for (const comm of commissions as CommissionWithProfile[]) {
       const affiliateId = comm.affiliateProfileId;
       const existing = groupedByAffiliate.get(affiliateId) ?? [];
       existing.push(comm);
@@ -91,14 +103,14 @@ export class CommissionAggregator {
 
     for (const [affiliateId, comms] of groupedByAffiliate) {
       const totalAmount = comms.reduce(
-        (sum, c) => sum + Number(c.commissionAmount),
+        (sum: number, c: CommissionWithProfile) => sum + Number(c.commissionAmount),
         0
       );
 
       if (totalAmount >= MINIMUM_PAYOUT_USD) {
         aggregates.push({
           affiliateId,
-          commissionIds: comms.map((c) => c.id),
+          commissionIds: comms.map((c: CommissionWithProfile) => c.id),
           totalAmount,
           commissionCount: comms.length,
           oldestDate: comms[0]?.createdAt ?? new Date(),
@@ -146,10 +158,10 @@ export class CommissionAggregator {
       },
     });
 
-    return affiliatesWithCommissions
-      .map((affiliate) => {
+    return (affiliatesWithCommissions as AffiliateWithDetails[])
+      .map((affiliate: AffiliateWithDetails) => {
         const pendingAmount = affiliate.commissions.reduce(
-          (sum, c) => sum + Number(c.commissionAmount),
+          (sum: number, c: Commission) => sum + Number(c.commissionAmount),
           0
         );
 
@@ -184,7 +196,7 @@ export class CommissionAggregator {
           },
         };
       })
-      .filter((a) => a.pendingAmount >= MINIMUM_PAYOUT_USD);
+      .filter((a: PayableAffiliate) => a.pendingAmount >= MINIMUM_PAYOUT_USD);
   }
 
   /**

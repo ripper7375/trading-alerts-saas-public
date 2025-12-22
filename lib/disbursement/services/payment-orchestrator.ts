@@ -207,7 +207,7 @@ export class PaymentOrchestrator {
     for (const paymentResult of result.results) {
       // Find the corresponding transaction by transactionId
       const transaction = batch.transactions.find(
-        (t) => t.transactionId === paymentResult.transactionId
+        (t: BatchTransaction) => t.transactionId === paymentResult.transactionId
       );
 
       if (!transaction) {

@@ -202,7 +202,7 @@ export class RetryHandler {
       select: { id: true },
     });
 
-    return transactions.map((t) => t.id);
+    return transactions.map((t: { id: string }) => t.id);
   }
 
   /**
@@ -221,7 +221,7 @@ export class RetryHandler {
       select: { id: true },
     });
 
-    return transactions.map((t) => t.id);
+    return transactions.map((t: { id: string }) => t.id);
   }
 
   /**
