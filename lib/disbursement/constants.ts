@@ -123,11 +123,20 @@ export function meetsMinimumPayout(amount: number): boolean {
 }
 
 /**
+ * Retry config type for function parameters
+ */
+export interface RetryConfigParams {
+  initialDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+}
+
+/**
  * Calculate delay for exponential backoff
  */
 export function calculateBackoffDelay(
   attempt: number,
-  config = DEFAULT_RETRY_CONFIG
+  config: RetryConfigParams = DEFAULT_RETRY_CONFIG
 ): number {
   const delay = config.initialDelay * Math.pow(config.backoffMultiplier, attempt - 1);
   return Math.min(delay, config.maxDelay);
@@ -148,7 +157,7 @@ export function isTransactionFinal(status: string): boolean {
 export function canRetryTransaction(
   status: string,
   retryCount: number,
-  maxAttempts = DEFAULT_RETRY_CONFIG.maxAttempts
+  maxAttempts: number = DEFAULT_RETRY_CONFIG.maxAttempts
 ): boolean {
   return (
     RETRYABLE_TRANSACTION_STATUSES.includes(

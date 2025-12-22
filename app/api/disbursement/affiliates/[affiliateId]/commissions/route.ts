@@ -57,38 +57,14 @@ export async function GET(
         status: 'APPROVED',
         disbursementTransaction: null,
       },
-      include: {
-        subscription: {
-          select: {
-            user: {
-              select: {
-                email: true,
-                name: true,
-              },
-            },
-            tier: true,
-          },
-        },
-      },
       orderBy: { createdAt: 'desc' },
     });
 
     // Calculate summary
     const totalAmount = commissions.reduce(
-      (sum, comm) => sum + Number(comm.commissionAmount),
+      (sum: number, comm) => sum + Number(comm.commissionAmount),
       0
     );
-
-    // Group by type
-    const byType: Record<string, { count: number; amount: number }> = {};
-    for (const comm of commissions) {
-      const type = comm.commissionType;
-      if (!byType[type]) {
-        byType[type] = { count: 0, amount: 0 };
-      }
-      byType[type].count++;
-      byType[type].amount += Number(comm.commissionAmount);
-    }
 
     return NextResponse.json({
       affiliateId,
@@ -96,21 +72,17 @@ export async function GET(
       commissions: commissions.map((c) => ({
         id: c.id,
         amount: Number(c.commissionAmount),
-        type: c.commissionType,
+        grossRevenue: Number(c.grossRevenue),
+        netRevenue: Number(c.netRevenue),
         status: c.status,
+        earnedAt: c.earnedAt,
         createdAt: c.createdAt,
-        referredUser: c.subscription?.user
-          ? {
-              email: c.subscription.user.email,
-              name: c.subscription.user.name,
-            }
-          : null,
-        subscriptionTier: c.subscription?.tier,
+        userId: c.userId,
+        subscriptionId: c.subscriptionId,
       })),
       summary: {
         count: commissions.length,
         totalAmount,
-        byType,
         oldestCommission:
           commissions.length > 0
             ? commissions[commissions.length - 1]?.createdAt

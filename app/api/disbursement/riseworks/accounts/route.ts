@@ -62,8 +62,8 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         riseId: account.riseId,
         email: account.email,
         kycStatus: account.kycStatus,
-        inviteSentAt: account.inviteSentAt,
-        inviteAcceptedAt: account.inviteAcceptedAt,
+        invitationSentAt: account.invitationSentAt,
+        invitationAcceptedAt: account.invitationAcceptedAt,
         lastSyncAt: account.lastSyncAt,
         createdAt: account.createdAt,
         affiliate: {
