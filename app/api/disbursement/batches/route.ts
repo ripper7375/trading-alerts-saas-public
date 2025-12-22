@@ -15,6 +15,11 @@ import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
+import type { BatchListView } from '@/lib/disbursement/query-patterns';
+import type { CommissionAggregate } from '@/types/disbursement';
+
+// Transaction type from BatchListView
+type BatchListTransaction = BatchListView['transactions'][number];
 
 /**
  * Validation schema for batch creation
@@ -65,7 +70,7 @@ export async function GET(
     const stats = await batchManager.getBatchStats();
 
     return NextResponse.json({
-      batches: batches.map((batch) => ({
+      batches: batches.map((batch: BatchListView) => ({
         id: batch.id,
         batchNumber: batch.batchNumber,
         status: batch.status,
@@ -81,9 +86,9 @@ export async function GET(
         createdAt: batch.createdAt,
         transactionSummary: {
           total: batch.transactions.length,
-          pending: batch.transactions.filter((t) => t.status === 'PENDING').length,
-          completed: batch.transactions.filter((t) => t.status === 'COMPLETED').length,
-          failed: batch.transactions.filter((t) => t.status === 'FAILED').length,
+          pending: batch.transactions.filter((t: BatchListTransaction) => t.status === 'PENDING').length,
+          completed: batch.transactions.filter((t: BatchListTransaction) => t.status === 'COMPLETED').length,
+          failed: batch.transactions.filter((t: BatchListTransaction) => t.status === 'FAILED').length,
         },
       })),
       pagination: {
@@ -149,11 +154,11 @@ export async function POST(
     const batchManager = new BatchManager(prisma);
 
     // Get aggregates
-    let aggregates;
+    let aggregates: CommissionAggregate[];
     if (affiliateIds && affiliateIds.length > 0) {
       // Get aggregates for specific affiliates
       aggregates = await Promise.all(
-        affiliateIds.map((id) => aggregator.getAggregatesByAffiliate(id))
+        affiliateIds.map((id: string) => aggregator.getAggregatesByAffiliate(id))
       );
     } else {
       // Get all payable affiliates
@@ -161,7 +166,7 @@ export async function POST(
     }
 
     // Filter to only payable aggregates
-    const payableAggregates = aggregates.filter((agg) => agg.canPayout);
+    const payableAggregates = aggregates.filter((agg: CommissionAggregate) => agg.canPayout);
 
     if (payableAggregates.length === 0) {
       return NextResponse.json(

@@ -8,11 +8,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { DisbursementAuditLog } from '@prisma/client';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
+import type { BatchTransaction } from '@/lib/disbursement/query-patterns';
 
 interface RouteParams {
   params: Promise<{ batchId: string }>;
@@ -53,21 +55,21 @@ export async function GET(
     // Calculate transaction stats
     const transactionStats = {
       total: batch.transactions.length,
-      pending: batch.transactions.filter((t) => t.status === 'PENDING').length,
-      processing: batch.transactions.filter((t) => t.status === 'PROCESSING').length,
-      completed: batch.transactions.filter((t) => t.status === 'COMPLETED').length,
-      failed: batch.transactions.filter((t) => t.status === 'FAILED').length,
-      cancelled: batch.transactions.filter((t) => t.status === 'CANCELLED').length,
+      pending: batch.transactions.filter((t: BatchTransaction) => t.status === 'PENDING').length,
+      processing: batch.transactions.filter((t: BatchTransaction) => t.status === 'PROCESSING').length,
+      completed: batch.transactions.filter((t: BatchTransaction) => t.status === 'COMPLETED').length,
+      failed: batch.transactions.filter((t: BatchTransaction) => t.status === 'FAILED').length,
+      cancelled: batch.transactions.filter((t: BatchTransaction) => t.status === 'CANCELLED').length,
     };
 
     // Calculate amounts
     const completedAmount = batch.transactions
-      .filter((t) => t.status === 'COMPLETED')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .filter((t: BatchTransaction) => t.status === 'COMPLETED')
+      .reduce((sum: number, t: BatchTransaction) => sum + Number(t.amount), 0);
 
     const failedAmount = batch.transactions
-      .filter((t) => t.status === 'FAILED' || t.status === 'CANCELLED')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .filter((t: BatchTransaction) => t.status === 'FAILED' || t.status === 'CANCELLED')
+      .reduce((sum: number, t: BatchTransaction) => sum + Number(t.amount), 0);
 
     return NextResponse.json({
       batch: {
@@ -87,7 +89,7 @@ export async function GET(
         updatedAt: batch.updatedAt,
       },
 
-      transactions: batch.transactions.map((txn) => ({
+      transactions: batch.transactions.map((txn: BatchTransaction) => ({
         id: txn.id,
         transactionId: txn.transactionId,
         providerTxId: txn.providerTxId,
@@ -132,7 +134,7 @@ export async function GET(
             : 0,
       },
 
-      auditLogs: batch.auditLogs.map((log) => ({
+      auditLogs: batch.auditLogs.map((log: DisbursementAuditLog) => ({
         id: log.id,
         action: log.action,
         status: log.status,

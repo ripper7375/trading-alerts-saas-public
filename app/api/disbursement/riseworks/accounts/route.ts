@@ -9,10 +9,28 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import type { AffiliateRiseAccount, RiseWorksKycStatus } from '@prisma/client';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
+
+// Type for accounts with included affiliateProfile
+type RiseAccountWithProfile = AffiliateRiseAccount & {
+  affiliateProfile: {
+    id: string;
+    fullName: string;
+    country: string;
+    status: string;
+    user: { email: string };
+  };
+};
+
+// Type for status count groupBy result
+type KycStatusCount = {
+  kycStatus: RiseWorksKycStatus;
+  _count: number;
+};
 
 /**
  * Validation schema for creating a RiseWorks account
@@ -78,13 +96,16 @@ export async function GET(
       _count: true,
     });
 
-    const countsByStatus = statusCounts.reduce((acc, item) => {
-      acc[item.kycStatus] = item._count;
-      return acc;
-    }, {} as Record<string, number>);
+    const countsByStatus = statusCounts.reduce(
+      (acc: Record<string, number>, item: KycStatusCount) => {
+        acc[item.kycStatus] = item._count;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     return NextResponse.json({
-      accounts: accounts.map((acc) => ({
+      accounts: accounts.map((acc: RiseAccountWithProfile) => ({
         id: acc.id,
         affiliateProfileId: acc.affiliateProfileId,
         affiliateName: acc.affiliateProfile.fullName,

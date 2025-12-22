@@ -13,8 +13,26 @@ import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
+import type { CommissionAggregate } from '@/types/disbursement';
 import { PayoutCalculator } from '@/lib/disbursement/services/payout-calculator';
 import { MINIMUM_PAYOUT_USD } from '@/lib/disbursement/constants';
+
+interface PreviewItem {
+  affiliateId: string;
+  affiliateName: string;
+  affiliateEmail: string;
+  commissionCount: number;
+  grossAmount: number;
+  feeAmount: number;
+  netAmount: number;
+  eligible: boolean;
+  eligibilityIssues: string[];
+  riseAccountStatus: {
+    riseId: string | undefined;
+    kycStatus: string | undefined;
+    canReceivePayment: boolean;
+  } | null;
+}
 
 /**
  * Validation schema for batch preview
@@ -63,18 +81,18 @@ export async function POST(
     const aggregator = new CommissionAggregator(prisma);
 
     // Get aggregates
-    let aggregates;
+    let aggregates: CommissionAggregate[];
     if (affiliateIds && affiliateIds.length > 0) {
       aggregates = await Promise.all(
-        affiliateIds.map((id) => aggregator.getAggregatesByAffiliate(id))
+        affiliateIds.map((id: string) => aggregator.getAggregatesByAffiliate(id))
       );
     } else {
       aggregates = await aggregator.getAllPayableAffiliates();
     }
 
     // Get affiliate details for each aggregate
-    const preview = await Promise.all(
-      aggregates.map(async (agg) => {
+    const preview: PreviewItem[] = await Promise.all(
+      aggregates.map(async (agg: CommissionAggregate) => {
         const profile = await prisma.affiliateProfile.findUnique({
           where: { id: agg.affiliateId },
           include: {
@@ -124,21 +142,21 @@ export async function POST(
     );
 
     // Calculate summary
-    const eligiblePreview = preview.filter((p) => p.eligible);
+    const eligiblePreview = preview.filter((p: PreviewItem) => p.eligible);
     const totalGrossAmount = eligiblePreview.reduce(
-      (sum, p) => sum + p.grossAmount,
+      (sum: number, p: PreviewItem) => sum + p.grossAmount,
       0
     );
     const totalFeeAmount = eligiblePreview.reduce(
-      (sum, p) => sum + p.feeAmount,
+      (sum: number, p: PreviewItem) => sum + p.feeAmount,
       0
     );
     const totalNetAmount = eligiblePreview.reduce(
-      (sum, p) => sum + p.netAmount,
+      (sum: number, p: PreviewItem) => sum + p.netAmount,
       0
     );
     const totalCommissions = eligiblePreview.reduce(
-      (sum, p) => sum + p.commissionCount,
+      (sum: number, p: PreviewItem) => sum + p.commissionCount,
       0
     );
 
@@ -158,13 +176,13 @@ export async function POST(
       eligibilityBreakdown: {
         eligible: eligiblePreview.length,
         belowMinimum: preview.filter(
-          (p) => p.grossAmount < MINIMUM_PAYOUT_USD
+          (p: PreviewItem) => p.grossAmount < MINIMUM_PAYOUT_USD
         ).length,
         noRiseAccount: preview.filter(
-          (p) => !p.riseAccountStatus
+          (p: PreviewItem) => !p.riseAccountStatus
         ).length,
         kycPending: preview.filter(
-          (p) => p.riseAccountStatus && p.riseAccountStatus.kycStatus !== 'APPROVED'
+          (p: PreviewItem) => p.riseAccountStatus && p.riseAccountStatus.kycStatus !== 'APPROVED'
         ).length,
       },
     });

@@ -7,11 +7,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { Commission, DisbursementTransaction, PaymentBatch } from '@prisma/client';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
+
+type DisbursementWithBatch = DisbursementTransaction & {
+  batch: Pick<PaymentBatch, 'batchNumber' | 'executedAt'>;
+};
 
 interface RouteParams {
   params: Promise<{ affiliateId: string }>;
@@ -120,7 +125,7 @@ export async function GET(
       },
 
       // Pending commissions
-      pendingCommissions: profile.commissions.map((comm) => ({
+      pendingCommissions: profile.commissions.map((comm: Commission) => ({
         id: comm.id,
         amount: Number(comm.commissionAmount),
         currency: 'USD',
@@ -132,7 +137,7 @@ export async function GET(
       })),
 
       // Recent disbursements
-      disbursementHistory: disbursementHistory.map((txn) => ({
+      disbursementHistory: disbursementHistory.map((txn: DisbursementWithBatch) => ({
         id: txn.id,
         transactionId: txn.transactionId,
         amount: Number(txn.amount),

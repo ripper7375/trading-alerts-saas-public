@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { Commission } from '@prisma/client';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
@@ -74,7 +75,7 @@ export async function GET(
 
     // Calculate totals
     const totalAmount = commissions.reduce(
-      (sum, comm) => sum + Number(comm.commissionAmount),
+      (sum: number, comm: Commission) => sum + Number(comm.commissionAmount),
       0
     );
 
@@ -90,7 +91,7 @@ export async function GET(
       affiliateId,
       affiliateName: affiliate.fullName,
 
-      commissions: commissions.map((comm) => ({
+      commissions: commissions.map((comm: Commission) => ({
         id: comm.id,
         amount: Number(comm.commissionAmount),
         currency: 'USD',
