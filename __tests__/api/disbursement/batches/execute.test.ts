@@ -60,10 +60,17 @@ jest.mock('@/lib/disbursement/providers/provider-factory', () => ({
 }));
 
 import { requireAdmin } from '@/lib/auth/session';
+import { prisma } from '@/lib/db/prisma';
 
 describe('POST /api/disbursement/batches/[batchId]/execute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default mock for findUnique - returns a valid PENDING batch
+    (prisma.paymentBatch.findUnique as jest.Mock).mockResolvedValue({
+      id: 'batch-123',
+      status: 'PENDING',
+      provider: 'MOCK',
+    });
   });
 
   it('should execute batch successfully', async () => {
@@ -114,22 +121,29 @@ describe('POST /api/disbursement/batches/[batchId]/execute', () => {
       user: { id: 'admin-123', role: 'ADMIN' },
     });
 
+    // Mock batch exists with PENDING status so orchestrator gets called
+    (prisma.paymentBatch.findUnique as jest.Mock).mockResolvedValue({
+      id: 'batch-error',
+      status: 'PENDING',
+      provider: 'MOCK',
+    });
+
     // Mock orchestrator to throw
     const { PaymentOrchestrator } = await import(
       '@/lib/disbursement/services/payment-orchestrator'
     );
     (PaymentOrchestrator as jest.Mock).mockImplementation(() => ({
-      executeBatch: jest.fn().mockRejectedValue(new Error('Batch not found')),
+      executeBatch: jest.fn().mockRejectedValue(new Error('Provider error')),
     }));
 
     const request = new NextRequest(
-      'http://localhost:3000/api/disbursement/batches/nonexistent/execute',
+      'http://localhost:3000/api/disbursement/batches/batch-error/execute',
       {
         method: 'POST',
       }
     );
 
-    const params = { batchId: 'nonexistent' };
+    const params = { batchId: 'batch-error' };
     const response = await POST(request, { params: Promise.resolve(params) });
     const data = await response.json();
 

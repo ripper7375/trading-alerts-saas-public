@@ -136,7 +136,7 @@ describe('BatchManager', () => {
       (mockPrisma.paymentBatch.create as jest.Mock).mockResolvedValue(mockBatch);
       (mockPrisma.disbursementAuditLog.create as jest.Mock).mockResolvedValue({});
 
-      const batch = await manager.createBatch(aggregates, 'RISE');
+      const batch = await manager.createBatch(aggregates, 'RISE', 'admin-user');
 
       expect(batch.paymentCount).toBe(1);
       expect(batch.totalAmount).toBe(50.0);
