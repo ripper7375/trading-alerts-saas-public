@@ -96,12 +96,13 @@ export function isValidProvider(
 
 /**
  * Generate a unique batch number
- * Format: BATCH-YYYY-XXXXXXXX
+ * Format: BATCH-YYYY-TIMESTAMPRANDOM
  */
 export function generateBatchNumber(): string {
   const year = new Date().getFullYear();
   const timestamp = Date.now().toString(36).toUpperCase();
-  return `BATCH-${year}-${timestamp}`;
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `BATCH-${year}-${timestamp}${random}`;
 }
 
 /**
