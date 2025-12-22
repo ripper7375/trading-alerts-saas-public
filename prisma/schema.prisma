@@ -403,6 +403,7 @@ model AffiliateProfile {
   // Relationships
   affiliateCodes    AffiliateCode[]
   commissions       Commission[]
+  riseAccount       AffiliateRiseAccount?  // Part 19: RiseWorks account for payouts
 
   @@index([userId])
   @@index([status])
@@ -479,6 +480,9 @@ model Commission {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  // Part 19: Disbursement relationship
+  disbursementTransaction DisbursementTransaction?
+
   @@index([affiliateProfileId])
   @@index([status])
   @@index([earnedAt])
@@ -525,5 +529,236 @@ model Notification {
 
   @@index([userId])
   @@index([userId, read])
+  @@index([createdAt])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RISEWORKS DISBURSEMENT SYSTEM (Part 19)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum RiseWorksKycStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentBatchStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementTransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementProvider {
+  RISE
+  MOCK
+}
+
+enum AuditLogStatus {
+  SUCCESS
+  FAILURE
+  WARNING
+  INFO
+}
+
+model AffiliateRiseAccount {
+  id                   String   @id @default(cuid())
+
+  // Link to existing Part 17 AffiliateProfile
+  affiliateProfileId   String   @unique
+  affiliateProfile     AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  // RiseWorks Account Info
+  riseId               String   @unique  // Blockchain address
+  email                String
+
+  // KYC Status
+  kycStatus            RiseWorksKycStatus @default(PENDING)
+  kycCompletedAt       DateTime?
+
+  // Invitation Tracking
+  invitationSentAt     DateTime?
+  invitationAcceptedAt DateTime?
+
+  // Sync Status
+  lastSyncAt           DateTime?
+  metadata             Json?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relationships
+  disbursementTransactions DisbursementTransaction[]
+
+  @@index([affiliateProfileId])
+  @@index([riseId])
+  @@index([kycStatus])
+}
+
+model PaymentBatch {
+  id              String   @id @default(cuid())
+
+  // Batch Identification
+  batchNumber     String   @unique
+
+  // Batch Summary
+  paymentCount    Int      @default(0)
+  totalAmount     Decimal  @default(0)
+  currency        String   @default("USD")
+
+  // Provider
+  provider        DisbursementProvider
+
+  // Status
+  status          PaymentBatchStatus @default(PENDING)
+
+  // Timestamps
+  scheduledAt     DateTime?
+  executedAt      DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+
+  // Error Handling
+  errorMessage    String?
+  metadata        Json?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  transactions    DisbursementTransaction[]
+  auditLogs       DisbursementAuditLog[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([provider])
+  @@index([batchNumber])
+}
+
+model DisbursementTransaction {
+  id                String   @id @default(cuid())
+
+  // Batch Reference
+  batchId           String
+  batch             PaymentBatch @relation(fields: [batchId], references: [id])
+
+  // Commission Reference (from Part 17)
+  commissionId      String   @unique
+  commission        Commission @relation(fields: [commissionId], references: [id])
+
+  // Transaction IDs
+  transactionId     String   @unique
+  providerTxId      String?
+
+  // Provider
+  provider          DisbursementProvider
+
+  // Payee Info
+  affiliateRiseAccountId String?
+  affiliateRiseAccount   AffiliateRiseAccount? @relation(fields: [affiliateRiseAccountId], references: [id])
+  payeeRiseId       String?
+
+  // Amount
+  amount            Decimal
+  amountRiseUnits   BigInt?
+  currency          String   @default("USD")
+
+  // Status
+  status            DisbursementTransactionStatus @default(PENDING)
+
+  // Retry Logic
+  retryCount        Int      @default(0)
+  lastRetryAt       DateTime?
+
+  // Error Handling
+  errorMessage      String?
+  metadata          Json?
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+  failedAt          DateTime?
+
+  // Relationships
+  webhookEvents     RiseWorksWebhookEvent[]
+  auditLogs         DisbursementAuditLog[]
+
+  @@index([batchId])
+  @@index([commissionId])
+  @@index([status])
+  @@index([providerTxId])
+  @@index([createdAt])
+}
+
+model RiseWorksWebhookEvent {
+  id              String   @id @default(cuid())
+
+  // Transaction Reference
+  transactionId   String?
+  transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
+
+  // Event Info
+  eventType       String
+  provider        DisbursementProvider
+
+  // Payload
+  payload         Json
+
+  // Verification
+  signature       String?
+  hash            String?
+  verified        Boolean  @default(false)
+
+  // Processing Status
+  processed       Boolean  @default(false)
+  processedAt     DateTime?
+  errorMessage    String?
+
+  receivedAt      DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([eventType])
+  @@index([processed])
+  @@index([receivedAt])
+}
+
+model DisbursementAuditLog {
+  id              String   @id @default(cuid())
+
+  // References
+  transactionId   String?
+  transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
+  batchId         String?
+  batch           PaymentBatch? @relation(fields: [batchId], references: [id])
+
+  // Action Info
+  action          String
+  actor           String?
+
+  // Status
+  status          AuditLogStatus
+
+  // Details
+  details         Json?
+  ipAddress       String?
+  userAgent       String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([batchId])
+  @@index([action])
   @@index([createdAt])
 }
