@@ -283,8 +283,10 @@ describe('PaymentOrchestrator', () => {
 
       // Mock reset for retry
       mockPrisma.disbursementTransaction.updateMany = jest.fn().mockResolvedValue({ count: 1 });
-      // Mock batch lookup
-      mockPrisma.paymentBatch.findUnique = jest.fn().mockResolvedValue(mockBatch);
+      // Mock batch lookup - first call returns FAILED, second call returns QUEUED (after status update)
+      mockPrisma.paymentBatch.findUnique = jest.fn()
+        .mockResolvedValueOnce(mockBatch) // First call in retryFailedTransactions
+        .mockResolvedValueOnce({ ...mockBatch, status: 'QUEUED' }); // Second call in executeBatch
       mockPrisma.paymentBatch.count = jest.fn().mockResolvedValue(0);
       mockPrisma.paymentBatch.update = jest.fn().mockResolvedValue({});
       mockPrisma.disbursementTransaction.update = jest.fn().mockResolvedValue({});

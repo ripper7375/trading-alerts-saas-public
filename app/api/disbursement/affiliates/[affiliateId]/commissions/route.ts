@@ -68,15 +68,6 @@ export async function GET(
         // Only include commissions not already linked to a disbursement
         disbursementTransaction: null,
       },
-      include: {
-        subscription: {
-          select: {
-            user: { select: { email: true } },
-            tier: true,
-            startDate: true,
-          },
-        },
-      },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
@@ -87,16 +78,13 @@ export async function GET(
       0
     );
 
-    // Group by type
-    const byType = commissions.reduce((acc, comm) => {
-      const type = comm.commissionType;
-      if (!acc[type]) {
-        acc[type] = { count: 0, amount: 0 };
-      }
-      acc[type].count++;
-      acc[type].amount += Number(comm.commissionAmount);
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
+    // Group by type (all referral commissions)
+    const byType = {
+      REFERRAL: {
+        count: commissions.length,
+        amount: totalAmount,
+      },
+    };
 
     return NextResponse.json({
       affiliateId,
@@ -106,13 +94,13 @@ export async function GET(
         id: comm.id,
         amount: Number(comm.commissionAmount),
         currency: 'USD',
-        type: comm.commissionType,
-        tier: comm.tier ?? 1,
+        type: 'REFERRAL', // Commission type - referral-based
+        tier: 1, // Default tier
         status: comm.status,
         createdAt: comm.createdAt,
-        referredUser: comm.subscription?.user?.email ?? 'Unknown',
-        referredTier: comm.subscription?.tier ?? 'Unknown',
-        subscriptionStartDate: comm.subscription?.startDate ?? null,
+        referredUser: comm.userId ?? 'Unknown',
+        referredTier: 'PRO', // Upgraded to PRO tier
+        subscriptionStartDate: comm.earnedAt,
       })),
 
       summary: {

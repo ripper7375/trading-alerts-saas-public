@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
@@ -26,7 +27,7 @@ import { createPaymentProvider } from '@/lib/disbursement/providers/provider-fac
  * @returns 500 - Server error
  */
 export async function POST(
-  request: NextRequest
+  _request: NextRequest
 ): Promise<NextResponse> {
   try {
     // Require admin access
@@ -116,7 +117,7 @@ export async function POST(
           updatedCount,
           errorCount: errors.length,
           errors: errors.slice(0, 10), // Only log first 10 errors
-        },
+        } as Prisma.InputJsonValue,
       },
     });
 

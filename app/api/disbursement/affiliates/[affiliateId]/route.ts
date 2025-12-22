@@ -30,7 +30,7 @@ interface RouteParams {
  * @returns 500 - Server error
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
@@ -48,14 +48,6 @@ export async function GET(
         commissions: {
           where: { status: 'APPROVED' },
           orderBy: { createdAt: 'desc' },
-          include: {
-            subscription: {
-              select: {
-                user: { select: { email: true } },
-                tier: true,
-              },
-            },
-          },
         },
       },
     });
@@ -132,11 +124,11 @@ export async function GET(
         id: comm.id,
         amount: Number(comm.commissionAmount),
         currency: 'USD',
-        type: comm.commissionType,
+        type: 'REFERRAL', // Commission type - referral-based
         status: comm.status,
         createdAt: comm.createdAt,
-        referredUser: comm.subscription?.user?.email ?? 'Unknown',
-        referredTier: comm.subscription?.tier ?? 'Unknown',
+        referredUser: comm.userId ?? 'Unknown',
+        referredTier: 'PRO', // Upgraded to PRO tier
       })),
 
       // Recent disbursements

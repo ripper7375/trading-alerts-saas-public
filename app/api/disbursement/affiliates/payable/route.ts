@@ -24,7 +24,7 @@ import { CommissionAggregator } from '@/lib/disbursement/services/commission-agg
  * @returns 500 - Server error
  */
 export async function GET(
-  request: NextRequest
+  _request: NextRequest
 ): Promise<NextResponse> {
   try {
     // Require admin access

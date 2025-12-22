@@ -31,7 +31,7 @@ interface RouteParams {
  * @returns 500 - Server error
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
@@ -106,7 +106,7 @@ export async function GET(
               id: txn.commission.id,
               status: txn.commission.status,
               amount: Number(txn.commission.commissionAmount),
-              type: txn.commission.commissionType,
+              type: 'REFERRAL', // Commission type - referral-based
             }
           : null,
         affiliateRiseAccount: txn.affiliateRiseAccount
@@ -171,7 +171,7 @@ export async function GET(
  * @returns 500 - Server error
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {

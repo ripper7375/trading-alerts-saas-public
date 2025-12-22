@@ -5,7 +5,7 @@
  * Logs batch creation, execution, payment success/failure, and retries.
  */
 
-import type { PrismaClient, AuditLogStatus } from '@prisma/client';
+import type { PrismaClient, AuditLogStatus, Prisma } from '@prisma/client';
 
 /**
  * Audit log entry interface
@@ -38,7 +38,7 @@ export class TransactionLogger {
         data: {
           action: entry.action,
           status: entry.status,
-          details: entry.details ?? {},
+          details: (entry.details ?? {}) as Prisma.InputJsonValue,
           transactionId: entry.transactionId,
           batchId: entry.batchId,
           actor: entry.actor,
