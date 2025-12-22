@@ -6,7 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import type { CommissionAggregate, PayableAffiliate } from '@/types/disbursement';
+import type { CommissionAggregate, PayableAffiliate, RiseWorksKycStatus } from '@/types/disbursement';
 import { MINIMUM_PAYOUT_USD } from '../constants';
 
 /**
@@ -178,8 +178,8 @@ export class CommissionAggregator {
             hasAccount: hasRiseAccount,
             riseId: affiliate.riseAccount?.riseId,
             kycStatus: hasRiseAccount
-              ? affiliate.riseAccount?.kycStatus ?? 'PENDING'
-              : 'none',
+              ? (affiliate.riseAccount?.kycStatus as RiseWorksKycStatus) ?? 'PENDING'
+              : 'none' as const,
             canReceivePayments,
           },
         };
