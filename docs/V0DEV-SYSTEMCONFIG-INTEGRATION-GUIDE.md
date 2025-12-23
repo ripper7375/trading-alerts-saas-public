@@ -1,8 +1,9 @@
-# v0.dev + SystemConfig Integration Guide
+# Claude Code (Web) + SystemConfig Integration Guide
 
 **Project:** Trading Alerts SaaS V7
-**Purpose:** Guide for updating existing v0.dev pages and creating new ones with SystemConfig compatibility
+**Purpose:** Guide for updating existing UI pages and creating new ones with SystemConfig compatibility using Claude Code (web)
 **Created:** 2025-11-16
+**Updated:** 2025-12-23
 **Target:** All UI frontend pages and dashboards
 
 ---
@@ -10,8 +11,8 @@
 ## 📖 TABLE OF CONTENTS
 
 1. [Overview](#overview)
-2. [Retrofitting Existing v0.dev Pages](#retrofitting-existing-v0dev-pages)
-3. [Creating New v0.dev Pages](#creating-new-v0dev-pages)
+2. [Retrofitting Existing Pages](#retrofitting-existing-pages)
+3. [Creating New Pages](#creating-new-pages)
 4. [Common Patterns to Update](#common-patterns-to-update)
 5. [Verification Checklist](#verification-checklist)
 6. [Examples](#examples)
@@ -22,7 +23,7 @@
 
 ### The Problem
 
-You previously asked v0.dev to create ~20 UI pages with **hardcoded** percentages:
+You previously had ~20 UI pages created with **hardcoded** percentages:
 
 ```tsx
 ❌ BAD (Hardcoded):
@@ -66,16 +67,16 @@ export default function Component() {
 
 ---
 
-## 🔄 Retrofitting Existing v0.dev Pages
+## 🔄 Retrofitting Existing Pages
 
-### Workflow Overview
+### Workflow Overview with Claude Code (Web)
 
 ```
 Step 1: Identify pages with hardcoded percentages
-Step 2: Prepare v0.dev prompt with SYSTEMCONFIG-USAGE-GUIDE.md
-Step 3: Upload to v0.dev and get updated code
-Step 4: Copy updated code to your project
-Step 5: Verify it works
+Step 2: Ask Claude Code to update the file with SystemConfig
+Step 3: Claude Code reads the file and SYSTEMCONFIG-USAGE-GUIDE.md
+Step 4: Claude Code updates the code directly in your project
+Step 5: Review the changes and verify
 Step 6: Repeat for next page
 ```
 
@@ -83,14 +84,14 @@ Step 6: Repeat for next page
 
 ## 📝 PROMPT TEMPLATE 1: Update Existing Page
 
-### Copy this prompt to v0.dev:
+### Use this prompt with Claude Code (web):
 
-````markdown
-I need to update this existing React/Next.js component to use dynamic affiliate discount and commission percentages from a centralized configuration system (SystemConfig) instead of hardcoded values.
+```markdown
+Please update the file `[FILE_PATH]` to use dynamic affiliate discount and commission percentages from our SystemConfig system instead of hardcoded values.
 
 ## Context
 
-I've attached SYSTEMCONFIG-USAGE-GUIDE.md which explains the SystemConfig system. Please read it carefully before making changes.
+Please read `docs/SYSTEMCONFIG-USAGE-GUIDE.md` which explains our SystemConfig system.
 
 **Current Problem:**
 This component has hardcoded percentages (20%, 20%, $23.20, etc.) that need to become dynamic so admin can change them from a dashboard.
@@ -101,7 +102,7 @@ This component has hardcoded percentages (20%, 20%, $23.20, etc.) that need to b
 2. Use the hook to get current discount and commission percentages
 3. Replace ALL hardcoded percentages with dynamic values from the hook
 4. Use the `calculateDiscountedPrice()` helper for price calculations
-5. Keep the component as a client component ('use client')
+5. Ensure the component is a client component ('use client')
 
 ## Specific Requirements
 
@@ -110,7 +111,6 @@ This component has hardcoded percentages (20%, 20%, $23.20, etc.) that need to b
 ```typescript
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 ```
-````
 
 **Hook usage pattern:**
 
@@ -132,13 +132,9 @@ const {
 | `$5.80` (discount amount)   | `${(29.00 - calculateDiscountedPrice(29.00)).toFixed(2)}`                     |
 | `$4.64` (commission amount) | `${(calculateDiscountedPrice(29.00) * (commissionPercent / 100)).toFixed(2)}` |
 
-## Current Component Code
-
-[PASTE YOUR COMPONENT CODE HERE]
-
 ## Expected Output
 
-Please provide the updated component with:
+Please update the component with:
 
 1. Import statement added
 2. Hook called at top of component function
@@ -151,62 +147,47 @@ Please provide the updated component with:
 
 - Keep all styling, layout, and UI exactly the same
 - Only change the data source from hardcoded to dynamic
-- Ensure the component remains a client component ('use client')
+- Ensure the component is a client component ('use client')
 - Do NOT change component structure, props, or exports
-- Comments explaining the changes are appreciated
-
-````
+```
 
 ---
 
 ### How to Use This Prompt
 
-**Step 1: Go to your v0.dev chat where the component was created**
+**Step 1: Open Claude Code (web) in your project**
 
-**Step 2: Upload SYSTEMCONFIG-USAGE-GUIDE.md as an attachment**
-
-**Step 3: Copy the prompt above and paste it into v0.dev**
-
-**Step 4: Replace `[PASTE YOUR COMPONENT CODE HERE]` with your actual component code**
+**Step 2: Use the prompt above, replacing `[FILE_PATH]` with the actual file path**
 
 Example:
-```tsx
-// Replace this line:
-[PASTE YOUR COMPONENT CODE HERE]
+```
+Please update the file `components/pricing-section.tsx` to use dynamic affiliate...
+```
 
-// With your actual code:
-export default function PricingCard() {
-  return (
-    <div className="card">
-      <h2>PRO Plan</h2>
-      <p className="price">$23.20/month</p>
-      <p className="discount">Save 20%!</p>
-      <p className="commission">Affiliates earn 20% commission</p>
-    </div>
-  );
-}
-````
+**Step 3: Claude Code will:**
+- Read the file automatically
+- Read the SYSTEMCONFIG-USAGE-GUIDE.md
+- Update the code with the necessary changes
+- Show you the changes in a diff
 
-**Step 5: Send to v0.dev and wait for response**
+**Step 4: Review the changes and approve**
 
-**Step 6: Copy the updated code v0.dev provides**
-
-**Step 7: Verify the changes** (see Verification Checklist below)
+**Step 5: Verify the changes** (see Verification Checklist below)
 
 ---
 
-## 🆕 Creating New v0.dev Pages
+## 🆕 Creating New Pages
 
 ### PROMPT TEMPLATE 2: Create New Page with SystemConfig
 
-### Copy this prompt to v0.dev:
+### Use this prompt with Claude Code (web):
 
-````markdown
-I need to create a new [PAGE DESCRIPTION] component for my Next.js 15 application that displays affiliate discount and commission information.
+```markdown
+Please create a new [PAGE DESCRIPTION] component at `[FILE_PATH]` for my Next.js 15 application that displays affiliate discount and commission information.
 
 ## Important Requirements
 
-I've attached SYSTEMCONFIG-USAGE-GUIDE.md which explains our centralized configuration system (SystemConfig). Please read it carefully.
+Please read `docs/SYSTEMCONFIG-USAGE-GUIDE.md` which explains our centralized configuration system (SystemConfig).
 
 **CRITICAL:** This component MUST use dynamic affiliate discount and commission percentages from the `useAffiliateConfig` hook. DO NOT hardcode any percentages like "20%" or prices like "$23.20".
 
@@ -217,7 +198,6 @@ I've attached SYSTEMCONFIG-USAGE-GUIDE.md which explains our centralized configu
 ```typescript
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 ```
-````
 
 **2. Use the hook in component:**
 
@@ -277,18 +257,15 @@ Please provide a complete Next.js 15 client component that:
 3. Matches the design requirements
 4. Is fully responsive
 5. Includes loading and error states (from the hook)
-
-````
+```
 
 ---
 
 ### How to Use This Prompt
 
-**Step 1: Start a new v0.dev chat (or use existing one)**
+**Step 1: Open Claude Code (web) in your project**
 
-**Step 2: Upload SYSTEMCONFIG-USAGE-GUIDE.md as an attachment**
-
-**Step 3: Copy the prompt above and customize it:**
+**Step 2: Copy the prompt above and customize it:**
 
 Replace `[PAGE DESCRIPTION]` with your page type:
 - "affiliate dashboard earnings page"
@@ -296,11 +273,20 @@ Replace `[PAGE DESCRIPTION]` with your page type:
 - "affiliate program landing page"
 - "checkout page with discount code input"
 
+Replace `[FILE_PATH]` with where you want the file created:
+- `components/affiliate/earnings-page.tsx`
+- `components/pricing/comparison-table.tsx`
+
 Replace `[DESCRIBE YOUR COMPONENT REQUIREMENTS HERE]` with specific features you want.
 
 Replace `[DESCRIBE DESIGN/STYLE PREFERENCES HERE]` with your styling preferences.
 
-**Step 4: Send to v0.dev**
+**Step 3: Send to Claude Code (web)**
+
+**Step 4: Claude Code will:**
+- Read the SYSTEMCONFIG-USAGE-GUIDE.md
+- Create the component file with proper SystemConfig integration
+- Show you the complete code
 
 **Step 5: Review the generated code to ensure:**
 - ✅ It imports `useAffiliateConfig` from `@/lib/hooks/useAffiliateConfig`
@@ -309,7 +295,7 @@ Replace `[DESCRIBE DESIGN/STYLE PREFERENCES HERE]` with your styling preferences
 - ✅ It uses `{commissionPercent}%` not `20%`
 - ✅ It uses `calculateDiscountedPrice()` not hardcoded `$23.20`
 
-**Step 6: If v0.dev still hardcodes values, use this follow-up prompt:**
+**Step 6: If Claude Code still hardcodes values, use this follow-up prompt:**
 
 ```markdown
 I notice the code still has hardcoded percentages (20%, $23.20, etc.).
@@ -322,7 +308,7 @@ Please revise the component to use the dynamic values from useAffiliateConfig ho
 - Replace "$5.80" with ${(29.00 - calculateDiscountedPrice(29.00)).toFixed(2)}
 
 The component should display different values if admin changes the percentages from 20%/20% to 25%/25% or any other combination.
-````
+```
 
 ---
 
@@ -330,7 +316,7 @@ The component should display different values if admin changes the percentages f
 
 ### Pattern 1: Hardcoded Discount Percentage in Text
 
-**Before (v0.dev generated):**
+**Before:**
 
 ```tsx
 <p className="text-sm text-green-600">Save 20% with affiliate code!</p>
@@ -567,7 +553,7 @@ const finalPrice = useMemo(() => {
 
 ## ✅ Verification Checklist
 
-After v0.dev updates your code, verify these items:
+After Claude Code updates your code, verify these items:
 
 ### Import Check
 
@@ -613,56 +599,23 @@ After v0.dev updates your code, verify these items:
 
 ### Example 1: Marketing Homepage Pricing Section
 
-**Original v0.dev Code (Hardcoded):**
+**Prompt to Claude Code:**
 
-```tsx
-// components/pricing-section.tsx
-export default function PricingSection() {
-  return (
-    <section className="py-20 bg-gradient-to-b from-purple-50 to-white">
-      <div className="container mx-auto px-4">
-        <h2 className="text-4xl font-bold text-center mb-12">
-          Simple, Transparent Pricing
-        </h2>
+```markdown
+Please update the file `components/pricing-section.tsx` to use dynamic percentages from our SystemConfig system.
 
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">PRO Plan</h3>
+Read `docs/SYSTEMCONFIG-USAGE-GUIDE.md` for context.
 
-            {/* ❌ Hardcoded prices */}
-            <div className="mb-6">
-              <p className="text-5xl font-bold text-purple-600">
-                $23.20
-                <span className="text-lg text-gray-500">/month</span>
-              </p>
-              <p className="text-sm text-gray-400 line-through">$29.00</p>
-              <p className="text-green-600 font-semibold mt-2">
-                Save 20% with affiliate code!
-              </p>
-            </div>
+Please update this component to:
 
-            <div className="bg-purple-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-purple-800">
-                💡 Have a referral code? Get 20% off this month!
-              </p>
-            </div>
-
-            <button className="w-full bg-purple-600 text-white py-3 rounded-lg">
-              Get Started
-            </button>
-          </div>
-        </div>
-
-        <p className="text-center text-sm text-gray-600 mt-8">
-          Become an affiliate and earn 20% commission on every sale!
-        </p>
-      </div>
-    </section>
-  );
-}
+1. Import useAffiliateConfig from '@/lib/hooks/useAffiliateConfig'
+2. Replace hardcoded 20% discount with {discountPercent}%
+3. Replace hardcoded 20% commission with {commissionPercent}%
+4. Replace $23.20 with calculateDiscountedPrice(29.00)
+5. Add 'use client' directive if not present
 ```
 
-**Updated Code (SystemConfig Compatible):**
+**Result (Claude Code will update the file):**
 
 ```tsx
 // components/pricing-section.tsx
@@ -729,81 +682,25 @@ export default function PricingSection() {
 }
 ```
 
-**v0.dev Prompt Used:**
-
-```markdown
-I need to update this pricing section component to use dynamic percentages from our SystemConfig system.
-
-[Attached: SYSTEMCONFIG-USAGE-GUIDE.md]
-
-Please update this component to:
-
-1. Import useAffiliateConfig from '@/lib/hooks/useAffiliateConfig'
-2. Replace hardcoded 20% discount with {discountPercent}%
-3. Replace hardcoded 20% commission with {commissionPercent}%
-4. Replace $23.20 with calculateDiscountedPrice(29.00)
-5. Add 'use client' directive
-
-Current code:
-[pasted the original code above]
-```
-
 ---
 
 ### Example 2: Affiliate Dashboard Earnings Widget
 
-**Original v0.dev Code (Hardcoded):**
+**Prompt to Claude Code:**
 
-```tsx
-// components/affiliate/earnings-widget.tsx
-export default function EarningsWidget({
-  salesCount = 0,
-}: {
-  salesCount: number;
-}) {
-  // ❌ Hardcoded commission percentage and price
-  const commissionPerSale = 4.64;
-  const totalEarnings = salesCount * commissionPerSale;
+```markdown
+Please update the file `components/affiliate/earnings-widget.tsx` to use dynamic commission percentages and prices from our SystemConfig system.
 
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Your Earnings</h3>
+Read `docs/SYSTEMCONFIG-USAGE-GUIDE.md` for context.
 
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm text-gray-600">Commission Rate</p>
-          <p className="text-2xl font-bold text-purple-600">20%</p>
-        </div>
+Replace:
+- Hardcoded commission percentage (20%)
+- Hardcoded price calculations ($4.64)
 
-        <div>
-          <p className="text-sm text-gray-600">Per Sale</p>
-          <p className="text-2xl font-bold">${commissionPerSale.toFixed(2)}</p>
-        </div>
-
-        <div>
-          <p className="text-sm text-gray-600">Total Sales</p>
-          <p className="text-2xl font-bold">{salesCount}</p>
-        </div>
-
-        <div className="border-t pt-4">
-          <p className="text-sm text-gray-600">Total Earnings</p>
-          <p className="text-3xl font-bold text-green-600">
-            ${totalEarnings.toFixed(2)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 p-4 bg-purple-50 rounded">
-        <p className="text-sm text-purple-800">
-          Each customer pays $23.20/month. You earn 20% of that!
-        </p>
-      </div>
-    </div>
-  );
-}
+With dynamic values from useAffiliateConfig hook.
 ```
 
-**Updated Code (SystemConfig Compatible):**
+**Result (Claude Code will update the file):**
 
 ```tsx
 // components/affiliate/earnings-widget.tsx
@@ -870,59 +767,22 @@ export default function EarningsWidget({
 
 ### Example 3: Checkout Page with Discount Code
 
-**Original v0.dev Code (Hardcoded):**
+**Prompt to Claude Code:**
 
-```tsx
-// components/checkout-summary.tsx
-export default function CheckoutSummary({
-  hasCode = false,
-}: {
-  hasCode: boolean;
-}) {
-  const regularPrice = 29.0;
-  const discountedPrice = hasCode ? 23.2 : regularPrice; // ❌ Hardcoded
+```markdown
+Please create a new checkout summary component at `components/checkout-summary.tsx` that:
 
-  return (
-    <div className="bg-gray-50 rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+1. Shows regular price and discounted price when affiliate code is applied
+2. Uses SystemConfig for dynamic discount percentages
+3. Reads `docs/SYSTEMCONFIG-USAGE-GUIDE.md` for the pattern
 
-      <div className="space-y-3">
-        <div className="flex justify-between">
-          <span>PRO Plan (Monthly)</span>
-          <span>${regularPrice.toFixed(2)}</span>
-        </div>
+Props:
+- hasCode: boolean (whether affiliate code is applied)
 
-        {hasCode && (
-          <>
-            <div className="flex justify-between text-green-600">
-              <span>Affiliate Discount (20%)</span>
-              <span>-$5.80</span>
-            </div>
-            <div className="border-t pt-3">
-              <p className="text-xs text-gray-600 mb-2">
-                🎉 You're saving 20% with this code!
-              </p>
-            </div>
-          </>
-        )}
-
-        <div className="border-t pt-3 flex justify-between text-xl font-bold">
-          <span>Total</span>
-          <span>${discountedPrice.toFixed(2)}</span>
-        </div>
-      </div>
-
-      {!hasCode && (
-        <div className="mt-4 p-3 bg-purple-50 rounded text-sm text-purple-800">
-          💡 Have an affiliate code? You could save 20%!
-        </div>
-      )}
-    </div>
-  );
-}
+Must use useAffiliateConfig hook - no hardcoded percentages or prices.
 ```
 
-**Updated Code (SystemConfig Compatible):**
+**Result (Claude Code will create the file):**
 
 ```tsx
 // components/checkout-summary.tsx
@@ -994,15 +854,13 @@ export default function CheckoutSummary({
 
 1. **Prepare**
    - List all 20 pages that need updating
-   - Have SYSTEMCONFIG-USAGE-GUIDE.md ready
+   - Open Claude Code (web) in your project
 
 2. **For Each Page:**
-   - Open the v0.dev chat where it was created
-   - Upload SYSTEMCONFIG-USAGE-GUIDE.md
-   - Use PROMPT TEMPLATE 1 (update existing page)
-   - Paste your current component code
-   - Get updated code from v0.dev
-   - Copy to your project
+   - Ask Claude Code to update the file using PROMPT TEMPLATE 1
+   - Claude Code reads the file and SYSTEMCONFIG-USAGE-GUIDE.md
+   - Claude Code updates the file directly
+   - Review the diff and approve changes
    - Verify using checklist
    - Commit changes
 
@@ -1021,21 +879,18 @@ export default function CheckoutSummary({
 **Step-by-Step Workflow:**
 
 1. **Prepare**
-   - Have SYSTEMCONFIG-USAGE-GUIDE.md ready
    - Know what page you want to create
+   - Open Claude Code (web) in your project
 
 2. **Create:**
-   - Start v0.dev chat
-   - Upload SYSTEMCONFIG-USAGE-GUIDE.md
-   - Use PROMPT TEMPLATE 2 (create new page)
-   - Customize the prompt with your requirements
-   - Get code from v0.dev
+   - Ask Claude Code to create the file using PROMPT TEMPLATE 2
+   - Claude Code reads SYSTEMCONFIG-USAGE-GUIDE.md
+   - Claude Code creates the file with proper SystemConfig integration
+   - Review the code
    - Verify it uses the hook correctly
-   - If not, use follow-up prompt
 
 3. **Implement:**
-   - Copy code to your project
-   - Test it works
+   - Test the component
    - Verify dynamic values display
    - Commit
 
@@ -1043,24 +898,24 @@ export default function CheckoutSummary({
 
 ## 📋 Quick Reference Card
 
-### The Golden Rules for v0.dev + SystemConfig
+### The Golden Rules for Claude Code (Web) + SystemConfig
 
 **✅ ALWAYS DO:**
 
-- Upload SYSTEMCONFIG-USAGE-GUIDE.md before asking v0.dev to update/create
+- Reference SYSTEMCONFIG-USAGE-GUIDE.md in your prompts
 - Use PROMPT TEMPLATE 1 for updating existing pages
 - Use PROMPT TEMPLATE 2 for creating new pages
 - Verify the code uses `useAffiliateConfig()` hook
-- Check for hardcoded percentages and replace them
+- Check for hardcoded percentages and ask Claude Code to replace them
 
 **❌ NEVER DO:**
 
-- Ask v0.dev to create affiliate-related pages without mentioning SystemConfig
-- Hardcode percentages like 20%, 20%, $23.20, etc.
-- Skip uploading SYSTEMCONFIG-USAGE-GUIDE.md
+- Ask Claude Code to create affiliate-related pages without mentioning SystemConfig
+- Accept code with hardcoded percentages like 20%, 20%, $23.20, etc.
+- Skip referencing SYSTEMCONFIG-USAGE-GUIDE.md in your prompts
 - Accept code with hardcoded values without requesting fixes
 
-**🔍 SEARCH FOR THESE IN v0.dev OUTPUT:**
+**🔍 SEARCH FOR THESE IN CLAUDE CODE OUTPUT:**
 
 - `20%` → Should be `{discountPercent}%` or `{commissionPercent}%`
 - `$23.20` → Should be `${calculateDiscountedPrice(29.00).toFixed(2)}`
@@ -1068,7 +923,7 @@ export default function CheckoutSummary({
 - `$4.64` → Should be calculated dynamically
 - `0.2` or `0.8` → Should use `discountPercent / 100`
 
-**✅ VERIFY THESE IN v0.dev OUTPUT:**
+**✅ VERIFY THESE IN CLAUDE CODE OUTPUT:**
 
 - `import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';`
 - `const { discountPercent, commissionPercent, calculateDiscountedPrice } = useAffiliateConfig();`
@@ -1079,7 +934,7 @@ export default function CheckoutSummary({
 
 ## 🎯 Success Criteria
 
-You'll know your v0.dev integration is successful when:
+You'll know your Claude Code (web) integration is successful when:
 
 ✅ **All existing pages updated:**
 
@@ -1090,7 +945,7 @@ You'll know your v0.dev integration is successful when:
 ✅ **New pages created correctly:**
 
 - Any new page you create uses the hook from the start
-- v0.dev consistently generates SystemConfig-compatible code
+- Claude Code consistently generates SystemConfig-compatible code
 - No need to manually retrofit new pages
 
 ✅ **Admin can change percentages:**
@@ -1101,7 +956,7 @@ You'll know your v0.dev integration is successful when:
 
 ✅ **Developers understand the system:**
 
-- Team knows to upload SYSTEMCONFIG-USAGE-GUIDE.md to v0.dev
+- Team knows to reference SYSTEMCONFIG-USAGE-GUIDE.md when using Claude Code
 - Team uses the prompt templates
 - Team verifies generated code before accepting
 
@@ -1109,12 +964,12 @@ You'll know your v0.dev integration is successful when:
 
 ## 📞 Need Help?
 
-If v0.dev generates code that still has hardcoded values:
+If Claude Code generates code that still has hardcoded values:
 
 **Use this follow-up prompt:**
 
 ```markdown
-I see the code still has hardcoded values. Please review SYSTEMCONFIG-USAGE-GUIDE.md again and update the code to:
+I see the code still has hardcoded values. Please review `docs/SYSTEMCONFIG-USAGE-GUIDE.md` again and update the code to:
 
 1. Import: `import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';`
 2. Use hook: `const { discountPercent, commissionPercent, calculateDiscountedPrice } = useAffiliateConfig();`
@@ -1123,13 +978,39 @@ I see the code still has hardcoded values. Please review SYSTEMCONFIG-USAGE-GUID
    - "20%" (commission) → `{commissionPercent}%`
    - "$23.20" → `${calculateDiscountedPrice(29.00).toFixed(2)}`
    - "$5.80" → `${(29.00 - calculateDiscountedPrice(29.00)).toFixed(2)}`
-   - "$4.64" → `${(calculateDiscountedPrice(29.00) \* (commissionPercent / 100)).toFixed(2)}`
+   - "$4.64" → `${(calculateDiscountedPrice(29.00) * (commissionPercent / 100)).toFixed(2)}`
 
 Please provide the complete updated component with NO hardcoded percentages or prices.
 ```
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2025-11-16
-**For:** Trading Alerts SaaS V7 - SystemConfig Integration with v0.dev
+## 🚀 Advantages of Claude Code (Web)
+
+**Compared to previous v0.dev workflow:**
+
+✅ **Direct File Access**
+- Claude Code reads files directly from your project
+- No need to manually upload guide documents
+- Seamless integration with your codebase
+
+✅ **In-Place Editing**
+- Claude Code edits files directly in your project
+- No copy/paste needed
+- See diffs before approving changes
+
+✅ **Context Awareness**
+- Claude Code understands your full project structure
+- Can reference other files and patterns
+- More consistent code generation
+
+✅ **Interactive Workflow**
+- Ask follow-up questions immediately
+- Iterate on changes quickly
+- Real-time verification
+
+---
+
+**Document Version:** 2.0.0
+**Last Updated:** 2025-12-23
+**For:** Trading Alerts SaaS V7 - SystemConfig Integration with Claude Code (Web)
