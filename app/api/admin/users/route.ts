@@ -43,20 +43,6 @@ interface AdminUserListResponse {
   totalPages: number;
 }
 
-interface PrismaUserWithCounts {
-  id: string;
-  name: string | null;
-  email: string;
-  tier: string;
-  role: string;
-  isActive: boolean;
-  createdAt: Date;
-  _count: {
-    alerts: number;
-    watchlists: number;
-  };
-}
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET HANDLER - List all users (admin only)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

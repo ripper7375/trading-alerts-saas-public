@@ -123,13 +123,15 @@ export async function downgradeExpiredSubscriptions(
           });
         }
 
-        result.downgrades.push({
-          userId: subscription.user.id,
-          email: subscription.user.email,
-          name: subscription.user.name,
-          subscriptionId: subscription.id,
-          expiredAt: subscription.expiresAt,
-        });
+        if (subscription.user) {
+          result.downgrades.push({
+            userId: subscription.user.id,
+            email: subscription.user.email,
+            name: subscription.user.name,
+            subscriptionId: subscription.id,
+            expiredAt: subscription.expiresAt,
+          });
+        }
 
         logger.info('User downgraded due to expired subscription', {
           userId: subscription.userId,

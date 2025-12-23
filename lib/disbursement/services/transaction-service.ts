@@ -64,8 +64,8 @@ export class TransactionService {
           commissionId,
           transactionId: generateTransactionId(),
           provider,
-          affiliateRiseAccountId: commission.affiliateProfile.riseAccount?.id,
-          payeeRiseId: commission.affiliateProfile.riseAccount?.riseId,
+          affiliateRiseAccountId: commission.affiliateProfile?.riseAccount?.id,
+          payeeRiseId: commission.affiliateProfile?.riseAccount?.riseId,
           amount: commission.commissionAmount,
           amountRiseUnits:
             provider === 'RISE'
@@ -262,9 +262,9 @@ export class TransactionService {
     };
 
     for (const item of counts) {
-      const status = item.status.toLowerCase() as keyof typeof result;
+      const status = (item['status'] as string).toLowerCase() as keyof typeof result;
       if (status in result) {
-        result[status] = item._count;
+        result[status] = item['_count'] as number;
       }
     }
 

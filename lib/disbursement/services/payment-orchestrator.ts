@@ -68,10 +68,11 @@ export class PaymentOrchestrator {
     // Update batch status to PROCESSING
     await this.batchManager.updateBatchStatus(batchId, 'PROCESSING');
 
-    type BatchTransaction = (typeof batch.transactions)[number];
+    const transactions = batch.transactions ?? [];
+    type BatchTransaction = (typeof transactions)[number];
 
     // Filter transactions that are ready for payment
-    const pendingTransactions = batch.transactions.filter(
+    const pendingTransactions = transactions.filter(
       (txn: BatchTransaction) => txn.status === 'PENDING'
     );
 
@@ -290,16 +291,17 @@ export class PaymentOrchestrator {
     const counts =
       await this.transactionService.getTransactionCountsByStatus(batchId);
 
-    type SummaryTransaction = (typeof batch.transactions)[number];
+    const batchTransactions = batch.transactions ?? [];
+    type SummaryTransaction = (typeof batchTransactions)[number];
 
-    const paidAmount = batch.transactions
+    const paidAmount = batchTransactions
       .filter((t: SummaryTransaction) => t.status === 'COMPLETED')
       .reduce((sum: number, t: SummaryTransaction) => sum + Number(t.amount), 0);
 
     return {
       batchId,
       status: batch.status,
-      totalTransactions: batch.transactions.length,
+      totalTransactions: batchTransactions.length,
       completed: counts.completed,
       failed: counts.failed,
       pending: counts.pending,

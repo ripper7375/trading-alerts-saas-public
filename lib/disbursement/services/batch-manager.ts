@@ -159,18 +159,18 @@ export class BatchManager {
         await this.logger.logBatchQueued(batchId);
         break;
       case 'PROCESSING':
-        updateData.executedAt = new Date();
+        updateData['executedAt'] = new Date();
         break;
       case 'COMPLETED':
-        updateData.completedAt = new Date();
+        updateData['completedAt'] = new Date();
         break;
       case 'FAILED':
-        updateData.failedAt = new Date();
-        updateData.errorMessage = errorMessage;
+        updateData['failedAt'] = new Date();
+        updateData['errorMessage'] = errorMessage;
         break;
       case 'CANCELLED':
-        updateData.failedAt = new Date();
-        updateData.errorMessage = errorMessage || 'Batch cancelled';
+        updateData['failedAt'] = new Date();
+        updateData['errorMessage'] = errorMessage || 'Batch cancelled';
         break;
     }
 
@@ -351,14 +351,14 @@ export class BatchManager {
 
     const byStatus: Record<string, number> = {};
     for (const item of statusCounts) {
-      byStatus[item.status] = item._count;
+      byStatus[item['status'] as string] = item['_count'] as number;
     }
 
     return {
-      total: batches._count,
+      total: batches['_count'] as number,
       byStatus,
-      totalAmount: Number(batches._sum.totalAmount ?? 0),
-      totalPayments: batches._sum.paymentCount ?? 0,
+      totalAmount: Number((batches['_sum'] as { totalAmount?: number } | undefined)?.totalAmount ?? 0),
+      totalPayments: (batches['_sum'] as { paymentCount?: number } | undefined)?.paymentCount ?? 0,
     };
   }
 }

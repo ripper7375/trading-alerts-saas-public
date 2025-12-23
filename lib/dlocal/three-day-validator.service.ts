@@ -76,11 +76,13 @@ export async function canPurchaseThreeDayPlan(
     }
 
     // Check if user has an active subscription
+    const sub = user.subscription;
     const hasActiveSubscription =
-      user.subscription !== null &&
-      user.subscription.status === 'ACTIVE' &&
-      (user.subscription.expiresAt === null ||
-        user.subscription.expiresAt > new Date());
+      sub !== null &&
+      sub !== undefined &&
+      sub.status === 'ACTIVE' &&
+      (sub.expiresAt === null ||
+        sub.expiresAt > new Date());
 
     if (hasActiveSubscription) {
       logger.info('User has active subscription, cannot purchase 3-day plan', {

@@ -100,8 +100,8 @@ export async function checkExpiringSubscriptions(
 
     for (const subscription of expiringSubscriptions) {
       try {
-        if (!subscription.user.email || !subscription.expiresAt) {
-          logger.warn('Skipping subscription - missing email or expiry', {
+        if (!subscription.user || !subscription.user.email || !subscription.expiresAt) {
+          logger.warn('Skipping subscription - missing user, email or expiry', {
             subscriptionId: subscription.id,
           });
           continue;
