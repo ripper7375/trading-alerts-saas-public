@@ -127,9 +127,9 @@ jobs:
         run: |
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "Bundle size: ${BUNDLE_SIZE}MB"
-          # Threshold increased from 250MB to 300MB for admin portal features (Part 17B)
-          if [ $BUNDLE_SIZE -gt 300 ]; then
-            echo "❌ Bundle size exceeds 300MB"
+          # Threshold increased from 300MB to 320MB for disbursement features (Part 19C)
+          if [ $BUNDLE_SIZE -gt 320 ]; then
+            echo "❌ Bundle size exceeds 320MB"
             exit 1
           fi
           echo "✅ Bundle size is acceptable"
