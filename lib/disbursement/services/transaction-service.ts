@@ -5,7 +5,7 @@
  * Bridges Commission records with disbursement transactions.
  */
 
-import { PrismaClient, DisbursementProvider } from '@prisma/client';
+import { PrismaClient, DisbursementProvider, DisbursementTransactionStatus } from '@prisma/client';
 import { generateTransactionId, usdToRiseUnits } from '../constants';
 
 /**
@@ -141,14 +141,14 @@ export class TransactionService {
    */
   async updateTransactionStatus(
     id: string,
-    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
+    status: DisbursementTransactionStatus,
     options?: {
       providerTxId?: string;
       errorMessage?: string;
     }
   ): Promise<void> {
     interface UpdateData {
-      status: string;
+      status: DisbursementTransactionStatus;
       completedAt?: Date;
       failedAt?: Date;
       errorMessage?: string;
