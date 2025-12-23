@@ -210,7 +210,7 @@ export class DisbursementProcessor {
       // Get all Rise accounts that have a riseId
       const accounts = await this.prisma.affiliateRiseAccount.findMany({
         where: {
-          NOT: { riseId: null },
+          riseId: { not: null },
         },
       });
 
