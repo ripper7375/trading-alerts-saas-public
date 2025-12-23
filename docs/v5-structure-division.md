@@ -1924,6 +1924,453 @@ docs/trading_alerts_openapi.yaml         # Add dLocal endpoints
 
 ---
 
+---
+
+## PART 19: RiseWorks Disbursement System (Automated Commission Payments)
+
+**Purpose:** Complete automated affiliate commission payment system using blockchain-based USDC payments through RiseWorks API. Enables automated, transparent, and compliant cross-border payments to affiliates worldwide.
+
+**Priority:** ⭐⭐ (Post-MVP, implement after Part 17) **Estimated Time:** 200 hours
+
+### Why Part 19 Exists
+
+**Business Problem:** Affiliates in Part 17 need to get paid their commissions. Traditional payment methods (bank transfers, PayPal) have issues:
+- High international transfer fees (5-10%)
+- Slow processing times (3-7 days)
+- Complex tax/compliance requirements
+- Limited country support
+- Currency conversion losses
+
+**Solution:** RiseWorks blockchain-based USDC payments:
+- ✅ Low fees (~1%)
+- ✅ Fast settlement (minutes to hours)
+- ✅ Built-in compliance (KYC/AML)
+- ✅ Global coverage (150+ countries)
+- ✅ Stable currency (USDC = $1.00)
+
+### Part 19 Structure (3 Sub-Parts)
+
+Part 19 is divided into three logical sub-parts for better organization and testing:
+
+```
+Part 19A (Foundation)      Part 19B (Execution)      Part 19C (Automation)
+┌─────────────────────┐    ┌──────────────────┐     ┌─────────────────┐
+│ • Database Schema   │ -> │ • Orchestration  │ ->  │ • Webhooks      │
+│ • Types & Constants │    │ • Batch Mgmt     │     │ • Reports       │
+│ • Providers (Mock)  │    │ • Admin APIs     │     │ • Cron Jobs     │
+│ • Commission Svc    │    │ • Payment Exec   │     │ • Audit Logs    │
+└─────────────────────┘    └──────────────────┘     └─────────────────┘
+   18 files (TDD)            19 files (Practical)     18 files (Practical)
+```
+
+---
+
+### Part 19A: Foundation & Core Payment Infrastructure
+
+**Approach:** Test-Driven Development (TDD)
+**Files:** 18 files (12 production + 6 test)
+**Complexity:** High
+**Dependencies:** Part 2 (Database), Part 5 (Auth), Part 17 (Affiliate Marketing)
+**Test Coverage:** 90%+
+
+#### Database Schema (5 new models)
+
+```
+prisma/schema.prisma (UPDATE - add to existing)
+```
+
+**New Models:**
+
+1. **AffiliateRiseAccount** - Links affiliates to RiseWorks blockchain addresses
+   - riseId (blockchain address)
+   - kycStatus (PENDING, APPROVED, REJECTED)
+   - invitationTracking
+
+2. **PaymentBatch** - Groups commission payments into batches
+   - batchNumber (unique identifier)
+   - paymentCount, totalAmount
+   - status (PENDING, PROCESSING, COMPLETED, FAILED)
+
+3. **DisbursementTransaction** - Individual payment transactions
+   - Links to Commission (one-to-one)
+   - providerTxId (from RiseWorks)
+   - status (PENDING, COMPLETED, FAILED)
+   - retryCount (automatic retry logic)
+
+4. **RiseWorksWebhookEvent** - Stores webhook events from RiseWorks
+   - eventType (payment.completed, payment.failed, etc.)
+   - payload, signature
+   - verified, processed flags
+
+5. **DisbursementAuditLog** - Compliance audit trail
+   - action, status
+   - links to transactions/batches
+   - actor, ipAddress tracking
+
+**New Enums:**
+
+```prisma
+enum RiseWorksKycStatus { PENDING, SUBMITTED, APPROVED, REJECTED, EXPIRED }
+enum PaymentBatchStatus { PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED }
+enum DisbursementTransactionStatus { PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED }
+enum DisbursementProvider { RISE, MOCK }
+enum AuditLogStatus { SUCCESS, FAILURE, WARNING, INFO }
+```
+
+#### Core Services
+
+```
+types/disbursement.ts                              # Type definitions
+lib/disbursement/constants.ts                      # Provider constants, helpers
+lib/disbursement/providers/
+├── base-provider.ts                               # Abstract provider interface
+├── mock-provider.ts                               # Mock for testing/development
+├── provider-factory.ts                            # Factory pattern
+└── rise/
+    ├── rise-provider.ts                           # RiseWorks API client
+    ├── siwe-auth.ts                               # Sign-In with Ethereum auth
+    ├── webhook-verifier.ts                        # Signature verification
+    └── amount-converter.ts                        # USD to USDC 1e6 units
+
+lib/disbursement/services/
+├── commission-aggregator.ts                       # Group pending commissions
+└── payout-calculator.ts                           # Apply thresholds, calculate fees
+```
+
+#### Key Features
+
+- ✅ Provider abstraction (Mock + RiseWorks)
+- ✅ Minimum payout threshold ($50 USD default)
+- ✅ Crypto-secure SIWE authentication
+- ✅ Webhook signature verification (HMAC SHA-256)
+- ✅ Amount conversion (USD to USDC 1e6 units: $50 = 50,000,000 units)
+- ✅ Commission aggregation by affiliate
+- ✅ TDD approach with 90%+ test coverage
+
+#### File Count: 18 files
+
+| Category            | Files | Description                       |
+|---------------------|-------|-----------------------------------|
+| Database Schema     | 1     | 5 new models, 5 enums             |
+| Type Definitions    | 1     | Disbursement types                |
+| Constants           | 1     | Provider constants, helpers       |
+| Provider Abstraction| 3     | Base, Mock, Factory               |
+| RiseWorks Components| 4     | Provider, Auth, Webhook, Converter|
+| Commission Services | 2     | Aggregator, Calculator            |
+| Tests               | 6     | TDD test suites                   |
+
+---
+
+### Part 19B: Payment Execution & Orchestration
+
+**Approach:** Practical (Schema-First)
+**Files:** 19 files (14 production + 5 minimal test)
+**Complexity:** High
+**Dependencies:** Part 19A (Foundation)
+**Test Coverage:** ~30% (critical paths)
+
+#### Core Services
+
+```
+lib/disbursement/services/
+├── transaction-logger.ts                          # Audit trail logging
+├── retry-handler.ts                               # Failed payment retry logic
+├── transaction-service.ts                         # Transaction creation helper
+├── batch-manager.ts                               # Create/manage payment batches
+└── payment-orchestrator.ts                        # Execute batch payments
+```
+
+#### Admin API Routes
+
+**Affiliates:**
+```
+app/api/disbursement/affiliates/
+├── payable/route.ts                               # GET payable affiliates list
+├── [affiliateId]/
+│   ├── route.ts                                   # GET affiliate details
+│   └── commissions/route.ts                       # GET pending commissions
+```
+
+**RiseWorks Accounts:**
+```
+app/api/disbursement/riseworks/
+├── accounts/route.ts                              # GET/POST RiseWorks accounts
+└── sync/route.ts                                  # POST sync account status
+```
+
+**Batch Management:**
+```
+app/api/disbursement/batches/
+├── route.ts                                       # GET/POST batches
+├── preview/route.ts                               # POST preview batch
+├── [batchId]/
+│   ├── route.ts                                   # GET/DELETE batch
+│   └── execute/route.ts                           # POST execute payments
+```
+
+#### Key Features
+
+- ✅ Batch payment creation (up to 100 payments per batch)
+- ✅ Payment orchestration with provider abstraction
+- ✅ Automatic retry logic (3 attempts with exponential backoff)
+- ✅ Transaction logging for compliance
+- ✅ Admin APIs with NextAuth authentication
+- ✅ Batch preview before execution
+- ✅ Real-time payment status tracking
+
+#### Workflow
+
+```
+Admin creates batch (POST /api/disbursement/batches)
+    ↓
+System aggregates pending commissions
+    ↓
+Create DisbursementTransaction records
+    ↓
+Execute batch (POST /api/disbursement/batches/[id]/execute)
+    ↓
+Payment provider processes payments
+    ↓
+Update transaction status (COMPLETED/FAILED)
+    ↓
+Update commission status (PAID)
+    ↓
+Log audit trail
+```
+
+#### File Count: 19 files
+
+| Category         | Files | Description                    |
+|------------------|-------|--------------------------------|
+| Core Services    | 5     | Orchestration, batch, logging  |
+| Affiliate APIs   | 3     | Payable list, details, commissions |
+| RiseWorks APIs   | 2     | Account management, sync       |
+| Batch APIs       | 4     | Create, preview, execute       |
+| Minimal Tests    | 5     | Smoke tests for critical paths |
+
+---
+
+### Part 19C: Automation & Reports
+
+**Approach:** Practical (Schema-First)
+**Files:** 18 files (12 production + 6 minimal test)
+**Complexity:** Medium
+**Dependencies:** Part 19A, Part 19B
+**Test Coverage:** ~30% (critical paths)
+
+#### Webhook Processing
+
+```
+lib/disbursement/webhook/
+└── event-processor.ts                             # Idempotent webhook processor
+
+app/api/webhooks/riseworks/
+└── route.ts                                       # POST RiseWorks webhook handler
+```
+
+**Webhook Events:**
+- `payment.completed` - Update transaction to COMPLETED, mark commission PAID
+- `payment.failed` - Update transaction to FAILED, trigger retry
+- `invite.accepted` - Update affiliate RiseWorks account status
+
+#### Quick Payments
+
+```
+app/api/disbursement/pay/
+└── route.ts                                       # POST quick single-affiliate payment
+```
+
+#### Reports & Audit
+
+```
+app/api/disbursement/reports/
+├── summary/route.ts                               # GET disbursement summary
+└── affiliate/[affiliateId]/route.ts               # GET affiliate payment history
+
+app/api/disbursement/
+├── transactions/route.ts                          # GET transactions list (paginated)
+└── audit-logs/route.ts                            # GET audit logs
+```
+
+#### Configuration & Health
+
+```
+app/api/disbursement/
+├── config/route.ts                                # GET/PATCH configuration
+└── health/route.ts                                # GET system health check
+```
+
+#### Cron Jobs
+
+```
+lib/disbursement/cron/
+└── disbursement-processor.ts                      # Business logic
+
+app/api/cron/
+├── process-pending-disbursements/route.ts         # Daily: Auto-process payments
+└── sync-riseworks-accounts/route.ts               # Daily: Sync account statuses
+```
+
+**Vercel Cron Configuration:**
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/process-pending-disbursements",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/sync-riseworks-accounts",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
+```
+
+#### Key Features
+
+- ✅ Idempotent webhook processing (safe for retries)
+- ✅ Webhook signature verification (HMAC SHA-256)
+- ✅ Quick payment for single affiliate
+- ✅ Comprehensive reporting dashboards
+- ✅ Audit log trail for compliance
+- ✅ System health monitoring
+- ✅ Automated daily processing via cron
+- ✅ Account synchronization with RiseWorks
+
+#### File Count: 18 files
+
+| Category           | Files | Description                      |
+|--------------------|-------|----------------------------------|
+| Webhook Processing | 2     | Event processor, route handler   |
+| Quick Payments     | 1     | Single-affiliate payment         |
+| Reports            | 4     | Summary, affiliate, transactions, audit |
+| Config & Health    | 2     | Configuration, health check      |
+| Cron Jobs          | 3     | Processor logic, 2 cron routes   |
+| Minimal Tests      | 6     | Smoke tests                      |
+
+---
+
+### Part 19 Summary
+
+#### Total File Count: 55 files
+
+| Sub-Part | Production | Test | Total | Approach   | Coverage |
+|----------|-----------|------|-------|------------|----------|
+| 19A      | 12        | 6    | 18    | TDD        | 90%+     |
+| 19B      | 14        | 5    | 19    | Practical  | ~30%     |
+| 19C      | 12        | 6    | 18    | Practical  | ~30%     |
+| **Total**| **38**    | **17**| **55**| **Mixed** | **~60%** |
+
+#### Integration Points
+
+**Modified Files (from existing parts):**
+
+```
+prisma/schema.prisma                               # Add 5 new models
+vercel.json                                        # Add cron jobs
+.env.local                                         # Add RiseWorks config
+
+# Part 17 relationships:
+AffiliateProfile model                             # Add riseAccount relation
+Commission model                                   # Add disbursementTransaction relation
+```
+
+#### Environment Variables
+
+```env
+# Disbursement Provider
+DISBURSEMENT_PROVIDER=MOCK                         # or RISE for production
+DISBURSEMENT_ENABLED=true
+
+# RiseWorks Configuration
+RISE_ENVIRONMENT=staging                           # or production
+RISE_API_BASE_URL=https://b2b-api.staging-riseworks.io/v1
+RISE_WALLET_ADDRESS=0x...
+RISE_WALLET_PRIVATE_KEY=0x...
+RISE_TEAM_ID=your-team-id
+RISE_WEBHOOK_SECRET=your-webhook-secret
+
+# Disbursement Settings
+MINIMUM_PAYOUT_USD=50
+MAX_BATCH_SIZE=100
+
+# Cron Job Security
+CRON_SECRET=your-super-secret-cron-token
+```
+
+#### Key Features Summary
+
+**Foundation (19A):**
+- ✅ Database schema with 5 models
+- ✅ Provider abstraction (Mock + RiseWorks)
+- ✅ Commission aggregation
+- ✅ Type-safe interfaces
+- ✅ TDD with 90% coverage
+
+**Execution (19B):**
+- ✅ Batch payment management
+- ✅ Payment orchestration
+- ✅ Automatic retry logic
+- ✅ Transaction logging
+- ✅ Admin APIs
+
+**Automation (19C):**
+- ✅ Webhook handlers (idempotent)
+- ✅ Quick payments
+- ✅ Comprehensive reports
+- ✅ Audit logs
+- ✅ Automated cron jobs
+- ✅ Health monitoring
+
+#### Success Metrics
+
+| Metric                | Target | Purpose                     |
+|-----------------------|--------|-----------------------------|
+| Payment Success Rate  | >98%   | Reliability                 |
+| Processing Time       | <5 min | Speed (batch of 100)        |
+| Webhook Delivery      | >99%   | Event reliability           |
+| Retry Success Rate    | >80%   | Recovery from failures      |
+| Commission Payout Time| <24h   | After $50 threshold reached |
+
+#### Security Features
+
+- 🔒 SIWE (Sign-In with Ethereum) authentication
+- 🔒 Webhook signature verification (HMAC SHA-256)
+- 🔒 NextAuth admin authentication for APIs
+- 🔒 Cron job secret token authentication
+- 🔒 Audit trail for compliance
+- 🔒 Idempotent webhook handlers (safe for retries)
+- 🔒 Provider abstraction (security isolation)
+- 🔒 Automatic retry with exponential backoff
+
+#### Dependencies (No new packages required!)
+
+Uses existing dependencies:
+- `@prisma/client` (database)
+- `next-auth` (authentication)
+- `crypto` (Node.js built-in for signatures)
+- `vercel/cron` (scheduled jobs)
+
+#### Documentation
+
+```
+docs/
+├── policies/
+│   └── 08-disbursement-rules.md                  # (Future) Disbursement policies
+riseworks/Part-19/
+├── prompt-part19a-foundation.md                   # Part 19A build guide
+├── prompt-part19b-execution-PRACTICAL.md          # Part 19B build guide
+├── prompt-part19c-automation-PRACTICAL.md         # Part 19C build guide
+├── completion-of-part19a.md                       # Part 19A completion notes
+├── completion-of-part19b.md                       # Part 19B completion notes
+├── completion-of-part19c.md                       # Part 19C completion notes
+└── part19-disbursement-openapi.yaml               # OpenAPI specification
+```
+
+---
+
 ## 📊 Updated Summary Statistics
 
 | Part     | Name                | Files   | Priority   | Complexity    |
@@ -1946,6 +2393,7 @@ docs/trading_alerts_openapi.yaml         # Add dLocal endpoints
 | 16       | Utilities           | ~25     | ⭐⭐       | Low           |
 | 17       | Affiliate Marketing | ~67     | ⭐⭐       | High          |
 | 18       | dLocal Payments     | ~45     | ⭐⭐       | High          |
+| 19       | RiseWorks Disbursement | ~55  | ⭐⭐       | High          |
 | **Seed** | **V0 Components**   | **~52** | **⭐⭐⭐** | **Reference** |
 
-**Total: ~170 production files + ~52 seed reference files (31 V0 components + 20 custom components + 1 Python AI engine)**
+**Total: ~225 production files + ~52 seed reference files (31 V0 components + 20 custom components + 1 Python AI engine)**
