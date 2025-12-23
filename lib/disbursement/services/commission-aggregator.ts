@@ -148,14 +148,15 @@ export class CommissionAggregator {
 
     return affiliatesWithCommissions
       .map((affiliate) => {
-        const pendingAmount = affiliate.commissions.reduce(
-          (sum, c) => sum + Number(c.commissionAmount),
+        const commissions = affiliate.commissions ?? [];
+        const pendingAmount = commissions.reduce(
+          (sum: number, c) => sum + Number(c.commissionAmount),
           0
         );
 
         const oldestPendingDate =
-          affiliate.commissions.length > 0
-            ? affiliate.commissions[0]?.createdAt ?? null
+          commissions.length > 0
+            ? commissions[0]?.createdAt ?? null
             : null;
 
         const hasRiseAccount = !!affiliate.riseAccount;
@@ -167,11 +168,11 @@ export class CommissionAggregator {
         return {
           id: affiliate.id,
           fullName: affiliate.fullName,
-          email: affiliate.user.email,
+          email: affiliate.user?.email ?? '',
           country: affiliate.country,
           pendingAmount,
           paidAmount: Number(affiliate.paidCommissions),
-          pendingCommissionCount: affiliate.commissions.length,
+          pendingCommissionCount: commissions.length,
           oldestPendingDate,
           readyForPayout: meetsMinimum && canReceivePayments,
           riseAccount: {
@@ -203,7 +204,7 @@ export class CommissionAggregator {
       },
     });
 
-    return Number(result._sum.commissionAmount ?? 0);
+    return Number((result['_sum'] as { commissionAmount?: number } | undefined)?.commissionAmount ?? 0);
   }
 
   /**
@@ -230,9 +231,9 @@ export class CommissionAggregator {
     };
 
     for (const item of counts) {
-      const status = item.status.toLowerCase() as keyof typeof result;
+      const status = (item['status'] as string).toLowerCase() as keyof typeof result;
       if (status in result) {
-        result[status] = item._count;
+        result[status] = item['_count'] as number;
       }
     }
 

@@ -92,28 +92,28 @@ export async function GET(
 
     // Sum financials
     const grossRevenue = commissions.reduce(
-      (sum, c) => sum + Number(c.grossRevenue),
+      (sum: number, c) => sum + Number(c.grossRevenue),
       0
     );
     const totalDiscounts = commissions.reduce(
-      (sum, c) => sum + Number(c.discountAmount),
+      (sum: number, c) => sum + Number(c.discountAmount),
       0
     );
     const netRevenue = commissions.reduce(
-      (sum, c) => sum + Number(c.netRevenue),
+      (sum: number, c) => sum + Number(c.netRevenue),
       0
     );
 
     // Commission breakdown by status
     const paidCommissions = commissions
-      .filter((c) => c.status === 'PAID')
-      .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+      .filter((c) => c['status'] === 'PAID')
+      .reduce((sum: number, c) => sum + Number(c.commissionAmount), 0);
     const pendingCommissions = commissions
-      .filter((c) => c.status === 'PENDING')
-      .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+      .filter((c) => c['status'] === 'PENDING')
+      .reduce((sum: number, c) => sum + Number(c.commissionAmount), 0);
     const approvedCommissions = commissions
-      .filter((c) => c.status === 'APPROVED')
-      .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+      .filter((c) => c['status'] === 'APPROVED')
+      .reduce((sum: number, c) => sum + Number(c.commissionAmount), 0);
     const totalCommissions = paidCommissions + pendingCommissions + approvedCommissions;
 
     // Calculate profit metrics

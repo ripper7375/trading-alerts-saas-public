@@ -125,7 +125,7 @@ export async function GET(): Promise<NextResponse<WatchlistResponse>> {
           ? {
               id: watchlist.id,
               name: watchlist.name,
-              items: watchlist.items,
+              items: watchlist.items ?? [],
             }
           : undefined,
         items: watchlist?.items ?? [],
@@ -265,7 +265,7 @@ export async function POST(
     //───────────────────────────────────────────────────────
     // STEP 6: Check Tier Limit
     //───────────────────────────────────────────────────────
-    const currentCount = watchlist.items.length;
+    const currentCount = watchlist.items?.length ?? 0;
     const limit =
       tier === 'PRO'
         ? PRO_TIER_CONFIG.maxWatchlistItems
@@ -289,7 +289,7 @@ export async function POST(
     //───────────────────────────────────────────────────────
     // STEP 7: Check for Duplicate Combination
     //───────────────────────────────────────────────────────
-    const existingItem = watchlist.items.find(
+    const existingItem = (watchlist.items ?? []).find(
       (item: { symbol: string; timeframe: string }) =>
         item.symbol === symbol && item.timeframe === timeframe
     );

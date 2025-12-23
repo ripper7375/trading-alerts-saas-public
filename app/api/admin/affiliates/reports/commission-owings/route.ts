@@ -121,14 +121,14 @@ export async function GET(
     const affiliatesOwed = affiliatesWithPending.map((affiliate) => {
       // Get oldest pending commission date
       const oldestPending =
-        affiliate.commissions.length > 0
+        affiliate.commissions && affiliate.commissions.length > 0
           ? affiliate.commissions[0]?.earnedAt ?? null
           : null;
 
       return {
         id: affiliate.id,
         fullName: affiliate.fullName,
-        email: affiliate.user.email,
+        email: affiliate.user?.email ?? '',
         country: affiliate.country,
         paymentMethod: affiliate.paymentMethod,
         paymentDetails: affiliate.paymentDetails,
@@ -137,7 +137,7 @@ export async function GET(
           paid: Number(affiliate.paidCommissions),
           total: Number(affiliate.totalEarnings),
         },
-        pendingCount: affiliate.commissions.length,
+        pendingCount: affiliate.commissions?.length ?? 0,
         oldestPendingDate: oldestPending,
         readyForPayout: Number(affiliate.pendingCommissions) >= AFFILIATE_CONFIG.MINIMUM_PAYOUT,
       };
@@ -145,7 +145,7 @@ export async function GET(
 
     // Calculate totals
     const totalOwed = affiliatesOwed.reduce(
-      (sum, a) => sum + a.balance.pending,
+      (sum: number, a) => sum + a.balance.pending,
       0
     );
     const affiliatesReadyCount = affiliatesOwed.filter(

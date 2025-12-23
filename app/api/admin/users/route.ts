@@ -43,20 +43,6 @@ interface AdminUserListResponse {
   totalPages: number;
 }
 
-interface PrismaUserWithCounts {
-  id: string;
-  name: string | null;
-  email: string;
-  tier: string;
-  role: string;
-  isActive: boolean;
-  createdAt: Date;
-  _count: {
-    alerts: number;
-    watchlists: number;
-  };
-}
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET HANDLER - List all users (admin only)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -159,20 +145,18 @@ export async function GET(
     });
 
     // Transform response
-    const transformedUsers: AdminUser[] = users.map(
-      (user: PrismaUserWithCounts) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        tier: user.tier as 'FREE' | 'PRO',
-        role: user.role,
-        status: user.isActive ? 'active' : 'suspended',
-        createdAt: user.createdAt,
-        lastLoginAt: null, // TODO: Track last login time
-        alertCount: user._count.alerts,
-        watchlistCount: user._count.watchlists,
-      })
-    );
+    const transformedUsers: AdminUser[] = users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      tier: user.tier as 'FREE' | 'PRO',
+      role: user.role,
+      status: user.isActive ? 'active' : 'suspended',
+      createdAt: user.createdAt,
+      lastLoginAt: null, // TODO: Track last login time
+      alertCount: user._count?.alerts ?? 0,
+      watchlistCount: user._count?.watchlists ?? 0,
+    }));
 
     return NextResponse.json({
       users: transformedUsers,

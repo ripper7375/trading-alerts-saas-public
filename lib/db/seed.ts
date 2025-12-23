@@ -354,7 +354,7 @@ export async function cleanupTestData(
     await prisma.payment.deleteMany({ where: { userId: user.id } });
 
     // Delete watchlist items first
-    for (const watchlist of user.watchlists) {
+    for (const watchlist of user.watchlists ?? []) {
       await prisma.watchlistItem.deleteMany({
         where: { watchlistId: watchlist.id },
       });

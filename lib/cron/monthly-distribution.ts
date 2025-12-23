@@ -91,6 +91,11 @@ export async function runMonthlyDistribution(
     // Process each affiliate
     for (const affiliate of affiliates) {
       try {
+        if (!affiliate.user) {
+          result.errors.push(`Affiliate ${affiliate.id}: Missing user`);
+          continue;
+        }
+
         await distributeCodes(
           affiliate.id,
           AFFILIATE_CONFIG.CODES_PER_MONTH,
@@ -105,9 +110,11 @@ export async function runMonthlyDistribution(
         result.emailsSent++;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const errorEntry = `${affiliate.user.email}: ${errorMessage}`;
+        const errorEntry = affiliate.user
+          ? `${affiliate.user.email}: ${errorMessage}`
+          : `Affiliate ${affiliate.id}: ${errorMessage}`;
         result.errors.push(errorEntry);
-        console.error(`[CRON] Failed to distribute to ${affiliate.user.email}:`, error);
+        console.error(`[CRON] Failed to distribute to ${affiliate.user?.email || affiliate.id}:`, error);
       }
     }
 

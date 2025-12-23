@@ -102,11 +102,11 @@ export async function GET(
 
     // Transform data
     const topPerformers = affiliatePerformance.map((affiliate) => {
-      const totalCommissions = affiliate.commissions.reduce(
-        (sum, c) => sum + Number(c.commissionAmount),
+      const totalCommissions = affiliate.commissions?.reduce(
+        (sum: number, c) => sum + Number(c.commissionAmount),
         0
-      );
-      const conversionCount = affiliate.commissions.length;
+      ) ?? 0;
+      const conversionCount = affiliate.commissions?.length ?? 0;
       const conversionRate =
         affiliate.totalCodesDistributed > 0
           ? (affiliate.totalCodesUsed / affiliate.totalCodesDistributed) * 100
@@ -115,7 +115,7 @@ export async function GET(
       return {
         id: affiliate.id,
         fullName: affiliate.fullName,
-        email: affiliate.user.email,
+        email: affiliate.user?.email ?? '',
         country: affiliate.country,
         metrics: {
           codesDistributed: affiliate.totalCodesDistributed,
@@ -134,11 +134,11 @@ export async function GET(
 
     // Calculate totals
     const totalConversions = topPerformers.reduce(
-      (sum, a) => sum + a.metrics.conversionsPeriod,
+      (sum: number, a) => sum + a.metrics.conversionsPeriod,
       0
     );
     const totalCommissionsEarned = topPerformers.reduce(
-      (sum, a) => sum + a.metrics.totalCommissions,
+      (sum: number, a) => sum + a.metrics.totalCommissions,
       0
     );
 

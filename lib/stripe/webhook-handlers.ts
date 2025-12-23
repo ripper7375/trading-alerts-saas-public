@@ -224,7 +224,7 @@ export async function handleSubscriptionDeleted(
     });
 
     // Send cancellation email
-    if (dbSubscription.user.email) {
+    if (dbSubscription.user?.email) {
       await sendCancellationEmail(
         dbSubscription.user.email,
         dbSubscription.user.name || 'User'
@@ -282,7 +282,7 @@ export async function handleInvoiceFailed(
       invoice.last_finalization_error?.message || 'Payment method declined';
 
     // Send payment failed email
-    if (dbSubscription.user.email) {
+    if (dbSubscription.user?.email) {
       await sendPaymentFailedEmail(
         dbSubscription.user.email,
         dbSubscription.user.name || 'User',
@@ -373,7 +373,7 @@ export async function handleInvoiceSucceeded(
     });
 
     // Send payment receipt email
-    if (dbSubscription.user.email) {
+    if (dbSubscription.user?.email) {
       await sendPaymentReceiptEmail(
         dbSubscription.user.email,
         dbSubscription.user.name || 'User',

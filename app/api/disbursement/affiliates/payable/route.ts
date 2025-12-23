@@ -52,7 +52,7 @@ export async function GET(
         return {
           id: agg.affiliateId,
           fullName: profile?.fullName || 'Unknown',
-          email: profile?.user.email || '',
+          email: profile?.user?.email || '',
           country: profile?.country || '',
           pendingAmount: agg.totalAmount,
           paidAmount: Number(profile?.paidCommissions || 0),

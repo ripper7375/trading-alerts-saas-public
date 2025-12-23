@@ -141,9 +141,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             : 0,
       },
       amounts: {
-        totalPaid: Number(totalPaid._sum.amount || 0),
-        totalPending: Number(totalPending._sum.commissionAmount || 0),
-        totalFailed: Number(totalFailed._sum.amount || 0),
+        totalPaid: Number((totalPaid['_sum'] as { amount?: number | null })?.amount || 0),
+        totalPending: Number((totalPending['_sum'] as { commissionAmount?: number | null })?.commissionAmount || 0),
+        totalFailed: Number((totalFailed['_sum'] as { amount?: number | null })?.amount || 0),
       },
     };
 

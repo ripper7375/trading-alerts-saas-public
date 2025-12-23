@@ -134,14 +134,14 @@ export async function GET(
 
     // Parse status counts
     const getStatusCount = (status: string): number => {
-      const found = statusCounts.find((s) => s.status === status);
-      return found?._count ?? 0;
+      const found = statusCounts.find((s) => s['status'] === status);
+      return (found?.['_count'] as number) ?? 0;
     };
 
     // Parse reason counts
     const getReasonCount = (reason: string): number => {
-      const found = reasonCounts.find((r) => r.distributionReason === reason);
-      return found?._count ?? 0;
+      const found = reasonCounts.find((r) => r['distributionReason'] === reason);
+      return (found?.['_count'] as number) ?? 0;
     };
 
     const activeCodes = getStatusCount('ACTIVE');

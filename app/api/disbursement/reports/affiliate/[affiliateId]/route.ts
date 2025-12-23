@@ -119,13 +119,13 @@ export async function GET(
       failedAt: t.failedAt,
       errorMessage: t.errorMessage,
       batch: {
-        batchNumber: t.batch.batchNumber,
-        status: t.batch.status,
+        batchNumber: t.batch?.batchNumber || '',
+        status: t.batch?.status || '',
       },
       commission: {
-        id: t.commission.id,
-        commissionAmount: Number(t.commission.commissionAmount),
-        status: t.commission.status,
+        id: t.commission?.id || '',
+        commissionAmount: Number(t.commission?.commissionAmount || 0),
+        status: t.commission?.status || '',
       },
     }));
 
@@ -163,7 +163,7 @@ export async function GET(
       affiliate: {
         id: affiliate.id,
         name: affiliate.fullName,
-        email: affiliate.user.email,
+        email: affiliate.user?.email,
       },
       history,
       summary,
