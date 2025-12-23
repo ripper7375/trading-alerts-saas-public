@@ -45,8 +45,11 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{js,jsx,json,md,yml,yaml}": [
+    "*.{js,jsx,json,md}": [
       "prettier --write"
+    ],
+    "*.{yml,yaml}": [
+      "prettier --write --ignore-path .prettierignore"
     ]
   },
   "dependencies": {

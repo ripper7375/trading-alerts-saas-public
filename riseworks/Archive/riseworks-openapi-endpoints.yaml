@@ -80,7 +80,7 @@ paths:
       parameters:
         - name: minBalance
           in: query
-          description: Minimum pending balance to include (default: $50)
+          description: Minimum pending balance to include (default: 50)
           schema:
             type: number
             format: float
