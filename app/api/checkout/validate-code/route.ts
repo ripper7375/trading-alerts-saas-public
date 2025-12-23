@@ -127,7 +127,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if affiliate is active
-    if (affiliateCode.affiliateProfile.status !== 'ACTIVE') {
+    if (affiliateCode.affiliateProfile?.status !== 'ACTIVE') {
       return NextResponse.json(
         {
           valid: false,
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       valid: true,
       code: affiliateCode.code,
-      affiliateId: affiliateCode.affiliateProfileId,
+      affiliateId: affiliateCode.affiliateProfileId ?? '',
       discount: {
         percent: discountPercent,
         amount: discountAmount,

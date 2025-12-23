@@ -116,14 +116,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       completedAt: t.completedAt,
       failedAt: t.failedAt,
       batch: {
-        id: t.batch.id,
-        batchNumber: t.batch.batchNumber,
-        status: t.batch.status,
+        id: t.batch?.id || '',
+        batchNumber: t.batch?.batchNumber || '',
+        status: t.batch?.status || '',
       },
       commission: {
-        id: t.commission.id,
-        commissionAmount: Number(t.commission.commissionAmount),
-        affiliateProfileId: t.commission.affiliateProfileId,
+        id: t.commission?.id || '',
+        commissionAmount: Number(t.commission?.commissionAmount || 0),
+        affiliateProfileId: t.commission?.affiliateProfileId || '',
       },
     }));
 
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const counts: Record<string, number> = {};
     for (const item of statusCounts) {
-      counts[item.status] = item._count;
+      counts[item['status'] as string] = (item['_count'] as number) || 0;
     }
 
     return NextResponse.json({

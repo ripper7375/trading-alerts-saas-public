@@ -85,11 +85,10 @@ export async function POST(
     const where: Prisma.CommissionWhereInput = {
       affiliateProfileId: affiliateId,
       status: 'PENDING',
+      ...(commissionIds && commissionIds.length > 0
+        ? { id: { in: commissionIds } }
+        : {}),
     };
-
-    if (commissionIds && commissionIds.length > 0) {
-      where.id = { in: commissionIds };
-    }
 
     // Get commissions to pay
     const commissionsToPay = await prisma.commission.findMany({
@@ -124,9 +123,9 @@ export async function POST(
     const paidAt = new Date();
 
     // Update commissions in a transaction
-    await prisma.$transaction([
+    await prisma.$transaction(async (tx) => {
       // Mark commissions as paid
-      prisma.commission.updateMany({
+      await tx.commission.updateMany({
         where: { id: { in: commissionsToPay.map((c) => c.id) } },
         data: {
           status: 'PAID',
@@ -135,17 +134,17 @@ export async function POST(
           paymentReference,
           paymentBatchId: batchId,
         },
-      }),
+      });
 
       // Update affiliate balances
-      prisma.affiliateProfile.update({
+      await tx.affiliateProfile.update({
         where: { id: affiliateId },
         data: {
           pendingCommissions: { decrement: totalAmount },
           paidCommissions: { increment: totalAmount },
         },
-      }),
-    ]);
+      });
+    });
 
     return NextResponse.json({
       success: true,

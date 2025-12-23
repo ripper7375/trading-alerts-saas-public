@@ -55,13 +55,15 @@ export async function GET(
     // Get transaction status counts
     const statusCounts = await transactionService.getTransactionCountsByStatus(batchId);
 
-    type BatchTransaction = (typeof batch.transactions)[number];
-    type BatchAuditLog = (typeof batch.auditLogs)[number];
+    type BatchTransaction = NonNullable<typeof batch.transactions>[number];
+    type BatchAuditLog = NonNullable<typeof batch.auditLogs>[number];
 
     // Calculate paid amount
     const paidAmount = batch.transactions
-      .filter((t: BatchTransaction) => t.status === 'COMPLETED')
-      .reduce((sum: number, t: BatchTransaction) => sum + Number(t.amount), 0);
+      ? batch.transactions
+          .filter((t: BatchTransaction) => t.status === 'COMPLETED')
+          .reduce((sum: number, t: BatchTransaction) => sum + Number(t.amount), 0)
+      : 0;
 
     return NextResponse.json({
       batch: {
@@ -82,12 +84,12 @@ export async function GET(
         createdAt: batch.createdAt,
         updatedAt: batch.updatedAt,
       },
-      transactions: batch.transactions.map((txn: BatchTransaction) => ({
+      transactions: batch.transactions?.map((txn: BatchTransaction) => ({
         id: txn.id,
         transactionId: txn.transactionId,
         providerTxId: txn.providerTxId,
         commissionId: txn.commissionId,
-        affiliateProfileId: txn.commission.affiliateProfileId,
+        affiliateProfileId: txn.commission?.affiliateProfileId,
         affiliateRiseId: txn.affiliateRiseAccount?.riseId,
         amount: Number(txn.amount),
         amountRiseUnits: txn.amountRiseUnits?.toString(),
@@ -99,16 +101,16 @@ export async function GET(
         createdAt: txn.createdAt,
         completedAt: txn.completedAt,
         failedAt: txn.failedAt,
-      })),
+      })) || [],
       transactionCounts: statusCounts,
-      auditLogs: batch.auditLogs.map((log: BatchAuditLog) => ({
+      auditLogs: batch.auditLogs?.map((log: BatchAuditLog) => ({
         id: log.id,
         action: log.action,
         status: log.status,
         actor: log.actor,
         details: log.details,
         createdAt: log.createdAt,
-      })),
+      })) || [],
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -178,7 +180,7 @@ export async function DELETE(
         id: batch.id,
         batchNumber: batch.batchNumber,
         status: batch.status,
-        transactionCount: batch.transactions.length,
+        transactionCount: batch.transactions?.length || 0,
       },
     });
   } catch (error) {

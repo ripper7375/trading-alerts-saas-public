@@ -112,7 +112,7 @@ export async function POST(
         return {
           affiliateId: agg.affiliateId,
           affiliateName: profile?.fullName || 'Unknown',
-          affiliateEmail: profile?.user.email || '',
+          affiliateEmail: profile?.user?.email || '',
           country: profile?.country || '',
           commissionCount: agg.commissionCount,
           grossAmount: agg.totalAmount,

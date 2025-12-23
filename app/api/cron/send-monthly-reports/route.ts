@@ -73,10 +73,12 @@ async function generateAffiliateReport(
     },
   });
 
+  const sumResult = commissions['_sum'] as { commissionAmount: number | null };
+
   return {
     codesDistributed,
     codesUsed,
-    commissionsEarned: Number(commissions._sum.commissionAmount ?? 0),
+    commissionsEarned: Number(sumResult.commissionAmount ?? 0),
   };
 }
 
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const report: MonthlyReportData = {
           affiliateId: affiliate.id,
-          email: affiliate.user.email,
+          email: affiliate.user?.email ?? '',
           month: monthName,
           codesDistributed: reportData.codesDistributed,
           codesUsed: reportData.codesUsed,
@@ -184,11 +186,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // });
 
         sent++;
-        console.log(`[CRON] Generated report for ${affiliate.user.email}`);
+        console.log(`[CRON] Generated report for ${affiliate.user?.email ?? 'unknown'}`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        errors.push(`${affiliate.user.email}: ${errorMessage}`);
-        console.error(`[CRON] Failed to generate report for ${affiliate.user.email}:`, error);
+        errors.push(`${affiliate.user?.email ?? 'unknown'}: ${errorMessage}`);
+        console.error(`[CRON] Failed to generate report for ${affiliate.user?.email ?? 'unknown'}:`, error);
       }
     }
 

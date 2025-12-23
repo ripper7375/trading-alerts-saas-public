@@ -131,8 +131,8 @@ export async function POST(
         code: updatedCode.code,
         status: updatedCode.status,
         cancelledAt: updatedCode.cancelledAt,
-        affiliateId: affiliateCode.affiliateProfile.id,
-        affiliateName: affiliateCode.affiliateProfile.fullName,
+        affiliateId: affiliateCode.affiliateProfile?.id ?? '',
+        affiliateName: affiliateCode.affiliateProfile?.fullName ?? '',
         reason: reason || 'Admin cancellation',
       },
     });

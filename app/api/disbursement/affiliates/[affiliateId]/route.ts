@@ -89,7 +89,7 @@ export async function GET(
       affiliate: {
         id: profile.id,
         fullName: profile.fullName,
-        email: profile.user.email,
+        email: profile.user?.email,
         country: profile.country,
         status: profile.status,
         createdAt: profile.createdAt,
@@ -133,8 +133,8 @@ export async function GET(
         status: txn.status,
         createdAt: txn.createdAt,
         completedAt: txn.completedAt,
-        batchNumber: txn.batch.batchNumber,
-        batchStatus: txn.batch.status,
+        batchNumber: txn.batch?.batchNumber,
+        batchStatus: txn.batch?.status,
       })),
       readyForPayout: aggregate.canPayout && canReceivePayments,
     });

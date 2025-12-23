@@ -198,7 +198,7 @@ export async function POST(
           totalAmount: Number(batch.totalAmount),
           currency: batch.currency,
           affiliateCount: payableAggregates.length,
-          transactionCount: batchWithDetails?.transactions.length || 0,
+          transactionCount: batchWithDetails?.transactions?.length || 0,
           createdAt: batch.createdAt,
         },
       },

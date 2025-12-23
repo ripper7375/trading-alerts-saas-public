@@ -66,7 +66,7 @@ export default async function WatchlistPage(): Promise<React.JSX.Element> {
 
   return (
     <WatchlistClient
-      initialItems={watchlist.items}
+      initialItems={watchlist.items ?? []}
       watchlistId={watchlist.id}
       userTier={tier}
       limit={limit}
