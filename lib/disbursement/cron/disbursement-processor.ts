@@ -207,12 +207,8 @@ export class DisbursementProcessor {
         details: { startTime: startTime.toISOString() },
       });
 
-      // Get all Rise accounts that have a riseId
-      const accounts = await this.prisma.affiliateRiseAccount.findMany({
-        where: {
-          riseId: { not: null },
-        },
-      });
+      // Get all Rise accounts (riseId is a required field, so all records have one)
+      const accounts = await this.prisma.affiliateRiseAccount.findMany();
 
       accountsSynced = accounts.length;
 
