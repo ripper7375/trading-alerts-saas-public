@@ -1,0 +1,1576 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Part 19 Disbursement System API
+  description: |
+    **Part 19: RiseWorks Disbursement & Payment System**
+
+    This API provides comprehensive affiliate commission disbursement functionality including:
+    - **Part 19A (Foundation)**: Database schema, types, payment providers, commission services
+    - **Part 19B (Execution)**: Batch management, payment orchestration, admin APIs
+    - **Part 19C (Automation)**: Webhooks, reports, audit logs, cron jobs
+
+    ## Key Features
+    - Automated commission aggregation and payout
+    - Multi-provider support (Mock, RiseWorks)
+    - Batch payment processing
+    - Webhook event handling (idempotent)
+    - Comprehensive reporting and audit trails
+    - Automated cron jobs for disbursements
+
+    ## Authentication
+    - Admin APIs require NextAuth session with ADMIN role
+    - Webhook endpoints verify signatures
+    - Cron endpoints require Bearer token authentication
+
+    ## Payment Flow
+    1. Commissions accumulate (from Part 17 Affiliate system)
+    2. Admin creates payment batch for eligible affiliates
+    3. Batch executes payments via payment provider
+    4. Webhooks confirm payment status
+    5. Audit logs track all operations
+
+  version: 1.0.0
+  contact:
+    name: Trading Alerts SaaS Team
+    email: support@tradingalerts.example.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+  - url: https://staging.tradingalerts.example.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Affiliates
+    description: Payable affiliate management
+  - name: RiseWorks Accounts
+    description: RiseWorks account management
+  - name: Batches
+    description: Payment batch operations
+  - name: Payments
+    description: Quick payment operations
+  - name: Reports
+    description: Disbursement reports and summaries
+  - name: Audit
+    description: Audit logs and transaction history
+  - name: Configuration
+    description: System configuration
+  - name: Health
+    description: System health checks
+  - name: Webhooks
+    description: RiseWorks webhook handlers
+  - name: Cron Jobs
+    description: Automated background jobs
+
+paths:
+  # ============================================================
+  # PART 19B: AFFILIATES APIs
+  # ============================================================
+  /api/disbursement/affiliates/payable:
+    get:
+      tags:
+        - Affiliates
+      summary: Get payable affiliates
+      description: |
+        Returns all affiliates who have commissions ready for payout.
+        Includes affiliate details, pending amounts, and RiseWorks account status.
+      operationId: getPayableAffiliates
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  affiliates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayableAffiliate'
+                  summary:
+                    type: object
+                    properties:
+                      totalAffiliates:
+                        type: integer
+                        example: 15
+                      totalPendingAmount:
+                        type: number
+                        format: double
+                        example: 5250.00
+                      readyForPayout:
+                        type: integer
+                        example: 12
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/affiliates/{affiliateId}:
+    get:
+      tags:
+        - Affiliates
+      summary: Get affiliate details
+      description: Returns detailed information about a specific affiliate including RiseWorks account and pending commissions
+      operationId: getAffiliateDetails
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: affiliateId
+          in: path
+          required: true
+          description: Affiliate Profile ID
+          schema:
+            type: string
+            example: clp123abc456def
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  affiliate:
+                    $ref: '#/components/schemas/AffiliateDetails'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/affiliates/{affiliateId}/commissions:
+    get:
+      tags:
+        - Affiliates
+      summary: Get affiliate pending commissions
+      description: Returns all approved commissions for an affiliate that haven't been paid yet
+      operationId: getAffiliatePendingCommissions
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: affiliateId
+          in: path
+          required: true
+          description: Affiliate Profile ID
+          schema:
+            type: string
+            example: clp123abc456def
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Commission'
+                  summary:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 8
+                      totalAmount:
+                        type: number
+                        format: double
+                        example: 250.00
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================
+  # PART 19B: RISEWORKS ACCOUNTS APIs
+  # ============================================================
+  /api/disbursement/riseworks/accounts:
+    get:
+      tags:
+        - RiseWorks Accounts
+      summary: Get all RiseWorks accounts
+      description: Returns all registered RiseWorks accounts with affiliate details
+      operationId: getRiseWorksAccounts
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AffiliateRiseAccount'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - RiseWorks Accounts
+      summary: Create RiseWorks account
+      description: Creates a new RiseWorks account for an affiliate
+      operationId: createRiseWorksAccount
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - affiliateProfileId
+                - riseId
+                - email
+              properties:
+                affiliateProfileId:
+                  type: string
+                  example: clp123abc456def
+                riseId:
+                  type: string
+                  description: Blockchain wallet address
+                  example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
+                email:
+                  type: string
+                  format: email
+                  example: affiliate@example.com
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    $ref: '#/components/schemas/AffiliateRiseAccount'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/riseworks/sync:
+    post:
+      tags:
+        - RiseWorks Accounts
+      summary: Sync RiseWorks accounts
+      description: Synchronizes all RiseWorks accounts with the RiseWorks API to update KYC status and account details
+      operationId: syncRiseWorksAccounts
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Synced 15 accounts
+                  syncedAt:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================
+  # PART 19B: BATCHES APIs
+  # ============================================================
+  /api/disbursement/batches:
+    get:
+      tags:
+        - Batches
+      summary: Get payment batches
+      description: Returns list of payment batches with optional status filter
+      operationId: getPaymentBatches
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by batch status
+          schema:
+            $ref: '#/components/schemas/PaymentBatchStatus'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaymentBatch'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Batches
+      summary: Create payment batch
+      description: Creates a new payment batch for specified affiliates or all payable affiliates
+      operationId: createPaymentBatch
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                affiliateIds:
+                  type: array
+                  description: Optional list of affiliate IDs. If empty, creates batch for all payable affiliates
+                  items:
+                    type: string
+                  example: ['clp123abc', 'clp456def']
+                provider:
+                  $ref: '#/components/schemas/DisbursementProvider'
+      responses:
+        '201':
+          description: Batch created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch:
+                    $ref: '#/components/schemas/PaymentBatch'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/batches/preview:
+    post:
+      tags:
+        - Batches
+      summary: Preview payment batch
+      description: Previews what would be included in a batch without creating it
+      operationId: previewPaymentBatch
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                affiliateIds:
+                  type: array
+                  description: Optional list of affiliate IDs
+                  items:
+                    type: string
+                  example: ['clp123abc', 'clp456def']
+      responses:
+        '200':
+          description: Preview generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        affiliateId:
+                          type: string
+                        commissionCount:
+                          type: integer
+                        totalAmount:
+                          type: number
+                          format: double
+                        eligible:
+                          type: boolean
+                        reason:
+                          type: string
+                  summary:
+                    type: object
+                    properties:
+                      totalAffiliates:
+                        type: integer
+                      eligibleAffiliates:
+                        type: integer
+                      totalAmount:
+                        type: number
+                        format: double
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/batches/{batchId}:
+    get:
+      tags:
+        - Batches
+      summary: Get batch details
+      description: Returns detailed information about a payment batch including all transactions
+      operationId: getBatchDetails
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          description: Payment Batch ID
+          schema:
+            type: string
+            example: clp123batch456
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch:
+                    $ref: '#/components/schemas/PaymentBatchDetailed'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Batches
+      summary: Delete payment batch
+      description: Deletes a payment batch (only if not processing or completed)
+      operationId: deletePaymentBatch
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          description: Payment Batch ID
+          schema:
+            type: string
+            example: clp123batch456
+      responses:
+        '200':
+          description: Batch deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Cannot delete batch in current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/batches/{batchId}/execute:
+    post:
+      tags:
+        - Batches
+      summary: Execute payment batch
+      description: Executes all payments in a batch via the configured payment provider
+      operationId: executePaymentBatch
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          description: Payment Batch ID
+          schema:
+            type: string
+            example: clp123batch456
+      responses:
+        '200':
+          description: Batch execution completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/ExecutionResult'
+        '400':
+          description: Batch cannot be executed in current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================
+  # PART 19C: QUICK PAYMENT API
+  # ============================================================
+  /api/disbursement/pay:
+    post:
+      tags:
+        - Payments
+      summary: Quick single payment
+      description: |
+        Creates and immediately executes a payment batch for a single affiliate.
+        Useful for ad-hoc payments or urgent disbursements.
+      operationId: quickPayAffiliate
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - affiliateId
+              properties:
+                affiliateId:
+                  type: string
+                  description: Affiliate Profile ID to pay
+                  example: clp123abc456def
+                provider:
+                  $ref: '#/components/schemas/DisbursementProvider'
+      responses:
+        '200':
+          description: Payment executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/ExecutionResult'
+        '400':
+          description: Affiliate not ready for payout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================
+  # PART 19C: REPORTS APIs
+  # ============================================================
+  /api/disbursement/reports/summary:
+    get:
+      tags:
+        - Reports
+      summary: Get disbursement summary
+      description: Returns overall disbursement statistics including batches, transactions, and amounts
+      operationId: getDisbursementSummary
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          description: Filter start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: '2024-01-01T00:00:00Z'
+        - name: endDate
+          in: query
+          description: Filter end date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: '2024-12-31T23:59:59Z'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    $ref: '#/components/schemas/DisbursementSummary'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/reports/affiliate/{affiliateId}:
+    get:
+      tags:
+        - Reports
+      summary: Get affiliate payment history
+      description: Returns complete payment history for an affiliate including all transactions
+      operationId: getAffiliatePaymentHistory
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: affiliateId
+          in: path
+          required: true
+          description: Affiliate Profile ID
+          schema:
+            type: string
+            example: clp123abc456def
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DisbursementTransaction'
+                  summary:
+                    type: object
+                    properties:
+                      totalTransactions:
+                        type: integer
+                      totalPaid:
+                        type: number
+                        format: double
+                      totalFailed:
+                        type: number
+                        format: double
+                      successRate:
+                        type: number
+                        format: double
+                        description: Percentage (0-100)
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/transactions:
+    get:
+      tags:
+        - Audit
+      summary: Get disbursement transactions
+      description: Returns paginated list of disbursement transactions with optional status filter
+      operationId: getDisbursementTransactions
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by transaction status
+          schema:
+            $ref: '#/components/schemas/DisbursementTransactionStatus'
+        - name: limit
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DisbursementTransaction'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      hasMore:
+                        type: boolean
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/disbursement/audit-logs:
+    get:
+      tags:
+        - Audit
+      summary: Get audit logs
+      description: Returns audit logs for disbursement operations
+      operationId: getAuditLogs
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: action
+          in: query
+          description: Filter by action type
+          schema:
+            type: string
+            example: batch.created
+        - name: limit
+          in: query
+          description: Number of results
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DisbursementAuditLog'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================
+  # PART 19C: CONFIGURATION APIs
+  # ============================================================
+  /api/disbursement/config:
+    get:
+      tags:
+        - Configuration
+      summary: Get disbursement configuration
+      description: Returns current disbursement system configuration
+      operationId: getDisbursementConfig
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    $ref: '#/components/schemas/DisbursementConfig'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags:
+        - Configuration
+      summary: Update disbursement configuration
+      description: Updates disbursement system configuration
+      operationId: updateDisbursementConfig
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisbursementConfig'
+      responses:
+        '200':
+          description: Configuration updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Configuration updated
+                  config:
+                    $ref: '#/components/schemas/DisbursementConfig'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================
+  # PART 19C: HEALTH CHECK
+  # ============================================================
+  /api/disbursement/health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns disbursement system health status
+      operationId: getDisbursementHealth
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: System unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  # ============================================================
+  # PART 19C: WEBHOOKS
+  # ============================================================
+  /api/webhooks/riseworks:
+    post:
+      tags:
+        - Webhooks
+      summary: RiseWorks webhook handler
+      description: |
+        Receives and processes webhooks from RiseWorks payment provider.
+        Webhooks are idempotent - safe to call multiple times with same event.
+
+        **Signature Verification:**
+        - Webhooks must include `x-rise-signature` header
+        - Signature verified using HMAC SHA256
+        - Unsigned or invalid webhooks are rejected
+      operationId: handleRiseWorksWebhook
+      security:
+        - WebhookSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event
+                - data
+              properties:
+                event:
+                  type: string
+                  description: Event type
+                  enum:
+                    - payment.completed
+                    - payment.failed
+                    - invite.accepted
+                    - fund.received
+                    - account.duplication_detected
+                  example: payment.completed
+                data:
+                  type: object
+                  description: Event payload (varies by event type)
+                  additionalProperties: true
+                  example:
+                    providerTxId: rise-txn-123456
+                    amount: 50.00
+      responses:
+        '200':
+          description: Webhook received and processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '401':
+          description: Missing or invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Webhook processing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================================
+  # PART 19C: CRON JOBS
+  # ============================================================
+  /api/cron/process-pending-disbursements:
+    post:
+      tags:
+        - Cron Jobs
+      summary: Process pending disbursements (Cron)
+      description: |
+        Automated cron job that processes pending disbursements.
+        Should be scheduled to run daily (e.g., 2 AM).
+
+        **Idempotent:** Safe to run multiple times.
+      operationId: processPendingDisbursements
+      security:
+        - CronSecret: []
+      responses:
+        '200':
+          description: Cron job completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  timestamp:
+                    type: string
+                    format: date-time
+                  result:
+                    type: object
+                    properties:
+                      batchesCreated:
+                        type: integer
+                      batchesExecuted:
+                        type: integer
+                      totalAmount:
+                        type: number
+                        format: double
+                      errors:
+                        type: array
+                        items:
+                          type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/cron/sync-riseworks-accounts:
+    post:
+      tags:
+        - Cron Jobs
+      summary: Sync RiseWorks accounts (Cron)
+      description: |
+        Automated cron job that syncs RiseWorks account statuses.
+        Should be scheduled to run daily (e.g., 3 AM).
+
+        **Idempotent:** Safe to run multiple times.
+      operationId: syncRiseWorksAccountsCron
+      security:
+        - CronSecret: []
+      responses:
+        '200':
+          description: Cron job completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  timestamp:
+                    type: string
+                    format: date-time
+                  result:
+                    type: object
+                    properties:
+                      accountsSynced:
+                        type: integer
+                      errors:
+                        type: array
+                        items:
+                          type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+# ============================================================
+# COMPONENTS
+# ============================================================
+components:
+  securitySchemes:
+    AdminAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie with ADMIN role required
+
+    WebhookSignature:
+      type: apiKey
+      in: header
+      name: x-rise-signature
+      description: HMAC SHA256 signature of webhook payload
+
+    CronSecret:
+      type: http
+      scheme: bearer
+      description: Bearer token for cron job authentication
+
+  schemas:
+    # ============================================================
+    # ENUMS
+    # ============================================================
+    DisbursementProvider:
+      type: string
+      enum:
+        - MOCK
+        - RISE
+      default: MOCK
+      description: Payment provider (MOCK for testing, RISE for production)
+
+    PaymentBatchStatus:
+      type: string
+      enum:
+        - PENDING
+        - QUEUED
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+
+    DisbursementTransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+
+    RiseWorksKycStatus:
+      type: string
+      enum:
+        - PENDING
+        - SUBMITTED
+        - APPROVED
+        - REJECTED
+        - EXPIRED
+
+    AuditLogStatus:
+      type: string
+      enum:
+        - SUCCESS
+        - FAILURE
+        - WARNING
+        - INFO
+
+    # ============================================================
+    # AFFILIATE SCHEMAS
+    # ============================================================
+    PayableAffiliate:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clp123abc456def
+        fullName:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        country:
+          type: string
+          example: US
+        pendingAmount:
+          type: number
+          format: double
+          example: 250.00
+        paidAmount:
+          type: number
+          format: double
+          example: 1500.00
+        pendingCommissionCount:
+          type: integer
+          example: 5
+        oldestPendingDate:
+          type: string
+          format: date-time
+          nullable: true
+        readyForPayout:
+          type: boolean
+          example: true
+        riseAccount:
+          type: object
+          properties:
+            hasAccount:
+              type: boolean
+            riseId:
+              type: string
+              example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
+            kycStatus:
+              $ref: '#/components/schemas/RiseWorksKycStatus'
+            canReceivePayments:
+              type: boolean
+
+    AffiliateDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        country:
+          type: string
+        totalPending:
+          type: number
+          format: double
+        totalPaid:
+          type: number
+          format: double
+        riseAccount:
+          $ref: '#/components/schemas/AffiliateRiseAccount'
+        pendingCommissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Commission'
+
+    AffiliateRiseAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        affiliateProfileId:
+          type: string
+        riseId:
+          type: string
+          description: Blockchain wallet address
+        email:
+          type: string
+          format: email
+        kycStatus:
+          $ref: '#/components/schemas/RiseWorksKycStatus'
+        kycCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        invitationSentAt:
+          type: string
+          format: date-time
+          nullable: true
+        invitationAcceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Commission:
+      type: object
+      properties:
+        id:
+          type: string
+        affiliateProfileId:
+          type: string
+        affiliateCodeId:
+          type: string
+        userId:
+          type: string
+        subscriptionId:
+          type: string
+          nullable: true
+        grossRevenue:
+          type: number
+          format: double
+        discountAmount:
+          type: number
+          format: double
+        netRevenue:
+          type: number
+          format: double
+        commissionAmount:
+          type: number
+          format: double
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - PAID
+            - CANCELLED
+        createdAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ============================================================
+    # BATCH SCHEMAS
+    # ============================================================
+    PaymentBatch:
+      type: object
+      properties:
+        id:
+          type: string
+        batchNumber:
+          type: string
+          example: BATCH-2024-ABC123
+        paymentCount:
+          type: integer
+          example: 15
+        totalAmount:
+          type: number
+          format: double
+          example: 5250.00
+        currency:
+          type: string
+          default: USD
+        provider:
+          $ref: '#/components/schemas/DisbursementProvider'
+        status:
+          $ref: '#/components/schemas/PaymentBatchStatus'
+        scheduledAt:
+          type: string
+          format: date-time
+          nullable: true
+        executedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentBatchDetailed:
+      allOf:
+        - $ref: '#/components/schemas/PaymentBatch'
+        - type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/DisbursementTransaction'
+            auditLogs:
+              type: array
+              items:
+                $ref: '#/components/schemas/DisbursementAuditLog'
+
+    # ============================================================
+    # TRANSACTION SCHEMAS
+    # ============================================================
+    DisbursementTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        batchId:
+          type: string
+        commissionId:
+          type: string
+        transactionId:
+          type: string
+          example: TXN-1234567890-ABC123
+        providerTxId:
+          type: string
+          nullable: true
+          example: rise-txn-123456
+        provider:
+          $ref: '#/components/schemas/DisbursementProvider'
+        affiliateRiseAccountId:
+          type: string
+          nullable: true
+        payeeRiseId:
+          type: string
+          nullable: true
+          example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
+        amount:
+          type: number
+          format: double
+          example: 50.00
+        amountRiseUnits:
+          type: integer
+          format: int64
+          nullable: true
+          description: Amount in RiseWorks units (1e6 = $1 USD)
+          example: 50000000
+        currency:
+          type: string
+          default: USD
+        status:
+          $ref: '#/components/schemas/DisbursementTransactionStatus'
+        retryCount:
+          type: integer
+          default: 0
+        lastRetryAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ExecutionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        batchId:
+          type: string
+        totalAmount:
+          type: number
+          format: double
+        successCount:
+          type: integer
+        failedCount:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+
+    # ============================================================
+    # AUDIT & REPORTING SCHEMAS
+    # ============================================================
+    DisbursementAuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        transactionId:
+          type: string
+          nullable: true
+        batchId:
+          type: string
+          nullable: true
+        action:
+          type: string
+          example: batch.created
+        actor:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/AuditLogStatus'
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+        ipAddress:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    DisbursementSummary:
+      type: object
+      properties:
+        batches:
+          type: object
+          properties:
+            total:
+              type: integer
+            completed:
+              type: integer
+            pending:
+              type: integer
+            successRate:
+              type: number
+              format: double
+              description: Percentage (0-100)
+        transactions:
+          type: object
+          properties:
+            total:
+              type: integer
+            completed:
+              type: integer
+            failed:
+              type: integer
+            successRate:
+              type: number
+              format: double
+        amounts:
+          type: object
+          properties:
+            totalPaid:
+              type: number
+              format: double
+            totalPending:
+              type: number
+              format: double
+
+    # ============================================================
+    # CONFIGURATION SCHEMAS
+    # ============================================================
+    DisbursementConfig:
+      type: object
+      properties:
+        provider:
+          $ref: '#/components/schemas/DisbursementProvider'
+        enabled:
+          type: boolean
+        minimumPayout:
+          type: number
+          format: double
+          example: 50.00
+        batchSize:
+          type: integer
+          example: 100
+        environment:
+          type: string
+          enum:
+            - production
+            - staging
+          example: staging
+
+    HealthStatus:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          properties:
+            database:
+              type: boolean
+            provider:
+              type: boolean
+            pendingBatches:
+              type: integer
+            failedTransactions:
+              type: integer
+            lastWebhookReceived:
+              type: string
+              format: date-time
+              nullable: true
+        warnings:
+          type: array
+          items:
+            type: string
+
+    # ============================================================
+    # ERROR SCHEMAS
+    # ============================================================
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Error message
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+
+    BadRequestError:
+      description: Bad Request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Invalid request parameters
+
+    NotFoundError:
+      description: Not Found - Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Resource not found
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Internal server error
