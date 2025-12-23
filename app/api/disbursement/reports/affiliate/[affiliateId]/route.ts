@@ -49,7 +49,7 @@ interface AffiliateHistorySummary {
  * Get affiliate payment history
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: RouteParams
 ): Promise<NextResponse> {
   const session = await getServerSession(authOptions);
