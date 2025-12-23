@@ -12,7 +12,6 @@ import { PaymentOrchestrator } from '../services/payment-orchestrator';
 import { createPaymentProvider } from '../providers/provider-factory';
 import { TransactionLogger } from '../services/transaction-logger';
 import { getDefaultProvider } from '../constants';
-import type { DisbursementProvider } from '@/types/disbursement';
 
 export interface AutoDisbursementResult {
   success: boolean;
@@ -208,10 +207,10 @@ export class DisbursementProcessor {
         details: { startTime: startTime.toISOString() },
       });
 
-      // Get all Rise accounts
+      // Get all Rise accounts that have a riseId
       const accounts = await this.prisma.affiliateRiseAccount.findMany({
         where: {
-          riseId: { not: null },
+          NOT: { riseId: null },
         },
       });
 

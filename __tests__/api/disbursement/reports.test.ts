@@ -4,6 +4,9 @@
  * Minimal smoke tests for reports endpoints.
  */
 
+// Store native URL before mocking
+const NativeURL = global.URL;
+
 // Mock Next.js server globals
 class MockHeaders {
   private headers: Map<string, string> = new Map();
@@ -26,7 +29,7 @@ class MockURL {
 
   constructor(url: string) {
     this.searchParams = new Map();
-    const urlObj = new URL(url);
+    const urlObj = new NativeURL(url); // Use native URL to avoid infinite recursion
     urlObj.searchParams.forEach((value, key) => {
       this.searchParams.set(key, value);
     });

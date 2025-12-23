@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { WebhookVerifier } from '@/lib/disbursement/providers/rise/webhook-verifier';
 import { WebhookEventProcessor } from '@/lib/disbursement/webhook/event-processor';
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           data: {
             eventType: 'unknown',
             provider: 'RISE',
-            payload: parsedPayload,
+            payload: parsedPayload as Prisma.InputJsonValue,
             signature,
             verified: false,
             processed: false,
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: {
         eventType,
         provider: 'RISE',
-        payload: webhookData,
+        payload: webhookData as Prisma.InputJsonValue,
         signature,
         verified: true,
         processed: false,

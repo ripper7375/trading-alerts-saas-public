@@ -36,7 +36,7 @@ const startTime = Date.now();
 /**
  * Get disbursement system health status
  */
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(_request: NextRequest): Promise<NextResponse> {
   const checks: HealthChecks = {
     database: false,
     provider: false,
