@@ -1,0 +1,1793 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Part 17 Affiliate Marketing Platform API
+  description: |
+    Complete API specification for the Affiliate Marketing Platform (Part 17).
+
+    ## Overview
+    This document covers all API endpoints for:
+    - **Part 17A**: Affiliate Portal (Registration, Dashboard, Profile)
+    - **Part 17B**: Admin Portal (Management, Reports, Automation)
+
+    ## Authentication
+    - **Affiliate Routes**: Require NextAuth session with `isAffiliate: true`
+    - **Admin Routes**: Require NextAuth session with `role: 'ADMIN'`
+    - **Cron Routes**: Require `CRON_SECRET` bearer token
+
+    ## Commission Model (Percentage-Based)
+    - **Customer Discount**: 20% off regular price ($29.00 → $23.20)
+    - **Affiliate Commission**: 20% of net revenue ($23.20 × 20% = $4.64)
+    - Both percentages are configurable via `AFFILIATE_CONFIG`
+
+  version: 1.0.0
+  contact:
+    name: Trading Alerts Team
+  license:
+    name: Proprietary
+
+servers:
+  - url: /api
+    description: API base path
+
+tags:
+  - name: Affiliate Auth
+    description: Affiliate registration and email verification
+  - name: Affiliate Dashboard
+    description: Affiliate dashboard statistics and reports
+  - name: Affiliate Profile
+    description: Affiliate profile management
+  - name: Checkout
+    description: Checkout with affiliate code support
+  - name: Admin Affiliates
+    description: Admin affiliate management
+  - name: Admin Reports
+    description: Admin BI reports (P&L, Sales, Commissions)
+  - name: Admin Actions
+    description: Admin actions (pay commission, cancel code)
+  - name: Cron Jobs
+    description: Scheduled automation jobs
+
+paths:
+  # ============================================
+  # AFFILIATE AUTH ENDPOINTS
+  # ============================================
+  /affiliate/auth/register:
+    post:
+      tags:
+        - Affiliate Auth
+      summary: Register as affiliate
+      description: |
+        Register the currently authenticated user as an affiliate.
+        Creates an AffiliateProfile and sets `User.isAffiliate = true`.
+        Sends verification email to the user.
+      operationId: registerAffiliate
+      security:
+        - NextAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AffiliateRegistrationRequest'
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateRegistrationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Already registered as affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /affiliate/auth/verify-email:
+    post:
+      tags:
+        - Affiliate Auth
+      summary: Verify affiliate email
+      description: |
+        Verify affiliate email using the token sent via email.
+        On success:
+        - Sets `AffiliateProfile.status = 'ACTIVE'`
+        - Distributes initial 15 codes to affiliate
+        - Clears verification token
+      operationId: verifyAffiliateEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: Email verification token
+                  example: "abc123def456..."
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Email verified. Initial codes distributed."
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # AFFILIATE DASHBOARD ENDPOINTS
+  # ============================================
+  /affiliate/dashboard/stats:
+    get:
+      tags:
+        - Affiliate Dashboard
+      summary: Get affiliate dashboard statistics
+      description: Returns aggregate statistics for the authenticated affiliate
+      operationId: getAffiliateDashboardStats
+      security:
+        - AffiliateAuth: []
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateDashboardStats'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /affiliate/dashboard/codes:
+    get:
+      tags:
+        - Affiliate Dashboard
+      summary: List affiliate codes
+      description: Returns paginated list of affiliate's codes with optional status filter
+      operationId: getAffiliateCodes
+      security:
+        - AffiliateAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by code status
+          schema:
+            type: string
+            enum: [ACTIVE, USED, EXPIRED, CANCELLED]
+            default: ACTIVE
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated codes list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateCodesResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /affiliate/dashboard/code-inventory:
+    get:
+      tags:
+        - Affiliate Dashboard
+      summary: Get code inventory report
+      description: |
+        Returns a detailed code inventory report showing:
+        - Opening balance
+        - Additions (monthly, bonus)
+        - Reductions (used, expired, cancelled)
+        - Closing balance
+      operationId: getAffiliateCodeInventory
+      security:
+        - AffiliateAuth: []
+      responses:
+        '200':
+          description: Code inventory report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeInventoryReport'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /affiliate/dashboard/commission-report:
+    get:
+      tags:
+        - Affiliate Dashboard
+      summary: Get commission report
+      description: Returns paginated list of affiliate's commissions with code details
+      operationId: getAffiliateCommissionReport
+      security:
+        - AffiliateAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated commission report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionReportResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # AFFILIATE PROFILE ENDPOINTS
+  # ============================================
+  /affiliate/profile:
+    get:
+      tags:
+        - Affiliate Profile
+      summary: Get affiliate profile
+      description: Returns the authenticated affiliate's profile
+      operationId: getAffiliateProfile
+      security:
+        - AffiliateAuth: []
+      responses:
+        '200':
+          description: Affiliate profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateProfile'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Affiliate Profile
+      summary: Update affiliate profile
+      description: Updates the authenticated affiliate's profile (name, country)
+      operationId: updateAffiliateProfile
+      security:
+        - AffiliateAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: "John Doe"
+                country:
+                  type: string
+                  minLength: 2
+                  maxLength: 2
+                  example: "US"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateProfile'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /affiliate/profile/payment:
+    put:
+      tags:
+        - Affiliate Profile
+      summary: Update payment method
+      description: Updates the affiliate's payment method and details
+      operationId: updateAffiliatePayment
+      security:
+        - AffiliateAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentMethodUpdate'
+      responses:
+        '200':
+          description: Payment method updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateProfile'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not an affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # CHECKOUT ENDPOINTS (WITH AFFILIATE SUPPORT)
+  # ============================================
+  /checkout/validate-code:
+    post:
+      tags:
+        - Checkout
+      summary: Validate affiliate code
+      description: |
+        Validates an affiliate code for use at checkout.
+        Returns discount percentage if valid.
+      operationId: validateAffiliateCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  pattern: "^[A-Z0-9]{8}$"
+                  example: "ABCD1234"
+      responses:
+        '200':
+          description: Valid code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeValidationResponse'
+        '400':
+          description: Code not active or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /checkout/create-session:
+    post:
+      tags:
+        - Checkout
+      summary: Create checkout session
+      description: |
+        Creates a Stripe checkout session.
+        If an affiliate code is provided and valid:
+        - Applies discount to price
+        - Stores affiliateCodeId in session metadata
+      operationId: createCheckoutSession
+      security:
+        - NextAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - priceId
+              properties:
+                priceId:
+                  type: string
+                  example: "price_pro"
+                affiliateCode:
+                  type: string
+                  pattern: "^[A-Z0-9]{8}$"
+                  description: Optional affiliate code for discount
+                  example: "ABCD1234"
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                    description: Stripe checkout session ID
+                    example: "cs_test_123..."
+                  url:
+                    type: string
+                    format: uri
+                    description: Redirect URL for checkout
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # ADMIN AFFILIATE MANAGEMENT ENDPOINTS
+  # ============================================
+  /admin/affiliates:
+    get:
+      tags:
+        - Admin Affiliates
+      summary: List all affiliates
+      description: Returns paginated list of all affiliates with filters
+      operationId: listAffiliates
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, DELETED]
+        - name: country
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+        - name: paymentMethod
+          in: query
+          schema:
+            type: string
+            enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Paginated affiliates list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAffiliatesListResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/{id}:
+    get:
+      tags:
+        - Admin Affiliates
+      summary: Get affiliate details
+      description: Returns detailed information about a specific affiliate
+      operationId: getAffiliateById
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Affiliate profile ID
+      responses:
+        '200':
+          description: Affiliate details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAffiliateDetail'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/{id}/distribute-codes:
+    post:
+      tags:
+        - Admin Affiliates
+      summary: Distribute bonus codes
+      description: |
+        Distribute additional codes to an active affiliate.
+        Uses the same code generation logic as monthly distribution.
+      operationId: distributeCodesByAdmin
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Affiliate profile ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - count
+                - reason
+              properties:
+                count:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  example: 10
+                reason:
+                  type: string
+                  minLength: 1
+                  example: "Bonus for good performance"
+      responses:
+        '200':
+          description: Codes distributed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Distributed 10 codes to affiliate"
+        '400':
+          description: Cannot distribute to inactive affiliate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/{id}/suspend:
+    post:
+      tags:
+        - Admin Affiliates
+      summary: Suspend affiliate
+      description: Suspends an affiliate account with a reason
+      operationId: suspendAffiliate
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Affiliate profile ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  example: "Violation of terms of service"
+      responses:
+        '200':
+          description: Affiliate suspended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Affiliate suspended"
+                  affiliate:
+                    $ref: '#/components/schemas/AffiliateProfile'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/{id}/reactivate:
+    post:
+      tags:
+        - Admin Affiliates
+      summary: Reactivate affiliate
+      description: Reactivates a previously suspended affiliate account
+      operationId: reactivateAffiliate
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Affiliate profile ID
+      responses:
+        '200':
+          description: Affiliate reactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Affiliate reactivated"
+                  affiliate:
+                    $ref: '#/components/schemas/AffiliateProfile'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # ADMIN REPORTS ENDPOINTS
+  # ============================================
+  /admin/affiliates/reports/profit-loss:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get P&L report
+      description: |
+        Returns profit and loss report for affiliate program.
+        Includes:
+        - Gross revenue (before discounts)
+        - Discounts given
+        - Net revenue (after discounts)
+        - Commissions (paid and pending)
+        - Net profit and margin
+      operationId: getProfitLossReport
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [3months, 6months, 1year]
+            default: 3months
+      responses:
+        '200':
+          description: P&L report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfitLossReport'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/reports/sales-performance:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get sales performance report
+      description: |
+        Returns top performing affiliates by conversions.
+        Groups by affiliate, counts conversions, calculates total commissions.
+      operationId: getSalesPerformanceReport
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [3months, 6months, 1year]
+            default: 3months
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 5
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Sales performance report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesPerformanceReport'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/reports/commission-owings:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get commission owings report
+      description: |
+        Returns affiliates with pending commissions >= minimum payout ($50).
+        Shows amount owed per affiliate, sorted by amount.
+      operationId: getCommissionOwingsReport
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Commission owings report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionOwingsReport'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/affiliates/reports/code-inventory:
+    get:
+      tags:
+        - Admin Reports
+      summary: Get global code inventory report
+      description: |
+        Returns global code inventory statistics across all affiliates.
+        Shows distribution, usage, and expiry stats.
+      operationId: getGlobalCodeInventoryReport
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Global code inventory report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalCodeInventoryReport'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # ADMIN ACTIONS ENDPOINTS
+  # ============================================
+  /admin/commissions/pay:
+    post:
+      tags:
+        - Admin Actions
+      summary: Pay commissions
+      description: |
+        Mark pending commissions as paid for an affiliate.
+        Updates affiliate paidBalance and clears pendingBalance.
+      operationId: payCommissions
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - affiliateProfileId
+              properties:
+                affiliateProfileId:
+                  type: string
+                  description: Affiliate profile ID
+                commissionIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Optional specific commission IDs (pay all pending if not specified)
+      responses:
+        '200':
+          description: Commissions paid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Paid $150.00 in commissions"
+                  amountPaid:
+                    type: number
+                    format: double
+                    example: 150.00
+                  commissionsCount:
+                    type: integer
+                    example: 32
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/codes/{code}/cancel:
+    post:
+      tags:
+        - Admin Actions
+      summary: Cancel affiliate code
+      description: Marks an affiliate code as cancelled (admin action)
+      operationId: cancelAffiliateCode
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[A-Z0-9]{8}$"
+          description: The 8-character affiliate code
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Reason for cancellation
+      responses:
+        '200':
+          description: Code cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Code ABCD1234 cancelled"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # CRON JOB ENDPOINTS
+  # ============================================
+  /cron/distribute-codes:
+    post:
+      tags:
+        - Cron Jobs
+      summary: Monthly code distribution
+      description: |
+        Cron job that runs on the 1st of each month.
+        Distributes 15 codes to all active affiliates.
+
+        **Schedule**: `0 0 1 * *` (00:00 on 1st of month)
+      operationId: cronDistributeCodes
+      security:
+        - CronAuth: []
+      responses:
+        '200':
+          description: Distribution completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobResponse'
+        '401':
+          description: Invalid cron secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cron/expire-codes:
+    post:
+      tags:
+        - Cron Jobs
+      summary: Expire old codes
+      description: |
+        Cron job that runs at end of each month.
+        Marks all expired codes (expiresAt <= now) as EXPIRED.
+
+        **Schedule**: `59 23 28-31 * *` (23:59 on days 28-31)
+      operationId: cronExpireCodes
+      security:
+        - CronAuth: []
+      responses:
+        '200':
+          description: Expiry check completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobResponse'
+        '401':
+          description: Invalid cron secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cron/send-monthly-reports:
+    post:
+      tags:
+        - Cron Jobs
+      summary: Send monthly reports
+      description: |
+        Cron job that runs on the 1st of each month.
+        Sends monthly performance report emails to all active affiliates.
+
+        **Schedule**: `0 6 1 * *` (06:00 on 1st of month)
+      operationId: cronSendMonthlyReports
+      security:
+        - CronAuth: []
+      responses:
+        '200':
+          description: Reports sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobResponse'
+        '401':
+          description: Invalid cron secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    NextAuth:
+      type: http
+      scheme: bearer
+      description: NextAuth session cookie authentication
+    AffiliateAuth:
+      type: http
+      scheme: bearer
+      description: NextAuth session with isAffiliate=true
+    AdminAuth:
+      type: http
+      scheme: bearer
+      description: NextAuth session with role=ADMIN
+    CronAuth:
+      type: http
+      scheme: bearer
+      description: CRON_SECRET environment variable
+
+  schemas:
+    # ============================================
+    # COMMON SCHEMAS
+    # ============================================
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Error message"
+
+    ValidationError:
+      type: object
+      required:
+        - error
+        - details
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items:
+                  type: string
+              message:
+                type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        totalPages:
+          type: integer
+          example: 5
+
+    # ============================================
+    # AFFILIATE SCHEMAS
+    # ============================================
+    AffiliateRegistrationRequest:
+      type: object
+      required:
+        - fullName
+        - country
+        - paymentMethod
+        - paymentDetails
+        - terms
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "John Doe"
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          example: "US"
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+          example: "PAYPAL"
+        paymentDetails:
+          type: object
+          description: Payment method specific details
+          example: { "email": "john@paypal.com" }
+        terms:
+          type: boolean
+          description: Must be true to accept terms
+          example: true
+
+    AffiliateRegistrationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Registration successful. Please verify your email."
+
+    AffiliateProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+          example: "John Doe"
+        country:
+          type: string
+          example: "US"
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+        paymentDetails:
+          type: object
+        status:
+          type: string
+          enum: [PENDING_VERIFICATION, ACTIVE, SUSPENDED, DELETED]
+        codesDistributed:
+          type: integer
+          example: 45
+        codesUsed:
+          type: integer
+          example: 12
+        pendingBalance:
+          type: number
+          format: double
+          example: 55.68
+        paidBalance:
+          type: number
+          format: double
+          example: 142.50
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentMethodUpdate:
+      type: object
+      required:
+        - paymentMethod
+        - paymentDetails
+      properties:
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+          example: "WISE"
+        paymentDetails:
+          type: object
+          description: Payment method specific details
+          example: { "email": "john@wise.com" }
+
+    AffiliateDashboardStats:
+      type: object
+      properties:
+        activeCodes:
+          type: integer
+          description: Number of active (unused, unexpired) codes
+          example: 12
+        usedCodes:
+          type: integer
+          description: Number of codes used for purchases
+          example: 8
+        totalEarnings:
+          type: number
+          format: double
+          description: Total commissions earned (all time)
+          example: 198.18
+        pendingBalance:
+          type: number
+          format: double
+          description: Pending commissions not yet paid
+          example: 55.68
+        paidBalance:
+          type: number
+          format: double
+          description: Total commissions paid out
+          example: 142.50
+
+    AffiliateCode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: "^[A-Z0-9]{8}$"
+          example: "ABCD1234"
+        status:
+          type: string
+          enum: [ACTIVE, USED, EXPIRED, CANCELLED]
+        distributedAt:
+          type: string
+          format: date-time
+        distributionReason:
+          type: string
+          enum: [INITIAL, MONTHLY, BONUS]
+        expiresAt:
+          type: string
+          format: date-time
+        usedAt:
+          type: string
+          format: date-time
+          nullable: true
+        usedByUserId:
+          type: string
+          format: uuid
+          nullable: true
+
+    AffiliateCodesResponse:
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          properties:
+            codes:
+              type: array
+              items:
+                $ref: '#/components/schemas/AffiliateCode'
+
+    CodeInventoryReport:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        openingBalance:
+          type: integer
+          example: 10
+        additions:
+          type: object
+          properties:
+            monthlyDistribution:
+              type: integer
+              example: 15
+            bonusDistribution:
+              type: integer
+              example: 5
+            total:
+              type: integer
+              example: 20
+        reductions:
+          type: object
+          properties:
+            used:
+              type: integer
+              example: 8
+            expired:
+              type: integer
+              example: 3
+            cancelled:
+              type: integer
+              example: 0
+            total:
+              type: integer
+              example: 11
+        closingBalance:
+          type: integer
+          example: 19
+
+    Commission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+          example: 4.64
+        status:
+          type: string
+          enum: [PENDING, PAID, CANCELLED]
+        earnedAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        affiliateCode:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "ABCD1234"
+
+    CommissionReportResponse:
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          properties:
+            commissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Commission'
+
+    CodeValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        discountPercent:
+          type: number
+          format: double
+          description: Discount percentage to apply (from AFFILIATE_CONFIG)
+          example: 20.0
+        affiliateId:
+          type: string
+          format: uuid
+          description: ID of the affiliate profile
+
+    # ============================================
+    # ADMIN SCHEMAS
+    # ============================================
+    AdminAffiliateDetail:
+      allOf:
+        - $ref: '#/components/schemas/AffiliateProfile'
+        - type: object
+          properties:
+            user:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+            affiliateCodes:
+              type: array
+              items:
+                $ref: '#/components/schemas/AffiliateCode'
+            suspensionReason:
+              type: string
+              nullable: true
+            suspendedAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    AdminAffiliatesListResponse:
+      allOf:
+        - $ref: '#/components/schemas/PaginationMeta'
+        - type: object
+          properties:
+            affiliates:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/AffiliateProfile'
+                  - type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          email:
+                            type: string
+                            format: email
+
+    ProfitLossReport:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        revenue:
+          type: object
+          properties:
+            grossRevenue:
+              type: number
+              format: double
+              description: Total revenue at regular price
+              example: 870.00
+            discounts:
+              type: number
+              format: double
+              description: Total discounts given
+              example: 174.00
+            netRevenue:
+              type: number
+              format: double
+              description: Revenue after discounts
+              example: 696.00
+            discountPercent:
+              type: number
+              format: double
+              example: 20.0
+        costs:
+          type: object
+          properties:
+            paidCommissions:
+              type: number
+              format: double
+              example: 100.00
+            pendingCommissions:
+              type: number
+              format: double
+              example: 39.20
+            totalCommissions:
+              type: number
+              format: double
+              example: 139.20
+            commissionPercent:
+              type: number
+              format: double
+              example: 20.0
+            averageCommission:
+              type: number
+              format: double
+              example: 4.64
+        profit:
+          type: object
+          properties:
+            netProfit:
+              type: number
+              format: double
+              description: Net revenue minus total commissions
+              example: 556.80
+            margin:
+              type: number
+              format: double
+              description: Profit margin percentage
+              example: 80.0
+        totalSales:
+          type: integer
+          description: Number of affiliate conversions
+          example: 30
+
+    SalesPerformanceReport:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        topPerformers:
+          type: array
+          items:
+            type: object
+            properties:
+              affiliateId:
+                type: string
+                format: uuid
+              affiliateName:
+                type: string
+                example: "John Doe"
+              conversions:
+                type: integer
+                example: 12
+              totalCommissions:
+                type: number
+                format: double
+                example: 55.68
+              conversionRate:
+                type: number
+                format: double
+                description: Percentage of distributed codes used
+                example: 26.7
+
+    CommissionOwingsReport:
+      type: object
+      properties:
+        minimumPayout:
+          type: number
+          format: double
+          example: 50.0
+        totalOwed:
+          type: number
+          format: double
+          example: 450.00
+        affiliatesCount:
+          type: integer
+          example: 5
+        affiliates:
+          type: array
+          items:
+            type: object
+            properties:
+              affiliateId:
+                type: string
+                format: uuid
+              affiliateName:
+                type: string
+                example: "John Doe"
+              email:
+                type: string
+                format: email
+              paymentMethod:
+                type: string
+                enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+              pendingBalance:
+                type: number
+                format: double
+                example: 85.50
+              commissionsCount:
+                type: integer
+                example: 18
+
+    GlobalCodeInventoryReport:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalDistributed:
+              type: integer
+              example: 1500
+            totalActive:
+              type: integer
+              example: 850
+            totalUsed:
+              type: integer
+              example: 450
+            totalExpired:
+              type: integer
+              example: 180
+            totalCancelled:
+              type: integer
+              example: 20
+            usageRate:
+              type: number
+              format: double
+              description: Percentage of distributed codes used
+              example: 30.0
+        byMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+                example: "2024-01"
+              distributed:
+                type: integer
+              used:
+                type: integer
+              expired:
+                type: integer
+
+    # ============================================
+    # CRON SCHEMAS
+    # ============================================
+    CronJobResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Distributed codes to 45 affiliates"
+        errors:
+          type: array
+          items:
+            type: string
+          description: List of errors (if any)
+          nullable: true
