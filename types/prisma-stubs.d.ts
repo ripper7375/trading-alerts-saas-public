@@ -532,6 +532,28 @@ declare module '@prisma/client' {
     batch?: PaymentBatch | null;
   }
 
+  export interface SystemConfig {
+    id: string;
+    key: string;
+    value: string;
+    valueType: string;
+    description: string | null;
+    category: string;
+    updatedBy: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }
+
+  export interface SystemConfigHistory {
+    id: string;
+    configKey: string;
+    oldValue: string;
+    newValue: string;
+    changedBy: string;
+    reason: string | null;
+    changedAt: Date;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -593,6 +615,12 @@ declare module '@prisma/client' {
     export type AlertUpdateInput = Record<string, unknown>;
     export type WatchlistCreateInput = Record<string, unknown>;
     export type WatchlistItemCreateInput = Record<string, unknown>;
+    export type SystemConfigWhereInput = Record<string, unknown>;
+    export type SystemConfigCreateInput = Record<string, unknown>;
+    export type SystemConfigUpdateInput = Record<string, unknown>;
+    export type SystemConfigHistoryWhereInput = Record<string, unknown>;
+    export type SystemConfigHistoryCreateInput = Record<string, unknown>;
+    export type SystemConfigHistoryUpdateInput = Record<string, unknown>;
   }
 
   // ============================================================
@@ -660,6 +688,8 @@ declare module '@prisma/client' {
     disbursementTransaction: ModelDelegate<DisbursementTransaction>;
     riseWorksWebhookEvent: ModelDelegate<RiseWorksWebhookEvent>;
     disbursementAuditLog: ModelDelegate<DisbursementAuditLog>;
+    systemConfig: ModelDelegate<SystemConfig>;
+    systemConfigHistory: ModelDelegate<SystemConfigHistory>;
   }
 }
 
@@ -697,4 +727,9 @@ declare module '@prisma/client/runtime/library.js' {
     | null
     | InputJsonValue[]
     | { [key: string]: InputJsonValue };
+}
+
+// Re-export for .prisma/client import path (used when custom output is specified)
+declare module '.prisma/client' {
+  export * from '@prisma/client';
 }

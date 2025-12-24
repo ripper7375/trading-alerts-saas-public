@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { StatsCard } from '@/components/affiliate/stats-card';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -40,6 +41,14 @@ export default function AffiliateDashboardPage(): React.ReactElement {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Fetch dynamic config from SystemConfig
+  const {
+    discountPercent,
+    commissionPercent,
+    regularPrice,
+    calculateCommissionAmount,
+  } = useAffiliateConfig();
 
   useEffect(() => {
     const fetchStats = async (): Promise<void> => {
@@ -291,8 +300,11 @@ export default function AffiliateDashboardPage(): React.ReactElement {
         </h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>- Share your unique codes with potential customers</li>
-          <li>- They get 20% off their subscription</li>
-          <li>- You earn 20% commission on each successful referral ($4.64)</li>
+          <li>- They get {discountPercent}% off their subscription</li>
+          <li>
+            - You earn {commissionPercent}% commission on each successful
+            referral (${calculateCommissionAmount(regularPrice).toFixed(2)})
+          </li>
           <li>- Payouts are processed monthly for balances over $50</li>
         </ul>
       </div>

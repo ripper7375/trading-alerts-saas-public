@@ -63,7 +63,7 @@ describe('PnLSummaryCards Component', () => {
 
     it('should display discounts label', () => {
       render(<PnLSummaryCards {...defaultProps} />);
-      expect(screen.getByText('Discounts Given')).toBeInTheDocument();
+      expect(screen.getByText('Discounts Given (20%)')).toBeInTheDocument();
     });
 
     it('should display discounts with negative sign', () => {

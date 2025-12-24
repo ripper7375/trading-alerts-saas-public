@@ -50,11 +50,20 @@ jest.mock('@/lib/admin/pnl-calculator', () => ({
 
 // Mock Prisma
 const mockFindMany = jest.fn();
+const mockSystemConfigFindMany = jest.fn().mockResolvedValue([
+  { key: 'affiliate_discount_percent', value: '20.0' },
+  { key: 'affiliate_commission_percent', value: '20.0' },
+  { key: 'affiliate_codes_per_month', value: '15' },
+  { key: 'affiliate_base_price', value: '29.0' },
+]);
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   prisma: {
     commission: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
+    },
+    systemConfig: {
+      findMany: (...args: unknown[]) => mockSystemConfigFindMany(...args),
     },
   },
 }));

@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { getAffiliateConfigFromDB } from '@/lib/affiliate/constants';
 import { getReportingPeriod } from '@/lib/admin/pnl-calculator';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -67,6 +67,9 @@ export async function GET(
     const { period } = validation.data;
     const { start, end } = getReportingPeriod(period as '3months' | '6months' | '1year');
 
+    // Fetch dynamic config from SystemConfig
+    const affiliateConfig = await getAffiliateConfigFromDB();
+
     // Get commissions for the period
     const commissions = await prisma.commission.findMany({
       where: {
@@ -84,11 +87,11 @@ export async function GET(
       },
     });
 
-    // Calculate totals
+    // Calculate totals using dynamic config
     const totalSales = commissions.length;
-    const regularPrice = AFFILIATE_CONFIG.BASE_PRICE_USD;
-    const discountPercent = AFFILIATE_CONFIG.DISCOUNT_PERCENT;
-    const commissionPercent = AFFILIATE_CONFIG.COMMISSION_PERCENT;
+    const regularPrice = affiliateConfig.basePriceUsd;
+    const discountPercent = affiliateConfig.discountPercent;
+    const commissionPercent = affiliateConfig.commissionPercent;
 
     // Sum financials
     const grossRevenue = commissions.reduce(
