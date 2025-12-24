@@ -17,7 +17,19 @@ info:
     ## Commission Model (Percentage-Based)
     - **Customer Discount**: 20% off regular price ($29.00 → $23.20)
     - **Affiliate Commission**: 20% of net revenue ($23.20 × 20% = $4.64)
-    - Both percentages are configurable via `AFFILIATE_CONFIG`
+    - Both percentages are dynamically configurable via **SystemConfig** database table
+
+    ## SystemConfig Architecture
+    All configurable values are stored in the `SystemConfig` database table:
+    - `affiliate_discount_percent`: Customer discount percentage (default: 20.0)
+    - `affiliate_commission_percent`: Affiliate commission percentage (default: 20.0)
+    - `affiliate_codes_per_month`: Monthly code distribution count (default: 15)
+    - `affiliate_base_price`: Base subscription price (default: 29.0)
+
+    Configuration changes are:
+    - Audited via `SystemConfigHistory` table
+    - Applied in real-time (no restart required)
+    - Managed via Admin System Config endpoints
 
   version: 1.0.0
   contact:
@@ -44,6 +56,8 @@ tags:
     description: Admin BI reports (P&L, Sales, Commissions)
   - name: Admin Actions
     description: Admin actions (pay commission, cancel code)
+  - name: Admin System Config
+    description: System configuration management (discount/commission rates)
   - name: Cron Jobs
     description: Scheduled automation jobs
 
@@ -1112,6 +1126,228 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   # ============================================
+  # ADMIN SYSTEM CONFIG ENDPOINTS
+  # ============================================
+  /admin/system-config:
+    get:
+      tags:
+        - Admin System Config
+      summary: List all system configurations
+      description: |
+        Returns all system configuration values.
+        Includes affiliate-related configs (discount%, commission%, etc.)
+      operationId: listSystemConfigs
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: [affiliate, pricing, system]
+      responses:
+        '200':
+          description: List of system configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SystemConfig'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/system-config/{key}:
+    get:
+      tags:
+        - Admin System Config
+      summary: Get system configuration by key
+      description: Returns a specific system configuration value
+      operationId: getSystemConfigByKey
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Configuration key (e.g., affiliate_discount_percent)
+          example: affiliate_discount_percent
+      responses:
+        '200':
+          description: System configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemConfig'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Admin System Config
+      summary: Update system configuration
+      description: |
+        Updates a system configuration value.
+        Changes are audited in SystemConfigHistory table.
+        Takes effect immediately (no restart required).
+      operationId: updateSystemConfig
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Configuration key
+          example: affiliate_discount_percent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+                  description: New configuration value
+                  example: '25.0'
+                reason:
+                  type: string
+                  description: Reason for change (for audit trail)
+                  example: 'Increased discount for holiday promotion'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  config:
+                    $ref: '#/components/schemas/SystemConfig'
+                  previousValue:
+                    type: string
+                    example: '20.0'
+        '400':
+          description: Invalid value for configuration type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/system-config/history:
+    get:
+      tags:
+        - Admin System Config
+      summary: Get configuration change history
+      description: |
+        Returns audit trail of all configuration changes.
+        Shows who changed what, when, and why.
+      operationId: getSystemConfigHistory
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: key
+          in: query
+          description: Filter by configuration key
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Configuration change history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginationMeta'
+                  - type: object
+                    properties:
+                      history:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SystemConfigHistory'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
   # CRON JOB ENDPOINTS
   # ============================================
   /cron/distribute-codes:
@@ -1791,3 +2027,104 @@ components:
             type: string
           description: List of errors (if any)
           nullable: true
+
+    # ============================================
+    # SYSTEM CONFIG SCHEMAS
+    # ============================================
+    SystemConfig:
+      type: object
+      description: System configuration entry stored in database
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+          description: Unique configuration key
+          example: affiliate_discount_percent
+        value:
+          type: string
+          description: Configuration value (stored as string, parsed by valueType)
+          example: '20.0'
+        valueType:
+          type: string
+          enum: [string, number, boolean, json]
+          description: Type of the value for parsing
+          example: number
+        description:
+          type: string
+          nullable: true
+          description: Human-readable description of this configuration
+          example: 'Discount percentage applied to customers using affiliate codes'
+        category:
+          type: string
+          description: Category for grouping related configs
+          example: affiliate
+        updatedBy:
+          type: string
+          nullable: true
+          description: User ID who last updated this config
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SystemConfigHistory:
+      type: object
+      description: Audit trail entry for configuration changes
+      properties:
+        id:
+          type: string
+          format: uuid
+        configKey:
+          type: string
+          description: The configuration key that was changed
+          example: affiliate_discount_percent
+        oldValue:
+          type: string
+          description: Previous value before change
+          example: '20.0'
+        newValue:
+          type: string
+          description: New value after change
+          example: '25.0'
+        changedBy:
+          type: string
+          description: User ID who made the change
+        reason:
+          type: string
+          nullable: true
+          description: Reason provided for the change
+          example: 'Holiday promotion - increased customer discount'
+        changedAt:
+          type: string
+          format: date-time
+          description: When the change was made
+
+    AffiliateConfig:
+      type: object
+      description: |
+        Aggregated affiliate configuration values.
+        Retrieved via getAffiliateConfigFromDB() hook.
+      properties:
+        discountPercent:
+          type: number
+          format: double
+          description: Customer discount percentage
+          example: 20.0
+        commissionPercent:
+          type: number
+          format: double
+          description: Affiliate commission percentage
+          example: 20.0
+        codesPerMonth:
+          type: integer
+          description: Number of codes distributed monthly
+          example: 15
+        basePrice:
+          type: number
+          format: double
+          description: Base subscription price
+          example: 29.0
