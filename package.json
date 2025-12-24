@@ -5,11 +5,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "rm -f tsconfig.tsbuildinfo && prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "type-check": "tsc --noEmit",
+    "type-check": "prisma generate && tsc --noEmit",
     "test": "jest",
     "test:quick": "jest --bail --passWithNoTests",
     "test:watch": "jest --watch",
