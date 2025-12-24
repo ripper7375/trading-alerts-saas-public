@@ -119,7 +119,7 @@ paths:
                 token:
                   type: string
                   description: Email verification token
-                  example: "abc123def456..."
+                  example: 'abc123def456...'
       responses:
         '200':
           description: Email verified successfully
@@ -133,7 +133,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Email verified. Initial codes distributed."
+                    example: 'Email verified. Initial codes distributed.'
         '400':
           description: Invalid or expired token
           content:
@@ -362,12 +362,12 @@ paths:
                   type: string
                   minLength: 2
                   maxLength: 100
-                  example: "John Doe"
+                  example: 'John Doe'
                 country:
                   type: string
                   minLength: 2
                   maxLength: 2
-                  example: "US"
+                  example: 'US'
       responses:
         '200':
           description: Profile updated
@@ -458,8 +458,8 @@ paths:
               properties:
                 code:
                   type: string
-                  pattern: "^[A-Z0-9]{8}$"
-                  example: "ABCD1234"
+                  pattern: '^[A-Z0-9]{8}$'
+                  example: 'ABCD1234'
       responses:
         '200':
           description: Valid code
@@ -504,12 +504,12 @@ paths:
               properties:
                 priceId:
                   type: string
-                  example: "price_pro"
+                  example: 'price_pro'
                 affiliateCode:
                   type: string
-                  pattern: "^[A-Z0-9]{8}$"
+                  pattern: '^[A-Z0-9]{8}$'
                   description: Optional affiliate code for discount
-                  example: "ABCD1234"
+                  example: 'ABCD1234'
       responses:
         '200':
           description: Checkout session created
@@ -521,7 +521,7 @@ paths:
                   sessionId:
                     type: string
                     description: Stripe checkout session ID
-                    example: "cs_test_123..."
+                    example: 'cs_test_123...'
                   url:
                     type: string
                     format: uri
@@ -673,7 +673,7 @@ paths:
                 reason:
                   type: string
                   minLength: 1
-                  example: "Bonus for good performance"
+                  example: 'Bonus for good performance'
       responses:
         '200':
           description: Codes distributed successfully
@@ -687,7 +687,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Distributed 10 codes to affiliate"
+                    example: 'Distributed 10 codes to affiliate'
         '400':
           description: Cannot distribute to inactive affiliate
           content:
@@ -741,7 +741,7 @@ paths:
                 reason:
                   type: string
                   minLength: 1
-                  example: "Violation of terms of service"
+                  example: 'Violation of terms of service'
       responses:
         '200':
           description: Affiliate suspended
@@ -755,7 +755,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Affiliate suspended"
+                    example: 'Affiliate suspended'
                   affiliate:
                     $ref: '#/components/schemas/AffiliateProfile'
         '401':
@@ -806,7 +806,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Affiliate reactivated"
+                    example: 'Affiliate reactivated'
                   affiliate:
                     $ref: '#/components/schemas/AffiliateProfile'
         '401':
@@ -1025,7 +1025,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Paid $150.00 in commissions"
+                    example: 'Paid $150.00 in commissions'
                   amountPaid:
                     type: number
                     format: double
@@ -1067,7 +1067,7 @@ paths:
           required: true
           schema:
             type: string
-            pattern: "^[A-Z0-9]{8}$"
+            pattern: '^[A-Z0-9]{8}$'
           description: The 8-character affiliate code
       requestBody:
         content:
@@ -1091,7 +1091,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Code ABCD1234 cancelled"
+                    example: 'Code ABCD1234 cancelled'
         '401':
           description: Not authenticated
           content:
@@ -1225,7 +1225,7 @@ components:
       properties:
         error:
           type: string
-          example: "Error message"
+          example: 'Error message'
 
     ValidationError:
       type: object
@@ -1235,7 +1235,7 @@ components:
       properties:
         error:
           type: string
-          example: "Validation failed"
+          example: 'Validation failed'
         details:
           type: array
           items:
@@ -1280,20 +1280,20 @@ components:
           type: string
           minLength: 2
           maxLength: 100
-          example: "John Doe"
+          example: 'John Doe'
         country:
           type: string
           minLength: 2
           maxLength: 2
-          example: "US"
+          example: 'US'
         paymentMethod:
           type: string
           enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
-          example: "PAYPAL"
+          example: 'PAYPAL'
         paymentDetails:
           type: object
           description: Payment method specific details
-          example: { "email": "john@paypal.com" }
+          example: { 'email': 'john@paypal.com' }
         terms:
           type: boolean
           description: Must be true to accept terms
@@ -1307,7 +1307,7 @@ components:
           example: true
         message:
           type: string
-          example: "Registration successful. Please verify your email."
+          example: 'Registration successful. Please verify your email.'
 
     AffiliateProfile:
       type: object
@@ -1320,10 +1320,10 @@ components:
           format: uuid
         fullName:
           type: string
-          example: "John Doe"
+          example: 'John Doe'
         country:
           type: string
-          example: "US"
+          example: 'US'
         paymentMethod:
           type: string
           enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
@@ -1362,11 +1362,11 @@ components:
         paymentMethod:
           type: string
           enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
-          example: "WISE"
+          example: 'WISE'
         paymentDetails:
           type: object
           description: Payment method specific details
-          example: { "email": "john@wise.com" }
+          example: { 'email': 'john@wise.com' }
 
     AffiliateDashboardStats:
       type: object
@@ -1403,8 +1403,8 @@ components:
           format: uuid
         code:
           type: string
-          pattern: "^[A-Z0-9]{8}$"
-          example: "ABCD1234"
+          pattern: '^[A-Z0-9]{8}$'
+          example: 'ABCD1234'
         status:
           type: string
           enum: [ACTIVE, USED, EXPIRED, CANCELLED]
@@ -1507,7 +1507,7 @@ components:
           properties:
             code:
               type: string
-              example: "ABCD1234"
+              example: 'ABCD1234'
 
     CommissionReportResponse:
       allOf:
@@ -1679,7 +1679,7 @@ components:
                 format: uuid
               affiliateName:
                 type: string
-                example: "John Doe"
+                example: 'John Doe'
               conversions:
                 type: integer
                 example: 12
@@ -1717,7 +1717,7 @@ components:
                 format: uuid
               affiliateName:
                 type: string
-                example: "John Doe"
+                example: 'John Doe'
               email:
                 type: string
                 format: email
@@ -1765,7 +1765,7 @@ components:
             properties:
               month:
                 type: string
-                example: "2024-01"
+                example: '2024-01'
               distributed:
                 type: integer
               used:
@@ -1784,7 +1784,7 @@ components:
           example: true
         message:
           type: string
-          example: "Distributed codes to 45 affiliates"
+          example: 'Distributed codes to 45 affiliates'
         errors:
           type: array
           items:
