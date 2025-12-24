@@ -143,34 +143,81 @@ When admin changes %discount or %commission in **Part 17**, those values automat
                         │ commission: 25.0    │
                         └──────────┬──────────┘
                                    │
-           ┌───────────────────────┼───────────────────────┐
-           │                       │                       │
-           ▼                       ▼                       ▼
-    ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-    │   Part 5    │         │   Part 8    │         │   Part 9    │
-    │  Pricing    │         │  Checkout   │         │  Billing    │
-    │             │         │             │         │  Dashboard  │
-    │ Shows 25%   │         │ Applies 25% │         │ Shows       │
-    │ discount    │         │ discount    │         │ $21.75/mo   │
-    └─────────────┘         └─────────────┘         └─────────────┘
-           │                       │                       │
-           └───────────────────────┼───────────────────────┘
+     ┌─────────────────────────────┼─────────────────────────────┐
+     │              │              │              │              │
+     ▼              ▼              ▼              ▼              ▼
+┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+│ Part 5  │  │ Part 8  │  │ Part 9  │  │ Part 12 │  │ Part 14 │
+│ Pricing │  │Checkout │  │ Billing │  │E-Commerce│  │ Admin  │
+│         │  │         │  │Dashboard│  │& Billing│  │Dashboard│
+│Shows 25%│  │Applies  │  │ Shows   │  │"Save    │  │  25%   │
+│discount │  │  25%    │  │$21.75/mo│  │  25%!"  │  │metrics │
+└─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘
+     │              │              │              │              │
+     └──────────────┴──────────────┼──────────────┴──────────────┘
                                    │
-           ┌───────────────────────┼───────────────────────┐
-           │                       │                       │
-           ▼                       ▼                       ▼
-    ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-    │  Part 14    │         │  Part 17    │         │  Part 18    │
-    │  Admin      │         │  Affiliate  │         │  Marketing  │
-    │  Dashboard  │         │  Portal     │         │  Pages      │
-    │             │         │             │         │             │
-    │ 25% metrics │         │ 25% shown   │         │ "25% off!"  │
-    └─────────────┘         └─────────────┘         └─────────────┘
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+             ┌─────────────┐               ┌─────────────┐
+             │  Part 17    │               │  Part 18    │
+             │  Affiliate  │               │  Marketing  │
+             │  Portal     │               │  Pages      │
+             │             │               │             │
+             │ 25% shown   │               │ "25% off!"  │
+             └─────────────┘               └─────────────┘
 ```
 
 ### ⚠️ CRITICAL REQUIREMENT: No Hardcoded Values in Other Parts
 
-**Parts 5, 8, 9, 14, 18 (and any future parts) MUST NOT have hardcoded discount/commission values.**
+**Parts 5, 8, 9, 12, 14, 18 (and any future parts) MUST NOT have hardcoded discount/commission values.**
+
+### Part 12 (E-commerce & Billing) - Customer Conversion Critical
+
+**Part 12 is especially important** because it's where customers make purchasing decisions. Displaying dynamic discount information encourages customers to find affiliate codes from social media:
+
+```typescript
+// ✅ Part 12: E-commerce checkout page with discount prompt
+'use client';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+
+export function BillingPage() {
+  const { discountPercent, calculateDiscountedPrice } = useAffiliateConfig();
+  const regularPrice = 29.00;
+  const discountedPrice = calculateDiscountedPrice(regularPrice);
+  const savings = regularPrice - discountedPrice;
+
+  return (
+    <div className="billing-container">
+      <h2>Subscribe to PRO</h2>
+
+      <div className="price-display">
+        <span className="price">${regularPrice.toFixed(2)}/month</span>
+      </div>
+
+      {/* 🎯 KEY: Encourage customers to find affiliate codes */}
+      <div className="affiliate-code-section">
+        <div className="promo-banner">
+          <span className="icon">🎁</span>
+          <p>Have an affiliate code from social media?</p>
+          <p className="savings-text">
+            <strong>Save {discountPercent}%</strong> - Pay only
+            <strong> ${discountedPrice.toFixed(2)}/month</strong>
+            (Save ${savings.toFixed(2)}!)
+          </p>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Enter affiliate code"
+          className="code-input"
+        />
+        <button>Apply Code</button>
+      </div>
+    </div>
+  );
+}
+```
 
 This is required so that Part 17 configuration changes propagate correctly.
 

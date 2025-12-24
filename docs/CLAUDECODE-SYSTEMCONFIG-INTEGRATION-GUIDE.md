@@ -124,7 +124,7 @@ When admin changes %discount or %commission in Part 17, the new values **automat
 ┌─────────────────────────────────────────────────────────────┐
 │                    PART 17 (Source)                         │
 │              Admin changes discount to 25%                  │
-└─────────────────────────────────┬───────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
                                   │
                                   │ SystemConfig Database
                                   │
@@ -137,6 +137,7 @@ When admin changes %discount or %commission in Part 17, the new values **automat
 │  Part 5 (Pricing Page):        Shows "Save 25%!"          │
 │  Part 8 (Checkout):            Applies 25% discount        │
 │  Part 9 (Billing Dashboard):   Shows "$21.75/month"        │
+│  Part 12 (E-commerce):         "Have a code? Save 25%!"   │
 │  Part 14 (Admin Dashboard):    Reports 25% metrics         │
 │  Part 17 (Affiliate Portal):   Affiliates see 25%          │
 │  Part 18 (Marketing Pages):    Displays "25% off"          │
@@ -147,7 +148,7 @@ When admin changes %discount or %commission in Part 17, the new values **automat
 
 ### ⚠️ CRITICAL: Other Parts Must NOT Have Hardcoded Values
 
-**Parts 5, 8, 9, 14, 18, etc. MUST NOT contain hardcoded discount/commission values.**
+**Parts 5, 8, 9, 12, 14, 18, etc. MUST NOT contain hardcoded discount/commission values.**
 
 They MUST use the SystemConfig integration:
 
@@ -156,8 +157,37 @@ They MUST use the SystemConfig integration:
 | Part 5 | Pricing components | Hardcoded `20%`, `$23.20` |
 | Part 8 | Checkout page | Hardcoded discount calculations |
 | Part 9 | Billing dashboard | Hardcoded subscription prices |
+| Part 12 | E-commerce/billing pages | Hardcoded discount prompts, price displays |
 | Part 14 | Admin overview | Hardcoded metrics/percentages |
 | Part 18 | Marketing pages | Hardcoded promotional text |
+
+### Part 12 (E-commerce & Billing) - Special Importance
+
+**Part 12 is critical for customer conversion.** It should display discount information to encourage customers to find affiliate codes:
+
+```typescript
+// ✅ CORRECT - Part 12 checkout/billing page
+'use client';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+
+export function CheckoutPriceDisplay() {
+  const { discountPercent, calculateDiscountedPrice } = useAffiliateConfig();
+  const regularPrice = 29.00;
+
+  return (
+    <div className="price-section">
+      <p className="regular-price">${regularPrice.toFixed(2)}/month</p>
+
+      {/* Encourage customers to find affiliate codes */}
+      <div className="discount-prompt">
+        <p>🎁 Have an affiliate code?</p>
+        <p className="highlight">Save {discountPercent}% - Pay only ${calculateDiscountedPrice(regularPrice).toFixed(2)}/month!</p>
+        <input placeholder="Enter affiliate code" />
+      </div>
+    </div>
+  );
+}
+```
 
 ### How Other Parts Should Access Config
 
