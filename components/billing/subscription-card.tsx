@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import type { PaymentProvider } from '@/types/dlocal';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -62,7 +63,8 @@ interface SubscriptionCardProps {
 // CONSTANTS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const TIER_CONFIG = {
+// Helper function to generate tier config with dynamic PRO price
+const getTierConfig = (proPrice: number) => ({
   FREE: {
     label: 'FREE',
     price: '$0/month',
@@ -72,7 +74,7 @@ const TIER_CONFIG = {
   },
   PRO: {
     label: 'PRO',
-    price: '$29/month',
+    price: `$${proPrice}/month`,
     badgeColor: 'bg-blue-100 text-blue-800',
     borderColor: 'border-2 border-blue-500',
     features: [
@@ -83,7 +85,7 @@ const TIER_CONFIG = {
       'Priority support',
     ],
   },
-} as const;
+} as const);
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
@@ -118,7 +120,11 @@ export function SubscriptionCard({
   onCancel,
   isLoading = false,
 }: SubscriptionCardProps): React.ReactElement {
+  // Get dynamic PRO price from SystemConfig
+  const { regularPrice } = useAffiliateConfig();
+
   const isPro = tier === 'PRO';
+  const TIER_CONFIG = getTierConfig(regularPrice);
   const config = TIER_CONFIG[tier];
   const isDLocal = paymentProvider === 'DLOCAL';
   const isThreeDayPlan = planType === 'THREE_DAY';

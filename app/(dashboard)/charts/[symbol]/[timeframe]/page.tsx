@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { ChartControls } from '@/components/charts/chart-controls';
 import { TradingChart } from '@/components/charts/trading-chart';
+import { UpgradeButton } from '@/components/ui/upgrade-button';
 import { getSession } from '@/lib/auth/session';
 import {
   FREE_SYMBOLS,
@@ -141,12 +142,11 @@ export default async function ChartPage({
             </div>
 
             <div className="space-y-3">
-              <Link
-                href="/pricing"
-                className="block w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Upgrade to PRO - $29/month
-              </Link>
+              <UpgradeButton
+                variant="primary"
+                className="px-6 py-3 font-semibold"
+                block
+              />
               <Link
                 href="/charts"
                 className="block w-full px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"

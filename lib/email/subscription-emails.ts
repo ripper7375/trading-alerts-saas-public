@@ -37,11 +37,13 @@ const SUPPORT_EMAIL = 'support@tradingalerts.com';
  *
  * @param name - User's display name
  * @param nextBillingDate - Optional next billing date
+ * @param monthlyPrice - Monthly subscription price (from SystemConfig, default 29)
  * @returns Email template with subject, HTML, and text content
  */
 export function getUpgradeEmailTemplate(
   name: string,
-  nextBillingDate?: Date
+  nextBillingDate?: Date,
+  monthlyPrice: number = 29
 ): EmailTemplate {
   const formattedDate = nextBillingDate
     ? nextBillingDate.toLocaleDateString('en-US', {
@@ -81,7 +83,7 @@ export function getUpgradeEmailTemplate(
 
     <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
       <p style="margin: 0; font-size: 14px; color: #666;">
-        <strong>Your subscription:</strong> $29/month<br>
+        <strong>Your subscription:</strong> $${monthlyPrice}/month<br>
         <strong>Next billing date:</strong> ${formattedDate}
       </p>
     </div>
@@ -110,7 +112,7 @@ Your account has been successfully upgraded. You now have access to:
 - 50 watchlist items
 - Priority support
 
-Your subscription: $29/month
+Your subscription: $${monthlyPrice}/month
 Next billing date: ${formattedDate}
 
 Manage your subscription: ${APP_URL}/settings?tab=billing
@@ -204,11 +206,13 @@ ${APP_URL}`,
  *
  * @param name - User's display name
  * @param reason - Failure reason from Stripe
+ * @param monthlyPrice - Monthly subscription price (from SystemConfig, default 29)
  * @returns Email template with subject, HTML, and text content
  */
 export function getPaymentFailedEmailTemplate(
   name: string,
-  reason: string
+  reason: string,
+  monthlyPrice: number = 29
 ): EmailTemplate {
   return {
     subject: 'Payment Failed - Action Required',
@@ -228,7 +232,7 @@ export function getPaymentFailedEmailTemplate(
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px;">Hi ${name},</p>
 
-    <p style="font-size: 16px;">We couldn't process your payment for ${APP_NAME} PRO ($29/month).</p>
+    <p style="font-size: 16px;">We couldn't process your payment for ${APP_NAME} PRO ($${monthlyPrice}/month).</p>
 
     <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
       <p style="margin: 0; font-size: 14px; color: #991b1b;">
@@ -259,7 +263,7 @@ export function getPaymentFailedEmailTemplate(
 
 Hi ${name},
 
-We couldn't process your payment for ${APP_NAME} PRO ($29/month).
+We couldn't process your payment for ${APP_NAME} PRO ($${monthlyPrice}/month).
 
 Reason: ${reason}
 

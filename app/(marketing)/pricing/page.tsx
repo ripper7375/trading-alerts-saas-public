@@ -29,14 +29,14 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { DLOCAL_SUPPORTED_COUNTRIES, COUNTRY_NAMES, PRICING } from '@/lib/dlocal/constants';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import type { DLocalCountry } from '@/types/dlocal';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const PRO_PRICE = 29;
-const DISCOUNT_PERCENT = 10; // Default affiliate discount
+// Note: PRO_PRICE and DISCOUNT_PERCENT are now fetched from SystemConfig via useAffiliateConfig hook
 
 const FREE_TIER = {
   name: 'FREE',
@@ -56,7 +56,6 @@ const FREE_TIER = {
 
 const PRO_TIER = {
   name: 'PRO',
-  price: PRO_PRICE,
   description: 'For serious traders',
   features: [
     { name: '15 Symbols', detail: 'All major pairs + crypto + indices' },
@@ -85,7 +84,8 @@ const COMPARISON_FEATURES = [
   { name: 'Priority Support', free: false, pro: true },
 ];
 
-const FAQ_ITEMS = [
+// FAQ items - discountPercent will be injected dynamically in the component
+const FAQ_ITEMS_TEMPLATE = [
   {
     question: 'Can I switch plans at any time?',
     answer:
@@ -93,8 +93,8 @@ const FAQ_ITEMS = [
   },
   {
     question: 'What happens after the 7-day trial?',
-    answer:
-      "After your 7-day Pro trial ends, you'll be automatically charged $29/month unless you cancel before the trial period expires. You can cancel anytime during the trial with no charges.",
+    answerTemplate: (proPrice: number) =>
+      `After your 7-day Pro trial ends, you'll be automatically charged $${proPrice}/month unless you cancel before the trial period expires. You can cancel anytime during the trial with no charges.`,
   },
   {
     question: 'Do you offer refunds?',
@@ -103,7 +103,8 @@ const FAQ_ITEMS = [
   },
   {
     question: 'What is the affiliate discount?',
-    answer: `When you use an affiliate referral code during checkout, you'll receive ${DISCOUNT_PERCENT}% off your PRO subscription payment. This is applied automatically when you use a valid referral link.`,
+    answerTemplate: (discountPercent: number) =>
+      `When you use an affiliate referral code during checkout, you'll receive ${discountPercent}% off your PRO subscription payment. This is applied automatically when you use a valid referral link.`,
   },
   {
     question: "Why don't you offer annual subscriptions?",
@@ -124,6 +125,9 @@ function PricingPageContent(): React.ReactElement {
   const [detectedCountry, setDetectedCountry] = useState<DLocalCountry | null>(null);
   const [canUseThreeDayPlan, setCanUseThreeDayPlan] = useState(false);
   const [threeDayEligibilityChecked, setThreeDayEligibilityChecked] = useState(false);
+
+  // Get dynamic affiliate config from SystemConfig
+  const { discountPercent, regularPrice: PRO_PRICE, calculateDiscountedPrice } = useAffiliateConfig();
 
   // Get affiliate code from URL
   const affiliateCode = searchParams.get('ref');
@@ -171,11 +175,21 @@ function PricingPageContent(): React.ReactElement {
 
   const isDLocalCountry = detectedCountry !== null;
 
-  // Calculate discounted price if affiliate code exists
+  // Calculate discounted price if affiliate code exists using SystemConfig values
   const discountedPrice = affiliateCode
-    ? PRO_PRICE * (1 - DISCOUNT_PERCENT / 100)
+    ? calculateDiscountedPrice(PRO_PRICE)
     : PRO_PRICE;
   const savings = PRO_PRICE - discountedPrice;
+
+  // Build FAQ items with dynamic values
+  const FAQ_ITEMS = FAQ_ITEMS_TEMPLATE.map((item) => ({
+    question: item.question,
+    answer: 'answerTemplate' in item
+      ? (item.answerTemplate as (val: number) => string)(
+          item.question.includes('affiliate') ? discountPercent : PRO_PRICE
+        )
+      : item.answer,
+  }));
 
   // Check user's current tier
   const userTier = session?.user?.tier || 'FREE';
@@ -352,7 +366,7 @@ function PricingPageContent(): React.ReactElement {
                         Affiliate Discount Active!
                       </div>
                       <div className="text-sm text-yellow-700">
-                        {DISCOUNT_PERCENT}% off applied with code:{' '}
+                        {discountPercent}% off applied with code:{' '}
                         <span className="font-mono font-bold">
                           {affiliateCode}
                         </span>
@@ -416,7 +430,7 @@ function PricingPageContent(): React.ReactElement {
                   ? 'Loading...'
                   : userTier === 'PRO'
                     ? 'Current Plan'
-                    : `${PRO_TIER.buttonText}${affiliateCode ? ` (${DISCOUNT_PERCENT}% Off)` : ''}`}
+                    : `${PRO_TIER.buttonText}${affiliateCode ? ` (${discountPercent}% Off)` : ''}`}
               </Button>
               <p
                 className={`text-center text-sm ${affiliateCode ? 'text-green-600' : 'text-muted-foreground'}`}
@@ -539,7 +553,7 @@ function PricingPageContent(): React.ReactElement {
                 Have an affiliate code?
               </h3>
               <p className="text-foreground/80 mb-4">
-                Get {DISCOUNT_PERCENT}% off your PRO subscription payment with a
+                Get {discountPercent}% off your PRO subscription payment with a
                 referral code from our partners.
               </p>
               <a
