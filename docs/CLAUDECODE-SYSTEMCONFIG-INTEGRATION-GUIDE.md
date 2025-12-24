@@ -3,19 +3,21 @@
 **Project:** Trading Alerts SaaS V7
 **Purpose:** Guide for updating existing UI pages and creating new ones with SystemConfig compatibility using Claude Code (web)
 **Created:** 2025-11-16
-**Updated:** 2025-12-23
-**Target:** All UI frontend pages and dashboards
+**Updated:** 2025-12-24
+**Target:** All UI frontend pages and dashboards across ALL parts
 
 ---
 
 ## 📖 TABLE OF CONTENTS
 
 1. [Overview](#overview)
-2. [Retrofitting Existing Pages](#retrofitting-existing-pages)
-3. [Creating New Pages](#creating-new-pages)
-4. [Common Patterns to Update](#common-patterns-to-update)
-5. [Verification Checklist](#verification-checklist)
-6. [Examples](#examples)
+2. [Part 17 Admin Portal - Configuration Source](#part-17-admin-portal---configuration-source)
+3. [Cross-Part Integration](#cross-part-integration)
+4. [Retrofitting Existing Pages](#retrofitting-existing-pages)
+5. [Creating New Pages](#creating-new-pages)
+6. [Common Patterns to Update](#common-patterns-to-update)
+7. [Verification Checklist](#verification-checklist)
+8. [Examples](#examples)
 
 ---
 
@@ -64,6 +66,168 @@ export default function Component() {
 - ✅ Affiliate dashboard (all pages)
 - ✅ Admin affiliate management pages
 - ✅ Any future page showing discount/commission percentages
+
+---
+
+## 🎛️ Part 17 Admin Portal - Configuration Source
+
+### Admin Configures %Discount and %Commission in Part 17
+
+**Part 17 (Affiliate Marketing Platform)** contains the **Admin System Config** portal where administrators configure all affiliate-related percentages:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              PART 17 - ADMIN SYSTEM CONFIG                  │
+│                (Configuration Source)                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Admin Portal: /admin/settings/affiliate                   │
+│                                                             │
+│  Configurable Values:                                       │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │ affiliate_discount_percent:   [  20.0  ] %     │       │
+│  │ affiliate_commission_percent: [  20.0  ] %     │       │
+│  │ affiliate_codes_per_month:    [   15   ]       │       │
+│  │ affiliate_base_price:         [ 29.00  ] $     │       │
+│  └─────────────────────────────────────────────────┘       │
+│                                                             │
+│  [Save Changes]                                             │
+│                                                             │
+│  All changes are:                                           │
+│  ✓ Stored in SystemConfig database table                   │
+│  ✓ Audited in SystemConfigHistory table                    │
+│  ✓ Applied in real-time (no restart required)              │
+│  ✓ Propagated to ALL other parts automatically             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### API Endpoints in Part 17
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/admin/system-config` | GET | List all system configurations |
+| `/api/admin/system-config/{key}` | GET | Get specific config by key |
+| `/api/admin/system-config/{key}` | PUT | Update config (with audit trail) |
+| `/api/admin/system-config/history` | GET | View configuration change history |
+| `/api/config/affiliate` | GET | Public endpoint for frontend (cached) |
+
+---
+
+## 🔗 Cross-Part Integration
+
+### Configuration Propagates from Part 17 to All Other Parts
+
+When admin changes %discount or %commission in Part 17, the new values **automatically propagate** to all other parts:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PART 17 (Source)                         │
+│              Admin changes discount to 25%                  │
+└─────────────────────────────────┬───────────────────────────┘
+                                  │
+                                  │ SystemConfig Database
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    ALL OTHER PARTS                          │
+│              (Automatically receive new values)             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Part 5 (Pricing Page):        Shows "Save 25%!"          │
+│  Part 8 (Checkout):            Applies 25% discount        │
+│  Part 9 (Billing Dashboard):   Shows "$21.75/month"        │
+│  Part 14 (Admin Dashboard):    Reports 25% metrics         │
+│  Part 17 (Affiliate Portal):   Affiliates see 25%          │
+│  Part 18 (Marketing Pages):    Displays "25% off"          │
+│  Any Future Part:              Uses current config          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### ⚠️ CRITICAL: Other Parts Must NOT Have Hardcoded Values
+
+**Parts 5, 8, 9, 14, 18, etc. MUST NOT contain hardcoded discount/commission values.**
+
+They MUST use the SystemConfig integration:
+
+| Part | Files to Check | What to Replace |
+|------|----------------|-----------------|
+| Part 5 | Pricing components | Hardcoded `20%`, `$23.20` |
+| Part 8 | Checkout page | Hardcoded discount calculations |
+| Part 9 | Billing dashboard | Hardcoded subscription prices |
+| Part 14 | Admin overview | Hardcoded metrics/percentages |
+| Part 18 | Marketing pages | Hardcoded promotional text |
+
+### How Other Parts Should Access Config
+
+**Frontend Components (Client-Side):**
+
+```typescript
+// ✅ CORRECT - Uses dynamic config from Part 17
+'use client';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+
+export function PricingCard() {
+  const { discountPercent, calculateDiscountedPrice } = useAffiliateConfig();
+
+  return (
+    <div>
+      <p>Save {discountPercent}% with affiliate code!</p>
+      <p>Only ${calculateDiscountedPrice(29.00).toFixed(2)}/month</p>
+    </div>
+  );
+}
+```
+
+**Backend/API Routes (Server-Side):**
+
+```typescript
+// ✅ CORRECT - Fetches from SystemConfig database
+import { getAffiliateConfigFromDB } from '@/lib/affiliate/constants';
+
+export async function GET(request: Request) {
+  const config = await getAffiliateConfigFromDB();
+
+  const discount = config.discountPercent;  // Current value from Part 17
+  const commission = config.commissionPercent;  // Current value from Part 17
+
+  // Use dynamic values...
+}
+```
+
+### Affiliate Code Business Logic
+
+**Important:** Each affiliate code stores its own `discountPercent` and `commissionPercent` at creation time:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              AFFILIATE CODE CREATION                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. Admin sets config in Part 17:                          │
+│     discount = 20%, commission = 20%                        │
+│                                                             │
+│  2. Code "ABC123" created:                                  │
+│     code.discountPercent = 20.0  ← Snapshot at creation    │
+│     code.commissionPercent = 20.0 ← Snapshot at creation   │
+│                                                             │
+│  3. Admin later changes to 25%/25%                         │
+│                                                             │
+│  4. Code "ABC123" is redeemed:                             │
+│     Uses stored 20%/20% ← Honors original promise!         │
+│                                                             │
+│  5. NEW codes created after change:                         │
+│     code.discountPercent = 25.0  ← Uses new config         │
+│     code.commissionPercent = 25.0 ← Uses new config        │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+This ensures:
+- ✅ **Customer Trust**: Discount promised when code was issued is honored
+- ✅ **Affiliate Trust**: Commission rate promised when code was issued is honored
+- ✅ **Business Flexibility**: New codes use updated rates
 
 ---
 
@@ -1011,6 +1175,7 @@ Please provide the complete updated component with NO hardcoded percentages or p
 
 ---
 
-**Document Version:** 2.0.0
-**Last Updated:** 2025-12-23
+**Document Version:** 2.1.0
+**Last Updated:** 2025-12-24
 **For:** Trading Alerts SaaS V7 - SystemConfig Integration with Claude Code (Web)
+**Source of Truth:** Part 17 Admin Portal (`/admin/settings/affiliate`)

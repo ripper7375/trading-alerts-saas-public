@@ -3,22 +3,26 @@
 **Project:** Trading Alerts SaaS V7
 **Feature:** Dynamic Affiliate Settings Management
 **Created:** 2025-11-16
+**Updated:** 2025-12-24
 **Purpose:** Guide for using and extending SystemConfig for current and future pages
+**Configuration Source:** Part 17 Admin Portal (`/admin/settings/affiliate`)
 
 ---
 
 ## 📖 TABLE OF CONTENTS
 
 1. [What is SystemConfig?](#what-is-systemconfig)
-2. [How Does It Work?](#how-does-it-work)
-3. [Auto-Detection for New Pages](#auto-detection-for-new-pages)
-4. [Retrofitting Existing Pages](#retrofitting-existing-pages)
-5. [Adding New Configuration Settings](#adding-new-configuration-settings)
-6. [API Reference](#api-reference)
-7. [Frontend Hook Reference](#frontend-hook-reference)
-8. [Backend Pattern Reference](#backend-pattern-reference)
-9. [Testing Changes](#testing-changes)
-10. [Troubleshooting](#troubleshooting)
+2. [Part 17 Admin Portal - Configuration Source](#part-17-admin-portal---configuration-source)
+3. [Cross-Part Propagation](#cross-part-propagation)
+4. [How Does It Work?](#how-does-it-work)
+5. [Auto-Detection for New Pages](#auto-detection-for-new-pages)
+6. [Retrofitting Existing Pages](#retrofitting-existing-pages)
+7. [Adding New Configuration Settings](#adding-new-configuration-settings)
+8. [API Reference](#api-reference)
+9. [Frontend Hook Reference](#frontend-hook-reference)
+10. [Backend Pattern Reference](#backend-pattern-reference)
+11. [Testing Changes](#testing-changes)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -67,6 +71,172 @@ model SystemConfigHistory {
 | `affiliate_discount_percent`   | number | 20.0    | Customer discount percentage            |
 | `affiliate_commission_percent` | number | 20.0    | Affiliate commission percentage         |
 | `affiliate_codes_per_month`    | number | 15      | Codes distributed per affiliate monthly |
+| `affiliate_base_price`         | number | 29.0    | Base subscription price (USD)           |
+
+---
+
+## 🎛️ Part 17 Admin Portal - Configuration Source
+
+### Where Admin Configures %Discount and %Commission
+
+**Part 17 (Affiliate Marketing Platform)** is the **single source of truth** for all affiliate configuration. Admin manages these settings through the Admin System Config portal:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              PART 17 ADMIN SYSTEM CONFIG                    │
+│                                                             │
+│  Location: /admin/settings/affiliate                       │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │                                                       │ │
+│  │  Customer Discount %:    [ 20.0 ]  ← Editable        │ │
+│  │  Affiliate Commission %: [ 20.0 ]  ← Editable        │ │
+│  │  Codes Per Month:        [  15  ]  ← Editable        │ │
+│  │  Base Price ($):         [ 29.0 ]  ← Editable        │ │
+│  │                                                       │ │
+│  │  Reason for Change: [________________________]        │ │
+│  │                                                       │ │
+│  │           [ Save Changes ]                            │ │
+│  │                                                       │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ⚡ Changes take effect immediately                        │
+│  📝 All changes logged to SystemConfigHistory              │
+│  🌐 Propagates to all parts within 5 minutes               │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Part 17 API Endpoints for SystemConfig
+
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/admin/system-config` | GET | Admin | List all configs |
+| `/api/admin/system-config/{key}` | GET | Admin | Get specific config |
+| `/api/admin/system-config/{key}` | PUT | Admin | Update config |
+| `/api/admin/system-config/history` | GET | Admin | View audit trail |
+| `/api/config/affiliate` | GET | Public | Frontend cache (5min) |
+
+---
+
+## 🔗 Cross-Part Propagation
+
+### How Configuration Flows from Part 17 to Other Parts
+
+When admin changes %discount or %commission in **Part 17**, those values automatically propagate to all other parts:
+
+```
+                        ┌─────────────────────┐
+                        │      PART 17        │
+                        │  Admin sets 25%     │
+                        │  discount/commission│
+                        └──────────┬──────────┘
+                                   │
+                                   │ Writes to SystemConfig DB
+                                   │
+                                   ▼
+                        ┌─────────────────────┐
+                        │   SystemConfig      │
+                        │   Database Table    │
+                        │                     │
+                        │ discount: 25.0      │
+                        │ commission: 25.0    │
+                        └──────────┬──────────┘
+                                   │
+           ┌───────────────────────┼───────────────────────┐
+           │                       │                       │
+           ▼                       ▼                       ▼
+    ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+    │   Part 5    │         │   Part 8    │         │   Part 9    │
+    │  Pricing    │         │  Checkout   │         │  Billing    │
+    │             │         │             │         │  Dashboard  │
+    │ Shows 25%   │         │ Applies 25% │         │ Shows       │
+    │ discount    │         │ discount    │         │ $21.75/mo   │
+    └─────────────┘         └─────────────┘         └─────────────┘
+           │                       │                       │
+           └───────────────────────┼───────────────────────┘
+                                   │
+           ┌───────────────────────┼───────────────────────┐
+           │                       │                       │
+           ▼                       ▼                       ▼
+    ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+    │  Part 14    │         │  Part 17    │         │  Part 18    │
+    │  Admin      │         │  Affiliate  │         │  Marketing  │
+    │  Dashboard  │         │  Portal     │         │  Pages      │
+    │             │         │             │         │             │
+    │ 25% metrics │         │ 25% shown   │         │ "25% off!"  │
+    └─────────────┘         └─────────────┘         └─────────────┘
+```
+
+### ⚠️ CRITICAL REQUIREMENT: No Hardcoded Values in Other Parts
+
+**Parts 5, 8, 9, 14, 18 (and any future parts) MUST NOT have hardcoded discount/commission values.**
+
+This is required so that Part 17 configuration changes propagate correctly.
+
+### What to Look For and Replace in Other Parts
+
+**Search patterns to find hardcoded values:**
+
+```bash
+# Find hardcoded percentages
+grep -r "20%" app/ components/ lib/
+grep -r "20\.0" app/ components/ lib/
+grep -r "0\.2" app/ components/ lib/  # 20% as decimal
+grep -r "0\.8" app/ components/ lib/  # 1 - 20% = 80%
+
+# Find hardcoded prices
+grep -r "\$23\.20" app/ components/ lib/
+grep -r "23\.20" app/ components/ lib/
+grep -r "\$5\.80" app/ components/ lib/
+grep -r "\$4\.64" app/ components/ lib/
+```
+
+**Replace with dynamic config:**
+
+| Hardcoded | Replace With (Frontend) | Replace With (Backend) |
+|-----------|------------------------|------------------------|
+| `20%` (discount) | `{discountPercent}%` | `config.discountPercent` |
+| `20%` (commission) | `{commissionPercent}%` | `config.commissionPercent` |
+| `$23.20` | `${calculateDiscountedPrice(29).toFixed(2)}` | `basePrice * (1 - discount/100)` |
+| `$5.80` | `${(29 - calculateDiscountedPrice(29)).toFixed(2)}` | `basePrice * (discount/100)` |
+| `$4.64` | `${(discountedPrice * commission/100).toFixed(2)}` | `netRevenue * (commission/100)` |
+| `0.2` or `0.8` | `discountPercent / 100` | `config.discountPercent / 100` |
+
+### Affiliate Code Snapshot Behavior
+
+**Important Business Logic:** Each affiliate code stores its discount/commission percentages at creation time:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CODE CREATION                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  SystemConfig (Part 17): discount=20%, commission=20%      │
+│                                                             │
+│  Code "ABC123" created:                                     │
+│    discountPercent: 20.0   ← Snapshot (locked in)          │
+│    commissionPercent: 20.0 ← Snapshot (locked in)          │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                    LATER CONFIG CHANGE                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Admin changes Part 17: discount=25%, commission=25%       │
+│                                                             │
+│  Code "ABC123" redeemed:                                    │
+│    Uses 20%/20% ← Original promise honored!                │
+│                                                             │
+│  NEW Code "XYZ789" created:                                 │
+│    Uses 25%/25% ← New config applied                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Why this matters:**
+- ✅ **Customer Trust**: Customer was promised 20% off - they get 20% off
+- ✅ **Affiliate Trust**: Affiliate was promised 20% commission - they get 20%
+- ✅ **Business Flexibility**: Admin can change rates for future codes anytime
 
 ---
 
@@ -1295,6 +1465,7 @@ const commissionPercent = parseFloat(config?.value || '20.0');
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2025-11-16
+**Document Version:** 2.0.0
+**Last Updated:** 2025-12-24
+**Configuration Source:** Part 17 Admin Portal (`/admin/settings/affiliate`)
 **Next Review:** When adding first retrofit page or new setting
