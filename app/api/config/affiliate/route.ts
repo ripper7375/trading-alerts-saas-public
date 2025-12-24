@@ -47,7 +47,7 @@ const DEFAULTS = {
  * Response is cached for 5 minutes for performance.
  */
 export async function GET(
-  request: NextRequest
+  _request: NextRequest
 ): Promise<NextResponse<AffiliateConfigResponse | { error: string }>> {
   try {
     // Fetch all affiliate config keys from SystemConfig
@@ -78,17 +78,17 @@ export async function GET(
     // Parse values with fallbacks to defaults
     const response: AffiliateConfigResponse = {
       discountPercent: parseFloat(
-        configMap.affiliate_discount_percent ?? DEFAULTS.affiliate_discount_percent
+        configMap['affiliate_discount_percent'] ?? DEFAULTS['affiliate_discount_percent']
       ),
       commissionPercent: parseFloat(
-        configMap.affiliate_commission_percent ?? DEFAULTS.affiliate_commission_percent
+        configMap['affiliate_commission_percent'] ?? DEFAULTS['affiliate_commission_percent']
       ),
       codesPerMonth: parseInt(
-        configMap.affiliate_codes_per_month ?? DEFAULTS.affiliate_codes_per_month,
+        configMap['affiliate_codes_per_month'] ?? DEFAULTS['affiliate_codes_per_month'],
         10
       ),
       regularPrice: parseFloat(
-        configMap.affiliate_base_price ?? DEFAULTS.affiliate_base_price
+        configMap['affiliate_base_price'] ?? DEFAULTS['affiliate_base_price']
       ),
       lastUpdated: latestUpdate?.toISOString() ?? new Date().toISOString(),
     };

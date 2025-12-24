@@ -76,7 +76,7 @@ const DEFAULTS = {
  * Requires admin authentication.
  */
 export async function GET(
-  request: NextRequest
+  _request: NextRequest
 ): Promise<NextResponse<GetResponse | { error: string }>> {
   try {
     // Require admin authentication

@@ -141,10 +141,10 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
     }
 
     return {
-      discountPercent: parseFloat(configMap.affiliate_discount_percent || '20.0'),
-      commissionPercent: parseFloat(configMap.affiliate_commission_percent || '20.0'),
-      codesPerMonth: parseInt(configMap.affiliate_codes_per_month || '15', 10),
-      basePriceUsd: parseFloat(configMap.affiliate_base_price || '29.0'),
+      discountPercent: parseFloat(configMap['affiliate_discount_percent'] || '20.0'),
+      commissionPercent: parseFloat(configMap['affiliate_commission_percent'] || '20.0'),
+      codesPerMonth: parseInt(configMap['affiliate_codes_per_month'] || '15', 10),
+      basePriceUsd: parseFloat(configMap['affiliate_base_price'] || '29.0'),
     };
   } catch (error) {
     console.error('[AffiliateConfig] Failed to fetch config from DB, using defaults:', error);
