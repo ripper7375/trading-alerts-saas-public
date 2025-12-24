@@ -8,6 +8,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+
 import SocialAuthButtons from './social-auth-buttons';
 
 // Enhanced validation schema with password confirmation
@@ -36,6 +38,14 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export default function RegisterForm(): JSX.Element {
   const searchParams = useSearchParams();
+
+  // Get dynamic affiliate config from SystemConfig
+  const {
+    discountPercent,
+    regularPrice,
+    calculateDiscountedPrice,
+  } = useAffiliateConfig();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,7 +175,7 @@ export default function RegisterForm(): JSX.Element {
             </h2>
             {isCodeValid && (
               <p className="text-green-600 font-medium mb-2">
-                🎉 20% discount activated! You&apos;ll pay $23.20/month for PRO.
+                🎉 {discountPercent}% discount activated! You&apos;ll pay ${calculateDiscountedPrice(regularPrice).toFixed(2)}/month for PRO.
               </p>
             )}
             <p className="text-gray-600 mb-4">
@@ -421,7 +431,7 @@ export default function RegisterForm(): JSX.Element {
               Referral Code (Optional)
             </label>
             <p className="text-xs text-blue-600 mb-1">
-              Have an affiliate code? Get 20% off this month!
+              Have an affiliate code? Get {discountPercent}% off this month!
             </p>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -476,11 +486,11 @@ export default function RegisterForm(): JSX.Element {
               <>
                 <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
                   <Check className="w-4 h-4 flex-shrink-0" />
-                  Valid code! You&apos;ll get 20% off PRO ($23.20/month instead
-                  of $29)
+                  Valid code! You&apos;ll get {discountPercent}% off PRO (${calculateDiscountedPrice(regularPrice).toFixed(2)}/month instead
+                  of ${regularPrice.toFixed(2)})
                 </p>
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mt-2 inline-block">
-                  🎉 20% DISCOUNT APPLIED
+                  🎉 {discountPercent}% DISCOUNT APPLIED
                 </span>
               </>
             )}
