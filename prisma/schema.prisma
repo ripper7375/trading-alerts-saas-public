@@ -762,3 +762,64 @@ model DisbursementAuditLog {
   @@index([action])
   @@index([createdAt])
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SYSTEM CONFIGURATION (Dynamic Settings)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// System-wide configuration settings that can be changed by admin
+/// without code deployment. Used for affiliate discount/commission
+/// percentages and other dynamic settings.
+model SystemConfig {
+  id          String   @id @default(cuid())
+
+  /// Unique identifier for the setting (e.g., "affiliate_discount_percent")
+  key         String   @unique
+
+  /// Value stored as string (parsed based on valueType)
+  value       String
+
+  /// Type of value: "number", "string", "boolean", "json"
+  valueType   String   @default("string")
+
+  /// Human-readable description of what this setting controls
+  description String?
+
+  /// Category for grouping settings (e.g., "affiliate", "payment", "system")
+  category    String
+
+  /// User ID or email of admin who last updated this setting
+  updatedBy   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([key])
+}
+
+/// History of all changes to SystemConfig for audit trail
+model SystemConfigHistory {
+  id         String   @id @default(cuid())
+
+  /// The config key that was changed
+  configKey  String
+
+  /// Previous value before the change
+  oldValue   String
+
+  /// New value after the change
+  newValue   String
+
+  /// Email or ID of admin who made the change
+  changedBy  String
+
+  /// Optional reason for the change
+  reason     String?
+
+  changedAt  DateTime @default(now())
+
+  @@index([configKey])
+  @@index([changedBy])
+  @@index([changedAt])
+}

@@ -2,15 +2,18 @@
  * Commission Calculator
  *
  * Calculates affiliate commissions using percentage-based model:
- * - 20% discount for customers ($29.00 → $23.20)
- * - 20% commission on net revenue ($23.20 × 20% = $4.64)
+ * - Default 20% discount for customers ($29.00 → $23.20)
+ * - Default 20% commission on net revenue ($23.20 × 20% = $4.64)
  *
- * All calculations are configurable via AFFILIATE_CONFIG.
+ * SYSTEMCONFIG INTEGRATION:
+ * - Use *WithDynamicConfig functions for backend code that needs current config
+ * - These functions fetch from SystemConfig database
+ * - For frontend, use useAffiliateConfig hook instead
  *
  * @module lib/affiliate/commission-calculator
  */
 
-import { AFFILIATE_CONFIG } from './constants';
+import { AFFILIATE_CONFIG, getAffiliateConfigFromDB } from './constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -175,4 +178,75 @@ export function calculateFullBreakdown(
     commissionAmount,
     companyRevenue,
   };
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DYNAMIC CONFIG VERSIONS (Backend)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Calculate complete commission breakdown using dynamic config from SystemConfig.
+ *
+ * This is the preferred function for backend code (API routes, webhooks, cron jobs)
+ * as it automatically fetches the current discount and commission percentages
+ * from the database.
+ *
+ * @param grossAmount - Original price before discount
+ * @returns Promise resolving to complete breakdown of all amounts
+ *
+ * @example
+ * ```typescript
+ * // In a Stripe webhook handler:
+ * const breakdown = await calculateFullBreakdownWithDynamicConfig(29.00);
+ * // Uses current config from SystemConfig table
+ * ```
+ */
+export async function calculateFullBreakdownWithDynamicConfig(
+  grossAmount: number
+): Promise<CommissionBreakdown> {
+  const config = await getAffiliateConfigFromDB();
+  return calculateFullBreakdown(
+    grossAmount,
+    config.discountPercent,
+    config.commissionPercent
+  );
+}
+
+/**
+ * Calculate discount amount using dynamic config from SystemConfig.
+ *
+ * @param grossAmount - Original price before discount
+ * @returns Promise resolving to discount amount
+ */
+export async function calculateDiscountWithDynamicConfig(
+  grossAmount: number
+): Promise<number> {
+  const config = await getAffiliateConfigFromDB();
+  return calculateDiscount(grossAmount, config.discountPercent);
+}
+
+/**
+ * Calculate net revenue using dynamic config from SystemConfig.
+ *
+ * @param grossAmount - Original price before discount
+ * @returns Promise resolving to net revenue
+ */
+export async function calculateNetRevenueWithDynamicConfig(
+  grossAmount: number
+): Promise<number> {
+  const config = await getAffiliateConfigFromDB();
+  return calculateNetRevenue(grossAmount, config.discountPercent);
+}
+
+/**
+ * Calculate commission amount using dynamic config from SystemConfig.
+ *
+ * @param netRevenue - Revenue after discount
+ * @returns Promise resolving to commission amount
+ */
+export async function calculateCommissionWithDynamicConfig(
+  netRevenue: number
+): Promise<number> {
+  const config = await getAffiliateConfigFromDB();
+  return calculateCommission(netRevenue, config.commissionPercent);
 }

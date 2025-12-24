@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -41,6 +42,9 @@ interface FormData {
  */
 export default function AffiliateRegisterPage(): React.ReactElement {
   const router = useRouter();
+
+  // Fetch dynamic config from SystemConfig
+  const { discountPercent, commissionPercent, codesPerMonth } = useAffiliateConfig();
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -125,8 +129,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
             Become an Affiliate
           </h1>
           <p className="mt-2 text-gray-600">
-            Earn {AFFILIATE_CONFIG.COMMISSION_PERCENT}% commission on every
-            referral
+            Earn {commissionPercent}% commission on every referral
           </p>
         </div>
 
@@ -432,9 +435,9 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               />
               <span className="text-sm text-gray-600">
                 I agree to the affiliate program terms and conditions. I
-                understand that I will earn {AFFILIATE_CONFIG.COMMISSION_PERCENT}
-                % commission on referrals and that payouts are processed monthly
-                for balances over ${AFFILIATE_CONFIG.MINIMUM_PAYOUT}.
+                understand that I will earn {commissionPercent}% commission on
+                referrals and that payouts are processed monthly for balances
+                over ${AFFILIATE_CONFIG.MINIMUM_PAYOUT}.
               </span>
             </label>
           </div>
@@ -457,17 +460,13 @@ export default function AffiliateRegisterPage(): React.ReactElement {
             </h3>
             <ul className="text-sm text-gray-600 space-y-2">
               <li>
-                - Earn {AFFILIATE_CONFIG.COMMISSION_PERCENT}% commission on every
-                successful referral
+                - Earn {commissionPercent}% commission on every successful
+                referral
               </li>
               <li>
-                - Your referrals get {AFFILIATE_CONFIG.DISCOUNT_PERCENT}% off
-                their subscription
+                - Your referrals get {discountPercent}% off their subscription
               </li>
-              <li>
-                - Receive {AFFILIATE_CONFIG.CODES_PER_MONTH} unique codes per
-                month
-              </li>
+              <li>- Receive {codesPerMonth} unique codes per month</li>
               <li>
                 - Monthly payouts for balances over $
                 {AFFILIATE_CONFIG.MINIMUM_PAYOUT}

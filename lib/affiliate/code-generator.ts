@@ -4,6 +4,10 @@
  * Generates unique affiliate codes and handles code distribution
  * to affiliate accounts.
  *
+ * SYSTEMCONFIG INTEGRATION:
+ * - Discount and commission percentages are fetched from SystemConfig
+ * - Admin can change these values without code deployment
+ *
  * @module lib/affiliate/code-generator
  */
 
@@ -12,8 +16,8 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/db/prisma';
 
 import {
-  AFFILIATE_CONFIG,
   CODE_GENERATION,
+  getAffiliateConfigFromDB,
   type DistributionReason,
 } from './constants';
 import type { AffiliateCode } from './types';
@@ -106,6 +110,9 @@ export async function distributeCodes(
   const expiresAt = calculateEndOfMonth();
   const createdCodes: AffiliateCode[] = [];
 
+  // Fetch current config from SystemConfig (dynamic values)
+  const config = await getAffiliateConfigFromDB();
+
   // Create each code individually to ensure uniqueness
   for (let i = 0; i < count; i++) {
     const code = await generateUniqueCode();
@@ -114,8 +121,8 @@ export async function distributeCodes(
       data: {
         code,
         affiliateProfileId,
-        discountPercent: AFFILIATE_CONFIG.DISCOUNT_PERCENT,
-        commissionPercent: AFFILIATE_CONFIG.COMMISSION_PERCENT,
+        discountPercent: config.discountPercent,
+        commissionPercent: config.commissionPercent,
         status: 'ACTIVE',
         distributedAt: new Date(),
         expiresAt,

@@ -17,6 +17,10 @@ interface PnLSummaryCardsProps {
   totalCommissions: number;
   netProfit: number;
   profitMargin: number;
+  /** Commission rate percentage from SystemConfig */
+  commissionPercent?: number;
+  /** Discount rate percentage from SystemConfig */
+  discountPercent?: number;
 }
 
 export function PnLSummaryCards({
@@ -26,6 +30,8 @@ export function PnLSummaryCards({
   totalCommissions,
   netProfit,
   profitMargin,
+  commissionPercent = 20,
+  discountPercent = 20,
 }: PnLSummaryCardsProps) {
   const formatCurrency = (value: number) =>
     `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -35,7 +41,7 @@ export function PnLSummaryCards({
       title: 'Revenue',
       items: [
         { label: 'Gross Revenue', value: formatCurrency(grossRevenue) },
-        { label: 'Discounts Given', value: `-${formatCurrency(discounts)}`, className: 'text-orange-600' },
+        { label: `Discounts Given (${discountPercent}%)`, value: `-${formatCurrency(discounts)}`, className: 'text-orange-600' },
         { label: 'Net Revenue', value: formatCurrency(netRevenue), className: 'font-semibold' },
       ],
     },
@@ -43,7 +49,7 @@ export function PnLSummaryCards({
       title: 'Costs',
       items: [
         { label: 'Total Commissions', value: formatCurrency(totalCommissions) },
-        { label: 'Commission Rate', value: '20%' },
+        { label: 'Commission Rate', value: `${commissionPercent}%` },
       ],
     },
     {
