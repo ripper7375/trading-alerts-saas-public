@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { UpgradeButton } from '@/components/ui/upgrade-button';
 import { getSession } from '@/lib/auth/session';
 import {
   FREE_SYMBOLS,
@@ -60,12 +61,7 @@ export default async function ChartsPage(): Promise<React.JSX.Element> {
                 Access all 15 symbols and 9 timeframes (135 combinations) plus
                 faster 30s data updates.
               </p>
-              <Link
-                href="/pricing"
-                className="inline-block mt-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors"
-              >
-                Upgrade to PRO - $29/month
-              </Link>
+              <UpgradeButton variant="amber" className="mt-2 text-sm" />
             </div>
           </div>
         </div>

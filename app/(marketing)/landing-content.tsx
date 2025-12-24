@@ -3,13 +3,20 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+
 export default function LandingPageContent(): React.ReactElement {
   const searchParams = useSearchParams();
   const affiliateCode = searchParams.get('ref');
 
-  // Pricing calculation
-  const proPriceDisplay = affiliateCode ? '$23.20' : '$29';
-  const discount = affiliateCode ? '20% OFF' : null;
+  // Get dynamic affiliate config from SystemConfig
+  const { discountPercent, commissionPercent, regularPrice, calculateDiscountedPrice } = useAffiliateConfig();
+
+  // Pricing calculation using SystemConfig values
+  const discountedPrice = calculateDiscountedPrice(regularPrice);
+  const proPriceDisplay = affiliateCode ? `$${discountedPrice.toFixed(2)}` : `$${regularPrice}`;
+  const discount = affiliateCode ? `${discountPercent}% OFF` : null;
+  const commissionAmount = discountedPrice * (commissionPercent / 100);
 
   return (
     <div className="flex flex-col">
@@ -22,7 +29,7 @@ export default function LandingPageContent(): React.ReactElement {
             <code className="bg-white/20 px-2 py-0.5 rounded font-mono text-xs">
               {affiliateCode}
             </code>{' '}
-            and get <span className="font-bold">20% off your first month!</span>
+            and get <span className="font-bold">{discountPercent}% off your first month!</span>
           </p>
         </div>
       )}
@@ -347,7 +354,7 @@ export default function LandingPageContent(): React.ReactElement {
                 <span className="text-muted-foreground">/month</span>
                 {affiliateCode && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Regular price: $29/month
+                    Regular price: ${regularPrice}/month
                   </p>
                 )}
               </div>
@@ -472,7 +479,7 @@ export default function LandingPageContent(): React.ReactElement {
             Become an Affiliate Partner
           </h2>
           <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Earn 20% commission for every PRO subscriber you refer. No approval
+            Earn {commissionPercent}% commission for every PRO subscriber you refer. No approval
             required.
           </p>
 
@@ -485,7 +492,7 @@ export default function LandingPageContent(): React.ReactElement {
                 Generous Commissions
               </h3>
               <p className="text-sm text-muted-foreground">
-                Earn $5.80 per month for each referral
+                Earn ${commissionAmount.toFixed(2)} per month for each referral
               </p>
             </div>
             <div className="text-center">
