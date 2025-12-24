@@ -32,7 +32,7 @@ const mockPrismaClient = jest.fn().mockImplementation(() => ({
   },
 }));
 
-jest.mock('@prisma/client', () => ({
+jest.mock('.prisma/client', () => ({
   __esModule: true,
   PrismaClient: mockPrismaClient,
 }));
