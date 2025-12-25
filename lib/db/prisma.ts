@@ -1,4 +1,4 @@
-import { PrismaClient } from '.prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 /**
  * Prisma Client Singleton for Next.js Application
@@ -7,9 +7,9 @@ import { PrismaClient } from '.prisma/client';
  * Prevents connection pool exhaustion during development
  * Follows Prisma best practices for Next.js integration
  *
- * Note: We import from '.prisma/client' (the generated client location)
- * instead of '@prisma/client' to ensure TypeScript finds the correct
- * types including all custom models like SystemConfig.
+ * Note: We import from '@prisma/client' which uses the generated client
+ * or falls back to type stubs (types/prisma-stubs.d.ts) when the client
+ * cannot be generated locally due to network restrictions.
  */
 
 const globalForPrisma = globalThis as unknown as {
