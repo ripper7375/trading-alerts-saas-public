@@ -1,0 +1,779 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Admin Dashboard API (Part 14)
+  version: 1.0.0
+  description: |
+    Admin Dashboard API for Trading Alerts SaaS platform (Part 14).
+
+    This API provides administrative operations for platform management and monitoring.
+
+    ## Features
+    - User management and administration
+    - System analytics and metrics
+    - API usage monitoring
+    - Error log management
+    - Affiliate system administration (from Part 17)
+
+    ## Security
+    **Admin Access Only**: All endpoints require ADMIN role.
+
+    **Authentication:**
+    - Session-based authentication (NextAuth)
+    - Role validation on every request
+    - Returns 403 if user is not ADMIN
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Users
+    description: User management operations
+  - name: Analytics
+    description: System analytics and metrics
+  - name: API Usage
+    description: API usage monitoring
+  - name: Error Logs
+    description: Error log management
+
+paths:
+  /api/admin/users:
+    get:
+      tags:
+        - Users
+      summary: List all users
+      description: |
+        Retrieves a list of all users with filtering and pagination.
+
+        **Filters:**
+        - `tier`: Filter by subscription tier (FREE, PRO)
+        - `role`: Filter by role (USER, ADMIN)
+        - `search`: Search by name or email
+
+        **Pagination:**
+        - `page`: Page number (default: 1)
+        - `limit`: Items per page (default: 50, max: 100)
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getUsers
+      parameters:
+        - name: tier
+          in: query
+          required: false
+          description: Filter by tier
+          schema:
+            type: string
+            enum: [FREE, PRO]
+          example: PRO
+        - name: role
+          in: query
+          required: false
+          description: Filter by role
+          schema:
+            type: string
+            enum: [USER, ADMIN]
+          example: USER
+        - name: search
+          in: query
+          required: false
+          description: Search by name or email
+          schema:
+            type: string
+          example: "john"
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          required: false
+          description: Items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          example: 50
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersListResponse'
+              example:
+                users:
+                  - id: "user_001"
+                    name: "John Doe"
+                    email: "john@example.com"
+                    tier: "PRO"
+                    role: "USER"
+                    isAffiliate: false
+                    emailVerified: true
+                    createdAt: "2025-11-15T10:00:00.000Z"
+                    lastLoginAt: "2025-12-20T14:30:00.000Z"
+                  - id: "user_002"
+                    name: "Jane Smith"
+                    email: "jane@example.com"
+                    tier: "FREE"
+                    role: "USER"
+                    isAffiliate: true
+                    emailVerified: true
+                    createdAt: "2025-12-01T09:00:00.000Z"
+                    lastLoginAt: "2025-12-19T16:45:00.000Z"
+                pagination:
+                  page: 1
+                  limit: 50
+                  total: 127
+                  totalPages: 3
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Authentication required"
+        '403':
+          description: Forbidden - not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Forbidden"
+                message: "Admin access required"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/analytics:
+    get:
+      tags:
+        - Analytics
+      summary: Get system analytics
+      description: |
+        Retrieves comprehensive system analytics and metrics.
+
+        **Metrics Included:**
+        - User statistics (total, active, new this month)
+        - Subscription metrics (FREE vs PRO breakdown)
+        - Revenue metrics (MRR, total revenue)
+        - Alert statistics (total alerts, active alerts)
+        - Watchlist statistics
+        - API usage metrics
+
+        **Date Range:**
+        - `startDate`: Start date for metrics (ISO 8601)
+        - `endDate`: End date for metrics (ISO 8601)
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getAnalytics
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          description: Start date for metrics (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+          example: "2025-12-01T00:00:00.000Z"
+        - name: endDate
+          in: query
+          required: false
+          description: End date for metrics (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+          example: "2025-12-31T23:59:59.999Z"
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+              example:
+                users:
+                  total: 1247
+                  active: 823
+                  newThisMonth: 45
+                  freeUsers: 892
+                  proUsers: 355
+                subscriptions:
+                  totalRevenue: 10345.00
+                  mrr: 8950.00
+                  activeSubscriptions: 355
+                  cancelledThisMonth: 12
+                alerts:
+                  totalAlerts: 3421
+                  activeAlerts: 2876
+                  triggeredToday: 234
+                watchlist:
+                  totalItems: 5234
+                  averagePerUser: 4.2
+                apiUsage:
+                  totalRequests: 125634
+                  requestsToday: 4532
+                  averageResponseTime: 145
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/api-usage:
+    get:
+      tags:
+        - API Usage
+      summary: Get API usage statistics
+      description: |
+        Retrieves detailed API usage statistics and metrics.
+
+        **Metrics Included:**
+        - Request count by endpoint
+        - Response time metrics
+        - Error rate by endpoint
+        - Usage by user/tier
+        - Rate limiting statistics
+
+        **Filters:**
+        - `startDate`: Start date for usage data
+        - `endDate`: End date for usage data
+        - `endpoint`: Filter by specific endpoint
+        - `userId`: Filter by specific user
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getApiUsage
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: endpoint
+          in: query
+          required: false
+          description: Filter by endpoint path
+          schema:
+            type: string
+          example: "/api/alerts"
+        - name: userId
+          in: query
+          required: false
+          description: Filter by user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: API usage retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUsageResponse'
+              example:
+                summary:
+                  totalRequests: 125634
+                  totalErrors: 234
+                  errorRate: 0.19
+                  averageResponseTime: 145
+                byEndpoint:
+                  - endpoint: "/api/alerts"
+                    requests: 34521
+                    errors: 45
+                    avgResponseTime: 123
+                  - endpoint: "/api/watchlist"
+                    requests: 28932
+                    errors: 12
+                    avgResponseTime: 98
+                  - endpoint: "/api/subscription"
+                    requests: 12456
+                    errors: 23
+                    avgResponseTime: 234
+                byTier:
+                  FREE: 78234
+                  PRO: 47400
+                timeline:
+                  - date: "2025-12-20"
+                    requests: 4532
+                    errors: 12
+                  - date: "2025-12-19"
+                    requests: 4321
+                    errors: 8
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/error-logs:
+    get:
+      tags:
+        - Error Logs
+      summary: Get error logs
+      description: |
+        Retrieves system error logs with filtering and pagination.
+
+        **Filters:**
+        - `level`: Error level (error, warn, info)
+        - `source`: Error source/component
+        - `startDate`: Start date for logs
+        - `endDate`: End date for logs
+
+        **Pagination:**
+        - `page`: Page number
+        - `limit`: Items per page
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getErrorLogs
+      parameters:
+        - name: level
+          in: query
+          required: false
+          description: Error level filter
+          schema:
+            type: string
+            enum: [error, warn, info]
+          example: error
+        - name: source
+          in: query
+          required: false
+          description: Error source filter
+          schema:
+            type: string
+          example: "api/alerts"
+        - name: startDate
+          in: query
+          required: false
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          description: Items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Error logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorLogsResponse'
+              example:
+                logs:
+                  - id: "log_001"
+                    timestamp: "2025-12-20T15:30:45.123Z"
+                    level: "error"
+                    source: "api/alerts"
+                    message: "Failed to create alert"
+                    error: "Database connection timeout"
+                    userId: "user_123"
+                    requestId: "req_abc456"
+                    stackTrace: "Error: Database connection timeout\n  at ..."
+                  - id: "log_002"
+                    timestamp: "2025-12-20T14:22:15.456Z"
+                    level: "warn"
+                    source: "api/subscription"
+                    message: "Payment method declined"
+                    error: "Card declined by issuer"
+                    userId: "user_456"
+                    requestId: "req_def789"
+                pagination:
+                  page: 1
+                  limit: 50
+                  total: 234
+                  totalPages: 5
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie (must have ADMIN role)
+
+  schemas:
+    UsersListResponse:
+      type: object
+      required:
+        - users
+        - pagination
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserView'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    AdminUserView:
+      type: object
+      required:
+        - id
+        - tier
+        - role
+        - emailVerified
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: "user_001"
+        name:
+          type: string
+          nullable: true
+          example: "John Doe"
+        email:
+          type: string
+          nullable: true
+          example: "john@example.com"
+        tier:
+          type: string
+          enum: [FREE, PRO]
+          example: "PRO"
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          example: "USER"
+        isAffiliate:
+          type: boolean
+          example: false
+        emailVerified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-11-15T10:00:00.000Z"
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-20T14:30:00.000Z"
+
+    AnalyticsResponse:
+      type: object
+      required:
+        - users
+        - subscriptions
+        - alerts
+        - watchlist
+        - apiUsage
+      properties:
+        users:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 1247
+            active:
+              type: integer
+              example: 823
+            newThisMonth:
+              type: integer
+              example: 45
+            freeUsers:
+              type: integer
+              example: 892
+            proUsers:
+              type: integer
+              example: 355
+        subscriptions:
+          type: object
+          properties:
+            totalRevenue:
+              type: number
+              format: float
+              example: 10345.00
+            mrr:
+              type: number
+              format: float
+              example: 8950.00
+            activeSubscriptions:
+              type: integer
+              example: 355
+            cancelledThisMonth:
+              type: integer
+              example: 12
+        alerts:
+          type: object
+          properties:
+            totalAlerts:
+              type: integer
+              example: 3421
+            activeAlerts:
+              type: integer
+              example: 2876
+            triggeredToday:
+              type: integer
+              example: 234
+        watchlist:
+          type: object
+          properties:
+            totalItems:
+              type: integer
+              example: 5234
+            averagePerUser:
+              type: number
+              format: float
+              example: 4.2
+        apiUsage:
+          type: object
+          properties:
+            totalRequests:
+              type: integer
+              example: 125634
+            requestsToday:
+              type: integer
+              example: 4532
+            averageResponseTime:
+              type: integer
+              description: Average response time in milliseconds
+              example: 145
+
+    ApiUsageResponse:
+      type: object
+      required:
+        - summary
+        - byEndpoint
+      properties:
+        summary:
+          type: object
+          properties:
+            totalRequests:
+              type: integer
+              example: 125634
+            totalErrors:
+              type: integer
+              example: 234
+            errorRate:
+              type: number
+              format: float
+              example: 0.19
+            averageResponseTime:
+              type: integer
+              example: 145
+        byEndpoint:
+          type: array
+          items:
+            type: object
+            properties:
+              endpoint:
+                type: string
+                example: "/api/alerts"
+              requests:
+                type: integer
+                example: 34521
+              errors:
+                type: integer
+                example: 45
+              avgResponseTime:
+                type: integer
+                example: 123
+        byTier:
+          type: object
+          properties:
+            FREE:
+              type: integer
+              example: 78234
+            PRO:
+              type: integer
+              example: 47400
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: "2025-12-20"
+              requests:
+                type: integer
+                example: 4532
+              errors:
+                type: integer
+                example: 12
+
+    ErrorLogsResponse:
+      type: object
+      required:
+        - logs
+        - pagination
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorLog'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ErrorLog:
+      type: object
+      required:
+        - id
+        - timestamp
+        - level
+        - source
+        - message
+      properties:
+        id:
+          type: string
+          example: "log_001"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-12-20T15:30:45.123Z"
+        level:
+          type: string
+          enum: [error, warn, info]
+          example: "error"
+        source:
+          type: string
+          example: "api/alerts"
+        message:
+          type: string
+          example: "Failed to create alert"
+        error:
+          type: string
+          nullable: true
+          example: "Database connection timeout"
+        userId:
+          type: string
+          nullable: true
+          example: "user_123"
+        requestId:
+          type: string
+          nullable: true
+          example: "req_abc456"
+        stackTrace:
+          type: string
+          nullable: true
+          example: "Error: Database connection timeout\n  at ..."
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 50
+        total:
+          type: integer
+          example: 127
+        totalPages:
+          type: integer
+          example: 3
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Additional error details"
