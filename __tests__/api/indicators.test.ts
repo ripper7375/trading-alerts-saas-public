@@ -308,7 +308,8 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.data).toEqual(mockData);
+      expect(data.data).toMatchObject(mockData);
+      expect(data.data.proIndicatorsTransformed).toBeDefined();
       expect(data.tier).toBe('FREE');
     });
 
@@ -339,6 +340,8 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+      expect(data.data).toMatchObject(mockData);
+      expect(data.data.proIndicatorsTransformed).toBeDefined();
       expect(data.tier).toBe('PRO');
     });
 
