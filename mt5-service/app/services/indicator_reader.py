@@ -13,7 +13,12 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from app.services.mt5_connection_pool import MT5Connection
-from app.utils.constants import MT5_AVAILABLE, TIMEFRAME_MAP
+from app.utils.constants import (
+    MT5_AVAILABLE,
+    TIMEFRAME_MAP,
+    INDICATOR_MQL5_NAMES,
+    INDICATOR_BUFFER_MAP,
+)
 
 # Try to import MetaTrader5
 try:
@@ -381,4 +386,364 @@ def _empty_fractals() -> Dict[str, List]:
     return {
         'peaks': [],
         'bottoms': []
+    }
+
+
+# ============================================================================
+# PRO-ONLY INDICATOR FETCH FUNCTIONS
+# ============================================================================
+
+def fetch_pro_indicators(
+    connection: MT5Connection,
+    symbol: str,
+    timeframe: str,
+    bars: int = 1000
+) -> Dict[str, Any]:
+    """
+    Fetch all PRO-only indicator data from MT5 terminal.
+
+    Args:
+        connection: MT5Connection instance
+        symbol: Trading symbol
+        timeframe: Timeframe string (M5, M15, etc.)
+        bars: Number of bars to fetch
+
+    Returns:
+        dict: PRO indicator data package
+    """
+    if not MT5_AVAILABLE or mt5 is None:
+        return _empty_pro_indicators()
+
+    if timeframe not in TIMEFRAME_MAP:
+        return _empty_pro_indicators()
+
+    mt5_timeframe = TIMEFRAME_MAP[timeframe]
+
+    with connection.lock:
+        try:
+            # Fetch each PRO indicator
+            momentum_candles = _fetch_momentum_candles(
+                symbol, mt5_timeframe, bars
+            )
+            keltner_channels = _fetch_keltner_channels(
+                symbol, mt5_timeframe, bars
+            )
+            moving_averages = _fetch_moving_averages(
+                symbol, mt5_timeframe, bars
+            )
+            zigzag_data = _fetch_zigzag(symbol, mt5_timeframe, bars)
+
+            return {
+                'momentum_candles': momentum_candles,
+                'keltner_channels': keltner_channels,
+                'tema': moving_averages.get('tema', []),
+                'hrma': moving_averages.get('hrma', []),
+                'smma': moving_averages.get('smma', []),
+                'zigzag': zigzag_data,
+            }
+
+        except Exception as e:
+            logger.error(f"Error fetching PRO indicators: {e}")
+            return _empty_pro_indicators()
+
+
+def _fetch_momentum_candles(
+    symbol: str,
+    timeframe: int,
+    bars: int
+) -> List[Dict[str, Any]]:
+    """
+    Fetch Momentum Candles data from Body Size Momentum Candle_V2.mq5.
+
+    Buffer 4: ColorBuffer (candle type 0-5)
+        0 = UP_NORMAL, 1 = UP_LARGE, 2 = UP_EXTREME
+        3 = DOWN_NORMAL, 4 = DOWN_LARGE, 5 = DOWN_EXTREME
+    Buffer 6: ZScoreBuffer (z-score values)
+
+    Args:
+        symbol: Trading symbol
+        timeframe: MT5 timeframe constant
+        bars: Number of bars
+
+    Returns:
+        List of momentum candle data points
+    """
+    if not MT5_AVAILABLE or mt5 is None:
+        return []
+
+    try:
+        indicator_name = INDICATOR_MQL5_NAMES['momentum_candles']
+        handle = mt5.iCustom(symbol, timeframe, indicator_name)
+
+        if handle == mt5.INVALID_HANDLE:
+            logger.warning(
+                f"Failed to get handle for {indicator_name}. "
+                "Is the indicator attached to the chart in MT5?"
+            )
+            return []
+
+        # Fetch color and zscore buffers
+        buffer_map = INDICATOR_BUFFER_MAP['momentum_candles']
+        color_buffer = mt5.copy_buffer(handle, buffer_map['color'], 0, bars)
+        zscore_buffer = mt5.copy_buffer(handle, buffer_map['zscore'], 0, bars)
+
+        if color_buffer is None or zscore_buffer is None:
+            return []
+
+        # Convert to list of candle data (only significant candles, type > 0)
+        candles = []
+        for i in range(len(color_buffer)):
+            candle_type = int(color_buffer[i]) if color_buffer[i] != EMPTY_VALUE else -1
+            zscore = float(zscore_buffer[i]) if zscore_buffer[i] != EMPTY_VALUE else 0
+
+            # Only include candles that are Large or Extreme (type 1,2,4,5)
+            # Normal candles (type 0,3) are skipped to reduce payload
+            if candle_type in [1, 2, 4, 5]:
+                candles.append({
+                    'index': i,
+                    'type': candle_type,
+                    'zscore': round(zscore, 4)
+                })
+
+        return candles
+
+    except Exception as e:
+        logger.error(f"Error fetching momentum candles: {e}")
+        return []
+
+
+def _fetch_keltner_channels(
+    symbol: str,
+    timeframe: int,
+    bars: int
+) -> Dict[str, List[Optional[float]]]:
+    """
+    Fetch Keltner Channels from Keltner Channel_ATF_10 Bands.mq5.
+
+    10 bands (Buffers 0-9):
+        0: ultra_extreme_upper, 1: extreme_upper, 2: upper_most, 3: upper,
+        4: upper_middle, 5: lower_middle, 6: lower, 7: lower_most,
+        8: extreme_lower, 9: ultra_extreme_lower
+
+    Args:
+        symbol: Trading symbol
+        timeframe: MT5 timeframe constant
+        bars: Number of bars
+
+    Returns:
+        Dict with 10 band arrays
+    """
+    if not MT5_AVAILABLE or mt5 is None:
+        return _empty_keltner_channels()
+
+    try:
+        indicator_name = INDICATOR_MQL5_NAMES['keltner_channels']
+        handle = mt5.iCustom(symbol, timeframe, indicator_name)
+
+        if handle == mt5.INVALID_HANDLE:
+            logger.warning(
+                f"Failed to get handle for {indicator_name}. "
+                "Is the indicator attached to the chart in MT5?"
+            )
+            return _empty_keltner_channels()
+
+        buffer_map = INDICATOR_BUFFER_MAP['keltner_channels']
+        result = {}
+
+        for band_name, buffer_idx in buffer_map.items():
+            buffer = mt5.copy_buffer(handle, buffer_idx, 0, bars)
+            result[band_name] = _buffer_to_value_array(buffer)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error fetching Keltner channels: {e}")
+        return _empty_keltner_channels()
+
+
+def _fetch_moving_averages(
+    symbol: str,
+    timeframe: int,
+    bars: int
+) -> Dict[str, List[Optional[float]]]:
+    """
+    Fetch TEMA, HRMA, SMMA from TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5.
+
+    Buffer 1: SMMA (Smoothed Moving Average)
+    Buffer 2: HRMA (Hull-like Responsive Moving Average)
+    Buffer 3: TEMA (Triple Exponential Moving Average)
+
+    Args:
+        symbol: Trading symbol
+        timeframe: MT5 timeframe constant
+        bars: Number of bars
+
+    Returns:
+        Dict with tema, hrma, smma arrays
+    """
+    if not MT5_AVAILABLE or mt5 is None:
+        return {'tema': [], 'hrma': [], 'smma': []}
+
+    try:
+        indicator_name = INDICATOR_MQL5_NAMES['moving_averages']
+        handle = mt5.iCustom(symbol, timeframe, indicator_name)
+
+        if handle == mt5.INVALID_HANDLE:
+            logger.warning(
+                f"Failed to get handle for {indicator_name}. "
+                "Is the indicator attached to the chart in MT5?"
+            )
+            return {'tema': [], 'hrma': [], 'smma': []}
+
+        buffer_map = INDICATOR_BUFFER_MAP['moving_averages']
+
+        smma_buffer = mt5.copy_buffer(handle, buffer_map['smma'], 0, bars)
+        hrma_buffer = mt5.copy_buffer(handle, buffer_map['hrma'], 0, bars)
+        tema_buffer = mt5.copy_buffer(handle, buffer_map['tema'], 0, bars)
+
+        return {
+            'smma': _buffer_to_value_array(smma_buffer),
+            'hrma': _buffer_to_value_array(hrma_buffer),
+            'tema': _buffer_to_value_array(tema_buffer),
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching moving averages: {e}")
+        return {'tema': [], 'hrma': [], 'smma': []}
+
+
+def _fetch_zigzag(
+    symbol: str,
+    timeframe: int,
+    bars: int
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Fetch ZigZag data from ZigZagColor & MarketStructure indicator.
+
+    Buffer 0: ZigzagPeakBuffer (peak prices)
+    Buffer 1: ZigzagBottomBuffer (bottom prices)
+
+    Args:
+        symbol: Trading symbol
+        timeframe: MT5 timeframe constant
+        bars: Number of bars
+
+    Returns:
+        Dict with peaks and bottoms arrays
+    """
+    if not MT5_AVAILABLE or mt5 is None:
+        return {'peaks': [], 'bottoms': []}
+
+    try:
+        indicator_name = INDICATOR_MQL5_NAMES['zigzag']
+        handle = mt5.iCustom(symbol, timeframe, indicator_name)
+
+        if handle == mt5.INVALID_HANDLE:
+            logger.warning(
+                f"Failed to get handle for {indicator_name}. "
+                "Is the indicator attached to the chart in MT5?"
+            )
+            return {'peaks': [], 'bottoms': []}
+
+        buffer_map = INDICATOR_BUFFER_MAP['zigzag']
+
+        peaks_buffer = mt5.copy_buffer(handle, buffer_map['peaks'], 0, bars)
+        bottoms_buffer = mt5.copy_buffer(handle, buffer_map['bottoms'], 0, bars)
+
+        # Get rates for timestamps
+        rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
+
+        peaks = _buffer_to_zigzag_points(peaks_buffer, rates)
+        bottoms = _buffer_to_zigzag_points(bottoms_buffer, rates)
+
+        return {
+            'peaks': peaks,
+            'bottoms': bottoms
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching zigzag: {e}")
+        return {'peaks': [], 'bottoms': []}
+
+
+def _buffer_to_value_array(
+    buffer: Optional[Any]
+) -> List[Optional[float]]:
+    """
+    Convert indicator buffer to array of values (None for EMPTY_VALUE).
+
+    Args:
+        buffer: MT5 indicator buffer (numpy array or None)
+
+    Returns:
+        List of float values or None for empty positions
+    """
+    if buffer is None:
+        return []
+
+    result = []
+    for value in buffer:
+        if value != EMPTY_VALUE and value != 0:
+            result.append(round(float(value), 5))
+        else:
+            result.append(None)
+
+    return result
+
+
+def _buffer_to_zigzag_points(
+    buffer: Optional[Any],
+    rates: Optional[Any]
+) -> List[Dict[str, Any]]:
+    """
+    Convert zigzag buffer to list of point dictionaries.
+
+    Args:
+        buffer: MT5 indicator buffer
+        rates: MT5 rates array with timestamps
+
+    Returns:
+        List of zigzag point dictionaries
+    """
+    if buffer is None or rates is None:
+        return []
+
+    points = []
+    for i, value in enumerate(buffer):
+        if value != EMPTY_VALUE and value != 0 and value > 0:
+            if i < len(rates):
+                points.append({
+                    'index': i,
+                    'price': round(float(value), 5),
+                    'time': int(rates[i]['time'])
+                })
+
+    return points
+
+
+def _empty_pro_indicators() -> Dict[str, Any]:
+    """Return empty PRO indicators structure."""
+    return {
+        'momentum_candles': [],
+        'keltner_channels': _empty_keltner_channels(),
+        'tema': [],
+        'hrma': [],
+        'smma': [],
+        'zigzag': {'peaks': [], 'bottoms': []},
+    }
+
+
+def _empty_keltner_channels() -> Dict[str, List]:
+    """Return empty Keltner channels structure."""
+    return {
+        'ultra_extreme_upper': [],
+        'extreme_upper': [],
+        'upper_most': [],
+        'upper': [],
+        'upper_middle': [],
+        'lower_middle': [],
+        'lower': [],
+        'lower_most': [],
+        'extreme_lower': [],
+        'ultra_extreme_lower': [],
     }

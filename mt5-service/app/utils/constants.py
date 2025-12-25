@@ -92,3 +92,54 @@ PRO_TIER_TIMEFRAMES: List[str] = [
     'H12',  # 12 hours
     'D1'    # 1 day
 ]
+
+# ============================================================================
+# PRO-ONLY INDICATORS CONFIGURATION
+# These indicators are only available to PRO tier users
+# ============================================================================
+PRO_ONLY_INDICATORS: List[str] = [
+    'momentum_candles',
+    'keltner_channels',
+    'tema',
+    'hrma',
+    'smma',
+    'zigzag',
+]
+
+# Indicator name mappings to MQL5 indicator files
+INDICATOR_MQL5_NAMES: Dict[str, str] = {
+    'momentum_candles': 'Body Size Momentum Candle_V2',
+    'keltner_channels': 'Keltner Channel_ATF_10 Bands',
+    'moving_averages': 'TEMA_HRMA_SMA-SMMA_Modified Buffers',  # TEMA, HRMA, SMMA
+    'zigzag': 'ZigZagColor & MarketStructure_JSON Export_V27_TXT Input',
+}
+
+# Buffer mappings for each PRO indicator
+# Format: indicator_name -> { data_key: buffer_index }
+INDICATOR_BUFFER_MAP: Dict[str, Dict[str, int]] = {
+    'momentum_candles': {
+        'color': 4,      # ColorBuffer (candle type 0-5)
+        'zscore': 6,     # ZScoreBuffer
+    },
+    'keltner_channels': {
+        'ultra_extreme_upper': 0,
+        'extreme_upper': 1,
+        'upper_most': 2,
+        'upper': 3,
+        'upper_middle': 4,
+        'lower_middle': 5,
+        'lower': 6,
+        'lower_most': 7,
+        'extreme_lower': 8,
+        'ultra_extreme_lower': 9,
+    },
+    'moving_averages': {
+        'smma': 1,   # SMMABuffer
+        'hrma': 2,   # HRMABuffer
+        'tema': 3,   # TEMABuffer
+    },
+    'zigzag': {
+        'peaks': 0,     # ZigzagPeakBuffer
+        'bottoms': 1,   # ZigzagBottomBuffer
+    },
+}

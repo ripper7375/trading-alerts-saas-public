@@ -146,7 +146,19 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
         X-User-Tier: FREE or PRO (defaults to FREE)
 
     Returns:
-        200: Indicator data (OHLC, horizontal, diagonal, fractals)
+        200: Indicator data including:
+            - ohlc: OHLC price data
+            - horizontal: Horizontal fractal lines
+            - diagonal: Diagonal trend lines
+            - fractals: Fractal markers (peaks/bottoms)
+            - pro_indicators: PRO-only indicators (populated for PRO tier)
+                - momentum_candles: Z-score candle classification
+                - keltner_channels: 10-band Keltner channel
+                - tema: Triple EMA
+                - hrma: Hull-like Responsive MA
+                - smma: Smoothed MA
+                - zigzag: ZigZag peaks/bottoms
+            - metadata: Request metadata including tier info
         400: Invalid symbol or timeframe
         403: Tier cannot access this symbol/timeframe
         500: MT5 error or service unavailable
@@ -164,7 +176,11 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
         bars = max(bars, 100)  # Minimum 100 bars
 
         # Import services
-        from app.services.indicator_reader import fetch_indicator_data
+        from app.services.indicator_reader import (
+            fetch_indicator_data,
+            fetch_pro_indicators,
+            _empty_pro_indicators,
+        )
         from app.services.mt5_connection_pool import get_connection_pool
         from app.services.tier_service import (
             get_accessible_symbols,
@@ -216,13 +232,24 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
         # Fetch indicator data from MT5
         data = fetch_indicator_data(connection, symbol, timeframe, bars)
 
+        # Fetch PRO indicators if user is PRO tier
+        if tier == 'PRO':
+            pro_data = fetch_pro_indicators(connection, symbol, timeframe, bars)
+        else:
+            # FREE tier gets empty PRO indicators
+            pro_data = _empty_pro_indicators()
+
+        # Add PRO indicators to response
+        data['pro_indicators'] = pro_data
+
         # Add metadata
         data['metadata'] = {
             'symbol': symbol,
             'timeframe': timeframe,
             'tier': tier,
             'bars_returned': len(data.get('ohlc', [])),
-            'terminal_id': connection.id
+            'terminal_id': connection.id,
+            'pro_indicators_enabled': tier == 'PRO'
         }
 
         return jsonify({
