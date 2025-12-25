@@ -114,6 +114,36 @@ export interface IndicatorMetadata {
 }
 
 /**
+ * PRO indicator data from MT5 (raw format from Flask)
+ */
+export interface MT5ProIndicators {
+  momentum_candles?: Array<{
+    index: number;
+    type: number;
+    zscore: number;
+  }>;
+  keltner_channels?: {
+    ultra_extreme_upper: (number | null)[];
+    extreme_upper: (number | null)[];
+    upper_most: (number | null)[];
+    upper: (number | null)[];
+    upper_middle: (number | null)[];
+    lower_middle: (number | null)[];
+    lower: (number | null)[];
+    lower_most: (number | null)[];
+    extreme_lower: (number | null)[];
+    ultra_extreme_lower: (number | null)[];
+  };
+  tema?: (number | null)[];
+  hrma?: (number | null)[];
+  smma?: (number | null)[];
+  zigzag?: {
+    peaks: Array<{ index: number; price: number; timestamp?: number }>;
+    bottoms: Array<{ index: number; price: number; timestamp?: number }>;
+  };
+}
+
+/**
  * Complete indicator data from MT5
  */
 export interface MT5IndicatorData {
@@ -121,6 +151,7 @@ export interface MT5IndicatorData {
   horizontal: HorizontalLines;
   diagonal: DiagonalLines;
   fractals: Fractals;
+  proIndicators?: MT5ProIndicators;
   metadata: IndicatorMetadata;
 }
 

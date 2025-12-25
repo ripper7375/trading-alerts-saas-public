@@ -202,3 +202,146 @@ export function getChartCombinations(tier: Tier): number {
   const config = getTierConfig(tier);
   return config.chartCombinations;
 }
+
+// ============================================
+// INDICATOR TYPE DEFINITIONS
+// ============================================
+
+/**
+ * PRO-only indicators list
+ * These indicators are only available to PRO tier users
+ */
+export const PRO_ONLY_INDICATORS = [
+  'momentum_candles',
+  'keltner_channels',
+  'tema',
+  'hrma',
+  'smma',
+  'zigzag',
+] as const;
+
+export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
+
+/**
+ * Basic indicators (available to all tiers)
+ */
+export const BASIC_INDICATORS = ['fractals', 'trendlines'] as const;
+
+export type BasicIndicator = (typeof BASIC_INDICATORS)[number];
+
+/**
+ * All indicators combined
+ */
+export const ALL_INDICATORS = [
+  ...BASIC_INDICATORS,
+  ...PRO_ONLY_INDICATORS,
+] as const;
+
+export type IndicatorId = (typeof ALL_INDICATORS)[number];
+
+/**
+ * Indicator display information
+ */
+export interface IndicatorInfo {
+  id: IndicatorId;
+  label: string;
+  description: string;
+  isPro: boolean;
+}
+
+/**
+ * Complete indicator configuration
+ */
+export const INDICATOR_CONFIG: Record<IndicatorId, IndicatorInfo> = {
+  // Basic indicators
+  fractals: {
+    id: 'fractals',
+    label: 'Fractals',
+    description: 'Support/resistance fractal points',
+    isPro: false,
+  },
+  trendlines: {
+    id: 'trendlines',
+    label: 'Trendlines',
+    description: 'Diagonal trend lines',
+    isPro: false,
+  },
+  // PRO indicators
+  momentum_candles: {
+    id: 'momentum_candles',
+    label: 'Momentum Candles',
+    description: 'Z-score body size classification',
+    isPro: true,
+  },
+  keltner_channels: {
+    id: 'keltner_channels',
+    label: 'Keltner Channels',
+    description: '10-band ATR channel system',
+    isPro: true,
+  },
+  tema: {
+    id: 'tema',
+    label: 'TEMA',
+    description: 'Triple Exponential Moving Average',
+    isPro: true,
+  },
+  hrma: {
+    id: 'hrma',
+    label: 'HRMA',
+    description: 'Hull-like Responsive Moving Average',
+    isPro: true,
+  },
+  smma: {
+    id: 'smma',
+    label: 'SMMA',
+    description: 'Smoothed Moving Average',
+    isPro: true,
+  },
+  zigzag: {
+    id: 'zigzag',
+    label: 'ZigZag',
+    description: 'Peak/Bottom structure detection',
+    isPro: true,
+  },
+};
+
+// ============================================
+// INDICATOR VALIDATION FUNCTIONS
+// ============================================
+
+/**
+ * Check if user tier can access a specific indicator
+ * @param tier - User tier
+ * @param indicator - Indicator ID
+ * @returns True if tier can access the indicator
+ */
+export function canAccessIndicator(tier: Tier, indicator: string): boolean {
+  // PRO-only indicators require PRO tier
+  const proIndicators: readonly string[] = PRO_ONLY_INDICATORS;
+  if (proIndicators.includes(indicator)) {
+    return tier === 'PRO';
+  }
+  // Basic indicators available to all
+  return true;
+}
+
+/**
+ * Get all indicators accessible by a tier
+ * @param tier - User tier
+ * @returns Array of accessible indicator IDs
+ */
+export function getAccessibleIndicators(tier: Tier): readonly IndicatorId[] {
+  if (tier === 'PRO') {
+    return ALL_INDICATORS;
+  }
+  return BASIC_INDICATORS;
+}
+
+/**
+ * Get indicator configuration by ID
+ * @param id - Indicator ID
+ * @returns Indicator configuration or undefined
+ */
+export function getIndicatorConfig(id: string): IndicatorInfo | undefined {
+  return INDICATOR_CONFIG[id as IndicatorId];
+}

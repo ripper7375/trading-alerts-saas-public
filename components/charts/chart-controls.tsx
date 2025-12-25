@@ -10,6 +10,10 @@ import {
   FREE_TIMEFRAMES,
   PRO_SYMBOLS,
   PRO_TIMEFRAMES,
+  BASIC_INDICATORS,
+  PRO_ONLY_INDICATORS,
+  INDICATOR_CONFIG,
+  type IndicatorId,
 } from '@/lib/tier-config';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +26,8 @@ interface ChartControlsProps {
   userTier: Tier;
   selectedSymbol: string;
   selectedTimeframe: string;
+  selectedIndicators?: string[];
+  onIndicatorToggle?: (indicatorId: string) => void;
 }
 
 /**
@@ -61,9 +67,12 @@ export function ChartControls({
   userTier,
   selectedSymbol,
   selectedTimeframe,
+  selectedIndicators = ['fractals', 'trendlines'],
+  onIndicatorToggle,
 }: ChartControlsProps): React.JSX.Element {
   const router = useRouter();
   const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
+  const [isIndicatorPanelOpen, setIsIndicatorPanelOpen] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState('');
 
@@ -107,6 +116,38 @@ export function ChartControls({
   const isSymbolAvailable = (symbol: string): boolean => {
     return availableSymbols.includes(symbol);
   };
+
+  /**
+   * Handle indicator toggle
+   */
+  const handleIndicatorToggle = (indicatorId: string): void => {
+    const isPro = PRO_ONLY_INDICATORS.includes(indicatorId as typeof PRO_ONLY_INDICATORS[number]);
+
+    if (isPro && userTier !== 'PRO') {
+      const config = INDICATOR_CONFIG[indicatorId as IndicatorId];
+      setUpgradeReason(`Access to ${config?.label || indicatorId} requires PRO tier`);
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    onIndicatorToggle?.(indicatorId);
+  };
+
+  /**
+   * Check if indicator is available for current tier
+   */
+  const isIndicatorAvailable = (indicatorId: string): boolean => {
+    const isPro = PRO_ONLY_INDICATORS.includes(indicatorId as typeof PRO_ONLY_INDICATORS[number]);
+    return !isPro || userTier === 'PRO';
+  };
+
+  /**
+   * Get selected indicator count
+   */
+  const selectedCount = selectedIndicators.length;
+  const totalCount = userTier === 'PRO'
+    ? BASIC_INDICATORS.length + PRO_ONLY_INDICATORS.length
+    : BASIC_INDICATORS.length;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -236,6 +277,209 @@ export function ChartControls({
               setShowUpgradeModal(true);
             }}
           />
+        </div>
+
+        {/* Indicators Selector */}
+        <div className="relative flex-1">
+          <label className="block text-xs font-medium text-gray-500 mb-1">
+            Indicators
+          </label>
+          <button
+            onClick={() => setIsIndicatorPanelOpen(!isIndicatorPanelOpen)}
+            className="w-full flex items-center justify-between px-4 py-2.5 border-2 border-gray-200 rounded-lg hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900">{selectedCount}</span>
+              <span className="text-sm text-gray-500">
+                of {totalCount} active
+              </span>
+            </div>
+            <svg
+              className={cn(
+                'w-4 h-4 text-gray-500 transition-transform',
+                isIndicatorPanelOpen && 'rotate-180'
+              )}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {/* Indicator Dropdown Panel */}
+          {isIndicatorPanelOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsIndicatorPanelOpen(false)}
+              />
+
+              {/* Dropdown Menu */}
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border-2 border-gray-200 z-50 max-h-96 overflow-y-auto">
+                {/* Basic Indicators */}
+                <div>
+                  <div className="px-3 py-1.5 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky top-0">
+                    Basic Indicators
+                  </div>
+                  {BASIC_INDICATORS.map((indicatorId) => {
+                    const config = INDICATOR_CONFIG[indicatorId];
+                    const isSelected = selectedIndicators.includes(indicatorId);
+
+                    return (
+                      <button
+                        key={indicatorId}
+                        onClick={() => handleIndicatorToggle(indicatorId)}
+                        className={cn(
+                          'w-full flex items-center justify-between px-3 py-2 text-left transition-colors hover:bg-gray-50',
+                          isSelected && 'bg-blue-50'
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
+                              isSelected
+                                ? 'bg-blue-600 border-blue-600'
+                                : 'border-gray-300'
+                            )}
+                          >
+                            {isSelected && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-gray-900">
+                              {config.label}
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              {config.description}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* PRO Indicators */}
+                <div>
+                  <div className="px-3 py-1.5 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky top-0 flex items-center gap-2">
+                    PRO Indicators
+                    {userTier !== 'PRO' && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded">
+                        PRO
+                      </span>
+                    )}
+                  </div>
+                  {PRO_ONLY_INDICATORS.map((indicatorId) => {
+                    const config = INDICATOR_CONFIG[indicatorId];
+                    const isSelected = selectedIndicators.includes(indicatorId);
+                    const isAvailable = isIndicatorAvailable(indicatorId);
+
+                    return (
+                      <button
+                        key={indicatorId}
+                        onClick={() => handleIndicatorToggle(indicatorId)}
+                        className={cn(
+                          'w-full flex items-center justify-between px-3 py-2 text-left transition-colors',
+                          isSelected && isAvailable && 'bg-blue-50',
+                          isAvailable && !isSelected && 'hover:bg-gray-50',
+                          !isAvailable && 'opacity-60'
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
+                              isSelected && isAvailable
+                                ? 'bg-blue-600 border-blue-600'
+                                : 'border-gray-300',
+                              !isAvailable && 'bg-gray-100'
+                            )}
+                          >
+                            {isSelected && isAvailable && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                            {!isAvailable && (
+                              <svg
+                                className="w-3 h-3 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <span
+                              className={cn(
+                                'font-semibold',
+                                isAvailable ? 'text-gray-900' : 'text-gray-400'
+                              )}
+                            >
+                              {config.label}
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              {config.description}
+                            </p>
+                          </div>
+                        </div>
+                        {!isAvailable && (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded">
+                            PRO
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {userTier !== 'PRO' && (
+                    <div className="p-3 border-t border-gray-100">
+                      <Link
+                        href="/pricing"
+                        className="block text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Upgrade to PRO for advanced indicators
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Tier Badge & Actions */}

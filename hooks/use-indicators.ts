@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { Tier } from '@/lib/tier-config';
+import type { ProIndicatorData } from '@/types/indicator';
+import { EMPTY_PRO_INDICATORS } from '@/types/indicator';
 
 /**
  * Candlestick data structure
@@ -39,6 +41,7 @@ export interface IndicatorData {
   horizontal: Record<string, LinePoint[]>;
   diagonal: Record<string, LinePoint[]>;
   fractals: FractalData;
+  proIndicators?: ProIndicatorData;
   metadata?: {
     symbol: string;
     timeframe: string;
@@ -72,10 +75,12 @@ interface ApiErrorResponse {
  */
 interface UseIndicatorsResult {
   data: IndicatorData | null;
+  proData: ProIndicatorData | null;
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
   lastUpdated: Date | null;
+  isPro: boolean;
 }
 
 /**
@@ -172,12 +177,20 @@ export function useIndicators(
     return () => clearInterval(intervalId);
   }, [fetchIndicators, refetchInterval]);
 
+  // Derive isPro from tier parameter
+  const isPro = tier === 'PRO';
+
+  // Extract PRO data from the response
+  const proData = data?.proIndicators ?? EMPTY_PRO_INDICATORS;
+
   return {
     data,
+    proData,
     isLoading,
     error,
     refetch,
     lastUpdated,
+    isPro,
   };
 }
 

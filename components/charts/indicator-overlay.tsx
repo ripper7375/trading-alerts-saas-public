@@ -8,6 +8,11 @@ import type {
 } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 
+import type {
+  ProIndicatorData,
+  KeltnerChannelData,
+} from '@/types/indicator';
+
 /**
  * Line point data structure
  */
@@ -24,6 +29,9 @@ interface IndicatorOverlayProps {
   candleSeries: ISeriesApi<'Candlestick'>;
   horizontal: Record<string, LinePoint[]>;
   diagonal: Record<string, LinePoint[]>;
+  proIndicators?: ProIndicatorData;
+  selectedIndicators?: string[];
+  timeData?: Time[];
 }
 
 /**
@@ -46,6 +54,39 @@ const LINE_COLORS = {
   descending_1: '#ff6b35',
   descending_2: '#ff8c5a',
   descending_3: '#ffad7f',
+} as const;
+
+/**
+ * Color configuration for Keltner Channels
+ */
+const KELTNER_COLORS: Record<keyof KeltnerChannelData, string> = {
+  ultraExtremeUpper: '#9C27B0',
+  extremeUpper: '#AB47BC',
+  upperMost: '#BA68C8',
+  upper: '#CE93D8',
+  upperMiddle: '#FF5722',
+  lowerMiddle: '#FF7043',
+  lower: '#CE93D8',
+  lowerMost: '#BA68C8',
+  extremeLower: '#AB47BC',
+  ultraExtremeLower: '#9C27B0',
+};
+
+/**
+ * Color configuration for Moving Averages
+ */
+const MA_COLORS = {
+  tema: '#808080', // Gray
+  hrma: '#00CED1', // Dark Cyan
+  smma: '#0000FF', // Blue
+} as const;
+
+/**
+ * Color configuration for ZigZag
+ */
+const ZIGZAG_COLORS = {
+  peaks: '#f23645', // Red for peaks
+  bottoms: '#00c853', // Green for bottoms
 } as const;
 
 /**
@@ -153,6 +194,9 @@ export function IndicatorOverlay({
   candleSeries,
   horizontal,
   diagonal,
+  proIndicators,
+  selectedIndicators = ['fractals', 'trendlines'],
+  timeData = [],
 }: IndicatorOverlayProps): null {
   // Store line series references for cleanup
   const lineSeriesRef = useRef<ISeriesApi<'Line'>[]>([]);
@@ -168,8 +212,8 @@ export function IndicatorOverlay({
     });
     lineSeriesRef.current = [];
 
-    // Render horizontal lines
-    if (horizontal) {
+    // Render horizontal lines (only if fractals is selected)
+    if (horizontal && selectedIndicators.includes('fractals')) {
       Object.entries(horizontal).forEach(([key, points]) => {
         if (!Array.isArray(points) || points.length === 0) return;
 
@@ -200,8 +244,8 @@ export function IndicatorOverlay({
       });
     }
 
-    // Render diagonal lines
-    if (diagonal) {
+    // Render diagonal lines (only if trendlines is selected)
+    if (diagonal && selectedIndicators.includes('trendlines')) {
       Object.entries(diagonal).forEach(([key, points]) => {
         if (!Array.isArray(points) || points.length === 0) return;
 
@@ -232,6 +276,193 @@ export function IndicatorOverlay({
       });
     }
 
+    // ========================================
+    // PRO INDICATORS
+    // ========================================
+
+    // Render Keltner Channels
+    if (
+      proIndicators?.keltnerChannels &&
+      selectedIndicators.includes('keltner_channels') &&
+      timeData.length > 0
+    ) {
+      const kc = proIndicators.keltnerChannels;
+      (Object.keys(kc) as (keyof KeltnerChannelData)[]).forEach((band) => {
+        const values = kc[band];
+        if (!values || values.length === 0) return;
+
+        try {
+          const isMiddleBand = band.includes('Middle');
+          const lineSeries = chart.addLineSeries({
+            color: KELTNER_COLORS[band],
+            lineWidth: isMiddleBand ? 3 : 2,
+            lineStyle: 0, // Solid
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+          });
+
+          const lineData = values
+            .map((value, i) => ({
+              time: timeData[i],
+              value: value ?? undefined,
+            }))
+            .filter(
+              (d): d is { time: Time; value: number } => d.value !== undefined
+            );
+
+          lineSeries.setData(lineData);
+          lineSeriesRef.current.push(lineSeries);
+        } catch (err) {
+          console.error(`Failed to add Keltner Channel ${band}:`, err);
+        }
+      });
+    }
+
+    // Render TEMA
+    if (
+      proIndicators?.tema &&
+      proIndicators.tema.length > 0 &&
+      selectedIndicators.includes('tema') &&
+      timeData.length > 0
+    ) {
+      try {
+        const lineSeries = chart.addLineSeries({
+          color: MA_COLORS.tema,
+          lineWidth: 2,
+          lineStyle: 0,
+          crosshairMarkerVisible: false,
+          lastValueVisible: true,
+          priceLineVisible: false,
+        });
+
+        const lineData = proIndicators.tema
+          .map((value, i) => ({
+            time: timeData[i],
+            value: value ?? undefined,
+          }))
+          .filter(
+            (d): d is { time: Time; value: number } => d.value !== undefined
+          );
+
+        lineSeries.setData(lineData);
+        lineSeriesRef.current.push(lineSeries);
+      } catch (err) {
+        console.error('Failed to add TEMA:', err);
+      }
+    }
+
+    // Render HRMA
+    if (
+      proIndicators?.hrma &&
+      proIndicators.hrma.length > 0 &&
+      selectedIndicators.includes('hrma') &&
+      timeData.length > 0
+    ) {
+      try {
+        const lineSeries = chart.addLineSeries({
+          color: MA_COLORS.hrma,
+          lineWidth: 2,
+          lineStyle: 0,
+          crosshairMarkerVisible: false,
+          lastValueVisible: true,
+          priceLineVisible: false,
+        });
+
+        const lineData = proIndicators.hrma
+          .map((value, i) => ({
+            time: timeData[i],
+            value: value ?? undefined,
+          }))
+          .filter(
+            (d): d is { time: Time; value: number } => d.value !== undefined
+          );
+
+        lineSeries.setData(lineData);
+        lineSeriesRef.current.push(lineSeries);
+      } catch (err) {
+        console.error('Failed to add HRMA:', err);
+      }
+    }
+
+    // Render SMMA
+    if (
+      proIndicators?.smma &&
+      proIndicators.smma.length > 0 &&
+      selectedIndicators.includes('smma') &&
+      timeData.length > 0
+    ) {
+      try {
+        const lineSeries = chart.addLineSeries({
+          color: MA_COLORS.smma,
+          lineWidth: 2,
+          lineStyle: 0,
+          crosshairMarkerVisible: false,
+          lastValueVisible: true,
+          priceLineVisible: false,
+        });
+
+        const lineData = proIndicators.smma
+          .map((value, i) => ({
+            time: timeData[i],
+            value: value ?? undefined,
+          }))
+          .filter(
+            (d): d is { time: Time; value: number } => d.value !== undefined
+          );
+
+        lineSeries.setData(lineData);
+        lineSeriesRef.current.push(lineSeries);
+      } catch (err) {
+        console.error('Failed to add SMMA:', err);
+      }
+    }
+
+    // Render ZigZag
+    if (
+      proIndicators?.zigzag &&
+      selectedIndicators.includes('zigzag') &&
+      timeData.length > 0
+    ) {
+      const { peaks, bottoms } = proIndicators.zigzag;
+
+      // Combine peaks and bottoms and sort by index to draw connected line
+      const allPoints = [
+        ...peaks.map((p) => ({ ...p, type: 'peak' as const })),
+        ...bottoms.map((p) => ({ ...p, type: 'bottom' as const })),
+      ].sort((a, b) => a.index - b.index);
+
+      if (allPoints.length > 0) {
+        try {
+          // Draw zigzag line connecting all points
+          const lineSeries = chart.addLineSeries({
+            color: '#2196F3', // Blue zigzag line
+            lineWidth: 2,
+            lineStyle: 0,
+            crosshairMarkerVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+          });
+
+          const lineData = allPoints
+            .filter((p) => p.index < timeData.length)
+            .map((point) => ({
+              time: timeData[point.index],
+              value: point.price,
+            }));
+
+          lineSeries.setData(lineData);
+          lineSeriesRef.current.push(lineSeries);
+        } catch (err) {
+          console.error('Failed to add ZigZag:', err);
+        }
+      }
+    }
+
+    // Note: Momentum Candles would need special handling
+    // They modify candlestick colors based on classification
+    // This would require modifying the candlestick series directly
+
     // Cleanup on unmount
     return (): void => {
       lineSeriesRef.current.forEach((series) => {
@@ -243,7 +474,7 @@ export function IndicatorOverlay({
       });
       lineSeriesRef.current = [];
     };
-  }, [chart, candleSeries, horizontal, diagonal]);
+  }, [chart, candleSeries, horizontal, diagonal, proIndicators, selectedIndicators, timeData]);
 
   // This component only manages chart overlays, doesn't render DOM
   return null;

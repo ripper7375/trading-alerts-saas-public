@@ -15,6 +15,7 @@ import {
   MT5AccessDeniedError,
   MT5ServiceError,
   type MT5IndicatorData,
+  type MT5ProIndicators,
 } from '@/lib/api/mt5-client';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
@@ -24,6 +25,8 @@ import {
   PRO_TIMEFRAMES,
 } from '@/lib/tier-config';
 import type { Tier } from '@/types/tier';
+import type { ProIndicatorData } from '@/types/indicator';
+import { EMPTY_PRO_INDICATORS } from '@/types/indicator';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -38,7 +41,9 @@ interface RouteParams {
 
 interface IndicatorDataResponse {
   success: boolean;
-  data: MT5IndicatorData;
+  data: MT5IndicatorData & {
+    proIndicators: ProIndicatorData;
+  };
   tier: Tier;
   requestedAt: string;
 }
@@ -118,6 +123,50 @@ function getAccessibleSymbols(tier: Tier): readonly string[] {
  */
 function getAccessibleTimeframes(tier: Tier): readonly string[] {
   return tier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
+}
+
+/**
+ * Transform PRO indicators from Flask format to frontend format
+ */
+function transformProIndicators(
+  proData: MT5ProIndicators | undefined,
+  userTier: Tier
+): ProIndicatorData {
+  // FREE tier gets empty PRO indicators
+  if (userTier !== 'PRO' || !proData) {
+    return EMPTY_PRO_INDICATORS;
+  }
+
+  return {
+    momentumCandles: proData.momentum_candles?.map((mc) => ({
+      index: mc.index,
+      type: mc.type,
+      zscore: mc.zscore,
+    })) || [],
+    keltnerChannels: proData.keltner_channels
+      ? {
+          ultraExtremeUpper: proData.keltner_channels.ultra_extreme_upper || [],
+          extremeUpper: proData.keltner_channels.extreme_upper || [],
+          upperMost: proData.keltner_channels.upper_most || [],
+          upper: proData.keltner_channels.upper || [],
+          upperMiddle: proData.keltner_channels.upper_middle || [],
+          lowerMiddle: proData.keltner_channels.lower_middle || [],
+          lower: proData.keltner_channels.lower || [],
+          lowerMost: proData.keltner_channels.lower_most || [],
+          extremeLower: proData.keltner_channels.extreme_lower || [],
+          ultraExtremeLower: proData.keltner_channels.ultra_extreme_lower || [],
+        }
+      : null,
+    tema: proData.tema || [],
+    hrma: proData.hrma || [],
+    smma: proData.smma || [],
+    zigzag: proData.zigzag
+      ? {
+          peaks: proData.zigzag.peaks || [],
+          bottoms: proData.zigzag.bottoms || [],
+        }
+      : null,
+  };
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -279,11 +328,19 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 9: Return Response
+    // STEP 9: Transform PRO indicators
+    //───────────────────────────────────────────────────────
+    const proIndicators = transformProIndicators(data.proIndicators, userTier);
+
+    //───────────────────────────────────────────────────────
+    // STEP 10: Return Response
     //───────────────────────────────────────────────────────
     const response: IndicatorDataResponse = {
       success: true,
-      data,
+      data: {
+        ...data,
+        proIndicators,
+      },
       tier: userTier,
       requestedAt: new Date().toISOString(),
     };
