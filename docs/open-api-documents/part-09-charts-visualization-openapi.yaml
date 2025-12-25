@@ -1,34 +1,127 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Charts & Visualization Components (Part 09)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Part 09: Charts & Visualization Components
 
     **Note:** This part consists entirely of UI components and has no backend API endpoints.
+    Chart data is fetched from Part 06 (Flask MT5 API) via `/api/indicators/{symbol}/{timeframe}`.
 
-    ## Components Included:
-    - Charts listing page
-    - Individual chart page with symbol and timeframe
-    - Trading chart component (Lightweight Charts integration)
-    - Indicator overlay component
-    - Chart controls (zoom, pan, settings)
-    - Timeframe selector component
-    - useIndicators hook (client-side state management)
-    - useAuth hook (authentication state management)
+    ## Components Included (10 total):
 
-    ## Purpose:
-    These components provide interactive charting visualization for trading data.
-    Chart data is fetched from:
-    - Part 06: Flask MT5 API (price data and indicators)
-    - Part 10: Watchlist API (symbol preferences)
+    ### Page Components:
+    1. **Charts Listing Page** (`app/(dashboard)/charts/page.tsx`)
+       - Symbol/timeframe grid selectors
+       - Tier-based filtering (FREE: 5 symbols, 3 timeframes; PRO: 15 symbols, 9 timeframes)
+       - Upgrade prompts for FREE users
 
-    ## Features:
-    - Real-time price charts
-    - Technical indicators (RSI, MACD, Bollinger Bands)
-    - Multiple timeframe support
-    - Interactive controls
-    - Tier-based access (FREE tier has limited symbols/timeframes)
+    2. **Individual Chart Page** (`app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx`)
+       - Dynamic routing for symbol/timeframe combinations
+       - Tier access validation with upgrade prompts
+       - Renders TradingChart with controls
+
+    ### Chart Components:
+    3. **TradingChart** (`components/charts/trading-chart.tsx`)
+       - Lightweight Charts integration for candlestick display
+       - Dark TradingView-style theme
+       - Auto-refresh (FREE: 60s, PRO: 30s)
+       - Fractal markers (peaks/bottoms)
+
+    4. **IndicatorOverlay** (`components/charts/indicator-overlay.tsx`)
+       - Renders basic indicator lines (horizontal/diagonal)
+       - Support/resistance lines (peaks, bottoms)
+       - Ascending/descending trendlines
+       - Color-coded by type (red=resistance, green=support, blue=ascending, orange=descending)
+
+    5. **ProIndicatorOverlay** (`components/charts/pro-indicator-overlay.tsx`) [NEW]
+       - Renders PRO-only indicators on the chart
+       - Keltner Channels (10-band ATR system)
+       - Moving Averages (TEMA, HRMA, SMMA)
+       - ZigZag structure detection
+       - Requires PRO tier access
+
+    6. **IndicatorToggles** (`components/charts/indicator-toggles.tsx`) [NEW]
+       - Checkbox UI for toggling indicators
+       - Collapsible sections (Basic / PRO)
+       - Lock icons for tier-gated indicators
+       - Upgrade prompts for FREE users
+
+    7. **ChartControls** (`components/charts/chart-controls.tsx`)
+       - Symbol dropdown with category grouping
+       - Timeframe selector integration
+       - PRO badges on locked options
+       - Upgrade modal for tier-restricted access
+
+    8. **TimeframeSelector** (`components/charts/timeframe-selector.tsx`)
+       - Timeframe button grid
+       - PRO badges and lock icons for restricted timeframes
+       - Upgrade prompt for FREE users
+
+    ### Hooks:
+    9. **useIndicators** (`hooks/use-indicators.ts`)
+       - Fetches indicator data from API
+       - Auto-refresh based on tier
+       - Error handling with retry
+       - Helper functions for price data
+
+    10. **useAuth** (`hooks/use-auth.ts`)
+        - Authentication state management
+        - Tier-based access helpers
+        - Symbol/timeframe access validation
+
+    ## Supporting Files:
+
+    ### Tier Constants (`lib/tier/constants.ts`):
+    - PRO_ONLY_INDICATORS: momentum_candles, keltner_channels, tema, hrma, smma, zigzag
+    - BASIC_INDICATORS: fractals, trendlines
+    - INDICATOR_METADATA: Labels, descriptions, colors
+    - Color constants for Keltner, Momentum, MAs, ZigZag
+
+    ### Tier Validator (`lib/tier/validator.ts`):
+    - canAccessIndicator(tier, indicatorId) - Check indicator access
+    - getAvailableIndicators(tier) - Get accessible indicators list
+
+    ### Indicator Types (`types/indicator.ts`):
+    - MomentumCandleType enum (UP_NORMAL, UP_LARGE, UP_EXTREME, DOWN_*)
+    - KeltnerChannelData (10-band interface)
+    - MovingAveragesData (TEMA, HRMA, SMMA)
+    - ZigZagData (peaks, bottoms)
+    - ProIndicatorData (complete PRO response)
+
+    ## Technical Indicators:
+
+    ### Basic Indicators (FREE + PRO):
+    - **Fractals**: Support/resistance fractal points (peaks and bottoms)
+    - **Trendlines**: Diagonal trend lines (ascending/descending)
+
+    ### PRO-Only Indicators (6 total):
+    - **Momentum Candles**: Z-score based candle classification (6 types)
+    - **Keltner Channels**: 10-band ATR channel system (purple gradient)
+    - **TEMA**: Triple Exponential Moving Average (gray)
+    - **HRMA**: Hull-like Responsive Moving Average (cyan)
+    - **SMMA**: Smoothed Moving Average (blue)
+    - **ZigZag**: Peak/Bottom structure detection (orange line)
+
+    ## Tier-Based Features:
+
+    ### FREE Tier:
+    - 5 symbols: XAUUSD, BTCUSD, EURUSD, GBPUSD, US30
+    - 3 timeframes: H1, H4, D1
+    - 60-second data refresh
+    - Basic indicators only (Fractals, Trendlines)
+
+    ### PRO Tier:
+    - 15 symbols (all available)
+    - 9 timeframes: M5, M15, M30, H1, H2, H4, H8, H12, D1
+    - 30-second data refresh
+    - All indicators (Basic + 6 PRO indicators)
+
+    ## Data Flow:
+    1. Chart pages call `/api/indicators/{symbol}/{timeframe}`
+    2. API proxies to Flask MT5 service (Part 06)
+    3. Response includes OHLC, fractals, trendlines, and PRO indicators (if tier allows)
+    4. Components render data using Lightweight Charts library
 
   contact:
     name: API Support
@@ -44,10 +137,358 @@ paths: {}
 
 components:
   schemas:
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # UI COMPONENT DOCUMENTATION
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
     UIComponentReference:
       type: object
-      description: This part contains no API endpoints - UI components only
+      description: |
+        Part 09 contains UI components only (no API endpoints).
+        Chart data is fetched from Part 06 (Flask MT5 API).
       properties:
-        message:
+        componentCount:
+          type: integer
+          example: 10
+        pageComponents:
+          type: array
+          items:
+            type: string
+          example:
+            - "app/(dashboard)/charts/page.tsx"
+            - "app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx"
+        chartComponents:
+          type: array
+          items:
+            type: string
+          example:
+            - "components/charts/trading-chart.tsx"
+            - "components/charts/indicator-overlay.tsx"
+            - "components/charts/pro-indicator-overlay.tsx"
+            - "components/charts/indicator-toggles.tsx"
+            - "components/charts/chart-controls.tsx"
+            - "components/charts/timeframe-selector.tsx"
+        hooks:
+          type: array
+          items:
+            type: string
+          example:
+            - "hooks/use-indicators.ts"
+            - "hooks/use-auth.ts"
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # INDICATOR TYPES
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    IndicatorId:
+      type: string
+      description: Identifier for chart indicators
+      enum:
+        # Basic (FREE + PRO)
+        - fractals
+        - trendlines
+        # PRO Only
+        - momentum_candles
+        - keltner_channels
+        - tema
+        - hrma
+        - smma
+        - zigzag
+
+    IndicatorCategory:
+      type: string
+      enum:
+        - basic
+        - pro
+
+    IndicatorMeta:
+      type: object
+      description: Indicator display metadata
+      properties:
+        id:
+          $ref: '#/components/schemas/IndicatorId'
+        label:
           type: string
-          example: "Part 09 contains UI components only. Refer to Part 06 (Flask MT5 API) for chart data endpoints."
+          example: "Keltner Channels"
+        description:
+          type: string
+          example: "10-band ATR channel system"
+        category:
+          $ref: '#/components/schemas/IndicatorCategory'
+        color:
+          type: string
+          description: Optional default color (hex)
+          example: "#808080"
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # PRO INDICATOR DATA STRUCTURES
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    MomentumCandleType:
+      type: integer
+      description: |
+        Momentum candle classification based on Z-score.
+        0=UP_NORMAL, 1=UP_LARGE, 2=UP_EXTREME,
+        3=DOWN_NORMAL, 4=DOWN_LARGE, 5=DOWN_EXTREME
+      enum: [0, 1, 2, 3, 4, 5]
+
+    MomentumCandleData:
+      type: object
+      properties:
+        index:
+          type: integer
+          description: Bar index
+        type:
+          $ref: '#/components/schemas/MomentumCandleType'
+        zscore:
+          type: number
+          description: Z-score value for the candle
+
+    KeltnerChannelData:
+      type: object
+      description: 10-band Keltner Channel system
+      properties:
+        ultraExtremeUpper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        extremeUpper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upperMost:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upperMiddle:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lowerMiddle:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lower:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lowerMost:
+          type: array
+          items:
+            type: number
+            nullable: true
+        extremeLower:
+          type: array
+          items:
+            type: number
+            nullable: true
+        ultraExtremeLower:
+          type: array
+          items:
+            type: number
+            nullable: true
+
+    ZigZagPoint:
+      type: object
+      properties:
+        index:
+          type: integer
+          description: Bar index
+        price:
+          type: number
+          description: Price level
+        timestamp:
+          type: integer
+          description: Unix timestamp (optional)
+
+    ZigZagData:
+      type: object
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+
+    ProIndicatorData:
+      type: object
+      description: Complete PRO indicators response (requires PRO tier)
+      properties:
+        momentumCandles:
+          type: array
+          items:
+            $ref: '#/components/schemas/MomentumCandleData'
+        keltnerChannels:
+          $ref: '#/components/schemas/KeltnerChannelData'
+        tema:
+          type: array
+          items:
+            type: number
+            nullable: true
+          description: Triple Exponential Moving Average values
+        hrma:
+          type: array
+          items:
+            type: number
+            nullable: true
+          description: Hull-like Responsive Moving Average values
+        smma:
+          type: array
+          items:
+            type: number
+            nullable: true
+          description: Smoothed Moving Average values
+        zigzag:
+          $ref: '#/components/schemas/ZigZagData'
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # TIER CONFIGURATION
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    TierConfig:
+      type: object
+      description: Tier-based access configuration for charts
+      properties:
+        tier:
+          type: string
+          enum: [FREE, PRO]
+        symbols:
+          type: array
+          items:
+            type: string
+          description: Available trading symbols
+        timeframes:
+          type: array
+          items:
+            type: string
+          description: Available timeframes
+        refreshInterval:
+          type: integer
+          description: Data refresh interval in milliseconds
+        indicators:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndicatorId'
+          description: Available indicators
+
+    FreeTierConfig:
+      allOf:
+        - $ref: '#/components/schemas/TierConfig'
+        - type: object
+          properties:
+            tier:
+              example: "FREE"
+            symbols:
+              example: ["XAUUSD", "BTCUSD", "EURUSD", "GBPUSD", "US30"]
+            timeframes:
+              example: ["H1", "H4", "D1"]
+            refreshInterval:
+              example: 60000
+            indicators:
+              example: ["fractals", "trendlines"]
+
+    ProTierConfig:
+      allOf:
+        - $ref: '#/components/schemas/TierConfig'
+        - type: object
+          properties:
+            tier:
+              example: "PRO"
+            symbols:
+              example: ["XAUUSD", "XAGUSD", "BTCUSD", "ETHUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "GBPJPY", "AUDJPY", "US30", "NDX100"]
+            timeframes:
+              example: ["M5", "M15", "M30", "H1", "H2", "H4", "H8", "H12", "D1"]
+            refreshInterval:
+              example: 30000
+            indicators:
+              example: ["fractals", "trendlines", "momentum_candles", "keltner_channels", "tema", "hrma", "smma", "zigzag"]
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # COLOR CONSTANTS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ColorConstants:
+      type: object
+      description: Color constants used for chart rendering
+      properties:
+        keltnerChannels:
+          type: object
+          properties:
+            ultraExtremeUpper:
+              example: "#9C27B0"
+            extremeUpper:
+              example: "#AB47BC"
+            upperMost:
+              example: "#BA68C8"
+            upper:
+              example: "#CE93D8"
+            upperMiddle:
+              example: "#FF5722"
+            lowerMiddle:
+              example: "#FF7043"
+            lower:
+              example: "#CE93D8"
+            lowerMost:
+              example: "#BA68C8"
+            extremeLower:
+              example: "#AB47BC"
+            ultraExtremeLower:
+              example: "#9C27B0"
+        momentumCandles:
+          type: object
+          properties:
+            UP_NORMAL:
+              example: "#26a69a"
+            UP_LARGE:
+              example: "#00897b"
+            UP_EXTREME:
+              example: "#004d40"
+            DOWN_NORMAL:
+              example: "#ef5350"
+            DOWN_LARGE:
+              example: "#c62828"
+            DOWN_EXTREME:
+              example: "#7f0000"
+        movingAverages:
+          type: object
+          properties:
+            tema:
+              example: "#808080"
+            hrma:
+              example: "#00CED1"
+            smma:
+              example: "#0000FF"
+        zigzag:
+          type: object
+          properties:
+            peaks:
+              example: "#f23645"
+            bottoms:
+              example: "#00c853"
+            line:
+              example: "#ffa726"
+        basicIndicators:
+          type: object
+          properties:
+            resistance:
+              example: "#f23645"
+            support:
+              example: "#00c853"
+            ascending:
+              example: "#1e88e5"
+            descending:
+              example: "#ff6b35"
