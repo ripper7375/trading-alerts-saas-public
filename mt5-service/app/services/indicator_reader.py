@@ -8,7 +8,7 @@ Reference: docs/flask-multi-mt5-implementation.md Section 4
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
