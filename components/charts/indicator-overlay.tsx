@@ -82,14 +82,6 @@ const MA_COLORS = {
 } as const;
 
 /**
- * Color configuration for ZigZag
- */
-const ZIGZAG_COLORS = {
-  peaks: '#f23645', // Red for peaks
-  bottoms: '#00c853', // Green for bottoms
-} as const;
-
-/**
  * Line style interface
  */
 interface LineStyleConfig {
