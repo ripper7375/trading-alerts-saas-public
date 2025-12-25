@@ -307,8 +307,10 @@ Follow remaining phases for autonomous building with MiniMax M2.
 - **API:** Next.js 15 API Routes
 - **Auth:** NextAuth.js 4.24+
 - **Validation:** Zod schemas
-- **Database ORM:** Prisma 5.20+
+- **Database ORM:** Prisma 5.22.0
 - **Database:** PostgreSQL 15+
+
+> **Prisma Notes:** This project uses Prisma 5.22.0 with manual type stubs (`types/prisma-stubs.d.ts`) due to network restrictions preventing local client generation. See [Prisma Upgrade Log](docs/prisma-upgrade-log.md) for details.
 
 ### **MT5 Integration**
 

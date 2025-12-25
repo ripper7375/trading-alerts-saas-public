@@ -5,6 +5,7 @@
  * cannot be generated (e.g., network restrictions blocking binaries.prisma.sh).
  *
  * Generated from prisma/schema.prisma
+ * Updated for Prisma 5.22.0 compatibility
  */
 
 declare module '@prisma/client' {
@@ -137,6 +138,9 @@ declare module '@prisma/client' {
     | JsonValue[]
     | { [key: string]: JsonValue };
 
+  export type JsonObject = { [key: string]: JsonValue };
+  export type JsonArray = JsonValue[];
+
   export type InputJsonValue =
     | string
     | number
@@ -145,7 +149,167 @@ declare module '@prisma/client' {
     | InputJsonValue[]
     | { [key: string]: InputJsonValue };
 
+  // Prisma 5.x: Nullable JSON handling
+  export type NullableJsonInput = JsonValue | null;
+
   export type Decimal = number;
+
+  // ============================================================
+  // PRISMA 5.x FILTER TYPES
+  // ============================================================
+
+  // Query mode for case-insensitive search (new in Prisma 5.x)
+  export type QueryMode = 'default' | 'insensitive';
+
+  // String filters with mode option
+  export type NestedStringFilter = {
+    equals?: string;
+    in?: string[];
+    notIn?: string[];
+    lt?: string;
+    lte?: string;
+    gt?: string;
+    gte?: string;
+    contains?: string;
+    startsWith?: string;
+    endsWith?: string;
+    mode?: QueryMode;
+    not?: string | NestedStringFilter;
+  };
+
+  export type StringFilter = {
+    equals?: string;
+    in?: string[];
+    notIn?: string[];
+    lt?: string;
+    lte?: string;
+    gt?: string;
+    gte?: string;
+    contains?: string;
+    startsWith?: string;
+    endsWith?: string;
+    mode?: QueryMode;
+    not?: string | NestedStringFilter;
+  };
+
+  export type StringNullableFilter = StringFilter & {
+    equals?: string | null;
+    not?: string | null | NestedStringFilter;
+  };
+
+  // DateTime filters with nested support
+  export type NestedDateTimeFilter = {
+    equals?: Date | string;
+    in?: Date[] | string[];
+    notIn?: Date[] | string[];
+    lt?: Date | string;
+    lte?: Date | string;
+    gt?: Date | string;
+    gte?: Date | string;
+    not?: Date | string | NestedDateTimeFilter;
+  };
+
+  export type DateTimeFilter = {
+    equals?: Date | string;
+    in?: Date[] | string[];
+    notIn?: Date[] | string[];
+    lt?: Date | string;
+    lte?: Date | string;
+    gt?: Date | string;
+    gte?: Date | string;
+    not?: Date | string | NestedDateTimeFilter;
+  };
+
+  export type NestedDateTimeNullableFilter = {
+    equals?: Date | string | null;
+    in?: Date[] | string[] | null;
+    notIn?: Date[] | string[] | null;
+    lt?: Date | string;
+    lte?: Date | string;
+    gt?: Date | string;
+    gte?: Date | string;
+    not?: Date | string | null | NestedDateTimeNullableFilter;
+  };
+
+  export type DateTimeNullableFilter = DateTimeFilter & {
+    equals?: Date | string | null;
+    not?: Date | string | null | NestedDateTimeNullableFilter;
+  };
+
+  // Int filters
+  export type NestedIntFilter = {
+    equals?: number;
+    in?: number[];
+    notIn?: number[];
+    lt?: number;
+    lte?: number;
+    gt?: number;
+    gte?: number;
+    not?: number | NestedIntFilter;
+  };
+
+  export type IntFilter = {
+    equals?: number;
+    in?: number[];
+    notIn?: number[];
+    lt?: number;
+    lte?: number;
+    gt?: number;
+    gte?: number;
+    not?: number | NestedIntFilter;
+  };
+
+  export type IntNullableFilter = IntFilter & {
+    equals?: number | null;
+    not?: number | null | NestedIntFilter;
+  };
+
+  // Float filters
+  export type NestedFloatFilter = {
+    equals?: number;
+    in?: number[];
+    notIn?: number[];
+    lt?: number;
+    lte?: number;
+    gt?: number;
+    gte?: number;
+    not?: number | NestedFloatFilter;
+  };
+
+  export type FloatFilter = {
+    equals?: number;
+    in?: number[];
+    notIn?: number[];
+    lt?: number;
+    lte?: number;
+    gt?: number;
+    gte?: number;
+    not?: number | NestedFloatFilter;
+  };
+
+  export type FloatNullableFilter = FloatFilter & {
+    equals?: number | null;
+    not?: number | null | NestedFloatFilter;
+  };
+
+  // Bool filters
+  export type NestedBoolFilter = {
+    equals?: boolean;
+    not?: boolean | NestedBoolFilter;
+  };
+
+  export type BoolFilter = {
+    equals?: boolean;
+    not?: boolean | NestedBoolFilter;
+  };
+
+  export type BoolNullableFilter = BoolFilter & {
+    equals?: boolean | null;
+    not?: boolean | null | NestedBoolFilter;
+  };
+
+  // Prisma 5.x: Relation load strategy
+  export type RelationLoadStrategy = 'query' | 'join';
 
   // ============================================================
   // MODEL TYPES (from schema.prisma)
@@ -561,8 +725,9 @@ declare module '@prisma/client' {
   export namespace Prisma {
     export type Decimal = number;
 
-    export type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>;
+    export type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends' | '$metrics'>;
 
+    // ===== JSON TYPE SYSTEM (enhanced in Prisma 5.x) =====
     export type JsonValue =
       | string
       | number
@@ -571,6 +736,9 @@ declare module '@prisma/client' {
       | JsonValue[]
       | { [key: string]: JsonValue };
 
+    export type JsonObject = { [key: string]: JsonValue };
+    export type JsonArray = JsonValue[];
+
     export type InputJsonValue =
       | string
       | number
@@ -578,6 +746,77 @@ declare module '@prisma/client' {
       | null
       | InputJsonValue[]
       | { [key: string]: InputJsonValue };
+
+    // Prisma 5.x: Nullable JSON handling
+    export type NullableJsonInput = JsonValue | null;
+
+    // ===== JSON NULL TYPES (critical for Prisma 5.x) =====
+    // These symbols distinguish between JSON null value and database NULL
+    export const JsonNull: unique symbol;
+    export const DbNull: unique symbol;
+    export const AnyNull: unique symbol;
+    export type NullTypes = typeof JsonNull | typeof DbNull | typeof AnyNull;
+
+    // ===== TRANSACTION TYPES (enhanced in Prisma 5.x) =====
+    export type TransactionIsolationLevel =
+      | 'ReadUncommitted'
+      | 'ReadCommitted'
+      | 'RepeatableRead'
+      | 'Serializable';
+
+    // ===== METRICS TYPES (new in Prisma 5.x) =====
+    export interface Metrics {
+      json(): Promise<MetricsJson>;
+      prometheus(): Promise<string>;
+    }
+
+    export interface MetricsJson {
+      counters: MetricCounter[];
+      gauges: MetricGauge[];
+      histograms: MetricHistogram[];
+    }
+
+    export interface MetricCounter {
+      key: string;
+      value: number;
+      labels: Record<string, string>;
+      description: string;
+    }
+
+    export interface MetricGauge {
+      key: string;
+      value: number;
+      labels: Record<string, string>;
+      description: string;
+    }
+
+    export interface MetricHistogram {
+      key: string;
+      value: { buckets: [number, number][]; sum: number; count: number };
+      labels: Record<string, string>;
+      description: string;
+    }
+
+    // ===== PROMISE TYPES =====
+    export type PrismaPromise<T> = Promise<T> & { [Symbol.toStringTag]: 'PrismaPromise' };
+
+    // ===== MIDDLEWARE TYPES (enhanced in Prisma 5.x) =====
+    export type Middleware = (
+      params: MiddlewareParams,
+      next: (params: MiddlewareParams) => Promise<unknown>
+    ) => Promise<unknown>;
+
+    export interface MiddlewareParams {
+      model?: string;
+      action: string;
+      args: Record<string, unknown>;
+      dataPath: string[];
+      runInTransaction: boolean;
+    }
+
+    // ===== FILTER TYPES =====
+    export type QueryMode = 'default' | 'insensitive';
+    export type RelationLoadStrategy = 'query' | 'join';
 
     // Where input types - relaxed to allow Prisma query syntax
     export type UserWhereInput = Record<string, unknown>;
@@ -627,13 +866,21 @@ declare module '@prisma/client' {
   // PRISMA CLIENT
   // ============================================================
 
+  // Prisma 5.x: Enhanced client options
   export type PrismaClientOptions = {
-    log?: Array<'query' | 'info' | 'warn' | 'error'>;
     datasources?: {
       db?: {
-        url: string;
+        url?: string;
       };
     };
+    log?: Array<
+      | 'query'
+      | 'info'
+      | 'warn'
+      | 'error'
+      | { emit: 'event' | 'stdout'; level: 'query' | 'info' | 'warn' | 'error' }
+    >;
+    errorFormat?: 'pretty' | 'colorless' | 'minimal';
   };
 
   // Generic delegate interface for model operations - relaxed types
@@ -656,16 +903,39 @@ declare module '@prisma/client' {
   export class PrismaClient {
     constructor(options?: PrismaClientOptions);
 
+    // Connection management
     $connect(): Promise<void>;
     $disconnect(): Promise<void>;
     $on(event: 'query' | 'info' | 'warn' | 'error', callback: (e: unknown) => void): void;
-    $use(middleware: (params: unknown, next: (params: unknown) => Promise<unknown>) => Promise<unknown>): void;
-    $transaction<T>(fn: (prisma: Prisma.TransactionClient) => Promise<T>, options?: { maxWait?: number; timeout?: number; isolationLevel?: 'ReadUncommitted' | 'ReadCommitted' | 'RepeatableRead' | 'Serializable' }): Promise<T>;
-    $transaction<T>(promises: Promise<T>[], options?: { isolationLevel?: 'ReadUncommitted' | 'ReadCommitted' | 'RepeatableRead' | 'Serializable' }): Promise<T[]>;
-    $queryRaw<T = unknown>(query: TemplateStringsArray | string, ...values: unknown[]): Promise<T>;
-    $executeRaw(query: TemplateStringsArray | string, ...values: unknown[]): Promise<number>;
-    $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>;
-    $executeRawUnsafe(query: string, ...values: unknown[]): Promise<number>;
+
+    // Middleware (enhanced in Prisma 5.x)
+    $use(middleware: Prisma.Middleware): void;
+
+    // Transaction support (improved in Prisma 5.x)
+    $transaction<T>(
+      fn: (prisma: Prisma.TransactionClient) => Promise<T>,
+      options?: {
+        maxWait?: number;
+        timeout?: number;
+        isolationLevel?: Prisma.TransactionIsolationLevel;
+      }
+    ): Promise<T>;
+    $transaction<T>(
+      promises: Prisma.PrismaPromise<T>[],
+      options?: { isolationLevel?: Prisma.TransactionIsolationLevel }
+    ): Promise<T[]>;
+
+    // Query execution
+    $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Prisma.PrismaPromise<T>;
+    $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Prisma.PrismaPromise<T>;
+    $executeRaw(query: TemplateStringsArray, ...values: unknown[]): Prisma.PrismaPromise<number>;
+    $executeRawUnsafe(query: string, ...values: unknown[]): Prisma.PrismaPromise<number>;
+
+    // NEW IN PRISMA 5.x: Metrics API for observability
+    $metrics: Prisma.Metrics;
+
+    // NEW IN PRISMA 5.x: Client extensions
+    $extends: (extension: unknown) => PrismaClient;
 
     user: ModelDelegate<User>;
     account: ModelDelegate<Account>;
