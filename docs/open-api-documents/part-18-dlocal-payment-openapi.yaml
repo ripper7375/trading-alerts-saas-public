@@ -1,0 +1,967 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - dLocal Payment Integration API (Part 18)
+  version: 1.0.0
+  description: |
+    dLocal Payment Integration API for Trading Alerts SaaS platform (Part 18).
+
+    This API provides alternative payment processing for users in specific regions through dLocal,
+    supporting local payment methods and currencies.
+
+    ## Overview
+    Part 18 is split into three vertical slices:
+    - **Part 18A**: Payment Creation Flow (core infrastructure)
+    - **Part 18B**: Subscription Lifecycle Management
+    - **Part 18C**: User Experience & Admin Dashboard
+
+    ## Supported Regions
+    - **India (IN)**: INR - UPI, Wallets, Net Banking, Cards
+    - **Nigeria (NG)**: NGN - Bank Transfer, Cards, Mobile Money
+    - **Pakistan (PK)**: PKR - EasyPaisa, JazzCash, Bank Transfer
+    - **Vietnam (VN)**: VND - Momo, ZaloPay, Bank Transfer
+    - **Indonesia (ID)**: IDR - OVO, GoPay, DANA, Bank Transfer
+    - **Thailand (TH)**: THB - PromptPay, TrueMoney, Bank Transfer
+    - **South Africa (ZA)**: ZAR - EFT, Instant EFT, Cards
+    - **Turkey (TR)**: TRY - Cards, Bank Transfer
+
+    ## Payment Plans
+    - **3-Day Plan**: $3 for 3 days (promotional/trial)
+    - **Monthly Plan**: $29/month (recurring via manual renewal)
+
+    ## Features
+    - Multi-currency support with real-time conversion
+    - Local payment method integration
+    - Anti-abuse validation for 3-day plans
+    - Subscription lifecycle management
+    - Automated expiry and renewal reminders
+    - Fraud detection and monitoring
+    - Discount code support (monthly plan only)
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Payment Methods
+    description: Available payment methods by country
+  - name: Currency
+    description: Currency conversion and exchange rates
+  - name: Payments
+    description: Payment creation and status
+  - name: Webhooks
+    description: dLocal webhook handlers
+  - name: Discount
+    description: Discount code validation
+  - name: Cron Jobs
+    description: Automated subscription management
+
+paths:
+  /api/payments/dlocal/methods:
+    get:
+      tags:
+        - Payment Methods
+      summary: Get available payment methods
+      description: |
+        Returns available dLocal payment methods for a specific country.
+
+        **Supports:**
+        - Simple list of payment method IDs
+        - Detailed information with names and icons (detailed=true)
+
+        **Examples:**
+        - India: UPI, Paytm, PhonePe, GooglePay, AmazonPay
+        - Nigeria: Bank Transfer, Card, Flutterwave
+        - Pakistan: EasyPaisa, JazzCash, BankAlfalah
+      operationId: getPaymentMethods
+      parameters:
+        - name: country
+          in: query
+          required: true
+          description: ISO 2-letter country code
+          schema:
+            type: string
+            enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          example: IN
+        - name: detailed
+          in: query
+          required: false
+          description: Return detailed method information
+          schema:
+            type: boolean
+            default: false
+          example: true
+      responses:
+        '200':
+          description: Payment methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethodsResponse'
+              examples:
+                simple:
+                  summary: Simple list
+                  value:
+                    country: "IN"
+                    methods:
+                      - "UPI"
+                      - "PAYTM"
+                      - "PHONEPE"
+                      - "GOOGLEPAY"
+                detailed:
+                  summary: Detailed information
+                  value:
+                    country: "IN"
+                    methods:
+                      - id: "UPI"
+                        name: "UPI"
+                        icon: "upi-icon.svg"
+                      - id: "PAYTM"
+                        name: "Paytm Wallet"
+                        icon: "paytm-icon.svg"
+        '400':
+          description: Invalid or unsupported country
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Invalid or unsupported country"
+                supportedCountries: ["IN", "NG", "PK", "VN", "ID", "TH", "ZA", "TR"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/dlocal/exchange-rate:
+    get:
+      tags:
+        - Currency
+      summary: Get USD exchange rate
+      description: |
+        Returns the current USD to local currency exchange rate.
+
+        **Rate Source:** dLocal API with caching
+        **Cache Duration:** 1 hour
+      operationId: getExchangeRate
+      parameters:
+        - name: currency
+          in: query
+          required: true
+          description: Target currency code
+          schema:
+            type: string
+            enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          example: INR
+      responses:
+        '200':
+          description: Exchange rate retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRateResponse'
+              example:
+                from: "USD"
+                to: "INR"
+                rate: 83.25
+                timestamp: "2025-12-25T10:00:00.000Z"
+        '400':
+          description: Invalid currency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/dlocal/convert:
+    get:
+      tags:
+        - Currency
+      summary: Convert USD to local currency
+      description: |
+        Converts a USD amount to local currency using current exchange rate.
+
+        **Use Case:** Display pricing in local currency
+      operationId: convertCurrency
+      parameters:
+        - name: amount
+          in: query
+          required: true
+          description: Amount in USD
+          schema:
+            type: number
+            minimum: 0
+          example: 29
+        - name: currency
+          in: query
+          required: true
+          description: Target currency
+          schema:
+            type: string
+            enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          example: INR
+      responses:
+        '200':
+          description: Conversion successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertResponse'
+              example:
+                amountUSD: 29
+                currency: "INR"
+                convertedAmount: 2414.25
+                exchangeRate: 83.25
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/dlocal/create:
+    post:
+      tags:
+        - Payments
+      summary: Create dLocal payment
+      description: |
+        Creates a new dLocal payment for subscription.
+
+        **Validations:**
+        - User must be authenticated
+        - User must not have active PRO subscription
+        - Payment method must be valid for country
+        - 3-day plan: Anti-abuse checks (max 1 per user)
+        - Discount code: Only valid for monthly plan
+
+        **Process:**
+        1. Validate user and input
+        2. Check 3-day plan eligibility (if applicable)
+        3. Apply discount code (if provided for monthly)
+        4. Calculate amount in local currency
+        5. Create payment record in database
+        6. Call dLocal API to create payment
+        7. Return redirect URL for user to complete payment
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+            examples:
+              threeDayPlan:
+                summary: 3-day plan (India)
+                value:
+                  country: "IN"
+                  paymentMethod: "UPI"
+                  planType: "THREE_DAY"
+                  currency: "INR"
+              monthlyPlanWithDiscount:
+                summary: Monthly plan with discount
+                value:
+                  country: "NG"
+                  paymentMethod: "BANK_TRANSFER"
+                  planType: "MONTHLY"
+                  currency: "NGN"
+                  discountCode: "SAVE20"
+      responses:
+        '200':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentResponse'
+              example:
+                paymentId: "dlp_abc123xyz456"
+                redirectUrl: "https://pay.dlocal.com/checkout/dlp_abc123xyz456"
+                amount: 249
+                currency: "INR"
+                expiresAt: "2025-12-25T11:00:00.000Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              examples:
+                invalidPaymentMethod:
+                  summary: Invalid payment method
+                  value:
+                    error: "Invalid payment method for this country"
+                    country: "IN"
+                    paymentMethod: "INVALID_METHOD"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - already subscribed or not eligible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                alreadySubscribed:
+                  summary: Already has subscription
+                  value:
+                    error: "You already have an active subscription"
+                threeDayNotEligible:
+                  summary: Not eligible for 3-day plan
+                  value:
+                    error: "You have already used the 3-day promotional plan"
+                    reason: "ALREADY_USED"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/dlocal/{paymentId}:
+    get:
+      tags:
+        - Payments
+      summary: Get payment status
+      description: |
+        Returns the current status of a dLocal payment.
+
+        **Status Values:**
+        - PENDING: Payment initiated, awaiting completion
+        - PAID: Payment successful
+        - REJECTED: Payment failed
+        - CANCELLED: Payment cancelled
+        - EXPIRED: Payment expired
+      operationId: getPaymentStatus
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          description: dLocal payment ID
+          schema:
+            type: string
+          example: "dlp_abc123xyz456"
+      responses:
+        '200':
+          description: Payment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatusResponse'
+              example:
+                paymentId: "dlp_abc123xyz456"
+                status: "PAID"
+                amount: 249
+                currency: "INR"
+                planType: "THREE_DAY"
+                createdAt: "2025-12-25T10:00:00.000Z"
+                paidAt: "2025-12-25T10:05:00.000Z"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - payment belongs to another user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/dlocal/validate-discount:
+    post:
+      tags:
+        - Discount
+      summary: Validate discount code
+      description: |
+        Validates a discount code for monthly plan.
+
+        **Rules:**
+        - Only valid for MONTHLY plan
+        - Checks if code is active and not expired
+        - Checks usage limits
+        - Returns discount amount or percentage
+
+        **Note:** This is Part 18C functionality
+      operationId: validateDiscountCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateDiscountRequest'
+            example:
+              code: "SAVE20"
+              planType: "MONTHLY"
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateDiscountResponse'
+              examples:
+                validCode:
+                  summary: Valid discount code
+                  value:
+                    valid: true
+                    code: "SAVE20"
+                    discountType: "PERCENTAGE"
+                    discountValue: 20
+                    finalPrice: 23.20
+                invalidCode:
+                  summary: Invalid code
+                  value:
+                    valid: false
+                    error: "Code not found or expired"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/payments/dlocal/check-three-day-eligibility:
+    get:
+      tags:
+        - Payments
+      summary: Check 3-day plan eligibility
+      description: |
+        Checks if the authenticated user is eligible for the 3-day promotional plan.
+
+        **Anti-Abuse Rules:**
+        - Max 1 three-day subscription per user (lifetime)
+        - Checks payment history
+        - Checks subscription history
+
+        **Note:** This is Part 18B functionality
+      operationId: checkThreeDayEligibility
+      responses:
+        '200':
+          description: Eligibility check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThreeDayEligibilityResponse'
+              examples:
+                eligible:
+                  summary: User is eligible
+                  value:
+                    eligible: true
+                    reason: null
+                notEligible:
+                  summary: User not eligible
+                  value:
+                    eligible: false
+                    reason: "ALREADY_USED"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/webhooks/dlocal:
+    post:
+      tags:
+        - Webhooks
+      summary: dLocal webhook handler
+      description: |
+        Handles webhook events from dLocal for payment status updates.
+
+        **Events Handled:**
+        - payment.paid: Payment successful → Create subscription
+        - payment.rejected: Payment failed → Update status
+        - payment.cancelled: Payment cancelled → Update status
+
+        **Process (payment.paid):**
+        1. Verify webhook signature
+        2. Find payment in database
+        3. Update payment status
+        4. Create/update subscription
+        5. Upgrade user to PRO tier
+        6. Send confirmation email
+
+        **Security:**
+        - Validates dLocal signature
+        - Rejects invalid signatures
+        - Idempotent processing
+      operationId: handleDLocalWebhook
+      security: []
+      parameters:
+        - name: x-dlocal-signature
+          in: header
+          required: true
+          description: dLocal webhook signature
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: dLocal webhook payload
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid signature or payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Webhook processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cron/check-expiring-subscriptions:
+    get:
+      tags:
+        - Cron Jobs
+      summary: Check expiring subscriptions
+      description: |
+        Cron job that checks for subscriptions expiring soon and sends renewal reminders.
+
+        **Schedule:** Daily at 00:00 UTC (Vercel Cron)
+
+        **Process:**
+        1. Find subscriptions expiring in 3 days
+        2. Send renewal reminder emails
+        3. Log results
+
+        **Note:** This is Part 18B functionality - manages dLocal subscription lifecycle
+      operationId: checkExpiringSubscriptions
+      security: []
+      parameters:
+        - name: authorization
+          in: header
+          required: false
+          description: Cron secret for authentication
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cron job executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobResponse'
+              example:
+                success: true
+                emailsSent: 15
+                processed: 15
+        '401':
+          description: Unauthorized - invalid cron secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Cron job error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/cron/downgrade-expired-subscriptions:
+    get:
+      tags:
+        - Cron Jobs
+      summary: Downgrade expired subscriptions
+      description: |
+        Cron job that downgrades users with expired subscriptions to FREE tier.
+
+        **Schedule:** Daily at 01:00 UTC (Vercel Cron)
+
+        **Process:**
+        1. Find expired subscriptions (past expiresAt date)
+        2. Update subscription status to EXPIRED
+        3. Downgrade user tier to FREE
+        4. Send expiry notification email
+        5. Log results
+
+        **Note:** This is Part 18B functionality - manages dLocal subscription lifecycle
+      operationId: downgradeExpiredSubscriptions
+      security: []
+      parameters:
+        - name: authorization
+          in: header
+          required: false
+          description: Cron secret for authentication
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cron job executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronJobResponse'
+              example:
+                success: true
+                downgraded: 8
+                processed: 8
+        '401':
+          description: Unauthorized - invalid cron secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Cron job error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie
+
+  schemas:
+    PaymentMethodsResponse:
+      type: object
+      required:
+        - country
+        - methods
+      properties:
+        country:
+          type: string
+          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          example: "IN"
+        methods:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: '#/components/schemas/PaymentMethodDetail'
+          example: ["UPI", "PAYTM", "PHONEPE"]
+
+    PaymentMethodDetail:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: "UPI"
+        name:
+          type: string
+          example: "UPI"
+        icon:
+          type: string
+          example: "upi-icon.svg"
+
+    ExchangeRateResponse:
+      type: object
+      required:
+        - from
+        - to
+        - rate
+        - timestamp
+      properties:
+        from:
+          type: string
+          example: "USD"
+        to:
+          type: string
+          example: "INR"
+        rate:
+          type: number
+          format: float
+          example: 83.25
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-12-25T10:00:00.000Z"
+
+    ConvertResponse:
+      type: object
+      required:
+        - amountUSD
+        - currency
+        - convertedAmount
+        - exchangeRate
+      properties:
+        amountUSD:
+          type: number
+          example: 29
+        currency:
+          type: string
+          example: "INR"
+        convertedAmount:
+          type: number
+          format: float
+          example: 2414.25
+        exchangeRate:
+          type: number
+          format: float
+          example: 83.25
+
+    CreatePaymentRequest:
+      type: object
+      required:
+        - country
+        - paymentMethod
+        - planType
+        - currency
+      properties:
+        country:
+          type: string
+          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          example: "IN"
+        paymentMethod:
+          type: string
+          example: "UPI"
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          example: "THREE_DAY"
+        currency:
+          type: string
+          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          example: "INR"
+        discountCode:
+          type: string
+          description: Optional discount code (MONTHLY plan only)
+          example: "SAVE20"
+
+    CreatePaymentResponse:
+      type: object
+      required:
+        - paymentId
+        - redirectUrl
+        - amount
+        - currency
+        - expiresAt
+      properties:
+        paymentId:
+          type: string
+          description: dLocal payment ID
+          example: "dlp_abc123xyz456"
+        redirectUrl:
+          type: string
+          format: uri
+          description: URL to redirect user for payment completion
+          example: "https://pay.dlocal.com/checkout/dlp_abc123xyz456"
+        amount:
+          type: number
+          description: Amount in local currency
+          example: 249
+        currency:
+          type: string
+          example: "INR"
+        expiresAt:
+          type: string
+          format: date-time
+          description: Payment link expiration
+          example: "2025-12-25T11:00:00.000Z"
+
+    PaymentStatusResponse:
+      type: object
+      required:
+        - paymentId
+        - status
+        - amount
+        - currency
+        - planType
+        - createdAt
+      properties:
+        paymentId:
+          type: string
+          example: "dlp_abc123xyz456"
+        status:
+          type: string
+          enum: [PENDING, PAID, REJECTED, CANCELLED, EXPIRED]
+          example: "PAID"
+        amount:
+          type: number
+          example: 249
+        currency:
+          type: string
+          example: "INR"
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          example: "THREE_DAY"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-12-25T10:00:00.000Z"
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-25T10:05:00.000Z"
+
+    ValidateDiscountRequest:
+      type: object
+      required:
+        - code
+        - planType
+      properties:
+        code:
+          type: string
+          example: "SAVE20"
+        planType:
+          type: string
+          enum: [MONTHLY]
+          example: "MONTHLY"
+
+    ValidateDiscountResponse:
+      type: object
+      required:
+        - valid
+      properties:
+        valid:
+          type: boolean
+          example: true
+        code:
+          type: string
+          example: "SAVE20"
+        discountType:
+          type: string
+          enum: [PERCENTAGE, FIXED]
+          example: "PERCENTAGE"
+        discountValue:
+          type: number
+          description: Percentage (1-100) or fixed amount
+          example: 20
+        finalPrice:
+          type: number
+          description: Price after discount (USD)
+          example: 23.20
+        error:
+          type: string
+          description: Error message if invalid
+          example: "Code not found or expired"
+
+    ThreeDayEligibilityResponse:
+      type: object
+      required:
+        - eligible
+      properties:
+        eligible:
+          type: boolean
+          example: true
+        reason:
+          type: string
+          nullable: true
+          enum: [ALREADY_USED, ACTIVE_SUBSCRIPTION]
+          example: null
+
+    CronJobResponse:
+      type: object
+      required:
+        - success
+        - processed
+      properties:
+        success:
+          type: boolean
+          example: true
+        processed:
+          type: integer
+          description: Number of records processed
+          example: 15
+        emailsSent:
+          type: integer
+          description: Number of emails sent (for reminder cron)
+          example: 15
+        downgraded:
+          type: integer
+          description: Number of users downgraded (for downgrade cron)
+          example: 8
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Additional error details"
+        supportedCountries:
+          type: array
+          items:
+            type: string
+          example: ["IN", "NG", "PK", "VN", "ID", "TH", "ZA", "TR"]
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Validation error"
+        details:
+          type: object
+          description: Field-level validation errors
+          example:
+            country: ["Invalid country code"]
+            paymentMethod: ["Payment method is required"]
