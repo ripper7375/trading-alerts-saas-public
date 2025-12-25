@@ -24,7 +24,7 @@ interface TestResult {
 }
 
 const prisma = new PrismaClient({
-  log: process.env.DEBUG ? ['query', 'info', 'warn', 'error'] : ['error'],
+  log: process.env['DEBUG'] ? ['query', 'info', 'warn', 'error'] : ['error'],
 });
 
 const results: TestResult[] = [];
@@ -126,9 +126,11 @@ async function testAggregation(): Promise<{ success: boolean; details?: string }
     _count: { id: true },
   });
 
+  // Use bracket notation and type assertion for index signature access
+  const countResult = result as { _count: { id: number } };
   return {
     success: true,
-    details: `Aggregation: ${result._count.id} users`
+    details: `Aggregation: ${countResult['_count'].id} users`
   };
 }
 
