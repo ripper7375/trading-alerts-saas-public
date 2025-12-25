@@ -1,0 +1,615 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Notifications & Real-time API (Part 15)
+  version: 1.0.0
+  description: |
+    Notifications and Real-time Communication API for Trading Alerts SaaS platform (Part 15).
+
+    This API provides notification management and real-time communication capabilities.
+
+    ## Features
+    - Notification CRUD operations
+    - Filtering and pagination
+    - Bulk mark as read
+    - Real-time notifications via WebSocket
+    - Notification types (ALERT, SUBSCRIPTION, PAYMENT, SYSTEM)
+    - Priority levels (LOW, MEDIUM, HIGH)
+
+    ## Notification Types
+    - **ALERT**: Alert triggered notifications
+    - **SUBSCRIPTION**: Subscription/billing updates
+    - **PAYMENT**: Payment confirmations and failures
+    - **SYSTEM**: System announcements and updates
+
+    ## Real-time Features
+    - WebSocket connection for live notifications
+    - Automatic notification delivery
+    - Badge count updates
+    - Desktop push notifications (browser API)
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Notifications
+    description: Notification management endpoints
+
+paths:
+  /api/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List user notifications
+      description: |
+        Retrieves paginated list of user notifications with filtering options.
+
+        **Filters:**
+        - `status`: Filter by read status (all, unread, read)
+        - `type`: Filter by notification type
+
+        **Pagination:**
+        - `page`: Page number (default: 1)
+        - `pageSize`: Items per page (default: 20, max: 50)
+
+        **Returns:**
+        - Paginated notifications list
+        - Total count and pages
+        - Unread count for badge display
+      operationId: getNotifications
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by read status
+          schema:
+            type: string
+            enum: [all, unread, read]
+            default: all
+          example: unread
+        - name: type
+          in: query
+          required: false
+          description: Filter by notification type
+          schema:
+            type: string
+            enum: [ALERT, SUBSCRIPTION, PAYMENT, SYSTEM]
+          example: ALERT
+        - name: page
+          in: query
+          required: false
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: pageSize
+          in: query
+          required: false
+          description: Items per page
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 50
+            default: 20
+          example: 20
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationsListResponse'
+              example:
+                notifications:
+                  - id: "notif_001"
+                    userId: "user_123"
+                    type: "ALERT"
+                    title: "BTC Alert Triggered"
+                    body: "BTCUSD has crossed above $50,000"
+                    priority: "HIGH"
+                    read: false
+                    readAt: null
+                    link: "/alerts/alert_abc123"
+                    createdAt: "2025-12-20T15:30:00.000Z"
+                  - id: "notif_002"
+                    userId: "user_123"
+                    type: "SUBSCRIPTION"
+                    title: "Subscription Renewed"
+                    body: "Your PRO subscription has been renewed"
+                    priority: "MEDIUM"
+                    read: true
+                    readAt: "2025-12-20T14:00:00.000Z"
+                    link: "/settings/billing"
+                    createdAt: "2025-12-20T12:00:00.000Z"
+                total: 45
+                page: 1
+                pageSize: 20
+                totalPages: 3
+                unreadCount: 12
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                error: "Invalid query parameters"
+                message: "Please check your query parameters"
+                details:
+                  - path: ["pageSize"]
+                    message: "Must be between 10 and 50"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "You must be logged in to view notifications"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: |
+        Marks all unread notifications as read for the authenticated user.
+
+        **Bulk Operation:**
+        - Updates all unread notifications
+        - Sets read flag to true
+        - Sets readAt timestamp
+        - Returns count of updated notifications
+      operationId: markAllAsRead
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkAllReadResponse'
+              example:
+                success: true
+                updatedCount: 12
+                message: "12 notification(s) marked as read"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/notifications/{id}:
+    get:
+      tags:
+        - Notifications
+      summary: Get single notification
+      description: |
+        Retrieves a specific notification by ID with ownership validation.
+
+        **Includes:**
+        - Full notification details
+        - Read status and timestamp
+        - Link to related resource
+      operationId: getNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: string
+          example: "notif_001"
+      responses:
+        '200':
+          description: Notification retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+              example:
+                id: "notif_001"
+                userId: "user_123"
+                type: "ALERT"
+                title: "BTC Alert Triggered"
+                body: "BTCUSD has crossed above $50,000"
+                priority: "HIGH"
+                read: false
+                readAt: null
+                link: "/alerts/alert_abc123"
+                createdAt: "2025-12-20T15:30:00.000Z"
+                updatedAt: "2025-12-20T15:30:00.000Z"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Forbidden"
+                message: "You do not have permission to access this notification"
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not found"
+                message: "Notification not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Notifications
+      summary: Delete notification
+      description: |
+        Deletes a specific notification with ownership validation.
+
+        **Note:** This is a hard delete. The notification will be permanently removed.
+      operationId: deleteNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: string
+          example: "notif_001"
+      responses:
+        '200':
+          description: Notification deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+              example:
+                success: true
+                message: "Notification deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/notifications/{id}/read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: |
+        Marks a specific notification as read with ownership validation.
+
+        **Updates:**
+        - Sets read flag to true
+        - Sets readAt timestamp
+        - Returns updated notification
+
+        **Idempotent:** Safe to call multiple times, even if already read.
+      operationId: markNotificationAsRead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: string
+          example: "notif_001"
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkReadResponse'
+              examples:
+                markedAsRead:
+                  summary: Successfully marked as read
+                  value:
+                    notification:
+                      id: "notif_001"
+                      userId: "user_123"
+                      type: "ALERT"
+                      title: "BTC Alert Triggered"
+                      body: "BTCUSD has crossed above $50,000"
+                      priority: "HIGH"
+                      read: true
+                      readAt: "2025-12-20T16:00:00.000Z"
+                      link: "/alerts/alert_abc123"
+                      createdAt: "2025-12-20T15:30:00.000Z"
+                      updatedAt: "2025-12-20T16:00:00.000Z"
+                    success: true
+                    message: "Notification marked as read"
+                alreadyRead:
+                  summary: Already marked as read
+                  value:
+                    notification:
+                      id: "notif_001"
+                      userId: "user_123"
+                      type: "ALERT"
+                      title: "BTC Alert Triggered"
+                      body: "BTCUSD has crossed above $50,000"
+                      priority: "HIGH"
+                      read: true
+                      readAt: "2025-12-20T15:45:00.000Z"
+                      link: "/alerts/alert_abc123"
+                      createdAt: "2025-12-20T15:30:00.000Z"
+                      updatedAt: "2025-12-20T15:45:00.000Z"
+                    alreadyRead: true
+                    message: "Notification was already marked as read"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie
+
+  schemas:
+    Notification:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - title
+        - body
+        - priority
+        - read
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique notification identifier
+          example: "notif_001"
+        userId:
+          type: string
+          description: User ID this notification belongs to
+          example: "user_123"
+        type:
+          type: string
+          enum: [ALERT, SUBSCRIPTION, PAYMENT, SYSTEM]
+          description: Notification type
+          example: "ALERT"
+        title:
+          type: string
+          description: Notification title
+          example: "BTC Alert Triggered"
+        body:
+          type: string
+          description: Notification body/message
+          example: "BTCUSD has crossed above $50,000"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          description: Notification priority level
+          example: "HIGH"
+        read:
+          type: boolean
+          description: Whether notification has been read
+          example: false
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When notification was marked as read
+          example: "2025-12-20T16:00:00.000Z"
+        link:
+          type: string
+          nullable: true
+          description: Link to related resource
+          example: "/alerts/alert_abc123"
+        createdAt:
+          type: string
+          format: date-time
+          description: Notification creation timestamp
+          example: "2025-12-20T15:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Notification last update timestamp
+          example: "2025-12-20T16:00:00.000Z"
+
+    NotificationsListResponse:
+      type: object
+      required:
+        - notifications
+        - total
+        - page
+        - pageSize
+        - totalPages
+        - unreadCount
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        total:
+          type: integer
+          description: Total number of notifications
+          example: 45
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        pageSize:
+          type: integer
+          description: Items per page
+          example: 20
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 3
+        unreadCount:
+          type: integer
+          description: Number of unread notifications (for badge)
+          example: 12
+
+    MarkAllReadResponse:
+      type: object
+      required:
+        - success
+        - updatedCount
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        updatedCount:
+          type: integer
+          description: Number of notifications marked as read
+          example: 12
+        message:
+          type: string
+          example: "12 notification(s) marked as read"
+
+    MarkReadResponse:
+      type: object
+      required:
+        - notification
+      properties:
+        notification:
+          $ref: '#/components/schemas/Notification'
+        success:
+          type: boolean
+          example: true
+        alreadyRead:
+          type: boolean
+          description: Whether notification was already read
+          example: false
+        message:
+          type: string
+          example: "Notification marked as read"
+
+    DeleteResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Notification deleted successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Unauthorized"
+        message:
+          type: string
+          description: Error message
+          example: "You must be logged in to view notifications"
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "Invalid query parameters"
+        message:
+          type: string
+          example: "Please check your query parameters"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: array
+                items:
+                  type: string
+              message:
+                type: string
