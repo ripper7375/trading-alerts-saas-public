@@ -15,11 +15,233 @@ Previous implementations failed due to:
 
 ---
 
+## 🤝 Agent Separation of Duties
+
+### Agent 1 Responsibilities (Flask MT5 Service - Python Backend)
+
+**Branch:** `feature/pro-indicators-backend` or parallel development branch
+
+**Files Agent 1 Owns:**
+
+```
+flask-mt5-service/
+├── app/
+│   ├── routes/indicators.py          # Flask API endpoints
+│   ├── services/mt5_reader.py        # MT5 terminal data reading
+│   └── transformers/indicator_transform.py  # Raw MT5 → JSON
+├── config/
+│   └── mt5_symbols.py                # 15 symbol configurations
+├── tests/
+│   └── test_indicators.py            # Backend tests
+└── requirements.txt                   # Python dependencies
+```
+
+**Agent 1 Deliverables:**
+
+- Flask API endpoint: `GET /api/indicators/{symbol}/{timeframe}`
+- Reads from 15 MT5 terminals simultaneously
+- Returns JSON with PRO indicators based on `X-User-Tier` header
+- Handles MQL5 indicator data extraction
+- MT5 connection management and error handling
+
+**Agent 1 API Contract (Output Format):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "fractals": {
+      /* existing format */
+    },
+    "trendlines": {
+      /* existing format */
+    },
+    "momentum_candles": [{ "index": 0, "type": 2, "zscore": 2.5 }],
+    "keltner_channels": {
+      "ultra_extreme_upper": [1.234, null, 1.236],
+      "extreme_upper": [1.232, null, 1.234]
+      // ... 8 more bands
+    },
+    "tema": [1.234, null, 1.236],
+    "hrma": [1.234, null, 1.236],
+    "smma": [1.234, null, 1.236],
+    "zigzag": {
+      "peaks": [{ "index": 10, "price": 1.25, "timestamp": 1234567890 }],
+      "bottoms": [{ "index": 15, "price": 1.2 }]
+    }
+  },
+  "metadata": {
+    "symbol": "XAUUSD",
+    "timeframe": "M10",
+    "bars_returned": 1000,
+    "timestamp": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+**Important Notes for Agent 1:**
+
+- Use `null` for missing MT5 indicator values (EMPTY_VALUE in MQL5)
+- Return empty arrays/null for FREE tier when `X-User-Tier: FREE`
+- Include all PRO data when `X-User-Tier: PRO`
+- Ensure array indices align with OHLC bar indices
+
+---
+
+### Agent 2 Responsibilities (Next.js Frontend - TypeScript)
+
+**Branch:** `feature/pro-indicators-frontend` (YOU ARE HERE)
+
+**Files Agent 2 Owns:**
+
+```
+trading-alerts-saas-public/
+├── types/
+│   └── indicator.ts                  # TypeScript type definitions
+├── lib/
+│   ├── api/
+│   │   └── mt5-transform.ts          # JSON → TypeScript transform
+│   └── tier/
+│       ├── constants.ts              # Tier system constants
+│       └── validator.ts              # Access control logic
+├── app/api/indicators/[symbol]/[timeframe]/
+│   └── route.ts                      # Next.js API route (proxy)
+├── components/charts/
+│   ├── indicator-overlay.tsx         # Chart rendering
+│   └── chart-controls.tsx            # UI controls
+├── hooks/
+│   └── use-indicators.ts             # React data fetching hook
+└── __tests__/
+    └── api/indicators.test.ts        # Frontend API tests
+```
+
+**Agent 2 Deliverables:**
+
+- TypeScript type definitions for all PRO indicators
+- Transform layer to convert Flask JSON → TypeScript types
+- Next.js API route (middleware/proxy layer)
+- Chart rendering components with Lightweight Charts
+- Tier-based access control UI
+- React hooks for data fetching
+
+**Agent 2 Input (from Agent 1's API):**
+
+- Consumes JSON from Flask service
+- Must handle `null` values in arrays
+- Must validate data structure before rendering
+
+---
+
+### Integration Boundary & Coordination
+
+#### Data Flow Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Agent 1 (Flask Backend)                                    │
+│  ┌──────────┐    ┌────────────┐    ┌──────────────┐       │
+│  │ MT5      │ -> │ Flask      │ -> │ JSON         │       │
+│  │ Terminals│    │ Transform  │    │ (with nulls) │       │
+│  └──────────┘    └────────────┘    └──────────────┘       │
+└────────────────────────────────────────┬────────────────────┘
+                                         │ HTTP Request
+                                         │ X-User-Tier: PRO/FREE
+                                         v
+┌─────────────────────────────────────────────────────────────┐
+│  Agent 2 (Next.js Frontend)                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
+│  │ Next.js API  │ -> │ Transform    │ -> │ TypeScript   │ │
+│  │ Route (Proxy)│    │ (null->undef)│    │ Components   │ │
+│  └──────────────┘    └──────────────┘    └──────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Communication Protocol
+
+**Agent 2 MUST NOT:**
+
+- ❌ Modify Flask backend code
+- ❌ Change MQL5 indicator files
+- ❌ Alter MT5 terminal configurations
+- ❌ Touch Flask API endpoint implementations
+- ❌ Modify Python dependencies
+
+**Agent 1 MUST NOT:**
+
+- ❌ Modify Next.js frontend code
+- ❌ Change TypeScript type definitions
+- ❌ Alter React components
+- ❌ Touch Next.js API route implementations
+- ❌ Modify frontend dependencies (package.json)
+
+#### Shared Responsibilities
+
+**API Contract (Agreed Interface):**
+Both agents must agree on:
+
+1. **Endpoint URL:** `/api/indicators/{symbol}/{timeframe}`
+2. **Query Parameters:** `?bars=1000`
+3. **Request Headers:**
+   - `X-API-Key: <secret>` (authentication)
+   - `X-User-Tier: FREE|PRO` (authorization)
+4. **Response Structure:** See Agent 1 API Contract above
+5. **Error Handling:** HTTP status codes (401, 403, 500, 502)
+6. **Null Convention:** Flask returns `null`, Next.js converts to `undefined`
+
+#### Integration Testing Approach
+
+**Mock Data for Agent 2 Development:**
+While Agent 1 is building Flask backend, Agent 2 can use mock responses:
+
+```typescript
+// __mocks__/mt5-service.ts
+export const mockProIndicatorsResponse = {
+  success: true,
+  data: {
+    momentum_candles: [
+      { index: 0, type: 2, zscore: 2.5 },
+      { index: 5, type: 0, zscore: 0.3 },
+    ],
+    keltner_channels: {
+      ultra_extreme_upper: [1.234, null, 1.236],
+      // ... etc
+    },
+    // ... rest of mock data
+  },
+  metadata: {
+    /* ... */
+  },
+};
+```
+
+**Integration Point:**
+
+- Agent 1 deploys Flask to `http://localhost:5000` (or staging URL)
+- Agent 2 sets `MT5_SERVICE_URL=http://localhost:5000` in `.env.local`
+- Both agents test against shared staging environment before merging
+
+#### Conflict Resolution
+
+**If API Contract Needs Changes:**
+
+1. Agent 1 proposes change with example JSON
+2. Agent 2 reviews and confirms TypeScript compatibility
+3. Both agents implement changes in parallel branches
+4. Integration test before merging to main
+
+**File Ownership Rules:**
+
+- Each agent has **exclusive write access** to their owned files
+- If a file needs updates from both agents → **create separate PR and coordinate merge**
+- Use feature flags if deploying incrementally
+
+---
+
 ## Background & Context
 
 ### Project Overview
 
-Trading Alerts SaaS V7 is a trading platform that displays technical indicators from MetaTrader 5 (MT5). The system uses:
+Trading Alerts SaaS Public is a trading platform that displays technical indicators from MetaTrader 5 (MT5). The system uses:
 
 - **Flask MT5 Service** (Part 6): Python backend that reads indicator data from 15 MT5 terminals
 - **Next.js Frontend**: Dashboard with interactive charts using Lightweight Charts library
