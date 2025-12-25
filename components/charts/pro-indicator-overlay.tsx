@@ -59,15 +59,18 @@ export function ProIndicatorOverlay({
   useEffect(() => {
     if (!chart || !proData || timeData.length === 0) return;
 
+    // Copy ref to local variable for cleanup function
+    const currentSeriesRefs = seriesRefs.current;
+
     // Clean up existing series
-    seriesRefs.current.forEach((series) => {
+    currentSeriesRefs.forEach((series) => {
       try {
         chart.removeSeries(series);
       } catch {
         // Series already removed
       }
     });
-    seriesRefs.current.clear();
+    currentSeriesRefs.clear();
 
     //───────────────────────────────────────────────────────
     // Render Keltner Channels
@@ -104,7 +107,7 @@ export function ProIndicatorOverlay({
 
           if (lineData.length > 0) {
             series.setData(lineData);
-            seriesRefs.current.set(`keltner_${band}`, series);
+            currentSeriesRefs.set(`keltner_${band}`, series);
           } else {
             chart.removeSeries(series);
           }
@@ -145,7 +148,7 @@ export function ProIndicatorOverlay({
 
         if (lineData.length > 0) {
           series.setData(lineData);
-          seriesRefs.current.set(id, series);
+          currentSeriesRefs.set(id, series);
         } else {
           chart.removeSeries(series);
         }
@@ -181,16 +184,20 @@ export function ProIndicatorOverlay({
             crosshairMarkerVisible: false,
           });
 
-          const lineData: LineData<Time>[] = allPoints
-            .filter((p) => timeData[p.index] !== undefined)
-            .map((p) => ({
-              time: timeData[p.index],
-              value: p.price,
-            }));
+          const lineData: LineData<Time>[] = allPoints.reduce<LineData<Time>[]>(
+            (arr, p) => {
+              const t = timeData[p.index];
+              if (t !== undefined) {
+                arr.push({ time: t, value: p.price });
+              }
+              return arr;
+            },
+            []
+          );
 
           if (lineData.length > 0) {
             zigzagSeries.setData(lineData);
-            seriesRefs.current.set('zigzag_line', zigzagSeries);
+            currentSeriesRefs.set('zigzag_line', zigzagSeries);
           } else {
             chart.removeSeries(zigzagSeries);
           }
@@ -212,16 +219,20 @@ export function ProIndicatorOverlay({
             lastValueVisible: false,
           });
 
-          const peakData: LineData<Time>[] = peaks
-            .filter((p) => timeData[p.index] !== undefined)
-            .map((p) => ({
-              time: timeData[p.index],
-              value: p.price,
-            }));
+          const peakData: LineData<Time>[] = peaks.reduce<LineData<Time>[]>(
+            (arr, p) => {
+              const t = timeData[p.index];
+              if (t !== undefined) {
+                arr.push({ time: t, value: p.price });
+              }
+              return arr;
+            },
+            []
+          );
 
           if (peakData.length > 0) {
             peakSeries.setData(peakData);
-            seriesRefs.current.set('zigzag_peaks', peakSeries);
+            currentSeriesRefs.set('zigzag_peaks', peakSeries);
           } else {
             chart.removeSeries(peakSeries);
           }
@@ -243,16 +254,20 @@ export function ProIndicatorOverlay({
             lastValueVisible: false,
           });
 
-          const bottomData: LineData<Time>[] = bottoms
-            .filter((p) => timeData[p.index] !== undefined)
-            .map((p) => ({
-              time: timeData[p.index],
-              value: p.price,
-            }));
+          const bottomData: LineData<Time>[] = bottoms.reduce<LineData<Time>[]>(
+            (arr, p) => {
+              const t = timeData[p.index];
+              if (t !== undefined) {
+                arr.push({ time: t, value: p.price });
+              }
+              return arr;
+            },
+            []
+          );
 
           if (bottomData.length > 0) {
             bottomSeries.setData(bottomData);
-            seriesRefs.current.set('zigzag_bottoms', bottomSeries);
+            currentSeriesRefs.set('zigzag_bottoms', bottomSeries);
           } else {
             chart.removeSeries(bottomSeries);
           }
@@ -267,14 +282,14 @@ export function ProIndicatorOverlay({
 
     // Cleanup on unmount
     return (): void => {
-      seriesRefs.current.forEach((series) => {
+      currentSeriesRefs.forEach((series) => {
         try {
           chart.removeSeries(series);
         } catch {
           // Ignore
         }
       });
-      seriesRefs.current.clear();
+      currentSeriesRefs.clear();
     };
   }, [chart, proData, selectedIndicators, timeData]);
 
