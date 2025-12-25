@@ -3,6 +3,8 @@
  *
  * GET /api/indicators/[symbol]/[timeframe]
  * Fetches indicator data from Flask MT5 service with tier validation.
+ * Includes PRO indicators (Keltner, TEMA, HRMA, SMMA, ZigZag, Momentum)
+ * transformed to type-safe TypeScript types.
  *
  * @module app/api/indicators/[symbol]/[timeframe]/route
  */
@@ -16,6 +18,7 @@ import {
   MT5ServiceError,
   type MT5IndicatorData,
 } from '@/lib/api/mt5-client';
+import { transformProIndicators } from '@/lib/api/mt5-transform';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
   FREE_SYMBOLS,
@@ -23,6 +26,7 @@ import {
   PRO_SYMBOLS,
   PRO_TIMEFRAMES,
 } from '@/lib/tier-config';
+import type { ProIndicatorData } from '@/types/indicator';
 import type { Tier } from '@/types/tier';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -38,7 +42,9 @@ interface RouteParams {
 
 interface IndicatorDataResponse {
   success: boolean;
-  data: MT5IndicatorData;
+  data: MT5IndicatorData & {
+    proIndicatorsTransformed: ProIndicatorData;
+  };
   tier: Tier;
   requestedAt: string;
 }
@@ -279,11 +285,22 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 9: Return Response
+    // STEP 9: Transform PRO Indicators (null -> undefined)
+    //───────────────────────────────────────────────────────
+    const proIndicatorsTransformed = transformProIndicators(
+      data.proIndicators,
+      userTier
+    );
+
+    //───────────────────────────────────────────────────────
+    // STEP 10: Return Response
     //───────────────────────────────────────────────────────
     const response: IndicatorDataResponse = {
       success: true,
-      data,
+      data: {
+        ...data,
+        proIndicatorsTransformed,
+      },
       tier: userTier,
       requestedAt: new Date().toISOString(),
     };
