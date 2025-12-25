@@ -1,0 +1,882 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Authentication System API
+  version: 1.0.0
+  description: |
+    Authentication system API for Trading Alerts SaaS platform (Part 05).
+
+    This API provides comprehensive authentication capabilities including:
+    - User registration with email verification
+    - Email and OAuth authentication (Google, GitHub)
+    - Password reset functionality
+    - Session management
+    - Tier-based access control
+    - Admin and affiliate authentication
+
+    ## Authentication Flow
+
+    1. **Registration**: POST /api/auth/register → Email verification
+    2. **Verification**: GET /api/auth/verify-email?token={token}
+    3. **Login**: POST /api/auth/signin (NextAuth)
+    4. **Access**: Use session cookie for authenticated requests
+
+    ## Security
+
+    - Passwords are hashed using bcrypt (10 rounds)
+    - Email verification required before login
+    - Password reset tokens expire after 1 hour
+    - Session-based authentication via NextAuth
+    - Tier-based access control (FREE, PRO)
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints (registration, login, logout)
+  - name: Email Verification
+    description: Email verification and confirmation
+  - name: Password Management
+    description: Password reset and recovery
+  - name: Session
+    description: Session management via NextAuth
+
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: |
+        Creates a new user account with email and password.
+
+        **Features:**
+        - Email uniqueness validation
+        - Password hashing with bcrypt
+        - Automatic FREE tier assignment
+        - Verification token generation
+        - Sends verification email
+
+        **Business Rules:**
+        - Email must be unique
+        - Password minimum 8 characters
+        - New users start with FREE tier
+        - Email verification required before login
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                summary: Basic registration
+                value:
+                  email: user@example.com
+                  password: SecurePass123
+              withName:
+                summary: Registration with name
+                value:
+                  email: user@example.com
+                  password: SecurePass123
+                  name: John Doe
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+              example:
+                success: true
+                userId: cm4f8j0nh0001i7jqe2rm3y6p
+                message: Registration successful. Please check your email to verify your account.
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    error: Invalid email format
+                shortPassword:
+                  summary: Password too short
+                  value:
+                    error: Password must be at least 8 characters
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: User with this email already exists
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
+  /api/auth/verify-email:
+    get:
+      tags:
+        - Email Verification
+      summary: Verify user email address
+      description: |
+        Verifies a user's email address using a verification token.
+
+        **Process:**
+        1. User clicks verification link in email
+        2. Token is validated
+        3. Email is marked as verified
+        4. User can now sign in
+
+        **Token Security:**
+        - Single-use tokens
+        - Stored in database
+        - Cleared after verification
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Email verification token sent to user's email
+          schema:
+            type: string
+            minLength: 1
+          example: abc123xyz456def789
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResponse'
+              example:
+                success: true
+                message: Email verified successfully. You can now sign in.
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingToken:
+                  summary: Token not provided
+                  value:
+                    error: Verification token is required
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    error: Invalid or expired verification token
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - Password Management
+      summary: Request password reset
+      description: |
+        Initiates password reset process by sending a reset link to user's email.
+
+        **Features:**
+        - Generates secure reset token (32 bytes hex)
+        - Token expires after 1 hour
+        - Does not reveal if email exists (security)
+        - Sends email with reset link
+
+        **Security:**
+        - Always returns success (prevents email enumeration)
+        - Token is single-use
+        - 1-hour expiration
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: user@example.com
+      responses:
+        '200':
+          description: Password reset email sent (or would be sent if email exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+              example:
+                success: true
+                message: If an account exists with this email, you will receive a password reset link.
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid email format
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
+  /api/auth/reset-password:
+    post:
+      tags:
+        - Password Management
+      summary: Reset password with token
+      description: |
+        Resets user password using a valid reset token.
+
+        **Process:**
+        1. User clicks reset link from email
+        2. Provides new password
+        3. Token is validated and checked for expiration
+        4. Password is updated and hashed
+        5. Reset token is cleared
+
+        **Validation:**
+        - Token must be valid
+        - Token must not be expired (1 hour limit)
+        - New password must meet requirements (min 8 chars)
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            example:
+              token: abc123xyz456def789ghi012jkl345
+              newPassword: NewSecurePass123
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+              example:
+                success: true
+                message: Password reset successfully. You can now sign in with your new password.
+        '400':
+          description: Invalid request or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidToken:
+                  summary: Invalid or expired token
+                  value:
+                    error: Invalid or expired reset token
+                expiredToken:
+                  summary: Token has expired
+                  value:
+                    error: Reset token has expired
+                shortPassword:
+                  summary: Password too short
+                  value:
+                    error: Password must be at least 8 characters
+                missingToken:
+                  summary: Token not provided
+                  value:
+                    error: Reset token is required
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Internal server error
+
+  /api/auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: Sign in user (NextAuth)
+      description: |
+        Authenticates user with email/password or OAuth provider.
+
+        **Supported Methods:**
+        - Credentials (email + password)
+        - Google OAuth
+        - GitHub OAuth
+
+        **Process:**
+        1. Submit credentials or OAuth
+        2. Validate credentials
+        3. Check email verification
+        4. Create session
+        5. Return session cookie
+
+        **Note:** This endpoint is handled by NextAuth.js
+      operationId: signIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CredentialsSignInRequest'
+                - $ref: '#/components/schemas/OAuthSignInRequest'
+            examples:
+              credentials:
+                summary: Email/Password sign in
+                value:
+                  email: user@example.com
+                  password: SecurePass123
+              oauth:
+                summary: OAuth sign in
+                value:
+                  provider: google
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+                example: next-auth.session-token=eyJhbGciOiJIUzI1NiJ9...; Path=/; HttpOnly; Secure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInResponse'
+              example:
+                user:
+                  id: cm4f8j0nh0001i7jqe2rm3y6p
+                  email: user@example.com
+                  name: John Doe
+                  tier: FREE
+                  role: USER
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  summary: Wrong email or password
+                  value:
+                    error: Invalid email or password
+        '403':
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Please verify your email address before signing in
+
+  /api/auth/signout:
+    post:
+      tags:
+        - Authentication
+      summary: Sign out user (NextAuth)
+      description: |
+        Signs out the current user and destroys their session.
+
+        **Process:**
+        1. Validate session
+        2. Destroy session
+        3. Clear cookies
+
+        **Note:** This endpoint is handled by NextAuth.js
+      operationId: signOut
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Sign out successful
+          headers:
+            Set-Cookie:
+              description: Clears session cookie
+              schema:
+                type: string
+                example: next-auth.session-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Not authenticated
+
+  /api/auth/session:
+    get:
+      tags:
+        - Session
+      summary: Get current session (NextAuth)
+      description: |
+        Retrieves the current user's session information.
+
+        **Returns:**
+        - User details (id, email, name, tier, role)
+        - Session expiration
+        - null if not authenticated
+
+        **Note:** This endpoint is handled by NextAuth.js
+      operationId: getSession
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Session information
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SessionResponse'
+                  - type: object
+                    nullable: true
+              examples:
+                authenticated:
+                  summary: Authenticated user
+                  value:
+                    user:
+                      id: cm4f8j0nh0001i7jqe2rm3y6p
+                      email: user@example.com
+                      name: John Doe
+                      tier: FREE
+                      role: USER
+                      isAffiliate: false
+                    expires: "2025-01-25T12:00:00.000Z"
+                notAuthenticated:
+                  summary: No session
+                  value: null
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie
+
+  schemas:
+    # Request Schemas
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (must be unique)
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User's password (minimum 8 characters)
+          example: SecurePass123
+        name:
+          type: string
+          description: User's display name (optional)
+          example: John Doe
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to send password reset link
+          example: user@example.com
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: Password reset token from email
+          example: abc123xyz456def789ghi012jkl345
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          description: New password (minimum 8 characters)
+          example: NewSecurePass123
+
+    CredentialsSignInRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          description: User's password
+          example: SecurePass123
+
+    OAuthSignInRequest:
+      type: object
+      required:
+        - provider
+      properties:
+        provider:
+          type: string
+          enum: [google, github]
+          description: OAuth provider to use
+          example: google
+
+    # Response Schemas
+    RegisterResponse:
+      type: object
+      required:
+        - success
+        - userId
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Indicates successful registration
+          example: true
+        userId:
+          type: string
+          description: Newly created user's ID
+          example: cm4f8j0nh0001i7jqe2rm3y6p
+        message:
+          type: string
+          description: Success message with next steps
+          example: Registration successful. Please check your email to verify your account.
+
+    VerifyEmailResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Indicates successful verification
+          example: true
+        message:
+          type: string
+          description: Success message
+          example: Email verified successfully. You can now sign in.
+
+    ForgotPasswordResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Always true (for security)
+          example: true
+        message:
+          type: string
+          description: Generic success message
+          example: If an account exists with this email, you will receive a password reset link.
+
+    ResetPasswordResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Indicates successful password reset
+          example: true
+        message:
+          type: string
+          description: Success message with next steps
+          example: Password reset successfully. You can now sign in with your new password.
+
+    SignInResponse:
+      type: object
+      required:
+        - user
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+
+    SessionResponse:
+      type: object
+      required:
+        - user
+        - expires
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        expires:
+          type: string
+          format: date-time
+          description: Session expiration timestamp
+          example: "2025-01-25T12:00:00.000Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Invalid email or password
+        code:
+          type: string
+          description: Error code for programmatic handling
+          enum:
+            - AUTH_ERROR
+            - INVALID_CREDENTIALS
+            - EMAIL_NOT_VERIFIED
+            - ACCOUNT_EXISTS
+            - OAUTH_ERROR
+            - OAUTH_PROVIDER_ERROR
+            - OAUTH_CALLBACK_ERROR
+            - OAUTH_ACCOUNT_LINKING_ERROR
+            - TOKEN_ERROR
+            - INVALID_TOKEN
+            - EXPIRED_TOKEN
+            - MISSING_TOKEN
+            - PASSWORD_ERROR
+            - WEAK_PASSWORD
+            - PASSWORD_MISMATCH
+            - SESSION_ERROR
+            - SESSION_EXPIRED
+            - SESSION_INVALID
+            - TIER_ACCESS_DENIED
+            - INSUFFICIENT_TIER
+            - AFFILIATE_ERROR
+            - NOT_AFFILIATE
+            - AFFILIATE_SUSPENDED
+            - AFFILIATE_NOT_VERIFIED
+            - ADMIN_ERROR
+            - NOT_ADMIN
+            - RATE_LIMIT_EXCEEDED
+            - ACCOUNT_ERROR
+            - ACCOUNT_INACTIVE
+            - ACCOUNT_BLOCKED
+            - AUTH_CONFIG_ERROR
+          example: INVALID_CREDENTIALS
+
+    # Entity Schemas
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - tier
+        - role
+      properties:
+        id:
+          type: string
+          description: Unique user identifier
+          example: cm4f8j0nh0001i7jqe2rm3y6p
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: user@example.com
+        name:
+          type: string
+          nullable: true
+          description: User's display name
+          example: John Doe
+        tier:
+          type: string
+          enum: [FREE, PRO]
+          description: User's subscription tier
+          example: FREE
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          description: User's role
+          example: USER
+        isAffiliate:
+          type: boolean
+          description: Whether user is an affiliate
+          example: false
+        emailVerified:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when email was verified
+          example: "2025-12-20T10:30:00.000Z"
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: User's profile image URL (from OAuth)
+          example: https://lh3.googleusercontent.com/a/example
+
+    AuthError:
+      type: object
+      required:
+        - name
+        - message
+        - code
+        - statusCode
+      properties:
+        name:
+          type: string
+          description: Error class name
+          example: InvalidCredentialsError
+        message:
+          type: string
+          description: Human-readable error message
+          example: Invalid email or password
+        code:
+          type: string
+          description: Machine-readable error code
+          example: INVALID_CREDENTIALS
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 401
+        provider:
+          type: string
+          description: OAuth provider (for OAuth errors)
+          example: google
+        requiredTier:
+          type: string
+          enum: [FREE, PRO]
+          description: Required tier (for tier access errors)
+          example: PRO
+        currentTier:
+          type: string
+          enum: [FREE, PRO]
+          description: User's current tier (for tier access errors)
+          example: FREE
+        retryAfter:
+          type: integer
+          description: Seconds to wait before retry (for rate limit errors)
+          example: 60
+
+  examples:
+    RegisterSuccess:
+      summary: Successful registration
+      value:
+        success: true
+        userId: cm4f8j0nh0001i7jqe2rm3y6p
+        message: Registration successful. Please check your email to verify your account.
+
+    RegisterEmailExists:
+      summary: Email already exists
+      value:
+        error: User with this email already exists
+
+    VerifyEmailSuccess:
+      summary: Email verified successfully
+      value:
+        success: true
+        message: Email verified successfully. You can now sign in.
+
+    VerifyEmailInvalidToken:
+      summary: Invalid verification token
+      value:
+        error: Invalid or expired verification token
+
+    ForgotPasswordSuccess:
+      summary: Password reset email sent
+      value:
+        success: true
+        message: If an account exists with this email, you will receive a password reset link.
+
+    ResetPasswordSuccess:
+      summary: Password reset successful
+      value:
+        success: true
+        message: Password reset successfully. You can now sign in with your new password.
+
+    ResetPasswordExpiredToken:
+      summary: Reset token expired
+      value:
+        error: Reset token has expired
+
+    SignInSuccess:
+      summary: Sign in successful
+      value:
+        user:
+          id: cm4f8j0nh0001i7jqe2rm3y6p
+          email: user@example.com
+          name: John Doe
+          tier: FREE
+          role: USER
+          isAffiliate: false
+
+    SignInInvalidCredentials:
+      summary: Invalid credentials
+      value:
+        error: Invalid email or password
+
+    SignInEmailNotVerified:
+      summary: Email not verified
+      value:
+        error: Please verify your email address before signing in
+
+    SessionAuthenticated:
+      summary: Active session
+      value:
+        user:
+          id: cm4f8j0nh0001i7jqe2rm3y6p
+          email: user@example.com
+          name: John Doe
+          tier: PRO
+          role: USER
+          isAffiliate: true
+        expires: "2025-01-25T12:00:00.000Z"
+
+    SessionNotAuthenticated:
+      summary: No active session
+      value: null
