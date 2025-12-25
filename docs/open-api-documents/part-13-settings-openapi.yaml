@@ -1,0 +1,811 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Settings System API (Part 13)
+  version: 1.0.0
+  description: |
+    Settings System API for Trading Alerts SaaS platform (Part 13).
+
+    This API provides comprehensive user settings management including profile, preferences, security, and account operations.
+
+    ## Features
+    - User profile management (name, email, avatar)
+    - Preferences (theme, language, timezone, notifications)
+    - Password management
+    - Account deletion workflow
+    - Privacy and security settings
+
+    ## Settings Categories
+    - **Profile**: Name, email, avatar
+    - **Appearance**: Theme, color scheme
+    - **Account**: Language, timezone, date/time format
+    - **Privacy**: Visibility, data sharing
+    - **Billing**: Subscription management (see Part 12)
+    - **Security**: Password changes
+    - **Notifications**: Email and push preferences
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Profile
+    description: User profile management
+  - name: Preferences
+    description: User preferences and settings
+  - name: Password
+    description: Password management
+  - name: Account Deletion
+    description: Account deletion workflow
+
+paths:
+  /api/user/profile:
+    get:
+      tags:
+        - Profile
+      summary: Get user profile
+      description: |
+        Retrieves the authenticated user's profile information.
+
+        **Includes:**
+        - User ID, name, email
+        - Avatar/image URL
+        - Tier and role
+        - Email verification status
+        - Account timestamps
+      operationId: getProfile
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+              example:
+                user:
+                  id: "cm4f8j0nh0001i7jqe2rm3y6p"
+                  name: "John Doe"
+                  email: "john@example.com"
+                  image: "https://lh3.googleusercontent.com/a/example"
+                  tier: "PRO"
+                  role: "USER"
+                  emailVerified: true
+                  createdAt: "2025-11-15T10:00:00.000Z"
+                  updatedAt: "2025-12-20T14:30:00.000Z"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "User not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Profile
+      summary: Update user profile
+      description: |
+        Updates the authenticated user's profile information.
+
+        **Updatable Fields:**
+        - `name`: Display name (2-50 characters)
+        - `email`: Email address (triggers verification)
+        - `avatarUrl`: Profile image URL
+
+        **Email Changes:**
+        - Triggers email verification flow
+        - Both old and new emails receive notifications
+        - User must verify new email
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            examples:
+              updateName:
+                summary: Update name
+                value:
+                  name: "Jane Doe"
+              updateEmail:
+                summary: Change email
+                value:
+                  email: "jane.new@example.com"
+              updateAvatar:
+                summary: Update avatar
+                value:
+                  avatarUrl: "https://example.com/avatar.jpg"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProfileResponse'
+              example:
+                message: "Profile updated successfully"
+                user:
+                  id: "cm4f8j0nh0001i7jqe2rm3y6p"
+                  name: "Jane Doe"
+                  email: "jane.new@example.com"
+                  image: "https://example.com/avatar.jpg"
+                  tier: "PRO"
+                  role: "USER"
+                  emailVerified: false
+                  createdAt: "2025-11-15T10:00:00.000Z"
+                  updatedAt: "2025-12-20T15:00:00.000Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Email already exists"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/preferences:
+    get:
+      tags:
+        - Preferences
+      summary: Get user preferences
+      description: |
+        Retrieves the authenticated user's preferences merged with system defaults.
+
+        **Preference Categories:**
+        - **Appearance**: theme, colorScheme
+        - **Localization**: language, timezone, dateFormat, timeFormat, currency
+        - **Privacy**: profileVisibility, showStats, showEmail
+        - **Notifications**: emailNotifications, pushNotifications
+        - **Chart**: chartUpColor, chartDownColor, gridOpacity
+      operationId: getPreferences
+      responses:
+        '200':
+          description: Preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+              example:
+                preferences:
+                  theme: "dark"
+                  colorScheme: "blue"
+                  language: "en"
+                  timezone: "America/New_York"
+                  dateFormat: "MDY"
+                  timeFormat: "12h"
+                  currency: "USD"
+                  profileVisibility: "private"
+                  showStats: true
+                  showEmail: false
+                  emailNotifications: true
+                  pushNotifications: false
+                  chartUpColor: "#22c55e"
+                  chartDownColor: "#ef4444"
+                  gridOpacity: 10
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Preferences
+      summary: Update user preferences
+      description: |
+        Updates the authenticated user's preferences.
+
+        **Note:** Only provided fields are updated. Omitted fields retain their current values.
+      operationId: updatePreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferencesRequest'
+            examples:
+              updateTheme:
+                summary: Change to dark theme
+                value:
+                  theme: "dark"
+              updateNotifications:
+                summary: Enable notifications
+                value:
+                  emailNotifications: true
+                  pushNotifications: true
+              updateLocalization:
+                summary: Set to European format
+                value:
+                  language: "de"
+                  timezone: "Europe/Berlin"
+                  dateFormat: "DMY"
+                  timeFormat: "24h"
+                  currency: "EUR"
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePreferencesResponse'
+              example:
+                message: "Preferences updated successfully"
+                preferences:
+                  theme: "dark"
+                  colorScheme: "blue"
+                  language: "de"
+                  timezone: "Europe/Berlin"
+                  dateFormat: "DMY"
+                  timeFormat: "24h"
+                  currency: "EUR"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/password:
+    post:
+      tags:
+        - Password
+      summary: Change password
+      description: |
+        Changes the authenticated user's password.
+
+        **Requirements:**
+        - Current password must be correct
+        - New password minimum 8 characters
+        - New password must be different from current
+
+        **Security:**
+        - Validates current password before change
+        - Hashes new password with bcrypt
+        - Invalidates all existing sessions except current
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+            example:
+              currentPassword: "OldPassword123"
+              newPassword: "NewSecurePassword456"
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                incorrectPassword:
+                  summary: Current password incorrect
+                  value:
+                    error: "Current password is incorrect"
+                samePassword:
+                  summary: Same as current password
+                  value:
+                    error: "New password must be different from current password"
+                weakPassword:
+                  summary: Password too weak
+                  value:
+                    error: "Password must be at least 8 characters"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/account/deletion-request:
+    post:
+      tags:
+        - Account Deletion
+      summary: Request account deletion
+      description: |
+        Initiates the account deletion process.
+
+        **Process:**
+        1. Creates deletion request with 7-day grace period
+        2. Sends confirmation email with cancellation link
+        3. Account marked for deletion but remains active
+        4. Automated job deletes account after 7 days
+
+        **Grace Period:**
+        User can cancel deletion within 7 days using the link in email.
+      operationId: requestAccountDeletion
+      responses:
+        '200':
+          description: Deletion request created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletionRequestResponse'
+              example:
+                message: "Account deletion scheduled"
+                scheduledFor: "2025-12-27T15:00:00.000Z"
+                cancellationToken: "del_abc123xyz456"
+        '400':
+          description: Deletion already requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Deletion already requested"
+                message: "Your account is already scheduled for deletion"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/account/deletion-confirm:
+    post:
+      tags:
+        - Account Deletion
+      summary: Confirm account deletion
+      description: |
+        Immediately deletes the user's account using a confirmation token.
+
+        **Warning:** This is irreversible. All data is permanently deleted.
+
+        **Deletes:**
+        - User account
+        - All alerts
+        - All watchlist items
+        - User preferences
+        - Subscription history (marks as deleted in billing)
+      operationId: confirmAccountDeletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmDeletionRequest'
+            example:
+              token: "del_abc123xyz456"
+      responses:
+        '200':
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Account deleted successfully"
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Invalid deletion token"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/account/deletion-cancel:
+    post:
+      tags:
+        - Account Deletion
+      summary: Cancel account deletion
+      description: |
+        Cancels a pending account deletion request.
+
+        **Note:** Can only cancel if deletion hasn't been confirmed yet.
+      operationId: cancelAccountDeletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelDeletionRequest'
+            example:
+              token: "del_abc123xyz456"
+      responses:
+        '200':
+          description: Deletion cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Account deletion cancelled successfully"
+        '400':
+          description: Invalid token or no pending deletion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "No pending deletion request found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie
+
+  schemas:
+    ProfileResponse:
+      type: object
+      required:
+        - user
+      properties:
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      required:
+        - id
+        - tier
+        - role
+        - emailVerified
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: "cm4f8j0nh0001i7jqe2rm3y6p"
+        name:
+          type: string
+          nullable: true
+          example: "John Doe"
+        email:
+          type: string
+          nullable: true
+          example: "john@example.com"
+        image:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://lh3.googleusercontent.com/a/example"
+        tier:
+          type: string
+          enum: [FREE, PRO]
+          example: "PRO"
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          example: "USER"
+        emailVerified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-11-15T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-12-20T14:30:00.000Z"
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "Jane Doe"
+        email:
+          type: string
+          format: email
+          example: "jane.new@example.com"
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+
+    UpdateProfileResponse:
+      type: object
+      required:
+        - message
+        - user
+      properties:
+        message:
+          type: string
+          example: "Profile updated successfully"
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    PreferencesResponse:
+      type: object
+      required:
+        - preferences
+      properties:
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+
+    UserPreferences:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+          example: "dark"
+        colorScheme:
+          type: string
+          enum: [blue, purple, green, orange]
+          example: "blue"
+        language:
+          type: string
+          example: "en"
+        timezone:
+          type: string
+          example: "America/New_York"
+        dateFormat:
+          type: string
+          enum: [MDY, DMY, YMD]
+          example: "MDY"
+        timeFormat:
+          type: string
+          enum: ["12h", "24h"]
+          example: "12h"
+        currency:
+          type: string
+          example: "USD"
+        profileVisibility:
+          type: string
+          enum: [public, private, connections]
+          example: "private"
+        showStats:
+          type: boolean
+          example: true
+        showEmail:
+          type: boolean
+          example: false
+        emailNotifications:
+          type: boolean
+          example: true
+        pushNotifications:
+          type: boolean
+          example: false
+        chartUpColor:
+          type: string
+          example: "#22c55e"
+        chartDownColor:
+          type: string
+          example: "#ef4444"
+        gridOpacity:
+          type: number
+          minimum: 0
+          maximum: 100
+          example: 10
+
+    UpdatePreferencesRequest:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        colorScheme:
+          type: string
+          enum: [blue, purple, green, orange]
+        language:
+          type: string
+        timezone:
+          type: string
+        dateFormat:
+          type: string
+          enum: [MDY, DMY, YMD]
+        timeFormat:
+          type: string
+          enum: ["12h", "24h"]
+        currency:
+          type: string
+        profileVisibility:
+          type: string
+          enum: [public, private, connections]
+        showStats:
+          type: boolean
+        showEmail:
+          type: boolean
+        emailNotifications:
+          type: boolean
+        pushNotifications:
+          type: boolean
+        chartUpColor:
+          type: string
+        chartDownColor:
+          type: string
+        gridOpacity:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    UpdatePreferencesResponse:
+      type: object
+      required:
+        - message
+        - preferences
+      properties:
+        message:
+          type: string
+          example: "Preferences updated successfully"
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: "OldPassword123"
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          example: "NewSecurePassword456"
+
+    DeletionRequestResponse:
+      type: object
+      required:
+        - message
+        - scheduledFor
+        - cancellationToken
+      properties:
+        message:
+          type: string
+          example: "Account deletion scheduled"
+        scheduledFor:
+          type: string
+          format: date-time
+          example: "2025-12-27T15:00:00.000Z"
+        cancellationToken:
+          type: string
+          example: "del_abc123xyz456"
+
+    ConfirmDeletionRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "del_abc123xyz456"
+
+    CancelDeletionRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "del_abc123xyz456"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Additional error details"
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string

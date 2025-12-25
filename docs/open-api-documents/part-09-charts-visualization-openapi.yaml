@@ -1,0 +1,53 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Charts & Visualization Components (Part 09)
+  version: 1.0.0
+  description: |
+    Part 09: Charts & Visualization Components
+
+    **Note:** This part consists entirely of UI components and has no backend API endpoints.
+
+    ## Components Included:
+    - Charts listing page
+    - Individual chart page with symbol and timeframe
+    - Trading chart component (Lightweight Charts integration)
+    - Indicator overlay component
+    - Chart controls (zoom, pan, settings)
+    - Timeframe selector component
+    - useIndicators hook (client-side state management)
+    - useAuth hook (authentication state management)
+
+    ## Purpose:
+    These components provide interactive charting visualization for trading data.
+    Chart data is fetched from:
+    - Part 06: Flask MT5 API (price data and indicators)
+    - Part 10: Watchlist API (symbol preferences)
+
+    ## Features:
+    - Real-time price charts
+    - Technical indicators (RSI, MACD, Bollinger Bands)
+    - Multiple timeframe support
+    - Interactive controls
+    - Tier-based access (FREE tier has limited symbols/timeframes)
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://tradingalerts.example.com
+    description: Production server
+
+paths: {}
+
+components:
+  schemas:
+    UIComponentReference:
+      type: object
+      description: This part contains no API endpoints - UI components only
+      properties:
+        message:
+          type: string
+          example: "Part 09 contains UI components only. Refer to Part 06 (Flask MT5 API) for chart data endpoints."
