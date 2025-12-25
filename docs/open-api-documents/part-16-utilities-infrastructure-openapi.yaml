@@ -1,0 +1,375 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Utilities & Infrastructure (Part 16)
+  version: 1.0.0
+  description: |
+    Part 16: Utilities & Infrastructure
+
+    **Note:** This part consists entirely of utility libraries, helper functions, and infrastructure files with no public API endpoints.
+
+    ## Components Included
+
+    ### Email Services
+    - Email sending functionality (transactional emails)
+    - Email templates and rendering
+    - SMTP/SendGrid integration
+
+    ### Token Management
+    - JWT token generation and validation
+    - Verification token creation
+    - Password reset token handling
+    - Session token utilities
+
+    ### Error Handling
+    - Centralized error handler
+    - Custom API error classes
+    - Error logging and monitoring
+    - Stack trace sanitization
+
+    ### Caching & Performance
+    - Redis client configuration
+    - Cache manager for API responses
+    - Cache invalidation strategies
+    - Performance optimization utilities
+
+    ### Validation Libraries
+    - Authentication validation schemas (Zod)
+    - Alert input validation
+    - Watchlist validation rules
+    - User profile validation
+
+    ### Utility Functions
+    - General helper functions
+    - Data formatters (dates, currency, numbers)
+    - Constants and enumerations
+    - Type utilities
+
+    ### Infrastructure
+    - Next.js application layout
+    - Global CSS and styling
+    - Error boundary components
+    - Marketing pages layout
+    - PWA manifest configuration
+    - Docker configuration
+    - CI/CD workflows (GitHub Actions)
+
+    ## Purpose
+    These utilities and infrastructure components support all API endpoints documented in other parts.
+    They provide:
+    - Consistent error handling across all endpoints
+    - Validation for all user inputs
+    - Caching for performance optimization
+    - Email notifications for user actions
+    - Infrastructure for deployment and monitoring
+
+    ## Related Parts
+    These utilities are used by:
+    - Part 05: Authentication (validation, tokens, email)
+    - Part 10: Watchlist (validation, caching)
+    - Part 11: Alerts (validation, email notifications)
+    - Part 12: Billing (email receipts, error handling)
+    - Part 13: Settings (validation, email updates)
+    - Part 14: Admin (error logging, monitoring)
+    - Part 15: Notifications (email delivery, caching)
+
+    ## Email Service
+    **Transactional Emails Sent:**
+    - Welcome emails (registration)
+    - Email verification
+    - Password reset
+    - Alert notifications
+    - Subscription confirmations
+    - Payment receipts
+    - Account deletion confirmations
+
+    ## Caching Strategy
+    **Cached Resources:**
+    - User sessions (Redis)
+    - API rate limiting counters
+    - Frequently accessed data (watchlist, alerts)
+    - Tier configuration lookups
+
+    ## Error Handling
+    **Error Categories:**
+    - Authentication errors (401, 403)
+    - Validation errors (400)
+    - Not found errors (404)
+    - Rate limiting errors (429)
+    - Server errors (500)
+
+    **Error Logging:**
+    - Error details logged to database
+    - Stack traces for debugging
+    - User context for support
+    - Request IDs for tracking
+
+    ## Deployment Infrastructure
+
+    ### Docker Containers
+    - Next.js application container
+    - Flask MT5 API container
+    - PostgreSQL database container
+    - Redis cache container
+
+    ### CI/CD Pipelines
+    - **ci-nextjs.yml**: Next.js build and test
+    - **ci-flask.yml**: Flask API testing
+    - **deploy.yml**: Production deployment
+
+    ### Environment Configuration
+    - Development environment
+    - Staging environment
+    - Production environment
+    - Environment variable management
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://tradingalerts.example.com
+    description: Production server
+
+paths: {}
+
+components:
+  schemas:
+    UtilityReference:
+      type: object
+      description: This part contains no API endpoints - utility libraries and infrastructure only
+      properties:
+        message:
+          type: string
+          example: "Part 16 contains utility libraries and infrastructure. No public API endpoints."
+
+    EmailService:
+      type: object
+      description: Email service configuration
+      properties:
+        provider:
+          type: string
+          enum: [smtp, sendgrid, ses]
+          example: "sendgrid"
+        templates:
+          type: array
+          items:
+            type: string
+            enum:
+              - welcome
+              - email-verification
+              - password-reset
+              - alert-triggered
+              - subscription-confirmation
+              - payment-receipt
+              - account-deletion
+
+    CacheConfiguration:
+      type: object
+      description: Redis cache configuration
+      properties:
+        host:
+          type: string
+          example: "localhost"
+        port:
+          type: integer
+          example: 6379
+        ttl:
+          type: object
+          description: TTL (Time To Live) for different cache types
+          properties:
+            session:
+              type: integer
+              description: Session cache TTL in seconds
+              example: 86400
+            apiResponse:
+              type: integer
+              description: API response cache TTL in seconds
+              example: 300
+            rateLimit:
+              type: integer
+              description: Rate limit counter TTL in seconds
+              example: 60
+
+    ErrorConfiguration:
+      type: object
+      description: Error handling configuration
+      properties:
+        logLevel:
+          type: string
+          enum: [debug, info, warn, error]
+          example: "error"
+        captureStackTrace:
+          type: boolean
+          example: true
+        sanitizeStackTrace:
+          type: boolean
+          description: Remove sensitive information from stack traces
+          example: true
+        logToDatabase:
+          type: boolean
+          example: true
+        notifyAdmin:
+          type: boolean
+          description: Send notifications for critical errors
+          example: true
+
+    ValidationSchemas:
+      type: object
+      description: Available Zod validation schemas
+      properties:
+        authentication:
+          type: object
+          properties:
+            loginSchema:
+              type: string
+              example: "email, password"
+            registerSchema:
+              type: string
+              example: "email, password, name (optional)"
+            resetPasswordSchema:
+              type: string
+              example: "token, newPassword"
+        alerts:
+          type: object
+          properties:
+            createAlertSchema:
+              type: string
+              example: "symbol, timeframe, conditionType, targetValue, name (optional)"
+            updateAlertSchema:
+              type: string
+              example: "isActive (optional), name (optional), targetValue (optional)"
+        watchlist:
+          type: object
+          properties:
+            createItemSchema:
+              type: string
+              example: "symbol, timeframe, watchlistId (optional)"
+            updateItemSchema:
+              type: string
+              example: "order (optional)"
+        user:
+          type: object
+          properties:
+            updateProfileSchema:
+              type: string
+              example: "name (optional), email (optional), avatarUrl (optional)"
+            updatePreferencesSchema:
+              type: string
+              example: "theme, language, timezone, etc."
+
+    HelperFunctions:
+      type: object
+      description: Available utility helper functions
+      properties:
+        formatters:
+          type: array
+          items:
+            type: string
+          example:
+            - formatCurrency(amount, currency)
+            - formatDate(date, format)
+            - formatNumber(number, decimals)
+            - formatPercentage(value)
+            - truncateString(text, length)
+        helpers:
+          type: array
+          items:
+            type: string
+          example:
+            - generateId(prefix)
+            - sleep(milliseconds)
+            - retry(fn, maxAttempts)
+            - debounce(fn, delay)
+            - throttle(fn, interval)
+        constants:
+          type: array
+          items:
+            type: string
+          example:
+            - SUPPORTED_SYMBOLS
+            - SUPPORTED_TIMEFRAMES
+            - TIER_LIMITS
+            - ERROR_MESSAGES
+            - EMAIL_TEMPLATES
+
+    InfrastructureComponents:
+      type: object
+      description: Infrastructure and deployment components
+      properties:
+        docker:
+          type: object
+          properties:
+            containers:
+              type: array
+              items:
+                type: string
+              example:
+                - nextjs-app
+                - flask-mt5-api
+                - postgresql-db
+                - redis-cache
+            networks:
+              type: array
+              items:
+                type: string
+              example:
+                - app-network
+            volumes:
+              type: array
+              items:
+                type: string
+              example:
+                - postgres-data
+                - redis-data
+        ci_cd:
+          type: object
+          properties:
+            workflows:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  trigger:
+                    type: string
+                  jobs:
+                    type: array
+                    items:
+                      type: string
+              example:
+                - name: "CI - Next.js"
+                  trigger: "push, pull_request"
+                  jobs:
+                    - lint
+                    - type-check
+                    - test
+                    - build
+                - name: "CI - Flask"
+                  trigger: "push, pull_request"
+                  jobs:
+                    - lint
+                    - test
+                - name: "Deploy"
+                  trigger: "push to main"
+                  jobs:
+                    - build-docker-images
+                    - push-to-registry
+                    - deploy-to-production
+        monitoring:
+          type: object
+          properties:
+            errorTracking:
+              type: boolean
+              example: true
+            performanceMonitoring:
+              type: boolean
+              example: true
+            uptime Monitoring:
+              type: boolean
+              example: true
+            alerting:
+              type: boolean
+              example: true
