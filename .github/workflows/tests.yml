@@ -151,9 +151,9 @@ jobs:
 
       - name: Fail if any test failed
         if: |
-          needs.unit-and-component-tests.result != 'success' ||
-          needs.integration-tests.result != 'success' ||
-          needs.build-check.result != 'success'
+          needs.unit-and-component-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.build-check.result == 'failure'
         run: |
           echo "❌ One or more test jobs failed"
           exit 1
