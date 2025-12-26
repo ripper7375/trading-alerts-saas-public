@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useToast } from '@/hooks/use-toast';
+import { ToastContainer } from '@/components/ui/toast-container';
 import {
   Eye,
   EyeOff,
@@ -126,6 +128,9 @@ function getPasswordStrengthPercent(strength: PasswordStrength): number {
 export default function AccountSettingsPage(): React.ReactElement {
   // Session available for future use (2FA, session management)
   useSession();
+
+  // Toast notifications
+  const { toasts, removeToast, success, error: showError } = useToast();
 
   // Password form state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -259,12 +264,14 @@ export default function AccountSettingsPage(): React.ReactElement {
 
       // Close dialog and notify user
       setIsDeleteDialogOpen(false);
-      alert(
-        'Account deletion requested. Check your email for confirmation link.'
+      success(
+        'Deletion Request Sent',
+        'Check your email for confirmation link.'
       );
     } catch (error) {
       console.error('Delete account error:', error);
-      alert(
+      showError(
+        'Request Failed',
         error instanceof Error
           ? error.message
           : 'Failed to request account deletion'
@@ -608,6 +615,9 @@ export default function AccountSettingsPage(): React.ReactElement {
           </CardContent>
         </Card>
       </section>
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }
