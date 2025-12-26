@@ -14,6 +14,8 @@ export * from './tier';
 export * from './alert';
 export * from './indicator';
 export * from './api';
+export * from './payment';
+export * from './watchlist';
 
 // Type aliases for authentication system compatibility
 export type { Tier as UserTier } from './tier';
