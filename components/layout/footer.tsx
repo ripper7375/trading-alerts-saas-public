@@ -24,21 +24,21 @@ export function Footer(): React.ReactElement {
           {/* Links */}
           <nav className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <Link
-              href="/help"
+              href="/settings/help"
               className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               Help Center
             </Link>
             <span className="text-gray-300 dark:text-gray-600">·</span>
             <Link
-              href="/privacy"
+              href="/settings/privacy"
               className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               Privacy
             </Link>
             <span className="text-gray-300 dark:text-gray-600">·</span>
             <Link
-              href="/terms"
+              href="/settings/terms"
               className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               Terms
