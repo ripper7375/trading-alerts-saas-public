@@ -4,14 +4,14 @@
  * Fraud Alerts List Page
  *
  * Admin page for viewing and managing fraud alerts:
- * - Lists all fraud alerts
+ * - Lists all fraud alerts from internal fraud detection system
  * - Filter by severity and status
  * - Quick actions for common operations
  *
  * @module app/(dashboard)/admin/fraud-alerts/page
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Filter, RefreshCw } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,10 +34,10 @@ interface FraudAlert {
   description: string;
   userId: string;
   userEmail: string;
-  country: string;
-  paymentMethod: string;
-  amount: string;
-  currency: string;
+  country: string | null;
+  paymentMethod: string | null;
+  amount: string | null;
+  currency: string | null;
   createdAt: string;
   status: AlertStatus;
 }
@@ -51,54 +51,16 @@ interface FraudStats {
   pending: number;
 }
 
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MOCK DATA (replace with API call in production)
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-const MOCK_ALERTS: FraudAlert[] = [
-  {
-    id: '1',
-    severity: 'CRITICAL',
-    pattern: 'Multiple 3-day plan attempts',
-    description: 'User attempted to purchase 3-day plan 5 times with different payment methods',
-    userId: 'user_123',
-    userEmail: 'suspicious@example.com',
-    country: 'IN',
-    paymentMethod: 'UPI',
-    amount: '165.17',
-    currency: 'INR',
-    createdAt: new Date().toISOString(),
-    status: 'PENDING',
-  },
-  {
-    id: '2',
-    severity: 'HIGH',
-    pattern: 'Velocity limit exceeded',
-    description: 'More than 10 payment attempts in 1 hour',
-    userId: 'user_456',
-    userEmail: 'trader@example.com',
-    country: 'NG',
-    paymentMethod: 'Bank Transfer',
-    amount: '22620',
-    currency: 'NGN',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    status: 'REVIEWED',
-  },
-  {
-    id: '3',
-    severity: 'MEDIUM',
-    pattern: 'IP mismatch',
-    description: 'Payment country (India) does not match IP location (US)',
-    userId: 'user_789',
-    userEmail: 'global@example.com',
-    country: 'IN',
-    paymentMethod: 'Paytm',
-    amount: '2407.48',
-    currency: 'INR',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    status: 'DISMISSED',
-  },
-];
+interface FraudAlertsResponse {
+  alerts: FraudAlert[];
+  stats: FraudStats;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
@@ -106,6 +68,14 @@ const MOCK_ALERTS: FraudAlert[] = [
 
 export default function FraudAlertsPage(): React.ReactElement {
   const [alerts, setAlerts] = useState<FraudAlert[]>([]);
+  const [stats, setStats] = useState<FraudStats>({
+    total: 0,
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    pending: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<{
     severity: SeverityLevel | 'ALL';
@@ -116,50 +86,53 @@ export default function FraudAlertsPage(): React.ReactElement {
   });
   const { toasts, error: showError, removeToast } = useToast();
 
-  // Fetch alerts
-  useEffect(() => {
-    const fetchAlerts = async (): Promise<void> => {
-      setLoading(true);
-      try {
-        // In production, replace with actual API call
-        // const res = await fetch('/api/admin/fraud-alerts');
-        // const data = await res.json();
-        // setAlerts(data.alerts);
-
-        // Using mock data for now
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setAlerts(MOCK_ALERTS);
-      } catch (err) {
-        console.error('Failed to fetch fraud alerts:', err);
-        showError('Failed to load fraud alerts', 'Please try again later.');
-      } finally {
-        setLoading(false);
+  // Fetch alerts from API
+  const fetchAlerts = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    try {
+      // Build query params for server-side filtering
+      const params = new URLSearchParams();
+      if (filter.severity !== 'ALL') {
+        params.set('severity', filter.severity);
       }
-    };
+      if (filter.status !== 'ALL') {
+        params.set('status', filter.status);
+      }
 
+      const res = await fetch(`/api/admin/fraud-alerts?${params.toString()}`);
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          showError('Unauthorized', 'Please log in to view fraud alerts.');
+          return;
+        }
+        if (res.status === 403) {
+          showError('Access Denied', 'You do not have permission to view fraud alerts.');
+          return;
+        }
+        throw new Error('Failed to fetch fraud alerts');
+      }
+
+      const data: FraudAlertsResponse = await res.json();
+      setAlerts(data.alerts);
+      setStats(data.stats);
+    } catch (err) {
+      console.error('Failed to fetch fraud alerts:', err);
+      showError('Failed to load fraud alerts', 'Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter.severity, filter.status, showError]);
+
+  // Fetch on mount and when filters change
+  useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [fetchAlerts]);
 
-  // Calculate stats
-  const stats: FraudStats = {
-    total: alerts.length,
-    critical: alerts.filter((a) => a.severity === 'CRITICAL').length,
-    high: alerts.filter((a) => a.severity === 'HIGH').length,
-    medium: alerts.filter((a) => a.severity === 'MEDIUM').length,
-    low: alerts.filter((a) => a.severity === 'LOW').length,
-    pending: alerts.filter((a) => a.status === 'PENDING').length,
+  // Handle refresh button click
+  const handleRefresh = (): void => {
+    fetchAlerts();
   };
-
-  // Filter alerts
-  const filteredAlerts = alerts.filter((alert) => {
-    if (filter.severity !== 'ALL' && alert.severity !== filter.severity) {
-      return false;
-    }
-    if (filter.status !== 'ALL' && alert.status !== filter.status) {
-      return false;
-    }
-    return true;
-  });
 
   return (
     <div className="container mx-auto py-8">
@@ -173,9 +146,10 @@ export default function FraudAlertsPage(): React.ReactElement {
         </div>
         <Button
           variant="outline"
-          onClick={() => window.location.reload()}
+          onClick={handleRefresh}
+          disabled={loading}
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -267,7 +241,7 @@ export default function FraudAlertsPage(): React.ReactElement {
             <p className="text-muted-foreground">Loading alerts...</p>
           </div>
         </div>
-      ) : filteredAlerts.length === 0 ? (
+      ) : alerts.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -281,7 +255,7 @@ export default function FraudAlertsPage(): React.ReactElement {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredAlerts.map((alert) => (
+          {alerts.map((alert) => (
             <FraudAlertCard key={alert.id} alert={alert} />
           ))}
         </div>

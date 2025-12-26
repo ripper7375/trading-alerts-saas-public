@@ -10,55 +10,45 @@
 | Priority | Count | Action Required |
 |----------|-------|-----------------|
 | 🔴 Blockers | 0 | None |
-| 🟡 Warnings | 1 | Before production |
-| ✅ Fixed | 1 | Toast notification added |
+| 🟡 Warnings | 0 | All resolved |
+| ✅ Fixed | 2 | Full fraud detection system implemented |
 | 🟢 Enhancements | 3 | Optional |
 | ℹ️ Informational | 4 | No action |
 
 ---
 
-## 🟡 Warnings (Fix Before Production)
+## ✅ Warnings (All Resolved)
 
-### Warning 1: Replace Mock Data in Fraud Alerts
+### ✅ Warning 1: Replace Mock Data in Fraud Alerts (FIXED)
 
 **Location:** `app/(dashboard)/admin/fraud-alerts/page.tsx`
 
-**Issue:** The fraud alerts page uses `MOCK_ALERTS` constant instead of real API data.
+**Issue:** ~~The fraud alerts page uses `MOCK_ALERTS` constant instead of real API data.~~
 
-**Ready-to-Use Prompt:**
-```
-In app/(dashboard)/admin/fraud-alerts/page.tsx:
+**Status:** FIXED on 2025-12-26
 
-1. Remove the MOCK_ALERTS constant (lines 56-99)
+**What was implemented:**
 
-2. Update the fetchAlerts function to call the real API:
+1. **Prisma Schema Update** (`prisma/schema.prisma`):
+   - Added `FraudAlertStatus` enum (PENDING, REVIEWED, DISMISSED, BLOCKED)
+   - Added `FraudAlertSeverity` enum (LOW, MEDIUM, HIGH, CRITICAL)
+   - Updated `FraudAlert` model with proper types, status field, and payment context fields
 
-const fetchAlerts = async (): Promise<void> => {
-  setLoading(true);
-  try {
-    const res = await fetch('/api/admin/fraud-alerts');
-    if (!res.ok) {
-      throw new Error('Failed to fetch alerts');
-    }
-    const data = await res.json();
-    setAlerts(data.alerts || []);
-  } catch (error) {
-    console.error('Failed to fetch fraud alerts:', error);
-    // Show error toast to user
-    toast.error('Failed to load fraud alerts');
-  } finally {
-    setLoading(false);
-  }
-};
+2. **Fraud Detection Service** (`lib/fraud/fraud-detection.service.ts`):
+   - Created comprehensive fraud detection logic
+   - Detects: Multiple 3-day attempts, Velocity limits, Failed payments, IP mismatches
+   - Functions: `runFraudChecks()`, `createFraudAlerts()`, `detectAndAlertFraud()`
+   - Admin functions: `getFraudAlerts()`, `getFraudAlertStats()`, `updateFraudAlertStatus()`, `blockUserFromFraudAlert()`
 
-3. Ensure the API endpoint exists at app/api/admin/fraud-alerts/route.ts
-```
+3. **Admin API Endpoints**:
+   - `app/api/admin/fraud-alerts/route.ts` - GET with pagination and filters
+   - `app/api/admin/fraud-alerts/[id]/route.ts` - GET single, PATCH to update status
 
-**Verification:**
-```bash
-# Check if the API exists
-cat app/api/admin/fraud-alerts/route.ts
-```
+4. **Frontend Updates**:
+   - Removed `MOCK_ALERTS` constant
+   - Updated `fetchAlerts` to call real API with server-side filtering
+   - Added proper loading states and error handling
+   - Updated `FraudAlertCard` component to handle nullable fields
 
 ---
 
@@ -277,8 +267,11 @@ DLOCAL_WEBHOOK_SECRET=your-secret-here
 
 Before deploying to production:
 
-- [ ] Replace mock data in fraud alerts page
+- [x] Replace mock data in fraud alerts page (DONE - 2025-12-26)
 - [x] Add error toasts for failed API calls (DONE - 2025-12-26)
+- [x] Implement fraud detection service (DONE - 2025-12-26)
+- [x] Create fraud alerts API endpoints (DONE - 2025-12-26)
+- [ ] Run `npx prisma migrate dev` to apply schema changes
 - [ ] Verify all environment variables are set
 - [ ] Test webhook signature verification
 - [ ] Test 3-day plan eligibility flow

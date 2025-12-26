@@ -61,6 +61,20 @@ enum CommissionStatus {
   CANCELLED
 }
 
+enum FraudAlertStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  BLOCKED
+}
+
+enum FraudAlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -337,28 +351,38 @@ model FraudAlert {
   id                String   @id @default(cuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Alert Details
-  alertType         String   // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'SUSPICIOUS_IP_CHANGE', etc.
-  severity          String   // 'LOW', 'MEDIUM', 'HIGH'
+  pattern           String   // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'VELOCITY_LIMIT', 'IP_MISMATCH', etc.
+  severity          FraudAlertSeverity
+  status            FraudAlertStatus @default(PENDING)
   description       String
-  
+
+  // Payment Context (for payment-related fraud)
+  country           String?
+  paymentMethod     String?
+  amount            Decimal?
+  currency          String?
+
   // Detection Metadata
-  detectedAt        DateTime @default(now())
   ipAddress         String?
   deviceFingerprint String?
   additionalData    Json?    // Flexible field for extra context
-  
+
   // Admin Review
   reviewedBy        String?  // Admin user ID who reviewed
   reviewedAt        DateTime?
   resolution        String?  // 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED', etc.
   notes             String?  // Admin notes
-  
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
   @@index([userId])
-  @@index([alertType])
+  @@index([pattern])
   @@index([severity])
-  @@index([detectedAt])
+  @@index([status])
+  @@index([createdAt])
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

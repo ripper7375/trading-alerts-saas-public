@@ -31,10 +31,10 @@ interface FraudAlert {
   description: string;
   userId: string;
   userEmail: string;
-  country: string;
-  paymentMethod: string;
-  amount: string;
-  currency: string;
+  country: string | null;
+  paymentMethod: string | null;
+  amount: string | null;
+  currency: string | null;
   createdAt: string;
   status: 'PENDING' | 'REVIEWED' | 'DISMISSED' | 'BLOCKED';
 }
@@ -81,13 +81,20 @@ export function FraudAlertCard({
                 <User className="h-4 w-4" />
                 {alert.userEmail}
               </span>
-              <span className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {alert.country}
-              </span>
-              <span>
-                {alert.currency} {alert.amount} via {alert.paymentMethod}
-              </span>
+              {alert.country && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {alert.country}
+                </span>
+              )}
+              {(alert.currency || alert.amount || alert.paymentMethod) && (
+                <span>
+                  {alert.currency && alert.amount
+                    ? `${alert.currency} ${alert.amount}`
+                    : alert.amount || ''}
+                  {alert.paymentMethod ? ` via ${alert.paymentMethod}` : ''}
+                </span>
+              )}
             </div>
 
             {/* Timestamp and status */}
