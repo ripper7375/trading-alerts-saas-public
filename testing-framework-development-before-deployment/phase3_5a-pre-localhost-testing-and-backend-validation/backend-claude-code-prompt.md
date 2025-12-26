@@ -117,4 +117,75 @@ Provide:
 
 ---
 
+## 📁 SAVE ALL VALIDATION REPORTS
+
+**CRITICAL: After completing validation, save ALL reports to `docs/validation-reports/` directory.**
+
+### Step 1: Create Directory (if needed)
+
+```bash
+mkdir -p docs/validation-reports
+```
+
+### Step 2: Save Reports with Proper Naming
+
+**Primary Report:**
+
+- File: `docs/validation-reports/part-[XX]-validation-report.md`
+- Example: `docs/validation-reports/part-02-validation-report.md`
+- Content: Master Validation Report with all sections
+
+**Additional Reports (Optional - if very large):**
+
+- `docs/validation-reports/part-[XX]-[type]-detailed.md`
+- Example: `docs/validation-reports/part-02-database-schema-detailed.md`
+- Example: `docs/validation-reports/part-06-python-service-detailed.md`
+- `docs/validation-reports/part-[XX]-actionable-fixes.md`
+
+### Step 3: File Structure
+
+```markdown
+# Part [XX] - [Part Name] Backend Validation Report
+
+**Generated:** [Timestamp]
+**Status:** [PASS/FAIL/PARTIAL]
+**Part Type:** [Configuration/Database/Types/Library/Python Service/API]
+**Health Score:** [X]/100
+
+[... Full validation report content ...]
+
+---
+
+_Report saved to: docs/validation-reports/part-[XX]-validation-report.md_
+```
+
+### Step 4: Verify File Creation
+
+After saving:
+
+```bash
+# Verify file exists
+ls -lh docs/validation-reports/part-[XX]-validation-report.md
+
+# Show file size
+du -h docs/validation-reports/part-[XX]-validation-report.md
+```
+
+### Step 5: Confirm to User
+
+Provide confirmation message:
+
+```
+✅ Validation Complete
+
+Reports saved to:
+- docs/validation-reports/part-[XX]-validation-report.md (Main report)
+- docs/validation-reports/part-[XX]-actionable-fixes.md (Fix prompts)
+
+Total size: [X] KB
+Files ready for review.
+```
+
+---
+
 **Please begin the validation now.**
