@@ -78,11 +78,14 @@ export function TimeframeSelector({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'w-full flex items-center justify-between px-4 py-2.5 border-2 rounded-lg transition-colors',
+          'w-full flex items-center justify-between px-4 py-2.5 border-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
           isOpen
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-200 hover:border-blue-500'
         )}
+        aria-label="Select timeframe"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
       >
         <div className="flex items-center gap-2">
           <span className="font-bold text-gray-900">{selectedTimeframe}</span>
@@ -116,9 +119,13 @@ export function TimeframeSelector({
           />
 
           {/* Dropdown Menu */}
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border-2 border-gray-200 z-50 p-4">
+          <div
+            role="listbox"
+            aria-label="Available timeframes"
+            className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border-2 border-gray-200 z-50 p-4"
+          >
             {/* Timeframe Grid */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2" role="group">
               {PRO_TIMEFRAMES.map((tf) => {
                 const isAvailable = isTimeframeAvailable(tf);
                 const isSelected = tf === selectedTimeframe;
@@ -127,9 +134,12 @@ export function TimeframeSelector({
                 return (
                   <button
                     key={tf}
+                    role="option"
+                    aria-selected={isSelected}
+                    aria-disabled={!isAvailable}
                     onClick={() => handleClick(tf)}
                     className={cn(
-                      'relative p-3 rounded-lg border-2 text-center transition-all',
+                      'relative p-3 rounded-lg border-2 text-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
                       isSelected && isAvailable && 'border-blue-500 bg-blue-50',
                       !isSelected &&
                         isAvailable &&
