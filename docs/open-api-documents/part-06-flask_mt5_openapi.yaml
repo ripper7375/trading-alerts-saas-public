@@ -16,6 +16,12 @@ info:
       - Fractal Horizontal Line_V5.mq5 (horizontal support/resistance lines)
       - Fractal Diagonal Line_V4.mq5 (diagonal trend lines)
 
+    **PRO-Only Indicators (additional for PRO tier):**
+    - Body Size Momentum Candle_V2.mq5 (momentum candles with z-score)
+    - Keltner Channel_ATF_10 Bands.mq5 (10-band volatility channels)
+    - TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5 (TEMA, HRMA, SMMA moving averages)
+    - ZigZagColor & MarketStructure_JSON Export_V27_TXT Input.mq5 (market structure)
+
     **Additional MQL5 Tools (Seed Code Reference):**
     - OHLC Download_V4.mq5 (utility for exporting OHLC data to files - not used by Flask service)
 
@@ -888,6 +894,8 @@ components:
           $ref: '#/components/schemas/DiagonalLines'
         fractals:
           $ref: '#/components/schemas/Fractals'
+        pro_indicators:
+          $ref: '#/components/schemas/ProIndicators'
         metadata:
           $ref: '#/components/schemas/IndicatorMetadata'
       required:
@@ -895,6 +903,7 @@ components:
         - horizontal
         - diagonal
         - fractals
+        - pro_indicators
         - metadata
 
     OHLCBar:
@@ -1078,6 +1087,233 @@ components:
       required:
         - time
         - price
+
+    # ============================================
+    # PRO-ONLY INDICATOR SCHEMAS
+    # ============================================
+    ProIndicators:
+      type: object
+      description: |
+        PRO-only indicator data. Only populated for PRO tier users.
+        FREE tier users receive empty arrays/objects for these fields.
+
+        **Indicators included:**
+        - Momentum Candles: Body Size Momentum Candle_V2.mq5
+        - Keltner Channels: Keltner Channel_ATF_10 Bands.mq5
+        - Moving Averages: TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5 (TEMA, HRMA, SMMA)
+        - ZigZag: ZigZagColor & MarketStructure_JSON Export_V27_TXT Input.mq5
+      properties:
+        momentum_candles:
+          type: array
+          items:
+            $ref: '#/components/schemas/MomentumCandle'
+          description: |
+            Significant momentum candles (Large or Extreme only).
+            Normal candles are excluded to reduce payload size.
+        keltner_channels:
+          $ref: '#/components/schemas/KeltnerChannels'
+        tema:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Triple Exponential Moving Average values (null for empty positions)
+        hrma:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Hull-like Responsive Moving Average values (null for empty positions)
+        smma:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Smoothed Moving Average values (null for empty positions)
+        zigzag:
+          $ref: '#/components/schemas/ZigZagData'
+      required:
+        - momentum_candles
+        - keltner_channels
+        - tema
+        - hrma
+        - smma
+        - zigzag
+
+    MomentumCandle:
+      type: object
+      description: |
+        Momentum candle data from Body Size Momentum Candle_V2.mq5.
+        Only significant candles (Large/Extreme) are included.
+
+        **Candle Types:**
+        - 1: UP_LARGE (bullish, large body)
+        - 2: UP_EXTREME (bullish, extreme body)
+        - 4: DOWN_LARGE (bearish, large body)
+        - 5: DOWN_EXTREME (bearish, extreme body)
+
+        Normal candles (types 0, 3) are excluded to reduce payload.
+      properties:
+        index:
+          type: integer
+          description: Bar index (0 = most recent)
+          example: 15
+        type:
+          type: integer
+          enum: [1, 2, 4, 5]
+          description: |
+            Candle momentum type:
+            - 1: UP_LARGE
+            - 2: UP_EXTREME
+            - 4: DOWN_LARGE
+            - 5: DOWN_EXTREME
+          example: 2
+        zscore:
+          type: number
+          format: double
+          description: Z-score value indicating momentum strength
+          example: 2.5432
+      required:
+        - index
+        - type
+        - zscore
+
+    KeltnerChannels:
+      type: object
+      description: |
+        10-band Keltner Channel data from Keltner Channel_ATF_10 Bands.mq5.
+        Each band is an array of price values indexed by bar.
+
+        **Band Order (outer to inner):**
+        - ultra_extreme_upper → extreme_upper → upper_most → upper → upper_middle
+        - lower_middle → lower → lower_most → extreme_lower → ultra_extreme_lower
+      properties:
+        ultra_extreme_upper:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Outermost upper band (Buffer 0)
+        extreme_upper:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Extreme upper band (Buffer 1)
+        upper_most:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Upper most band (Buffer 2)
+        upper:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Upper band (Buffer 3)
+        upper_middle:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Upper middle band (Buffer 4)
+        lower_middle:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Lower middle band (Buffer 5)
+        lower:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Lower band (Buffer 6)
+        lower_most:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Lower most band (Buffer 7)
+        extreme_lower:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Extreme lower band (Buffer 8)
+        ultra_extreme_lower:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Outermost lower band (Buffer 9)
+      required:
+        - ultra_extreme_upper
+        - extreme_upper
+        - upper_most
+        - upper
+        - upper_middle
+        - lower_middle
+        - lower
+        - lower_most
+        - extreme_lower
+        - ultra_extreme_lower
+
+    ZigZagData:
+      type: object
+      description: |
+        ZigZag indicator data from ZigZagColor & MarketStructure indicator.
+        Identifies significant swing highs (peaks) and swing lows (bottoms).
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+          description: ZigZag peaks (swing highs) - Buffer 0
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+          description: ZigZag bottoms (swing lows) - Buffer 1
+      required:
+        - peaks
+        - bottoms
+
+    ZigZagPoint:
+      type: object
+      description: Single ZigZag pivot point
+      properties:
+        index:
+          type: integer
+          description: Bar index (0 = most recent)
+          example: 25
+        price:
+          type: number
+          format: double
+          description: Price level at pivot point
+          example: 1987.50
+        time:
+          type: integer
+          description: Unix timestamp of pivot
+          example: 1699632000
+      required:
+        - index
+        - price
+        - time
 
     IndicatorMetadata:
       type: object
