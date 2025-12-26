@@ -155,6 +155,7 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "__tests__" // Test directories
+    "__tests__", // Test directories
+    "__mocks__" // Mock files (use Jest types separately)
   ]
 }
