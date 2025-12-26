@@ -128,7 +128,9 @@ export function IndicatorToggles({
       <div className="border-b border-gray-100">
         <button
           onClick={() => setIsBasicExpanded(!isBasicExpanded)}
-          className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+          aria-expanded={isBasicExpanded}
+          aria-controls="basic-indicators-content"
         >
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Basic
@@ -141,7 +143,7 @@ export function IndicatorToggles({
         </button>
 
         {isBasicExpanded && (
-          <div className="px-1 pb-2">
+          <div id="basic-indicators-content" className="px-1 pb-2">
             {BASIC_INDICATORS.map((id) => renderIndicatorToggle(id))}
           </div>
         )}
@@ -151,7 +153,9 @@ export function IndicatorToggles({
       <div>
         <button
           onClick={() => setIsProExpanded(!isProExpanded)}
-          className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+          aria-expanded={isProExpanded}
+          aria-controls="pro-indicators-content"
         >
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -171,7 +175,7 @@ export function IndicatorToggles({
         </button>
 
         {isProExpanded && (
-          <div className="px-1 pb-2">
+          <div id="pro-indicators-content" className="px-1 pb-2">
             {PRO_ONLY_INDICATORS.map((id) => renderIndicatorToggle(id))}
 
             {/* Upgrade Prompt for FREE users */}

@@ -118,7 +118,10 @@ export function ChartControls({
           </label>
           <button
             onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
-            className="w-full flex items-center justify-between px-4 py-2.5 border-2 border-gray-200 rounded-lg hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 border-2 border-gray-200 rounded-lg hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            aria-label="Select trading symbol"
+            aria-expanded={isSymbolDropdownOpen}
+            aria-haspopup="listbox"
           >
             <div className="flex items-center gap-2">
               <span className="font-bold text-gray-900">{selectedSymbol}</span>
@@ -154,7 +157,11 @@ export function ChartControls({
               />
 
               {/* Dropdown Menu */}
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border-2 border-gray-200 z-50 max-h-80 overflow-y-auto">
+              <div
+                role="listbox"
+                aria-label="Trading symbols"
+                className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border-2 border-gray-200 z-50 max-h-80 overflow-y-auto"
+              >
                 {/* Group by category */}
                 {['Commodity', 'Forex', 'Crypto', 'Index'].map((category) => (
                   <div key={category}>
@@ -170,9 +177,11 @@ export function ChartControls({
                       return (
                         <button
                           key={symbol}
+                          role="option"
+                          aria-selected={isSelected}
                           onClick={() => handleSymbolChange(symbol)}
                           className={cn(
-                            'w-full flex items-center justify-between px-3 py-2 text-left transition-colors',
+                            'w-full flex items-center justify-between px-3 py-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500',
                             isSelected && 'bg-blue-50',
                             isAvailable && !isSelected && 'hover:bg-gray-50',
                             !isAvailable && 'opacity-60'
