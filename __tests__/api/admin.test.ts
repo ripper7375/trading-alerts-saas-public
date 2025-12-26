@@ -127,6 +127,7 @@ describe('Admin API Routes', () => {
           role: 'USER',
           isActive: true,
           createdAt: new Date(),
+          sessions: [],
           _count: { alerts: 3, watchlists: 1 },
         },
         {
@@ -137,6 +138,7 @@ describe('Admin API Routes', () => {
           role: 'USER',
           isActive: true,
           createdAt: new Date(),
+          sessions: [],
           _count: { alerts: 10, watchlists: 5 },
         },
       ]);

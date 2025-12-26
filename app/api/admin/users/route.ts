@@ -169,8 +169,9 @@ export async function GET(
       // Session expires = login time + SESSION_DURATION_DAYS
       // So login time ≈ expires - SESSION_DURATION_DAYS
       let lastLoginAt: Date | null = null;
-      if (user.sessions.length > 0 && user.sessions[0]) {
-        const sessionExpiry = new Date(user.sessions[0].expires);
+      const sessions = user.sessions ?? [];
+      if (sessions.length > 0 && sessions[0]) {
+        const sessionExpiry = new Date(sessions[0].expires);
         lastLoginAt = new Date(
           sessionExpiry.getTime() - SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000
         );
