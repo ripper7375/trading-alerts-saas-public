@@ -44,6 +44,13 @@ interface AdminUserListResponse {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONSTANTS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// NextAuth default session duration is 30 days
+const SESSION_DURATION_DAYS = 30;
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET HANDLER - List all users (admin only)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -121,7 +128,7 @@ export async function GET(
     // Get total count
     const total = await prisma.user.count({ where });
 
-    // Get users with pagination
+    // Get users with pagination, including their most recent session
     const users = await prisma.user.findMany({
       where,
       select: {
@@ -132,6 +139,16 @@ export async function GET(
         role: true,
         isActive: true,
         createdAt: true,
+        // Include most recent session to estimate last login
+        sessions: {
+          select: {
+            expires: true,
+          },
+          orderBy: {
+            expires: 'desc',
+          },
+          take: 1,
+        },
         _count: {
           select: {
             alerts: true,
@@ -145,18 +162,33 @@ export async function GET(
     });
 
     // Transform response
-    const transformedUsers: AdminUser[] = users.map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      tier: user.tier as 'FREE' | 'PRO',
-      role: user.role,
-      status: user.isActive ? 'active' : 'suspended',
-      createdAt: user.createdAt,
-      lastLoginAt: null, // TODO: Track last login time
-      alertCount: user._count?.alerts ?? 0,
-      watchlistCount: user._count?.watchlists ?? 0,
-    }));
+    // Note: lastLoginAt is estimated from session expiry date minus session duration
+    // For accurate tracking, consider adding a lastLoginAt field to User model
+    const transformedUsers: AdminUser[] = users.map((user) => {
+      // Estimate last login from most recent session
+      // Session expires = login time + SESSION_DURATION_DAYS
+      // So login time ≈ expires - SESSION_DURATION_DAYS
+      let lastLoginAt: Date | null = null;
+      if (user.sessions.length > 0 && user.sessions[0]) {
+        const sessionExpiry = new Date(user.sessions[0].expires);
+        lastLoginAt = new Date(
+          sessionExpiry.getTime() - SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000
+        );
+      }
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        tier: user.tier as 'FREE' | 'PRO',
+        role: user.role,
+        status: user.isActive ? 'active' : 'suspended',
+        createdAt: user.createdAt,
+        lastLoginAt,
+        alertCount: user._count?.alerts ?? 0,
+        watchlistCount: user._count?.watchlists ?? 0,
+      };
+    });
 
     return NextResponse.json({
       users: transformedUsers,

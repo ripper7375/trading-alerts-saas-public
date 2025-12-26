@@ -43,7 +43,33 @@ interface ApiUsageResponse {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MOCK DATA (until API usage tracking is implemented)
+// MOCK DATA GENERATOR
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// ⚠️ DEVELOPMENT MODE: This endpoint returns mock/sample data.
+//
+// This is intentional for development and demo purposes.
+// The mock data simulates realistic API usage patterns.
+//
+// PRODUCTION TODO: To implement real API usage tracking:
+// 1. Create an ApiUsageLog table in Prisma schema:
+//    model ApiUsageLog {
+//      id            String   @id @default(cuid())
+//      endpoint      String
+//      method        String
+//      userId        String?
+//      userTier      String?
+//      responseTime  Int      // milliseconds
+//      statusCode    Int
+//      isError       Boolean  @default(false)
+//      createdAt     DateTime @default(now())
+//      @@index([endpoint, method])
+//      @@index([createdAt])
+//    }
+//
+// 2. Add middleware to log API calls to this table
+// 3. Update this endpoint to query ApiUsageLog instead of mock data
+//
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function generateMockApiUsage(
@@ -221,10 +247,15 @@ export async function GET(
         .split('T')[0] ??
       '';
 
-    // Generate mock data (replace with real data query in production)
+    // Generate mock data (see MOCK DATA GENERATOR section for production TODO)
     const data = generateMockApiUsage(start, end);
 
-    return NextResponse.json(data);
+    // Add header to indicate mock data in development
+    return NextResponse.json(data, {
+      headers: {
+        'X-Data-Source': 'mock',
+      },
+    });
   } catch (error) {
     console.error('Admin API usage error:', error);
     return NextResponse.json(
