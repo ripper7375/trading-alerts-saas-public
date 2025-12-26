@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { useAuth } from './use-auth';
 import { FREE_TIER_CONFIG, PRO_TIER_CONFIG } from '@/lib/tier-config';
+
+import { useAuth } from './use-auth';
 
 /**
  * Alert interface
