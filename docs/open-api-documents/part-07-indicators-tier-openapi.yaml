@@ -1,0 +1,1310 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Indicators API & Tier Routes (Part 07)
+  version: 1.0.0
+  description: |
+    Indicators API and Tier Routes for Trading Alerts SaaS platform (Part 07).
+
+    This API provides tier-based access control for trading symbols and timeframes,
+    and indicator data retrieval from the Flask MT5 service.
+
+    ## Features
+    - Tier-based symbol and timeframe access control
+    - Symbol access validation
+    - Symbol+timeframe combination management
+    - Indicator types metadata
+    - Real-time indicator data from MT5 (OHLC, fractals, lines)
+    - PRO-only indicators (Keltner, TEMA, HRMA, SMMA, ZigZag, Momentum)
+
+    ## Tier-Based Access
+
+    **FREE Tier:**
+    - 5 symbols: BTCUSD, EURUSD, USDJPY, US30, XAUUSD
+    - 3 timeframes: H1, H4, D1
+    - 15 total combinations
+    - Basic indicators only
+
+    **PRO Tier:**
+    - 15 symbols: All major forex pairs, crypto, indices, commodities
+    - 9 timeframes: M5, M15, M30, H1, H2, H4, H8, H12, D1
+    - 135 total combinations
+    - All indicators including PRO indicators
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Tier
+    description: Tier-based access control endpoints
+  - name: Indicators
+    description: Indicator data and metadata endpoints
+
+paths:
+  /api/tier/symbols:
+    get:
+      tags:
+        - Tier
+      summary: Get accessible symbols for user's tier
+      description: |
+        Returns list of trading symbols accessible by the authenticated user's tier.
+        Includes symbol metadata like display names and categories.
+
+        **Categories:**
+        - forex: Currency pairs (EURUSD, GBPUSD, etc.)
+        - crypto: Cryptocurrencies (BTCUSD, ETHUSD)
+        - index: Market indices (US30, NDX100)
+        - commodity: Precious metals (XAUUSD, XAGUSD)
+      operationId: getTierSymbols
+      responses:
+        '200':
+          description: Symbols retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymbolsResponse'
+              example:
+                success: true
+                tier: "FREE"
+                symbols:
+                  - "BTCUSD"
+                  - "EURUSD"
+                  - "USDJPY"
+                  - "US30"
+                  - "XAUUSD"
+                symbolsInfo:
+                  - symbol: "BTCUSD"
+                    name: "Bitcoin/US Dollar"
+                    category: "crypto"
+                    proOnly: false
+                  - symbol: "EURUSD"
+                    name: "Euro/US Dollar"
+                    category: "forex"
+                    proOnly: false
+                  - symbol: "USDJPY"
+                    name: "US Dollar/Japanese Yen"
+                    category: "forex"
+                    proOnly: false
+                  - symbol: "US30"
+                    name: "Dow Jones Industrial Average"
+                    category: "index"
+                    proOnly: false
+                  - symbol: "XAUUSD"
+                    name: "Gold/US Dollar"
+                    category: "commodity"
+                    proOnly: false
+                count: 5
+                totalAvailable: 15
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Unauthorized"
+                message: "You must be logged in to view available symbols"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Failed to fetch symbols"
+                message: "An error occurred while fetching available symbols. Please try again."
+
+  /api/tier/check/{symbol}:
+    get:
+      tags:
+        - Tier
+      summary: Check symbol access for user's tier
+      description: |
+        Check if the authenticated user's tier can access a specific trading symbol.
+        Returns access status and upgrade information if access is denied.
+      operationId: checkSymbolAccess
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: Trading symbol to check (case-insensitive)
+          schema:
+            type: string
+          example: "XAUUSD"
+      responses:
+        '200':
+          description: Access check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessCheckResponse'
+              examples:
+                allowed:
+                  summary: Symbol access allowed
+                  value:
+                    success: true
+                    symbol: "XAUUSD"
+                    allowed: true
+                    tier: "FREE"
+                denied:
+                  summary: Symbol access denied
+                  value:
+                    success: true
+                    symbol: "AUDJPY"
+                    allowed: false
+                    tier: "FREE"
+                    reason: "FREE tier cannot access AUDJPY. Upgrade to PRO for access to all 15 symbols."
+                    upgradeRequired: true
+                    accessibleSymbols:
+                      - "BTCUSD"
+                      - "EURUSD"
+                      - "USDJPY"
+                      - "US30"
+                      - "XAUUSD"
+        '400':
+          description: Invalid symbol
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Invalid symbol"
+                message: "Symbol INVALID is not a valid trading symbol. Available symbols: AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Unauthorized"
+                message: "You must be logged in to check symbol access"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Failed to check symbol access"
+                message: "An error occurred while checking symbol access. Please try again."
+
+  /api/tier/combinations:
+    get:
+      tags:
+        - Tier
+      summary: Get allowed symbol+timeframe combinations
+      description: |
+        Returns all allowed symbol+timeframe combinations for the authenticated user's tier.
+        Used by frontend to populate dropdowns and validate selections.
+
+        **Timeframe Labels:**
+        - M5: 5 Minutes
+        - M15: 15 Minutes
+        - M30: 30 Minutes
+        - H1: 1 Hour
+        - H2: 2 Hours
+        - H4: 4 Hours
+        - H8: 8 Hours
+        - H12: 12 Hours
+        - D1: 1 Day
+      operationId: getTierCombinations
+      responses:
+        '200':
+          description: Combinations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombinationsResponse'
+              example:
+                success: true
+                tier: "FREE"
+                combinations:
+                  - symbol: "BTCUSD"
+                    timeframe: "H1"
+                  - symbol: "BTCUSD"
+                    timeframe: "H4"
+                  - symbol: "BTCUSD"
+                    timeframe: "D1"
+                  - symbol: "EURUSD"
+                    timeframe: "H1"
+                count: 15
+                totalPossible: 135
+                symbols:
+                  - "BTCUSD"
+                  - "EURUSD"
+                  - "USDJPY"
+                  - "US30"
+                  - "XAUUSD"
+                timeframes:
+                  - value: "H1"
+                    label: "1 Hour"
+                    proOnly: false
+                  - value: "H4"
+                    label: "4 Hours"
+                    proOnly: false
+                  - value: "D1"
+                    label: "1 Day"
+                    proOnly: false
+                limits:
+                  symbolCount: 5
+                  timeframeCount: 3
+                  totalCombinations: 15
+                upgrade:
+                  additionalSymbols: 10
+                  additionalTimeframes: 6
+                  additionalCombinations: 120
+                  message: "Upgrade to PRO for 10 more symbols, 6 more timeframes, and 120 more chart combinations."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Unauthorized"
+                message: "You must be logged in to view available combinations"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Failed to fetch combinations"
+                message: "An error occurred while fetching available combinations. Please try again."
+
+  /api/indicators:
+    get:
+      tags:
+        - Indicators
+      summary: Get available indicator types
+      description: |
+        Returns list of available indicator types with descriptions.
+        This endpoint provides metadata about what indicator data is available
+        from the Flask MT5 service.
+
+        **Available Indicators:**
+        - FRACTAL_HORIZONTAL: Horizontal support/resistance lines
+        - FRACTAL_DIAGONAL: Diagonal trend lines
+        - FRACTALS: Bill Williams fractal markers
+        - OHLC: Candlestick price data
+
+        **PRO-Only Indicators:**
+        - Keltner Channels
+        - TEMA (Triple Exponential Moving Average)
+        - HRMA (Hull-Rapid Moving Average)
+        - SMMA (Smoothed Moving Average)
+        - ZigZag
+        - Momentum Candles
+      operationId: getIndicatorTypes
+      responses:
+        '200':
+          description: Indicator types retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndicatorsListResponse'
+              example:
+                success: true
+                indicators:
+                  - id: "FRACTAL_HORIZONTAL"
+                    name: "Fractal Horizontal Lines"
+                    description: "Horizontal support and resistance lines based on fractal patterns. Shows 3 peak levels and 3 bottom levels."
+                    source: "Fractal Horizontal Line_V5.mq5"
+                    dataFields:
+                      - "peak_1"
+                      - "peak_2"
+                      - "peak_3"
+                      - "bottom_1"
+                      - "bottom_2"
+                      - "bottom_3"
+                  - id: "FRACTAL_DIAGONAL"
+                    name: "Fractal Diagonal Lines"
+                    description: "Diagonal trend lines connecting fractal points. Shows 3 ascending and 3 descending trend lines."
+                    source: "Fractal Diagonal Line_V4.mq5"
+                    dataFields:
+                      - "ascending_1"
+                      - "ascending_2"
+                      - "ascending_3"
+                      - "descending_1"
+                      - "descending_2"
+                      - "descending_3"
+                  - id: "FRACTALS"
+                    name: "Fractal Points"
+                    description: "Bill Williams fractal markers showing swing highs (peaks) and swing lows (bottoms)."
+                    source: "Fractal Horizontal Line_V5.mq5 (buffers 0-1)"
+                    dataFields:
+                      - "peaks"
+                      - "bottoms"
+                  - id: "OHLC"
+                    name: "OHLC Candlestick Data"
+                    description: "Open, High, Low, Close price data with volume for each candle."
+                    source: "MT5 Terminal (CopyRates)"
+                    dataFields:
+                      - "time"
+                      - "open"
+                      - "high"
+                      - "low"
+                      - "close"
+                      - "volume"
+                count: 4
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Unauthorized"
+                message: "You must be logged in to view indicator types"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Failed to fetch indicator types"
+                message: "An error occurred while fetching indicator types. Please try again."
+
+  /api/indicators/{symbol}/{timeframe}:
+    get:
+      tags:
+        - Indicators
+      summary: Get indicator data for symbol and timeframe
+      description: |
+        Fetches indicator data from Flask MT5 service with tier validation.
+        Includes OHLC candlestick data, fractal lines, and PRO indicators (if PRO tier).
+
+        **Validation:**
+        - Validates user authentication
+        - Validates symbol exists in system
+        - Validates timeframe exists in system
+        - Validates tier can access symbol
+        - Validates tier can access timeframe
+
+        **Data Returned:**
+        - OHLC bars with open, high, low, close, volume
+        - Horizontal lines (3 peak levels, 3 bottom levels)
+        - Diagonal lines (3 ascending, 3 descending)
+        - Fractal points (peaks and bottoms)
+        - PRO indicators (Keltner, TEMA, HRMA, SMMA, ZigZag, Momentum) - PRO tier only
+      operationId: getIndicatorData
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: Trading symbol (case-insensitive)
+          schema:
+            type: string
+          example: "XAUUSD"
+        - name: timeframe
+          in: path
+          required: true
+          description: Chart timeframe (case-insensitive)
+          schema:
+            type: string
+          example: "H1"
+        - name: bars
+          in: query
+          required: false
+          description: Number of bars to retrieve (min 100, max 5000, default 1000)
+          schema:
+            type: integer
+            minimum: 100
+            maximum: 5000
+            default: 1000
+          example: 500
+      responses:
+        '200':
+          description: Indicator data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndicatorDataResponse'
+              example:
+                success: true
+                data:
+                  ohlc:
+                    - time: 1702123200
+                      open: 2025.50
+                      high: 2028.75
+                      low: 2024.25
+                      close: 2027.80
+                      volume: 12500
+                    - time: 1702126800
+                      open: 2027.80
+                      high: 2030.10
+                      low: 2026.50
+                      close: 2029.40
+                      volume: 15200
+                  horizontal:
+                    peak_1:
+                      - index: 45
+                        value: 2035.50
+                    peak_2:
+                      - index: 120
+                        value: 2040.25
+                    peak_3:
+                      - index: 200
+                        value: 2038.75
+                    bottom_1:
+                      - index: 75
+                        value: 2010.25
+                    bottom_2:
+                      - index: 150
+                        value: 2015.50
+                    bottom_3:
+                      - index: 225
+                        value: 2012.75
+                  diagonal:
+                    ascending_1:
+                      - index: 0
+                        value: 2000.00
+                      - index: 100
+                        value: 2020.00
+                    ascending_2: []
+                    ascending_3: []
+                    descending_1:
+                      - index: 50
+                        value: 2040.00
+                      - index: 150
+                        value: 2020.00
+                    descending_2: []
+                    descending_3: []
+                  fractals:
+                    peaks:
+                      - time: 1702130400
+                        price: 2035.50
+                    bottoms:
+                      - time: 1702141200
+                        price: 2010.25
+                  proIndicatorsTransformed:
+                    keltnerChannels:
+                      ultraExtremeUpper:
+                        - 2055.25
+                        - 2056.50
+                      extremeUpper:
+                        - 2050.00
+                        - 2051.25
+                    tema:
+                      - 2028.50
+                      - 2029.25
+                    hrma:
+                      - 2027.80
+                      - 2028.60
+                    smma:
+                      - 2026.50
+                      - 2027.20
+                    zigzag:
+                      peaks:
+                        - index: 45
+                          price: 2035.50
+                      bottoms:
+                        - index: 75
+                          price: 2010.25
+                    momentumCandles: []
+                  metadata:
+                    symbol: "XAUUSD"
+                    timeframe: "H1"
+                    tier: "PRO"
+                    bars_returned: 500
+                tier: "PRO"
+                requestedAt: "2025-12-09T12:00:00.000Z"
+        '400':
+          description: Invalid symbol or timeframe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidSymbol:
+                  summary: Invalid symbol
+                  value:
+                    success: false
+                    error: "Invalid symbol"
+                    message: "Symbol INVALID is not a valid trading symbol. Valid symbols: AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD"
+                invalidTimeframe:
+                  summary: Invalid timeframe
+                  value:
+                    success: false
+                    error: "Invalid timeframe"
+                    message: "Timeframe INVALID is not valid. Valid timeframes: M5, M15, M30, H1, H2, H4, H8, H12, D1"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Unauthorized"
+                message: "You must be logged in to fetch indicator data"
+        '403':
+          description: Tier restriction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TierRestrictionErrorResponse'
+              examples:
+                symbolDenied:
+                  summary: Symbol not allowed for tier
+                  value:
+                    success: false
+                    error: "Tier restriction"
+                    message: "FREE tier cannot access AUDJPY. Upgrade to PRO for access to all 15 symbols."
+                    tier: "FREE"
+                    accessibleSymbols:
+                      - "BTCUSD"
+                      - "EURUSD"
+                      - "USDJPY"
+                      - "US30"
+                      - "XAUUSD"
+                    upgradeRequired: true
+                    upgradeUrl: "/pricing"
+                timeframeDenied:
+                  summary: Timeframe not allowed for tier
+                  value:
+                    success: false
+                    error: "Tier restriction"
+                    message: "FREE tier cannot access M5 timeframe. Upgrade to PRO for access to all 9 timeframes."
+                    tier: "FREE"
+                    accessibleTimeframes:
+                      - "H1"
+                      - "H4"
+                      - "D1"
+                    upgradeRequired: true
+                    upgradeUrl: "/pricing"
+        '500':
+          description: Internal server error or MT5 service error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                mt5Error:
+                  summary: MT5 service error
+                  value:
+                    success: false
+                    error: "MT5 service error"
+                    message: "Failed to fetch indicator data from MT5 service. Please try again later."
+                internalError:
+                  summary: Internal server error
+                  value:
+                    success: false
+                    error: "Internal server error"
+                    message: "An unexpected error occurred. Please try again later."
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth session cookie
+
+  schemas:
+    # Enums
+    Tier:
+      type: string
+      enum:
+        - FREE
+        - PRO
+      description: User subscription tier
+      example: "FREE"
+
+    SymbolCategory:
+      type: string
+      enum:
+        - forex
+        - crypto
+        - index
+        - commodity
+      description: Trading symbol category
+      example: "forex"
+
+    # Tier Schemas
+    SymbolInfo:
+      type: object
+      required:
+        - symbol
+        - name
+        - category
+        - proOnly
+      properties:
+        symbol:
+          type: string
+          description: Trading symbol code
+          example: "XAUUSD"
+        name:
+          type: string
+          description: Human-readable symbol name
+          example: "Gold/US Dollar"
+        category:
+          $ref: '#/components/schemas/SymbolCategory'
+        proOnly:
+          type: boolean
+          description: Whether this symbol requires PRO tier
+          example: false
+
+    TimeframeInfo:
+      type: object
+      required:
+        - value
+        - label
+        - proOnly
+      properties:
+        value:
+          type: string
+          description: Timeframe code
+          example: "H1"
+        label:
+          type: string
+          description: Human-readable timeframe label
+          example: "1 Hour"
+        proOnly:
+          type: boolean
+          description: Whether this timeframe requires PRO tier
+          example: false
+
+    Combination:
+      type: object
+      required:
+        - symbol
+        - timeframe
+      properties:
+        symbol:
+          type: string
+          description: Trading symbol
+          example: "BTCUSD"
+        timeframe:
+          type: string
+          description: Chart timeframe
+          example: "H1"
+
+    SymbolsResponse:
+      type: object
+      required:
+        - success
+        - tier
+        - symbols
+        - symbolsInfo
+        - count
+        - totalAvailable
+      properties:
+        success:
+          type: boolean
+          example: true
+        tier:
+          $ref: '#/components/schemas/Tier'
+        symbols:
+          type: array
+          items:
+            type: string
+          description: List of accessible symbol codes
+          example: ["BTCUSD", "EURUSD", "USDJPY", "US30", "XAUUSD"]
+        symbolsInfo:
+          type: array
+          items:
+            $ref: '#/components/schemas/SymbolInfo'
+        count:
+          type: integer
+          description: Number of accessible symbols
+          example: 5
+        totalAvailable:
+          type: integer
+          description: Total symbols available with PRO tier
+          example: 15
+
+    AccessCheckResponse:
+      type: object
+      required:
+        - success
+        - symbol
+        - allowed
+        - tier
+      properties:
+        success:
+          type: boolean
+          example: true
+        symbol:
+          type: string
+          description: Symbol that was checked
+          example: "XAUUSD"
+        allowed:
+          type: boolean
+          description: Whether access is allowed
+          example: true
+        tier:
+          $ref: '#/components/schemas/Tier'
+        reason:
+          type: string
+          description: Reason for denial (only if denied)
+          example: "FREE tier cannot access AUDJPY. Upgrade to PRO for access."
+        upgradeRequired:
+          type: boolean
+          description: Whether upgrade is needed for access
+          example: true
+        accessibleSymbols:
+          type: array
+          items:
+            type: string
+          description: Symbols accessible by current tier
+          example: ["BTCUSD", "EURUSD", "USDJPY", "US30", "XAUUSD"]
+
+    CombinationsResponse:
+      type: object
+      required:
+        - success
+        - tier
+        - combinations
+        - count
+        - totalPossible
+        - symbols
+        - timeframes
+        - limits
+      properties:
+        success:
+          type: boolean
+          example: true
+        tier:
+          $ref: '#/components/schemas/Tier'
+        combinations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Combination'
+        count:
+          type: integer
+          description: Number of accessible combinations
+          example: 15
+        totalPossible:
+          type: integer
+          description: Total combinations with PRO tier
+          example: 135
+        symbols:
+          type: array
+          items:
+            type: string
+          description: Accessible symbol codes
+        timeframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeframeInfo'
+        limits:
+          type: object
+          required:
+            - symbolCount
+            - timeframeCount
+            - totalCombinations
+          properties:
+            symbolCount:
+              type: integer
+              example: 5
+            timeframeCount:
+              type: integer
+              example: 3
+            totalCombinations:
+              type: integer
+              example: 15
+        upgrade:
+          type: object
+          description: Upgrade information (only for FREE tier)
+          properties:
+            additionalSymbols:
+              type: integer
+              example: 10
+            additionalTimeframes:
+              type: integer
+              example: 6
+            additionalCombinations:
+              type: integer
+              example: 120
+            message:
+              type: string
+              example: "Upgrade to PRO for 10 more symbols, 6 more timeframes, and 120 more chart combinations."
+
+    # Indicator Schemas
+    IndicatorTypeInfo:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - source
+        - dataFields
+      properties:
+        id:
+          type: string
+          description: Unique indicator identifier
+          example: "FRACTAL_HORIZONTAL"
+        name:
+          type: string
+          description: Human-readable indicator name
+          example: "Fractal Horizontal Lines"
+        description:
+          type: string
+          description: Detailed indicator description
+          example: "Horizontal support and resistance lines based on fractal patterns."
+        source:
+          type: string
+          description: MT5 indicator source file
+          example: "Fractal Horizontal Line_V5.mq5"
+        dataFields:
+          type: array
+          items:
+            type: string
+          description: Available data fields for this indicator
+          example: ["peak_1", "peak_2", "peak_3", "bottom_1", "bottom_2", "bottom_3"]
+
+    IndicatorsListResponse:
+      type: object
+      required:
+        - success
+        - indicators
+        - count
+      properties:
+        success:
+          type: boolean
+          example: true
+        indicators:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndicatorTypeInfo'
+        count:
+          type: integer
+          description: Number of indicator types
+          example: 4
+
+    OHLCBar:
+      type: object
+      required:
+        - time
+        - open
+        - high
+        - low
+        - close
+        - volume
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp
+          example: 1702123200
+        open:
+          type: number
+          format: double
+          description: Opening price
+          example: 2025.50
+        high:
+          type: number
+          format: double
+          description: Highest price
+          example: 2028.75
+        low:
+          type: number
+          format: double
+          description: Lowest price
+          example: 2024.25
+        close:
+          type: number
+          format: double
+          description: Closing price
+          example: 2027.80
+        volume:
+          type: integer
+          description: Trading volume
+          example: 12500
+
+    LinePoint:
+      type: object
+      required:
+        - index
+        - value
+      properties:
+        index:
+          type: integer
+          description: Bar index
+          example: 45
+        value:
+          type: number
+          format: double
+          description: Price level
+          example: 2035.50
+
+    FractalPoint:
+      type: object
+      required:
+        - time
+        - price
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp
+          example: 1702130400
+        price:
+          type: number
+          format: double
+          description: Fractal price level
+          example: 2035.50
+
+    HorizontalLines:
+      type: object
+      required:
+        - peak_1
+        - peak_2
+        - peak_3
+        - bottom_1
+        - bottom_2
+        - bottom_3
+      properties:
+        peak_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        peak_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        peak_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        bottom_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        bottom_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        bottom_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+
+    DiagonalLines:
+      type: object
+      required:
+        - ascending_1
+        - ascending_2
+        - ascending_3
+        - descending_1
+        - descending_2
+        - descending_3
+      properties:
+        ascending_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        ascending_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        ascending_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        descending_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        descending_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        descending_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+
+    Fractals:
+      type: object
+      required:
+        - peaks
+        - bottoms
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/FractalPoint'
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FractalPoint'
+
+    ZigZagPoint:
+      type: object
+      required:
+        - index
+        - price
+      properties:
+        index:
+          type: integer
+          description: Bar index
+          example: 45
+        price:
+          type: number
+          format: double
+          description: Price level
+          example: 2035.50
+        timestamp:
+          type: integer
+          description: Optional Unix timestamp
+          example: 1702130400
+
+    KeltnerChannels:
+      type: object
+      properties:
+        ultraExtremeUpper:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        extremeUpper:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        upperMost:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        upper:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        upperMiddle:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        lowerMiddle:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        lower:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        lowerMost:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        extremeLower:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        ultraExtremeLower:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+
+    ZigZag:
+      type: object
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+
+    ProIndicatorData:
+      type: object
+      description: PRO tier indicators (transformed to TypeScript types)
+      properties:
+        keltnerChannels:
+          $ref: '#/components/schemas/KeltnerChannels'
+        tema:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Triple Exponential Moving Average values
+        hrma:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Hull-Rapid Moving Average values
+        smma:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+          description: Smoothed Moving Average values
+        zigzag:
+          $ref: '#/components/schemas/ZigZag'
+        momentumCandles:
+          type: array
+          items:
+            type: object
+          description: Momentum candle data
+
+    IndicatorMetadata:
+      type: object
+      required:
+        - symbol
+        - timeframe
+        - tier
+        - bars_returned
+      properties:
+        symbol:
+          type: string
+          example: "XAUUSD"
+        timeframe:
+          type: string
+          example: "H1"
+        tier:
+          $ref: '#/components/schemas/Tier'
+        bars_returned:
+          type: integer
+          description: Actual number of bars returned
+          example: 500
+
+    MT5IndicatorData:
+      type: object
+      required:
+        - ohlc
+        - horizontal
+        - diagonal
+        - fractals
+        - metadata
+      properties:
+        ohlc:
+          type: array
+          items:
+            $ref: '#/components/schemas/OHLCBar'
+        horizontal:
+          $ref: '#/components/schemas/HorizontalLines'
+        diagonal:
+          $ref: '#/components/schemas/DiagonalLines'
+        fractals:
+          $ref: '#/components/schemas/Fractals'
+        proIndicators:
+          type: object
+          description: Raw PRO indicators from MT5 (snake_case)
+        proIndicatorsTransformed:
+          $ref: '#/components/schemas/ProIndicatorData'
+        metadata:
+          $ref: '#/components/schemas/IndicatorMetadata'
+
+    IndicatorDataResponse:
+      type: object
+      required:
+        - success
+        - data
+        - tier
+        - requestedAt
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/MT5IndicatorData'
+        tier:
+          $ref: '#/components/schemas/Tier'
+        requestedAt:
+          type: string
+          format: date-time
+          description: Timestamp of request
+          example: "2025-12-09T12:00:00.000Z"
+
+    # Error Schemas
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error type
+          example: "Unauthorized"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "You must be logged in"
+
+    TierRestrictionErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - message
+        - tier
+        - upgradeRequired
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Tier restriction"
+        message:
+          type: string
+          example: "FREE tier cannot access this symbol. Upgrade to PRO for access."
+        tier:
+          $ref: '#/components/schemas/Tier'
+        accessibleSymbols:
+          type: array
+          items:
+            type: string
+          description: Symbols accessible by current tier
+        accessibleTimeframes:
+          type: array
+          items:
+            type: string
+          description: Timeframes accessible by current tier
+        upgradeRequired:
+          type: boolean
+          example: true
+        upgradeUrl:
+          type: string
+          example: "/pricing"
