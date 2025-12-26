@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 /**
@@ -206,25 +207,10 @@ export default function PrivacySettingsPage(): React.ReactElement {
                   public profile
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.showStats}
-                onClick={() => handleToggle('showStats')}
-                className={cn(
-                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2',
-                  settings.showStats
-                    ? 'bg-blue-600'
-                    : 'bg-gray-200 dark:bg-gray-700'
-                )}
-              >
-                <span
-                  className={cn(
-                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                    settings.showStats ? 'translate-x-5' : 'translate-x-0'
-                  )}
-                />
-              </button>
+              <Switch
+                checked={settings.showStats}
+                onCheckedChange={() => handleToggle('showStats')}
+              />
             </CardContent>
           </Card>
 
@@ -243,25 +229,10 @@ export default function PrivacySettingsPage(): React.ReactElement {
                   Not recommended for privacy reasons
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.showEmail}
-                onClick={() => handleToggle('showEmail')}
-                className={cn(
-                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2',
-                  settings.showEmail
-                    ? 'bg-blue-600'
-                    : 'bg-gray-200 dark:bg-gray-700'
-                )}
-              >
-                <span
-                  className={cn(
-                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                    settings.showEmail ? 'translate-x-5' : 'translate-x-0'
-                  )}
-                />
-              </button>
+              <Switch
+                checked={settings.showEmail}
+                onCheckedChange={() => handleToggle('showEmail')}
+              />
             </CardContent>
           </Card>
         </div>
