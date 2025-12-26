@@ -51,7 +51,35 @@ interface ErrorLogsResponse {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MOCK DATA (until error logging table is implemented)
+// MOCK DATA GENERATOR
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// ⚠️ DEVELOPMENT MODE: This endpoint returns mock/sample data.
+//
+// This is intentional for development and demo purposes.
+// The mock data simulates realistic error log patterns.
+//
+// PRODUCTION TODO: To implement real error logging:
+// 1. Create an ErrorLog table in Prisma schema:
+//    model ErrorLog {
+//      id          String   @id @default(cuid())
+//      type        String   // API_ERROR, DATABASE_ERROR, etc.
+//      message     String
+//      stackTrace  String?
+//      userId      String?
+//      userTier    String?
+//      endpoint    String?
+//      metadata    Json?
+//      createdAt   DateTime @default(now())
+//      @@index([type])
+//      @@index([userId])
+//      @@index([createdAt])
+//    }
+//
+// 2. Create a centralized error logging utility (lib/logging/error-logger.ts)
+// 3. Integrate error logging in API catch blocks and middleware
+// 4. Update this endpoint to query ErrorLog instead of mock data
+//
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function generateMockErrorLogs(
@@ -229,10 +257,15 @@ export async function GET(
 
     const { page, pageSize, type, tier } = validation.data;
 
-    // Generate mock data (replace with real data query in production)
+    // Generate mock data (see MOCK DATA GENERATOR section for production TODO)
     const data = generateMockErrorLogs(page, pageSize, type, tier);
 
-    return NextResponse.json(data);
+    // Add header to indicate mock data in development
+    return NextResponse.json(data, {
+      headers: {
+        'X-Data-Source': 'mock',
+      },
+    });
   } catch (error) {
     console.error('Admin error logs error:', error);
     return NextResponse.json(
