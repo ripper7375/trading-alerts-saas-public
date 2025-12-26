@@ -90,27 +90,51 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       getFraudAlertStats(),
     ]);
 
+    // Define the expected shape after prisma generate
+    interface AlertWithFields {
+      id: string;
+      userId: string;
+      severity: string;
+      pattern: string;
+      description: string;
+      country?: string | null;
+      paymentMethod?: string | null;
+      amount?: { toString(): string } | null;
+      currency?: string | null;
+      status: string;
+      ipAddress?: string | null;
+      resolution?: string | null;
+      notes?: string | null;
+      reviewedBy?: string | null;
+      reviewedAt?: Date | null;
+      createdAt: Date;
+      user?: { email: string; name: string | null };
+    }
+
     // Transform alerts for frontend
-    const alerts = alertsResult.alerts.map((alert) => ({
-      id: alert.id,
-      severity: alert.severity,
-      pattern: alert.pattern,
-      description: alert.description,
-      userId: alert.userId,
-      userEmail: alert.user.email,
-      userName: alert.user.name,
-      country: alert.country,
-      paymentMethod: alert.paymentMethod,
-      amount: alert.amount?.toString() || null,
-      currency: alert.currency,
-      status: alert.status,
-      ipAddress: alert.ipAddress,
-      resolution: alert.resolution,
-      notes: alert.notes,
-      reviewedBy: alert.reviewedBy,
-      reviewedAt: alert.reviewedAt?.toISOString() || null,
-      createdAt: alert.createdAt.toISOString(),
-    }));
+    const alerts = alertsResult.alerts.map((alertRaw) => {
+      const alert = alertRaw as unknown as AlertWithFields;
+      return {
+        id: alert.id,
+        severity: alert.severity,
+        pattern: alert.pattern,
+        description: alert.description,
+        userId: alert.userId,
+        userEmail: alert.user?.email || '',
+        userName: alert.user?.name || null,
+        country: alert.country || null,
+        paymentMethod: alert.paymentMethod || null,
+        amount: alert.amount?.toString() || null,
+        currency: alert.currency || null,
+        status: alert.status,
+        ipAddress: alert.ipAddress || null,
+        resolution: alert.resolution || null,
+        notes: alert.notes || null,
+        reviewedBy: alert.reviewedBy || null,
+        reviewedAt: alert.reviewedAt?.toISOString() || null,
+        createdAt: alert.createdAt.toISOString(),
+      };
+    });
 
     return NextResponse.json({
       alerts,

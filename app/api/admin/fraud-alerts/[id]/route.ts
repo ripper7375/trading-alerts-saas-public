@@ -33,7 +33,7 @@ const updateSchema = z.object({
  * @returns 500: Server error
  */
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
@@ -68,13 +68,21 @@ export async function GET(
       return NextResponse.json({ error: 'Alert not found' }, { status: 404 });
     }
 
+    // Cast to access fields that will exist after prisma generate
+    const alertData = alert as typeof alert & {
+      amount?: { toString(): string } | null;
+      createdAt: Date;
+      updatedAt: Date;
+      reviewedAt?: Date | null;
+    };
+
     return NextResponse.json({
       alert: {
         ...alert,
-        amount: alert.amount?.toString() || null,
-        createdAt: alert.createdAt.toISOString(),
-        updatedAt: alert.updatedAt.toISOString(),
-        reviewedAt: alert.reviewedAt?.toISOString() || null,
+        amount: alertData.amount?.toString() || null,
+        createdAt: alertData.createdAt.toISOString(),
+        updatedAt: alertData.updatedAt.toISOString(),
+        reviewedAt: alertData.reviewedAt?.toISOString() || null,
       },
     });
   } catch (error) {
@@ -168,13 +176,21 @@ export async function PATCH(
       },
     });
 
+    // Cast to access fields that will exist after prisma generate
+    const alertData = updatedAlert as typeof updatedAlert & {
+      amount?: { toString(): string } | null;
+      createdAt: Date;
+      updatedAt: Date;
+      reviewedAt?: Date | null;
+    } | null;
+
     return NextResponse.json({
       alert: {
         ...updatedAlert,
-        amount: updatedAlert?.amount?.toString() || null,
-        createdAt: updatedAlert?.createdAt.toISOString(),
-        updatedAt: updatedAlert?.updatedAt.toISOString(),
-        reviewedAt: updatedAlert?.reviewedAt?.toISOString() || null,
+        amount: alertData?.amount?.toString() || null,
+        createdAt: alertData?.createdAt.toISOString(),
+        updatedAt: alertData?.updatedAt.toISOString(),
+        reviewedAt: alertData?.reviewedAt?.toISOString() || null,
       },
       message: `Alert ${status.toLowerCase()} successfully`,
     });

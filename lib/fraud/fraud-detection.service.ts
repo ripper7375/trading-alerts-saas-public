@@ -14,11 +14,13 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
-import { FraudAlertSeverity, FraudAlertStatus } from '@prisma/client';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TYPES
+// TYPES (defined locally until Prisma migration is run)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export type FraudAlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type FraudAlertStatus = 'PENDING' | 'REVIEWED' | 'DISMISSED' | 'BLOCKED';
 
 export type FraudPattern =
   | 'MULTIPLE_3DAY_ATTEMPTS'
@@ -214,7 +216,8 @@ async function checkSuspiciousIPChange(
 export async function runFraudChecks(
   context: FraudCheckContext
 ): Promise<FraudCheckResult> {
-  const { userId, ipAddress, country, deviceFingerprint } = context;
+  const { userId, ipAddress, country } = context;
+  // deviceFingerprint is available in context for future use
 
   const alerts: FraudCheckResult['alerts'] = [];
 
@@ -307,6 +310,17 @@ export interface FraudAlertFilters {
   endDate?: Date;
 }
 
+interface FraudAlertWhereClause {
+  severity?: FraudAlertSeverity;
+  status?: FraudAlertStatus;
+  pattern?: FraudPattern;
+  userId?: string;
+  createdAt?: {
+    gte?: Date;
+    lte?: Date;
+  };
+}
+
 /**
  * Get fraud alerts for admin dashboard
  */
@@ -315,7 +329,7 @@ export async function getFraudAlerts(
   page = 1,
   pageSize = 20
 ) {
-  const where: Record<string, unknown> = {};
+  const where: FraudAlertWhereClause = {};
 
   if (filters.severity) where.severity = filters.severity;
   if (filters.status) where.status = filters.status;
@@ -325,10 +339,10 @@ export async function getFraudAlerts(
   if (filters.startDate || filters.endDate) {
     where.createdAt = {};
     if (filters.startDate) {
-      (where.createdAt as Record<string, Date>).gte = filters.startDate;
+      where.createdAt.gte = filters.startDate;
     }
     if (filters.endDate) {
-      (where.createdAt as Record<string, Date>).lte = filters.endDate;
+      where.createdAt.lte = filters.endDate;
     }
   }
 
@@ -366,31 +380,29 @@ export async function getFraudAlerts(
  * Get fraud alert statistics
  */
 export async function getFraudAlertStats() {
-  const [total, bySeverity, byStatus, pending] = await Promise.all([
+  const [total, bySeverity, pending] = await Promise.all([
     prisma.fraudAlert.count(),
     prisma.fraudAlert.groupBy({
       by: ['severity'],
       _count: { severity: true },
-    }),
-    prisma.fraudAlert.groupBy({
-      by: ['status'],
-      _count: { status: true },
     }),
     prisma.fraudAlert.count({
       where: { status: 'PENDING' },
     }),
   ]);
 
-  const severityCounts = {
+  const severityCounts: Record<FraudAlertSeverity, number> = {
     CRITICAL: 0,
     HIGH: 0,
     MEDIUM: 0,
     LOW: 0,
   };
 
-  bySeverity.forEach((item) => {
-    severityCounts[item.severity] = item._count.severity;
-  });
+  for (const item of bySeverity) {
+    const severity = (item as { severity: FraudAlertSeverity }).severity;
+    const count = (item as { _count: { severity: number } })._count.severity;
+    severityCounts[severity] = count;
+  }
 
   return {
     total,
