@@ -111,16 +111,31 @@ export function Header({ user }: HeaderProps): React.ReactElement {
             </Badge>
 
             {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              {/* Notification dot - show when there are unread notifications */}
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {/* Notification dot - show when there are unread notifications */}
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No new notifications</p>
+                  <p className="text-xs mt-1">
+                    You&apos;ll be notified when your alerts are triggered
+                  </p>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Menu */}
             <DropdownMenu>
