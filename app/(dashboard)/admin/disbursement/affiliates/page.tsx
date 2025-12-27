@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
+import { AffiliatesTableSkeleton } from '@/components/admin/disbursement-skeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -189,12 +190,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Loading payable affiliates">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" aria-hidden="true" />
-        <span className="sr-only">Loading payable affiliates...</span>
-      </div>
-    );
+    return <AffiliatesTableSkeleton />;
   }
 
   const readyAffiliates = affiliates.filter((a) => a.readyForPayout);

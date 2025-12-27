@@ -3,6 +3,10 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 
+import {
+  TransactionsPageSkeleton,
+  TransactionsTableSkeleton,
+} from '@/components/admin/disbursement-skeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -214,10 +218,7 @@ function TransactionsPageContent(): React.ReactElement {
 
       {/* Transactions Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]" role="status" aria-label="Loading transactions">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" aria-hidden="true" />
-          <span className="sr-only">Loading transactions...</span>
-        </div>
+        <TransactionsTableSkeleton />
       ) : transactions.length > 0 ? (
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-0">
@@ -416,14 +417,7 @@ function TransactionsPageContent(): React.ReactElement {
  */
 export default function TransactionsPage(): React.ReactElement {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Loading transactions page">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" aria-hidden="true" />
-          <span className="sr-only">Loading transactions page...</span>
-        </div>
-      }
-    >
+    <Suspense fallback={<TransactionsPageSkeleton />}>
       <TransactionsPageContent />
     </Suspense>
   );

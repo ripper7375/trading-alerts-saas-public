@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
 
+import { BatchesTableSkeleton } from '@/components/admin/disbursement-skeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -344,10 +345,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       {/* Batches Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]" role="status" aria-label="Loading payment batches">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" aria-hidden="true" />
-          <span className="sr-only">Loading payment batches...</span>
-        </div>
+        <BatchesTableSkeleton />
       ) : batches.length > 0 ? (
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-0">
