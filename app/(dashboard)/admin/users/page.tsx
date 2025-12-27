@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/utils';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -71,6 +73,10 @@ export default function UsersPage(): React.ReactElement {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Toast notifications
+  const { success, error: showError } = useToast();
 
   // Filters
   const [search, setSearch] = useState('');
@@ -143,16 +149,75 @@ export default function UsersPage(): React.ReactElement {
     setPage(1);
   };
 
+  const handleExportCSV = async (): Promise<void> => {
+    try {
+      setIsExporting(true);
+
+      // Build query params with current filters
+      const params = new URLSearchParams({
+        tier: tierFilter,
+        sortBy,
+        sortOrder,
+      });
+
+      if (debouncedSearch) {
+        params.set('search', debouncedSearch);
+      }
+
+      const response = await fetch(
+        `/api/admin/users/export?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to export users');
+      }
+
+      // Get the CSV blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      success(
+        'Export Complete',
+        `Successfully exported ${total} users to CSV`
+      );
+    } catch (err) {
+      showError(
+        'Export Failed',
+        err instanceof Error ? err.message : 'Unknown error'
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">
-          User Management
-        </h1>
-        <p className="text-gray-400 mt-1">
-          View and manage all registered users
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            User Management
+          </h1>
+          <p className="text-gray-400 mt-1">
+            View and manage all registered users
+          </p>
+        </div>
+        <Button
+          onClick={() => void handleExportCSV()}
+          disabled={isExporting || isLoading || users.length === 0}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          {isExporting ? 'Exporting...' : 'Export CSV'}
+        </Button>
       </div>
 
       {/* Filters */}
