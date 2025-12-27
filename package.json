@@ -12,6 +12,7 @@
     "lint:fix": "next lint --fix",
     "type-check": "prisma generate && tsc --noEmit",
     "test": "jest",
+    "test:types": "tsd",
     "test:quick": "jest --bail --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --coverageReporters=text --coverageReporters=json-summary --coverageReporters=lcov",
@@ -127,6 +128,7 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
+    "tsd": "^0.33.0",
     "typescript": "^5.3.2",
     "undici": "^6.19.2"
   },
@@ -137,6 +139,9 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
+  },
+  "tsd": {
+    "directory": "__tests__/types"
   },
   "engines": {
     "node": ">=20.0.0",
