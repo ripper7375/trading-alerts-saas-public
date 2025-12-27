@@ -80,7 +80,7 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
-  const tierConfig = TIER_CONFIG[userTier];
+  const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
 
   // Mock usage data - in real app, fetch from API
   const [usageStats] = useState<UsageStats>({

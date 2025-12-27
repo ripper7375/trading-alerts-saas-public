@@ -14,11 +14,12 @@
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * User tier levels - re-exported from lib/tier-config.ts
+ * User tier levels - imported and re-exported from lib/tier-config.ts
  *
  * Note: ENTERPRISE tier removed in V7
  */
-export type { Tier } from '@/lib/tier-config';
+import type { Tier } from '@/lib/tier-config';
+export type { Tier };
 
 /**
  * Trial status for 7-day PRO trial
