@@ -11,6 +11,7 @@ import {
   TransactionsPageSkeleton,
   TransactionsTableSkeleton,
 } from '@/components/admin/disbursement-skeletons';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -64,11 +65,11 @@ interface Pagination {
 function TransactionsPageContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -99,11 +100,11 @@ function TransactionsPageContent(): React.ReactElement {
       setTransactions(data.transactions || []);
       setPagination(data.pagination || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      toast.error('Failed to fetch transactions', err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, currentOffset]);
+  }, [statusFilter, currentOffset, toast]);
 
   useEffect(() => {
     void fetchTransactions();
@@ -212,15 +213,6 @@ function TransactionsPageContent(): React.ReactElement {
           </Button>
         </div>
       </div>
-
-      {/* Error Message */}
-      {error && (
-        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
-          <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Status Filter */}
       <Card className="bg-gray-800 border-gray-700">

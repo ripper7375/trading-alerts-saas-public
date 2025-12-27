@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { PayableAffiliate } from '@/types/disbursement';
 
@@ -51,8 +52,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const toast = useToast();
 
   const fetchAffiliates = useCallback(async (): Promise<void> => {
     try {
@@ -68,11 +68,11 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       setAffiliates(data.affiliates || []);
       setSummary(data.summary || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      toast.error('Failed to fetch affiliates', err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     void fetchAffiliates();
@@ -110,12 +110,10 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
     try {
       setIsProcessing(true);
-      setError(null);
-      setSuccessMessage(null);
 
       // Optimistic update: Remove affiliate from list immediately
       setAffiliates((prev) => prev.filter((a) => a.id !== affiliateId));
-      setSuccessMessage(`Processing payment for ${affiliateName}...`);
+      toast.info('Processing payment', `Processing payment for ${affiliateName}...`);
 
       const response = await fetch('/api/disbursement/pay', {
         method: 'POST',
@@ -129,14 +127,13 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       }
 
       const data = await response.json();
-      setSuccessMessage(`Payment successful! Batch ID: ${data.result.batchId}`);
+      toast.success('Payment successful', `Batch ID: ${data.result.batchId}`);
       // Refresh to get updated data
       void fetchAffiliates();
     } catch (err) {
       // Rollback on error
       setAffiliates(previousAffiliates);
-      setSuccessMessage(null);
-      setError(err instanceof Error ? err.message : 'Payment failed');
+      toast.error('Payment failed', err instanceof Error ? err.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
     }
@@ -152,15 +149,13 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
     try {
       setIsProcessing(true);
-      setError(null);
-      setSuccessMessage(null);
 
       // Optimistic update: Remove selected affiliates from list immediately
       setAffiliates((prev) =>
         prev.filter((a) => !selectedAffiliates.has(a.id))
       );
       setSelectedAffiliates(new Set());
-      setSuccessMessage(`Creating batch for ${selectedCount} affiliates...`);
+      toast.info('Creating batch', `Creating batch for ${selectedCount} affiliates...`);
 
       const response = await fetch('/api/disbursement/batches', {
         method: 'POST',
@@ -176,15 +171,14 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       }
 
       const data = await response.json();
-      setSuccessMessage(`Batch created! ID: ${data.batch.id}`);
+      toast.success('Batch created', `Batch ID: ${data.batch.id}`);
       // Refresh to get updated data
       void fetchAffiliates();
     } catch (err) {
       // Rollback on error
       setAffiliates(previousAffiliates);
       setSelectedAffiliates(new Set(selectedIds));
-      setSuccessMessage(null);
-      setError(err instanceof Error ? err.message : 'Failed to create batch');
+      toast.error('Failed to create batch', err instanceof Error ? err.message : 'Failed to create batch');
     } finally {
       setIsProcessing(false);
     }
@@ -232,23 +226,6 @@ export default function PayableAffiliatesPage(): React.ReactElement {
           )}
         </div>
       </div>
-
-      {/* Messages */}
-      {error && (
-        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
-          <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {successMessage && (
-        <Card className="bg-green-900/50 border-green-600" role="status" aria-live="polite">
-          <CardContent className="py-4">
-            <p className="text-green-300">{successMessage}</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Summary Cards */}
       {summary && (

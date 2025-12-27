@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type {
   PaymentBatchStatus,
@@ -83,9 +84,8 @@ export default function PaymentBatchesPage(): React.ReactElement {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const toast = useToast();
   const [preview, setPreview] = useState<{
     items: BatchPreviewItem[];
     summary: BatchPreviewSummary;
@@ -111,11 +111,11 @@ export default function PaymentBatchesPage(): React.ReactElement {
       const data = await response.json();
       setBatches(data.batches || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      toast.error('Failed to fetch batches', err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, toast]);
 
   useEffect(() => {
     void fetchBatches();
@@ -169,7 +169,6 @@ export default function PaymentBatchesPage(): React.ReactElement {
   const handlePreviewBatch = async (): Promise<void> => {
     try {
       setIsProcessing(true);
-      setError(null);
 
       const response = await fetch('/api/disbursement/batches/preview', {
         method: 'POST',
@@ -193,7 +192,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
       });
       setShowCreateModal(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to preview batch');
+      toast.error('Failed to preview batch', err instanceof Error ? err.message : 'Failed to preview batch');
     } finally {
       setIsProcessing(false);
     }
@@ -202,8 +201,6 @@ export default function PaymentBatchesPage(): React.ReactElement {
   const handleCreateBatch = async (): Promise<void> => {
     try {
       setIsProcessing(true);
-      setError(null);
-      setSuccessMessage(null);
 
       const response = await fetch('/api/disbursement/batches', {
         method: 'POST',
@@ -217,12 +214,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
       }
 
       const data = await response.json();
-      setSuccessMessage(`Batch created: ${data.batch.batchNumber}`);
+      toast.success('Batch created', `Batch number: ${data.batch.batchNumber}`);
       setShowCreateModal(false);
       setPreview(null);
       void fetchBatches();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create batch');
+      toast.error('Failed to create batch', err instanceof Error ? err.message : 'Failed to create batch');
     } finally {
       setIsProcessing(false);
     }
@@ -236,8 +233,6 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
     try {
       setIsProcessing(true);
-      setError(null);
-      setSuccessMessage(null);
 
       // Optimistic update: Change status to PROCESSING immediately
       setBatches((prev) =>
@@ -245,7 +240,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
           b.id === batchId ? { ...b, status: 'PROCESSING' as PaymentBatchStatus } : b
         )
       );
-      setSuccessMessage(`Executing ${batchNumber}...`);
+      toast.info('Executing batch', `Executing ${batchNumber}...`);
 
       const response = await fetch(
         `/api/disbursement/batches/${batchId}/execute`,
@@ -260,16 +255,16 @@ export default function PaymentBatchesPage(): React.ReactElement {
       }
 
       const data = await response.json();
-      setSuccessMessage(
-        `Batch executed: ${data.result.successCount} succeeded, ${data.result.failedCount} failed`
+      toast.success(
+        'Batch executed',
+        `${data.result.successCount} succeeded, ${data.result.failedCount} failed`
       );
       // Refresh to get updated data
       void fetchBatches();
     } catch (err) {
       // Rollback on error
       setBatches(previousBatches);
-      setSuccessMessage(null);
-      setError(err instanceof Error ? err.message : 'Failed to execute batch');
+      toast.error('Failed to execute batch', err instanceof Error ? err.message : 'Failed to execute batch');
     } finally {
       setIsProcessing(false);
     }
@@ -285,12 +280,10 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
     try {
       setIsProcessing(true);
-      setError(null);
-      setSuccessMessage(null);
 
       // Optimistic update: Remove batch from list immediately
       setBatches((prev) => prev.filter((b) => b.id !== batchId));
-      setSuccessMessage(`Deleting ${batchNumber}...`);
+      toast.info('Deleting batch', `Deleting ${batchNumber}...`);
 
       const response = await fetch(`/api/disbursement/batches/${batchId}`, {
         method: 'DELETE',
@@ -301,14 +294,13 @@ export default function PaymentBatchesPage(): React.ReactElement {
         throw new Error(data.error || 'Failed to delete batch');
       }
 
-      setSuccessMessage('Batch deleted successfully');
+      toast.success('Batch deleted', 'Batch deleted successfully');
       // Refresh to get updated data
       void fetchBatches();
     } catch (err) {
       // Rollback on error
       setBatches(previousBatches);
-      setSuccessMessage(null);
-      setError(err instanceof Error ? err.message : 'Failed to delete batch');
+      toast.error('Failed to delete batch', err instanceof Error ? err.message : 'Failed to delete batch');
     } finally {
       setIsProcessing(false);
     }
@@ -364,23 +356,6 @@ export default function PaymentBatchesPage(): React.ReactElement {
           </Button>
         </div>
       </div>
-
-      {/* Messages */}
-      {error && (
-        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
-          <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {successMessage && (
-        <Card className="bg-green-900/50 border-green-600" role="status" aria-live="polite">
-          <CardContent className="py-4">
-            <p className="text-green-300">{successMessage}</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Status Filter */}
       <Card className="bg-gray-800 border-gray-700">
