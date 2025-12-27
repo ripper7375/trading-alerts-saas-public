@@ -148,7 +148,7 @@ Should be fixed for production quality:
 | 19   | Real-time Polling  | Auto-refresh dashboard data                  | Low      |
 | 19   | Status Badges      | Extract reusable status badge components     | Low      |
 
-### Infrastructure (6)
+### Infrastructure (5)
 
 | Part | Enhancement           | Description                              | Priority |
 | ---- | --------------------- | ---------------------------------------- | -------- |
