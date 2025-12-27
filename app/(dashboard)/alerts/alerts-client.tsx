@@ -92,6 +92,8 @@ export function AlertsClient({
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  // Track which alerts are currently being toggled (pause/resume)
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   // Get unique symbols for filter dropdown
   const symbols = useMemo(
@@ -137,10 +139,13 @@ export function AlertsClient({
     [alerts]
   );
 
-  // Handle pause/resume alert
+  // Handle pause/resume alert with loading state
   const handleTogglePause = async (alertId: string): Promise<void> => {
     const alert = alerts.find((a) => a.id === alertId);
     if (!alert) return;
+
+    // Add to toggling set
+    setTogglingIds((prev) => new Set(prev).add(alertId));
 
     try {
       const response = await fetch(`/api/alerts/${alertId}`, {
@@ -164,25 +169,54 @@ export function AlertsClient({
       }
     } catch (error) {
       console.error('Failed to toggle alert:', error);
+    } finally {
+      // Remove from toggling set
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
     }
   };
 
-  // Handle delete alert
+  // Check if alert is being toggled
+  const isToggling = (alertId: string): boolean => togglingIds.has(alertId);
+
+  // Handle delete alert with optimistic update
   const handleDelete = async (): Promise<void> => {
     if (!alertToDelete) return;
 
+    // Store alert for potential rollback
+    const deletedAlert = alertToDelete;
+    const alertIndex = alerts.findIndex((a) => a.id === deletedAlert.id);
+
+    // Optimistically remove from UI immediately
+    setAlerts((prev) => prev.filter((a) => a.id !== deletedAlert.id));
+    setDeleteModalOpen(false);
+    setAlertToDelete(null);
+
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/alerts/${alertToDelete.id}`, {
+      const response = await fetch(`/api/alerts/${deletedAlert.id}`, {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        setAlerts((prev) => prev.filter((a) => a.id !== alertToDelete.id));
-        setDeleteModalOpen(false);
-        setAlertToDelete(null);
+      if (!response.ok) {
+        // Rollback on failure - restore alert at original position
+        setAlerts((prev) => {
+          const newAlerts = [...prev];
+          newAlerts.splice(alertIndex, 0, deletedAlert);
+          return newAlerts;
+        });
+        console.error('Failed to delete alert: Server error');
       }
     } catch (error) {
+      // Rollback on network error - restore alert at original position
+      setAlerts((prev) => {
+        const newAlerts = [...prev];
+        newAlerts.splice(alertIndex, 0, deletedAlert);
+        return newAlerts;
+      });
       console.error('Failed to delete alert:', error);
     } finally {
       setIsDeleting(false);
@@ -307,8 +341,9 @@ export function AlertsClient({
                   onClick={() => handleTogglePause(alert.id)}
                   variant="outline"
                   size="sm"
+                  disabled={isToggling(alert.id)}
                 >
-                  Pause
+                  {isToggling(alert.id) ? 'Pausing...' : 'Pause'}
                 </Button>
               )}
 
@@ -317,8 +352,9 @@ export function AlertsClient({
                   onClick={() => handleTogglePause(alert.id)}
                   className="bg-green-600 hover:bg-green-700 text-white"
                   size="sm"
+                  disabled={isToggling(alert.id)}
                 >
-                  Resume
+                  {isToggling(alert.id) ? 'Resuming...' : 'Resume'}
                 </Button>
               )}
 
