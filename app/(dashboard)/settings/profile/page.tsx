@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useBeforeUnload } from '@/hooks/use-unsaved-changes';
 
 /**
  * Profile Settings Page
@@ -90,16 +91,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
   }, [formData.username]);
 
   // Warn before leaving with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  useBeforeUnload(hasUnsavedChanges, 'You have unsaved profile changes. Are you sure you want to leave?');
 
   // Handle input changes
   const handleInputChange = useCallback(

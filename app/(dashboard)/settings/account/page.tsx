@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
+import { useBeforeUnload } from '@/hooks/use-unsaved-changes';
 import { ToastContainer } from '@/components/ui/toast-container';
 import {
   Eye,
@@ -156,6 +157,15 @@ export default function AccountSettingsPage(): React.ReactElement {
   const passwordStrength = newPassword
     ? getPasswordStrength(newPassword)
     : null;
+
+  // Check if password form has unsaved changes
+  const hasPasswordChanges = useMemo(
+    () => currentPassword.length > 0 || newPassword.length > 0 || confirmPassword.length > 0,
+    [currentPassword, newPassword, confirmPassword]
+  );
+
+  // Warn before leaving with unsaved password changes
+  useBeforeUnload(hasPasswordChanges, 'You have unsaved password changes. Are you sure you want to leave?');
 
   // Toggle password visibility
   const togglePasswordVisibility = (field: keyof PasswordVisibility): void => {
