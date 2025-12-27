@@ -12,11 +12,21 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Filter, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  Filter,
+  RefreshCw,
+  Download,
+  CheckSquare,
+  XSquare,
+  Trash2,
+} from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FraudAlertCard } from '@/components/admin/FraudAlertCard';
+import { StandardPagination } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 
@@ -84,13 +94,23 @@ export default function FraudAlertsPage(): React.ReactElement {
     severity: 'ALL',
     status: 'ALL',
   });
-  const { toasts, error: showError, removeToast } = useToast();
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize] = useState(10);
+
+  // Bulk selection state
+  const [selectedAlerts, setSelectedAlerts] = useState<Set<string>>(new Set());
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+
+  const { toasts, error: showError, success, removeToast } = useToast();
 
   // Fetch alerts from API
   const fetchAlerts = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      // Build query params for server-side filtering
+      // Build query params for server-side filtering and pagination
       const params = new URLSearchParams();
       if (filter.severity !== 'ALL') {
         params.set('severity', filter.severity);
@@ -98,6 +118,8 @@ export default function FraudAlertsPage(): React.ReactElement {
       if (filter.status !== 'ALL') {
         params.set('status', filter.status);
       }
+      params.set('page', String(currentPage));
+      params.set('pageSize', String(pageSize));
 
       const res = await fetch(`/api/admin/fraud-alerts?${params.toString()}`);
 
@@ -119,13 +141,16 @@ export default function FraudAlertsPage(): React.ReactElement {
       const data: FraudAlertsResponse = await res.json();
       setAlerts(data.alerts);
       setStats(data.stats);
+      setTotalPages(data.pagination?.totalPages || 1);
+      // Clear selection when data changes
+      setSelectedAlerts(new Set());
     } catch (err) {
       console.error('Failed to fetch fraud alerts:', err);
       showError('Failed to load fraud alerts', 'Please try again later.');
     } finally {
       setLoading(false);
     }
-  }, [filter.severity, filter.status, showError]);
+  }, [filter.severity, filter.status, currentPage, pageSize, showError]);
 
   // Fetch on mount and when filters change
   useEffect(() => {
@@ -135,6 +160,135 @@ export default function FraudAlertsPage(): React.ReactElement {
   // Handle refresh button click
   const handleRefresh = (): void => {
     fetchAlerts();
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number): void => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter.severity, filter.status]);
+
+  // Toggle single alert selection
+  const toggleAlertSelection = (alertId: string): void => {
+    setSelectedAlerts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(alertId)) {
+        newSet.delete(alertId);
+      } else {
+        newSet.add(alertId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all alerts on current page
+  const selectAllAlerts = (): void => {
+    if (selectedAlerts.size === alerts.length) {
+      setSelectedAlerts(new Set());
+    } else {
+      setSelectedAlerts(new Set(alerts.map((a) => a.id)));
+    }
+  };
+
+  // Export to CSV
+  const handleExportCSV = (): void => {
+    if (alerts.length === 0) {
+      showError('No data to export', 'There are no alerts to export.');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'ID',
+      'Severity',
+      'Pattern',
+      'Description',
+      'User ID',
+      'User Email',
+      'Country',
+      'Payment Method',
+      'Amount',
+      'Currency',
+      'Status',
+      'Created At',
+    ];
+
+    // Map alerts to CSV rows
+    const rows = alerts.map((alert) => [
+      alert.id,
+      alert.severity,
+      alert.pattern,
+      `"${alert.description.replace(/"/g, '""')}"`,
+      alert.userId,
+      alert.userEmail,
+      alert.country || '',
+      alert.paymentMethod || '',
+      alert.amount || '',
+      alert.currency || '',
+      alert.status,
+      alert.createdAt,
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `fraud-alerts-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    success('Export Complete', `Exported ${alerts.length} alerts to CSV.`);
+  };
+
+  // Bulk action handler
+  const handleBulkAction = async (
+    action: 'review' | 'dismiss' | 'delete'
+  ): Promise<void> => {
+    if (selectedAlerts.size === 0) {
+      showError('No alerts selected', 'Please select at least one alert.');
+      return;
+    }
+
+    const actionLabel = action === 'review' ? 'reviewed' : action === 'dismiss' ? 'dismissed' : 'deleted';
+
+    setIsBulkActionLoading(true);
+    try {
+      const res = await fetch('/api/admin/fraud-alerts/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          alertIds: Array.from(selectedAlerts),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to perform bulk action');
+      }
+
+      const result = await res.json();
+      success(
+        'Bulk Action Complete',
+        `${result.updated || selectedAlerts.size} alerts ${actionLabel}.`
+      );
+      setSelectedAlerts(new Set());
+      fetchAlerts();
+    } catch (err) {
+      console.error('Bulk action failed:', err);
+      showError('Bulk action failed', 'Please try again later.');
+    } finally {
+      setIsBulkActionLoading(false);
+    }
   };
 
   return (
@@ -147,12 +301,18 @@ export default function FraudAlertsPage(): React.ReactElement {
             Monitor and manage suspicious payment activities
           </p>
         </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-          />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCSV} disabled={loading}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+            />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats cards */}
@@ -248,6 +408,57 @@ export default function FraudAlertsPage(): React.ReactElement {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions Bar */}
+      {alerts.length > 0 && (
+        <Card className="mb-6">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+            <div className="flex items-center gap-4">
+              <Checkbox
+                checked={selectedAlerts.size === alerts.length && alerts.length > 0}
+                onCheckedChange={selectAllAlerts}
+                aria-label="Select all alerts"
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedAlerts.size > 0
+                  ? `${selectedAlerts.size} alert${selectedAlerts.size > 1 ? 's' : ''} selected`
+                  : 'Select alerts for bulk actions'}
+              </span>
+            </div>
+            {selectedAlerts.size > 0 && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction('review')}
+                  disabled={isBulkActionLoading}
+                >
+                  <CheckSquare className="mr-2 h-4 w-4" />
+                  Mark Reviewed
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction('dismiss')}
+                  disabled={isBulkActionLoading}
+                >
+                  <XSquare className="mr-2 h-4 w-4" />
+                  Dismiss
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleBulkAction('delete')}
+                  disabled={isBulkActionLoading}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Alerts list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -269,11 +480,35 @@ export default function FraudAlertsPage(): React.ReactElement {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {alerts.map((alert) => (
-            <FraudAlertCard key={alert.id} alert={alert} />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {alerts.map((alert) => (
+              <div key={alert.id} className="flex items-start gap-3">
+                <Checkbox
+                  checked={selectedAlerts.has(alert.id)}
+                  onCheckedChange={() => toggleAlertSelection(alert.id)}
+                  className="mt-4"
+                  aria-label={`Select alert ${alert.id}`}
+                />
+                <div className="flex-1">
+                  <FraudAlertCard alert={alert} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <StandardPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                disabled={loading}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Toast notifications */}
