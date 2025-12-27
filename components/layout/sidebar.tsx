@@ -117,11 +117,11 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
   };
 
   return (
-    <div className="flex h-full flex-col border-r bg-white dark:bg-gray-800 dark:border-gray-700">
+    <div className="flex h-full flex-col border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-background))]">
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         <div className="mb-4">
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-[hsl(var(--sidebar-muted-foreground))]">
             Main Menu
           </p>
         </div>
@@ -138,8 +138,8 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active
-                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
-                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
+                  ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))]'
+                  : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]',
                 !accessible && 'opacity-60 cursor-pointer'
               )}
             >
@@ -147,8 +147,8 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
                 className={cn(
                   'h-5 w-5 shrink-0',
                   active
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                    ? 'text-[hsl(var(--sidebar-primary))]'
+                    : 'text-[hsl(var(--sidebar-muted-foreground))] group-hover:text-[hsl(var(--sidebar-foreground))]'
                 )}
               />
               <span className="flex-1">{item.name}</span>
@@ -156,7 +156,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
               {/* Show lock icon or PRO badge for PRO-only items when user is FREE */}
               {item.tier === 'PRO' && !accessible && (
                 <div className="flex items-center gap-1">
-                  <Lock className="h-3.5 w-3.5 text-gray-400" />
+                  <Lock className="h-3.5 w-3.5 text-[hsl(var(--sidebar-muted-foreground))]" />
                   <Badge
                     variant="secondary"
                     className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
@@ -187,7 +187,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
       )}
 
       {/* Bottom navigation */}
-      <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-4 space-y-1">
+      <div className="border-t border-[hsl(var(--sidebar-border))] px-3 py-4 space-y-1">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -199,16 +199,16 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active
-                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
-                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                  ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))]'
+                  : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'
               )}
             >
               <Icon
                 className={cn(
                   'h-5 w-5 shrink-0',
                   active
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                    ? 'text-[hsl(var(--sidebar-primary))]'
+                    : 'text-[hsl(var(--sidebar-muted-foreground))] group-hover:text-[hsl(var(--sidebar-foreground))]'
                 )}
               />
               <span>{item.name}</span>
