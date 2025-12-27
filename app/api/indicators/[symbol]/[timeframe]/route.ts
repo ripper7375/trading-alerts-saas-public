@@ -6,6 +6,11 @@
  * Includes PRO indicators (Keltner, TEMA, HRMA, SMMA, ZigZag, Momentum)
  * transformed to type-safe TypeScript types.
  *
+ * Features:
+ * - Tier-based rate limiting (60/hour FREE, 300/hour PRO)
+ * - Timeframe-specific caching with smart TTL
+ * - Tier-based indicator filtering
+ *
  * @module app/api/indicators/[symbol]/[timeframe]/route
  */
 
@@ -20,6 +25,19 @@ import {
 } from '@/lib/api/mt5-client';
 import { transformProIndicators } from '@/lib/api/mt5-transform';
 import { authOptions } from '@/lib/auth/auth-options';
+import {
+  getCachedIndicatorData,
+  setCachedIndicatorData,
+} from '@/lib/cache/cache-manager';
+import {
+  filterIndicatorData,
+  getIndicatorUpgradeInfo,
+} from '@/lib/indicator-filter';
+import {
+  checkTierRateLimit,
+  getRateLimitHeaders,
+  type RateLimitResult,
+} from '@/lib/rate-limit';
 import {
   FREE_SYMBOLS,
   FREE_TIMEFRAMES,
@@ -46,7 +64,34 @@ interface IndicatorDataResponse {
     proIndicatorsTransformed: ProIndicatorData;
   };
   tier: Tier;
+  cached: boolean;
   requestedAt: string;
+  upgrade?: {
+    required: boolean;
+    message: string;
+    locked: string[];
+    tier: 'PRO';
+    pricing: {
+      monthly: string;
+      yearly: string;
+      trial: string;
+    };
+  };
+}
+
+interface RateLimitErrorResponse {
+  success: boolean;
+  error: string;
+  message: string;
+  limit: number;
+  remaining: number;
+  reset: string;
+  upgrade?: {
+    tier: 'PRO';
+    newLimit: number;
+    price: string;
+    trial: string;
+  };
 }
 
 interface ErrorResponse {
@@ -176,6 +221,8 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
+  let rateLimitResult: RateLimitResult | null = null;
+
   try {
     //───────────────────────────────────────────────────────
     // STEP 1: Authentication Check
@@ -194,21 +241,59 @@ export async function GET(
     }
 
     //───────────────────────────────────────────────────────
-    // STEP 2: Extract Parameters
+    // STEP 2: Get User Tier & Apply Rate Limiting
+    //───────────────────────────────────────────────────────
+    const userTier = (session.user.tier as Tier) || 'FREE';
+
+    // Apply tier-specific rate limit (60/hour FREE, 300/hour PRO)
+    rateLimitResult = await checkTierRateLimit(session.user.id, userTier);
+
+    if (!rateLimitResult.success) {
+      const rateLimitResponse: RateLimitErrorResponse = {
+        success: false,
+        error: 'Rate limit exceeded',
+        message:
+          userTier === 'FREE'
+            ? 'Free tier: 60 requests per hour. Upgrade to Pro for 300 requests/hour.'
+            : 'Pro tier: 300 requests per hour limit reached.',
+        limit: rateLimitResult.limit,
+        remaining: 0,
+        reset: new Date(rateLimitResult.reset * 1000).toISOString(),
+        upgrade:
+          userTier === 'FREE'
+            ? {
+                tier: 'PRO',
+                newLimit: 300,
+                price: '$29/month or $290/year',
+                trial: '7-day free trial available',
+              }
+            : undefined,
+      };
+
+      return NextResponse.json(rateLimitResponse, {
+        status: 429,
+        headers: getRateLimitHeaders(rateLimitResult),
+      });
+    }
+
+    //───────────────────────────────────────────────────────
+    // STEP 3: Extract Parameters
     //───────────────────────────────────────────────────────
     const { symbol, timeframe } = await params;
     const upperSymbol = symbol.toUpperCase();
     const upperTimeframe = timeframe.toUpperCase();
 
-    // Get bars parameter from query string (default: 1000)
+    // Get bars and indicators from query string
     const { searchParams } = new URL(request.url);
     const barsParam = searchParams.get('bars');
     const bars = barsParam
       ? Math.min(Math.max(parseInt(barsParam, 10) || 1000, 100), 5000)
       : 1000;
+    const requestedIndicators =
+      searchParams.get('indicators')?.split(',').filter(Boolean) || [];
 
     //───────────────────────────────────────────────────────
-    // STEP 3: Validate Symbol
+    // STEP 4: Validate Symbol
     //───────────────────────────────────────────────────────
     if (!isValidSymbol(upperSymbol)) {
       return NextResponse.json(
@@ -217,12 +302,15 @@ export async function GET(
           error: 'Invalid symbol',
           message: `Symbol ${upperSymbol} is not a valid trading symbol. Valid symbols: ${ALL_SYMBOLS.join(', ')}`,
         } as ErrorResponse,
-        { status: 400 }
+        {
+          status: 400,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
       );
     }
 
     //───────────────────────────────────────────────────────
-    // STEP 4: Validate Timeframe
+    // STEP 5: Validate Timeframe
     //───────────────────────────────────────────────────────
     if (!isValidTimeframe(upperTimeframe)) {
       return NextResponse.json(
@@ -231,14 +319,12 @@ export async function GET(
           error: 'Invalid timeframe',
           message: `Timeframe ${upperTimeframe} is not valid. Valid timeframes: ${ALL_TIMEFRAMES.join(', ')}`,
         } as ErrorResponse,
-        { status: 400 }
+        {
+          status: 400,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
       );
     }
-
-    //───────────────────────────────────────────────────────
-    // STEP 5: Get User Tier
-    //───────────────────────────────────────────────────────
-    const userTier = (session.user.tier as Tier) || 'FREE';
 
     //───────────────────────────────────────────────────────
     // STEP 6: Validate Tier Access - Symbol
@@ -254,7 +340,10 @@ export async function GET(
         upgradeUrl: '/pricing',
       };
 
-      return NextResponse.json(errorResponse, { status: 403 });
+      return NextResponse.json(errorResponse, {
+        status: 403,
+        headers: getRateLimitHeaders(rateLimitResult),
+      });
     }
 
     //───────────────────────────────────────────────────────
@@ -271,11 +360,65 @@ export async function GET(
         upgradeUrl: '/pricing',
       };
 
-      return NextResponse.json(errorResponse, { status: 403 });
+      return NextResponse.json(errorResponse, {
+        status: 403,
+        headers: getRateLimitHeaders(rateLimitResult),
+      });
     }
 
     //───────────────────────────────────────────────────────
-    // STEP 8: Fetch Data from Flask MT5 Service
+    // STEP 8: Check Cache First
+    //───────────────────────────────────────────────────────
+    type CachedData = MT5IndicatorData & {
+      proIndicatorsTransformed: ProIndicatorData;
+    };
+
+    const cachedData = await getCachedIndicatorData<CachedData>(
+      upperSymbol,
+      upperTimeframe
+    );
+
+    if (cachedData) {
+      // Filter indicators based on tier for cached response
+      const filteredData = filterIndicatorData(cachedData, userTier);
+
+      // Generate upgrade info for FREE users
+      const upgradeInfo =
+        userTier === 'FREE' && requestedIndicators.length > 0
+          ? getIndicatorUpgradeInfo(requestedIndicators, userTier)
+          : null;
+
+      const response: IndicatorDataResponse = {
+        success: true,
+        data: filteredData as CachedData,
+        tier: userTier,
+        cached: true,
+        requestedAt: new Date().toISOString(),
+        ...(upgradeInfo?.upgradeRequired && {
+          upgrade: {
+            required: true,
+            message:
+              upgradeInfo.upgradeMessage ||
+              'Upgrade to Pro for all indicators.',
+            locked: upgradeInfo.lockedIndicators,
+            tier: 'PRO',
+            pricing: {
+              monthly: '$29',
+              yearly: '$290',
+              trial: '7 days free',
+            },
+          },
+        }),
+      };
+
+      return NextResponse.json(response, {
+        status: 200,
+        headers: getRateLimitHeaders(rateLimitResult),
+      });
+    }
+
+    //───────────────────────────────────────────────────────
+    // STEP 9: Fetch Data from Flask MT5 Service
     //───────────────────────────────────────────────────────
     const data = await fetchIndicatorData(
       upperSymbol,
@@ -285,31 +428,71 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 9: Transform PRO Indicators (null -> undefined)
+    // STEP 10: Transform PRO Indicators (null -> undefined)
     //───────────────────────────────────────────────────────
     const proIndicatorsTransformed = transformProIndicators(
       data.proIndicators,
       userTier
     );
 
+    const fullData: CachedData = {
+      ...data,
+      proIndicatorsTransformed,
+    };
+
     //───────────────────────────────────────────────────────
-    // STEP 10: Return Response
+    // STEP 11: Cache the Data with Timeframe-Specific TTL
+    //───────────────────────────────────────────────────────
+    await setCachedIndicatorData(upperSymbol, upperTimeframe, fullData);
+
+    //───────────────────────────────────────────────────────
+    // STEP 12: Filter Indicators Based on Tier
+    //───────────────────────────────────────────────────────
+    const filteredData = filterIndicatorData(fullData, userTier);
+
+    // Generate upgrade info for FREE users
+    const upgradeInfo =
+      userTier === 'FREE' && requestedIndicators.length > 0
+        ? getIndicatorUpgradeInfo(requestedIndicators, userTier)
+        : null;
+
+    //───────────────────────────────────────────────────────
+    // STEP 13: Return Response with Rate Limit Headers
     //───────────────────────────────────────────────────────
     const response: IndicatorDataResponse = {
       success: true,
-      data: {
-        ...data,
-        proIndicatorsTransformed,
-      },
+      data: filteredData as CachedData,
       tier: userTier,
+      cached: false,
       requestedAt: new Date().toISOString(),
+      ...(upgradeInfo?.upgradeRequired && {
+        upgrade: {
+          required: true,
+          message:
+            upgradeInfo.upgradeMessage || 'Upgrade to Pro for all indicators.',
+          locked: upgradeInfo.lockedIndicators,
+          tier: 'PRO',
+          pricing: {
+            monthly: '$29',
+            yearly: '$290',
+            trial: '7 days free',
+          },
+        },
+      }),
     };
 
-    return NextResponse.json(response, { status: 200 });
+    return NextResponse.json(response, {
+      status: 200,
+      headers: getRateLimitHeaders(rateLimitResult),
+    });
   } catch (error) {
     //───────────────────────────────────────────────────────
     // Error Handling
     //───────────────────────────────────────────────────────
+
+    const headers = rateLimitResult
+      ? getRateLimitHeaders(rateLimitResult)
+      : undefined;
 
     // Handle MT5 access denied errors
     if (error instanceof MT5AccessDeniedError) {
@@ -324,7 +507,7 @@ export async function GET(
         upgradeUrl: '/pricing',
       };
 
-      return NextResponse.json(errorResponse, { status: 403 });
+      return NextResponse.json(errorResponse, { status: 403, headers });
     }
 
     // Handle MT5 service errors
@@ -343,7 +526,7 @@ export async function GET(
           message:
             'Failed to fetch indicator data from MT5 service. Please try again later.',
         } as ErrorResponse,
-        { status: 500 }
+        { status: 500, headers }
       );
     }
 
@@ -360,7 +543,7 @@ export async function GET(
         error: 'Internal server error',
         message: 'An unexpected error occurred. Please try again later.',
       } as ErrorResponse,
-      { status: 500 }
+      { status: 500, headers }
     );
   }
 }

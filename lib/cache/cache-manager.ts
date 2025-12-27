@@ -22,6 +22,25 @@ export const CACHE_TTL = {
 } as const;
 
 /**
+ * Timeframe-specific TTL values (in seconds)
+ * TTL equals the timeframe duration for optimal cache freshness
+ * NO M1 or W1 in the system!
+ */
+export const TIMEFRAME_CACHE_TTL = {
+  M5: 300, // 5 minutes
+  M15: 900, // 15 minutes
+  M30: 1800, // 30 minutes
+  H1: 3600, // 1 hour
+  H2: 7200, // 2 hours
+  H4: 14400, // 4 hours
+  H8: 28800, // 8 hours
+  H12: 43200, // 12 hours
+  D1: 86400, // 1 day
+} as const;
+
+export type ValidTimeframe = keyof typeof TIMEFRAME_CACHE_TTL;
+
+/**
  * Cache key prefixes for organization
  */
 export const CACHE_PREFIX = {
@@ -231,6 +250,105 @@ export async function getCachedIndicators(
     timestamp: number;
   }>(key);
   return cached?.indicators ?? null;
+}
+
+/**
+ * Get TTL for a specific timeframe
+ * Falls back to H1 (1 hour) if timeframe is not recognized
+ *
+ * @param timeframe - Chart timeframe (e.g., M5, H1, D1)
+ * @returns TTL in seconds
+ */
+export function getTimeframeTTL(timeframe: string): number {
+  const upperTimeframe = timeframe.toUpperCase() as ValidTimeframe;
+  return TIMEFRAME_CACHE_TTL[upperTimeframe] ?? TIMEFRAME_CACHE_TTL.H1;
+}
+
+/**
+ * Cache indicator data with timeframe-specific TTL
+ *
+ * @param symbol - Trading symbol (e.g., XAUUSD)
+ * @param timeframe - Chart timeframe (e.g., H1, D1)
+ * @param data - Indicator data to cache
+ */
+export async function setCachedIndicatorData(
+  symbol: string,
+  timeframe: string,
+  data: unknown
+): Promise<void> {
+  const key = getIndicatorKey(symbol, timeframe);
+  const ttl = getTimeframeTTL(timeframe);
+
+  try {
+    await setCache(key, { data, timestamp: Date.now() }, ttl);
+    console.log(`Cached: ${symbol}/${timeframe} for ${ttl}s`);
+  } catch (error) {
+    console.error(`Cache set error for ${symbol}/${timeframe}:`, error);
+  }
+}
+
+/**
+ * Get cached indicator data
+ *
+ * @param symbol - Trading symbol
+ * @param timeframe - Chart timeframe
+ * @returns Cached data or null if not found/expired
+ */
+export async function getCachedIndicatorData<T>(
+  symbol: string,
+  timeframe: string
+): Promise<T | null> {
+  const key = getIndicatorKey(symbol, timeframe);
+
+  try {
+    const cached = await getCache<{ data: T; timestamp: number }>(key);
+
+    if (cached) {
+      console.log(`Cache HIT: ${symbol}/${timeframe}`);
+      return cached.data;
+    }
+
+    console.log(`Cache MISS: ${symbol}/${timeframe}`);
+    return null;
+  } catch (error) {
+    console.error(`Cache get error for ${symbol}/${timeframe}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Invalidate cache for a symbol across all timeframes
+ *
+ * @param symbol - Trading symbol to invalidate
+ */
+export async function invalidateSymbolCache(symbol: string): Promise<void> {
+  try {
+    const timeframes = Object.keys(TIMEFRAME_CACHE_TTL);
+    const keys = timeframes.map((tf) => getIndicatorKey(symbol, tf));
+
+    if (keys.length > 0) {
+      const redis = getRedisClient();
+      await Promise.all(keys.map((key) => redis.del(key)));
+      console.log(`Invalidated cache for ${symbol}`);
+    }
+  } catch (error) {
+    console.error(`Cache invalidation error for ${symbol}:`, error);
+  }
+}
+
+/**
+ * Invalidate cache for a specific symbol/timeframe
+ *
+ * @param symbol - Trading symbol
+ * @param timeframe - Chart timeframe
+ */
+export async function invalidateIndicatorCache(
+  symbol: string,
+  timeframe: string
+): Promise<void> {
+  const key = getIndicatorKey(symbol, timeframe);
+  await deleteCache(key);
+  console.log(`Invalidated cache: ${symbol}/${timeframe}`);
 }
 
 // ============================================
