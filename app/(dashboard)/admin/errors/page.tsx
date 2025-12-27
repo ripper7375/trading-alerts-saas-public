@@ -77,6 +77,7 @@ export default function ErrorLogsPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Filters
   const [errorType, setErrorType] = useState<ErrorType>('ALL');
@@ -117,6 +118,7 @@ export default function ErrorLogsPage(): React.ReactElement {
       setLogs(data.logs);
       setTotal(data.total);
       setTotalPages(data.totalPages);
+      setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -299,10 +301,20 @@ export default function ErrorLogsPage(): React.ReactElement {
       </Card>
 
       {/* Summary */}
-      <div className="flex items-center justify-between text-sm text-gray-400">
-        <span>
-          {total} error{total !== 1 ? 's' : ''} found
-        </span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-400">
+        <div className="flex items-center gap-4">
+          <span>
+            {total} error{total !== 1 ? 's' : ''} found
+          </span>
+          {lastUpdated && (
+            <span className="flex items-center gap-1">
+              <span
+                className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}
+              />
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
         <span>
           Page {page} of {totalPages}
         </span>
