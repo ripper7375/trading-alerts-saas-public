@@ -11,6 +11,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  UserGrowthChart,
+  RevenueChart,
+  ApiUsageChart,
+  generateSampleUserGrowthData,
+  generateSampleRevenueData,
+  generateSampleApiUsageData,
+  type UserGrowthData,
+  type RevenueData,
+  type ApiUsageData,
+} from '@/components/admin/admin-charts';
 import { formatCurrency } from '@/lib/utils';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -65,6 +76,9 @@ interface RecentActivity {
 export default function AdminDashboardPage(): React.ReactElement {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [userGrowthData, setUserGrowthData] = useState<UserGrowthData[]>([]);
+  const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
+  const [apiUsageData, setApiUsageData] = useState<ApiUsageData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +117,11 @@ export default function AdminDashboardPage(): React.ReactElement {
             timestamp: new Date(Date.now() - 7200000).toISOString(),
           },
         ]);
+
+        // Generate chart data (in production, this would come from API)
+        setUserGrowthData(generateSampleUserGrowthData());
+        setRevenueData(generateSampleRevenueData());
+        setApiUsageData(generateSampleApiUsageData());
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -310,6 +329,66 @@ export default function AdminDashboardPage(): React.ReactElement {
           </CardContent>
         </Card>
       </div>
+
+      {/* Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* User Growth Chart */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">User Growth</CardTitle>
+            <CardDescription className="text-gray-400">
+              Total users and PRO subscribers over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {userGrowthData.length > 0 ? (
+              <UserGrowthChart data={userGrowthData} />
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-400">
+                No data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue Chart */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Revenue Trends</CardTitle>
+            <CardDescription className="text-gray-400">
+              Monthly recurring revenue and cumulative revenue
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {revenueData.length > 0 ? (
+              <RevenueChart data={revenueData} />
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-400">
+                No data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* API Usage Chart */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">API Usage (Last 7 Days)</CardTitle>
+          <CardDescription className="text-gray-400">
+            Daily API requests and error rates
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {apiUsageData.length > 0 ? (
+            <ApiUsageChart data={apiUsageData} />
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              No data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       <Card className="bg-gray-800 border-gray-700">
