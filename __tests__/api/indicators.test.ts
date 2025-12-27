@@ -317,6 +317,7 @@ describe('Indicators API Routes', () => {
         fractals: { peaks: [], bottoms: [] },
         metadata: { symbol: 'XAUUSD', timeframe: 'H1', bars: 1000 },
         proIndicators: {},
+        proIndicatorsTransformed: {},
       };
       mockFetchIndicatorData.mockResolvedValue(mockData);
 
@@ -350,6 +351,7 @@ describe('Indicators API Routes', () => {
         fractals: {},
         metadata: { symbol: 'AUDJPY', timeframe: 'M5' },
         proIndicators: {},
+        proIndicatorsTransformed: {},
       };
       mockFetchIndicatorData.mockResolvedValue(mockData);
 

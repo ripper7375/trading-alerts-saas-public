@@ -201,8 +201,8 @@ describe('Auth Validation Schemas', () => {
     it('should reject mismatched passwords', () => {
       const invalid = {
         token: 'abc123',
-        password: 'NewSecure123',
-        confirmPassword: 'DifferentPass123',
+        password: 'NewSecure123!',
+        confirmPassword: 'DifferentPass123!',
       };
 
       const result = resetPasswordSchema.safeParse(invalid);
