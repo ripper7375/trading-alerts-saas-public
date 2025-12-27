@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db/prisma';
+import { sendPasswordResetEmail } from '@/lib/email/email';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -19,7 +20,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       where: { email: validated.email },
     });
 
-    // If user exists, generate reset token
+    // If user exists, generate reset token and send email
     if (user) {
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
@@ -32,9 +33,16 @@ export async function POST(request: Request): Promise<NextResponse> {
         },
       });
 
-      console.error(
-        `Password reset email would be sent to: ${validated.email} with token: ${resetToken}`
+      // Send password reset email
+      const emailResult = await sendPasswordResetEmail(
+        validated.email,
+        user.name || 'User',
+        resetToken
       );
+
+      if (!emailResult.success) {
+        console.error('Failed to send password reset email:', emailResult.error);
+      }
     }
 
     // Always return success for security (don't reveal if email exists)

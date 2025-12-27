@@ -311,3 +311,247 @@ export async function sendAlertEmail(
   );
   return sendEmail(to, `Alert Triggered: ${symbol} ${timeframe}`, html);
 }
+
+/**
+ * Generate subscription confirmation email HTML
+ *
+ * @param name - User's name
+ * @param plan - Subscription plan ('FREE' or 'PRO')
+ * @param billingPeriod - Billing period ('monthly' or 'yearly')
+ * @returns HTML string for subscription confirmation email
+ */
+export function getSubscriptionConfirmationEmail(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  billingPeriod: 'monthly' | 'yearly'
+): string {
+  const pricing = {
+    FREE: { monthly: '$0', yearly: '$0' },
+    PRO: {
+      monthly: '$29/month',
+      yearly: '$290/year',
+    },
+  };
+
+  const trialInfo =
+    plan === 'PRO'
+      ? '<p style="color: #22c55e; font-weight: 600;">7-Day Free Trial: Your card will not be charged until your trial ends.</p>'
+      : '';
+
+  const proFeatures = `
+    <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">What You Get with Pro:</h3>
+    <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+      <li><strong>15 Symbols</strong> - All forex pairs, crypto (BTC, ETH), indices (US30, NDX100), and commodities (Gold, Silver)</li>
+      <li><strong>9 Timeframes</strong> - From 5-minute to daily analysis (M5, M15, M30, H1, H2, H4, H8, H12, D1)</li>
+      <li><strong>135 Chart Combinations</strong> - Full flexibility</li>
+      <li><strong>20 Alerts</strong> - Never miss a trading opportunity</li>
+      <li><strong>5 Watchlists</strong> with 50 items each</li>
+      <li><strong>8 Technical Indicators</strong> - Including Keltner Channels, Momentum Candles, TEMA, HRMA, SMMA, ZigZag</li>
+      <li><strong>300 API Requests/Hour</strong></li>
+      <li><strong>Advanced Charts & Data Export</strong></li>
+    </ul>
+  `;
+
+  const freeFeatures = `
+    <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Your Free Plan Includes:</h3>
+    <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+      <li><strong>5 Symbols</strong> - BTCUSD, EURUSD, USDJPY, US30, XAUUSD</li>
+      <li><strong>3 Timeframes</strong> - H1, H4, D1</li>
+      <li><strong>15 Chart Combinations</strong></li>
+      <li><strong>5 Alerts</strong></li>
+      <li><strong>1 Watchlist</strong> with 5 items</li>
+      <li><strong>2 Basic Indicators</strong> - Fractals and Trendlines</li>
+      <li><strong>60 API Requests/Hour</strong></li>
+    </ul>
+    <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+      <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="color: #2563eb; font-weight: 500;">Upgrade to Pro</a> for more features!
+    </p>
+  `;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Subscription Confirmed</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">Subscription Confirmed!</h1>
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, your <strong>${plan}</strong> subscription is now active.
+        </p>
+
+        <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="color: #18181b; margin: 0 0 12px 0; font-size: 16px;">Plan Details</h3>
+          <p style="color: #52525b; margin: 4px 0;"><strong>Tier:</strong> ${plan}</p>
+          <p style="color: #52525b; margin: 4px 0;"><strong>Billing:</strong> ${pricing[plan][billingPeriod]}</p>
+          ${trialInfo}
+        </div>
+
+        ${plan === 'PRO' ? proFeatures : freeFeatures}
+
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/dashboard" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Go to Dashboard
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          If you have any questions, reply to this email or visit our help center.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send subscription confirmation email
+ */
+export async function sendSubscriptionConfirmationEmail(
+  to: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  billingPeriod: 'monthly' | 'yearly'
+): Promise<{ success: boolean; error?: string }> {
+  const html = getSubscriptionConfirmationEmail(name, plan, billingPeriod);
+  return sendEmail(to, `${plan} Subscription Confirmed`, html);
+}
+
+/**
+ * Generate trial reminder email HTML
+ *
+ * @param name - User's name
+ * @param daysRemaining - Number of days remaining in trial
+ * @returns HTML string for trial reminder email
+ */
+export function getTrialReminderEmail(
+  name: string,
+  daysRemaining: number
+): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Your Pro Trial is Ending Soon</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: #fef3c7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+          <h1 style="color: #92400e; margin: 0; font-size: 20px;">Your Pro Trial is Ending Soon</h1>
+        </div>
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, your <strong>7-day Pro trial</strong> ends in <strong>${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}</strong>.
+        </p>
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          After your trial ends, you'll be charged <strong>$29/month</strong> or <strong>$290/year</strong> depending on your selected plan.
+        </p>
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
+          You can cancel anytime before the trial ends to avoid charges.
+        </p>
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/billing" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Manage Subscription
+        </a>
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          If you have any questions, reply to this email or visit our help center.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send trial reminder email
+ */
+export async function sendTrialReminderEmail(
+  to: string,
+  name: string,
+  daysRemaining: number
+): Promise<{ success: boolean; error?: string }> {
+  const html = getTrialReminderEmail(name, daysRemaining);
+  return sendEmail(to, `Pro Trial Ending in ${daysRemaining} Days`, html);
+}
+
+/**
+ * Generate upgrade prompt email HTML
+ *
+ * @param name - User's name
+ * @param reason - Reason for upgrade prompt
+ * @returns HTML string for upgrade prompt email
+ */
+export function getUpgradePromptEmail(
+  name: string,
+  reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
+): string {
+  const reasons = {
+    alert_limit: "You've reached your 5 alert limit",
+    symbol_limit: "You're trying to access PRO-exclusive symbols",
+    timeframe_limit: "You're trying to access PRO-exclusive timeframes",
+    indicator_limit: "You're trying to access PRO-exclusive indicators",
+  };
+
+  const benefits = {
+    alert_limit: '<li>Increase from <strong>5 to 20 alerts</strong></li>',
+    symbol_limit:
+      '<li>Access to <strong>all 15 symbols</strong> including ETHUSD, GBPUSD, XAGUSD, and more</li>',
+    timeframe_limit:
+      '<li>Access to <strong>all 9 timeframes</strong> including M5, M15, M30, H2, H8, H12</li>',
+    indicator_limit:
+      '<li>Access to <strong>all 8 indicators</strong> including Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag</li>',
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Upgrade to Pro</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">Upgrade to Pro</h1>
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, ${reasons[reason]}. Upgrade to <strong>Pro</strong> for more!
+        </p>
+
+        <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Pro Plan Benefits:</h3>
+        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+          ${benefits[reason]}
+          <li><strong>135 chart combinations</strong> (15 symbols x 9 timeframes)</li>
+          <li><strong>5 watchlists</strong> with 50 items each</li>
+          <li><strong>300 API requests/hour</strong> (vs 60 on Free)</li>
+          <li><strong>7-day free trial</strong> to test all features</li>
+        </ul>
+
+        <p style="color: #18181b; font-weight: 600; margin: 0 0 24px 0;">
+          Only $29/month or save with $290/year
+        </p>
+
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="display: inline-block; background: #22c55e; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Start 7-Day Free Trial
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          If you have any questions, reply to this email or visit our help center.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send upgrade prompt email
+ */
+export async function sendUpgradePromptEmail(
+  to: string,
+  name: string,
+  reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
+): Promise<{ success: boolean; error?: string }> {
+  const html = getUpgradePromptEmail(name, reason);
+  return sendEmail(to, 'Upgrade to Pro - 7-Day Free Trial', html);
+}

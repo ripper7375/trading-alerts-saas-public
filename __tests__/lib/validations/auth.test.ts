@@ -18,7 +18,7 @@ describe('Auth Validation Schemas', () => {
     it('should validate valid signup data', () => {
       const valid = {
         email: 'test@example.com',
-        password: 'SecurePass123',
+        password: 'SecurePass123!',
         name: 'John Doe',
       };
 
@@ -30,7 +30,7 @@ describe('Auth Validation Schemas', () => {
     it('should reject invalid email', () => {
       const invalid = {
         email: 'invalid-email',
-        password: 'SecurePass123',
+        password: 'SecurePass123!',
         name: 'John Doe',
       };
 
@@ -45,7 +45,7 @@ describe('Auth Validation Schemas', () => {
     it('should reject password without uppercase', () => {
       const invalid = {
         email: 'test@example.com',
-        password: 'securepass123',
+        password: 'securepass123!',
         name: 'John Doe',
       };
 
@@ -57,7 +57,7 @@ describe('Auth Validation Schemas', () => {
     it('should reject password without lowercase', () => {
       const invalid = {
         email: 'test@example.com',
-        password: 'SECUREPASS123',
+        password: 'SECUREPASS123!',
         name: 'John Doe',
       };
 
@@ -69,7 +69,7 @@ describe('Auth Validation Schemas', () => {
     it('should reject password without number', () => {
       const invalid = {
         email: 'test@example.com',
-        password: 'SecurePassword',
+        password: 'SecurePassword!',
         name: 'John Doe',
       };
 
@@ -78,10 +78,25 @@ describe('Auth Validation Schemas', () => {
       expect(result.success).toBe(false);
     });
 
+    it('should reject password without special character', () => {
+      const invalid = {
+        email: 'test@example.com',
+        password: 'SecurePass123',
+        name: 'John Doe',
+      };
+
+      const result = signupSchema.safeParse(invalid);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('special character');
+      }
+    });
+
     it('should reject password shorter than 8 characters', () => {
       const invalid = {
         email: 'test@example.com',
-        password: 'Pass1',
+        password: 'Pass1!',
         name: 'John Doe',
       };
 
@@ -93,7 +108,7 @@ describe('Auth Validation Schemas', () => {
     it('should reject name shorter than 2 characters', () => {
       const invalid = {
         email: 'test@example.com',
-        password: 'SecurePass123',
+        password: 'SecurePass123!',
         name: 'J',
       };
 
@@ -105,7 +120,7 @@ describe('Auth Validation Schemas', () => {
     it('should trim and lowercase email', () => {
       const input = {
         email: '  TEST@Example.COM  ',
-        password: 'SecurePass123',
+        password: 'SecurePass123!',
         name: 'John Doe',
       };
 
@@ -189,8 +204,8 @@ describe('Auth Validation Schemas', () => {
     it('should validate valid reset data', () => {
       const valid = {
         token: 'abc123',
-        password: 'NewSecure123',
-        confirmPassword: 'NewSecure123',
+        password: 'NewSecure123!',
+        confirmPassword: 'NewSecure123!',
       };
 
       const result = resetPasswordSchema.safeParse(valid);
@@ -201,8 +216,8 @@ describe('Auth Validation Schemas', () => {
     it('should reject mismatched passwords', () => {
       const invalid = {
         token: 'abc123',
-        password: 'NewSecure123',
-        confirmPassword: 'DifferentPass123',
+        password: 'NewSecure123!',
+        confirmPassword: 'DifferentPass123!',
       };
 
       const result = resetPasswordSchema.safeParse(invalid);
@@ -224,14 +239,26 @@ describe('Auth Validation Schemas', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('should reject password without special character', () => {
+      const invalid = {
+        token: 'abc123',
+        password: 'NewSecure123',
+        confirmPassword: 'NewSecure123',
+      };
+
+      const result = resetPasswordSchema.safeParse(invalid);
+
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('changePasswordSchema', () => {
     it('should validate valid change password data', () => {
       const valid = {
-        currentPassword: 'OldPass123',
-        newPassword: 'NewSecure456',
-        confirmNewPassword: 'NewSecure456',
+        currentPassword: 'OldPass123!',
+        newPassword: 'NewSecure456!',
+        confirmNewPassword: 'NewSecure456!',
       };
 
       const result = changePasswordSchema.safeParse(valid);
@@ -241,9 +268,9 @@ describe('Auth Validation Schemas', () => {
 
     it('should reject if new password matches current', () => {
       const invalid = {
-        currentPassword: 'SamePass123',
-        newPassword: 'SamePass123',
-        confirmNewPassword: 'SamePass123',
+        currentPassword: 'SamePass123!',
+        newPassword: 'SamePass123!',
+        confirmNewPassword: 'SamePass123!',
       };
 
       const result = changePasswordSchema.safeParse(invalid);
@@ -253,9 +280,21 @@ describe('Auth Validation Schemas', () => {
 
     it('should reject mismatched new passwords', () => {
       const invalid = {
-        currentPassword: 'OldPass123',
+        currentPassword: 'OldPass123!',
+        newPassword: 'NewSecure456!',
+        confirmNewPassword: 'DifferentPass789!',
+      };
+
+      const result = changePasswordSchema.safeParse(invalid);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject new password without special character', () => {
+      const invalid = {
+        currentPassword: 'OldPass123!',
         newPassword: 'NewSecure456',
-        confirmNewPassword: 'DifferentPass789',
+        confirmNewPassword: 'NewSecure456',
       };
 
       const result = changePasswordSchema.safeParse(invalid);
