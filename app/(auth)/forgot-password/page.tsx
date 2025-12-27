@@ -487,7 +487,7 @@ function ResetPasswordStep({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
-          password: data.password,
+          newPassword: data.password,
         }),
       });
 
