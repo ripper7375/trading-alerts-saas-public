@@ -117,8 +117,9 @@ class IndicatorRequest(BaseModel):
         """Validate timeframe is in the allowed list (NO M1 or W1!)"""
         v_upper = v.upper()
         if v_upper not in VALID_TIMEFRAMES:
+            valid_tf = ", ".join(VALID_TIMEFRAMES)
             raise ValueError(
-                f'Invalid timeframe: {v}. Must be one of: {", ".join(VALID_TIMEFRAMES)}. '
+                f'Invalid timeframe: {v}. Must be one of: {valid_tf}. '
                 f'Note: M1 and W1 are not supported.'
             )
         return v_upper
@@ -254,7 +255,9 @@ def is_timeframe_allowed(timeframe: str, tier: Tier) -> bool:
     return timeframe.upper() in allowed
 
 
-def validate_tier_access(symbol: str, timeframe: str, tier: Tier) -> tuple[bool, Optional[str]]:
+def validate_tier_access(
+    symbol: str, timeframe: str, tier: Tier
+) -> tuple[bool, Optional[str]]:
     """
     Validate that tier can access symbol and timeframe.
 

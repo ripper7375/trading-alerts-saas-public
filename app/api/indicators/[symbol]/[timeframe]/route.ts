@@ -512,11 +512,19 @@ export async function GET(
     }
 
     // Handle MT5 service errors
-    if (error instanceof MT5ServiceError) {
+    // Check both instanceof and name/properties for Jest mock compatibility
+    const isMT5ServiceError =
+      error instanceof MT5ServiceError ||
+      (error instanceof Error &&
+        'statusCode' in error &&
+        typeof (error as MT5ServiceError).statusCode === 'number');
+
+    if (isMT5ServiceError) {
+      const mt5Error = error as MT5ServiceError;
       console.error('MT5 Service Error:', {
-        statusCode: error.statusCode,
-        message: error.message,
-        responseBody: error.responseBody,
+        statusCode: mt5Error.statusCode,
+        message: mt5Error.message,
+        responseBody: mt5Error.responseBody,
         timestamp: new Date().toISOString(),
       });
 
