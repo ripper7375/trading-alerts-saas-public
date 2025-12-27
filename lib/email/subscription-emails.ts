@@ -10,6 +10,8 @@
  * @module lib/email/subscription-emails
  */
 
+import { sendEmail } from './email';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -396,20 +398,24 @@ ${APP_URL}`,
  * @param email - Recipient email address
  * @param name - User's display name
  * @param nextBillingDate - Optional next billing date
+ * @returns Promise with success status
  */
 export async function sendUpgradeEmail(
   email: string,
   name: string,
   nextBillingDate?: Date
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const template = getUpgradeEmailTemplate(name, nextBillingDate);
 
-  // TODO: Implement actual email sending with provider (SendGrid, Resend, etc.)
-  console.log(`[Email] Sending upgrade email to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
+  const result = await sendEmail(email, template.subject, template.html);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  if (result.success) {
+    console.log(`[Email] Upgrade email sent to ${email}`);
+  } else {
+    console.error(`[Email] Failed to send upgrade email to ${email}:`, result.error);
+  }
+
+  return result;
 }
 
 /**
@@ -417,19 +423,23 @@ export async function sendUpgradeEmail(
  *
  * @param email - Recipient email address
  * @param name - User's display name
+ * @returns Promise with success status
  */
 export async function sendCancellationEmail(
   email: string,
   name: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const template = getCancellationEmailTemplate(name);
 
-  // TODO: Implement actual email sending with provider
-  console.log(`[Email] Sending cancellation email to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
+  const result = await sendEmail(email, template.subject, template.html);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  if (result.success) {
+    console.log(`[Email] Cancellation email sent to ${email}`);
+  } else {
+    console.error(`[Email] Failed to send cancellation email to ${email}:`, result.error);
+  }
+
+  return result;
 }
 
 /**
@@ -438,20 +448,24 @@ export async function sendCancellationEmail(
  * @param email - Recipient email address
  * @param name - User's display name
  * @param reason - Failure reason
+ * @returns Promise with success status
  */
 export async function sendPaymentFailedEmail(
   email: string,
   name: string,
   reason: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const template = getPaymentFailedEmailTemplate(name, reason);
 
-  // TODO: Implement actual email sending with provider
-  console.log(`[Email] Sending payment failed email to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
+  const result = await sendEmail(email, template.subject, template.html);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  if (result.success) {
+    console.log(`[Email] Payment failed email sent to ${email}`);
+  } else {
+    console.error(`[Email] Failed to send payment failed email to ${email}:`, result.error);
+  }
+
+  return result;
 }
 
 /**
@@ -462,6 +476,7 @@ export async function sendPaymentFailedEmail(
  * @param amount - Payment amount in USD
  * @param nextBillingDate - Next billing date
  * @param invoiceUrl - Optional URL to Stripe invoice PDF
+ * @returns Promise with success status
  */
 export async function sendPaymentReceiptEmail(
   email: string,
@@ -469,7 +484,7 @@ export async function sendPaymentReceiptEmail(
   amount: number,
   nextBillingDate: Date,
   invoiceUrl?: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const template = getPaymentReceiptEmailTemplate(
     name,
     amount,
@@ -477,10 +492,153 @@ export async function sendPaymentReceiptEmail(
     invoiceUrl
   );
 
-  // TODO: Implement actual email sending with provider
-  console.log(`[Email] Sending payment receipt to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
+  const result = await sendEmail(email, template.subject, template.html);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  if (result.success) {
+    console.log(`[Email] Payment receipt email sent to ${email}`);
+  } else {
+    console.error(`[Email] Failed to send payment receipt email to ${email}:`, result.error);
+  }
+
+  return result;
+}
+
+/**
+ * Generate affiliate commission notification email template
+ *
+ * @param name - Affiliate's display name
+ * @param referralCode - The code that was used
+ * @param commissionAmount - Commission amount earned
+ * @param purchaserEmail - Email of the person who made the purchase (anonymized)
+ * @param planName - Name of the plan purchased
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getAffiliateCommissionEmailTemplate(
+  name: string,
+  referralCode: string,
+  commissionAmount: number,
+  purchaserEmail: string,
+  planName: string = 'PRO'
+): EmailTemplate {
+  // Anonymize purchaser email
+  const [emailUser, emailDomain] = purchaserEmail.split('@');
+  const anonymizedEmail = emailUser.length > 3
+    ? `${emailUser.slice(0, 3)}***@${emailDomain}`
+    : `***@${emailDomain}`;
+
+  return {
+    subject: `New Commission Earned - ${APP_NAME} Affiliate`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Commission Earned!</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">New Commission Earned!</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi ${name},</p>
+
+    <p style="font-size: 16px;">Great news! Your referral code was just used for a purchase!</p>
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 0; color: #666;">Referral Code:</td>
+          <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #22c55e;">${referralCode}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #666;">Plan Purchased:</td>
+          <td style="padding: 10px 0; text-align: right; font-weight: 600;">${planName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #666;">Purchaser:</td>
+          <td style="padding: 10px 0; text-align: right;">${anonymizedEmail}</td>
+        </tr>
+        <tr style="border-top: 2px solid #e5e7eb;">
+          <td style="padding: 15px 0 10px; color: #666; font-size: 18px;">Commission Earned:</td>
+          <td style="padding: 15px 0 10px; text-align: right; font-weight: 700; font-size: 24px; color: #22c55e;">$${commissionAmount.toFixed(2)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size: 14px; color: #666;">
+      Your commission has been added to your pending balance. You can view your full earnings in your affiliate dashboard.
+    </p>
+
+    <p style="font-size: 16px;">
+      <a href="${APP_URL}/affiliate/dashboard" style="display: inline-block; background: #22c55e; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">View Affiliate Dashboard</a>
+    </p>
+
+    <p style="font-size: 16px;">Keep sharing your referral code!</p>
+
+    <p style="font-size: 14px; color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      The ${APP_NAME} Team<br>
+      <a href="${APP_URL}" style="color: #2563eb;">${APP_URL}</a>
+    </p>
+  </div>
+</body>
+</html>`,
+    text: `New Commission Earned!
+
+Hi ${name},
+
+Great news! Your referral code was just used for a purchase!
+
+Referral Code: ${referralCode}
+Plan Purchased: ${planName}
+Purchaser: ${anonymizedEmail}
+Commission Earned: $${commissionAmount.toFixed(2)}
+
+Your commission has been added to your pending balance. View your full earnings:
+${APP_URL}/affiliate/dashboard
+
+Keep sharing your referral code!
+
+The ${APP_NAME} Team
+${APP_URL}`,
+  };
+}
+
+/**
+ * Send affiliate commission notification email
+ *
+ * @param email - Affiliate's email address
+ * @param name - Affiliate's display name
+ * @param referralCode - The code that was used
+ * @param commissionAmount - Commission amount earned
+ * @param purchaserEmail - Email of the person who made the purchase
+ * @param planName - Name of the plan purchased
+ * @returns Promise with success status
+ */
+export async function sendAffiliateCommissionEmail(
+  email: string,
+  name: string,
+  referralCode: string,
+  commissionAmount: number,
+  purchaserEmail: string,
+  planName: string = 'PRO'
+): Promise<{ success: boolean; error?: string }> {
+  const template = getAffiliateCommissionEmailTemplate(
+    name,
+    referralCode,
+    commissionAmount,
+    purchaserEmail,
+    planName
+  );
+
+  const result = await sendEmail(email, template.subject, template.html);
+
+  if (result.success) {
+    console.log(`[Email] Affiliate commission email sent to ${email}`);
+  } else {
+    console.error(`[Email] Failed to send affiliate commission email to ${email}:`, result.error);
+  }
+
+  return result;
 }
