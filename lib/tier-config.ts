@@ -202,3 +202,31 @@ export function getChartCombinations(tier: Tier): number {
   const config = getTierConfig(tier);
   return config.chartCombinations;
 }
+
+/**
+ * Check if a tier can access a specific symbol
+ * @param symbol - Symbol to check (case insensitive)
+ * @param tier - User's tier
+ * @returns true if the tier can access the symbol
+ */
+export function canAccessSymbol(symbol: string, tier: Tier): boolean {
+  const upperSymbol = symbol.toUpperCase();
+  if (tier === 'PRO') {
+    return (PRO_SYMBOLS as readonly string[]).includes(upperSymbol);
+  }
+  return (FREE_SYMBOLS as readonly string[]).includes(upperSymbol);
+}
+
+/**
+ * Check if a tier can access a specific timeframe
+ * @param timeframe - Timeframe to check (case insensitive)
+ * @param tier - User's tier
+ * @returns true if the tier can access the timeframe
+ */
+export function canAccessTimeframe(timeframe: string, tier: Tier): boolean {
+  const upperTF = timeframe.toUpperCase();
+  if (tier === 'PRO') {
+    return (PRO_TIMEFRAMES as readonly string[]).includes(upperTF);
+  }
+  return (FREE_TIMEFRAMES as readonly string[]).includes(upperTF);
+}
