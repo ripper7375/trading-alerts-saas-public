@@ -155,8 +155,8 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
     // Continue with empty data - dashboard should still render
   }
 
-  // Get tier limits
-  const tierConfig = TIER_CONFIG[userTier];
+  // Get tier limits (with fallback to FREE if tier is invalid)
+  const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
 
   return (
     <div className="space-y-6">

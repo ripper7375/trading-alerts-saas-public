@@ -4,18 +4,22 @@
  * V7 uses a simplified 2-tier system:
  * - FREE: 5 symbols × 3 timeframes (H1, H4, D1) = 15 combinations
  * - PRO: 15 symbols × 9 timeframes (all) = 135 combinations
+ *
+ * NOTE: The canonical `Tier` type is defined in `lib/tier-config.ts`.
+ * This file re-exports it for convenience and provides additional types.
  */
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TIER ENUM
+// TIER TYPE (Re-exported from lib/tier-config)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * User tier levels
+ * User tier levels - imported and re-exported from lib/tier-config.ts
  *
  * Note: ENTERPRISE tier removed in V7
  */
-export type Tier = 'FREE' | 'PRO';
+import type { Tier } from '@/lib/tier-config';
+export type { Tier };
 
 /**
  * Trial status for 7-day PRO trial
@@ -106,18 +110,19 @@ export const FREE_TIER_SYMBOLS = [
 
 /**
  * PRO tier exclusive symbols (10 additional)
+ * NOTE: This list MUST match PRO_EXCLUSIVE_SYMBOLS in lib/tier-config.ts
  */
 export const PRO_TIER_EXCLUSIVE_SYMBOLS = [
-  'GBPUSD', // Pound
-  'AUDUSD', // Australian Dollar
-  'USDCAD', // Canadian Dollar
-  'USDCHF', // Swiss Franc
-  'NZDUSD', // New Zealand Dollar
-  'EURJPY', // Euro-Yen
-  'GBPJPY', // Pound-Yen
-  'AUDJPY', // Aussie-Yen
-  'NAS100', // Nasdaq
-  'SPX500', // S&P 500
+  'AUDJPY', // Forex Cross - Australian Dollar/Japanese Yen
+  'AUDUSD', // Forex Major - Australian Dollar/US Dollar
+  'ETHUSD', // Crypto - Ethereum
+  'GBPJPY', // Forex Cross - British Pound/Japanese Yen
+  'GBPUSD', // Forex Major - British Pound/US Dollar
+  'NDX100', // Index - Nasdaq 100
+  'NZDUSD', // Forex Major - New Zealand Dollar/US Dollar
+  'USDCAD', // Forex Major - US Dollar/Canadian Dollar
+  'USDCHF', // Forex Major - US Dollar/Swiss Franc
+  'XAGUSD', // Commodities - Silver
 ] as const;
 
 /**
