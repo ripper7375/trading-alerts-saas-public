@@ -4,6 +4,8 @@
  */
 
 import type { Tier } from './tier-config';
+import { getRedisClient } from './redis/client';
+
 export type { Tier };
 
 export interface TierConfig {
@@ -236,4 +238,170 @@ export function getAllCombinations(
   }
 
   return combinations;
+}
+
+// Rate limit key prefix for Redis
+const RATE_LIMIT_KEY_PREFIX = 'rate_limit:';
+// Rate limit window in seconds (1 hour = 3600 seconds)
+const RATE_LIMIT_WINDOW_SECONDS = 3600;
+
+/**
+ * Get rate limit for a tier (alias for getRateLimit for clarity)
+ */
+export function getRateLimitForTier(tier: Tier): number {
+  return getRateLimit(tier);
+}
+
+/**
+ * Get the Redis key for a user's rate limit
+ */
+function getRateLimitKey(userId: string): string {
+  return `${RATE_LIMIT_KEY_PREFIX}${userId}`;
+}
+
+/**
+ * Check if a user has exceeded their rate limit
+ * Uses Redis to track request counts per hour
+ *
+ * @param userId - The user's ID
+ * @param tier - The user's subscription tier
+ * @returns true if rate limit is exceeded, false otherwise
+ */
+export async function isRateLimitExceeded(
+  userId: string,
+  tier: Tier
+): Promise<boolean> {
+  try {
+    const redis = getRedisClient();
+    const key = getRateLimitKey(userId);
+    const limit = getRateLimitForTier(tier);
+
+    // Get current count
+    const currentCount = await redis.get(key);
+
+    if (!currentCount) {
+      return false; // No requests yet, not exceeded
+    }
+
+    return parseInt(currentCount, 10) >= limit;
+  } catch (error) {
+    // If Redis is unavailable, don't block the request
+    console.error('Rate limit check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Increment the rate limit counter for a user
+ * Returns the new count and whether the limit is exceeded
+ *
+ * @param userId - The user's ID
+ * @param tier - The user's subscription tier
+ * @returns Object with current count, limit, exceeded status, and remaining
+ */
+export async function incrementRateLimit(
+  userId: string,
+  tier: Tier
+): Promise<{
+  count: number;
+  limit: number;
+  exceeded: boolean;
+  remaining: number;
+  resetInSeconds: number;
+}> {
+  try {
+    const redis = getRedisClient();
+    const key = getRateLimitKey(userId);
+    const limit = getRateLimitForTier(tier);
+
+    // Increment counter
+    const count = await redis.incr(key);
+
+    // Set expiry on first request (TTL of 1 hour)
+    if (count === 1) {
+      await redis.expire(key, RATE_LIMIT_WINDOW_SECONDS);
+    }
+
+    // Get TTL for reset time
+    const ttl = await redis.ttl(key);
+    const resetInSeconds = ttl > 0 ? ttl : RATE_LIMIT_WINDOW_SECONDS;
+
+    return {
+      count,
+      limit,
+      exceeded: count > limit,
+      remaining: Math.max(0, limit - count),
+      resetInSeconds,
+    };
+  } catch (error) {
+    // If Redis is unavailable, return safe defaults
+    console.error('Rate limit increment failed:', error);
+    const limit = getRateLimitForTier(tier);
+    return {
+      count: 0,
+      limit,
+      exceeded: false,
+      remaining: limit,
+      resetInSeconds: RATE_LIMIT_WINDOW_SECONDS,
+    };
+  }
+}
+
+/**
+ * Get current rate limit status for a user
+ *
+ * @param userId - The user's ID
+ * @param tier - The user's subscription tier
+ * @returns Current rate limit status
+ */
+export async function getRateLimitStatus(
+  userId: string,
+  tier: Tier
+): Promise<{
+  count: number;
+  limit: number;
+  remaining: number;
+  resetInSeconds: number;
+}> {
+  try {
+    const redis = getRedisClient();
+    const key = getRateLimitKey(userId);
+    const limit = getRateLimitForTier(tier);
+
+    const [countStr, ttl] = await Promise.all([redis.get(key), redis.ttl(key)]);
+
+    const count = countStr ? parseInt(countStr, 10) : 0;
+    const resetInSeconds = ttl > 0 ? ttl : RATE_LIMIT_WINDOW_SECONDS;
+
+    return {
+      count,
+      limit,
+      remaining: Math.max(0, limit - count),
+      resetInSeconds,
+    };
+  } catch (error) {
+    console.error('Rate limit status check failed:', error);
+    const limit = getRateLimitForTier(tier);
+    return {
+      count: 0,
+      limit,
+      remaining: limit,
+      resetInSeconds: RATE_LIMIT_WINDOW_SECONDS,
+    };
+  }
+}
+
+/**
+ * Reset rate limit for a user (admin function)
+ *
+ * @param userId - The user's ID
+ */
+export async function resetRateLimit(userId: string): Promise<void> {
+  try {
+    const redis = getRedisClient();
+    const key = getRateLimitKey(userId);
+    await redis.del(key);
+  } catch (error) {
+    console.error('Rate limit reset failed:', error);
+  }
 }
