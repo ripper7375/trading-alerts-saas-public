@@ -61,6 +61,30 @@ jest.mock('@/lib/auth/auth-options', () => ({
   authOptions: {},
 }));
 
+// Mock rate limiting
+jest.mock('@/lib/rate-limit', () => ({
+  __esModule: true,
+  rateLimit: jest.fn().mockResolvedValue({ success: true, remaining: 100, limit: 100 }),
+  getTierRateLimit: jest.fn().mockReturnValue({ requests: 100, window: 60 }),
+  getRateLimitHeaders: jest.fn().mockReturnValue({}),
+}));
+
+// Mock cache
+jest.mock('@/lib/cache/indicator-cache', () => ({
+  __esModule: true,
+  getCachedIndicator: jest.fn().mockResolvedValue(null),
+  setCachedIndicator: jest.fn().mockResolvedValue(undefined),
+  recordCacheHit: jest.fn(),
+  recordCacheMiss: jest.fn(),
+  getTimeframeTTL: jest.fn().mockReturnValue(300),
+}));
+
+// Mock MT5 transform
+jest.mock('@/lib/api/mt5-transform', () => ({
+  __esModule: true,
+  transformProIndicators: jest.fn().mockReturnValue({}),
+}));
+
 // Mock MT5 client
 const mockFetchIndicatorData = jest.fn();
 

@@ -105,7 +105,7 @@ describe('Auth Validation Schemas', () => {
     it('should trim and lowercase email', () => {
       const input = {
         email: '  TEST@Example.COM  ',
-        password: 'SecurePass123',
+        password: 'SecurePass123!',
         name: 'John Doe',
       };
 
@@ -189,8 +189,8 @@ describe('Auth Validation Schemas', () => {
     it('should validate valid reset data', () => {
       const valid = {
         token: 'abc123',
-        password: 'NewSecure123',
-        confirmPassword: 'NewSecure123',
+        password: 'NewSecure123!',
+        confirmPassword: 'NewSecure123!',
       };
 
       const result = resetPasswordSchema.safeParse(valid);
@@ -229,9 +229,9 @@ describe('Auth Validation Schemas', () => {
   describe('changePasswordSchema', () => {
     it('should validate valid change password data', () => {
       const valid = {
-        currentPassword: 'OldPass123',
-        newPassword: 'NewSecure456',
-        confirmNewPassword: 'NewSecure456',
+        currentPassword: 'OldPass123!',
+        newPassword: 'NewSecure456!',
+        confirmNewPassword: 'NewSecure456!',
       };
 
       const result = changePasswordSchema.safeParse(valid);
