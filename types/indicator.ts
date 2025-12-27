@@ -16,6 +16,16 @@ export type IndicatorType = 'FRACTAL_HORIZONTAL' | 'FRACTAL_DIAGONAL';
 
 /**
  * Candlestick data point
+ *
+ * @example
+ * const candle: Candlestick = {
+ *   time: 1703980800,  // Unix timestamp
+ *   open: 1.0950,
+ *   high: 1.0980,
+ *   low: 1.0920,
+ *   close: 1.0965,
+ *   volume: 15000
+ * };
  */
 export interface Candlestick {
   time: number; // Unix timestamp
@@ -37,6 +47,16 @@ export interface IndicatorPoint {
 
 /**
  * Complete indicator data response
+ *
+ * @example
+ * const data: IndicatorData = {
+ *   symbol: 'EURUSD',
+ *   timeframe: 'H1',
+ *   indicatorType: 'FRACTAL_HORIZONTAL',
+ *   candlesticks: [{ time: 1703980800, open: 1.095, high: 1.098, low: 1.092, close: 1.096 }],
+ *   indicators: [{ time: 1703980800, value: 1.098, type: 'RESISTANCE' }],
+ *   lastUpdate: '2024-12-31T00:00:00Z'
+ * };
  */
 export interface IndicatorData {
   symbol: Symbol;
@@ -49,6 +69,14 @@ export interface IndicatorData {
 
 /**
  * Indicator request parameters
+ *
+ * @example
+ * const request: IndicatorRequest = {
+ *   symbol: 'EURUSD',
+ *   timeframe: 'H4',
+ *   indicatorType: 'FRACTAL_DIAGONAL',
+ *   bars: 200  // Fetch 200 candles
+ * };
  */
 export interface IndicatorRequest {
   symbol: Symbol;
@@ -154,6 +182,18 @@ export interface ZigZagData {
  * - Arrays never contain null, only undefined for gaps
  * - Optional objects use ? not | null
  * - This is the SINGLE SOURCE OF TRUTH for PRO data types
+ *
+ * @example
+ * const proData: ProIndicatorData = {
+ *   momentumCandles: [{ index: 0, type: MomentumCandleType.UP_LARGE, zscore: 1.5 }],
+ *   tema: [1.095, 1.096, undefined, 1.098],  // undefined for gaps
+ *   hrma: [1.094, 1.095, 1.096],
+ *   smma: [1.093, 1.094, 1.095],
+ *   zigzag: {
+ *     peaks: [{ index: 10, price: 1.100 }],
+ *     bottoms: [{ index: 5, price: 1.090 }]
+ *   }
+ * };
  */
 export interface ProIndicatorData {
   momentumCandles: MomentumCandleData[];

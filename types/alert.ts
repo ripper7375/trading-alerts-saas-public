@@ -35,6 +35,15 @@ export type AlertConditionType =
 
 /**
  * Create alert request
+ *
+ * @example
+ * const request: CreateAlertRequest = {
+ *   symbol: 'EURUSD',
+ *   timeframe: 'H1',
+ *   conditionType: 'PRICE_ABOVE',
+ *   targetValue: 1.1000,
+ *   message: 'EURUSD broke above resistance'
+ * };
  */
 export interface CreateAlertRequest {
   symbol: Symbol;
@@ -66,6 +75,18 @@ export interface AlertWithUser extends Alert {
 
 /**
  * Alert notification
+ *
+ * @example
+ * const notification: AlertNotification = {
+ *   alertId: 'alert_123',
+ *   symbol: 'GBPUSD',
+ *   timeframe: 'M15',
+ *   condition: 'PRICE_CROSS_ABOVE',
+ *   currentPrice: 1.2650,
+ *   targetPrice: 1.2600,
+ *   triggeredAt: new Date('2024-12-31T10:30:00Z'),
+ *   message: 'Price crossed above key level'
+ * };
  */
 export interface AlertNotification {
   alertId: string;
