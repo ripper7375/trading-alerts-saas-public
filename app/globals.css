@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Light mode colors */
+    /* Light mode colors - HSL format (H S% L%) */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -39,10 +39,18 @@
     --chart-bearish: 0 84.2% 60.2%;
     --chart-grid: 214.3 31.8% 91.4%;
     --chart-crosshair: 215.4 16.3% 46.9%;
+
+    /* OKLCH color values for modern browsers */
+    /* oklch(lightness chroma hue) - better perceptual uniformity */
+    --oklch-primary: 59.69% 0.2 264.05;
+    --oklch-success: 57.67% 0.17 145.94;
+    --oklch-warning: 77.21% 0.19 70.08;
+    --oklch-destructive: 63.72% 0.24 27.33;
+    --oklch-info: 67.05% 0.15 237.73;
   }
 
   .dark {
-    /* Dark mode colors */
+    /* Dark mode colors - HSL format (H S% L%) */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -76,6 +84,13 @@
     --chart-bearish: 0 84.2% 60.2%;
     --chart-grid: 217.2 32.6% 17.5%;
     --chart-crosshair: 215 20.2% 65.1%;
+
+    /* OKLCH color values for modern browsers (dark mode) */
+    --oklch-primary: 66.27% 0.18 250.76;
+    --oklch-success: 64.01% 0.17 145.94;
+    --oklch-warning: 80.51% 0.19 85.74;
+    --oklch-destructive: 43.57% 0.15 27.33;
+    --oklch-info: 67.05% 0.15 237.73;
   }
 }
 
@@ -193,6 +208,54 @@
 
   .gradient-success {
     @apply bg-gradient-to-r from-[hsl(var(--success))] to-[hsl(var(--success))]/80;
+  }
+
+  /* OKLCH color utilities with HSL fallbacks */
+  /* Use oklch for better perceptual uniformity in modern browsers */
+  .oklch-primary {
+    color: hsl(var(--primary)); /* Fallback */
+    color: oklch(var(--oklch-primary));
+  }
+
+  .oklch-success {
+    color: hsl(var(--success)); /* Fallback */
+    color: oklch(var(--oklch-success));
+  }
+
+  .oklch-warning {
+    color: hsl(var(--warning)); /* Fallback */
+    color: oklch(var(--oklch-warning));
+  }
+
+  .oklch-destructive {
+    color: hsl(var(--destructive)); /* Fallback */
+    color: oklch(var(--oklch-destructive));
+  }
+
+  .oklch-info {
+    color: hsl(var(--info)); /* Fallback */
+    color: oklch(var(--oklch-info));
+  }
+
+  /* OKLCH background utilities */
+  .bg-oklch-primary {
+    background-color: hsl(var(--primary)); /* Fallback */
+    background-color: oklch(var(--oklch-primary));
+  }
+
+  .bg-oklch-success {
+    background-color: hsl(var(--success)); /* Fallback */
+    background-color: oklch(var(--oklch-success));
+  }
+
+  .bg-oklch-warning {
+    background-color: hsl(var(--warning)); /* Fallback */
+    background-color: oklch(var(--oklch-warning));
+  }
+
+  .bg-oklch-destructive {
+    background-color: hsl(var(--destructive)); /* Fallback */
+    background-color: oklch(var(--oklch-destructive));
   }
 
   /* Hide scrollbar but keep functionality */
