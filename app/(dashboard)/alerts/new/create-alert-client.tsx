@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +56,32 @@ const CONDITION_TYPES = [
 type ConditionType = (typeof CONDITION_TYPES)[number]['value'];
 
 /**
+ * Form validation schema
+ */
+const createAlertFormSchema = z.object({
+  symbol: z.string().min(1, 'Please select a symbol'),
+  timeframe: z.string().min(1, 'Please select a timeframe'),
+  conditionType: z.enum(['price_above', 'price_below', 'price_equals'], {
+    required_error: 'Please select a condition type',
+  }),
+  targetValue: z
+    .string()
+    .min(1, 'Please enter a target price')
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: 'Target price must be a positive number',
+    })
+    .refine((val) => parseFloat(val) <= 1000000, {
+      message: 'Target price must not exceed 1,000,000',
+    }),
+  alertName: z
+    .string()
+    .max(100, 'Alert name must not exceed 100 characters')
+    .optional(),
+});
+
+type CreateAlertFormData = z.infer<typeof createAlertFormSchema>;
+
+/**
  * CreateAlertClient Component
  *
  * Client-side form for creating new price alerts.
@@ -67,68 +96,65 @@ export function CreateAlertClient({
 }: CreateAlertClientProps): React.JSX.Element {
   const router = useRouter();
 
-  // Form state
-  const [symbol, setSymbol] = useState<string>('');
-  const [timeframe, setTimeframe] = useState<string>('');
-  const [conditionType, setConditionType] =
-    useState<ConditionType>('price_above');
-  const [targetValue, setTargetValue] = useState<string>('');
-  const [alertName, setAlertName] = useState<string>('');
+  // React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateAlertFormData>({
+    resolver: zodResolver(createAlertFormSchema),
+    defaultValues: {
+      symbol: '',
+      timeframe: '',
+      conditionType: 'price_above',
+      targetValue: '',
+      alertName: '',
+    },
+  });
 
-  // UI state
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Watch values for dynamic UI
+  const symbol = watch('symbol');
+  const timeframe = watch('timeframe');
+  const conditionType = watch('conditionType');
+
+  // Server error state
+  const [serverError, setServerError] = useState<string | null>(null);
 
   // Progress percentage
   const progressPercent = (currentCount / limit) * 100;
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    setError(null);
-
-    // Validate form
-    if (!symbol) {
-      setError('Please select a symbol');
-      return;
-    }
-    if (!timeframe) {
-      setError('Please select a timeframe');
-      return;
-    }
-    if (!targetValue || parseFloat(targetValue) <= 0) {
-      setError('Please enter a valid target price');
-      return;
-    }
-
-    setIsSubmitting(true);
+  const onSubmit = async (data: CreateAlertFormData): Promise<void> => {
+    setServerError(null);
 
     try {
       const response = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          symbol,
-          timeframe,
-          conditionType,
-          targetValue: parseFloat(targetValue),
-          name: alertName || `${symbol} ${timeframe} Alert`,
+          symbol: data.symbol,
+          timeframe: data.timeframe,
+          conditionType: data.conditionType,
+          targetValue: parseFloat(data.targetValue),
+          name: data.alertName || `${data.symbol} ${data.timeframe} Alert`,
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create alert');
+        throw new Error(responseData.error || 'Failed to create alert');
       }
 
       // Redirect to alerts list on success
       router.push('/alerts');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create alert');
-    } finally {
-      setIsSubmitting(false);
+      setServerError(
+        err instanceof Error ? err.message : 'Failed to create alert'
+      );
     }
   };
 
@@ -222,11 +248,11 @@ export function CreateAlertClient({
             <CardTitle>Alert Configuration</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Error Message */}
-              {error && (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Server Error Message */}
+              {serverError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                  {error}
+                  {serverError}
                 </div>
               )}
 
@@ -235,18 +261,31 @@ export function CreateAlertClient({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Symbol <span className="text-red-500">*</span>
                 </label>
-                <Select value={symbol} onValueChange={setSymbol}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a symbol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSymbols.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="symbol"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        className={errors.symbol ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder="Select a symbol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSymbols.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.symbol && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.symbol.message}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   {availableSymbols.length} symbols available on {userTier} tier
                 </p>
@@ -257,18 +296,31 @@ export function CreateAlertClient({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Timeframe <span className="text-red-500">*</span>
                 </label>
-                <Select value={timeframe} onValueChange={setTimeframe}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a timeframe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTimeframes.map((tf) => (
-                      <SelectItem key={tf} value={tf}>
-                        {tf}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="timeframe"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        className={errors.timeframe ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder="Select a timeframe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTimeframes.map((tf) => (
+                          <SelectItem key={tf} value={tf}>
+                            {tf}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.timeframe && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.timeframe.message}
+                  </p>
+                )}
               </div>
 
               {/* Condition Type */}
@@ -276,34 +328,47 @@ export function CreateAlertClient({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Condition Type <span className="text-red-500">*</span>
                 </label>
-                <div className="space-y-2">
-                  {CONDITION_TYPES.map((type) => (
-                    <div
-                      key={type.value}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        conditionType === type.value
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                      onClick={() => setConditionType(type.value)}
-                    >
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          name="conditionType"
-                          value={type.value}
-                          checked={conditionType === type.value}
-                          onChange={() => setConditionType(type.value)}
-                          className="h-4 w-4 text-blue-600"
-                        />
-                        <span className="ml-2 font-medium">{type.label}</span>
-                      </div>
-                      <p className="ml-6 text-sm text-gray-500">
-                        {type.description}
-                      </p>
+                <Controller
+                  name="conditionType"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      {CONDITION_TYPES.map((type) => (
+                        <div
+                          key={type.value}
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            field.value === type.value
+                              ? 'border-blue-600 bg-blue-50'
+                              : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                          onClick={() => field.onChange(type.value)}
+                        >
+                          <div className="flex items-center">
+                            <input
+                              type="radio"
+                              name="conditionType"
+                              value={type.value}
+                              checked={field.value === type.value}
+                              onChange={() => field.onChange(type.value)}
+                              className="h-4 w-4 text-blue-600"
+                            />
+                            <span className="ml-2 font-medium">
+                              {type.label}
+                            </span>
+                          </div>
+                          <p className="ml-6 text-sm text-gray-500">
+                            {type.description}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                />
+                {errors.conditionType && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.conditionType.message}
+                  </p>
+                )}
               </div>
 
               {/* Target Value */}
@@ -319,12 +384,16 @@ export function CreateAlertClient({
                     type="number"
                     step="0.01"
                     min="0"
-                    value={targetValue}
-                    onChange={(e) => setTargetValue(e.target.value)}
                     placeholder="Enter target price"
-                    className="pl-8"
+                    className={`pl-8 ${errors.targetValue ? 'border-red-500' : ''}`}
+                    {...register('targetValue')}
                   />
                 </div>
+                {errors.targetValue && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.targetValue.message}
+                  </p>
+                )}
                 {conditionType === 'price_equals' && (
                   <p className="text-xs text-gray-500 mt-1">
                     Alert will trigger when price is within 0.5% of target
@@ -339,15 +408,20 @@ export function CreateAlertClient({
                 </label>
                 <Input
                   type="text"
-                  value={alertName}
-                  onChange={(e) => setAlertName(e.target.value)}
                   placeholder={
                     symbol && timeframe
                       ? `${symbol} ${timeframe} Alert`
                       : 'Enter alert name'
                   }
                   maxLength={100}
+                  className={errors.alertName ? 'border-red-500' : ''}
+                  {...register('alertName')}
                 />
+                {errors.alertName && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.alertName.message}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   Give your alert a memorable name
                 </p>
