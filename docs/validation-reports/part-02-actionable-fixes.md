@@ -241,6 +241,41 @@ npx prisma studio  # Opens database viewer
 
 ## ⚠️ IMPORTANT NOTES
 
+### ⛔ Environment Limitation (CI/CD & Restricted Networks)
+
+**Issue Encountered:**
+Prisma requires downloading platform-specific binary engines from `binaries.prisma.sh`. Some environments (CI/CD, restricted networks, sandboxed environments) block these downloads:
+
+```
+Error: Failed to fetch the engine file at
+https://binaries.prisma.sh/.../libquery_engine.so.node.gz - 403 Forbidden
+```
+
+**Impact:**
+- Cannot run `prisma generate` in restricted environments
+- Cannot run `prisma migrate dev` in restricted environments
+- Schema validation must be done manually or in unrestricted environment
+
+**Solution:**
+Generate migrations in a **local development environment** with full network access, then commit the generated files:
+
+```bash
+# In local dev environment
+npm install
+npx prisma generate
+npx prisma migrate dev --name init
+
+# Commit generated files
+git add prisma/migrations/
+git commit -m "feat(db): add initial database migration"
+git push
+```
+
+**Alternative for CI/CD:**
+Pre-download Prisma engines or use `binaryTargets` in schema.prisma.
+
+---
+
 ### Database URL Format
 
 Ensure your `DATABASE_URL` follows this format:
