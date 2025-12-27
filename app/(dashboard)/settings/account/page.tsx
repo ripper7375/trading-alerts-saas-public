@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
-import { ToastContainer } from '@/components/ui/toast-container';
 import {
   Eye,
   EyeOff,
@@ -130,7 +129,7 @@ export default function AccountSettingsPage(): React.ReactElement {
   useSession();
 
   // Toast notifications
-  const { toasts, removeToast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
 
   // Password form state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -615,9 +614,6 @@ export default function AccountSettingsPage(): React.ReactElement {
           </CardContent>
         </Card>
       </section>
-
-      {/* Toast Notifications */}
-      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }

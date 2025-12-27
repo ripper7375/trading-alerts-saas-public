@@ -521,7 +521,9 @@ export function getAffiliateCommissionEmailTemplate(
   planName: string = 'PRO'
 ): EmailTemplate {
   // Anonymize purchaser email
-  const [emailUser, emailDomain] = purchaserEmail.split('@');
+  const atIndex = purchaserEmail.indexOf('@');
+  const emailUser = atIndex > 0 ? purchaserEmail.slice(0, atIndex) : purchaserEmail;
+  const emailDomain = atIndex > 0 ? purchaserEmail.slice(atIndex + 1) : 'email.com';
   const anonymizedEmail = emailUser.length > 3
     ? `${emailUser.slice(0, 3)}***@${emailDomain}`
     : `***@${emailDomain}`;

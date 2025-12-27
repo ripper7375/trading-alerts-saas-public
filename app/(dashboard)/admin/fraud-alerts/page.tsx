@@ -18,7 +18,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FraudAlertCard } from '@/components/admin/FraudAlertCard';
 import { useToast } from '@/hooks/use-toast';
-import { ToastContainer } from '@/components/ui/toast-container';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -84,7 +83,7 @@ export default function FraudAlertsPage(): React.ReactElement {
     severity: 'ALL',
     status: 'ALL',
   });
-  const { toasts, error: showError, removeToast } = useToast();
+  const { error: showError } = useToast();
 
   // Fetch alerts from API
   const fetchAlerts = useCallback(async (): Promise<void> => {
@@ -275,9 +274,6 @@ export default function FraudAlertsPage(): React.ReactElement {
           ))}
         </div>
       )}
-
-      {/* Toast notifications */}
-      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }

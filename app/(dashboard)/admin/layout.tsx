@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { Badge } from '@/components/ui/badge';
+import { Toaster } from '@/components/ui/toaster';
 import { authOptions } from '@/lib/auth/auth-options';
 import { cn } from '@/lib/utils';
 
@@ -132,6 +133,9 @@ export default async function AdminLayout({
         {/* Main Content */}
         <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
       </div>
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }

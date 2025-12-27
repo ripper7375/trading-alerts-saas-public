@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
+import { Toaster } from '@/components/ui/toaster';
 import { authOptions } from '@/lib/auth/auth-options';
 
 interface DashboardLayoutProps {
@@ -62,6 +63,9 @@ export default async function DashboardLayout({
       <div className="lg:pl-64">
         <Footer />
       </div>
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }
