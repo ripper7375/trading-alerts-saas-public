@@ -6,11 +6,17 @@
  * Includes PRO indicators (Keltner, TEMA, HRMA, SMMA, ZigZag, Momentum)
  * transformed to type-safe TypeScript types.
  *
+ * Features:
+ * - Tier-based rate limiting
+ * - Timeframe-based caching with TTL
+ * - Zod validation for request parameters
+ *
  * @module app/api/indicators/[symbol]/[timeframe]/route
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { z } from 'zod';
 
 import {
   fetchIndicatorData,
@@ -21,11 +27,20 @@ import {
 import { transformProIndicators } from '@/lib/api/mt5-transform';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
+  getCachedIndicator,
+  setCachedIndicator,
+  recordCacheHit,
+  recordCacheMiss,
+  getTimeframeTTL,
+} from '@/lib/cache/indicator-cache';
+import { rateLimit, getTierRateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
+import {
   FREE_SYMBOLS,
   FREE_TIMEFRAMES,
   PRO_SYMBOLS,
   PRO_TIMEFRAMES,
 } from '@/lib/tier-config';
+import { symbolSchema, timeframeSchema, barsSchema } from '@/lib/validations/indicators';
 import type { ProIndicatorData } from '@/types/indicator';
 import type { Tier } from '@/types/tier';
 
@@ -194,51 +209,60 @@ export async function GET(
     }
 
     //───────────────────────────────────────────────────────
-    // STEP 2: Extract Parameters
-    //───────────────────────────────────────────────────────
-    const { symbol, timeframe } = await params;
-    const upperSymbol = symbol.toUpperCase();
-    const upperTimeframe = timeframe.toUpperCase();
-
-    // Get bars parameter from query string (default: 1000)
-    const { searchParams } = new URL(request.url);
-    const barsParam = searchParams.get('bars');
-    const bars = barsParam
-      ? Math.min(Math.max(parseInt(barsParam, 10) || 1000, 100), 5000)
-      : 1000;
-
-    //───────────────────────────────────────────────────────
-    // STEP 3: Validate Symbol
-    //───────────────────────────────────────────────────────
-    if (!isValidSymbol(upperSymbol)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid symbol',
-          message: `Symbol ${upperSymbol} is not a valid trading symbol. Valid symbols: ${ALL_SYMBOLS.join(', ')}`,
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
-
-    //───────────────────────────────────────────────────────
-    // STEP 4: Validate Timeframe
-    //───────────────────────────────────────────────────────
-    if (!isValidTimeframe(upperTimeframe)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid timeframe',
-          message: `Timeframe ${upperTimeframe} is not valid. Valid timeframes: ${ALL_TIMEFRAMES.join(', ')}`,
-        } as ErrorResponse,
-        { status: 400 }
-      );
-    }
-
-    //───────────────────────────────────────────────────────
-    // STEP 5: Get User Tier
+    // STEP 2: Get User Tier and Apply Rate Limiting
     //───────────────────────────────────────────────────────
     const userTier = (session.user.tier as Tier) || 'FREE';
+
+    // Apply tier-based rate limiting
+    const rateLimitConfig = getTierRateLimit(userTier);
+    const rateLimitResult = await rateLimit(request, rateLimitConfig);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Rate limit exceeded',
+          message: `You have exceeded the rate limit for ${userTier} tier. Please try again later.`,
+          tier: userTier,
+          upgradeRequired: userTier === 'FREE',
+          upgradeUrl: '/pricing',
+        } as ErrorResponse,
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    //───────────────────────────────────────────────────────
+    // STEP 3: Extract and Validate Parameters with Zod
+    //───────────────────────────────────────────────────────
+    const { symbol: rawSymbol, timeframe: rawTimeframe } = await params;
+    const { searchParams } = new URL(request.url);
+    const rawBars = searchParams.get('bars');
+
+    // Validate with Zod schemas
+    let upperSymbol: string;
+    let upperTimeframe: string;
+    let bars: number;
+
+    try {
+      upperSymbol = symbolSchema.parse(rawSymbol);
+      upperTimeframe = timeframeSchema.parse(rawTimeframe);
+      bars = barsSchema.parse(rawBars || 1000);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Validation error',
+            message: validationError.errors[0]?.message || 'Invalid parameters',
+          } as ErrorResponse,
+          { status: 400 }
+        );
+      }
+      throw validationError;
+    }
 
     //───────────────────────────────────────────────────────
     // STEP 6: Validate Tier Access - Symbol
@@ -275,7 +299,42 @@ export async function GET(
     }
 
     //───────────────────────────────────────────────────────
-    // STEP 8: Fetch Data from Flask MT5 Service
+    // STEP 8: Check Cache
+    //───────────────────────────────────────────────────────
+    type CachedData = MT5IndicatorData & { proIndicatorsTransformed: ProIndicatorData };
+    const cachedData = await getCachedIndicator<CachedData>(
+      upperSymbol,
+      upperTimeframe,
+      bars,
+      userTier
+    );
+
+    if (cachedData) {
+      recordCacheHit();
+
+      const response: IndicatorDataResponse = {
+        success: true,
+        data: cachedData,
+        tier: userTier,
+        requestedAt: new Date().toISOString(),
+      };
+
+      const headers = getRateLimitHeaders(rateLimitResult);
+      const nextResponse = NextResponse.json(response, { status: 200 });
+
+      Object.entries(headers).forEach(([key, value]) => {
+        nextResponse.headers.set(key, value);
+      });
+      nextResponse.headers.set('X-Cache', 'HIT');
+      nextResponse.headers.set('X-Cache-TTL', getTimeframeTTL(upperTimeframe).toString());
+
+      return nextResponse;
+    }
+
+    recordCacheMiss();
+
+    //───────────────────────────────────────────────────────
+    // STEP 9: Fetch Data from Flask MT5 Service
     //───────────────────────────────────────────────────────
     const data = await fetchIndicatorData(
       upperSymbol,
@@ -285,7 +344,7 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 9: Transform PRO Indicators (null -> undefined)
+    // STEP 10: Transform PRO Indicators (null -> undefined)
     //───────────────────────────────────────────────────────
     const proIndicatorsTransformed = transformProIndicators(
       data.proIndicators,
@@ -293,19 +352,41 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 10: Return Response
+    // STEP 11: Cache the Response
+    //───────────────────────────────────────────────────────
+    const dataWithTransformed = {
+      ...data,
+      proIndicatorsTransformed,
+    };
+
+    await setCachedIndicator(
+      upperSymbol,
+      upperTimeframe,
+      bars,
+      userTier,
+      dataWithTransformed
+    );
+
+    //───────────────────────────────────────────────────────
+    // STEP 12: Return Response
     //───────────────────────────────────────────────────────
     const response: IndicatorDataResponse = {
       success: true,
-      data: {
-        ...data,
-        proIndicatorsTransformed,
-      },
+      data: dataWithTransformed,
       tier: userTier,
       requestedAt: new Date().toISOString(),
     };
 
-    return NextResponse.json(response, { status: 200 });
+    const headers = getRateLimitHeaders(rateLimitResult);
+    const nextResponse = NextResponse.json(response, { status: 200 });
+
+    Object.entries(headers).forEach(([key, value]) => {
+      nextResponse.headers.set(key, value);
+    });
+    nextResponse.headers.set('X-Cache', 'MISS');
+    nextResponse.headers.set('X-Cache-TTL', getTimeframeTTL(upperTimeframe).toString());
+
+    return nextResponse;
   } catch (error) {
     //───────────────────────────────────────────────────────
     // Error Handling
