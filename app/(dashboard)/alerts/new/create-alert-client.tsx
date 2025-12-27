@@ -53,8 +53,6 @@ const CONDITION_TYPES = [
   },
 ] as const;
 
-type ConditionType = (typeof CONDITION_TYPES)[number]['value'];
-
 /**
  * Form validation schema
  */

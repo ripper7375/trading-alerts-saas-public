@@ -9,8 +9,6 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Laptop,
-  Smartphone,
   Monitor,
   AlertTriangle,
   Loader2,

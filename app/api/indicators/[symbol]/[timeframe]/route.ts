@@ -16,7 +16,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { z } from 'zod';
 
 import {
   fetchIndicatorData,
@@ -78,30 +77,6 @@ interface ErrorResponse {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VALIDATION HELPERS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/**
- * Valid symbols in the system
- */
-const ALL_SYMBOLS = PRO_SYMBOLS;
-
-/**
- * Valid timeframes in the system
- */
-const ALL_TIMEFRAMES = PRO_TIMEFRAMES;
-
-/**
- * Check if symbol is valid (exists in system)
- */
-function isValidSymbol(symbol: string): boolean {
-  return ALL_SYMBOLS.includes(symbol as (typeof ALL_SYMBOLS)[number]);
-}
-
-/**
- * Check if timeframe is valid (exists in system)
- */
-function isValidTimeframe(timeframe: string): boolean {
-  return ALL_TIMEFRAMES.includes(timeframe as (typeof ALL_TIMEFRAMES)[number]);
-}
 
 /**
  * Check if tier can access symbol
@@ -241,11 +216,6 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const rawBars = searchParams.get('bars');
 
-    // Validate with Zod schemas
-    let upperSymbol: string;
-    let upperTimeframe: string;
-    let bars: number;
-
     // Validate symbol
     const symbolResult = symbolSchema.safeParse(rawSymbol);
     if (!symbolResult.success) {
@@ -258,7 +228,7 @@ export async function GET(
         { status: 400 }
       );
     }
-    upperSymbol = symbolResult.data;
+    const upperSymbol = symbolResult.data;
 
     // Validate timeframe
     const timeframeResult = timeframeSchema.safeParse(rawTimeframe);
@@ -272,17 +242,13 @@ export async function GET(
         { status: 400 }
       );
     }
-    upperTimeframe = timeframeResult.data;
+    const upperTimeframe = timeframeResult.data;
 
     // Validate bars - clamp to valid range instead of rejecting
     const barsResult = barsSchema.safeParse(rawBars || 1000);
-    if (!barsResult.success) {
-      // Clamp bars to valid range
-      const rawBarsNum = parseInt(rawBars || '1000', 10) || 1000;
-      bars = Math.max(100, Math.min(5000, rawBarsNum));
-    } else {
-      bars = barsResult.data;
-    }
+    const bars = barsResult.success
+      ? barsResult.data
+      : Math.max(100, Math.min(5000, parseInt(rawBars || '1000', 10) || 1000));
 
     //───────────────────────────────────────────────────────
     // STEP 6: Validate Tier Access - Symbol

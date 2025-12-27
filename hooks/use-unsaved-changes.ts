@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 
 /**
  * Hook for unsaved changes warning
@@ -61,7 +60,6 @@ export function useUnsavedChanges(
 ): UseUnsavedChangesReturn {
   const { isDirty, message = DEFAULT_MESSAGE, onConfirmLeave } = options;
   const isDirtyRef = useRef(isDirty);
-  const router = useRouter();
 
   // Keep ref in sync with prop
   useEffect(() => {

@@ -222,7 +222,7 @@ function StandardPagination({
   totalPages,
   onPageChange,
   siblingCount = 1,
-  showEndButtons = true,
+  showEndButtons: _showEndButtons = true,
   className,
   disabled = false,
 }: PaginationProps): React.JSX.Element {
