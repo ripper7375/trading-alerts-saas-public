@@ -18,7 +18,7 @@ describe('Auth Validation Schemas', () => {
     it('should validate valid signup data', () => {
       const valid = {
         email: 'test@example.com',
-        password: 'SecurePass123',
+        password: 'SecurePass123!',
         name: 'John Doe',
       };
 
