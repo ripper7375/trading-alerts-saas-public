@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 
 /**

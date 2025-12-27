@@ -246,22 +246,42 @@ export async function GET(
     let upperTimeframe: string;
     let bars: number;
 
-    try {
-      upperSymbol = symbolSchema.parse(rawSymbol);
-      upperTimeframe = timeframeSchema.parse(rawTimeframe);
-      bars = barsSchema.parse(rawBars || 1000);
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Validation error',
-            message: validationError.errors[0]?.message || 'Invalid parameters',
-          } as ErrorResponse,
-          { status: 400 }
-        );
-      }
-      throw validationError;
+    // Validate symbol
+    const symbolResult = symbolSchema.safeParse(rawSymbol);
+    if (!symbolResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid symbol',
+          message: symbolResult.error.errors[0]?.message || 'Invalid symbol',
+        } as ErrorResponse,
+        { status: 400 }
+      );
+    }
+    upperSymbol = symbolResult.data;
+
+    // Validate timeframe
+    const timeframeResult = timeframeSchema.safeParse(rawTimeframe);
+    if (!timeframeResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid timeframe',
+          message: timeframeResult.error.errors[0]?.message || 'Invalid timeframe',
+        } as ErrorResponse,
+        { status: 400 }
+      );
+    }
+    upperTimeframe = timeframeResult.data;
+
+    // Validate bars - clamp to valid range instead of rejecting
+    const barsResult = barsSchema.safeParse(rawBars || 1000);
+    if (!barsResult.success) {
+      // Clamp bars to valid range
+      const rawBarsNum = parseInt(rawBars || '1000', 10) || 1000;
+      bars = Math.max(100, Math.min(5000, rawBarsNum));
+    } else {
+      bars = barsResult.data;
     }
 
     //───────────────────────────────────────────────────────
