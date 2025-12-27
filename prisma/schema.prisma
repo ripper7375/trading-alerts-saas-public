@@ -79,57 +79,75 @@ enum FraudAlertSeverity {
 // MODELS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/// Core user model representing both SaaS customers and potential affiliates.
+/// Supports OAuth providers (Google) and email/password authentication.
+/// Contains trial management, fraud detection, and subscription-related fields.
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
   name          String?
-  password      String?  // Nullable for OAuth-only users
+  /// Nullable for OAuth-only users who authenticate via Google/etc
+  password      String?
   image         String?
-  emailVerified DateTime? // CRITICAL for verified-only OAuth linking
+  /// CRITICAL: Required for verified-only OAuth account linking.
+  /// Must be non-null to allow linking OAuth accounts to existing email accounts.
+  emailVerified DateTime?
   tier          UserTier @default(FREE)
+  /// Role for RBAC: USER, ADMIN, SUPER_ADMIN
   role          String   @default("USER")
   isActive      Boolean  @default(true)
 
-  // Affiliate System (Unified Auth)
-  isAffiliate   Boolean  @default(false)  // Can be both SaaS user AND affiliate
+  /// Unified auth flag: User can be both SaaS customer AND affiliate simultaneously
+  isAffiliate   Boolean  @default(false)
 
   // General Trial Period Management (7-day PRO trial)
   trialStatus       TrialStatus  @default(NOT_STARTED)
-  trialStartDate    DateTime?    // When user started 7-day trial
-  trialEndDate      DateTime?    // When trial expires (trialStartDate + 7 days)
-  trialConvertedAt  DateTime?    // When trial converted to paid subscription
-  trialCancelledAt  DateTime?    // When user cancelled trial
-  hasUsedFreeTrial  Boolean      @default(false)  // Prevent multiple 7-day trials
+  /// Timestamp when user started their 7-day PRO trial
+  trialStartDate    DateTime?
+  /// Calculated expiry: trialStartDate + 7 days
+  trialEndDate      DateTime?
+  /// When trial converted to paid subscription (null if cancelled/expired)
+  trialConvertedAt  DateTime?
+  /// When user explicitly cancelled their trial
+  trialCancelledAt  DateTime?
+  /// Anti-abuse flag to prevent multiple 7-day trial usage
+  hasUsedFreeTrial  Boolean      @default(false)
 
   // Stripe Trial fields (Part 18: Anti-abuse)
+  /// Prevents Stripe trial abuse - once used, cannot use again
   hasUsedStripeTrial      Boolean  @default(false)
   stripeTrialStartedAt    DateTime?
 
   // dLocal 3-day plan fields (Part 18: Anti-abuse)
+  /// Prevents 3-day plan abuse for emerging markets (India, Indonesia, Pakistan)
   hasUsedThreeDayPlan     Boolean  @default(false)
   threeDayPlanUsedAt      DateTime?
-  
+
   // Fraud detection fields
+  /// IP address at account creation for fraud pattern detection
   signupIP          String?
+  /// Last known login IP for anomaly detection
   lastLoginIP       String?
+  /// Browser/device fingerprint for fraud correlation
   deviceFingerprint String?
-  
+
   // Email verification and password reset
   verificationToken String? @unique
   resetToken        String? @unique
   resetTokenExpiry  DateTime?
-  
+
   accounts          Account[]
   alerts            Alert[]
   watchlists        Watchlist[]
   subscription      Subscription?
   payments          Payment[]
   fraudAlerts       FraudAlert[]
-  affiliateProfile  AffiliateProfile?  // Nullable - only if isAffiliate = true
-  preferences       UserPreferences?   // User preferences (settings)
+  /// Nullable: Only populated if isAffiliate = true
+  affiliateProfile  AffiliateProfile?
+  preferences       UserPreferences?
 
   sessions          Session[]
-  
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -138,16 +156,23 @@ model User {
   @@index([isAffiliate])
   @@index([trialStatus])
   @@index([trialEndDate])
+  @@map("users")
 }
 
+/// OAuth account connections for NextAuth.js.
+/// Links external provider accounts (Google, GitHub) to User records.
 model Account {
   id                 String  @id @default(cuid())
   userId             String
+  /// Account type: "oauth" for OAuth providers
   type               String
+  /// OAuth provider identifier: "google", "github", etc.
   provider           String
+  /// Unique ID from the OAuth provider
   providerAccountId  String
   refresh_token      String?
   access_token       String?
+  /// Token expiry timestamp in seconds since epoch
   expires_at         Int?
   token_type         String?
   scope              String?
@@ -157,49 +182,73 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
+/// Active user sessions for NextAuth.js session management.
+/// Used for database session strategy (alternative to JWT).
 model Session {
   id           String   @id @default(cuid())
+  /// Unique session token sent to client
   sessionToken String   @unique
   userId       String
+  /// Session expiry timestamp
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@map("sessions")
 }
 
+/// Email verification tokens for NextAuth.js magic link / email provider.
+/// Used to verify user email addresses.
 model VerificationToken {
+  /// Email address being verified
   identifier String
+  /// Unique verification token
   token      String   @unique
+  /// Token expiry timestamp
   expires    DateTime
 
   @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
+/// User preferences and settings stored as flexible JSON.
+/// Allows dynamic preference management without schema changes.
 model UserPreferences {
   id        String   @id @default(cuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Preferences stored as JSON for flexibility
+  /// Flexible JSON structure for all user preferences
+  /// Expected keys: theme, notifications, alertSettings, etc.
   preferences Json    @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@map("user_preferences")
 }
 
+/// GDPR-compliant account deletion request tracking.
+/// Implements 30-day confirmation window before permanent deletion.
 model AccountDeletionRequest {
   id        String   @id @default(cuid())
   userId    String
+  /// Unique confirmation token sent via email
   token     String   @unique
-  status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
+  /// Status: PENDING, CONFIRMED, CANCELLED, COMPLETED
+  status    String   @default("PENDING")
+  /// Token/request expiry timestamp
   expiresAt DateTime
 
+  /// When user confirmed deletion via email link
   confirmedAt  DateTime?
+  /// When user cancelled the deletion request
   cancelledAt  DateTime?
+  /// When account was actually deleted
   completedAt  DateTime?
 
   createdAt DateTime @default(now())
@@ -208,37 +257,45 @@ model AccountDeletionRequest {
   @@index([userId])
   @@index([token])
   @@index([status])
+  @@map("account_deletion_requests")
 }
 
+/// User subscription records supporting both Stripe (global) and dLocal (emerging markets).
+/// Manages PRO tier access, billing cycles, and renewal tracking.
 model Subscription {
   id        String   @id @default(cuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Affiliate tracking
-  affiliateCodeId    String?  // Track which affiliate code was used (nullable)
+  /// Affiliate tracking: ID of AffiliateCode used at signup (for commission attribution)
+  affiliateCodeId    String?
 
   // Stripe fields (nullable for dLocal subscriptions)
   stripeCustomerId       String?  @unique
   stripeSubscriptionId   String?  @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
-  
+
   // dLocal fields (nullable for Stripe subscriptions)
   dLocalPaymentId        String?  @unique
-  dLocalPaymentMethod    String?  // 'UPI', 'PAYTM', 'GOPAY', etc.
-  dLocalCountry          String?  // 'IN', 'ID', 'PK', etc.
-  dLocalCurrency         String?  // 'INR', 'IDR', 'PKR', etc.
-  
-  // Common fields
-  planType               String?  // 'MONTHLY', 'THREE_DAY' (dLocal only)
+  /// dLocal payment method: 'UPI', 'PAYTM', 'GOPAY', 'DANA', etc.
+  dLocalPaymentMethod    String?
+  /// ISO country code: 'IN' (India), 'ID' (Indonesia), 'PK' (Pakistan)
+  dLocalCountry          String?
+  /// Currency code: 'INR', 'IDR', 'PKR'
+  dLocalCurrency         String?
+
+  /// Plan type: 'MONTHLY' (both providers), 'THREE_DAY' (dLocal emerging markets only)
+  planType               String?
   amountUsd              Float
   status                 SubscriptionStatus
-  expiresAt              DateTime? // Explicit expiry date (critical for dLocal)
+  /// Explicit expiry date - CRITICAL for dLocal non-recurring payments
+  expiresAt              DateTime?
+  /// Flag to prevent duplicate renewal reminder emails
   renewalReminderSent    Boolean  @default(false)
-  
+
   payments               Payment[]
-  
+
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -246,98 +303,134 @@ model Subscription {
   @@index([status])
   @@index([expiresAt])
   @@index([affiliateCodeId])
+  @@map("subscriptions")
 }
 
+/// Trading alerts configured by users to monitor price/indicator conditions.
+/// Supports multiple alert types with JSON-based complex conditions.
 model Alert {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Alert configuration
+  /// Optional user-friendly name for the alert
   name        String?
+  /// Trading symbol: 'BTCUSDT', 'ETHUSDT', etc.
   symbol      String
+  /// Chart timeframe: '1m', '5m', '15m', '1h', '4h', '1d'
   timeframe   String
-  condition   String   // JSON string for complex conditions
+  /// JSON-encoded condition object for complex alert logic
+  condition   String
+  /// Alert type: 'PRICE_TOUCH_LINE', 'INDICATOR_CROSS', 'PRICE_RANGE', etc.
   alertType   String   @default("PRICE_TOUCH_LINE")
-  
+
   // Alert state
   isActive    Boolean  @default(true)
+  /// Timestamp of last trigger (null if never triggered)
   lastTriggered DateTime?
+  /// Total number of times this alert has triggered
   triggerCount Int     @default(0)
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
   @@index([symbol, timeframe])
   @@index([isActive])
+  @@map("alerts")
 }
 
+/// User-created watchlists for organizing trading symbols.
+/// Each user can have multiple named watchlists with ordered items.
 model Watchlist {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// User-defined watchlist name (unique per user)
   name      String
+  /// Display order for sorting watchlists
   order     Int      @default(0)
   items     WatchlistItem[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, name])  // <-- ADD THIS LINE
+  @@unique([userId, name])
   @@index([userId])
+  @@map("watchlists")
 }
 
+/// Individual items within a watchlist representing symbol/timeframe pairs.
 model WatchlistItem {
   id          String   @id @default(cuid())
   watchlistId String
   watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
   userId      String
+  /// Trading symbol: 'BTCUSDT', 'ETHUSDT', etc.
   symbol      String
+  /// Chart timeframe: '1m', '5m', '15m', '1h', '4h', '1d'
   timeframe   String
+  /// Display order within the watchlist
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 
   @@unique([userId, symbol, timeframe])
   @@index([watchlistId])
   @@index([userId])
+  @@map("watchlist_items")
 }
 
+/// Payment transaction records for both Stripe and dLocal providers.
+/// Tracks payment lifecycle, amounts, and fraud detection metadata.
 model Payment {
   id                 String   @id @default(cuid())
   userId             String
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptionId     String?
   subscription       Subscription? @relation(fields: [subscriptionId], references: [id])
-  
-  // Payment Provider
-  provider           String   // 'STRIPE' or 'DLOCAL'
-  
+
+  /// Payment provider: 'STRIPE' or 'DLOCAL'
+  provider           String
+
   // Transaction Details
+  /// Unique payment ID from the provider (Stripe payment_intent or dLocal payment_id)
   providerPaymentId  String   @unique
+  /// Raw status from provider (maps to our internal status)
   providerStatus     String
-  
+
   // Amount and Currency
+  /// Amount in original currency
   amount             Decimal
+  /// Normalized amount in USD for reporting
   amountUSD          Decimal
+  /// ISO currency code: 'USD', 'INR', 'IDR', 'PKR'
   currency           String
+  /// ISO country code for dLocal payments
   country            String?
+  /// Payment method: 'card', 'UPI', 'PAYTM', 'GOPAY', etc.
   paymentMethod      String?
-  
+
   // Additional Data
-  planType           String?  // 'THREE_DAY', 'MONTHLY'
-  duration           Int?     // Days (3 or 30)
+  /// Plan type: 'THREE_DAY', 'MONTHLY'
+  planType           String?
+  /// Subscription duration in days (3 or 30)
+  duration           Int?
+  /// Affiliate discount code applied (if any)
   discountCode       String?
   discountAmount     Decimal?
-  
-  // Status and Timestamps
-  status             String   // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'
+
+  /// Payment status: 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'
+  status             String
+  /// Error message if payment failed
   failureReason      String?
-  
+
   // Fraud Detection Metadata
+  /// Client IP address for fraud correlation
   ipAddress          String?
+  /// Browser/device fingerprint for fraud correlation
   deviceFingerprint  String?
-  
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -345,17 +438,22 @@ model Payment {
   @@index([provider])
   @@index([status])
   @@index([createdAt])
+  @@map("payments")
 }
 
+/// Fraud detection alerts generated by the system for admin review.
+/// Tracks suspicious patterns like trial abuse, velocity limits, and IP mismatches.
 model FraudAlert {
   id                String   @id @default(cuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Alert Details
-  pattern           String   // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'VELOCITY_LIMIT', 'IP_MISMATCH', etc.
+  /// Fraud pattern type: '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS',
+  /// 'VELOCITY_LIMIT', 'IP_MISMATCH', 'DEVICE_FINGERPRINT_REUSE', etc.
+  pattern           String
   severity          FraudAlertSeverity
   status            FraudAlertStatus @default(PENDING)
+  /// Human-readable description of the fraud pattern detected
   description       String
 
   // Payment Context (for payment-related fraud)
@@ -365,15 +463,21 @@ model FraudAlert {
   currency          String?
 
   // Detection Metadata
+  /// IP address that triggered the alert
   ipAddress         String?
+  /// Device fingerprint that triggered the alert
   deviceFingerprint String?
-  additionalData    Json?    // Flexible field for extra context
+  /// Flexible JSON for additional context (previous IPs, related users, etc.)
+  additionalData    Json?
 
   // Admin Review
-  reviewedBy        String?  // Admin user ID who reviewed
+  /// Admin user ID who reviewed this alert
+  reviewedBy        String?
   reviewedAt        DateTime?
-  resolution        String?  // 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED', etc.
-  notes             String?  // Admin notes
+  /// Resolution action: 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED', 'REFUNDED'
+  resolution        String?
+  /// Admin notes explaining the resolution decision
+  notes             String?
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -383,12 +487,15 @@ model FraudAlert {
   @@index([severity])
   @@index([status])
   @@index([createdAt])
+  @@map("fraud_alerts")
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // AFFILIATE MARKETING SYSTEM (Unified Auth)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/// Affiliate profile for users who have opted into the affiliate program.
+/// Linked 1:1 with User via userId. Contains payout preferences and performance stats.
 model AffiliateProfile {
   id                String   @id @default(cuid())
   userId            String   @unique
@@ -396,24 +503,29 @@ model AffiliateProfile {
 
   // Affiliate Info
   fullName          String
+  /// ISO country code for geo-targeting and compliance
   country           String
 
-  // Social Media (optional)
+  // Social Media (optional) - for influencer verification
   facebookUrl       String?
   instagramUrl      String?
   twitterUrl        String?
   youtubeUrl        String?
   tiktokUrl         String?
 
-  // Payment Preferences
-  paymentMethod     String   // 'BANK_TRANSFER', 'CRYPTO_USDT', 'PAYPAL', 'LOCAL_WALLET'
-  paymentDetails    Json     // Flexible field for payment info
+  /// Preferred payout method: 'BANK_TRANSFER', 'CRYPTO_USDT', 'PAYPAL', 'LOCAL_WALLET'
+  paymentMethod     String
+  /// Flexible JSON for payment details (bank info, wallet addresses, etc.)
+  paymentDetails    Json
 
-  // Stats
+  // Aggregate Stats (denormalized for performance)
   totalCodesDistributed  Int      @default(0)
   totalCodesUsed         Int      @default(0)
+  /// Lifetime earnings in USD
   totalEarnings          Decimal  @default(0)
+  /// Commissions earned but not yet paid
   pendingCommissions     Decimal  @default(0)
+  /// Total commissions paid out
   paidCommissions        Decimal  @default(0)
 
   // Status
@@ -428,36 +540,45 @@ model AffiliateProfile {
   // Relationships
   affiliateCodes    AffiliateCode[]
   commissions       Commission[]
-  riseAccount       AffiliateRiseAccount?  // Part 19: RiseWorks account for payouts
+  /// Part 19: RiseWorks account for automated payouts
+  riseAccount       AffiliateRiseAccount?
 
   @@index([userId])
   @@index([status])
   @@index([country])
+  @@map("affiliate_profiles")
 }
 
+/// Unique discount/referral codes issued to affiliates.
+/// Each code provides a discount to customers and commission to the affiliate.
 model AffiliateCode {
   id               String   @id @default(cuid())
+  /// Unique alphanumeric code (e.g., 'TRADER20', 'JOHN50OFF')
   code             String   @unique
 
   // Ownership
   affiliateProfileId String
   affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
-  // Configuration
-  discountPercent  Int      // 0-50%
-  commissionPercent Int     // 0-50%
+  /// Discount percentage for the customer (0-50%)
+  discountPercent  Int
+  /// Commission percentage for the affiliate (0-50%)
+  commissionPercent Int
 
   // Lifecycle
   status           CodeStatus   @default(ACTIVE)
   distributedAt    DateTime     @default(now())
+  /// Code expiry date (typically 30 days from distribution)
   expiresAt        DateTime
   usedAt           DateTime?
   cancelledAt      DateTime?
+  /// Why this code was distributed: INITIAL, MONTHLY, ADMIN_BONUS
   distributionReason DistributionReason @default(MONTHLY)
 
-  // Usage tracking
-  usedBy           String?  // userId (if redeemed)
-  subscriptionId   String?  // subscription created from this code
+  /// User ID who redeemed this code (null if not yet used)
+  usedBy           String?
+  /// Subscription ID created from this code (for commission tracking)
+  subscriptionId   String?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -468,8 +589,11 @@ model AffiliateCode {
   @@index([status])
   @@index([expiresAt])
   @@index([code])
+  @@map("affiliate_codes")
 }
 
+/// Commission records tracking affiliate earnings from each referral.
+/// Links affiliate codes to actual conversions with full revenue breakdown.
 model Commission {
   id                 String   @id @default(cuid())
 
@@ -480,21 +604,30 @@ model Commission {
   affiliateCodeId    String
   affiliateCode      AffiliateCode @relation(fields: [affiliateCodeId], references: [id])
 
-  // Transaction
-  userId             String   // SaaS user who upgraded
-  subscriptionId     String?  // Subscription created
+  /// User ID of the SaaS customer who upgraded using the affiliate code
+  userId             String
+  /// Subscription created from this referral
+  subscriptionId     String?
 
-  // Amounts
-  grossRevenue       Decimal  // Full subscription amount
-  discountAmount     Decimal  // Discount given to user
-  netRevenue         Decimal  // After discount
-  commissionAmount   Decimal  // Affiliate earns this
+  // Revenue breakdown
+  /// Full subscription price before discount (in USD)
+  grossRevenue       Decimal
+  /// Discount amount given to customer
+  discountAmount     Decimal
+  /// Revenue after discount: grossRevenue - discountAmount
+  netRevenue         Decimal
+  /// Commission earned by affiliate: netRevenue * commissionPercent
+  commissionAmount   Decimal
 
-  // Status
+  // Status lifecycle
   status             CommissionStatus @default(PENDING)
+  /// When the commission was earned (at subscription creation)
   earnedAt           DateTime @default(now())
+  /// When admin approved the commission (after chargeback window)
   approvedAt         DateTime?
+  /// When commission was paid out
   paidAt             DateTime?
+  /// When commission was cancelled (e.g., refund/chargeback)
   cancelledAt        DateTime?
 
   // Payment tracking
@@ -505,13 +638,14 @@ model Commission {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  // Part 19: Disbursement relationship
+  /// Part 19: RiseWorks disbursement transaction
   disbursementTransaction DisbursementTransaction?
 
   @@index([affiliateProfileId])
   @@index([status])
   @@index([earnedAt])
   @@index([paidAt])
+  @@map("commissions")
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -531,11 +665,13 @@ enum NotificationPriority {
   HIGH
 }
 
+/// User notifications for alerts, subscription events, and system messages.
+/// Supports multiple priority levels and read tracking.
 model Notification {
   id        String   @id @default(cuid())
   userId    String
 
-  // Notification content
+  /// Notification category: ALERT, SUBSCRIPTION, PAYMENT, SYSTEM
   type      NotificationType
   title     String
   body      String
@@ -545,16 +681,16 @@ model Notification {
   read      Boolean  @default(false)
   readAt    DateTime?
 
-  // Optional link to related resource
+  /// Optional deep link to related resource (e.g., /alerts/abc123)
   link      String?
 
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, read])
   @@index([createdAt])
+  @@map("notifications")
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -598,15 +734,17 @@ enum AuditLogStatus {
   INFO
 }
 
+/// RiseWorks account linked to affiliate for automated commission payouts.
+/// Handles KYC status tracking and blockchain-based payments.
 model AffiliateRiseAccount {
   id                   String   @id @default(cuid())
 
-  // Link to existing Part 17 AffiliateProfile
+  // Link to Part 17 AffiliateProfile
   affiliateProfileId   String   @unique
   affiliateProfile     AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
-  // RiseWorks Account Info
-  riseId               String   @unique  // Blockchain address
+  /// RiseWorks blockchain address for receiving payments
+  riseId               String   @unique
   email                String
 
   // KYC Status
@@ -619,6 +757,7 @@ model AffiliateRiseAccount {
 
   // Sync Status
   lastSyncAt           DateTime?
+  /// Additional RiseWorks metadata (wallet info, etc.)
   metadata             Json?
 
   createdAt            DateTime @default(now())
@@ -630,12 +769,15 @@ model AffiliateRiseAccount {
   @@index([affiliateProfileId])
   @@index([riseId])
   @@index([kycStatus])
+  @@map("affiliate_rise_accounts")
 }
 
+/// Batch of affiliate commission payouts processed together.
+/// Groups multiple disbursement transactions for efficient processing.
 model PaymentBatch {
   id              String   @id @default(cuid())
 
-  // Batch Identification
+  /// Unique batch identifier (e.g., 'BATCH-2024-01-15-001')
   batchNumber     String   @unique
 
   // Batch Summary
@@ -643,19 +785,17 @@ model PaymentBatch {
   totalAmount     Decimal  @default(0)
   currency        String   @default("USD")
 
-  // Provider
+  /// Disbursement provider: RISE or MOCK (for testing)
   provider        DisbursementProvider
 
-  // Status
   status          PaymentBatchStatus @default(PENDING)
 
-  // Timestamps
+  // Lifecycle timestamps
   scheduledAt     DateTime?
   executedAt      DateTime?
   completedAt     DateTime?
   failedAt        DateTime?
 
-  // Error Handling
   errorMessage    String?
   metadata        Json?
 
@@ -670,8 +810,11 @@ model PaymentBatch {
   @@index([scheduledAt])
   @@index([provider])
   @@index([batchNumber])
+  @@map("payment_batches")
 }
 
+/// Individual payout transaction within a PaymentBatch.
+/// Tracks single commission disbursement with retry logic.
 model DisbursementTransaction {
   id                String   @id @default(cuid())
 
@@ -679,39 +822,38 @@ model DisbursementTransaction {
   batchId           String
   batch             PaymentBatch @relation(fields: [batchId], references: [id])
 
-  // Commission Reference (from Part 17)
+  /// Link to Part 17 Commission being paid
   commissionId      String   @unique
   commission        Commission @relation(fields: [commissionId], references: [id])
 
-  // Transaction IDs
+  /// Internal transaction ID
   transactionId     String   @unique
+  /// External provider transaction ID (from RiseWorks)
   providerTxId      String?
 
-  // Provider
   provider          DisbursementProvider
 
   // Payee Info
   affiliateRiseAccountId String?
   affiliateRiseAccount   AffiliateRiseAccount? @relation(fields: [affiliateRiseAccountId], references: [id])
+  /// RiseWorks wallet address receiving payment
   payeeRiseId       String?
 
   // Amount
   amount            Decimal
+  /// Amount in RiseWorks smallest units (for precision)
   amountRiseUnits   BigInt?
   currency          String   @default("USD")
 
-  // Status
   status            DisbursementTransactionStatus @default(PENDING)
 
   // Retry Logic
   retryCount        Int      @default(0)
   lastRetryAt       DateTime?
 
-  // Error Handling
   errorMessage      String?
   metadata          Json?
 
-  // Timestamps
   createdAt         DateTime @default(now())
   completedAt       DateTime?
   failedAt          DateTime?
@@ -725,8 +867,11 @@ model DisbursementTransaction {
   @@index([status])
   @@index([providerTxId])
   @@index([createdAt])
+  @@map("disbursement_transactions")
 }
 
+/// Webhook events received from RiseWorks for payment status updates.
+/// Stores raw payload for debugging and tracks processing status.
 model RiseWorksWebhookEvent {
   id              String   @id @default(cuid())
 
@@ -734,16 +879,19 @@ model RiseWorksWebhookEvent {
   transactionId   String?
   transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
 
-  // Event Info
+  /// Event type: 'payment.completed', 'payment.failed', 'kyc.approved', etc.
   eventType       String
   provider        DisbursementProvider
 
-  // Payload
+  /// Raw webhook payload as JSON
   payload         Json
 
   // Verification
+  /// HMAC signature from webhook header
   signature       String?
+  /// Computed hash for verification
   hash            String?
+  /// Whether signature verification passed
   verified        Boolean  @default(false)
 
   // Processing Status
@@ -757,8 +905,11 @@ model RiseWorksWebhookEvent {
   @@index([eventType])
   @@index([processed])
   @@index([receivedAt])
+  @@map("riseworks_webhook_events")
 }
 
+/// Audit trail for all disbursement-related actions.
+/// Tracks who did what, when, for compliance and debugging.
 model DisbursementAuditLog {
   id              String   @id @default(cuid())
 
@@ -768,14 +919,14 @@ model DisbursementAuditLog {
   batchId         String?
   batch           PaymentBatch? @relation(fields: [batchId], references: [id])
 
-  // Action Info
+  /// Action performed: 'BATCH_CREATED', 'PAYMENT_SENT', 'RETRY_SCHEDULED', etc.
   action          String
+  /// User/system that performed the action
   actor           String?
 
-  // Status
   status          AuditLogStatus
 
-  // Details
+  /// Additional context as JSON
   details         Json?
   ipAddress       String?
   userAgent       String?
@@ -786,6 +937,7 @@ model DisbursementAuditLog {
   @@index([batchId])
   @@index([action])
   @@index([createdAt])
+  @@map("disbursement_audit_logs")
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -821,6 +973,7 @@ model SystemConfig {
 
   @@index([category])
   @@index([key])
+  @@map("system_configs")
 }
 
 /// History of all changes to SystemConfig for audit trail
@@ -847,4 +1000,5 @@ model SystemConfigHistory {
   @@index([configKey])
   @@index([changedBy])
   @@index([changedAt])
+  @@map("system_config_history")
 }
