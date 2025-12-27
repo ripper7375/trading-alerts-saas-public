@@ -335,7 +335,7 @@ export async function GET(
     const proIndicatorsTransformed = transformProIndicators(
       data.proIndicators,
       userTier
-    );
+    ) || {};
 
     //───────────────────────────────────────────────────────
     // STEP 11: Cache the Response
