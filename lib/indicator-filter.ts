@@ -101,37 +101,39 @@ export function filterIndicatorData<T extends Record<string, unknown>>(
   }
 
   // For FREE tier, filter out PRO-only indicators
-  const filtered = { ...data };
+  const filtered: Record<string, unknown> = { ...data };
 
   // Filter proIndicators object if present
-  if (filtered.proIndicators && typeof filtered.proIndicators === 'object') {
+  const proIndicators = filtered['proIndicators'];
+  if (proIndicators && typeof proIndicators === 'object') {
     const allowedData: Record<string, unknown> = {};
 
-    Object.keys(filtered.proIndicators as object).forEach((key) => {
+    Object.keys(proIndicators as object).forEach((key) => {
       const indicator = key.toLowerCase();
       if (BASIC_INDICATORS.includes(indicator as BasicIndicator)) {
-        allowedData[key] = (filtered.proIndicators as Record<string, unknown>)[key];
+        allowedData[key] = (proIndicators as Record<string, unknown>)[key];
       }
     });
 
-    filtered.proIndicators = allowedData as T['proIndicators'];
+    filtered['proIndicators'] = allowedData;
   }
 
   // Filter proIndicatorsTransformed object if present
-  if (filtered.proIndicatorsTransformed && typeof filtered.proIndicatorsTransformed === 'object') {
+  const proIndicatorsTransformed = filtered['proIndicatorsTransformed'];
+  if (proIndicatorsTransformed && typeof proIndicatorsTransformed === 'object') {
     const allowedTransformed: Record<string, unknown> = {};
 
-    Object.keys(filtered.proIndicatorsTransformed as object).forEach((key) => {
+    Object.keys(proIndicatorsTransformed as object).forEach((key) => {
       const indicator = key.toLowerCase();
       if (BASIC_INDICATORS.includes(indicator as BasicIndicator)) {
-        allowedTransformed[key] = (filtered.proIndicatorsTransformed as Record<string, unknown>)[key];
+        allowedTransformed[key] = (proIndicatorsTransformed as Record<string, unknown>)[key];
       }
     });
 
-    filtered.proIndicatorsTransformed = allowedTransformed as T['proIndicatorsTransformed'];
+    filtered['proIndicatorsTransformed'] = allowedTransformed;
   }
 
-  return filtered;
+  return filtered as T;
 }
 
 /**
@@ -199,8 +201,9 @@ export function getIndicatorCount(tier: Tier): {
  * @returns true if PRO indicators are present
  */
 export function hasProIndicators(data: Record<string, unknown>): boolean {
-  if (data.proIndicators && typeof data.proIndicators === 'object') {
-    const proData = data.proIndicators as Record<string, unknown>;
+  const proIndicators = data['proIndicators'];
+  if (proIndicators && typeof proIndicators === 'object') {
+    const proData = proIndicators as Record<string, unknown>;
 
     for (const key of Object.keys(proData)) {
       const indicator = key.toLowerCase();
@@ -261,16 +264,21 @@ export function createIndicatorResponse<T>(
 
   // Add upgrade info for FREE users
   if (tier === 'FREE') {
-    const upgradeInfo = requestedIndicators?.length
+    const upgradeInfo: IndicatorUpgradeInfo = requestedIndicators?.length
       ? getIndicatorUpgradeInfo(requestedIndicators, tier)
-      : { upgradeRequired: true, lockedIndicators: [...PRO_ONLY_INDICATORS] };
+      : {
+          upgradeRequired: true,
+          lockedIndicators: [...PRO_ONLY_INDICATORS],
+          accessibleIndicators: [...BASIC_INDICATORS],
+          upgradeMessage: null,
+        };
 
     if (upgradeInfo.upgradeRequired || tier === 'FREE') {
+      const defaultMessage = `Upgrade to Pro to access ${PRO_ONLY_INDICATORS.length} additional indicators. Only $29/month with 7-day free trial.`;
       response.upgrade = {
         required: true,
-        message: upgradeInfo.upgradeMessage ||
-          `Upgrade to Pro to access ${PRO_ONLY_INDICATORS.length} additional indicators. Only $29/month with 7-day free trial.`,
-        locked: upgradeInfo.lockedIndicators || [...PRO_ONLY_INDICATORS],
+        message: upgradeInfo.upgradeMessage || defaultMessage,
+        locked: upgradeInfo.lockedIndicators,
         tier: 'PRO',
         pricing: {
           monthly: '$29',

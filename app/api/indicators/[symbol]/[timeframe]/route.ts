@@ -371,6 +371,7 @@ export async function GET(
     //───────────────────────────────────────────────────────
     type CachedData = MT5IndicatorData & {
       proIndicatorsTransformed: ProIndicatorData;
+      [key: string]: unknown;
     };
 
     const cachedData = await getCachedIndicatorData<CachedData>(

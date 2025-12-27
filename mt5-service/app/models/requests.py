@@ -266,17 +266,21 @@ def validate_tier_access(symbol: str, timeframe: str, tier: Tier) -> tuple[bool,
 
     # Validate symbol exists in system
     if symbol_upper not in VALID_SYMBOLS:
-        return False, f"Invalid symbol: {symbol}. Valid symbols: {', '.join(VALID_SYMBOLS)}"
+        valid_list = ', '.join(VALID_SYMBOLS)
+        return False, f"Invalid symbol: {symbol}. Valid symbols: {valid_list}"
 
     # Validate timeframe exists in system
     if timeframe_upper not in VALID_TIMEFRAMES:
-        return False, f"Invalid timeframe: {timeframe}. Valid timeframes: {', '.join(VALID_TIMEFRAMES)}"
+        valid_list = ', '.join(VALID_TIMEFRAMES)
+        return False, f"Invalid timeframe: {timeframe}. Valid: {valid_list}"
 
     # Validate tier access
     if not is_symbol_allowed(symbol_upper, tier):
-        return False, f"Symbol {symbol} requires PRO tier. Upgrade to access all 15 symbols."
+        msg = f"Symbol {symbol} requires PRO tier. Upgrade to access all symbols."
+        return False, msg
 
     if not is_timeframe_allowed(timeframe_upper, tier):
-        return False, f"Timeframe {timeframe} requires PRO tier. Upgrade to access all 9 timeframes."
+        msg = f"Timeframe {timeframe} requires PRO. Upgrade for all timeframes."
+        return False, msg
 
     return True, None
