@@ -5,7 +5,11 @@
  * Bridges Commission records with disbursement transactions.
  */
 
-import { PrismaClient, DisbursementProvider, DisbursementTransactionStatus } from '@prisma/client';
+import {
+  PrismaClient,
+  DisbursementProvider,
+  DisbursementTransactionStatus,
+} from '@prisma/client';
 import { generateTransactionId, usdToRiseUnits } from '../constants';
 
 /**
@@ -262,7 +266,9 @@ export class TransactionService {
     };
 
     for (const item of counts) {
-      const status = (item['status'] as string).toLowerCase() as keyof typeof result;
+      const status = (
+        item['status'] as string
+      ).toLowerCase() as keyof typeof result;
       if (status in result) {
         result[status] = item['_count'] as number;
       }

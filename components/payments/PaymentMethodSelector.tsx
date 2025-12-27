@@ -65,7 +65,12 @@ const PAYMENT_METHODS_BY_COUNTRY: Record<DLocalCountry, PaymentMethodInfo[]> = {
       icon: 'mobile',
       processingTime: 'Instant',
     },
-    { id: 'PhonePe', name: 'PhonePe', icon: 'mobile', processingTime: 'Instant' },
+    {
+      id: 'PhonePe',
+      name: 'PhonePe',
+      icon: 'mobile',
+      processingTime: 'Instant',
+    },
     {
       id: 'Net Banking',
       name: 'Net Banking',
@@ -81,10 +86,20 @@ const PAYMENT_METHODS_BY_COUNTRY: Record<DLocalCountry, PaymentMethodInfo[]> = {
       processingTime: '1-2 hours',
     },
     { id: 'USSD', name: 'USSD', icon: 'mobile', processingTime: 'Instant' },
-    { id: 'Paystack', name: 'Paystack', icon: 'card', processingTime: 'Instant' },
+    {
+      id: 'Paystack',
+      name: 'Paystack',
+      icon: 'card',
+      processingTime: 'Instant',
+    },
   ],
   PK: [
-    { id: 'JazzCash', name: 'JazzCash', icon: 'mobile', processingTime: 'Instant' },
+    {
+      id: 'JazzCash',
+      name: 'JazzCash',
+      icon: 'mobile',
+      processingTime: 'Instant',
+    },
     {
       id: 'Easypaisa',
       name: 'Easypaisa',
@@ -95,7 +110,12 @@ const PAYMENT_METHODS_BY_COUNTRY: Record<DLocalCountry, PaymentMethodInfo[]> = {
   VN: [
     { id: 'VNPay', name: 'VNPay', icon: 'card', processingTime: 'Instant' },
     { id: 'MoMo', name: 'MoMo', icon: 'mobile', processingTime: 'Instant' },
-    { id: 'ZaloPay', name: 'ZaloPay', icon: 'mobile', processingTime: 'Instant' },
+    {
+      id: 'ZaloPay',
+      name: 'ZaloPay',
+      icon: 'mobile',
+      processingTime: 'Instant',
+    },
   ],
   ID: [
     { id: 'GoPay', name: 'GoPay', icon: 'mobile', processingTime: 'Instant' },
@@ -152,9 +172,7 @@ const PAYMENT_METHODS_BY_COUNTRY: Record<DLocalCountry, PaymentMethodInfo[]> = {
 // HELPER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function getMethodIcon(
-  type: PaymentMethodInfo['icon']
-): React.ReactElement {
+function getMethodIcon(type: PaymentMethodInfo['icon']): React.ReactElement {
   const iconProps = { className: 'h-8 w-8' };
 
   switch (type) {
@@ -194,7 +212,9 @@ export function PaymentMethodSelector({
 
       try {
         // Try to get from API first
-        const res = await fetch(`/api/payments/dlocal/methods?country=${country}`);
+        const res = await fetch(
+          `/api/payments/dlocal/methods?country=${country}`
+        );
 
         if (res.ok) {
           const data = await res.json();

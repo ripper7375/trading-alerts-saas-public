@@ -81,10 +81,7 @@ const FALLBACK_RATES: Record<DLocalCurrency, number> = {
 // HELPER FUNCTIONS (from seed component)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function formatLocalAmount(
-  amount: number,
-  currency: DLocalCurrency
-): string {
+function formatLocalAmount(amount: number, currency: DLocalCurrency): string {
   // VND and IDR don't use decimals
   const decimals = currency === 'VND' || currency === 'IDR' ? 0 : 2;
 

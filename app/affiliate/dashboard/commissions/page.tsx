@@ -112,9 +112,7 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Commissions</h1>
-          <p className="text-gray-600">
-            Track your earnings from referrals
-          </p>
+          <p className="text-gray-600">Track your earnings from referrals</p>
         </div>
       </div>
 

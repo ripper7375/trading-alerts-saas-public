@@ -114,9 +114,7 @@ describe('PnLBreakdownTable Component', () => {
     });
 
     it('should show negative margin correctly', () => {
-      const dataWithNegativeMargin = [
-        { ...mockData[0], margin: -10.5 },
-      ];
+      const dataWithNegativeMargin = [{ ...mockData[0], margin: -10.5 }];
       render(<PnLBreakdownTable data={dataWithNegativeMargin} />);
       expect(screen.getByText('-10.5%')).toBeInTheDocument();
     });
@@ -145,9 +143,7 @@ describe('PnLBreakdownTable Component', () => {
     });
 
     it('should have red color for negative profit', () => {
-      const dataWithNegativeProfit = [
-        { ...mockData[0], profit: -5000 },
-      ];
+      const dataWithNegativeProfit = [{ ...mockData[0], profit: -5000 }];
       render(<PnLBreakdownTable data={dataWithNegativeProfit} />);
       // Value appears in both data row and total row
       const profits = screen.getAllByText('$-5,000.00');
@@ -157,15 +153,13 @@ describe('PnLBreakdownTable Component', () => {
     it('should have green color for positive margin', () => {
       render(<PnLBreakdownTable data={mockData} />);
       const margins = screen.getAllByText('80.0%');
-      margins.forEach(margin => {
+      margins.forEach((margin) => {
         expect(margin).toHaveClass('text-green-600');
       });
     });
 
     it('should have red color for negative margin', () => {
-      const dataWithNegativeMargin = [
-        { ...mockData[0], margin: -15.0 },
-      ];
+      const dataWithNegativeMargin = [{ ...mockData[0], margin: -15.0 }];
       render(<PnLBreakdownTable data={dataWithNegativeMargin} />);
       const margin = screen.getByText('-15.0%');
       expect(margin).toHaveClass('text-red-600');
@@ -229,7 +223,9 @@ describe('PnLBreakdownTable Component', () => {
   describe('empty state', () => {
     it('should show empty message when no data', () => {
       render(<PnLBreakdownTable data={[]} />);
-      expect(screen.getByText('No data available for this period')).toBeInTheDocument();
+      expect(
+        screen.getByText('No data available for this period')
+      ).toBeInTheDocument();
     });
 
     it('should still render table structure when empty', () => {
@@ -262,7 +258,7 @@ describe('PnLBreakdownTable Component', () => {
     it('should have hover effect on data rows', () => {
       const { container } = render(<PnLBreakdownTable data={mockData} />);
       const rows = container.querySelectorAll('tbody tr');
-      rows.forEach(row => {
+      rows.forEach((row) => {
         expect(row).toHaveClass('hover:bg-muted/25');
       });
     });
@@ -273,32 +269,36 @@ describe('PnLBreakdownTable Component', () => {
   // ============================================================================
   describe('edge cases', () => {
     it('should handle zero values', () => {
-      const zeroData = [{
-        month: 'March 2024',
-        sales: 0,
-        grossRevenue: 0,
-        discounts: 0,
-        netRevenue: 0,
-        commissions: 0,
-        profit: 0,
-        margin: 0,
-      }];
+      const zeroData = [
+        {
+          month: 'March 2024',
+          sales: 0,
+          grossRevenue: 0,
+          discounts: 0,
+          netRevenue: 0,
+          commissions: 0,
+          profit: 0,
+          margin: 0,
+        },
+      ];
       render(<PnLBreakdownTable data={zeroData} />);
       expect(screen.getByText('March 2024')).toBeInTheDocument();
       expect(screen.getAllByText('$0.00').length).toBeGreaterThan(0);
     });
 
     it('should handle very large numbers', () => {
-      const largeData = [{
-        month: 'April 2024',
-        sales: 10000,
-        grossRevenue: 9999999.99,
-        discounts: 999999.99,
-        netRevenue: 9000000,
-        commissions: 1800000,
-        profit: 7200000,
-        margin: 80.0,
-      }];
+      const largeData = [
+        {
+          month: 'April 2024',
+          sales: 10000,
+          grossRevenue: 9999999.99,
+          discounts: 999999.99,
+          netRevenue: 9000000,
+          commissions: 1800000,
+          profit: 7200000,
+          margin: 80.0,
+        },
+      ];
       render(<PnLBreakdownTable data={largeData} />);
       // May appear multiple times due to totals row
       expect(screen.getAllByText('$9,999,999.99').length).toBeGreaterThan(0);

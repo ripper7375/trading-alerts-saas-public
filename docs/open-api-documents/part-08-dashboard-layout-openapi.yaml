@@ -45,4 +45,4 @@ components:
       properties:
         message:
           type: string
-          example: "Part 08 contains UI components only. Refer to other parts for API documentation."
+          example: 'Part 08 contains UI components only. Refer to other parts for API documentation.'

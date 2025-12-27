@@ -86,10 +86,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       logger.warn('[CRON] Unauthorized cron request');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     logger.info('[CRON] Starting daily maintenance...');

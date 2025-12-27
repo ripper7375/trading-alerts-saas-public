@@ -13,15 +13,15 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 
 ### Quick Overview
 
-| Category | Status | Score |
-|----------|--------|-------|
-| File Existence | ✅ PASS | 100% |
-| Directory Structure | ✅ PASS | 100% |
-| API Implementation | ✅ PASS | 95% |
-| TypeScript Quality | ✅ PASS | 90% |
-| Security Patterns | ✅ PASS | 95% |
-| Component Quality | ✅ PASS | 90% |
-| Styling Compliance | ✅ PASS | 95% |
+| Category            | Status  | Score |
+| ------------------- | ------- | ----- |
+| File Existence      | ✅ PASS | 100%  |
+| Directory Structure | ✅ PASS | 100%  |
+| API Implementation  | ✅ PASS | 95%   |
+| TypeScript Quality  | ✅ PASS | 90%   |
+| Security Patterns   | ✅ PASS | 95%   |
+| Component Quality   | ✅ PASS | 90%   |
+| Styling Compliance  | ✅ PASS | 95%   |
 
 ---
 
@@ -29,31 +29,31 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 
 ### 1.1 Part 12 Files Checklist
 
-| # | File Path | Status | Category |
-|---|-----------|--------|----------|
-| 1 | `app/(marketing)/pricing/page.tsx` | ✅ EXISTS | Frontend Page |
-| 2 | `app/api/subscription/route.ts` | ✅ EXISTS | API Route |
-| 3 | `app/api/subscription/cancel/route.ts` | ✅ EXISTS | API Route |
-| 4 | `app/api/checkout/route.ts` | ✅ EXISTS | API Route |
-| 5 | `app/api/checkout/validate-code/route.ts` | ✅ EXISTS | API Route (Bonus) |
-| 6 | `app/api/invoices/route.ts` | ✅ EXISTS | API Route |
-| 7 | `app/api/webhooks/stripe/route.ts` | ✅ EXISTS | API Route |
-| 8 | `components/billing/subscription-card.tsx` | ✅ EXISTS | Component |
-| 9 | `components/billing/invoice-list.tsx` | ✅ EXISTS | Component |
-| 10 | `lib/stripe/stripe.ts` | ✅ EXISTS | Library |
-| 11 | `lib/stripe/webhook-handlers.ts` | ✅ EXISTS | Library |
-| 12 | `lib/email/subscription-emails.ts` | ✅ EXISTS | Library |
+| #   | File Path                                  | Status    | Category          |
+| --- | ------------------------------------------ | --------- | ----------------- |
+| 1   | `app/(marketing)/pricing/page.tsx`         | ✅ EXISTS | Frontend Page     |
+| 2   | `app/api/subscription/route.ts`            | ✅ EXISTS | API Route         |
+| 3   | `app/api/subscription/cancel/route.ts`     | ✅ EXISTS | API Route         |
+| 4   | `app/api/checkout/route.ts`                | ✅ EXISTS | API Route         |
+| 5   | `app/api/checkout/validate-code/route.ts`  | ✅ EXISTS | API Route (Bonus) |
+| 6   | `app/api/invoices/route.ts`                | ✅ EXISTS | API Route         |
+| 7   | `app/api/webhooks/stripe/route.ts`         | ✅ EXISTS | API Route         |
+| 8   | `components/billing/subscription-card.tsx` | ✅ EXISTS | Component         |
+| 9   | `components/billing/invoice-list.tsx`      | ✅ EXISTS | Component         |
+| 10  | `lib/stripe/stripe.ts`                     | ✅ EXISTS | Library           |
+| 11  | `lib/stripe/webhook-handlers.ts`           | ✅ EXISTS | Library           |
+| 12  | `lib/email/subscription-emails.ts`         | ✅ EXISTS | Library           |
 
 **Files Found:** 12/11 (100% + 1 bonus)
 
 ### 1.2 Category Breakdown
 
-| Category | Count | Files |
-|----------|-------|-------|
-| Frontend Pages | 1 | pricing/page.tsx |
-| API Routes | 6 | subscription, checkout, invoices, webhooks |
-| Frontend Components | 2 | subscription-card, invoice-list |
-| Library/Utils | 3 | stripe.ts, webhook-handlers.ts, subscription-emails.ts |
+| Category            | Count | Files                                                  |
+| ------------------- | ----- | ------------------------------------------------------ |
+| Frontend Pages      | 1     | pricing/page.tsx                                       |
+| API Routes          | 6     | subscription, checkout, invoices, webhooks             |
+| Frontend Components | 2     | subscription-card, invoice-list                        |
+| Library/Utils       | 3     | stripe.ts, webhook-handlers.ts, subscription-emails.ts |
 
 ---
 
@@ -72,12 +72,12 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 
 ### 2.2 Structure Assessment
 
-| Check | Result | Notes |
-|-------|--------|-------|
-| Uses `(marketing)` route group | ✅ YES | Correct implementation |
-| Uses `(dashboard)` route group | ✅ N/A | No dashboard files in Part 12 |
-| No `app/marketing/` directory | ✅ PASS | Directory does NOT exist |
-| No `app/dashboard/` directory | ✅ PASS | Directory does NOT exist |
+| Check                          | Result  | Notes                         |
+| ------------------------------ | ------- | ----------------------------- |
+| Uses `(marketing)` route group | ✅ YES  | Correct implementation        |
+| Uses `(dashboard)` route group | ✅ N/A  | No dashboard files in Part 12 |
+| No `app/marketing/` directory  | ✅ PASS | Directory does NOT exist      |
+| No `app/dashboard/` directory  | ✅ PASS | Directory does NOT exist      |
 
 **Directory Structure Score: 100%**
 
@@ -87,18 +87,19 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 
 ### 3.1 Endpoint Comparison: OpenAPI vs Reality
 
-| Endpoint | OpenAPI Spec | Actual Implementation | Variance |
-|----------|-------------|----------------------|----------|
-| GET /api/subscription | ✅ Defined | ✅ Implemented | Enhanced |
-| POST /api/subscription/cancel | ✅ Defined | ✅ Implemented | Match |
-| POST /api/checkout | ✅ Defined | ✅ Implemented | Match |
-| POST /api/checkout/validate-code | ✅ Defined | ✅ Implemented | Match |
-| GET /api/invoices | ✅ Defined | ✅ Implemented | Enhanced |
-| POST /api/webhooks/stripe | ✅ Defined | ✅ Implemented | Match |
+| Endpoint                         | OpenAPI Spec | Actual Implementation | Variance |
+| -------------------------------- | ------------ | --------------------- | -------- |
+| GET /api/subscription            | ✅ Defined   | ✅ Implemented        | Enhanced |
+| POST /api/subscription/cancel    | ✅ Defined   | ✅ Implemented        | Match    |
+| POST /api/checkout               | ✅ Defined   | ✅ Implemented        | Match    |
+| POST /api/checkout/validate-code | ✅ Defined   | ✅ Implemented        | Match    |
+| GET /api/invoices                | ✅ Defined   | ✅ Implemented        | Enhanced |
+| POST /api/webhooks/stripe        | ✅ Defined   | ✅ Implemented        | Match    |
 
 ### 3.2 Implementation Quality Assessment
 
 #### GET /api/subscription (`app/api/subscription/route.ts`)
+
 - ✅ Authentication: getServerSession with authOptions
 - ✅ Error Handling: Try-catch with specific error messages
 - ✅ Type Safety: Full TypeScript with SubscriptionResponse interface
@@ -107,6 +108,7 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 - **Score:** 95/100
 
 #### POST /api/subscription/cancel (`app/api/subscription/cancel/route.ts`)
+
 - ✅ Authentication: getServerSession with 401 response
 - ✅ Authorization: Checks user owns subscription
 - ✅ Error Handling: Comprehensive with error codes
@@ -115,6 +117,7 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 - **Score:** 95/100
 
 #### POST /api/checkout (`app/api/checkout/route.ts`)
+
 - ✅ Authentication: getServerSession validation
 - ✅ Business Logic: Prevents duplicate PRO upgrades
 - ✅ Error Handling: Specific Stripe error handling
@@ -122,6 +125,7 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 - **Score:** 95/100
 
 #### POST /api/checkout/validate-code (`app/api/checkout/validate-code/route.ts`)
+
 - ✅ Input Validation: Zod schema for code format
 - ✅ Business Logic: Checks code status, expiry, affiliate status
 - ✅ Discount Calculation: Full breakdown provided
@@ -129,6 +133,7 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 - **Score:** 98/100
 
 #### GET /api/invoices (`app/api/invoices/route.ts`)
+
 - ✅ Authentication: getServerSession validation
 - ✅ Pagination: Supports limit query parameter
 - ✅ Multi-Provider: Combines Stripe AND dLocal invoices
@@ -136,6 +141,7 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 - **Score:** 95/100
 
 #### POST /api/webhooks/stripe (`app/api/webhooks/stripe/route.ts`)
+
 - ✅ Security: Signature verification with constructWebhookEvent
 - ✅ Raw Body: Uses request.text() for signature verification
 - ✅ Event Routing: Switch statement for all event types
@@ -145,13 +151,13 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 
 ### 3.3 Security Patterns Found
 
-| Pattern | Implementation | Files |
-|---------|---------------|-------|
-| Session Authentication | ✅ All protected routes | 5 files |
-| Ownership Validation | ✅ User owns resource | cancel, subscription |
-| Input Validation | ✅ Zod schemas | validate-code |
-| Error Codes | ✅ Specific codes | All endpoints |
-| Webhook Security | ✅ Signature verification | stripe webhook |
+| Pattern                | Implementation            | Files                |
+| ---------------------- | ------------------------- | -------------------- |
+| Session Authentication | ✅ All protected routes   | 5 files              |
+| Ownership Validation   | ✅ User owns resource     | cancel, subscription |
+| Input Validation       | ✅ Zod schemas            | validate-code        |
+| Error Codes            | ✅ Specific codes         | All endpoints        |
+| Webhook Security       | ✅ Signature verification | stripe webhook       |
 
 ---
 
@@ -160,22 +166,24 @@ Part 12 (E-commerce & Billing) has been validated through comprehensive static a
 ### 4.1 Seed Code Available
 
 The project contains v0 seed components in:
+
 - `seed-code/v0-components/footer-component/`
 - `seed-code/v0-components/settings-page-with-tabs-v3/`
 
 ### 4.2 Pattern Compliance Matrix
 
-| Pattern | V0 Reference | Part 12 Implementation | Compliance |
-|---------|--------------|----------------------|------------|
-| shadcn/ui Components | ✅ Badge, Button, Card | ✅ Used consistently | 100% |
-| Tailwind CSS Classes | ✅ Standard patterns | ✅ Follows patterns | 95% |
-| TypeScript Interfaces | ✅ Explicit types | ✅ Full type safety | 100% |
-| Error Boundaries | ⚠️ Not in seed | ⚠️ Not implemented | N/A |
-| Loading States | ✅ Loader2 spinner | ✅ Used in components | 100% |
+| Pattern               | V0 Reference           | Part 12 Implementation | Compliance |
+| --------------------- | ---------------------- | ---------------------- | ---------- |
+| shadcn/ui Components  | ✅ Badge, Button, Card | ✅ Used consistently   | 100%       |
+| Tailwind CSS Classes  | ✅ Standard patterns   | ✅ Follows patterns    | 95%        |
+| TypeScript Interfaces | ✅ Explicit types      | ✅ Full type safety    | 100%       |
+| Error Boundaries      | ⚠️ Not in seed         | ⚠️ Not implemented     | N/A        |
+| Loading States        | ✅ Loader2 spinner     | ✅ Used in components  | 100%       |
 
 ### 4.3 Component Style Comparison
 
 #### SubscriptionCard vs V0 Patterns
+
 ```typescript
 // V0 Pattern: Card with header and content
 <Card className={isPro ? config.borderColor : ''}>
@@ -190,6 +198,7 @@ The project contains v0 seed components in:
 ```
 
 #### InvoiceList vs V0 Patterns
+
 ```typescript
 // V0 Pattern: Table with status badges
 <table className="w-full">
@@ -215,12 +224,12 @@ The project contains v0 seed components in:
 
 ### 5.1 Configuration Files
 
-| File | Status | Notes |
-|------|--------|-------|
-| `tailwind.config.ts` | ✅ Valid | Extended with trading colors |
-| `components.json` | ✅ Valid | shadcn/ui new-york style |
-| `app/globals.css` | ✅ Valid | CSS variables, light/dark modes |
-| `lib/utils.ts` | ✅ Valid | cn() function with clsx + tailwind-merge |
+| File                 | Status   | Notes                                    |
+| -------------------- | -------- | ---------------------------------------- |
+| `tailwind.config.ts` | ✅ Valid | Extended with trading colors             |
+| `components.json`    | ✅ Valid | shadcn/ui new-york style                 |
+| `app/globals.css`    | ✅ Valid | CSS variables, light/dark modes          |
+| `lib/utils.ts`       | ✅ Valid | cn() function with clsx + tailwind-merge |
 
 ### 5.2 Tailwind Configuration Highlights
 
@@ -238,12 +247,12 @@ colors: {
 
 ### 5.3 shadcn/ui Component Usage in Part 12
 
-| Component | Usage | Source |
-|-----------|-------|--------|
-| Badge | ✅ subscription-card, invoice-list | @/components/ui/badge |
-| Button | ✅ Both components | @/components/ui/button |
-| Card | ✅ subscription-card | @/components/ui/card |
-| Loader2 | ✅ invoice-list loading state | lucide-react |
+| Component | Usage                              | Source                 |
+| --------- | ---------------------------------- | ---------------------- |
+| Badge     | ✅ subscription-card, invoice-list | @/components/ui/badge  |
+| Button    | ✅ Both components                 | @/components/ui/button |
+| Card      | ✅ subscription-card               | @/components/ui/card   |
+| Loader2   | ✅ invoice-list loading state      | lucide-react           |
 
 **Styling System Score: 95%**
 
@@ -253,20 +262,21 @@ colors: {
 
 ### 6.1 Frontend Pages
 
-| Page | Route | Layout | Status |
-|------|-------|--------|--------|
+| Page    | Route      | Layout      | Status    |
+| ------- | ---------- | ----------- | --------- |
 | Pricing | `/pricing` | (marketing) | ✅ Exists |
 
 ### 6.2 Components
 
-| Component | Location | Props Interface | Status |
-|-----------|----------|-----------------|--------|
+| Component        | Location           | Props Interface       | Status      |
+| ---------------- | ------------------ | --------------------- | ----------- |
 | SubscriptionCard | components/billing | SubscriptionCardProps | ✅ Complete |
-| InvoiceList | components/billing | InvoiceListProps | ✅ Complete |
+| InvoiceList      | components/billing | InvoiceListProps      | ✅ Complete |
 
 ### 6.3 Component Props Analysis
 
 #### SubscriptionCard Props
+
 ```typescript
 interface SubscriptionCardProps {
   tier: 'FREE' | 'PRO';
@@ -275,16 +285,18 @@ interface SubscriptionCardProps {
   trialEnd?: string | null;
   cancelAtPeriodEnd?: boolean;
   paymentMethod?: PaymentMethod | null;
-  paymentProvider?: PaymentProvider;  // NEW: dLocal support
-  planType?: string;                   // NEW: Plan type
+  paymentProvider?: PaymentProvider; // NEW: dLocal support
+  planType?: string; // NEW: Plan type
   onUpgrade: () => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 ```
+
 ✅ Well-typed with optional properties and callbacks
 
 #### InvoiceList Props
+
 ```typescript
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -293,6 +305,7 @@ interface InvoiceListProps {
   onLoadMore?: () => void;
 }
 ```
+
 ✅ Properly typed with pagination support
 
 ---
@@ -301,21 +314,21 @@ interface InvoiceListProps {
 
 ### 7.1 Route Analysis
 
-| Route | Method | Authentication | Notes |
-|-------|--------|---------------|-------|
-| `/pricing` | GET | ❌ Public | Marketing page |
-| `/api/subscription` | GET/POST | ✅ Required | Protected |
-| `/api/subscription/cancel` | POST | ✅ Required | Protected |
-| `/api/checkout` | POST | ✅ Required | Protected |
-| `/api/checkout/validate-code` | POST | ❌ Public | Code validation |
-| `/api/invoices` | GET | ✅ Required | Protected |
-| `/api/webhooks/stripe` | POST | ⚡ Signature | Webhook |
+| Route                         | Method   | Authentication | Notes           |
+| ----------------------------- | -------- | -------------- | --------------- |
+| `/pricing`                    | GET      | ❌ Public      | Marketing page  |
+| `/api/subscription`           | GET/POST | ✅ Required    | Protected       |
+| `/api/subscription/cancel`    | POST     | ✅ Required    | Protected       |
+| `/api/checkout`               | POST     | ✅ Required    | Protected       |
+| `/api/checkout/validate-code` | POST     | ❌ Public      | Code validation |
+| `/api/invoices`               | GET      | ✅ Required    | Protected       |
+| `/api/webhooks/stripe`        | POST     | ⚡ Signature   | Webhook         |
 
 ### 7.2 Link Analysis
 
-| Source | Target | Type | Status |
-|--------|--------|------|--------|
-| subscription-card | /pricing | Upgrade link | ✅ Valid |
+| Source            | Target    | Type           | Status   |
+| ----------------- | --------- | -------------- | -------- |
+| subscription-card | /pricing  | Upgrade link   | ✅ Valid |
 | subscription-card | /checkout | dLocal renewal | ✅ Valid |
 
 ---
@@ -324,27 +337,27 @@ interface InvoiceListProps {
 
 ### 8.1 User Interactions
 
-| Component | Interaction | Handler | Status |
-|-----------|-------------|---------|--------|
-| SubscriptionCard | Upgrade Button | onUpgrade() | ✅ Implemented |
-| SubscriptionCard | Cancel Button | onCancel() | ✅ Implemented |
-| InvoiceList | Load More | onLoadMore() | ✅ Implemented |
-| InvoiceList | PDF Download | External link | ✅ Implemented |
+| Component        | Interaction    | Handler       | Status         |
+| ---------------- | -------------- | ------------- | -------------- |
+| SubscriptionCard | Upgrade Button | onUpgrade()   | ✅ Implemented |
+| SubscriptionCard | Cancel Button  | onCancel()    | ✅ Implemented |
+| InvoiceList      | Load More      | onLoadMore()  | ✅ Implemented |
+| InvoiceList      | PDF Download   | External link | ✅ Implemented |
 
 ### 8.2 Loading States
 
-| Component | Loading State | Indicator | Status |
-|-----------|--------------|-----------|--------|
-| SubscriptionCard | isLoading prop | Button text change | ✅ |
-| InvoiceList | isLoading prop | Loader2 spinner | ✅ |
-| InvoiceList | Empty state | FileText icon | ✅ |
+| Component        | Loading State  | Indicator          | Status |
+| ---------------- | -------------- | ------------------ | ------ |
+| SubscriptionCard | isLoading prop | Button text change | ✅     |
+| InvoiceList      | isLoading prop | Loader2 spinner    | ✅     |
+| InvoiceList      | Empty state    | FileText icon      | ✅     |
 
 ### 8.3 Error States
 
-| Component | Error Handling | Notes |
-|-----------|---------------|-------|
-| SubscriptionCard | Via parent | Callbacks handle errors |
-| InvoiceList | Empty state | "No invoices yet" message |
+| Component        | Error Handling | Notes                     |
+| ---------------- | -------------- | ------------------------- |
+| SubscriptionCard | Via parent     | Callbacks handle errors   |
+| InvoiceList      | Empty state    | "No invoices yet" message |
 
 ---
 
@@ -352,18 +365,19 @@ interface InvoiceListProps {
 
 ### 9.1 Type Safety Assessment
 
-| Criterion | Part 12 Files | Status |
-|-----------|--------------|--------|
-| Explicit Return Types | ✅ All functions | PASS |
-| Interface Definitions | ✅ All props | PASS |
-| No `any` Types | ✅ None found | PASS |
-| Import Types | ✅ Proper imports | PASS |
+| Criterion             | Part 12 Files     | Status |
+| --------------------- | ----------------- | ------ |
+| Explicit Return Types | ✅ All functions  | PASS   |
+| Interface Definitions | ✅ All props      | PASS   |
+| No `any` Types        | ✅ None found     | PASS   |
+| Import Types          | ✅ Proper imports | PASS   |
 
 ### 9.2 Environment Note
 
 ⚠️ **Note:** Full TypeScript compilation could not be verified because `node_modules` is not installed in this environment. The errors shown are due to missing type declarations, not code issues.
 
 Based on static analysis:
+
 - All Part 12 files have proper type annotations
 - Return types are explicitly defined
 - Props interfaces are complete
@@ -377,12 +391,12 @@ Based on static analysis:
 
 ### 10.1 Static Code Analysis
 
-| Criterion | Assessment | Status |
-|-----------|-----------|--------|
-| Import Organization | Grouped by type | ✅ |
-| Consistent Formatting | Proper indentation | ✅ |
-| JSDoc Comments | Present on all exports | ✅ |
-| No Unused Variables | None detected | ✅ |
+| Criterion             | Assessment             | Status |
+| --------------------- | ---------------------- | ------ |
+| Import Organization   | Grouped by type        | ✅     |
+| Consistent Formatting | Proper indentation     | ✅     |
+| JSDoc Comments        | Present on all exports | ✅     |
+| No Unused Variables   | None detected          | ✅     |
 
 ### 10.2 Environment Note
 
@@ -394,12 +408,12 @@ Based on static analysis:
 
 ### 11.1 Static Analysis
 
-| Criterion | Part 12 Files | Status |
-|-----------|--------------|--------|
-| Valid JSX Syntax | ✅ All components | PASS |
-| Valid Imports | ✅ All paths correct | PASS |
-| No Circular Dependencies | ✅ None detected | PASS |
-| Environment Variables | ✅ Properly accessed | PASS |
+| Criterion                | Part 12 Files        | Status |
+| ------------------------ | -------------------- | ------ |
+| Valid JSX Syntax         | ✅ All components    | PASS   |
+| Valid Imports            | ✅ All paths correct | PASS   |
+| No Circular Dependencies | ✅ None detected     | PASS   |
+| Environment Variables    | ✅ Properly accessed | PASS   |
 
 ### 11.2 Environment Note
 
@@ -455,16 +469,16 @@ Based on static analysis:
 
 ### 13.1 Overall Assessment
 
-| Dimension | Score | Status |
-|-----------|-------|--------|
-| File Completeness | 100% | ✅ PASS |
-| Directory Structure | 100% | ✅ PASS |
-| API Quality | 95% | ✅ PASS |
-| Component Quality | 90% | ✅ PASS |
-| Security | 95% | ✅ PASS |
-| Type Safety | 90% | ✅ PASS |
-| Styling | 95% | ✅ PASS |
-| **Overall** | **92%** | ✅ **PASS** |
+| Dimension           | Score   | Status      |
+| ------------------- | ------- | ----------- |
+| File Completeness   | 100%    | ✅ PASS     |
+| Directory Structure | 100%    | ✅ PASS     |
+| API Quality         | 95%     | ✅ PASS     |
+| Component Quality   | 90%     | ✅ PASS     |
+| Security            | 95%     | ✅ PASS     |
+| Type Safety         | 90%     | ✅ PASS     |
+| Styling             | 95%     | ✅ PASS     |
+| **Overall**         | **92%** | ✅ **PASS** |
 
 ### 13.2 Localhost Readiness Decision
 
@@ -473,6 +487,7 @@ Based on static analysis:
 **Confidence Level:** High (92%)
 
 **Pre-requisites:**
+
 1. Run `npm install` to install dependencies
 2. Configure environment variables:
    - `STRIPE_SECRET_KEY`
@@ -482,6 +497,7 @@ Based on static analysis:
 3. Run `npm run db:generate` to generate Prisma client
 
 **Testing Priority:**
+
 1. ✅ Subscription API endpoints
 2. ✅ Checkout flow
 3. ✅ Invoice listing
@@ -492,12 +508,14 @@ Based on static analysis:
 ## Appendix A: Quick Fix Prompts
 
 ### Install Dependencies
+
 ```bash
 npm install
 npm run db:generate
 ```
 
 ### Test Subscription Endpoint
+
 ```bash
 # Get subscription (requires auth cookie)
 curl -X GET http://localhost:3000/api/subscription \
@@ -505,6 +523,7 @@ curl -X GET http://localhost:3000/api/subscription \
 ```
 
 ### Test Checkout
+
 ```bash
 # Create checkout session (requires auth)
 curl -X POST http://localhost:3000/api/checkout \
@@ -522,4 +541,4 @@ curl -X POST http://localhost:3000/api/checkout \
 
 ---
 
-*End of Part 12 Validation Report*
+_End of Part 12 Validation Report_

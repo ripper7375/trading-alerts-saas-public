@@ -57,7 +57,9 @@ export function DistributeCodesModal({
       await onConfirm(count, reason);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to distribute codes');
+      setError(
+        err instanceof Error ? err.message : 'Failed to distribute codes'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -96,9 +98,7 @@ export function DistributeCodesModal({
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>

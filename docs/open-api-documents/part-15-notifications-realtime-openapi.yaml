@@ -115,26 +115,26 @@ paths:
                 $ref: '#/components/schemas/NotificationsListResponse'
               example:
                 notifications:
-                  - id: "notif_001"
-                    userId: "user_123"
-                    type: "ALERT"
-                    title: "BTC Alert Triggered"
-                    body: "BTCUSD has crossed above $50,000"
-                    priority: "HIGH"
+                  - id: 'notif_001'
+                    userId: 'user_123'
+                    type: 'ALERT'
+                    title: 'BTC Alert Triggered'
+                    body: 'BTCUSD has crossed above $50,000'
+                    priority: 'HIGH'
                     read: false
                     readAt: null
-                    link: "/alerts/alert_abc123"
-                    createdAt: "2025-12-20T15:30:00.000Z"
-                  - id: "notif_002"
-                    userId: "user_123"
-                    type: "SUBSCRIPTION"
-                    title: "Subscription Renewed"
-                    body: "Your PRO subscription has been renewed"
-                    priority: "MEDIUM"
+                    link: '/alerts/alert_abc123'
+                    createdAt: '2025-12-20T15:30:00.000Z'
+                  - id: 'notif_002'
+                    userId: 'user_123'
+                    type: 'SUBSCRIPTION'
+                    title: 'Subscription Renewed'
+                    body: 'Your PRO subscription has been renewed'
+                    priority: 'MEDIUM'
                     read: true
-                    readAt: "2025-12-20T14:00:00.000Z"
-                    link: "/settings/billing"
-                    createdAt: "2025-12-20T12:00:00.000Z"
+                    readAt: '2025-12-20T14:00:00.000Z'
+                    link: '/settings/billing'
+                    createdAt: '2025-12-20T12:00:00.000Z'
                 total: 45
                 page: 1
                 pageSize: 20
@@ -147,11 +147,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
               example:
-                error: "Invalid query parameters"
-                message: "Please check your query parameters"
+                error: 'Invalid query parameters'
+                message: 'Please check your query parameters'
                 details:
-                  - path: ["pageSize"]
-                    message: "Must be between 10 and 50"
+                  - path: ['pageSize']
+                    message: 'Must be between 10 and 50'
         '401':
           description: Unauthorized
           content:
@@ -159,8 +159,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Unauthorized"
-                message: "You must be logged in to view notifications"
+                error: 'Unauthorized'
+                message: 'You must be logged in to view notifications'
         '500':
           description: Internal server error
           content:
@@ -191,7 +191,7 @@ paths:
               example:
                 success: true
                 updatedCount: 12
-                message: "12 notification(s) marked as read"
+                message: '12 notification(s) marked as read'
         '401':
           description: Unauthorized
           content:
@@ -225,7 +225,7 @@ paths:
           description: Notification ID
           schema:
             type: string
-          example: "notif_001"
+          example: 'notif_001'
       responses:
         '200':
           description: Notification retrieved successfully
@@ -234,17 +234,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Notification'
               example:
-                id: "notif_001"
-                userId: "user_123"
-                type: "ALERT"
-                title: "BTC Alert Triggered"
-                body: "BTCUSD has crossed above $50,000"
-                priority: "HIGH"
+                id: 'notif_001'
+                userId: 'user_123'
+                type: 'ALERT'
+                title: 'BTC Alert Triggered'
+                body: 'BTCUSD has crossed above $50,000'
+                priority: 'HIGH'
                 read: false
                 readAt: null
-                link: "/alerts/alert_abc123"
-                createdAt: "2025-12-20T15:30:00.000Z"
-                updatedAt: "2025-12-20T15:30:00.000Z"
+                link: '/alerts/alert_abc123'
+                createdAt: '2025-12-20T15:30:00.000Z'
+                updatedAt: '2025-12-20T15:30:00.000Z'
         '401':
           description: Unauthorized
           content:
@@ -258,8 +258,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Forbidden"
-                message: "You do not have permission to access this notification"
+                error: 'Forbidden'
+                message: 'You do not have permission to access this notification'
         '404':
           description: Notification not found
           content:
@@ -267,8 +267,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not found"
-                message: "Notification not found"
+                error: 'Not found'
+                message: 'Notification not found'
         '500':
           description: Internal server error
           content:
@@ -292,7 +292,7 @@ paths:
           description: Notification ID
           schema:
             type: string
-          example: "notif_001"
+          example: 'notif_001'
       responses:
         '200':
           description: Notification deleted successfully
@@ -302,7 +302,7 @@ paths:
                 $ref: '#/components/schemas/DeleteResponse'
               example:
                 success: true
-                message: "Notification deleted successfully"
+                message: 'Notification deleted successfully'
         '401':
           description: Unauthorized
           content:
@@ -350,7 +350,7 @@ paths:
           description: Notification ID
           schema:
             type: string
-          example: "notif_001"
+          example: 'notif_001'
       responses:
         '200':
           description: Notification marked as read
@@ -363,36 +363,36 @@ paths:
                   summary: Successfully marked as read
                   value:
                     notification:
-                      id: "notif_001"
-                      userId: "user_123"
-                      type: "ALERT"
-                      title: "BTC Alert Triggered"
-                      body: "BTCUSD has crossed above $50,000"
-                      priority: "HIGH"
+                      id: 'notif_001'
+                      userId: 'user_123'
+                      type: 'ALERT'
+                      title: 'BTC Alert Triggered'
+                      body: 'BTCUSD has crossed above $50,000'
+                      priority: 'HIGH'
                       read: true
-                      readAt: "2025-12-20T16:00:00.000Z"
-                      link: "/alerts/alert_abc123"
-                      createdAt: "2025-12-20T15:30:00.000Z"
-                      updatedAt: "2025-12-20T16:00:00.000Z"
+                      readAt: '2025-12-20T16:00:00.000Z'
+                      link: '/alerts/alert_abc123'
+                      createdAt: '2025-12-20T15:30:00.000Z'
+                      updatedAt: '2025-12-20T16:00:00.000Z'
                     success: true
-                    message: "Notification marked as read"
+                    message: 'Notification marked as read'
                 alreadyRead:
                   summary: Already marked as read
                   value:
                     notification:
-                      id: "notif_001"
-                      userId: "user_123"
-                      type: "ALERT"
-                      title: "BTC Alert Triggered"
-                      body: "BTCUSD has crossed above $50,000"
-                      priority: "HIGH"
+                      id: 'notif_001'
+                      userId: 'user_123'
+                      type: 'ALERT'
+                      title: 'BTC Alert Triggered'
+                      body: 'BTCUSD has crossed above $50,000'
+                      priority: 'HIGH'
                       read: true
-                      readAt: "2025-12-20T15:45:00.000Z"
-                      link: "/alerts/alert_abc123"
-                      createdAt: "2025-12-20T15:30:00.000Z"
-                      updatedAt: "2025-12-20T15:45:00.000Z"
+                      readAt: '2025-12-20T15:45:00.000Z'
+                      link: '/alerts/alert_abc123'
+                      createdAt: '2025-12-20T15:30:00.000Z'
+                      updatedAt: '2025-12-20T15:45:00.000Z'
                     alreadyRead: true
-                    message: "Notification was already marked as read"
+                    message: 'Notification was already marked as read'
         '401':
           description: Unauthorized
           content:
@@ -442,29 +442,29 @@ components:
         id:
           type: string
           description: Unique notification identifier
-          example: "notif_001"
+          example: 'notif_001'
         userId:
           type: string
           description: User ID this notification belongs to
-          example: "user_123"
+          example: 'user_123'
         type:
           type: string
           enum: [ALERT, SUBSCRIPTION, PAYMENT, SYSTEM]
           description: Notification type
-          example: "ALERT"
+          example: 'ALERT'
         title:
           type: string
           description: Notification title
-          example: "BTC Alert Triggered"
+          example: 'BTC Alert Triggered'
         body:
           type: string
           description: Notification body/message
-          example: "BTCUSD has crossed above $50,000"
+          example: 'BTCUSD has crossed above $50,000'
         priority:
           type: string
           enum: [LOW, MEDIUM, HIGH]
           description: Notification priority level
-          example: "HIGH"
+          example: 'HIGH'
         read:
           type: boolean
           description: Whether notification has been read
@@ -474,22 +474,22 @@ components:
           format: date-time
           nullable: true
           description: When notification was marked as read
-          example: "2025-12-20T16:00:00.000Z"
+          example: '2025-12-20T16:00:00.000Z'
         link:
           type: string
           nullable: true
           description: Link to related resource
-          example: "/alerts/alert_abc123"
+          example: '/alerts/alert_abc123'
         createdAt:
           type: string
           format: date-time
           description: Notification creation timestamp
-          example: "2025-12-20T15:30:00.000Z"
+          example: '2025-12-20T15:30:00.000Z'
         updatedAt:
           type: string
           format: date-time
           description: Notification last update timestamp
-          example: "2025-12-20T16:00:00.000Z"
+          example: '2025-12-20T16:00:00.000Z'
 
     NotificationsListResponse:
       type: object
@@ -542,7 +542,7 @@ components:
           example: 12
         message:
           type: string
-          example: "12 notification(s) marked as read"
+          example: '12 notification(s) marked as read'
 
     MarkReadResponse:
       type: object
@@ -560,7 +560,7 @@ components:
           example: false
         message:
           type: string
-          example: "Notification marked as read"
+          example: 'Notification marked as read'
 
     DeleteResponse:
       type: object
@@ -573,7 +573,7 @@ components:
           example: true
         message:
           type: string
-          example: "Notification deleted successfully"
+          example: 'Notification deleted successfully'
 
     ErrorResponse:
       type: object
@@ -584,11 +584,11 @@ components:
         error:
           type: string
           description: Error type
-          example: "Unauthorized"
+          example: 'Unauthorized'
         message:
           type: string
           description: Error message
-          example: "You must be logged in to view notifications"
+          example: 'You must be logged in to view notifications'
 
     ValidationErrorResponse:
       type: object
@@ -598,10 +598,10 @@ components:
       properties:
         error:
           type: string
-          example: "Invalid query parameters"
+          example: 'Invalid query parameters'
         message:
           type: string
-          example: "Please check your query parameters"
+          example: 'Please check your query parameters'
         details:
           type: array
           items:

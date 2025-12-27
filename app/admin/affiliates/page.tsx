@@ -110,15 +110,22 @@ export default function AdminAffiliatesPage(): React.ReactElement {
     }
   };
 
-  const formatCurrency = (amount: number | { toNumber?: () => number }): string => {
-    const value = typeof amount === 'object' && amount.toNumber ? amount.toNumber() : Number(amount);
+  const formatCurrency = (
+    amount: number | { toNumber?: () => number }
+  ): string => {
+    const value =
+      typeof amount === 'object' && amount.toNumber
+        ? amount.toNumber()
+        : Number(amount);
     return `$${value.toFixed(2)}`;
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Affiliate Management</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Affiliate Management
+        </h1>
         <p className="mt-2 text-gray-600">
           Manage affiliates, distribute codes, and view performance
         </p>
@@ -276,7 +283,8 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                      {affiliate.totalCodesUsed} / {affiliate.totalCodesDistributed}
+                      {affiliate.totalCodesUsed} /{' '}
+                      {affiliate.totalCodesDistributed}
                       <span className="text-gray-400 ml-1">
                         ({affiliate.affiliateCodes.length} active)
                       </span>
@@ -307,7 +315,8 @@ export default function AdminAffiliatesPage(): React.ReactElement {
           {pagination.totalPages > 1 && (
             <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
               <div className="text-sm text-gray-700">
-                Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+                Showing page {pagination.page} of {pagination.totalPages} (
+                {pagination.total} total)
               </div>
               <div className="flex space-x-2">
                 <button

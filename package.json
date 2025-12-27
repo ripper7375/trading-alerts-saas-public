@@ -139,7 +139,7 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "engines": {
-    "node": "24.x",
+    "node": ">=20.0.0",
     "npm": ">=9.0.0"
   },
   "keywords": [

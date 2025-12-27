@@ -15,12 +15,14 @@
 ## ⚠️ WHY THIS REVISION EXISTS
 
 **The Problem with v2.0 (TDD approach):**
+
 - TDD spec made incorrect assumptions about the Prisma schema
 - Tests were written before understanding actual data structures
 - Type definitions drifted from what Prisma actually returns
 - Cascading issues from incorrect initial test specifications
 
 **The Solution (v3.0 - Practical approach):**
+
 - ✅ Start with the ACTUAL Prisma schema (already well-designed!)
 - ✅ Build services that work with REAL data structures
 - ✅ Use Prisma-generated types directly (no custom interfaces)
@@ -165,47 +167,47 @@ Build the **execution layer** for automated affiliate commission payments by cre
 
 ### Core Services (5 files)
 
-| #  | File Path                                            | Description                               |
-|----|------------------------------------------------------|-------------------------------------------|
-| 1  | `lib/disbursement/services/transaction-logger.ts`    | Audit trail logging (simple, practical)   |
-| 2  | `lib/disbursement/services/retry-handler.ts`         | Failed payment retry logic                |
-| 3  | `lib/disbursement/services/batch-manager.ts`         | Create and manage payment batches         |
-| 4  | `lib/disbursement/services/payment-orchestrator.ts`  | Execute batch payments                    |
-| 5  | `lib/disbursement/services/transaction-service.ts`   | Transaction creation helper               |
+| #   | File Path                                           | Description                             |
+| --- | --------------------------------------------------- | --------------------------------------- |
+| 1   | `lib/disbursement/services/transaction-logger.ts`   | Audit trail logging (simple, practical) |
+| 2   | `lib/disbursement/services/retry-handler.ts`        | Failed payment retry logic              |
+| 3   | `lib/disbursement/services/batch-manager.ts`        | Create and manage payment batches       |
+| 4   | `lib/disbursement/services/payment-orchestrator.ts` | Execute batch payments                  |
+| 5   | `lib/disbursement/services/transaction-service.ts`  | Transaction creation helper             |
 
 ### Admin API Routes - Affiliates (3 files)
 
-| #  | File Path                                                            | Description                       |
-|----|----------------------------------------------------------------------|-----------------------------------|
-| 6  | `app/api/disbursement/affiliates/payable/route.ts`                   | GET payable affiliates            |
-| 7  | `app/api/disbursement/affiliates/[affiliateId]/route.ts`             | GET affiliate details             |
-| 8  | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` | GET affiliate pending commissions |
+| #   | File Path                                                            | Description                       |
+| --- | -------------------------------------------------------------------- | --------------------------------- |
+| 6   | `app/api/disbursement/affiliates/payable/route.ts`                   | GET payable affiliates            |
+| 7   | `app/api/disbursement/affiliates/[affiliateId]/route.ts`             | GET affiliate details             |
+| 8   | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` | GET affiliate pending commissions |
 
 ### Admin API Routes - RiseWorks (2 files)
 
-| #  | File Path                                             | Description               |
-|----|-------------------------------------------------------|---------------------------|
-| 9  | `app/api/disbursement/riseworks/accounts/route.ts`    | GET/POST RiseWorks accounts |
-| 10 | `app/api/disbursement/riseworks/sync/route.ts`        | POST sync accounts        |
+| #   | File Path                                          | Description                 |
+| --- | -------------------------------------------------- | --------------------------- |
+| 9   | `app/api/disbursement/riseworks/accounts/route.ts` | GET/POST RiseWorks accounts |
+| 10  | `app/api/disbursement/riseworks/sync/route.ts`     | POST sync accounts          |
 
 ### Admin API Routes - Batches (4 files)
 
-| #  | File Path                                                 | Description            |
-|----|-----------------------------------------------------------|------------------------|
-| 11 | `app/api/disbursement/batches/route.ts`                   | GET/POST payment batches |
-| 12 | `app/api/disbursement/batches/preview/route.ts`           | POST preview batch     |
-| 13 | `app/api/disbursement/batches/[batchId]/route.ts`         | GET/DELETE batch       |
-| 14 | `app/api/disbursement/batches/[batchId]/execute/route.ts` | POST execute batch     |
+| #   | File Path                                                 | Description              |
+| --- | --------------------------------------------------------- | ------------------------ |
+| 11  | `app/api/disbursement/batches/route.ts`                   | GET/POST payment batches |
+| 12  | `app/api/disbursement/batches/preview/route.ts`           | POST preview batch       |
+| 13  | `app/api/disbursement/batches/[batchId]/route.ts`         | GET/DELETE batch         |
+| 14  | `app/api/disbursement/batches/[batchId]/execute/route.ts` | POST execute batch       |
 
 ### Minimal Tests (5 files)
 
-| #  | File Path                                                | Description                  |
-|----|----------------------------------------------------------|------------------------------|
-| T1 | `__tests__/lib/disbursement/services/batch.test.ts`      | Basic batch tests            |
-| T2 | `__tests__/lib/disbursement/services/orchestrator.test.ts` | Basic orchestrator tests   |
-| T3 | `__tests__/api/disbursement/affiliates.test.ts`          | Basic affiliate API tests    |
-| T4 | `__tests__/api/disbursement/batches.test.ts`             | Basic batch API tests        |
-| T5 | `__tests__/api/disbursement/execute.test.ts`             | Basic execution tests        |
+| #   | File Path                                                  | Description               |
+| --- | ---------------------------------------------------------- | ------------------------- |
+| T1  | `__tests__/lib/disbursement/services/batch.test.ts`        | Basic batch tests         |
+| T2  | `__tests__/lib/disbursement/services/orchestrator.test.ts` | Basic orchestrator tests  |
+| T3  | `__tests__/api/disbursement/affiliates.test.ts`            | Basic affiliate API tests |
+| T4  | `__tests__/api/disbursement/batches.test.ts`               | Basic batch API tests     |
+| T5  | `__tests__/api/disbursement/execute.test.ts`               | Basic execution tests     |
 
 **Total: 19 files (14 production + 5 minimal test)**
 
@@ -298,6 +300,7 @@ export class TransactionLogger {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/transaction-logger.ts
 git commit -m "feat(disbursement-19b): add transaction logger (schema-based)"
@@ -390,6 +393,7 @@ export class RetryHandler {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/retry-handler.ts
 git commit -m "feat(disbursement-19b): add retry handler with actual schema fields"
@@ -448,9 +452,10 @@ export class TransactionService {
           affiliateRiseAccountId: commission.affiliateProfile.riseAccount?.id,
           payeeRiseId: commission.affiliateProfile.riseAccount?.riseId,
           amount: commission.commissionAmount,
-          amountRiseUnits: provider === 'RISE'
-            ? usdToRiseUnits(Number(commission.commissionAmount))
-            : null,
+          amountRiseUnits:
+            provider === 'RISE'
+              ? usdToRiseUnits(Number(commission.commissionAmount))
+              : null,
           currency: 'USD',
           status: 'PENDING',
         },
@@ -465,6 +470,7 @@ export class TransactionService {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/transaction-service.ts
 git commit -m "feat(disbursement-19b): add transaction service helper"
@@ -529,11 +535,12 @@ export class BatchManager {
     // Create transactions for each aggregate's commissions
     let totalTransactions = 0;
     for (const aggregate of aggregates) {
-      const count = await this.transactionService.createTransactionsForCommissions(
-        batch.id,
-        aggregate.commissionIds,
-        provider
-      );
+      const count =
+        await this.transactionService.createTransactionsForCommissions(
+          batch.id,
+          aggregate.commissionIds,
+          provider
+        );
       totalTransactions += count;
     }
 
@@ -600,7 +607,13 @@ export class BatchManager {
   }
 
   async getAllBatches(
-    status?: 'PENDING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED',
+    status?:
+      | 'PENDING'
+      | 'QUEUED'
+      | 'PROCESSING'
+      | 'COMPLETED'
+      | 'FAILED'
+      | 'CANCELLED',
     limit: number = 50
   ): Promise<PaymentBatch[]> {
     return this.prisma.paymentBatch.findMany({
@@ -646,6 +659,7 @@ export class BatchManager {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/batch-manager.ts
 git commit -m "feat(disbursement-19b): add batch manager with schema-based includes"
@@ -835,6 +849,7 @@ export class PaymentOrchestrator {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/payment-orchestrator.ts
 git commit -m "feat(disbursement-19b): add payment orchestrator using actual schema"
@@ -908,7 +923,10 @@ export async function GET(request: NextRequest) {
       affiliates,
       summary: {
         totalAffiliates: affiliates.length,
-        totalPendingAmount: aggregates.reduce((sum, a) => sum + a.totalAmount, 0),
+        totalPendingAmount: aggregates.reduce(
+          (sum, a) => sum + a.totalAmount,
+          0
+        ),
         readyForPayout: affiliates.filter((a) => a.readyForPayout).length,
       },
     });
@@ -1150,6 +1168,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **Commit:**
+
 ```bash
 git add app/api/disbursement/affiliates/ app/api/disbursement/riseworks/
 git commit -m "feat(disbursement-19b): add affiliate and riseworks API routes"
@@ -1406,6 +1425,7 @@ export async function POST(
 ```
 
 **Commit:**
+
 ```bash
 git add app/api/disbursement/batches/
 git commit -m "feat(disbursement-19b): add batch management API routes"
@@ -1518,7 +1538,9 @@ describe('Batch API Routes', () => {
     const { getServerSession } = await import('@/lib/auth');
     (getServerSession as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new NextRequest('http://localhost:3000/api/disbursement/batches');
+    const request = new NextRequest(
+      'http://localhost:3000/api/disbursement/batches'
+    );
     const response = await GET(request);
     expect(response.status).toBe(401);
   });
@@ -1527,10 +1549,13 @@ describe('Batch API Routes', () => {
     const { getServerSession } = await import('@/lib/auth');
     (getServerSession as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new NextRequest('http://localhost:3000/api/disbursement/batches', {
-      method: 'POST',
-      body: JSON.stringify({ provider: 'MOCK' }),
-    });
+    const request = new NextRequest(
+      'http://localhost:3000/api/disbursement/batches',
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider: 'MOCK' }),
+      }
+    );
     const response = await POST(request);
     expect(response.status).toBe(401);
   });
@@ -1563,6 +1588,7 @@ describe('Batch Execution API', () => {
 ```
 
 **Commit:**
+
 ```bash
 git add __tests__/
 git commit -m "feat(disbursement-19b): add minimal smoke tests"
@@ -1575,6 +1601,7 @@ git commit -m "feat(disbursement-19b): add minimal smoke tests"
 ### Step-by-Step Instructions:
 
 1. **Verify Part 19A is complete:**
+
    ```bash
    ls lib/disbursement/providers/mock-provider.ts
    ls lib/disbursement/services/commission-aggregator.ts
@@ -1582,6 +1609,7 @@ git commit -m "feat(disbursement-19b): add minimal smoke tests"
    ```
 
 2. **Build Phase E (Services):**
+
    ```bash
    # Create files in order:
    # 1. transaction-logger.ts
@@ -1595,18 +1623,21 @@ git commit -m "feat(disbursement-19b): add minimal smoke tests"
    ```
 
 3. **Build Phase F (Affiliate APIs):**
+
    ```bash
    # Create all 5 affiliate/riseworks API files
    npx tsc --noEmit
    ```
 
 4. **Build Phase G (Batch APIs):**
+
    ```bash
    # Create all 4 batch API files
    npx tsc --noEmit
    ```
 
 5. **Add Minimal Tests:**
+
    ```bash
    # Create all 5 test files
    npm test  # Verify tests pass
@@ -1626,20 +1657,25 @@ git commit -m "feat(disbursement-19b): add minimal smoke tests"
 Before declaring Part 19B complete:
 
 ### 1. TypeScript Compilation ✅
+
 ```bash
 npx tsc --noEmit
 ```
+
 Expected: 0 errors
 
 ### 2. Test Suite ✅
+
 ```bash
 npm test
 ```
+
 Expected: All tests passing (6 from 19A + 5 from 19B = 11+ total)
 
 ### 3. File Count ✅
 
 **Part 19B Files: 19 files**
+
 - 5 service files
 - 9 API route files
 - 5 test files
@@ -1673,14 +1709,14 @@ npx prisma studio
 
 ## Key Differences from TDD Version
 
-| Aspect | TDD v2.0 (Failed) | Practical v3.0 (This Version) |
-|--------|-------------------|-------------------------------|
-| **Starting Point** | Write tests first | Understand schema first |
-| **Type Definitions** | Custom interfaces that drift | Use Prisma-generated types |
-| **Data Structures** | Guessed in tests | Read from actual schema |
-| **Query Patterns** | Made up before code exists | Based on real relationships |
-| **Test Coverage** | Tried for 85%+ upfront | Minimal smoke tests (~30%) |
-| **Success Rate** | Failed due to assumptions | Works because uses real schema |
+| Aspect               | TDD v2.0 (Failed)            | Practical v3.0 (This Version)  |
+| -------------------- | ---------------------------- | ------------------------------ |
+| **Starting Point**   | Write tests first            | Understand schema first        |
+| **Type Definitions** | Custom interfaces that drift | Use Prisma-generated types     |
+| **Data Structures**  | Guessed in tests             | Read from actual schema        |
+| **Query Patterns**   | Made up before code exists   | Based on real relationships    |
+| **Test Coverage**    | Tried for 85%+ upfront       | Minimal smoke tests (~30%)     |
+| **Success Rate**     | Failed due to assumptions    | Works because uses real schema |
 
 ---
 
@@ -1691,6 +1727,7 @@ npx prisma studio
 **Error:** `Property 'commission' does not exist on type...`
 
 **Solution:** Make sure you're using Prisma `include` correctly:
+
 ```typescript
 // Correct:
 const batch = await prisma.paymentBatch.findUnique({
@@ -1698,7 +1735,7 @@ const batch = await prisma.paymentBatch.findUnique({
   include: {
     transactions: {
       include: {
-        commission: true,  // Includes the relation
+        commission: true, // Includes the relation
         affiliateRiseAccount: true,
       },
     },
@@ -1713,6 +1750,7 @@ const batch = await prisma.paymentBatch.findUnique({
 **Error:** `PrismaClientKnownRequestError: Invalid prisma...`
 
 **Solution:** The minimal tests are smoke tests - they don't hit real database. If you want integration tests, you'll need:
+
 ```bash
 # Set up test database
 DATABASE_URL="postgresql://..." npm test
@@ -1725,6 +1763,7 @@ But for Part 19B, smoke tests are sufficient!
 **Error:** `Cannot find module '@/lib/disbursement/services/batch-manager'`
 
 **Solution:**
+
 ```bash
 # Verify file exists
 ls lib/disbursement/services/batch-manager.ts
@@ -1756,6 +1795,7 @@ Part 19B is complete when:
 After Part 19B validation passes, proceed to **Part 19C: Webhooks, Automation & Reports**
 
 Part 19C will add:
+
 1. Webhook handling (RiseWorks payment confirmations)
 2. Quick single-affiliate payments
 3. Reports and summaries
@@ -1781,6 +1821,7 @@ Part 19C will add:
 > "There would be any issue if Part 19B is not followed TDD approach?"
 
 **NO, absolutely no issue!** Part 19A built the foundation correctly with TDD. Part 19B builds the execution layer on top of that foundation. What matters is:
+
 - ✅ Code works with actual schema
 - ✅ Integrates with Part 19A services
 - ✅ TypeScript compiles

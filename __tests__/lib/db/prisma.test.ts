@@ -604,9 +604,9 @@ describe('Prisma Client Singleton', () => {
 
     it('should have accountDeletionRequest model', () => {
       expect(prismaModule.prisma.accountDeletionRequest).toBeDefined();
-      expect(
-        typeof prismaModule.prisma.accountDeletionRequest.findUnique
-      ).toBe('function');
+      expect(typeof prismaModule.prisma.accountDeletionRequest.findUnique).toBe(
+        'function'
+      );
       expect(typeof prismaModule.prisma.accountDeletionRequest.create).toBe(
         'function'
       );
@@ -711,9 +711,9 @@ describe('Prisma Client Singleton', () => {
       expect(typeof prismaModule.prisma.disbursementTransaction.create).toBe(
         'function'
       );
-      expect(typeof prismaModule.prisma.disbursementTransaction.createMany).toBe(
-        'function'
-      );
+      expect(
+        typeof prismaModule.prisma.disbursementTransaction.createMany
+      ).toBe('function');
     });
 
     it('should have riseWorksWebhookEvent model', () => {

@@ -27,12 +27,12 @@ interface InvoiceItem {
   id: string;
   date: string;
   amount: number;
-  currency: string;               // NEW: Currency code
+  currency: string; // NEW: Currency code
   status: 'paid' | 'open' | 'failed';
   description: string;
   invoicePdfUrl: string | null;
-  provider: 'STRIPE' | 'DLOCAL';  // NEW: Payment provider
-  planType: string | null;        // NEW: Plan type (for dLocal)
+  provider: 'STRIPE' | 'DLOCAL'; // NEW: Payment provider
+  planType: string | null; // NEW: Plan type (for dLocal)
 }
 
 interface InvoicesResponse {
@@ -108,9 +108,10 @@ export async function GET(
         amount: Number(payment.amountUSD),
         currency: payment.currency,
         status: 'paid',
-        description: payment.planType === 'THREE_DAY'
-          ? 'Trading Alerts PRO - 3 Day'
-          : 'Trading Alerts PRO - Monthly',
+        description:
+          payment.planType === 'THREE_DAY'
+            ? 'Trading Alerts PRO - 3 Day'
+            : 'Trading Alerts PRO - Monthly',
         invoicePdfUrl: null, // dLocal doesn't provide PDF invoices
         provider: 'DLOCAL',
         planType: payment.planType,
@@ -150,7 +151,9 @@ export async function GET(
     }
 
     // Sort all invoices by date (newest first)
-    allInvoices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    allInvoices.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
     // Apply limit and check for hasMore
     const hasMore = allInvoices.length > limit;

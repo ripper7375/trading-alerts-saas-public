@@ -46,10 +46,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -68,7 +65,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { country, paymentMethod, planType, currency, discountCode } = validationResult.data;
+    const { country, paymentMethod, planType, currency, discountCode } =
+      validationResult.data;
 
     // Validate payment method for country
     if (!isValidPaymentMethod(country as DLocalCountry, paymentMethod)) {
@@ -89,10 +87,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     if (user.tier === 'PRO' && user.subscription?.status === 'ACTIVE') {
@@ -105,7 +100,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check 3-day plan restriction
     if (planType === 'THREE_DAY' && user.hasUsedThreeDayPlan) {
       return NextResponse.json(
-        { error: 'You have already used the 3-day plan. Please choose the monthly plan.' },
+        {
+          error:
+            'You have already used the 3-day plan. Please choose the monthly plan.',
+        },
         { status: 403 }
       );
     }
@@ -119,9 +117,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get USD pricing
-    const usdAmount = planType === 'THREE_DAY'
-      ? PRICING.THREE_DAY_USD
-      : PRICING.MONTHLY_USD;
+    const usdAmount =
+      planType === 'THREE_DAY' ? PRICING.THREE_DAY_USD : PRICING.MONTHLY_USD;
 
     // Convert to local currency
     const { localAmount, exchangeRate } = await convertUSDToLocal(
@@ -210,7 +207,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create payment' },
+      {
+        error:
+          error instanceof Error ? error.message : 'Failed to create payment',
+      },
       { status: 500 }
     );
   }

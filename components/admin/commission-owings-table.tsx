@@ -65,11 +65,15 @@ export function CommissionOwingsTable({
               <td className="px-4 py-3">
                 <div>
                   <div className="font-medium">{owing.affiliateName}</div>
-                  <div className="text-xs text-muted-foreground">{owing.email}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {owing.email}
+                  </div>
                 </div>
               </td>
               <td className="px-4 py-3">
-                <Badge variant="outline">{owing.paymentMethod.replace('_', ' ')}</Badge>
+                <Badge variant="outline">
+                  {owing.paymentMethod.replace('_', ' ')}
+                </Badge>
               </td>
               <td className="px-4 py-3 text-right text-muted-foreground">
                 {formatCurrency(owing.pendingAmount)}
@@ -92,9 +96,7 @@ export function CommissionOwingsTable({
                     Pay
                   </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
-                    Min $50
-                  </span>
+                  <span className="text-xs text-muted-foreground">Min $50</span>
                 )}
               </td>
             </tr>
@@ -102,12 +104,18 @@ export function CommissionOwingsTable({
         </tbody>
         <tfoot className="border-t bg-muted/50 font-medium">
           <tr>
-            <td className="px-4 py-3" colSpan={2}>Total</td>
+            <td className="px-4 py-3" colSpan={2}>
+              Total
+            </td>
             <td className="px-4 py-3 text-right text-muted-foreground">
-              {formatCurrency(owings.reduce((sum, o) => sum + o.pendingAmount, 0))}
+              {formatCurrency(
+                owings.reduce((sum, o) => sum + o.pendingAmount, 0)
+              )}
             </td>
             <td className="px-4 py-3 text-right">
-              {formatCurrency(owings.reduce((sum, o) => sum + o.approvedAmount, 0))}
+              {formatCurrency(
+                owings.reduce((sum, o) => sum + o.approvedAmount, 0)
+              )}
             </td>
             <td className="px-4 py-3 text-right">
               {formatCurrency(owings.reduce((sum, o) => sum + o.totalOwing, 0))}

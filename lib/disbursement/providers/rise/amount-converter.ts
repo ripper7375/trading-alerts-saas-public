@@ -9,7 +9,11 @@
  * - $0.01 USD = 10,000 RiseWorks units
  */
 
-import { usdToRiseUnits, riseUnitsToUsd, RISE_AMOUNT_FACTOR } from '../../constants';
+import {
+  usdToRiseUnits,
+  riseUnitsToUsd,
+  RISE_AMOUNT_FACTOR,
+} from '../../constants';
 
 /**
  * Amount converter utility for RiseWorks payments

@@ -8,24 +8,27 @@
 
 ## Quick Reference
 
-| Priority | Count | Action Required |
-|----------|-------|-----------------|
-| 🔴 Blockers | 0 | None |
-| 🟡 Warnings | 0 | None |
-| 🟢 Enhancements | 2 | Optional |
-| ℹ️ Informational | 2 | No action |
+| Priority         | Count | Action Required |
+| ---------------- | ----- | --------------- |
+| 🔴 Blockers      | 0     | None            |
+| 🟡 Warnings      | 0     | None            |
+| 🟢 Enhancements  | 2     | Optional        |
+| ℹ️ Informational | 2     | No action       |
 
 ---
 
 ## 🟢 Enhancement #1: Implement Email Sending
 
 ### Description
+
 Email templates exist but actual sending is placeholder code (TODO comments).
 
 ### Affected Files
+
 - `lib/email/subscription-emails.ts`
 
 ### Current State
+
 ```typescript
 // Lines 407-413
 export async function sendUpgradeEmail(
@@ -45,7 +48,8 @@ export async function sendUpgradeEmail(
 ```
 
 ### Ready-to-Use Fix Prompt
-```
+
+````
 Implement email sending for subscription emails using Resend.
 
 Files to modify:
@@ -90,12 +94,14 @@ export async function sendUpgradeEmail(
     // Don't throw - email failure shouldn't break the flow
   }
 }
-```
+````
 
 ### Priority
+
 🟢 Low - Core functionality works, emails are logged
 
 ### When to Fix
+
 When email provider (Resend) is configured and API key is available.
 
 ---
@@ -103,12 +109,15 @@ When email provider (Resend) is configured and API key is available.
 ## 🟢 Enhancement #2: Affiliate Commission Notification Email
 
 ### Description
+
 When an affiliate code is used, the affiliate should receive a notification email about their earned commission.
 
 ### Affected Files
+
 - `lib/stripe/webhook-handlers.ts`
 
 ### Current State
+
 ```typescript
 // Lines 514-515
 // TODO: Send commission notification email to affiliate
@@ -116,7 +125,8 @@ When an affiliate code is used, the affiliate should receive a notification emai
 ```
 
 ### Ready-to-Use Fix Prompt
-```
+
+````
 Add affiliate commission notification email.
 
 Files to modify:
@@ -158,12 +168,14 @@ if (affiliateCode.affiliateProfile?.email) {
     console.error('[Webhook] Error sending commission email:', emailError);
   }
 }
-```
+````
 
 ### Priority
+
 🟢 Low - Affiliate system works, just missing notification
 
 ### When to Fix
+
 When email system is implemented (depends on Enhancement #1).
 
 ---
@@ -171,9 +183,11 @@ When email system is implemented (depends on Enhancement #1).
 ## ℹ️ Informational Notes
 
 ### Note #1: Multi-Provider Payment Support
+
 The implementation supports both Stripe and dLocal payment providers. This is an **enhancement** beyond the original OpenAPI specification.
 
 **Evidence:**
+
 - `app/api/subscription/route.ts`: Lines 152-156 detect provider
 - `app/api/invoices/route.ts`: Lines 93-118 combine both providers
 - `components/billing/subscription-card.tsx`: Lines 224-256 show dLocal-specific UI
@@ -181,9 +195,11 @@ The implementation supports both Stripe and dLocal payment providers. This is an
 **Action:** None required - this is a feature, not a bug.
 
 ### Note #2: Lazy Stripe Client Initialization
+
 The Stripe client uses lazy initialization pattern to prevent build-time errors.
 
 **Evidence:**
+
 - `lib/stripe/stripe.ts`: Lines 20-45
 
 **Action:** None required - this is intentional good practice.
@@ -221,6 +237,7 @@ npm run dev
 ## Testing Commands
 
 ### Stripe Webhook Testing
+
 ```bash
 # Install Stripe CLI
 # Then forward webhooks to localhost:
@@ -228,6 +245,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
 ### API Testing with curl
+
 ```bash
 # Validate affiliate code (public endpoint)
 curl -X POST http://localhost:3000/api/checkout/validate-code \
@@ -245,4 +263,4 @@ curl -X POST http://localhost:3000/api/checkout/validate-code \
 
 ---
 
-*End of Actionable Fixes Document*
+_End of Actionable Fixes Document_

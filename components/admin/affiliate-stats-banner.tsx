@@ -53,8 +53,12 @@ export function AffiliateStatsBanner({
         <Card key={stat.label}>
           <CardContent className="p-6">
             <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{stat.subLabel}</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              {stat.label}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stat.subLabel}
+            </p>
           </CardContent>
         </Card>
       ))}

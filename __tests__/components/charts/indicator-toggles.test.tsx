@@ -131,7 +131,9 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      expect(screen.getByText('Unlock all PRO indicators:')).toBeInTheDocument();
+      expect(
+        screen.getByText('Unlock all PRO indicators:')
+      ).toBeInTheDocument();
       expect(screen.getByText('Upgrade to PRO')).toBeInTheDocument();
     });
 
@@ -155,7 +157,9 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const fractalsCheckbox = screen.getByRole('checkbox', { name: /fractals/i });
+      const fractalsCheckbox = screen.getByRole('checkbox', {
+        name: /fractals/i,
+      });
       fireEvent.click(fractalsCheckbox);
 
       expect(mockOnToggle).toHaveBeenCalledWith('fractals');

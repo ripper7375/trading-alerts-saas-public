@@ -61,10 +61,7 @@ export function StatsCard({
 }: StatsCardProps): React.ReactElement {
   return (
     <div
-      className={cn(
-        'bg-white p-6 rounded-lg shadow',
-        className
-      )}
+      className={cn('bg-white p-6 rounded-lg shadow', className)}
       data-testid={dataTestId}
     >
       <div className="flex items-center justify-between">

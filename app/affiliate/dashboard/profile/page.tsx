@@ -210,8 +210,8 @@ export default function AffiliateProfilePage(): React.ReactElement {
                         profile?.status === 'ACTIVE'
                           ? 'bg-green-100 text-green-800'
                           : profile?.status === 'SUSPENDED'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-gray-100 text-gray-800'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
                       }`}
                     >
                       {profile?.status}

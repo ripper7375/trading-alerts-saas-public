@@ -13,7 +13,7 @@ export function AreaGraphSkeleton() {
       <CardContent className='px-2 sm:p-6'>
         {/* Area-like shape */}
         <div className='relative aspect-auto h-[280px] w-full'>
-          <div className='from-primary/5 to-primary/20 bg-linear-to-t absolute inset-0 rounded-lg' />
+          <div className='bg-linear-to-t absolute inset-0 rounded-lg from-primary/5 to-primary/20' />
           <Skeleton className='absolute bottom-0 left-0 right-0 h-[1px]' />{' '}
           {/* x-axis */}
           <Skeleton className='absolute bottom-0 left-0 top-0 w-[1px]' />{' '}

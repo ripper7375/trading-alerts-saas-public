@@ -60,7 +60,9 @@ function VerificationContent(): React.ReactElement {
         } else {
           setStatus('error');
           setMessage(
-            data.message || data.error || 'Verification failed. Please try again.'
+            data.message ||
+              data.error ||
+              'Verification failed. Please try again.'
           );
         }
       } catch {

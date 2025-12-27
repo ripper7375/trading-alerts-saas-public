@@ -12,6 +12,7 @@
 **Current Health Score:** 85/100
 
 **Status Breakdown:**
+
 - 🔴 Critical Blockers: 1 (Must fix before localhost)
 - 🟡 Warnings: 2 (Should fix)
 - 🟢 Enhancements: 5 (Nice to have)
@@ -32,11 +33,13 @@
 `app/(dashboard)/layout.tsx` is listed in Part 08 files completion but **DOES NOT EXIST**
 
 **Impact:**
+
 - Severity: **CRITICAL**
 - Affects: ALL dashboard pages (no wrapping layout)
 - Blocks: Dashboard will not render properly without Header, Sidebar, Footer
 
 **Location:**
+
 - File: `app/(dashboard)/layout.tsx`
 - Status: FILE DOES NOT EXIST
 
@@ -173,15 +176,18 @@ Import from:
 Notification bell button in Header has visual elements but no click handler
 
 **Impact:**
+
 - Severity: MEDIUM
 - Affects: User experience
 - Risk: Users clicking the button get no response
 
 **Location:**
+
 - File: `components/layout/header.tsx`
 - Lines: 114-123
 
 **Current Code:**
+
 ```typescript
 <Button
   variant="ghost"
@@ -197,6 +203,7 @@ Notification bell button in Header has visual elements but no click handler
 **Recommended Fix:**
 
 Option A: Add a placeholder toast notification
+
 ```typescript
 import { toast } from 'sonner'; // or your toast library
 
@@ -210,12 +217,14 @@ import { toast } from 'sonner'; // or your toast library
 ```
 
 Option B: Link to notifications page (when implemented)
+
 ```typescript
 <Link href="/dashboard/notifications">
   <Button variant="ghost" size="icon" aria-label="Notifications">
 ```
 
 **Prompt for Claude Code:**
+
 ```
 Update the notification button in components/layout/header.tsx to show a toast message saying "Notifications coming soon!" when clicked. Use the existing toast/sonner library if available, or add a simple alert as fallback.
 ```
@@ -228,6 +237,7 @@ Update the notification button in components/layout/header.tsx to show a toast m
 Footer links point to pages that may not be implemented yet
 
 **Location:**
+
 - File: `components/layout/footer.tsx`
 - Lines: 26-44
 - Links: `/help`, `/privacy`, `/terms`
@@ -239,6 +249,7 @@ Option B: Create placeholder pages
 Option C: Update links to marketing pages (if they exist in `(marketing)` route group)
 
 **Prompt for Claude Code:**
+
 ```
 Check if the following pages exist:
 - app/(marketing)/help/page.tsx
@@ -262,16 +273,19 @@ If they don't exist, either:
 Add skeleton loading states when data is being fetched
 
 **Benefits:**
+
 - Better user experience
 - Visual feedback during loading
 - Professional polish
 
 **Location:**
+
 - `components/dashboard/stats-card.tsx`
 - `components/dashboard/recent-alerts.tsx`
 - `components/dashboard/watchlist-widget.tsx`
 
 **Prompt for Claude Code:**
+
 ```
 Add optional loading prop to StatsCard, RecentAlerts, and WatchlistWidget components.
 When loading=true, show skeleton placeholders using shadcn/ui Skeleton component.
@@ -285,6 +299,7 @@ When loading=true, show skeleton placeholders using shadcn/ui Skeleton component
 Add keyboard navigation for power users
 
 **Suggested Shortcuts:**
+
 - `G D` - Go to Dashboard
 - `G A` - Go to Alerts
 - `G W` - Go to Watchlist
@@ -419,11 +434,13 @@ Expected improvement:
 ### Current Status: NOT READY
 
 **Remaining Blockers:**
+
 1. Create `app/(dashboard)/layout.tsx` - CRITICAL
 
 **After Fixing Blockers:**
 
 **Pre-Localhost Checklist:**
+
 - [ ] Layout file created
 - [ ] TypeScript compiles
 - [ ] Lint passes
@@ -432,6 +449,7 @@ Expected improvement:
 **Localhost Test Plan:**
 
 1. Start development server:
+
    ```bash
    npm run dev
    ```

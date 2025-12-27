@@ -1,11 +1,6 @@
 'use client';
 
-import type {
-  IChartApi,
-  ISeriesApi,
-  LineData,
-  Time,
-} from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, LineData, Time } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 
 import {
@@ -14,10 +9,7 @@ import {
   ZIGZAG_COLORS,
   type IndicatorId,
 } from '@/lib/tier/constants';
-import type {
-  KeltnerChannelData,
-  ProIndicatorData,
-} from '@/types/indicator';
+import type { KeltnerChannelData, ProIndicatorData } from '@/types/indicator';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES

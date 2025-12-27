@@ -21,7 +21,13 @@ jest.mock('next/navigation', () => ({
 
 // Mock next/link
 jest.mock('next/link', () => {
-  return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
+  return function MockLink({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) {
     return <a href={href}>{children}</a>;
   };
 });
@@ -34,9 +40,12 @@ jest.mock('next-auth/react', () => ({
 
 // Mock MobileNav component
 jest.mock('@/components/layout/mobile-nav', () => ({
-  MobileNav: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
-    isOpen ? <div data-testid="mobile-nav" onClick={onClose}>Mobile Nav</div> : null
-  ),
+  MobileNav: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid="mobile-nav" onClick={onClose}>
+        Mobile Nav
+      </div>
+    ) : null,
 }));
 
 import { Header } from '@/components/layout/header';
@@ -214,7 +223,6 @@ describe('Header Component', () => {
       const chevron = container.querySelector('.lucide-chevron-down');
       expect(chevron).toBeInTheDocument();
     });
-
   });
 
   // ============================================================================

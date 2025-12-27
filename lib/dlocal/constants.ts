@@ -5,7 +5,11 @@
  * and pricing for dLocal payment processing.
  */
 
-import type { DLocalCountry, DLocalCurrency, CountryConfig } from '@/types/dlocal';
+import type {
+  DLocalCountry,
+  DLocalCurrency,
+  CountryConfig,
+} from '@/types/dlocal';
 
 /**
  * List of supported dLocal countries (8 total)
@@ -122,7 +126,9 @@ export function getCountryName(country: DLocalCountry): string {
 /**
  * Get full country configuration
  */
-export function getCountryConfig(country: DLocalCountry): CountryConfig | undefined {
+export function getCountryConfig(
+  country: DLocalCountry
+): CountryConfig | undefined {
   return COUNTRY_CONFIGS.find((c) => c.code === country);
 }
 
@@ -137,5 +143,7 @@ export function getPriceUSD(planType: 'THREE_DAY' | 'MONTHLY'): number {
  * Get plan duration in days
  */
 export function getPlanDuration(planType: 'THREE_DAY' | 'MONTHLY'): number {
-  return planType === 'THREE_DAY' ? PLAN_DURATION.THREE_DAY : PLAN_DURATION.MONTHLY;
+  return planType === 'THREE_DAY'
+    ? PLAN_DURATION.THREE_DAY
+    : PLAN_DURATION.MONTHLY;
 }

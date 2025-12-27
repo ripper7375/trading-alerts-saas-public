@@ -80,12 +80,14 @@ const mockBuildCommissionSummary = jest.fn();
 
 jest.mock('@/lib/affiliate/report-builder', () => ({
   __esModule: true,
-  buildDashboardStats: (profileId: string) => mockBuildDashboardStats(profileId),
+  buildDashboardStats: (profileId: string) =>
+    mockBuildDashboardStats(profileId),
   buildCodeInventoryReport: (profileId: string, opts: unknown) =>
     mockBuildCodeInventoryReport(profileId, opts),
   buildCommissionReport: (profileId: string, opts: unknown) =>
     mockBuildCommissionReport(profileId, opts),
-  buildCommissionSummary: (profileId: string) => mockBuildCommissionSummary(profileId),
+  buildCommissionSummary: (profileId: string) =>
+    mockBuildCommissionSummary(profileId),
 }));
 
 // Mock Prisma
@@ -131,7 +133,9 @@ describe('Affiliate Dashboard API Routes', () => {
       mockRequireAffiliate.mockRejectedValue(new Error('Unauthorized'));
 
       const { GET } = await import('@/app/api/affiliate/dashboard/stats/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/stats');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/stats'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -143,7 +147,9 @@ describe('Affiliate Dashboard API Routes', () => {
       mockRequireAffiliate.mockRejectedValue(new Error('AFFILIATE_REQUIRED'));
 
       const { GET } = await import('@/app/api/affiliate/dashboard/stats/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/stats');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/stats'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -158,7 +164,9 @@ describe('Affiliate Dashboard API Routes', () => {
       mockGetAffiliateProfile.mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/affiliate/dashboard/stats/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/stats');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/stats'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -184,13 +192,17 @@ describe('Affiliate Dashboard API Routes', () => {
       mockBuildDashboardStats.mockResolvedValue(expectedStats);
 
       const { GET } = await import('@/app/api/affiliate/dashboard/stats/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/stats');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/stats'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data).toEqual(expectedStats);
-      expect(mockBuildDashboardStats).toHaveBeenCalledWith(mockAffiliateProfile.id);
+      expect(mockBuildDashboardStats).toHaveBeenCalledWith(
+        mockAffiliateProfile.id
+      );
     });
 
     it('should handle errors gracefully', async () => {
@@ -201,7 +213,9 @@ describe('Affiliate Dashboard API Routes', () => {
       mockBuildDashboardStats.mockRejectedValue(new Error('Database error'));
 
       const { GET } = await import('@/app/api/affiliate/dashboard/stats/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/stats');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/stats'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -215,7 +229,9 @@ describe('Affiliate Dashboard API Routes', () => {
       mockRequireAffiliate.mockRejectedValue(new Error('Unauthorized'));
 
       const { GET } = await import('@/app/api/affiliate/dashboard/codes/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/codes');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/codes'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -251,7 +267,9 @@ describe('Affiliate Dashboard API Routes', () => {
       mockAffiliateCodeCount.mockResolvedValue(2);
 
       const { GET } = await import('@/app/api/affiliate/dashboard/codes/route');
-      const request = new MockRequest('http://localhost/api/affiliate/dashboard/codes');
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/dashboard/codes'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -315,7 +333,9 @@ describe('Affiliate Dashboard API Routes', () => {
     it('should return 401 when not authenticated', async () => {
       mockRequireAffiliate.mockRejectedValue(new Error('Unauthorized'));
 
-      const { GET } = await import('@/app/api/affiliate/dashboard/code-inventory/route');
+      const { GET } = await import(
+        '@/app/api/affiliate/dashboard/code-inventory/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/affiliate/dashboard/code-inventory'
       );
@@ -353,7 +373,9 @@ describe('Affiliate Dashboard API Routes', () => {
       };
       mockBuildCodeInventoryReport.mockResolvedValue(expectedReport);
 
-      const { GET } = await import('@/app/api/affiliate/dashboard/code-inventory/route');
+      const { GET } = await import(
+        '@/app/api/affiliate/dashboard/code-inventory/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/affiliate/dashboard/code-inventory'
       );
@@ -369,7 +391,9 @@ describe('Affiliate Dashboard API Routes', () => {
     it('should return 401 when not authenticated', async () => {
       mockRequireAffiliate.mockRejectedValue(new Error('Unauthorized'));
 
-      const { GET } = await import('@/app/api/affiliate/dashboard/commission-report/route');
+      const { GET } = await import(
+        '@/app/api/affiliate/dashboard/commission-report/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/affiliate/dashboard/commission-report'
       );
@@ -400,7 +424,10 @@ describe('Affiliate Dashboard API Routes', () => {
           status: 'PAID',
           earnedAt: '2024-01-10T10:00:00.000Z',
           paidAt: '2024-02-01T10:00:00.000Z',
-          affiliateCode: { code: 'TEST5678', usedAt: '2024-01-10T10:00:00.000Z' },
+          affiliateCode: {
+            code: 'TEST5678',
+            usedAt: '2024-01-10T10:00:00.000Z',
+          },
         },
       ];
 
@@ -412,7 +439,9 @@ describe('Affiliate Dashboard API Routes', () => {
         paid: 4.64,
       });
 
-      const { GET } = await import('@/app/api/affiliate/dashboard/commission-report/route');
+      const { GET } = await import(
+        '@/app/api/affiliate/dashboard/commission-report/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/affiliate/dashboard/commission-report'
       );
@@ -437,7 +466,9 @@ describe('Affiliate Dashboard API Routes', () => {
         paid: 0,
       });
 
-      const { GET } = await import('@/app/api/affiliate/dashboard/commission-report/route');
+      const { GET } = await import(
+        '@/app/api/affiliate/dashboard/commission-report/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/affiliate/dashboard/commission-report?status=PAID'
       );

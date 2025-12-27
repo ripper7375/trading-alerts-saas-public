@@ -64,28 +64,29 @@ interface SubscriptionCardProps {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // Helper function to generate tier config with dynamic PRO price
-const getTierConfig = (proPrice: number) => ({
-  FREE: {
-    label: 'FREE',
-    price: '$0/month',
-    badgeColor: 'bg-gray-100 text-gray-800',
-    borderColor: '',
-    features: ['5 symbols', '3 timeframes', '5 alerts', '5 watchlist items'],
-  },
-  PRO: {
-    label: 'PRO',
-    price: `$${proPrice}/month`,
-    badgeColor: 'bg-blue-100 text-blue-800',
-    borderColor: 'border-2 border-blue-500',
-    features: [
-      '15 symbols',
-      '9 timeframes',
-      '20 alerts',
-      '50 watchlist items',
-      'Priority support',
-    ],
-  },
-} as const);
+const getTierConfig = (proPrice: number) =>
+  ({
+    FREE: {
+      label: 'FREE',
+      price: '$0/month',
+      badgeColor: 'bg-gray-100 text-gray-800',
+      borderColor: '',
+      features: ['5 symbols', '3 timeframes', '5 alerts', '5 watchlist items'],
+    },
+    PRO: {
+      label: 'PRO',
+      price: `$${proPrice}/month`,
+      badgeColor: 'bg-blue-100 text-blue-800',
+      borderColor: 'border-2 border-blue-500',
+      features: [
+        '15 symbols',
+        '9 timeframes',
+        '20 alerts',
+        '50 watchlist items',
+        'Priority support',
+      ],
+    },
+  }) as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
@@ -235,7 +236,8 @@ export function SubscriptionCard({
                 <RefreshCw className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-purple-800">
-                    <strong>Manual Renewal Required:</strong> dLocal payments do not auto-renew.
+                    <strong>Manual Renewal Required:</strong> dLocal payments do
+                    not auto-renew.
                   </p>
                   <p className="text-xs text-purple-700 mt-1">
                     {isThreeDayPlan

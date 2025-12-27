@@ -46,9 +46,7 @@ const querySchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -65,7 +63,9 @@ export async function GET(
     }
 
     const { period } = validation.data;
-    const { start, end } = getReportingPeriod(period as '3months' | '6months' | '1year');
+    const { start, end } = getReportingPeriod(
+      period as '3months' | '6months' | '1year'
+    );
 
     // Fetch dynamic config from SystemConfig
     const affiliateConfig = await getAffiliateConfigFromDB();
@@ -117,12 +117,14 @@ export async function GET(
     const approvedCommissions = commissions
       .filter((c) => c['status'] === 'APPROVED')
       .reduce((sum: number, c) => sum + Number(c.commissionAmount), 0);
-    const totalCommissions = paidCommissions + pendingCommissions + approvedCommissions;
+    const totalCommissions =
+      paidCommissions + pendingCommissions + approvedCommissions;
 
     // Calculate profit metrics
     const netProfit = netRevenue - totalCommissions;
     const profitMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
-    const averageCommission = totalSales > 0 ? totalCommissions / totalSales : 0;
+    const averageCommission =
+      totalSales > 0 ? totalCommissions / totalSales : 0;
 
     return NextResponse.json({
       period: {
@@ -135,7 +137,10 @@ export async function GET(
         discounts: Math.round(totalDiscounts * 100) / 100,
         netRevenue: Math.round(netRevenue * 100) / 100,
         discountPercent,
-        averageTicket: totalSales > 0 ? Math.round((netRevenue / totalSales) * 100) / 100 : 0,
+        averageTicket:
+          totalSales > 0
+            ? Math.round((netRevenue / totalSales) * 100) / 100
+            : 0,
       },
       costs: {
         paidCommissions: Math.round(paidCommissions * 100) / 100,

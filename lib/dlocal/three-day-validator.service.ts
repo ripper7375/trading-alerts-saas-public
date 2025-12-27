@@ -67,7 +67,8 @@ export async function canPurchaseThreeDayPlan(
       });
       return {
         canPurchase: false,
-        reason: 'You have already used the 3-day plan. This offer is available only once per account.',
+        reason:
+          'You have already used the 3-day plan. This offer is available only once per account.',
         details: {
           hasUsedThreeDayPlan: true,
           hasActiveSubscription: false,
@@ -81,8 +82,7 @@ export async function canPurchaseThreeDayPlan(
       sub !== null &&
       sub !== undefined &&
       sub.status === 'ACTIVE' &&
-      (sub.expiresAt === null ||
-        sub.expiresAt > new Date());
+      (sub.expiresAt === null || sub.expiresAt > new Date());
 
     if (hasActiveSubscription) {
       logger.info('User has active subscription, cannot purchase 3-day plan', {
@@ -91,7 +91,8 @@ export async function canPurchaseThreeDayPlan(
       });
       return {
         canPurchase: false,
-        reason: 'You already have an active subscription. The 3-day plan is only available for users without an active subscription.',
+        reason:
+          'You already have an active subscription. The 3-day plan is only available for users without an active subscription.',
         details: {
           hasUsedThreeDayPlan: false,
           hasActiveSubscription: true,

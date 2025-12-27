@@ -9,13 +9,16 @@
 ## What Part 18A Built
 
 ### Database Models (Already Existed)
+
 The following models were already present in `prisma/schema.prisma`:
+
 - **Payment** model with dLocal fields (provider, providerPaymentId, etc.)
 - **Notification** model for user notifications
 - **User** model with `hasUsedThreeDayPlan` field
 - **Subscription** model with dLocal fields
 
 ### Types Created (`types/dlocal.ts`)
+
 - `PaymentProvider` - 'DLOCAL' | 'STRIPE'
 - `DLocalCountry` - 8 supported countries
 - `DLocalCurrency` - 8 supported currencies
@@ -27,6 +30,7 @@ The following models were already present in `prisma/schema.prisma`:
 - `CurrencyConversionResult` - Currency conversion result
 
 ### Constants Created (`lib/dlocal/constants.ts`)
+
 - `DLOCAL_SUPPORTED_COUNTRIES` - ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
 - `COUNTRY_CURRENCY_MAP` - Country to currency mapping
 - `COUNTRY_NAMES` - Country code to name mapping
@@ -38,9 +42,11 @@ The following models were already present in `prisma/schema.prisma`:
 ### Services Implemented
 
 #### 1. Logger (`lib/logger.ts`)
+
 Simple logging utility with info, warn, error, debug levels.
 
 #### 2. Currency Converter (`lib/dlocal/currency-converter.service.ts`)
+
 ```typescript
 // Get exchange rate (with 1-hour caching)
 getExchangeRate(currency: DLocalCurrency): Promise<number>
@@ -56,6 +62,7 @@ getFallbackRate(currency: DLocalCurrency): number
 ```
 
 #### 3. Payment Methods (`lib/dlocal/payment-methods.service.ts`)
+
 ```typescript
 // Get payment methods for country
 getPaymentMethodsForCountry(country: DLocalCountry): Promise<string[]>
@@ -71,6 +78,7 @@ getDefaultPaymentMethod(country: DLocalCountry): string | null
 ```
 
 #### 4. dLocal Payment (`lib/dlocal/dlocal-payment.service.ts`)
+
 ```typescript
 // Create payment with dLocal
 createPayment(request: DLocalPaymentRequest): Promise<DLocalPaymentResponse>
@@ -89,6 +97,7 @@ extractUserIdFromOrderId(orderId: string): string | null
 ```
 
 #### 5. Country Detection (`lib/geo/detect-country.ts`)
+
 ```typescript
 // Detect country from request headers
 detectCountry(headers?: Headers): Promise<string>
@@ -105,18 +114,19 @@ getGeoHeaders(headers: Headers): Record<string, string | null>
 
 ### API Endpoints Created
 
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/api/payments/dlocal/methods` | GET | Get payment methods for country | No |
-| `/api/payments/dlocal/exchange-rate` | GET | Get exchange rate for currency | No |
-| `/api/payments/dlocal/convert` | GET | Convert USD to local currency | No |
-| `/api/payments/dlocal/create` | POST | Create dLocal payment | Yes |
-| `/api/payments/dlocal/[paymentId]` | GET | Get payment status | Yes |
-| `/api/webhooks/dlocal` | POST | Handle dLocal webhooks | No (signature verified) |
+| Endpoint                             | Method | Description                     | Auth Required           |
+| ------------------------------------ | ------ | ------------------------------- | ----------------------- |
+| `/api/payments/dlocal/methods`       | GET    | Get payment methods for country | No                      |
+| `/api/payments/dlocal/exchange-rate` | GET    | Get exchange rate for currency  | No                      |
+| `/api/payments/dlocal/convert`       | GET    | Convert USD to local currency   | No                      |
+| `/api/payments/dlocal/create`        | POST   | Create dLocal payment           | Yes                     |
+| `/api/payments/dlocal/[paymentId]`   | GET    | Get payment status              | Yes                     |
+| `/api/webhooks/dlocal`               | POST   | Handle dLocal webhooks          | No (signature verified) |
 
 ### API Request/Response Examples
 
 #### GET /api/payments/dlocal/methods?country=IN
+
 ```json
 {
   "country": "IN",
@@ -125,6 +135,7 @@ getGeoHeaders(headers: Headers): Record<string, string | null>
 ```
 
 #### GET /api/payments/dlocal/convert?amount=29&currency=INR
+
 ```json
 {
   "localAmount": 2410.48,
@@ -136,7 +147,9 @@ getGeoHeaders(headers: Headers): Record<string, string | null>
 ```
 
 #### POST /api/payments/dlocal/create
+
 Request:
+
 ```json
 {
   "country": "IN",
@@ -145,7 +158,9 @@ Request:
   "currency": "INR"
 }
 ```
+
 Response:
+
 ```json
 {
   "paymentId": "dlocal-pay-123",
@@ -164,6 +179,7 @@ Response:
 ```
 
 ### Test Coverage
+
 - **Type Tests:** 45 tests
 - **Constants Tests:** 30 tests
 - **Service Tests:** 87 tests
@@ -176,32 +192,39 @@ Response:
 ## What Part 18B Needs to Build
 
 ### 1. Subscription Lifecycle Management
+
 - Create subscription after successful payment webhook
 - Update user tier to PRO
 - Set subscription expiration date
 - Mark `hasUsedThreeDayPlan` for 3-day plans
 
 ### 2. Enhanced Webhook Handler
+
 The current webhook handler (Part 18A) only:
+
 - Updates payment status
 - Creates notifications
 
 Part 18B needs to add:
+
 - Create/update Subscription record
 - Update User tier to PRO
 - Handle subscription expiration
 - Send confirmation emails
 
 ### 3. Cron Jobs
+
 - Subscription expiry checker (run daily)
 - Downgrade expired subscriptions to FREE
 - Send renewal reminder emails
 
 ### 4. Part 12 Integration
+
 - Connect dLocal payments to Part 12 API layer
 - Ensure subscription status is properly exposed
 
 ### 5. 3-Day Plan Validation Service
+
 - Check if user has already used 3-day plan
 - Create fraud alert if reuse attempted
 - Update user's `hasUsedThreeDayPlan` flag
@@ -221,6 +244,7 @@ Part 18B needs to add:
 ## Validation Gate for Part 18A
 
 Part 18A is COMPLETE when:
+
 - [x] All type definitions created
 - [x] All constants defined
 - [x] All services implemented
@@ -255,6 +279,7 @@ DATABASE_URL=postgresql://...
 ## File List
 
 ### Production Files (16)
+
 ```
 types/dlocal.ts
 lib/logger.ts
@@ -273,6 +298,7 @@ docs/part18a-handoff.md
 ```
 
 ### Test Files (7)
+
 ```
 __tests__/types/dlocal.test.ts
 __tests__/lib/dlocal/constants.test.ts

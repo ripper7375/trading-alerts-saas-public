@@ -357,8 +357,13 @@ export class BatchManager {
     return {
       total: batches['_count'] as number,
       byStatus,
-      totalAmount: Number((batches['_sum'] as { totalAmount?: number } | undefined)?.totalAmount ?? 0),
-      totalPayments: (batches['_sum'] as { paymentCount?: number } | undefined)?.paymentCount ?? 0,
+      totalAmount: Number(
+        (batches['_sum'] as { totalAmount?: number } | undefined)
+          ?.totalAmount ?? 0
+      ),
+      totalPayments:
+        (batches['_sum'] as { paymentCount?: number } | undefined)
+          ?.paymentCount ?? 0,
     };
   }
 }

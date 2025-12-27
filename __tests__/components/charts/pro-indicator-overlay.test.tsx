@@ -275,7 +275,9 @@ describe('ProIndicatorOverlay Component', () => {
       expect(() => {
         render(
           <ProIndicatorOverlay
-            chart={mockChart as unknown as import('lightweight-charts').IChartApi}
+            chart={
+              mockChart as unknown as import('lightweight-charts').IChartApi
+            }
             proData={proData}
             selectedIndicators={['zigzag']}
             timeData={[1704067200, 1704070800, 1704074400]}
@@ -302,7 +304,9 @@ describe('ProIndicatorOverlay Component', () => {
       expect(() => {
         render(
           <ProIndicatorOverlay
-            chart={mockChart as unknown as import('lightweight-charts').IChartApi}
+            chart={
+              mockChart as unknown as import('lightweight-charts').IChartApi
+            }
             proData={proData}
             selectedIndicators={['keltner_channels']}
             timeData={[1704067200, 1704070800, 1704074400]}

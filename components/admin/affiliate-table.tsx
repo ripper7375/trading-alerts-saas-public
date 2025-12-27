@@ -66,11 +66,16 @@ export function AffiliateTable({
               <td className="px-4 py-3">
                 <div>
                   <div className="font-medium">{affiliate.fullName}</div>
-                  <div className="text-xs text-muted-foreground">{affiliate.email}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {affiliate.email}
+                  </div>
                 </div>
               </td>
               <td className="px-4 py-3">
-                <Badge className={statusColors[affiliate.status]} variant="secondary">
+                <Badge
+                  className={statusColors[affiliate.status]}
+                  variant="secondary"
+                >
                   {affiliate.status.replace('_', ' ')}
                 </Badge>
               </td>

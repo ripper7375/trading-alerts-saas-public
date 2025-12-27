@@ -31,7 +31,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
-import { getCurrency, PRICING, DLOCAL_SUPPORTED_COUNTRIES } from '@/lib/dlocal/constants';
+import {
+  getCurrency,
+  PRICING,
+  DLOCAL_SUPPORTED_COUNTRIES,
+} from '@/lib/dlocal/constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT CONTENT
@@ -63,7 +67,9 @@ function CheckoutContent(): React.ReactElement {
       }
 
       try {
-        const res = await fetch('/api/payments/dlocal/check-three-day-eligibility');
+        const res = await fetch(
+          '/api/payments/dlocal/check-three-day-eligibility'
+        );
         if (res.ok) {
           const data = await res.json();
           setCanUseThreeDayPlan(data.eligible === true);
@@ -152,9 +158,7 @@ function CheckoutContent(): React.ReactElement {
       }
     } catch (err) {
       console.error('Payment creation error:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to create payment'
-      );
+      setError(err instanceof Error ? err.message : 'Failed to create payment');
     }
   };
 
@@ -257,7 +261,10 @@ function CheckoutContent(): React.ReactElement {
                 <Globe className="h-5 w-5" />
                 Local Payment
               </CardTitle>
-              <Badge variant="secondary" className="bg-green-100 text-green-700">
+              <Badge
+                variant="secondary"
+                className="bg-green-100 text-green-700"
+              >
                 dLocal Powered
               </Badge>
             </div>

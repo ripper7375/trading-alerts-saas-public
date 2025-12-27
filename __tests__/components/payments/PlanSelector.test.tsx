@@ -27,12 +27,7 @@ describe('PlanSelector', () => {
 
   describe('rendering', () => {
     it('should render monthly plan option', () => {
-      render(
-        <PlanSelector
-          {...defaultProps}
-          showThreeDayPlan={false}
-        />
-      );
+      render(<PlanSelector {...defaultProps} showThreeDayPlan={false} />);
 
       expect(screen.getByText('Monthly')).toBeInTheDocument();
       expect(screen.getByText(/\$29\.00/)).toBeInTheDocument();
@@ -46,12 +41,7 @@ describe('PlanSelector', () => {
     });
 
     it('should not render 3-day plan when showThreeDayPlan is false', () => {
-      render(
-        <PlanSelector
-          {...defaultProps}
-          showThreeDayPlan={false}
-        />
-      );
+      render(<PlanSelector {...defaultProps} showThreeDayPlan={false} />);
 
       expect(screen.queryByText('3-Day Trial')).not.toBeInTheDocument();
     });
@@ -80,32 +70,26 @@ describe('PlanSelector', () => {
     it('should highlight selected 3-day plan', () => {
       render(<PlanSelector {...defaultProps} value="THREE_DAY" />);
 
-      const threeDayButton = screen.getByRole('radio', { name: /3-day trial/i });
+      const threeDayButton = screen.getByRole('radio', {
+        name: /3-day trial/i,
+      });
       expect(threeDayButton).toHaveAttribute('aria-checked', 'true');
     });
   });
 
   describe('eligibility', () => {
     it('should disable 3-day plan when not eligible', () => {
-      render(
-        <PlanSelector
-          {...defaultProps}
-          canUseThreeDayPlan={false}
-        />
-      );
+      render(<PlanSelector {...defaultProps} canUseThreeDayPlan={false} />);
 
-      const threeDayButton = screen.getByRole('radio', { name: /3-day trial/i });
+      const threeDayButton = screen.getByRole('radio', {
+        name: /3-day trial/i,
+      });
       expect(threeDayButton).toBeDisabled();
       expect(threeDayButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should show eligibility message when not eligible', () => {
-      render(
-        <PlanSelector
-          {...defaultProps}
-          canUseThreeDayPlan={false}
-        />
-      );
+      render(<PlanSelector {...defaultProps} canUseThreeDayPlan={false} />);
 
       expect(
         screen.getByText(/already used this offer|not eligible/i)
@@ -113,14 +97,11 @@ describe('PlanSelector', () => {
     });
 
     it('should enable 3-day plan when eligible', () => {
-      render(
-        <PlanSelector
-          {...defaultProps}
-          canUseThreeDayPlan={true}
-        />
-      );
+      render(<PlanSelector {...defaultProps} canUseThreeDayPlan={true} />);
 
-      const threeDayButton = screen.getByRole('radio', { name: /3-day trial/i });
+      const threeDayButton = screen.getByRole('radio', {
+        name: /3-day trial/i,
+      });
       expect(threeDayButton).not.toBeDisabled();
     });
   });
@@ -129,11 +110,7 @@ describe('PlanSelector', () => {
     it('should call onChange when monthly plan is selected', () => {
       const onChange = jest.fn();
       render(
-        <PlanSelector
-          {...defaultProps}
-          value="THREE_DAY"
-          onChange={onChange}
-        />
+        <PlanSelector {...defaultProps} value="THREE_DAY" onChange={onChange} />
       );
 
       const monthlyButton = screen.getByRole('radio', { name: /monthly/i });
@@ -145,14 +122,12 @@ describe('PlanSelector', () => {
     it('should call onChange when 3-day plan is selected', () => {
       const onChange = jest.fn();
       render(
-        <PlanSelector
-          {...defaultProps}
-          value="MONTHLY"
-          onChange={onChange}
-        />
+        <PlanSelector {...defaultProps} value="MONTHLY" onChange={onChange} />
       );
 
-      const threeDayButton = screen.getByRole('radio', { name: /3-day trial/i });
+      const threeDayButton = screen.getByRole('radio', {
+        name: /3-day trial/i,
+      });
       fireEvent.click(threeDayButton);
 
       expect(onChange).toHaveBeenCalledWith('THREE_DAY');
@@ -168,7 +143,9 @@ describe('PlanSelector', () => {
         />
       );
 
-      const threeDayButton = screen.getByRole('radio', { name: /3-day trial/i });
+      const threeDayButton = screen.getByRole('radio', {
+        name: /3-day trial/i,
+      });
       fireEvent.click(threeDayButton);
 
       expect(onChange).not.toHaveBeenCalled();
@@ -177,11 +154,7 @@ describe('PlanSelector', () => {
     it('should not call onChange when disabled', () => {
       const onChange = jest.fn();
       render(
-        <PlanSelector
-          {...defaultProps}
-          disabled={true}
-          onChange={onChange}
-        />
+        <PlanSelector {...defaultProps} disabled={true} onChange={onChange} />
       );
 
       const monthlyButton = screen.getByRole('radio', { name: /monthly/i });

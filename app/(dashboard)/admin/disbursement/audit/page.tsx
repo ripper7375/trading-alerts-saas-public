@@ -5,10 +5,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
 import type { AuditLogStatus } from '@/types/disbursement';
 
@@ -34,7 +31,10 @@ interface AuditLog {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function getStatusBadge(status: AuditLogStatus): React.ReactElement {
-  const statusConfig: Record<AuditLogStatus, { className: string; label: string }> = {
+  const statusConfig: Record<
+    AuditLogStatus,
+    { className: string; label: string }
+  > = {
     SUCCESS: { className: 'bg-green-600', label: 'Success' },
     FAILURE: { className: 'bg-red-600', label: 'Failure' },
     WARNING: { className: 'bg-yellow-600', label: 'Warning' },
@@ -84,7 +84,9 @@ function AuditLogsPageContent(): React.ReactElement {
       if (actionFilter) params.set('action', actionFilter);
       params.set('limit', '100');
 
-      const response = await fetch(`/api/disbursement/audit-logs?${params.toString()}`);
+      const response = await fetch(
+        `/api/disbursement/audit-logs?${params.toString()}`
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -121,7 +123,7 @@ function AuditLogsPageContent(): React.ReactElement {
   };
 
   // Extract unique actions for filter
-  const uniqueActions = [...new Set(logs.map(log => log.action))].sort();
+  const uniqueActions = [...new Set(logs.map((log) => log.action))].sort();
 
   return (
     <div className="space-y-6">
@@ -131,9 +133,7 @@ function AuditLogsPageContent(): React.ReactElement {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Audit Logs
           </h1>
-          <p className="text-gray-400 mt-1">
-            Disbursement activity history
-          </p>
+          <p className="text-gray-400 mt-1">Disbursement activity history</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -173,7 +173,11 @@ function AuditLogsPageContent(): React.ReactElement {
                 variant={actionFilter === action ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleActionFilter(action)}
-                className={actionFilter === action ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={
+                  actionFilter === action
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : ''
+                }
               >
                 {action}
               </Button>
@@ -197,12 +201,16 @@ function AuditLogsPageContent(): React.ReactElement {
               <CardContent className="py-4">
                 <div className="flex items-start gap-3">
                   {/* Icon */}
-                  <span className="text-2xl mt-1">{getActionIcon(log.action)}</span>
+                  <span className="text-2xl mt-1">
+                    {getActionIcon(log.action)}
+                  </span>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-white font-medium">{log.action}</span>
+                      <span className="text-white font-medium">
+                        {log.action}
+                      </span>
                       {getStatusBadge(log.status)}
                     </div>
 
@@ -212,12 +220,18 @@ function AuditLogsPageContent(): React.ReactElement {
                       {log.actor && <span>by {log.actor}</span>}
                       {log.batchId && (
                         <span>
-                          Batch: <span className="text-gray-300">{log.batchId.slice(0, 8)}...</span>
+                          Batch:{' '}
+                          <span className="text-gray-300">
+                            {log.batchId.slice(0, 8)}...
+                          </span>
                         </span>
                       )}
                       {log.transactionId && (
                         <span>
-                          TX: <span className="text-gray-300">{log.transactionId.slice(0, 8)}...</span>
+                          TX:{' '}
+                          <span className="text-gray-300">
+                            {log.transactionId.slice(0, 8)}...
+                          </span>
                         </span>
                       )}
                     </div>
@@ -229,7 +243,9 @@ function AuditLogsPageContent(): React.ReactElement {
                           onClick={() => toggleLogExpand(log.id)}
                           className="text-blue-400 hover:text-blue-300 text-xs"
                         >
-                          {expandedLogs.has(log.id) ? 'Hide details ▲' : 'Show details ▼'}
+                          {expandedLogs.has(log.id)
+                            ? 'Hide details ▲'
+                            : 'Show details ▼'}
                         </button>
                         {expandedLogs.has(log.id) && (
                           <pre className="mt-2 p-2 bg-gray-900 rounded text-xs text-gray-300 overflow-auto max-h-40">
@@ -240,12 +256,15 @@ function AuditLogsPageContent(): React.ReactElement {
                     )}
 
                     {/* IP/User Agent (if available and expanded) */}
-                    {expandedLogs.has(log.id) && (log.ipAddress || log.userAgent) && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        {log.ipAddress && <p>IP: {log.ipAddress}</p>}
-                        {log.userAgent && <p className="truncate">UA: {log.userAgent}</p>}
-                      </div>
-                    )}
+                    {expandedLogs.has(log.id) &&
+                      (log.ipAddress || log.userAgent) && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          {log.ipAddress && <p>IP: {log.ipAddress}</p>}
+                          {log.userAgent && (
+                            <p className="truncate">UA: {log.userAgent}</p>
+                          )}
+                        </div>
+                      )}
                   </div>
 
                   {/* Timestamp */}

@@ -101,9 +101,7 @@ export function transformProIndicators(
   // Transform ZigZag
   const zigzag = mt5Data.zigzag
     ? {
-        peaks: Array.isArray(mt5Data.zigzag.peaks)
-          ? mt5Data.zigzag.peaks
-          : [],
+        peaks: Array.isArray(mt5Data.zigzag.peaks) ? mt5Data.zigzag.peaks : [],
         bottoms: Array.isArray(mt5Data.zigzag.bottoms)
           ? mt5Data.zigzag.bottoms
           : [],

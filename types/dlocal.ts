@@ -9,16 +9,37 @@
 export type PaymentProvider = 'DLOCAL' | 'STRIPE';
 
 // Supported dLocal countries (8 total)
-export type DLocalCountry = 'IN' | 'NG' | 'PK' | 'VN' | 'ID' | 'TH' | 'ZA' | 'TR';
+export type DLocalCountry =
+  | 'IN'
+  | 'NG'
+  | 'PK'
+  | 'VN'
+  | 'ID'
+  | 'TH'
+  | 'ZA'
+  | 'TR';
 
 // Corresponding currencies for dLocal countries
-export type DLocalCurrency = 'INR' | 'NGN' | 'PKR' | 'VND' | 'IDR' | 'THB' | 'ZAR' | 'TRY';
+export type DLocalCurrency =
+  | 'INR'
+  | 'NGN'
+  | 'PKR'
+  | 'VND'
+  | 'IDR'
+  | 'THB'
+  | 'ZAR'
+  | 'TRY';
 
 // Plan types (3-day only for dLocal, monthly for both)
 export type PlanType = 'THREE_DAY' | 'MONTHLY';
 
 // Payment status
-export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
+export type PaymentStatus =
+  | 'PENDING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUNDED';
 
 /**
  * Request to create a dLocal payment

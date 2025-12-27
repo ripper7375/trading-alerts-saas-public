@@ -38,7 +38,9 @@ describe('FraudAlertCard Component', () => {
 
     it('should render the description', () => {
       render(<FraudAlertCard alert={mockAlert} />);
-      expect(screen.getByText('User attempted to use 5 different cards in 24 hours')).toBeInTheDocument();
+      expect(
+        screen.getByText('User attempted to use 5 different cards in 24 hours')
+      ).toBeInTheDocument();
     });
 
     it('should render the user email', () => {
@@ -53,7 +55,9 @@ describe('FraudAlertCard Component', () => {
 
     it('should render payment info', () => {
       render(<FraudAlertCard alert={mockAlert} />);
-      expect(screen.getByText('USD 299.00 via Credit Card')).toBeInTheDocument();
+      expect(
+        screen.getByText('USD 299.00 via Credit Card')
+      ).toBeInTheDocument();
     });
   });
 
@@ -155,22 +159,38 @@ describe('FraudAlertCard Component', () => {
   describe('edge cases', () => {
     it('should handle long descriptions', () => {
       const longDescription = 'A'.repeat(500);
-      render(<FraudAlertCard alert={{ ...mockAlert, description: longDescription }} />);
+      render(
+        <FraudAlertCard
+          alert={{ ...mockAlert, description: longDescription }}
+        />
+      );
       expect(screen.getByText(longDescription)).toBeInTheDocument();
     });
 
     it('should handle special characters in email', () => {
-      render(<FraudAlertCard alert={{ ...mockAlert, userEmail: 'user+test@example.com' }} />);
+      render(
+        <FraudAlertCard
+          alert={{ ...mockAlert, userEmail: 'user+test@example.com' }}
+        />
+      );
       expect(screen.getByText('user+test@example.com')).toBeInTheDocument();
     });
 
     it('should handle different currencies', () => {
-      render(<FraudAlertCard alert={{ ...mockAlert, currency: 'EUR', amount: '199.50' }} />);
-      expect(screen.getByText('EUR 199.50 via Credit Card')).toBeInTheDocument();
+      render(
+        <FraudAlertCard
+          alert={{ ...mockAlert, currency: 'EUR', amount: '199.50' }}
+        />
+      );
+      expect(
+        screen.getByText('EUR 199.50 via Credit Card')
+      ).toBeInTheDocument();
     });
 
     it('should handle different payment methods', () => {
-      render(<FraudAlertCard alert={{ ...mockAlert, paymentMethod: 'PayPal' }} />);
+      render(
+        <FraudAlertCard alert={{ ...mockAlert, paymentMethod: 'PayPal' }} />
+      );
       expect(screen.getByText('USD 299.00 via PayPal')).toBeInTheDocument();
     });
   });

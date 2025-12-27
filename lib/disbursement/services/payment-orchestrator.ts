@@ -296,7 +296,10 @@ export class PaymentOrchestrator {
 
     const paidAmount = batchTransactions
       .filter((t: SummaryTransaction) => t.status === 'COMPLETED')
-      .reduce((sum: number, t: SummaryTransaction) => sum + Number(t.amount), 0);
+      .reduce(
+        (sum: number, t: SummaryTransaction) => sum + Number(t.amount),
+        0
+      );
 
     return {
       batchId,

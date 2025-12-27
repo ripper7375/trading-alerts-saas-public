@@ -19,7 +19,9 @@ describe('Monthly Distribution Cron', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockDistributeCodes = jest.fn<DistributeCodesFunction>().mockResolvedValue([]);
+    mockDistributeCodes = jest
+      .fn<DistributeCodesFunction>()
+      .mockResolvedValue([]);
   });
 
   describe('runMonthlyDistribution', () => {
@@ -35,16 +37,24 @@ describe('Monthly Distribution Cron', () => {
 
       const mockAffiliates = [
         {
-          ...testFactories.createAffiliateProfile({ id: 'aff-1', status: 'ACTIVE' }),
+          ...testFactories.createAffiliateProfile({
+            id: 'aff-1',
+            status: 'ACTIVE',
+          }),
           user: mockUser1,
         },
         {
-          ...testFactories.createAffiliateProfile({ id: 'aff-2', status: 'ACTIVE' }),
+          ...testFactories.createAffiliateProfile({
+            id: 'aff-2',
+            status: 'ACTIVE',
+          }),
           user: mockUser2,
         },
       ];
 
-      prismaMock.affiliateProfile.findMany.mockResolvedValue(mockAffiliates as never);
+      prismaMock.affiliateProfile.findMany.mockResolvedValue(
+        mockAffiliates as never
+      );
 
       const result = await runMonthlyDistribution({
         distributeCodes: mockDistributeCodes,
@@ -72,12 +82,17 @@ describe('Monthly Distribution Cron', () => {
 
       const mockAffiliates = [
         {
-          ...testFactories.createAffiliateProfile({ id: 'aff-active', status: 'ACTIVE' }),
+          ...testFactories.createAffiliateProfile({
+            id: 'aff-active',
+            status: 'ACTIVE',
+          }),
           user: mockUser,
         },
       ];
 
-      prismaMock.affiliateProfile.findMany.mockResolvedValue(mockAffiliates as never);
+      prismaMock.affiliateProfile.findMany.mockResolvedValue(
+        mockAffiliates as never
+      );
 
       const result = await runMonthlyDistribution({
         distributeCodes: mockDistributeCodes,
@@ -112,12 +127,17 @@ describe('Monthly Distribution Cron', () => {
 
       const mockAffiliates = [
         {
-          ...testFactories.createAffiliateProfile({ id: 'aff-1', status: 'ACTIVE' }),
+          ...testFactories.createAffiliateProfile({
+            id: 'aff-1',
+            status: 'ACTIVE',
+          }),
           user: mockUser,
         },
       ];
 
-      prismaMock.affiliateProfile.findMany.mockResolvedValue(mockAffiliates as never);
+      prismaMock.affiliateProfile.findMany.mockResolvedValue(
+        mockAffiliates as never
+      );
       mockDistributeCodes.mockRejectedValue(new Error('Distribution failed'));
 
       const result = await runMonthlyDistribution({
@@ -142,16 +162,24 @@ describe('Monthly Distribution Cron', () => {
 
       const mockAffiliates = [
         {
-          ...testFactories.createAffiliateProfile({ id: 'aff-1', status: 'ACTIVE' }),
+          ...testFactories.createAffiliateProfile({
+            id: 'aff-1',
+            status: 'ACTIVE',
+          }),
           user: mockUser1,
         },
         {
-          ...testFactories.createAffiliateProfile({ id: 'aff-2', status: 'ACTIVE' }),
+          ...testFactories.createAffiliateProfile({
+            id: 'aff-2',
+            status: 'ACTIVE',
+          }),
           user: mockUser2,
         },
       ];
 
-      prismaMock.affiliateProfile.findMany.mockResolvedValue(mockAffiliates as never);
+      prismaMock.affiliateProfile.findMany.mockResolvedValue(
+        mockAffiliates as never
+      );
 
       // First call fails, second succeeds
       mockDistributeCodes
@@ -168,17 +196,46 @@ describe('Monthly Distribution Cron', () => {
     });
 
     it('should return total affiliates processed', async () => {
-      const mockUser1 = testFactories.createUser({ id: 'u1', email: 'u1@test.com' });
-      const mockUser2 = testFactories.createUser({ id: 'u2', email: 'u2@test.com' });
-      const mockUser3 = testFactories.createUser({ id: 'u3', email: 'u3@test.com' });
+      const mockUser1 = testFactories.createUser({
+        id: 'u1',
+        email: 'u1@test.com',
+      });
+      const mockUser2 = testFactories.createUser({
+        id: 'u2',
+        email: 'u2@test.com',
+      });
+      const mockUser3 = testFactories.createUser({
+        id: 'u3',
+        email: 'u3@test.com',
+      });
 
       const mockAffiliates = [
-        { ...testFactories.createAffiliateProfile({ id: 'a1', status: 'ACTIVE' }), user: mockUser1 },
-        { ...testFactories.createAffiliateProfile({ id: 'a2', status: 'ACTIVE' }), user: mockUser2 },
-        { ...testFactories.createAffiliateProfile({ id: 'a3', status: 'ACTIVE' }), user: mockUser3 },
+        {
+          ...testFactories.createAffiliateProfile({
+            id: 'a1',
+            status: 'ACTIVE',
+          }),
+          user: mockUser1,
+        },
+        {
+          ...testFactories.createAffiliateProfile({
+            id: 'a2',
+            status: 'ACTIVE',
+          }),
+          user: mockUser2,
+        },
+        {
+          ...testFactories.createAffiliateProfile({
+            id: 'a3',
+            status: 'ACTIVE',
+          }),
+          user: mockUser3,
+        },
       ];
 
-      prismaMock.affiliateProfile.findMany.mockResolvedValue(mockAffiliates as never);
+      prismaMock.affiliateProfile.findMany.mockResolvedValue(
+        mockAffiliates as never
+      );
 
       const result = await runMonthlyDistribution({
         distributeCodes: mockDistributeCodes,

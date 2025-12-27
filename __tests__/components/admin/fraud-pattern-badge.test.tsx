@@ -81,7 +81,9 @@ describe('FraudPatternBadge Component', () => {
     });
 
     it('should render with pattern label when provided', () => {
-      render(<FraudPatternBadge severity="CRITICAL" pattern="Multiple Cards" />);
+      render(
+        <FraudPatternBadge severity="CRITICAL" pattern="Multiple Cards" />
+      );
       expect(screen.getByText(/Multiple Cards/)).toBeInTheDocument();
     });
 
@@ -102,13 +104,17 @@ describe('FraudPatternBadge Component', () => {
     });
 
     it('should render small size when specified', () => {
-      const { container } = render(<FraudPatternBadge severity="LOW" size="sm" />);
+      const { container } = render(
+        <FraudPatternBadge severity="LOW" size="sm" />
+      );
       const badge = container.querySelector('span');
       expect(badge).toHaveClass('px-2', 'py-0.5', 'text-xs');
     });
 
     it('should render medium size when explicitly specified', () => {
-      const { container } = render(<FraudPatternBadge severity="LOW" size="md" />);
+      const { container } = render(
+        <FraudPatternBadge severity="LOW" size="md" />
+      );
       const badge = container.querySelector('span');
       expect(badge).toHaveClass('px-3', 'py-1', 'text-sm');
     });
@@ -149,7 +155,11 @@ describe('FraudPatternBadge Component', () => {
   describe('combinations', () => {
     it('should render CRITICAL with pattern and small size', () => {
       const { container } = render(
-        <FraudPatternBadge severity="CRITICAL" pattern="IP Mismatch" size="sm" />
+        <FraudPatternBadge
+          severity="CRITICAL"
+          pattern="IP Mismatch"
+          size="sm"
+        />
       );
       const badge = container.querySelector('span');
       expect(screen.getByText('CRITICAL')).toBeInTheDocument();

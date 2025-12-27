@@ -154,7 +154,7 @@ export function PieGraph() {
           {((chartData[0].visitors / totalVisitors) * 100).toFixed(1)}%{' '}
           <IconTrendingUp className='h-4 w-4' />
         </div>
-        <div className='text-muted-foreground leading-none'>
+        <div className='leading-none text-muted-foreground'>
           Based on data from January - June 2024
         </div>
       </CardFooter>

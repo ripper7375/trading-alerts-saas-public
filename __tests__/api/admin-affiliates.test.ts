@@ -68,7 +68,9 @@ describe('Admin Affiliates API Routes', () => {
 
   describe('GET /api/admin/affiliates', () => {
     it('should return 401 when not authenticated', async () => {
-      mockRequireAdmin.mockRejectedValue(new MockAuthError('Unauthorized', 401));
+      mockRequireAdmin.mockRejectedValue(
+        new MockAuthError('Unauthorized', 401)
+      );
 
       const { GET } = await import('@/app/api/admin/affiliates/route');
       const request = new MockRequest('http://localhost/api/admin/affiliates');
@@ -143,7 +145,9 @@ describe('Admin Affiliates API Routes', () => {
       });
 
       const { GET } = await import('@/app/api/admin/affiliates/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates?status=ACTIVE');
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates?status=ACTIVE'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -164,7 +168,9 @@ describe('Admin Affiliates API Routes', () => {
       });
 
       const { GET } = await import('@/app/api/admin/affiliates/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates?page=3&limit=10');
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates?page=3&limit=10'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 

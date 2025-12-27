@@ -52,9 +52,7 @@ const querySchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -65,7 +63,10 @@ export async function GET(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: validation.error.flatten() },
+        {
+          error: 'Invalid query parameters',
+          details: validation.error.flatten(),
+        },
         { status: 400 }
       );
     }
@@ -74,7 +75,12 @@ export async function GET(
 
     // Get affiliates with filters
     const result = await getAffiliatesList({
-      status: status as 'ACTIVE' | 'PENDING_VERIFICATION' | 'SUSPENDED' | 'INACTIVE' | undefined,
+      status: status as
+        | 'ACTIVE'
+        | 'PENDING_VERIFICATION'
+        | 'SUSPENDED'
+        | 'INACTIVE'
+        | undefined,
       country,
       paymentMethod,
       page,

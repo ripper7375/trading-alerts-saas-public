@@ -7,14 +7,15 @@
 
 ## Issue Priority Summary
 
-| Priority | Count | Action |
-|----------|-------|--------|
-| 🔴 Blockers | 0 | None required |
-| 🟡 Warnings | 0 | ✅ All fixed |
-| 🟢 Enhancements | 2 | Optional improvements |
-| ℹ️ Informational | 1 | Document only |
+| Priority         | Count | Action                |
+| ---------------- | ----- | --------------------- |
+| 🔴 Blockers      | 0     | None required         |
+| 🟡 Warnings      | 0     | ✅ All fixed          |
+| 🟢 Enhancements  | 2     | Optional improvements |
+| ℹ️ Informational | 1     | Document only         |
 
 **Status Update (2025-12-26):** All warnings have been addressed:
+
 - ✅ ESLint configuration: Using `.eslintrc.json` (legacy format compatible with `next lint`)
 - ✅ TypeScript `__mocks__` exclusion: Added to both `tsconfig.json` and `.eslintrc.json`
 - ✅ CI workflow: Updated test-summary to handle skipped jobs properly
@@ -53,6 +54,7 @@ Generate the complete eslint.config.js file with all necessary imports and confi
 ### Manual Fix Steps
 
 1. Create `eslint.config.js` in project root:
+
 ```javascript
 import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
@@ -91,6 +93,7 @@ export default [
 ```
 
 2. Update `package.json` lint script:
+
 ```json
 {
   "scripts": {
@@ -108,6 +111,7 @@ export default [
 **Location:** `app/(auth)/forgot-password/page.tsx`
 
 **Error Messages:**
+
 - Cannot find module '@hookform/resolvers/zod'
 - Cannot find module 'lucide-react'
 - Cannot find module 'next/link'
@@ -183,6 +187,7 @@ Choose the approach that best fits the project's testing strategy.
 ### Manual Fix Steps
 
 Option A - Include Jest types:
+
 ```json
 // tsconfig.json
 {
@@ -193,6 +198,7 @@ Option A - Include Jest types:
 ```
 
 Option B - Exclude test files:
+
 ```json
 // tsconfig.json
 {
@@ -210,7 +216,7 @@ Option B - Exclude test files:
 
 ### Ready-to-Use Prompt
 
-```
+````
 Enhance the affiliate dashboard loading states in app/affiliate/dashboard/page.tsx:
 
 1. Replace the spinner loading state with skeleton components
@@ -233,9 +239,10 @@ function StatsCardSkeleton() {
     </div>
   );
 }
-```
+````
 
 Apply similar skeletons to all dashboard pages that have loading states.
+
 ```
 
 ---
@@ -249,6 +256,7 @@ Apply similar skeletons to all dashboard pages that have loading states.
 ### Ready-to-Use Prompt
 
 ```
+
 Create a reusable Pagination component for all Part 17 tables:
 
 1. Create components/ui/table-pagination.tsx with:
@@ -268,6 +276,7 @@ Create a reusable Pagination component for all Part 17 tables:
 4. Make it accessible with proper ARIA labels
 
 Example interface:
+
 ```tsx
 interface TablePaginationProps {
   currentPage: number;
@@ -278,7 +287,8 @@ interface TablePaginationProps {
   onItemsPerPageChange?: (count: number) => void;
 }
 ```
-```
+
+````
 
 ---
 
@@ -326,7 +336,7 @@ Add to OpenAPI specification:
     responses:
       '200':
         description: Settings updated
-```
+````
 
 ---
 
@@ -383,17 +393,18 @@ CRON_SECRET=
 
 After starting dev server (`npm run dev`), test these URLs:
 
-| URL | Expected Behavior |
-|-----|-------------------|
-| http://localhost:3000/affiliate/register | Registration form |
-| http://localhost:3000/affiliate/dashboard | Dashboard (requires auth) |
-| http://localhost:3000/admin/affiliates | Admin list (requires admin) |
+| URL                                       | Expected Behavior           |
+| ----------------------------------------- | --------------------------- |
+| http://localhost:3000/affiliate/register  | Registration form           |
+| http://localhost:3000/affiliate/dashboard | Dashboard (requires auth)   |
+| http://localhost:3000/admin/affiliates    | Admin list (requires admin) |
 
 ---
 
 ## Quick Reference: Part 17 File Locations
 
 ### API Routes
+
 ```
 app/api/affiliate/auth/register/route.ts
 app/api/affiliate/auth/verify-email/route.ts
@@ -420,6 +431,7 @@ app/api/cron/send-monthly-reports/route.ts
 ```
 
 ### Frontend Pages
+
 ```
 app/affiliate/layout.tsx
 app/affiliate/register/page.tsx
@@ -438,6 +450,7 @@ app/admin/affiliates/reports/code-inventory/page.tsx
 ```
 
 ### Components
+
 ```
 components/affiliate/stats-card.tsx
 components/affiliate/code-table.tsx
@@ -457,6 +470,7 @@ components/admin/code-inventory-chart.tsx
 ```
 
 ### Library Files
+
 ```
 lib/affiliate/constants.ts
 lib/affiliate/types.ts

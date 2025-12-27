@@ -195,8 +195,8 @@ export function PaymentConfirmationEmail({
             marginTop: '30px',
           }}
         >
-          If you have any questions, reply to this email and we&apos;ll be
-          happy to help.
+          If you have any questions, reply to this email and we&apos;ll be happy
+          to help.
         </p>
       </div>
 

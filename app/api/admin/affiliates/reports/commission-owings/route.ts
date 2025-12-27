@@ -43,9 +43,7 @@ const querySchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -122,7 +120,7 @@ export async function GET(
       // Get oldest pending commission date
       const oldestPending =
         affiliate.commissions && affiliate.commissions.length > 0
-          ? affiliate.commissions[0]?.earnedAt ?? null
+          ? (affiliate.commissions[0]?.earnedAt ?? null)
           : null;
 
       return {
@@ -139,7 +137,9 @@ export async function GET(
         },
         pendingCount: affiliate.commissions?.length ?? 0,
         oldestPendingDate: oldestPending,
-        readyForPayout: Number(affiliate.pendingCommissions) >= AFFILIATE_CONFIG.MINIMUM_PAYOUT,
+        readyForPayout:
+          Number(affiliate.pendingCommissions) >=
+          AFFILIATE_CONFIG.MINIMUM_PAYOUT,
       };
     });
 

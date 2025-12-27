@@ -17,7 +17,10 @@ import {
 describe('dLocal Webhook Handler', () => {
   const WEBHOOK_SECRET = 'test-webhook-secret';
 
-  function generateSignature(payload: string, secret: string = WEBHOOK_SECRET): string {
+  function generateSignature(
+    payload: string,
+    secret: string = WEBHOOK_SECRET
+  ): string {
     return crypto.createHmac('sha256', secret).update(payload).digest('hex');
   }
 
@@ -32,7 +35,9 @@ describe('dLocal Webhook Handler', () => {
       });
 
       const signature = generateSignature(payload);
-      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(true);
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
     });
 
     it('should verify valid signature for REJECTED status', () => {
@@ -46,7 +51,9 @@ describe('dLocal Webhook Handler', () => {
       });
 
       const signature = generateSignature(payload);
-      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(true);
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
     });
 
     it('should reject invalid signature', () => {
@@ -56,7 +63,9 @@ describe('dLocal Webhook Handler', () => {
       });
 
       const invalidSignature = 'invalid-signature-12345';
-      expect(verifyWebhookSignature(payload, invalidSignature, WEBHOOK_SECRET)).toBe(false);
+      expect(
+        verifyWebhookSignature(payload, invalidSignature, WEBHOOK_SECRET)
+      ).toBe(false);
     });
 
     it('should reject tampered payload', () => {
@@ -74,7 +83,9 @@ describe('dLocal Webhook Handler', () => {
         amount: 290.0, // Tampered amount
       });
 
-      expect(verifyWebhookSignature(tamperedPayload, signature, WEBHOOK_SECRET)).toBe(false);
+      expect(
+        verifyWebhookSignature(tamperedPayload, signature, WEBHOOK_SECRET)
+      ).toBe(false);
     });
 
     it('should handle empty payload', () => {
@@ -100,7 +111,9 @@ describe('dLocal Webhook Handler', () => {
       });
 
       const signature = generateSignature(payload);
-      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(true);
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
     });
   });
 
@@ -132,11 +145,15 @@ describe('dLocal Webhook Handler', () => {
 
   describe('Order ID Parsing', () => {
     it('should extract user ID from valid order ID', () => {
-      expect(extractUserIdFromOrderId('order-user123-1702900000000')).toBe('user123');
+      expect(extractUserIdFromOrderId('order-user123-1702900000000')).toBe(
+        'user123'
+      );
     });
 
     it('should extract CUID from order ID', () => {
-      expect(extractUserIdFromOrderId('order-cuid123abc-1702900000000')).toBe('cuid123abc');
+      expect(extractUserIdFromOrderId('order-cuid123abc-1702900000000')).toBe(
+        'cuid123abc'
+      );
     });
 
     it('should return null for invalid order ID', () => {

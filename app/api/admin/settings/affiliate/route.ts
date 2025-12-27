@@ -92,7 +92,10 @@ export async function GET(
     });
 
     // Create lookup map
-    const configMap: Record<string, { value: string; updatedBy: string | null; updatedAt: Date }> = {};
+    const configMap: Record<
+      string,
+      { value: string; updatedBy: string | null; updatedAt: Date }
+    > = {};
     for (const config of configs) {
       configMap[config.key] = {
         value: config.value,
@@ -104,34 +107,64 @@ export async function GET(
     // Build response with defaults for missing values
     const response: GetResponse = {
       discountPercent: {
-        value: parseFloat(configMap[CONFIG_KEYS.discountPercent]?.value ?? DEFAULTS.affiliate_discount_percent),
+        value: parseFloat(
+          configMap[CONFIG_KEYS.discountPercent]?.value ??
+            DEFAULTS.affiliate_discount_percent
+        ),
         updatedBy: configMap[CONFIG_KEYS.discountPercent]?.updatedBy ?? null,
-        updatedAt: configMap[CONFIG_KEYS.discountPercent]?.updatedAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt:
+          configMap[CONFIG_KEYS.discountPercent]?.updatedAt?.toISOString() ??
+          new Date().toISOString(),
       },
       commissionPercent: {
-        value: parseFloat(configMap[CONFIG_KEYS.commissionPercent]?.value ?? DEFAULTS.affiliate_commission_percent),
+        value: parseFloat(
+          configMap[CONFIG_KEYS.commissionPercent]?.value ??
+            DEFAULTS.affiliate_commission_percent
+        ),
         updatedBy: configMap[CONFIG_KEYS.commissionPercent]?.updatedBy ?? null,
-        updatedAt: configMap[CONFIG_KEYS.commissionPercent]?.updatedAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt:
+          configMap[CONFIG_KEYS.commissionPercent]?.updatedAt?.toISOString() ??
+          new Date().toISOString(),
       },
       codesPerMonth: {
-        value: parseInt(configMap[CONFIG_KEYS.codesPerMonth]?.value ?? DEFAULTS.affiliate_codes_per_month, 10),
+        value: parseInt(
+          configMap[CONFIG_KEYS.codesPerMonth]?.value ??
+            DEFAULTS.affiliate_codes_per_month,
+          10
+        ),
         updatedBy: configMap[CONFIG_KEYS.codesPerMonth]?.updatedBy ?? null,
-        updatedAt: configMap[CONFIG_KEYS.codesPerMonth]?.updatedAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt:
+          configMap[CONFIG_KEYS.codesPerMonth]?.updatedAt?.toISOString() ??
+          new Date().toISOString(),
       },
       basePrice: {
-        value: parseFloat(configMap[CONFIG_KEYS.basePrice]?.value ?? DEFAULTS.affiliate_base_price),
+        value: parseFloat(
+          configMap[CONFIG_KEYS.basePrice]?.value ??
+            DEFAULTS.affiliate_base_price
+        ),
         updatedBy: configMap[CONFIG_KEYS.basePrice]?.updatedBy ?? null,
-        updatedAt: configMap[CONFIG_KEYS.basePrice]?.updatedAt?.toISOString() ?? new Date().toISOString(),
+        updatedAt:
+          configMap[CONFIG_KEYS.basePrice]?.updatedAt?.toISOString() ??
+          new Date().toISOString(),
       },
     };
 
     return NextResponse.json(response);
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
     }
-    console.error('[Admin Settings] Failed to fetch affiliate settings:', error);
-    return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
+    console.error(
+      '[Admin Settings] Failed to fetch affiliate settings:',
+      error
+    );
+    return NextResponse.json(
+      { error: 'Failed to fetch settings' },
+      { status: 500 }
+    );
   }
 }
 
@@ -157,7 +190,13 @@ export async function PATCH(
 
     // Parse request body
     const body: PatchRequest = await request.json();
-    const { discountPercent, commissionPercent, codesPerMonth, basePrice, reason } = body;
+    const {
+      discountPercent,
+      commissionPercent,
+      codesPerMonth,
+      basePrice,
+      reason,
+    } = body;
 
     // Validate values
     if (discountPercent !== undefined) {
@@ -254,21 +293,34 @@ export async function PATCH(
       }
     }
 
-    console.log(`[Admin Settings] Admin ${adminEmail} updated affiliate settings:`, changes);
+    console.log(
+      `[Admin Settings] Admin ${adminEmail} updated affiliate settings:`,
+      changes
+    );
 
     return NextResponse.json({
       success: true,
-      message: changes.length > 0
-        ? 'Affiliate settings updated. Changes will propagate across all pages within 5 minutes.'
-        : 'No changes made.',
+      message:
+        changes.length > 0
+          ? 'Affiliate settings updated. Changes will propagate across all pages within 5 minutes.'
+          : 'No changes made.',
       changes,
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
     }
-    console.error('[Admin Settings] Failed to update affiliate settings:', error);
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    console.error(
+      '[Admin Settings] Failed to update affiliate settings:',
+      error
+    );
+    return NextResponse.json(
+      { error: 'Failed to update settings' },
+      { status: 500 }
+    );
   }
 }
 
@@ -291,7 +343,8 @@ async function updateConfig(
     where: { key },
   });
 
-  const oldValue = current?.value ?? DEFAULTS[key as keyof typeof DEFAULTS] ?? '0';
+  const oldValue =
+    current?.value ?? DEFAULTS[key as keyof typeof DEFAULTS] ?? '0';
 
   // Skip if value hasn't changed
   if (oldValue === newValue) {

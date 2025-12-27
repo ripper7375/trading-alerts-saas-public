@@ -222,19 +222,14 @@ export async function runFraudChecks(
   const alerts: FraudCheckResult['alerts'] = [];
 
   // Run all checks in parallel
-  const [
-    threeDayAbuse,
-    velocityLimit,
-    failedPayments,
-    ipMismatch,
-    ipChange,
-  ] = await Promise.all([
-    checkThreeDayPlanAbuse(userId),
-    checkVelocityLimit(userId),
-    checkFailedPayments(userId),
-    checkIPCountryMismatch(userId, ipAddress, country),
-    checkSuspiciousIPChange(userId, ipAddress),
-  ]);
+  const [threeDayAbuse, velocityLimit, failedPayments, ipMismatch, ipChange] =
+    await Promise.all([
+      checkThreeDayPlanAbuse(userId),
+      checkVelocityLimit(userId),
+      checkFailedPayments(userId),
+      checkIPCountryMismatch(userId, ipAddress, country),
+      checkSuspiciousIPChange(userId, ipAddress),
+    ]);
 
   if (threeDayAbuse) alerts.push(threeDayAbuse);
   if (velocityLimit) alerts.push(velocityLimit);

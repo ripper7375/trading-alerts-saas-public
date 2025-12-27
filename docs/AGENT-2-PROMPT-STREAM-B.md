@@ -14,11 +14,13 @@
 You are **Agent 2** in a two-agent parallel implementation to upgrade Prisma from version 4.16.2 to 5.22.0 in a Trading Alerts SaaS application. This document provides complete context for your work stream.
 
 **Your responsibilities (Stream B):**
+
 - B1: Update TypeScript type stubs for Prisma 5.x compatibility
 - B2: Create upgrade documentation
 - B3: Create test/validation scripts
 
 **You will NOT touch (Agent 1's responsibilities - Stream A):**
+
 - package.json / pnpm-lock.yaml
 - prisma/schema.prisma
 - Application code changes for Prisma 5.x
@@ -57,13 +59,13 @@ A manual TypeScript declaration file (`types/prisma-stubs.d.ts`) was created to 
 
 ### Why Upgrade Now?
 
-| Aspect | Current (4.16.2) | Target (5.22.0) |
-|--------|------------------|-----------------|
-| Release Date | June 2023 | November 2024 |
-| Age | 18+ months old | Latest stable |
-| Security | 12+ patches missing | Up to date |
-| Performance | Baseline | 30-40% faster queries |
-| TypeScript | 4.x patterns | 5.x patterns |
+| Aspect       | Current (4.16.2)    | Target (5.22.0)       |
+| ------------ | ------------------- | --------------------- |
+| Release Date | June 2023           | November 2024         |
+| Age          | 18+ months old      | Latest stable         |
+| Security     | 12+ patches missing | Up to date            |
+| Performance  | Baseline            | 30-40% faster queries |
+| TypeScript   | 4.x patterns        | 5.x patterns          |
 
 ### Technical Debt Being Addressed
 
@@ -93,14 +95,15 @@ Total: ~15-18 hours                   │
 
 ### Why This Split Works
 
-| Stream A (Agent 1) | Stream B (Agent 2) |
-|--------------------|---------------------|
-| Modifies runtime code | Modifies type definitions |
-| Changes dependencies | Creates documentation |
-| Updates schema | Creates test scripts |
+| Stream A (Agent 1)            | Stream B (Agent 2)               |
+| ----------------------------- | -------------------------------- |
+| Modifies runtime code         | Modifies type definitions        |
+| Changes dependencies          | Creates documentation            |
+| Updates schema                | Creates test scripts             |
 | **Files with runtime impact** | **Files with no runtime impact** |
 
 These streams have **zero file overlap**, meaning:
+
 - No merge conflicts possible
 - Both can work simultaneously
 - Clean git history when merged
@@ -137,11 +140,13 @@ These streams have **zero file overlap**, meaning:
 ### Sync Points Explained
 
 **SYNC 1:** Both agents complete their independent work
+
 - Agent 1 pushes Stream A commits
 - Agent 2 (you) pushes Stream B commits
 - Human coordinator reviews both
 
 **SYNC 2:** Merge and Integration Testing
+
 - Both streams merged to feature branch
 - Full test suite runs
 - Human evaluates test results
@@ -153,21 +158,25 @@ These streams have **zero file overlap**, meaning:
 **This section is for context only. Do NOT modify these files.**
 
 ### Phase A1: Dependency Updates
+
 - Update `package.json` with Prisma 5.22.0
 - Update `@prisma/client` to 5.22.0
 - Run `pnpm install`
 
 ### Phase A2: Schema Validation
+
 - Run `npx prisma validate`
 - Run `npx prisma format`
 - Review breaking changes
 
 ### Phase A3: Application Code Updates
+
 - Update JSON null handling patterns
 - Update transaction usage
 - Fix TypeScript errors in application code
 
 ### Files Agent 1 Will Modify:
+
 ```
 ❌ DO NOT TOUCH THESE FILES:
 ├── package.json
@@ -184,15 +193,16 @@ These streams have **zero file overlap**, meaning:
 
 ### Your Deliverables
 
-| Phase | Deliverable | Priority |
-|-------|-------------|----------|
-| B1 | Updated `types/prisma-stubs.d.ts` | Critical |
-| B2 | `docs/prisma-upgrade-log.md` | Important |
-| B2 | Updated `README.md` section | Important |
-| B3 | `scripts/test-prisma5-upgrade.ts` | Critical |
-| B3 | `scripts/run-all-tests.sh` | Important |
+| Phase | Deliverable                       | Priority  |
+| ----- | --------------------------------- | --------- |
+| B1    | Updated `types/prisma-stubs.d.ts` | Critical  |
+| B2    | `docs/prisma-upgrade-log.md`      | Important |
+| B2    | Updated `README.md` section       | Important |
+| B3    | `scripts/test-prisma5-upgrade.ts` | Critical  |
+| B3    | `scripts/run-all-tests.sh`        | Important |
 
 ### Files You WILL Modify/Create:
+
 ```
 ✅ YOUR FILES:
 ├── types/prisma-stubs.d.ts          (MODIFY)
@@ -208,9 +218,11 @@ These streams have **zero file overlap**, meaning:
 ## 6. Phase B1: Update Type Stubs
 
 ### Objective
+
 Update `types/prisma-stubs.d.ts` to support Prisma 5.x type patterns while maintaining backward compatibility with all existing model definitions.
 
 ### Current File Location
+
 `types/prisma-stubs.d.ts`
 
 ### Required Changes
@@ -297,7 +309,7 @@ export type StringFilter = {
   contains?: string;
   startsWith?: string;
   endsWith?: string;
-  mode?: QueryMode;  // NEW IN 5.x
+  mode?: QueryMode; // NEW IN 5.x
   not?: string | NestedStringFilter;
 };
 
@@ -361,7 +373,10 @@ export class PrismaClient {
   // Connection management
   $connect(): Promise<void>;
   $disconnect(): Promise<void>;
-  $on(eventType: 'query' | 'info' | 'warn' | 'error', callback: (event: any) => void): void;
+  $on(
+    eventType: 'query' | 'info' | 'warn' | 'error',
+    callback: (event: any) => void
+  ): void;
 
   // Middleware (enhanced in 5.x)
   $use(middleware: Middleware): void;
@@ -373,7 +388,19 @@ export class PrismaClient {
   $queryRawUnsafe<T = any>(query: string, ...values: any[]): Promise<T>;
 
   // Transaction support (improved in 5.x)
-  $transaction<T>(fn: (prisma: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'>) => Promise<T>, options?: { maxWait?: number; timeout?: number; isolationLevel?: TransactionIsolationLevel }): Promise<T>;
+  $transaction<T>(
+    fn: (
+      prisma: Omit<
+        PrismaClient,
+        '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'
+      >
+    ) => Promise<T>,
+    options?: {
+      maxWait?: number;
+      timeout?: number;
+      isolationLevel?: TransactionIsolationLevel;
+    }
+  ): Promise<T>;
   $transaction<T>(queries: PrismaPromise<T>[]): Promise<T[]>;
 
   // NEW IN PRISMA 5.x
@@ -428,7 +455,9 @@ export interface MetricHistogram {
   description: string;
 }
 
-export type PrismaPromise<T> = Promise<T> & { [Symbol.toStringTag]: 'PrismaPromise' };
+export type PrismaPromise<T> = Promise<T> & {
+  [Symbol.toStringTag]: 'PrismaPromise';
+};
 
 export type Middleware = (
   params: MiddlewareParams,
@@ -445,7 +474,13 @@ export interface MiddlewareParams {
 
 export interface PrismaClientOptions {
   datasources?: { db?: { url?: string } };
-  log?: Array<'query' | 'info' | 'warn' | 'error' | { emit: 'event' | 'stdout'; level: 'query' | 'info' | 'warn' | 'error' }>;
+  log?: Array<
+    | 'query'
+    | 'info'
+    | 'warn'
+    | 'error'
+    | { emit: 'event' | 'stdout'; level: 'query' | 'info' | 'warn' | 'error' }
+  >;
   errorFormat?: 'pretty' | 'colorless' | 'minimal';
 }
 ```
@@ -467,7 +502,7 @@ export interface UserFindManyArgs {
   take?: number;
   skip?: number;
   distinct?: UserScalarFieldEnum | UserScalarFieldEnum[];
-  relationLoadStrategy?: RelationLoadStrategy;  // NEW IN 5.x
+  relationLoadStrategy?: RelationLoadStrategy; // NEW IN 5.x
 }
 ```
 
@@ -480,6 +515,7 @@ export interface UserFindManyArgs {
 5. **Test compilation after changes** - Run `pnpm tsc --noEmit` to verify
 
 ### Commit for B1
+
 ```bash
 git add types/prisma-stubs.d.ts
 git commit -m "chore(types): update prisma stubs for 5.x compatibility
@@ -512,26 +548,29 @@ BREAKING CHANGE: None - all changes are additive"
 
 ## Upgrade Summary
 
-| Field | Value |
-|-------|-------|
-| **Start Date** | December 25, 2024 |
-| **Previous Version** | 4.16.2 (June 2023) |
-| **Target Version** | 5.22.0 (November 2024) |
-| **Status** | In Progress |
-| **Estimated Effort** | 20-25 hours |
+| Field                | Value                  |
+| -------------------- | ---------------------- |
+| **Start Date**       | December 25, 2024      |
+| **Previous Version** | 4.16.2 (June 2023)     |
+| **Target Version**   | 5.22.0 (November 2024) |
+| **Status**           | In Progress            |
+| **Estimated Effort** | 20-25 hours            |
 
 ## Version Gap Analysis
 
 ### Security Updates Included
+
 - 12+ security patches from 4.16.2 to 5.22.0
 - CVE fixes (check Prisma release notes for specific CVEs)
 
 ### Performance Improvements
+
 - 30-40% faster query execution
 - Improved connection pooling
 - Better query plan caching
 
 ### New Features Available After Upgrade
+
 1. **Metrics API** (`prisma.$metrics`) - Built-in observability
 2. **Relation Load Strategy** - Choose between `query` and `join` strategies
 3. **Client Extensions** (`prisma.$extends`) - Custom client functionality
@@ -541,13 +580,14 @@ BREAKING CHANGE: None - all changes are additive"
 ## Implementation Approach
 
 ### Two-Agent Parallel Implementation
+```
 
-```
-Stream A (Agent 1):                Stream B (Agent 2):
-├── A1: Update Dependencies        ├── B1: Update Type Stubs
-├── A2: Schema Validation          ├── B2: Documentation (this file)
-└── A3: Code Updates               └── B3: Test Scripts
-```
+Stream A (Agent 1): Stream B (Agent 2):
+├── A1: Update Dependencies ├── B1: Update Type Stubs
+├── A2: Schema Validation ├── B2: Documentation (this file)
+└── A3: Code Updates └── B3: Test Scripts
+
+````
 
 ### Rationale for Parallel Approach
 - Zero file overlap between streams
@@ -572,14 +612,16 @@ await prisma.config.create({
   // or
   data: { metadata: Prisma.DbNull }    // Database NULL
 });
-```
+````
 
 ### 2. DateTime Defaults
+
 **Change:** `@default(now())` uses database's `NOW()` function instead of client-side `new Date()`.
 
 **Impact:** More accurate timestamps, but tests checking exact timestamps may need adjustment.
 
 ### 3. Stricter Types
+
 **Change:** Prisma 5.x has stricter types for `select` and `include`.
 
 **Impact:** Some loose type usage may require fixes.
@@ -587,12 +629,14 @@ await prisma.config.create({
 ## Files Modified
 
 ### Stream A (Agent 1)
+
 - [ ] `package.json` - Dependency versions
 - [ ] `pnpm-lock.yaml` - Lock file
 - [ ] `prisma/schema.prisma` - Schema formatting
 - [ ] Application code files (as needed)
 
 ### Stream B (Agent 2)
+
 - [x] `types/prisma-stubs.d.ts` - Type definitions
 - [x] `docs/prisma-upgrade-log.md` - This file
 - [x] `docs/prisma-5x-breaking-changes.md` - Breaking changes guide
@@ -603,6 +647,7 @@ await prisma.config.create({
 ## Testing Strategy
 
 ### Test Levels
+
 1. **TypeScript Compilation** - `pnpm tsc --noEmit`
 2. **Build Test** - `pnpm build`
 3. **Unit Tests** - `pnpm test:unit`
@@ -610,6 +655,7 @@ await prisma.config.create({
 5. **Prisma 5.x Validation** - `scripts/test-prisma5-upgrade.ts`
 
 ### Success Criteria
+
 - [ ] Zero TypeScript errors
 - [ ] Build succeeds
 - [ ] All existing tests pass
@@ -619,11 +665,13 @@ await prisma.config.create({
 ## Rollback Plan
 
 ### Instant Rollback (Vercel)
+
 ```bash
 vercel rollback [previous-deployment-id]
 ```
 
 ### Git Rollback
+
 ```bash
 git revert -m 1 [merge-commit-hash]
 git push origin main
@@ -641,7 +689,8 @@ git push origin main
 - [Prisma 5.x Upgrade Guide](https://www.prisma.io/docs/guides/upgrade-guides/upgrading-versions/upgrading-to-prisma-5)
 - [Prisma 5.x Release Notes](https://github.com/prisma/prisma/releases)
 - [Prisma 5.x Breaking Changes](https://www.prisma.io/docs/guides/upgrade-guides/upgrading-versions/upgrading-to-prisma-5#breaking-changes)
-```
+
+````
 
 ### 7.2 Create Breaking Changes Document
 
@@ -689,32 +738,35 @@ await prisma.config.create({
     metadata: Prisma.DbNull
   }
 });
-```
+````
 
 **Querying records:**
+
 ```typescript
 // Find where metadata is JSON null
 await prisma.config.findMany({
-  where: { metadata: { equals: Prisma.JsonNull } }
+  where: { metadata: { equals: Prisma.JsonNull } },
 });
 
 // Find where metadata is database NULL
 await prisma.config.findMany({
-  where: { metadata: { equals: Prisma.DbNull } }
+  where: { metadata: { equals: Prisma.DbNull } },
 });
 
 // Find where metadata is either
 await prisma.config.findMany({
-  where: { metadata: { equals: Prisma.AnyNull } }
+  where: { metadata: { equals: Prisma.AnyNull } },
 });
 ```
 
 ### 2. DateTime Default Behavior
 
 #### The Change
+
 `@default(now())` now uses database's `NOW()` function instead of JavaScript's `new Date()`.
 
 #### Impact on Tests
+
 ```typescript
 // This test might fail in Prisma 5.x:
 const user = await prisma.user.create({ data: { email: 'test@test.com' } });
@@ -729,34 +781,38 @@ expect(Date.now() - user.createdAt.getTime()).toBeLessThan(5000); // ✅ Within 
 ### 3. Stricter Select/Include Types
 
 #### The Change
+
 Prisma 5.x provides stricter TypeScript types for `select` and `include` options.
 
 #### Example
+
 ```typescript
 // This might error in Prisma 5.x if 'invalidField' doesn't exist:
 await prisma.user.findMany({
   select: {
     id: true,
-    invalidField: true  // ❌ TypeScript error in 5.x
-  }
+    invalidField: true, // ❌ TypeScript error in 5.x
+  },
 });
 ```
 
 ### 4. Transaction Timeout Defaults
 
 #### The Change
+
 Default transaction timeout changed. Interactive transactions now have explicit timeout options.
 
 #### New Syntax
+
 ```typescript
 await prisma.$transaction(
   async (tx) => {
     // operations
   },
   {
-    maxWait: 5000,  // Max time to wait for transaction slot
+    maxWait: 5000, // Max time to wait for transaction slot
     timeout: 10000, // Max time for transaction to complete
-    isolationLevel: 'Serializable'  // Optional
+    isolationLevel: 'Serializable', // Optional
   }
 );
 ```
@@ -768,7 +824,8 @@ await prisma.$transaction(
 - [ ] Check for any `select`/`include` with dynamic fields
 - [ ] Review transaction timeout requirements
 - [ ] Verify Node.js version >= 16.13
-```
+
+````
 
 ### 7.3 Update README.md
 
@@ -787,9 +844,10 @@ Find the dependencies or technology stack section and update Prisma version. Add
 ## Prisma Notes
 
 This project uses Prisma 5.22.0 with manual type stubs (`types/prisma-stubs.d.ts`) due to network restrictions preventing local client generation. See [Prisma Upgrade Log](docs/prisma-upgrade-log.md) for details.
-```
+````
 
 ### Commit for B2
+
 ```bash
 git add docs/prisma-upgrade-log.md docs/prisma-5x-breaking-changes.md README.md
 git commit -m "docs: add prisma 5.x upgrade documentation
@@ -864,52 +922,84 @@ async function runTest(
   }
 }
 
-async function testConnection(): Promise<{ success: boolean; details?: string }> {
+async function testConnection(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   await prisma.$connect();
   return { success: true, details: 'Connected successfully' };
 }
 
-async function testUserCount(): Promise<{ success: boolean; details?: string }> {
+async function testUserCount(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.user.count();
   return { success: true, details: `${count} users in database` };
 }
 
-async function testSubscriptionCount(): Promise<{ success: boolean; details?: string }> {
+async function testSubscriptionCount(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.subscription.count();
   return { success: true, details: `${count} subscriptions in database` };
 }
 
-async function testAlertCount(): Promise<{ success: boolean; details?: string }> {
+async function testAlertCount(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.alert.count();
   return { success: true, details: `${count} alerts in database` };
 }
 
-async function testSystemConfig(): Promise<{ success: boolean; details?: string }> {
+async function testSystemConfig(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const configs = await prisma.systemConfig.findMany({ take: 5 });
-  return { success: true, details: `${configs.length} system configs retrieved` };
+  return {
+    success: true,
+    details: `${configs.length} system configs retrieved`,
+  };
 }
 
-async function testSystemConfigHistory(): Promise<{ success: boolean; details?: string }> {
+async function testSystemConfigHistory(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.systemConfigHistory.count();
   return { success: true, details: `${count} history records` };
 }
 
-async function testRelations(): Promise<{ success: boolean; details?: string }> {
+async function testRelations(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const subscription = await prisma.subscription.findFirst({
     include: { user: true },
   });
 
   if (!subscription) {
-    return { success: true, details: 'No subscriptions to test relations (skipped)' };
+    return {
+      success: true,
+      details: 'No subscriptions to test relations (skipped)',
+    };
   }
 
   return {
     success: subscription.user !== undefined,
-    details: subscription.user ? 'Relation loaded successfully' : 'Relation failed to load'
+    details: subscription.user
+      ? 'Relation loaded successfully'
+      : 'Relation failed to load',
   };
 }
 
-async function testInteractiveTransaction(): Promise<{ success: boolean; details?: string }> {
+async function testInteractiveTransaction(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const result = await prisma.$transaction(async (tx) => {
     const userCount = await tx.user.count();
     const alertCount = await tx.alert.count();
@@ -918,7 +1008,7 @@ async function testInteractiveTransaction(): Promise<{ success: boolean; details
 
   return {
     success: true,
-    details: `Transaction completed: ${result.userCount} users, ${result.alertCount} alerts`
+    details: `Transaction completed: ${result.userCount} users, ${result.alertCount} alerts`,
   };
 }
 
@@ -929,22 +1019,28 @@ async function testRawQuery(): Promise<{ success: boolean; details?: string }> {
 
   return {
     success: true,
-    details: `Raw query returned: ${result[0].count} users`
+    details: `Raw query returned: ${result[0].count} users`,
   };
 }
 
-async function testAggregation(): Promise<{ success: boolean; details?: string }> {
+async function testAggregation(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const result = await prisma.user.aggregate({
     _count: { id: true },
   });
 
   return {
     success: true,
-    details: `Aggregation: ${result._count.id} users`
+    details: `Aggregation: ${result._count.id} users`,
   };
 }
 
-async function testPrisma5Features(): Promise<{ success: boolean; details?: string }> {
+async function testPrisma5Features(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const features: string[] = [];
 
   // Check for $metrics (Prisma 5.x feature)
@@ -964,7 +1060,10 @@ async function testPrisma5Features(): Promise<{ success: boolean; details?: stri
   return { success: true, details: features.join(', ') };
 }
 
-async function testStringFilterMode(): Promise<{ success: boolean; details?: string }> {
+async function testStringFilterMode(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   // Test case-insensitive search (Prisma 5.x feature)
   try {
     const users = await prisma.user.findMany({
@@ -976,10 +1075,16 @@ async function testStringFilterMode(): Promise<{ success: boolean; details?: str
       },
       take: 1,
     });
-    return { success: true, details: `Case-insensitive search works (${users.length} results)` };
+    return {
+      success: true,
+      details: `Case-insensitive search works (${users.length} results)`,
+    };
   } catch (error) {
     // If it fails, might be database doesn't support it or feature not available
-    return { success: true, details: 'Case-insensitive search not tested (may require specific DB)' };
+    return {
+      success: true,
+      details: 'Case-insensitive search not tested (may require specific DB)',
+    };
   }
 }
 
@@ -1024,11 +1129,11 @@ async function main(): Promise<void> {
   console.log('='.repeat(50));
   console.log('');
 
-  const passed = results.filter(r => r.status === 'PASS').length;
-  const failed = results.filter(r => r.status === 'FAIL').length;
-  const skipped = results.filter(r => r.status === 'SKIP').length;
+  const passed = results.filter((r) => r.status === 'PASS').length;
+  const failed = results.filter((r) => r.status === 'FAIL').length;
+  const skipped = results.filter((r) => r.status === 'SKIP').length;
 
-  results.forEach(r => {
+  results.forEach((r) => {
     const icon = r.status === 'PASS' ? '✅' : r.status === 'FAIL' ? '❌' : '⏭️';
     const duration = r.duration ? ` (${r.duration}ms)` : '';
     console.log(`${icon} ${r.test}${duration}`);
@@ -1039,13 +1144,17 @@ async function main(): Promise<void> {
 
   console.log('');
   console.log('='.repeat(50));
-  console.log(`Total: ${results.length} | ✅ Passed: ${passed} | ❌ Failed: ${failed} | ⏭️ Skipped: ${skipped}`);
+  console.log(
+    `Total: ${results.length} | ✅ Passed: ${passed} | ❌ Failed: ${failed} | ⏭️ Skipped: ${skipped}`
+  );
   console.log('='.repeat(50));
 
   if (failed > 0) {
     console.log('');
     console.log('❌ VALIDATION FAILED');
-    console.log('Please review failed tests before proceeding with deployment.');
+    console.log(
+      'Please review failed tests before proceeding with deployment.'
+    );
     process.exit(1);
   } else {
     console.log('');
@@ -1229,6 +1338,7 @@ chmod +x scripts/run-all-tests.sh
 ```
 
 ### Commit for B3
+
 ```bash
 chmod +x scripts/run-all-tests.sh
 git add scripts/test-prisma5-upgrade.ts scripts/run-all-tests.sh
@@ -1274,6 +1384,7 @@ git push -u origin claude/upgrade-prisma-security-occtv
 ### If Push Fails (Network Issues)
 
 Retry up to 4 times with exponential backoff:
+
 - Wait 2s, try again
 - Wait 4s, try again
 - Wait 8s, try again
@@ -1284,6 +1395,7 @@ Retry up to 4 times with exponential backoff:
 ## 10. Conflict Prevention Rules
 
 ### NEVER Modify These Files (Agent 1's Domain)
+
 ```
 ❌ package.json
 ❌ pnpm-lock.yaml
@@ -1297,6 +1409,7 @@ Retry up to 4 times with exponential backoff:
 ```
 
 ### ALWAYS Modify Only These Files (Your Domain)
+
 ```
 ✅ types/prisma-stubs.d.ts
 ✅ docs/prisma-upgrade-log.md (new)
@@ -1307,6 +1420,7 @@ Retry up to 4 times with exponential backoff:
 ```
 
 ### If You See Merge Conflicts
+
 1. **STOP** - Do not attempt to resolve
 2. **Notify** the human coordinator
 3. **Wait** for instructions
@@ -1320,6 +1434,7 @@ The parallel approach is designed to have ZERO conflicts. If you see one, someth
 Before marking your work complete, verify:
 
 ### Phase B1: Type Stubs
+
 - [ ] Added Prisma 5.x JSON types (JsonValue, JsonObject, JsonArray)
 - [ ] Added JSON null handling (JsonNull, DbNull, AnyNull)
 - [ ] Updated StringFilter with `mode` option
@@ -1332,17 +1447,20 @@ Before marking your work complete, verify:
 - [ ] TypeScript compilation passes
 
 ### Phase B2: Documentation
+
 - [ ] Created docs/prisma-upgrade-log.md
 - [ ] Created docs/prisma-5x-breaking-changes.md
 - [ ] Updated README.md version section
 
 ### Phase B3: Test Scripts
+
 - [ ] Created scripts/test-prisma5-upgrade.ts
 - [ ] Created scripts/run-all-tests.sh
 - [ ] Made shell script executable
 - [ ] Test scripts handle missing dependencies gracefully
 
 ### Git
+
 - [ ] Three separate commits (B1, B2, B3)
 - [ ] Pushed to claude/upgrade-prisma-security-occtv
 - [ ] No modifications to Agent 1's files

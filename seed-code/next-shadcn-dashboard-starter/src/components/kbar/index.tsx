@@ -66,10 +66,10 @@ const KBarComponent = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <KBarPortal>
-        <KBarPositioner className='bg-background/80 z-99999 p-0! fixed inset-0 backdrop-blur-sm'>
-          <KBarAnimator className='bg-card text-card-foreground mt-64! -translate-y-12! relative w-full max-w-[600px] overflow-hidden rounded-lg border shadow-lg'>
-            <div className='bg-card border-border sticky top-0 z-10 border-b'>
-              <KBarSearch className='bg-card outline-hidden focus:outline-hidden w-full border-none px-6 py-4 text-lg focus:ring-0 focus:ring-offset-0' />
+        <KBarPositioner className='z-99999 p-0! fixed inset-0 bg-background/80 backdrop-blur-sm'>
+          <KBarAnimator className='mt-64! -translate-y-12! relative w-full max-w-[600px] overflow-hidden rounded-lg border bg-card text-card-foreground shadow-lg'>
+            <div className='sticky top-0 z-10 border-b border-border bg-card'>
+              <KBarSearch className='outline-hidden focus:outline-hidden w-full border-none bg-card px-6 py-4 text-lg focus:ring-0 focus:ring-offset-0' />
             </div>
             <div className='max-h-[400px]'>
               <RenderResults />

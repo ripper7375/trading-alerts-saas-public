@@ -155,26 +155,26 @@ components:
           items:
             type: string
           example:
-            - "app/(dashboard)/charts/page.tsx"
-            - "app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx"
+            - 'app/(dashboard)/charts/page.tsx'
+            - 'app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx'
         chartComponents:
           type: array
           items:
             type: string
           example:
-            - "components/charts/trading-chart.tsx"
-            - "components/charts/indicator-overlay.tsx"
-            - "components/charts/pro-indicator-overlay.tsx"
-            - "components/charts/indicator-toggles.tsx"
-            - "components/charts/chart-controls.tsx"
-            - "components/charts/timeframe-selector.tsx"
+            - 'components/charts/trading-chart.tsx'
+            - 'components/charts/indicator-overlay.tsx'
+            - 'components/charts/pro-indicator-overlay.tsx'
+            - 'components/charts/indicator-toggles.tsx'
+            - 'components/charts/chart-controls.tsx'
+            - 'components/charts/timeframe-selector.tsx'
         hooks:
           type: array
           items:
             type: string
           example:
-            - "hooks/use-indicators.ts"
-            - "hooks/use-auth.ts"
+            - 'hooks/use-indicators.ts'
+            - 'hooks/use-auth.ts'
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # INDICATOR TYPES
@@ -209,16 +209,16 @@ components:
           $ref: '#/components/schemas/IndicatorId'
         label:
           type: string
-          example: "Keltner Channels"
+          example: 'Keltner Channels'
         description:
           type: string
-          example: "10-band ATR channel system"
+          example: '10-band ATR channel system'
         category:
           $ref: '#/components/schemas/IndicatorCategory'
         color:
           type: string
           description: Optional default color (hex)
-          example: "#808080"
+          example: '#808080'
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # PRO INDICATOR DATA STRUCTURES
@@ -391,15 +391,15 @@ components:
         - type: object
           properties:
             tier:
-              example: "FREE"
+              example: 'FREE'
             symbols:
-              example: ["XAUUSD", "BTCUSD", "EURUSD", "GBPUSD", "US30"]
+              example: ['XAUUSD', 'BTCUSD', 'EURUSD', 'GBPUSD', 'US30']
             timeframes:
-              example: ["H1", "H4", "D1"]
+              example: ['H1', 'H4', 'D1']
             refreshInterval:
               example: 60000
             indicators:
-              example: ["fractals", "trendlines"]
+              example: ['fractals', 'trendlines']
 
     ProTierConfig:
       allOf:
@@ -407,15 +407,42 @@ components:
         - type: object
           properties:
             tier:
-              example: "PRO"
+              example: 'PRO'
             symbols:
-              example: ["XAUUSD", "XAGUSD", "BTCUSD", "ETHUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "GBPJPY", "AUDJPY", "US30", "NDX100"]
+              example:
+                [
+                  'XAUUSD',
+                  'XAGUSD',
+                  'BTCUSD',
+                  'ETHUSD',
+                  'EURUSD',
+                  'GBPUSD',
+                  'USDJPY',
+                  'AUDUSD',
+                  'USDCAD',
+                  'USDCHF',
+                  'NZDUSD',
+                  'GBPJPY',
+                  'AUDJPY',
+                  'US30',
+                  'NDX100',
+                ]
             timeframes:
-              example: ["M5", "M15", "M30", "H1", "H2", "H4", "H8", "H12", "D1"]
+              example: ['M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'H12', 'D1']
             refreshInterval:
               example: 30000
             indicators:
-              example: ["fractals", "trendlines", "momentum_candles", "keltner_channels", "tema", "hrma", "smma", "zigzag"]
+              example:
+                [
+                  'fractals',
+                  'trendlines',
+                  'momentum_candles',
+                  'keltner_channels',
+                  'tema',
+                  'hrma',
+                  'smma',
+                  'zigzag',
+                ]
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # COLOR CONSTANTS
@@ -429,66 +456,66 @@ components:
           type: object
           properties:
             ultraExtremeUpper:
-              example: "#9C27B0"
+              example: '#9C27B0'
             extremeUpper:
-              example: "#AB47BC"
+              example: '#AB47BC'
             upperMost:
-              example: "#BA68C8"
+              example: '#BA68C8'
             upper:
-              example: "#CE93D8"
+              example: '#CE93D8'
             upperMiddle:
-              example: "#FF5722"
+              example: '#FF5722'
             lowerMiddle:
-              example: "#FF7043"
+              example: '#FF7043'
             lower:
-              example: "#CE93D8"
+              example: '#CE93D8'
             lowerMost:
-              example: "#BA68C8"
+              example: '#BA68C8'
             extremeLower:
-              example: "#AB47BC"
+              example: '#AB47BC'
             ultraExtremeLower:
-              example: "#9C27B0"
+              example: '#9C27B0'
         momentumCandles:
           type: object
           properties:
             UP_NORMAL:
-              example: "#26a69a"
+              example: '#26a69a'
             UP_LARGE:
-              example: "#00897b"
+              example: '#00897b'
             UP_EXTREME:
-              example: "#004d40"
+              example: '#004d40'
             DOWN_NORMAL:
-              example: "#ef5350"
+              example: '#ef5350'
             DOWN_LARGE:
-              example: "#c62828"
+              example: '#c62828'
             DOWN_EXTREME:
-              example: "#7f0000"
+              example: '#7f0000'
         movingAverages:
           type: object
           properties:
             tema:
-              example: "#808080"
+              example: '#808080'
             hrma:
-              example: "#00CED1"
+              example: '#00CED1'
             smma:
-              example: "#0000FF"
+              example: '#0000FF'
         zigzag:
           type: object
           properties:
             peaks:
-              example: "#f23645"
+              example: '#f23645'
             bottoms:
-              example: "#00c853"
+              example: '#00c853'
             line:
-              example: "#ffa726"
+              example: '#ffa726'
         basicIndicators:
           type: object
           properties:
             resistance:
-              example: "#f23645"
+              example: '#f23645'
             support:
-              example: "#00c853"
+              example: '#00c853'
             ascending:
-              example: "#1e88e5"
+              example: '#1e88e5'
             descending:
-              example: "#ff6b35"
+              example: '#ff6b35'

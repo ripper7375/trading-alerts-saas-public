@@ -86,7 +86,9 @@ export async function runMonthlyDistribution(
       return result;
     }
 
-    console.log(`[CRON] Starting distribution for ${affiliates.length} affiliates`);
+    console.log(
+      `[CRON] Starting distribution for ${affiliates.length} affiliates`
+    );
 
     // Process each affiliate
     for (const affiliate of affiliates) {
@@ -103,18 +105,24 @@ export async function runMonthlyDistribution(
         );
 
         result.distributed++;
-        console.log(`[CRON] Distributed ${AFFILIATE_CONFIG.CODES_PER_MONTH} codes to ${affiliate.user.email}`);
+        console.log(
+          `[CRON] Distributed ${AFFILIATE_CONFIG.CODES_PER_MONTH} codes to ${affiliate.user.email}`
+        );
 
         // TODO: Send notification email
         // For now, we'll count successful distributions as emails sent
         result.emailsSent++;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         const errorEntry = affiliate.user
           ? `${affiliate.user.email}: ${errorMessage}`
           : `Affiliate ${affiliate.id}: ${errorMessage}`;
         result.errors.push(errorEntry);
-        console.error(`[CRON] Failed to distribute to ${affiliate.user?.email || affiliate.id}:`, error);
+        console.error(
+          `[CRON] Failed to distribute to ${affiliate.user?.email || affiliate.id}:`,
+          error
+        );
       }
     }
 
@@ -124,7 +132,8 @@ export async function runMonthlyDistribution(
 
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
     result.errors.push(`Top-level: ${errorMessage}`);
     console.error('[CRON] Monthly distribution failed:', error);
     return result;

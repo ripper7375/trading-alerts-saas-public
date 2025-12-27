@@ -109,11 +109,14 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
     setActionLoading(true);
     try {
-      const response = await fetch(`/api/admin/affiliates/${affiliateId}/suspend`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
+      const response = await fetch(
+        `/api/admin/affiliates/${affiliateId}/suspend`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to suspend affiliate');
@@ -132,9 +135,12 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
     setActionLoading(true);
     try {
-      const response = await fetch(`/api/admin/affiliates/${affiliateId}/reactivate`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/admin/affiliates/${affiliateId}/reactivate`,
+        {
+          method: 'POST',
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to reactivate affiliate');
@@ -156,11 +162,17 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
     setActionLoading(true);
     try {
-      const response = await fetch(`/api/admin/affiliates/${affiliateId}/distribute-codes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: distributeCount, reason: distributeReason }),
-      });
+      const response = await fetch(
+        `/api/admin/affiliates/${affiliateId}/distribute-codes`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            count: distributeCount,
+            reason: distributeReason,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to distribute codes');
@@ -177,8 +189,13 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
     }
   };
 
-  const formatCurrency = (amount: number | { toNumber?: () => number }): string => {
-    const value = typeof amount === 'object' && amount.toNumber ? amount.toNumber() : Number(amount);
+  const formatCurrency = (
+    amount: number | { toNumber?: () => number }
+  ): string => {
+    const value =
+      typeof amount === 'object' && amount.toNumber
+        ? amount.toNumber()
+        : Number(amount);
     return `$${value.toFixed(2)}`;
   };
 
@@ -251,7 +268,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
         </Link>
         <div className="mt-4 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{affiliate.fullName}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {affiliate.fullName}
+            </h1>
             <p className="text-gray-600">{affiliate.user.email}</p>
           </div>
           <div className="flex space-x-3">
@@ -294,7 +313,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
             <div className="flex justify-between">
               <dt className="text-gray-600">Status</dt>
               <dd>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(affiliate.status)}`}>
+                <span
+                  className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(affiliate.status)}`}
+                >
                   {affiliate.status.replace('_', ' ')}
                 </span>
               </dd>
@@ -309,7 +330,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Verified At</dt>
-              <dd className="font-medium">{formatDate(affiliate.verifiedAt)}</dd>
+              <dd className="font-medium">
+                {formatDate(affiliate.verifiedAt)}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Joined</dt>
@@ -318,7 +341,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
             {affiliate.suspensionReason && (
               <div className="pt-3 border-t border-gray-200">
                 <dt className="text-red-600 text-sm">Suspension Reason:</dt>
-                <dd className="text-red-800 font-medium">{affiliate.suspensionReason}</dd>
+                <dd className="text-red-800 font-medium">
+                  {affiliate.suspensionReason}
+                </dd>
               </div>
             )}
           </dl>
@@ -329,15 +354,21 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
           <dl className="space-y-3">
             <div className="flex justify-between">
               <dt className="text-gray-600">Total Earnings</dt>
-              <dd className="font-medium text-lg">{formatCurrency(affiliate.totalEarnings)}</dd>
+              <dd className="font-medium text-lg">
+                {formatCurrency(affiliate.totalEarnings)}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Pending Commissions</dt>
-              <dd className="font-medium text-yellow-600">{formatCurrency(affiliate.pendingCommissions)}</dd>
+              <dd className="font-medium text-yellow-600">
+                {formatCurrency(affiliate.pendingCommissions)}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Paid Commissions</dt>
-              <dd className="font-medium text-green-600">{formatCurrency(affiliate.paidCommissions)}</dd>
+              <dd className="font-medium text-green-600">
+                {formatCurrency(affiliate.paidCommissions)}
+              </dd>
             </div>
             <div className="flex justify-between pt-3 border-t border-gray-200">
               <dt className="text-gray-600">Codes Distributed</dt>
@@ -351,7 +382,11 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <dt className="text-gray-600">Conversion Rate</dt>
               <dd className="font-medium">
                 {affiliate.totalCodesDistributed > 0
-                  ? ((affiliate.totalCodesUsed / affiliate.totalCodesDistributed) * 100).toFixed(1)
+                  ? (
+                      (affiliate.totalCodesUsed /
+                        affiliate.totalCodesDistributed) *
+                      100
+                    ).toFixed(1)
                   : 0}
                 %
               </dd>
@@ -363,24 +398,41 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       {/* Affiliate Codes */}
       <div className="bg-white rounded-lg shadow mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">Affiliate Codes ({affiliate.affiliateCodes.length})</h2>
+          <h2 className="text-lg font-semibold">
+            Affiliate Codes ({affiliate.affiliateCodes.length})
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distributed</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expires</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Used</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Code
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Reason
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Distributed
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Expires
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Used
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {affiliate.affiliateCodes.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     No codes distributed yet
                   </td>
                 </tr>
@@ -389,14 +441,24 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                   <tr key={code.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-mono text-sm">{code.code}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(code.status)}`}>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(code.status)}`}
+                      >
                         {code.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{code.distributionReason}</td>
-                    <td className="px-6 py-4 text-sm">{formatDate(code.distributedAt)}</td>
-                    <td className="px-6 py-4 text-sm">{formatDate(code.expiresAt)}</td>
-                    <td className="px-6 py-4 text-sm">{formatDate(code.usedAt)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {code.distributionReason}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {formatDate(code.distributedAt)}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {formatDate(code.expiresAt)}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {formatDate(code.usedAt)}
+                    </td>
                   </tr>
                 ))
               )}
@@ -414,30 +476,49 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Earned</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paid</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Earned
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Paid
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {affiliate.commissions.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={4}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     No commissions yet
                   </td>
                 </tr>
               ) : (
                 affiliate.commissions.map((commission) => (
                   <tr key={commission.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium">{formatCurrency(commission.commissionAmount)}</td>
+                    <td className="px-6 py-4 font-medium">
+                      {formatCurrency(commission.commissionAmount)}
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(commission.status)}`}>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(commission.status)}`}
+                      >
                         {commission.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">{formatDate(commission.earnedAt)}</td>
-                    <td className="px-6 py-4 text-sm">{formatDate(commission.paidAt)}</td>
+                    <td className="px-6 py-4 text-sm">
+                      {formatDate(commission.earnedAt)}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {formatDate(commission.paidAt)}
+                    </td>
                   </tr>
                 ))
               )}
@@ -450,7 +531,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       {showDistributeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Distribute Bonus Codes</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Distribute Bonus Codes
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -35,7 +35,10 @@ export async function detectCountryFromIP(ip: string): Promise<string> {
     const data = await response.json();
 
     if (data.status === 'success' && data.countryCode) {
-      logger.info('Country detected from IP', { ip, country: data.countryCode });
+      logger.info('Country detected from IP', {
+        ip,
+        country: data.countryCode,
+      });
       return data.countryCode;
     }
 
@@ -63,21 +66,27 @@ export async function detectCountry(headers?: Headers): Promise<string> {
   // Try Cloudflare header first (most reliable in production)
   const cfCountry = headers.get('cf-ipcountry');
   if (cfCountry && cfCountry !== 'XX' && cfCountry !== 'T1') {
-    logger.info('Country detected from Cloudflare header', { country: cfCountry });
+    logger.info('Country detected from Cloudflare header', {
+      country: cfCountry,
+    });
     return cfCountry;
   }
 
   // Try Vercel header
   const vercelCountry = headers.get('x-vercel-ip-country');
   if (vercelCountry) {
-    logger.info('Country detected from Vercel header', { country: vercelCountry });
+    logger.info('Country detected from Vercel header', {
+      country: vercelCountry,
+    });
     return vercelCountry;
   }
 
   // Try custom header (for manual testing)
   const customCountry = headers.get('x-country-code');
   if (customCountry) {
-    logger.debug('Country detected from custom header', { country: customCountry });
+    logger.debug('Country detected from custom header', {
+      country: customCountry,
+    });
     return customCountry;
   }
 

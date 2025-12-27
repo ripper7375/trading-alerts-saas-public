@@ -85,7 +85,9 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       });
 
       if (checks.pendingBatches > 10) {
-        warnings.push(`High number of pending batches (${checks.pendingBatches})`);
+        warnings.push(
+          `High number of pending batches (${checks.pendingBatches})`
+        );
       }
     } catch {
       warnings.push('Failed to count pending batches');

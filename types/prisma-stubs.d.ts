@@ -19,7 +19,13 @@ declare module '@prisma/client' {
     PRO: 'PRO';
   };
 
-  export type SubscriptionStatus = 'ACTIVE' | 'INACTIVE' | 'CANCELED' | 'PAST_DUE' | 'UNPAID' | 'TRIALING';
+  export type SubscriptionStatus =
+    | 'ACTIVE'
+    | 'INACTIVE'
+    | 'CANCELED'
+    | 'PAST_DUE'
+    | 'UNPAID'
+    | 'TRIALING';
   export const SubscriptionStatus: {
     ACTIVE: 'ACTIVE';
     INACTIVE: 'INACTIVE';
@@ -29,7 +35,12 @@ declare module '@prisma/client' {
     TRIALING: 'TRIALING';
   };
 
-  export type TrialStatus = 'NOT_STARTED' | 'ACTIVE' | 'EXPIRED' | 'CONVERTED' | 'CANCELLED';
+  export type TrialStatus =
+    | 'NOT_STARTED'
+    | 'ACTIVE'
+    | 'EXPIRED'
+    | 'CONVERTED'
+    | 'CANCELLED';
   export const TrialStatus: {
     NOT_STARTED: 'NOT_STARTED';
     ACTIVE: 'ACTIVE';
@@ -38,7 +49,11 @@ declare module '@prisma/client' {
     CANCELLED: 'CANCELLED';
   };
 
-  export type AffiliateStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+  export type AffiliateStatus =
+    | 'PENDING_VERIFICATION'
+    | 'ACTIVE'
+    | 'SUSPENDED'
+    | 'INACTIVE';
   export const AffiliateStatus: {
     PENDING_VERIFICATION: 'PENDING_VERIFICATION';
     ACTIVE: 'ACTIVE';
@@ -69,7 +84,11 @@ declare module '@prisma/client' {
     CANCELLED: 'CANCELLED';
   };
 
-  export type NotificationType = 'ALERT' | 'SUBSCRIPTION' | 'PAYMENT' | 'SYSTEM';
+  export type NotificationType =
+    | 'ALERT'
+    | 'SUBSCRIPTION'
+    | 'PAYMENT'
+    | 'SYSTEM';
   export const NotificationType: {
     ALERT: 'ALERT';
     SUBSCRIPTION: 'SUBSCRIPTION';
@@ -84,7 +103,12 @@ declare module '@prisma/client' {
     HIGH: 'HIGH';
   };
 
-  export type RiseWorksKycStatus = 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+  export type RiseWorksKycStatus =
+    | 'PENDING'
+    | 'SUBMITTED'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'EXPIRED';
   export const RiseWorksKycStatus: {
     PENDING: 'PENDING';
     SUBMITTED: 'SUBMITTED';
@@ -93,7 +117,13 @@ declare module '@prisma/client' {
     EXPIRED: 'EXPIRED';
   };
 
-  export type PaymentBatchStatus = 'PENDING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  export type PaymentBatchStatus =
+    | 'PENDING'
+    | 'QUEUED'
+    | 'PROCESSING'
+    | 'COMPLETED'
+    | 'FAILED'
+    | 'CANCELLED';
   export const PaymentBatchStatus: {
     PENDING: 'PENDING';
     QUEUED: 'QUEUED';
@@ -103,7 +133,12 @@ declare module '@prisma/client' {
     CANCELLED: 'CANCELLED';
   };
 
-  export type DisbursementTransactionStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  export type DisbursementTransactionStatus =
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'COMPLETED'
+    | 'FAILED'
+    | 'CANCELLED';
   export const DisbursementTransactionStatus: {
     PENDING: 'PENDING';
     PROCESSING: 'PROCESSING';
@@ -353,7 +388,12 @@ declare module '@prisma/client' {
     affiliateProfile?: AffiliateProfile | null;
     preferences?: UserPreferences | null;
     sessions?: Session[];
-    _count?: { alerts: number; watchlists: number; payments: number; [key: string]: number };
+    _count?: {
+      alerts: number;
+      watchlists: number;
+      payments: number;
+      [key: string]: number;
+    };
   }
 
   export interface Account {
@@ -725,7 +765,16 @@ declare module '@prisma/client' {
   export namespace Prisma {
     export type Decimal = number;
 
-    export type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends' | '$metrics'>;
+    export type TransactionClient = Omit<
+      PrismaClient,
+      | '$connect'
+      | '$disconnect'
+      | '$on'
+      | '$transaction'
+      | '$use'
+      | '$extends'
+      | '$metrics'
+    >;
 
     // ===== JSON TYPE SYSTEM (enhanced in Prisma 5.x) =====
     export type JsonValue =
@@ -798,7 +847,9 @@ declare module '@prisma/client' {
     }
 
     // ===== PROMISE TYPES =====
-    export type PrismaPromise<T> = Promise<T> & { [Symbol.toStringTag]: 'PrismaPromise' };
+    export type PrismaPromise<T> = Promise<T> & {
+      [Symbol.toStringTag]: 'PrismaPromise';
+    };
 
     // ===== MIDDLEWARE TYPES (enhanced in Prisma 5.x) =====
     export type Middleware = (
@@ -897,7 +948,9 @@ declare module '@prisma/client' {
     deleteMany(args?: Record<string, unknown>): Promise<{ count: number }>;
     count(args?: Record<string, unknown>): Promise<number>;
     aggregate(args: Record<string, unknown>): Promise<Record<string, unknown>>;
-    groupBy(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>>;
+    groupBy(
+      args: Record<string, unknown>
+    ): Promise<Array<Record<string, unknown>>>;
   }
 
   export class PrismaClient {
@@ -906,7 +959,10 @@ declare module '@prisma/client' {
     // Connection management
     $connect(): Promise<void>;
     $disconnect(): Promise<void>;
-    $on(event: 'query' | 'info' | 'warn' | 'error', callback: (e: unknown) => void): void;
+    $on(
+      event: 'query' | 'info' | 'warn' | 'error',
+      callback: (e: unknown) => void
+    ): void;
 
     // Middleware (enhanced in Prisma 5.x)
     $use(middleware: Prisma.Middleware): void;
@@ -926,10 +982,22 @@ declare module '@prisma/client' {
     ): Promise<T[]>;
 
     // Query execution
-    $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Prisma.PrismaPromise<T>;
-    $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Prisma.PrismaPromise<T>;
-    $executeRaw(query: TemplateStringsArray, ...values: unknown[]): Prisma.PrismaPromise<number>;
-    $executeRawUnsafe(query: string, ...values: unknown[]): Prisma.PrismaPromise<number>;
+    $queryRaw<T = unknown>(
+      query: TemplateStringsArray,
+      ...values: unknown[]
+    ): Prisma.PrismaPromise<T>;
+    $queryRawUnsafe<T = unknown>(
+      query: string,
+      ...values: unknown[]
+    ): Prisma.PrismaPromise<T>;
+    $executeRaw(
+      query: TemplateStringsArray,
+      ...values: unknown[]
+    ): Prisma.PrismaPromise<number>;
+    $executeRawUnsafe(
+      query: string,
+      ...values: unknown[]
+    ): Prisma.PrismaPromise<number>;
 
     // NEW IN PRISMA 5.x: Metrics API for observability
     $metrics: Prisma.Metrics;

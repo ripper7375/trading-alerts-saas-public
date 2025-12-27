@@ -33,6 +33,7 @@ No code-level warnings in Part 10.
 **Issue:** Prisma engine binaries cannot be downloaded (403 Forbidden)
 
 **Error Message:**
+
 ```
 Error: Failed to fetch sha256 checksum at
 https://binaries.prisma.sh/... - 403 Forbidden
@@ -43,18 +44,21 @@ https://binaries.prisma.sh/... - 403 Forbidden
 ### Fix Prompts
 
 #### Option 1: Ignore Checksum (Development)
+
 ```bash
 export PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 npm run build
 ```
 
 #### Option 2: Retry with Extended Timeout
+
 ```bash
 npx prisma generate --generator-timeout 100
 npm run build
 ```
 
 #### Option 3: Manual Engine Download
+
 ```bash
 # Check if engines are cached
 ls node_modules/.prisma/client/
@@ -138,18 +142,18 @@ npx tsc --noEmit app/\(dashboard\)/watchlist/page.tsx
 
 If you need to make changes, here are the Part 10 files:
 
-| File | Purpose |
-|------|---------|
-| `app/(dashboard)/watchlist/page.tsx` | Server component - auth & data fetching |
-| `app/(dashboard)/watchlist/watchlist-client.tsx` | Client component - UI & interactions |
-| `app/api/watchlist/route.ts` | GET/POST handlers |
-| `app/api/watchlist/[id]/route.ts` | GET/PATCH/DELETE handlers |
-| `app/api/watchlist/reorder/route.ts` | POST reorder handler |
-| `components/watchlist/symbol-selector.tsx` | Symbol dropdown component |
-| `components/watchlist/timeframe-grid.tsx` | Timeframe selection grid |
-| `components/watchlist/watchlist-item.tsx` | Item card component |
-| `hooks/use-watchlist.ts` | Watchlist data hook |
+| File                                             | Purpose                                 |
+| ------------------------------------------------ | --------------------------------------- |
+| `app/(dashboard)/watchlist/page.tsx`             | Server component - auth & data fetching |
+| `app/(dashboard)/watchlist/watchlist-client.tsx` | Client component - UI & interactions    |
+| `app/api/watchlist/route.ts`                     | GET/POST handlers                       |
+| `app/api/watchlist/[id]/route.ts`                | GET/PATCH/DELETE handlers               |
+| `app/api/watchlist/reorder/route.ts`             | POST reorder handler                    |
+| `components/watchlist/symbol-selector.tsx`       | Symbol dropdown component               |
+| `components/watchlist/timeframe-grid.tsx`        | Timeframe selection grid                |
+| `components/watchlist/watchlist-item.tsx`        | Item card component                     |
+| `hooks/use-watchlist.ts`                         | Watchlist data hook                     |
 
 ---
 
-*No code fixes required for Part 10.*
+_No code fixes required for Part 10._

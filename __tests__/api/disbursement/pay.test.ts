@@ -29,7 +29,11 @@ class MockRequest {
 
   constructor(
     url: string,
-    options?: { method?: string; headers?: Record<string, string>; body?: string }
+    options?: {
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+    }
   ) {
     this.url = url;
     this.method = options?.method || 'POST';
@@ -107,10 +111,13 @@ describe('Quick Payment API', () => {
 
     const { POST } = await import('@/app/api/disbursement/pay/route');
 
-    const request = new MockRequest('http://localhost:3000/api/disbursement/pay', {
-      method: 'POST',
-      body: JSON.stringify({ affiliateId: 'aff-123' }),
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/disbursement/pay',
+      {
+        method: 'POST',
+        body: JSON.stringify({ affiliateId: 'aff-123' }),
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(401);
@@ -126,10 +133,13 @@ describe('Quick Payment API', () => {
 
     const { POST } = await import('@/app/api/disbursement/pay/route');
 
-    const request = new MockRequest('http://localhost:3000/api/disbursement/pay', {
-      method: 'POST',
-      body: JSON.stringify({ affiliateId: 'aff-123' }),
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/disbursement/pay',
+      {
+        method: 'POST',
+        body: JSON.stringify({ affiliateId: 'aff-123' }),
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(401);
@@ -142,10 +152,13 @@ describe('Quick Payment API', () => {
 
     const { POST } = await import('@/app/api/disbursement/pay/route');
 
-    const request = new MockRequest('http://localhost:3000/api/disbursement/pay', {
-      method: 'POST',
-      body: JSON.stringify({ provider: 'MOCK' }),
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/disbursement/pay',
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider: 'MOCK' }),
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(400);
@@ -161,10 +174,13 @@ describe('Quick Payment API', () => {
 
     const { POST } = await import('@/app/api/disbursement/pay/route');
 
-    const request = new MockRequest('http://localhost:3000/api/disbursement/pay', {
-      method: 'POST',
-      body: JSON.stringify({ affiliateId: 'aff-123', provider: 'INVALID' }),
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/disbursement/pay',
+      {
+        method: 'POST',
+        body: JSON.stringify({ affiliateId: 'aff-123', provider: 'INVALID' }),
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(400);

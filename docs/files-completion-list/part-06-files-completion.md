@@ -9,12 +9,12 @@ mt5-service/
 ├── run.py # Application entry point
 │
 ├── app/
-│ ├── **init**.py # Flask app factory (create_app)
+│ ├── **init**.py # Flask app factory (create*app)
 │ │
 │ ├── routes/
 │ │ ├── **init**.py # Routes package init
-│ │ ├── admin.py # Admin endpoints (/api/admin/_)
-│ │ └── indicators.py # Indicator endpoints (/api/indicators/_)
+│ │ ├── admin.py # Admin endpoints (/api/admin/*)
+│ │ └── indicators.py # Indicator endpoints (/api/indicators/\_)
 │ │
 │ ├── services/
 │ │ ├── **init**.py # Services package init

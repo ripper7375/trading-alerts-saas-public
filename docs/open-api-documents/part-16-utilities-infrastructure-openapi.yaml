@@ -142,7 +142,7 @@ components:
       properties:
         message:
           type: string
-          example: "Part 16 contains utility libraries and infrastructure. No public API endpoints."
+          example: 'Part 16 contains utility libraries and infrastructure. No public API endpoints.'
 
     EmailService:
       type: object
@@ -151,7 +151,7 @@ components:
         provider:
           type: string
           enum: [smtp, sendgrid, ses]
-          example: "sendgrid"
+          example: 'sendgrid'
         templates:
           type: array
           items:
@@ -171,7 +171,7 @@ components:
       properties:
         host:
           type: string
-          example: "localhost"
+          example: 'localhost'
         port:
           type: integer
           example: 6379
@@ -199,7 +199,7 @@ components:
         logLevel:
           type: string
           enum: [debug, info, warn, error]
-          example: "error"
+          example: 'error'
         captureStackTrace:
           type: boolean
           example: true
@@ -224,40 +224,40 @@ components:
           properties:
             loginSchema:
               type: string
-              example: "email, password"
+              example: 'email, password'
             registerSchema:
               type: string
-              example: "email, password, name (optional)"
+              example: 'email, password, name (optional)'
             resetPasswordSchema:
               type: string
-              example: "token, newPassword"
+              example: 'token, newPassword'
         alerts:
           type: object
           properties:
             createAlertSchema:
               type: string
-              example: "symbol, timeframe, conditionType, targetValue, name (optional)"
+              example: 'symbol, timeframe, conditionType, targetValue, name (optional)'
             updateAlertSchema:
               type: string
-              example: "isActive (optional), name (optional), targetValue (optional)"
+              example: 'isActive (optional), name (optional), targetValue (optional)'
         watchlist:
           type: object
           properties:
             createItemSchema:
               type: string
-              example: "symbol, timeframe, watchlistId (optional)"
+              example: 'symbol, timeframe, watchlistId (optional)'
             updateItemSchema:
               type: string
-              example: "order (optional)"
+              example: 'order (optional)'
         user:
           type: object
           properties:
             updateProfileSchema:
               type: string
-              example: "name (optional), email (optional), avatarUrl (optional)"
+              example: 'name (optional), email (optional), avatarUrl (optional)'
             updatePreferencesSchema:
               type: string
-              example: "theme, language, timezone, etc."
+              example: 'theme, language, timezone, etc.'
 
     HelperFunctions:
       type: object
@@ -340,20 +340,20 @@ components:
                     items:
                       type: string
               example:
-                - name: "CI - Next.js"
-                  trigger: "push, pull_request"
+                - name: 'CI - Next.js'
+                  trigger: 'push, pull_request'
                   jobs:
                     - lint
                     - type-check
                     - test
                     - build
-                - name: "CI - Flask"
-                  trigger: "push, pull_request"
+                - name: 'CI - Flask'
+                  trigger: 'push, pull_request'
                   jobs:
                     - lint
                     - test
-                - name: "Deploy"
-                  trigger: "push to main"
+                - name: 'Deploy'
+                  trigger: 'push to main'
                   jobs:
                     - build-docker-images
                     - push-to-registry

@@ -3,43 +3,52 @@
 ## Background & Context
 
 ### Project Overview
+
 Trading Alerts SaaS V7 is a trading platform that displays technical indicators from MetaTrader 5 (MT5). The system uses:
+
 - **Flask MT5 Service** (Part 6): Python backend that reads indicator data from 15 MT5 terminals
 - **Next.js Frontend**: Dashboard with interactive charts using Lightweight Charts library
 - **Tier System**: FREE and PRO subscription tiers with different access levels
 
 ### Current State
+
 Currently, the system supports 2 basic indicators available to both FREE and PRO tiers:
+
 - **Fractals**: Support/resistance fractal points
 - **Trendlines**: Diagonal trend lines
 
 Data is fetched from these MQL5 indicators:
+
 - `Fractal Diagonal Line_V4.mq5`
 - `Fractal Horizontal Line_V5.mq5`
 
 ### Your Task
+
 Add 6 **PRO-only** indicators to the frontend. These indicators will only be accessible to PRO tier users:
 
-| Indicator | MQL5 Source File | Description |
-|-----------|------------------|-------------|
-| **Momentum Candles** | `Body Size Momentum Candle_V2.mq5` | Z-score based candle classification (Normal/Large/Extreme) |
-| **Keltner Channels** | `Keltner Channel_ATF_10 Bands.mq5` | 10-band ATR-based channel system |
-| **TEMA** | `TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5` | Triple Exponential Moving Average |
-| **HRMA** | `TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5` | Hull-like Responsive Moving Average |
-| **SMMA** | `TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5` | Smoothed Moving Average |
-| **ZigZag** | `ZigZagColor & MarketStructure_JSON Export_V27_TXT Input.mq5` | Peak/Bottom structure detection |
+| Indicator            | MQL5 Source File                                              | Description                                                |
+| -------------------- | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Momentum Candles** | `Body Size Momentum Candle_V2.mq5`                            | Z-score based candle classification (Normal/Large/Extreme) |
+| **Keltner Channels** | `Keltner Channel_ATF_10 Bands.mq5`                            | 10-band ATR-based channel system                           |
+| **TEMA**             | `TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5`                     | Triple Exponential Moving Average                          |
+| **HRMA**             | `TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5`                     | Hull-like Responsive Moving Average                        |
+| **SMMA**             | `TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5`                     | Smoothed Moving Average                                    |
+| **ZigZag**           | `ZigZagColor & MarketStructure_JSON Export_V27_TXT Input.mq5` | Peak/Bottom structure detection                            |
 
 ---
 
 ## Architecture Principle
 
 ### Simplified Approach (IMPORTANT)
+
 We are using a **simplified architecture** where:
+
 - **NO new API endpoints** - extend existing `/api/indicators/[symbol]/[timeframe]` endpoint
 - **Tier filtering in response** - PRO indicators return empty arrays for FREE users
 - **Update existing files** - minimize new file creation
 
 ### Data Flow
+
 ```
 MT5 Terminals → Flask MT5 Service → Next.js API → Frontend Components
                     (Agent 1)         (Agent 2)      (Agent 2)
@@ -52,17 +61,21 @@ Agent 1 (parallel) is implementing the Flask backend to fetch PRO indicator data
 ## Files to Modify
 
 ### Part 3: Types
+
 **File:** `types/indicator.ts` (UPDATE or CREATE if doesn't exist)
 
 ### Part 4: Tier System
+
 **File:** `lib/tier/constants.ts` (UPDATE)
 **File:** `lib/tier/validator.ts` (UPDATE or CREATE)
 
 ### Part 7: Indicators API
+
 **File:** `app/api/indicators/[symbol]/[timeframe]/route.ts` (UPDATE)
 **File:** `lib/api/mt5-client.ts` (UPDATE)
 
 ### Part 9: Charts UI
+
 **File:** `components/charts/chart-controls.tsx` (UPDATE)
 **File:** `components/charts/indicator-overlay.tsx` (UPDATE)
 **File:** `hooks/use-indicators.ts` (UPDATE)
@@ -104,16 +117,16 @@ export interface MomentumCandleData {
  * From: Keltner Channel_ATF_10 Bands.mq5 (Buffers 0-9)
  */
 export interface KeltnerChannelData {
-  ultraExtremeUpper: (number | null)[];   // Buffer 0
-  extremeUpper: (number | null)[];        // Buffer 1
-  upperMost: (number | null)[];           // Buffer 2
-  upper: (number | null)[];               // Buffer 3
-  upperMiddle: (number | null)[];         // Buffer 4
-  lowerMiddle: (number | null)[];         // Buffer 5
-  lower: (number | null)[];               // Buffer 6
-  lowerMost: (number | null)[];           // Buffer 7
-  extremeLower: (number | null)[];        // Buffer 8
-  ultraExtremeLower: (number | null)[];   // Buffer 9
+  ultraExtremeUpper: (number | null)[]; // Buffer 0
+  extremeUpper: (number | null)[]; // Buffer 1
+  upperMost: (number | null)[]; // Buffer 2
+  upper: (number | null)[]; // Buffer 3
+  upperMiddle: (number | null)[]; // Buffer 4
+  lowerMiddle: (number | null)[]; // Buffer 5
+  lower: (number | null)[]; // Buffer 6
+  lowerMost: (number | null)[]; // Buffer 7
+  extremeLower: (number | null)[]; // Buffer 8
+  ultraExtremeLower: (number | null)[]; // Buffer 9
 }
 
 /**
@@ -121,9 +134,9 @@ export interface KeltnerChannelData {
  * From: TEMA_HRMA_SMA-SMMA_Modified Buffers.mq5
  */
 export interface MovingAveragesData {
-  smma: (number | null)[];  // Buffer 1
-  hrma: (number | null)[];  // Buffer 2
-  tema: (number | null)[];  // Buffer 3
+  smma: (number | null)[]; // Buffer 1
+  hrma: (number | null)[]; // Buffer 2
+  tema: (number | null)[]; // Buffer 3
 }
 
 /**
@@ -191,19 +204,19 @@ export const PRO_ONLY_INDICATORS = [
   'zigzag',
 ] as const;
 
-export type ProOnlyIndicator = typeof PRO_ONLY_INDICATORS[number];
+export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
 
 // Basic indicators (available to all tiers)
-export const BASIC_INDICATORS = [
-  'fractals',
-  'trendlines',
-] as const;
+export const BASIC_INDICATORS = ['fractals', 'trendlines'] as const;
 
-export type BasicIndicator = typeof BASIC_INDICATORS[number];
+export type BasicIndicator = (typeof BASIC_INDICATORS)[number];
 
 // All indicators combined
-export const ALL_INDICATORS = [...BASIC_INDICATORS, ...PRO_ONLY_INDICATORS] as const;
-export type IndicatorType = typeof ALL_INDICATORS[number];
+export const ALL_INDICATORS = [
+  ...BASIC_INDICATORS,
+  ...PRO_ONLY_INDICATORS,
+] as const;
+export type IndicatorType = (typeof ALL_INDICATORS)[number];
 ```
 
 **File: `lib/tier/validator.ts`** - Add function:
@@ -239,7 +252,7 @@ export function filterIndicatorsByTier<T extends Record<string, unknown>>(
 
   // FREE tier: null out PRO indicators
   const filtered = { ...indicators };
-  PRO_ONLY_INDICATORS.forEach(indicator => {
+  PRO_ONLY_INDICATORS.forEach((indicator) => {
     const key = indicator as keyof T;
     if (key in filtered) {
       (filtered as Record<string, unknown>)[key as string] = null;
@@ -283,7 +296,8 @@ export async function fetchIndicators(
   userTier: 'FREE' | 'PRO',
   bars: number = 1000
 ): Promise<MT5IndicatorResponse> {
-  const MT5_SERVICE_URL = process.env.MT5_SERVICE_URL || 'http://localhost:5000';
+  const MT5_SERVICE_URL =
+    process.env.MT5_SERVICE_URL || 'http://localhost:5000';
   const MT5_API_KEY = process.env.MT5_API_KEY || '';
 
   const response = await fetch(
@@ -330,7 +344,12 @@ export async function GET(
     const bars = parseInt(request.nextUrl.searchParams.get('bars') || '1000');
 
     // Fetch from Flask MT5 service (includes PRO indicators if tier allows)
-    const mt5Response = await fetchIndicators(symbol, timeframe, userTier, bars);
+    const mt5Response = await fetchIndicators(
+      symbol,
+      timeframe,
+      userTier,
+      bars
+    );
 
     if (!mt5Response.success) {
       return NextResponse.json(
@@ -346,8 +365,12 @@ export async function GET(
         fractals: mt5Response.data.fractals,
         trendlines: mt5Response.data.trendlines,
         proIndicators: {
-          momentumCandles: userTier === 'PRO' ? mt5Response.data.momentum_candles || [] : [],
-          keltnerChannels: userTier === 'PRO' ? mt5Response.data.keltner_channels || null : null,
+          momentumCandles:
+            userTier === 'PRO' ? mt5Response.data.momentum_candles || [] : [],
+          keltnerChannels:
+            userTier === 'PRO'
+              ? mt5Response.data.keltner_channels || null
+              : null,
           tema: userTier === 'PRO' ? mt5Response.data.tema || [] : [],
           hrma: userTier === 'PRO' ? mt5Response.data.hrma || [] : [],
           smma: userTier === 'PRO' ? mt5Response.data.smma || [] : [],
@@ -394,15 +417,35 @@ interface IndicatorOption {
 
 const INDICATOR_OPTIONS: Record<string, IndicatorOption> = {
   // Basic
-  fractals: { id: 'fractals', label: 'Fractals', description: 'Support/resistance fractals' },
-  trendlines: { id: 'trendlines', label: 'Trendlines', description: 'Diagonal trend lines' },
+  fractals: {
+    id: 'fractals',
+    label: 'Fractals',
+    description: 'Support/resistance fractals',
+  },
+  trendlines: {
+    id: 'trendlines',
+    label: 'Trendlines',
+    description: 'Diagonal trend lines',
+  },
   // PRO
-  momentum_candles: { id: 'momentum_candles', label: 'Momentum Candles', description: 'Z-score body classification' },
-  keltner_channels: { id: 'keltner_channels', label: 'Keltner Channels', description: '10-band ATR channels' },
+  momentum_candles: {
+    id: 'momentum_candles',
+    label: 'Momentum Candles',
+    description: 'Z-score body classification',
+  },
+  keltner_channels: {
+    id: 'keltner_channels',
+    label: 'Keltner Channels',
+    description: '10-band ATR channels',
+  },
   tema: { id: 'tema', label: 'TEMA', description: 'Triple EMA' },
   hrma: { id: 'hrma', label: 'HRMA', description: 'Hull-like Responsive MA' },
   smma: { id: 'smma', label: 'SMMA', description: 'Smoothed MA' },
-  zigzag: { id: 'zigzag', label: 'ZigZag', description: 'Peak/Bottom detection' },
+  zigzag: {
+    id: 'zigzag',
+    label: 'ZigZag',
+    description: 'Peak/Bottom detection',
+  },
 };
 
 interface ChartControlsProps {
@@ -427,9 +470,24 @@ export function ChartControls({
     <div className="flex flex-col gap-4 p-4 bg-background border rounded-lg">
       {/* Zoom Controls */}
       <div className="flex gap-2">
-        <button onClick={onZoomIn} className="px-3 py-1 border rounded hover:bg-accent">+</button>
-        <button onClick={onZoomOut} className="px-3 py-1 border rounded hover:bg-accent">-</button>
-        <button onClick={onReset} className="px-3 py-1 border rounded hover:bg-accent">Reset</button>
+        <button
+          onClick={onZoomIn}
+          className="px-3 py-1 border rounded hover:bg-accent"
+        >
+          +
+        </button>
+        <button
+          onClick={onZoomOut}
+          className="px-3 py-1 border rounded hover:bg-accent"
+        >
+          -
+        </button>
+        <button
+          onClick={onReset}
+          className="px-3 py-1 border rounded hover:bg-accent"
+        >
+          Reset
+        </button>
       </div>
 
       {/* Indicators Panel */}
@@ -442,7 +500,10 @@ export function ChartControls({
           {BASIC_INDICATORS.map((id) => {
             const option = INDICATOR_OPTIONS[id];
             return (
-              <label key={id} className="flex items-center gap-2 cursor-pointer">
+              <label
+                key={id}
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <input
                   type="checkbox"
                   checked={selectedIndicators.includes(id)}
@@ -458,7 +519,9 @@ export function ChartControls({
         {/* PRO Indicators */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground uppercase">Pro Indicators</p>
+            <p className="text-xs text-muted-foreground uppercase">
+              Pro Indicators
+            </p>
             {!isPro && (
               <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
                 PRO
@@ -474,7 +537,11 @@ export function ChartControls({
                 className={`flex items-center gap-2 ${
                   !isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
-                title={!isPro ? 'Upgrade to PRO to access this indicator' : option.description}
+                title={
+                  !isPro
+                    ? 'Upgrade to PRO to access this indicator'
+                    : option.description
+                }
               >
                 <input
                   type="checkbox"
@@ -645,7 +712,10 @@ export function IndicatorOverlay({
     seriesRefs.current.clear();
 
     // Render Keltner Channels
-    if (selectedIndicators.includes('keltner_channels') && proData.keltnerChannels) {
+    if (
+      selectedIndicators.includes('keltner_channels') &&
+      proData.keltnerChannels
+    ) {
       const kc = proData.keltnerChannels;
       (Object.keys(kc) as (keyof KeltnerChannelData)[]).forEach((band) => {
         const values = kc[band];
@@ -737,6 +807,7 @@ export function IndicatorOverlay({
 ## Integration Notes
 
 ### Flask API Response Format (Agent 1 is implementing)
+
 The Flask backend will return data in this format when `X-User-Tier: PRO` header is set:
 
 ```json
@@ -766,6 +837,7 @@ The Flask backend will return data in this format when `X-User-Tier: PRO` header
 ```
 
 ### Key Points
+
 1. **Null values** represent empty/invalid indicator values (EMPTY_VALUE from MT5)
 2. **Index** values correspond to OHLC bar indices
 3. **FREE tier** receives empty arrays/null for PRO indicators
@@ -791,16 +863,16 @@ After implementation, verify:
 
 ## Summary
 
-| Part | Files to Modify | Action |
-|------|-----------------|--------|
-| Part 3 | `types/indicator.ts` | Add PRO indicator types |
-| Part 4 | `lib/tier/constants.ts` | Add PRO_ONLY_INDICATORS |
-| Part 4 | `lib/tier/validator.ts` | Add canAccessIndicator() |
-| Part 7 | `lib/api/mt5-client.ts` | Handle PRO tier header |
-| Part 7 | `app/api/indicators/[symbol]/[timeframe]/route.ts` | Include proIndicators |
-| Part 9 | `components/charts/chart-controls.tsx` | Add indicator checkboxes |
-| Part 9 | `hooks/use-indicators.ts` | Handle PRO data |
-| Part 9 | `components/charts/indicator-overlay.tsx` | Render PRO indicators |
+| Part   | Files to Modify                                    | Action                   |
+| ------ | -------------------------------------------------- | ------------------------ |
+| Part 3 | `types/indicator.ts`                               | Add PRO indicator types  |
+| Part 4 | `lib/tier/constants.ts`                            | Add PRO_ONLY_INDICATORS  |
+| Part 4 | `lib/tier/validator.ts`                            | Add canAccessIndicator() |
+| Part 7 | `lib/api/mt5-client.ts`                            | Handle PRO tier header   |
+| Part 7 | `app/api/indicators/[symbol]/[timeframe]/route.ts` | Include proIndicators    |
+| Part 9 | `components/charts/chart-controls.tsx`             | Add indicator checkboxes |
+| Part 9 | `hooks/use-indicators.ts`                          | Handle PRO data          |
+| Part 9 | `components/charts/indicator-overlay.tsx`          | Render PRO indicators    |
 
 **Branch:** Work on the same branch as Agent 1 or create a feature branch and merge later.
 

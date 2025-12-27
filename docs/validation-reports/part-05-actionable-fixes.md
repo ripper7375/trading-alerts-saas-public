@@ -17,11 +17,11 @@ This document contains ready-to-use prompts for fixing remaining issues in Part 
 
 All critical blockers have been resolved:
 
-| Blocker | Status | Commit |
-|---------|--------|--------|
+| Blocker                    | Status   | Commit    |
+| -------------------------- | -------- | --------- |
 | Missing tailwind.config.ts | ✅ FIXED | `5be48b0` |
-| Missing postcss.config.js | ✅ FIXED | `5be48b0` |
-| Missing components.json | ✅ FIXED | `5be48b0` |
+| Missing postcss.config.js  | ✅ FIXED | `5be48b0` |
+| Missing components.json    | ✅ FIXED | `5be48b0` |
 
 ---
 
@@ -34,11 +34,13 @@ All critical blockers have been resolved:
 **Commit:** See latest commit
 
 #### What Was Fixed:
+
 - Updated `NextResponse.json()` to include `{ status: 201 }` as second parameter
 - POST /api/auth/register now returns 201 Created on success
 - Aligns with REST API best practices
 
 #### Code Change:
+
 ```typescript
 // FROM:
 return NextResponse.json({
@@ -67,11 +69,13 @@ return NextResponse.json(
 **Commit:** See latest commit
 
 #### What Was Fixed:
+
 - Updated frontend to send `newPassword` instead of `password` to align with API schema
 - API already used `newPassword` in Zod schema
 - Frontend now matches OpenAPI specification
 
 #### Code Change:
+
 ```typescript
 // FROM:
 body: JSON.stringify({
@@ -161,6 +165,7 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_token
 ```
 
 #### Expected Outcome:
+
 - Prevents brute force login attempts
 - Protects against credential stuffing attacks
 - Returns 429 Too Many Requests when limit exceeded
@@ -228,6 +233,7 @@ export async function POST(request: Request) {
 ```
 
 #### Expected Outcome:
+
 - Validates request origin for sensitive endpoints
 - Prevents cross-site request forgery attacks
 - Works with NextAuth's built-in CSRF tokens
@@ -237,10 +243,11 @@ export async function POST(request: Request) {
 ### ENHANCEMENT-3: Add Email Sending Integration
 
 **Files:**
+
 - `app/api/auth/register/route.ts`
 - `app/api/auth/forgot-password/route.ts`
-**Priority:** High (Required for production)
-**Impact:** Enables email verification and password reset flows
+  **Priority:** High (Required for production)
+  **Impact:** Enables email verification and password reset flows
 
 #### Ready-to-Use Prompt:
 
@@ -332,6 +339,7 @@ RESEND_API_KEY=re_your_api_key
 ```
 
 #### Expected Outcome:
+
 - Users receive verification emails after registration
 - Users receive password reset emails
 - Professional HTML email templates
@@ -342,11 +350,12 @@ RESEND_API_KEY=re_your_api_key
 ### ENHANCEMENT-4: Migrate Auth Forms to shadcn/ui Components
 
 **Files:**
+
 - `components/auth/login-form.tsx`
 - `components/auth/register-form.tsx`
 - `app/(auth)/forgot-password/page.tsx`
-**Priority:** Low
-**Impact:** Consistent UI library usage, better accessibility
+  **Priority:** Low
+  **Impact:** Consistent UI library usage, better accessibility
 
 #### Ready-to-Use Prompt:
 
@@ -434,6 +443,7 @@ TO:
 ```
 
 #### Expected Outcome:
+
 - Consistent UI across all auth forms
 - Better accessibility (ARIA attributes built-in)
 - Matches v0 seed code patterns
@@ -444,10 +454,11 @@ TO:
 ### ENHANCEMENT-5: Add Password Strength Special Character Requirement
 
 **Files:**
+
 - `components/auth/register-form.tsx`
 - `app/(auth)/forgot-password/page.tsx`
-**Priority:** Low
-**Impact:** Stronger password requirements (matches v0 reference)
+  **Priority:** Low
+  **Impact:** Stronger password requirements (matches v0 reference)
 
 #### Ready-to-Use Prompt:
 
@@ -517,6 +528,7 @@ const passwordValidation = {
 ```
 
 #### Expected Outcome:
+
 - Passwords require special characters
 - Matches v0 seed code pattern
 - Stronger security posture
@@ -527,15 +539,15 @@ const passwordValidation = {
 
 For best results, implement enhancements in this order:
 
-| Order | Fix | Priority | Estimated Effort | Status |
-|-------|-----|----------|------------------|--------|
-| 1 | ENHANCEMENT-3: Email Integration | High | 30 min | Pending |
-| 2 | ~~WARNING-1: 201 Status Code~~ | Low | 5 min | ✅ DONE |
-| 3 | ~~WARNING-2: Field Naming~~ | Low | 5 min | ✅ DONE |
-| 4 | ENHANCEMENT-1: Rate Limiting | Medium | 20 min | Pending |
-| 5 | ENHANCEMENT-2: CSRF Protection | Medium | 15 min | Pending |
-| 6 | ENHANCEMENT-4: shadcn Migration | Low | 45 min | Pending |
-| 7 | ENHANCEMENT-5: Special Char | Low | 10 min | Pending |
+| Order | Fix                              | Priority | Estimated Effort | Status  |
+| ----- | -------------------------------- | -------- | ---------------- | ------- |
+| 1     | ENHANCEMENT-3: Email Integration | High     | 30 min           | Pending |
+| 2     | ~~WARNING-1: 201 Status Code~~   | Low      | 5 min            | ✅ DONE |
+| 3     | ~~WARNING-2: Field Naming~~      | Low      | 5 min            | ✅ DONE |
+| 4     | ENHANCEMENT-1: Rate Limiting     | Medium   | 20 min           | Pending |
+| 5     | ENHANCEMENT-2: CSRF Protection   | Medium   | 15 min           | Pending |
+| 6     | ENHANCEMENT-4: shadcn Migration  | Low      | 45 min           | Pending |
+| 7     | ENHANCEMENT-5: Special Char      | Low      | 10 min           | Pending |
 
 ---
 
@@ -571,12 +583,14 @@ RESEND_API_KEY=re_your_api_key
 ## Verification Checklist
 
 ### ✅ Completed
+
 - [x] `npm run lint` passes with no errors
 - [x] `npx tsc --noEmit` passes with no errors
 - [x] Registration returns 201 status code
 - [x] Reset password uses `newPassword` field (matches OpenAPI spec)
 
 ### Pending (After Enhancements)
+
 - [ ] Rate limiting returns 429 after too many requests
 - [ ] Verification emails are sent and received
 - [ ] Password reset emails are sent and received
@@ -585,6 +599,6 @@ RESEND_API_KEY=re_your_api_key
 
 ---
 
-*Document generated: 2025-12-27*
-*Updated: 2025-12-27 (Warnings fixed)*
-*For Part 05 - Authentication System*
+_Document generated: 2025-12-27_
+_Updated: 2025-12-27 (Warnings fixed)_
+_For Part 05 - Authentication System_

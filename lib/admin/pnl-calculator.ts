@@ -69,7 +69,8 @@ export function calculatePnL(sales: SalesData[]): PnLReport {
   // Calculate derived metrics
   const netProfit = netRevenue - totalCommissions;
   const margin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
-  const averageCommission = sales.length > 0 ? totalCommissions / sales.length : 0;
+  const averageCommission =
+    sales.length > 0 ? totalCommissions / sales.length : 0;
 
   return {
     grossRevenue: Math.round(grossRevenue * 100) / 100,
@@ -93,7 +94,9 @@ export function calculatePnL(sales: SalesData[]): PnLReport {
  * @param regularPrice - Base subscription price
  * @returns Sales data with standard discount and commission
  */
-export function calculateStandardSale(regularPrice: number = AFFILIATE_CONFIG.BASE_PRICE_USD): SalesData {
+export function calculateStandardSale(
+  regularPrice: number = AFFILIATE_CONFIG.BASE_PRICE_USD
+): SalesData {
   const discountPercent = AFFILIATE_CONFIG.DISCOUNT_PERCENT;
   const commissionPercent = AFFILIATE_CONFIG.COMMISSION_PERCENT;
 
@@ -114,7 +117,10 @@ export function calculateStandardSale(regularPrice: number = AFFILIATE_CONFIG.BA
  * @param period - Period type (3months, 6months, 1year)
  * @returns Start and end dates
  */
-export function getReportingPeriod(period: '3months' | '6months' | '1year'): { start: Date; end: Date } {
+export function getReportingPeriod(period: '3months' | '6months' | '1year'): {
+  start: Date;
+  end: Date;
+} {
   const end = new Date();
   const start = new Date();
 

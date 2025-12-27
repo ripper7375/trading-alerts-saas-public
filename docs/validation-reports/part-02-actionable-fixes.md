@@ -12,6 +12,7 @@
 **Current Health Score:** 92/100
 
 **Status Breakdown:**
+
 - 🔴 Critical Blockers: 0
 - 🟡 Warnings: 1 (missing migrations)
 - 🟢 Enhancements: 2
@@ -31,11 +32,13 @@
 No migration files exist in `prisma/migrations/` directory. Migrations are required for database deployment.
 
 **Impact:**
+
 - Severity: MEDIUM
 - Affects: Database deployment and schema synchronization
 - Blocks: Production deployment (not localhost dev testing)
 
 **Location:**
+
 - Directory: `prisma/migrations/` (does not exist)
 
 **Required Fix:**
@@ -52,6 +55,7 @@ npx prisma migrate dev --name init
 ```
 
 **Prompt for Claude Code:**
+
 ```
 Generate the initial Prisma migration:
 1. Run: npx prisma migrate dev --name init
@@ -60,6 +64,7 @@ Generate the initial Prisma migration:
 ```
 
 **Validation After Fix:**
+
 - [ ] `prisma/migrations/` directory exists
 - [ ] Contains `[timestamp]_init/` subdirectory
 - [ ] `migration.sql` file has all CREATE TABLE statements
@@ -75,10 +80,12 @@ Generate the initial Prisma migration:
 Models use PascalCase for table names by default. Consider snake_case for PostgreSQL convention.
 
 **Benefit:**
+
 - Better PostgreSQL naming convention alignment
 - Cleaner database table names
 
 **Example Fix:**
+
 ```prisma
 model UserPreferences {
   id        String   @id @default(cuid())
@@ -105,6 +112,7 @@ model AccountDeletionRequest {
 Some complex fields lack documentation comments.
 
 **Example Fix:**
+
 ```prisma
 model User {
   // ...
@@ -136,6 +144,7 @@ model AffiliateProfile {
 **Time:** 2 minutes
 
 **Commands:**
+
 ```bash
 # Install all dependencies
 npm install
@@ -152,6 +161,7 @@ npx prisma validate
 **Time:** 2 minutes
 
 **Commands:**
+
 ```bash
 # Create initial migration
 npx prisma migrate dev --name init
@@ -165,6 +175,7 @@ ls -la prisma/migrations/
 **Time:** 1 minute
 
 **Commands:**
+
 ```bash
 # Run database seed
 npx prisma db seed
@@ -180,7 +191,7 @@ npm run db:seed
 - [x] Schema file validated (prisma/schema.prisma)
 - [x] Prisma client singleton validated (lib/db/prisma.ts)
 - [x] Seed scripts validated (prisma/seed.ts, lib/db/seed.ts)
-- [x] Test coverage validated (__tests__/lib/db/seed.test.ts)
+- [x] Test coverage validated (**tests**/lib/db/seed.test.ts)
 - [ ] Dependencies installed (npm install)
 - [ ] Prisma client generated (npx prisma generate)
 - [ ] Migrations created (npx prisma migrate dev --name init)
@@ -193,6 +204,7 @@ npm run db:seed
 After completing all fixes, re-run validation:
 
 **Prompt for Claude Code:**
+
 ```
 Re-validate Part 02 Database after fixes:
 1. Verify prisma/migrations/ directory exists
@@ -202,6 +214,7 @@ Re-validate Part 02 Database after fixes:
 ```
 
 **Expected Results:**
+
 - Health Score: 97-100/100
 - No warnings remaining
 - All checkmarks in progress tracking
@@ -213,6 +226,7 @@ Re-validate Part 02 Database after fixes:
 **Status:** READY (after pre-requisites)
 
 **Quick Start Commands:**
+
 ```bash
 # 1. Set up environment
 cp .env.example .env
@@ -231,6 +245,7 @@ npx prisma studio  # Opens database viewer
 ```
 
 **Part 2 Specific Tests:**
+
 1. ✅ Prisma client connects to database
 2. ✅ All 22 models are created
 3. ✅ All relationships work correctly
@@ -252,6 +267,7 @@ https://binaries.prisma.sh/.../libquery_engine.so.node.gz - 403 Forbidden
 ```
 
 **Impact:**
+
 - Cannot run `prisma generate` in restricted environments
 - Cannot run `prisma migrate dev` in restricted environments
 - Schema validation must be done manually or in unrestricted environment
@@ -279,11 +295,13 @@ Pre-download Prisma engines or use `binaryTargets` in schema.prisma.
 ### Database URL Format
 
 Ensure your `DATABASE_URL` follows this format:
+
 ```
 postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public
 ```
 
 **Examples:**
+
 ```
 # Local PostgreSQL
 DATABASE_URL="postgresql://postgres:password@localhost:5432/trading_alerts?schema=public"
@@ -298,6 +316,7 @@ DATABASE_URL="postgresql://user:password@db.example.com:5432/trading_alerts?sche
 ### Seed Script Requirements
 
 The seed script requires these environment variables:
+
 ```bash
 ADMIN_EMAIL=admin@tradingalerts.com
 ADMIN_PASSWORD=ChangeMe123!

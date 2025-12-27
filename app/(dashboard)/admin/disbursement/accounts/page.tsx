@@ -43,7 +43,10 @@ interface CreateAccountForm {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function getKycStatusBadge(status: RiseWorksKycStatus): React.ReactElement {
-  const statusConfig: Record<RiseWorksKycStatus, { className: string; label: string }> = {
+  const statusConfig: Record<
+    RiseWorksKycStatus,
+    { className: string; label: string }
+  > = {
     APPROVED: { className: 'bg-green-600', label: 'Approved' },
     PENDING: { className: 'bg-yellow-600', label: 'Pending' },
     SUBMITTED: { className: 'bg-blue-600', label: 'Submitted' },
@@ -141,7 +144,11 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
   };
 
   const handleCreateAccount = async (): Promise<void> => {
-    if (!createForm.affiliateProfileId || !createForm.riseId || !createForm.email) {
+    if (
+      !createForm.affiliateProfileId ||
+      !createForm.riseId ||
+      !createForm.email
+    ) {
       setError('All fields are required');
       return;
     }
@@ -243,16 +250,22 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
             <CardDescription className="text-gray-400">Total</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{accounts.length}</div>
+            <div className="text-2xl font-bold text-white">
+              {accounts.length}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Approved</CardDescription>
+            <CardDescription className="text-gray-400">
+              Approved
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-400">{statusCounts['APPROVED'] || 0}</div>
+            <div className="text-2xl font-bold text-green-400">
+              {statusCounts['APPROVED'] || 0}
+            </div>
           </CardContent>
         </Card>
 
@@ -261,25 +274,35 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
             <CardDescription className="text-gray-400">Pending</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-400">{statusCounts['PENDING'] || 0}</div>
+            <div className="text-2xl font-bold text-yellow-400">
+              {statusCounts['PENDING'] || 0}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Submitted</CardDescription>
+            <CardDescription className="text-gray-400">
+              Submitted
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-400">{statusCounts['SUBMITTED'] || 0}</div>
+            <div className="text-2xl font-bold text-blue-400">
+              {statusCounts['SUBMITTED'] || 0}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Rejected</CardDescription>
+            <CardDescription className="text-gray-400">
+              Rejected
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-400">{statusCounts['REJECTED'] || 0}</div>
+            <div className="text-2xl font-bold text-red-400">
+              {statusCounts['REJECTED'] || 0}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -301,12 +324,24 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Email</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Rise ID</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">KYC Status</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Invitation</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Last Sync</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Created</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Email
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Rise ID
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      KYC Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Invitation
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Last Sync
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Created
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,21 +355,30 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                       </td>
                       <td className="py-3 px-4">
                         <span className="text-gray-400 font-mono text-xs">
-                          {account.riseId.slice(0, 10)}...{account.riseId.slice(-6)}
+                          {account.riseId.slice(0, 10)}...
+                          {account.riseId.slice(-6)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">{getKycStatusBadge(account.kycStatus)}</td>
+                      <td className="py-3 px-4">
+                        {getKycStatusBadge(account.kycStatus)}
+                      </td>
                       <td className="py-3 px-4">
                         {account.invitationAcceptedAt ? (
-                          <Badge className="bg-green-600 text-xs">Accepted</Badge>
+                          <Badge className="bg-green-600 text-xs">
+                            Accepted
+                          </Badge>
                         ) : account.invitationSentAt ? (
                           <Badge className="bg-yellow-600 text-xs">Sent</Badge>
                         ) : (
-                          <Badge className="bg-gray-600 text-xs">Not Sent</Badge>
+                          <Badge className="bg-gray-600 text-xs">
+                            Not Sent
+                          </Badge>
                         )}
                       </td>
                       <td className="py-3 px-4 text-gray-400 text-xs">
-                        {account.lastSyncAt ? formatDate(account.lastSyncAt) : 'Never'}
+                        {account.lastSyncAt
+                          ? formatDate(account.lastSyncAt)
+                          : 'Never'}
                       </td>
                       <td className="py-3 px-4 text-gray-400 text-xs">
                         {formatDate(account.createdAt)}
@@ -365,7 +409,9 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="bg-gray-800 border-gray-700 max-w-md w-full">
             <CardHeader>
-              <CardTitle className="text-white">Create RiseWorks Account</CardTitle>
+              <CardTitle className="text-white">
+                Create RiseWorks Account
+              </CardTitle>
               <CardDescription className="text-gray-400">
                 Link an affiliate to a RiseWorks wallet
               </CardDescription>
@@ -379,7 +425,10 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                   type="text"
                   value={createForm.affiliateProfileId}
                   onChange={(e) =>
-                    setCreateForm({ ...createForm, affiliateProfileId: e.target.value })
+                    setCreateForm({
+                      ...createForm,
+                      affiliateProfileId: e.target.value,
+                    })
                   }
                   placeholder="clp123abc456def"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -421,7 +470,11 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                   variant="outline"
                   onClick={() => {
                     setShowCreateModal(false);
-                    setCreateForm({ affiliateProfileId: '', riseId: '', email: '' });
+                    setCreateForm({
+                      affiliateProfileId: '',
+                      riseId: '',
+                      email: '',
+                    });
                   }}
                 >
                   Cancel
@@ -446,25 +499,38 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
         </CardHeader>
         <CardContent className="text-gray-300 space-y-3">
           <p className="text-sm text-gray-400">
-            RiseWorks accounts link affiliates to blockchain wallets for receiving USDC payments.
+            RiseWorks accounts link affiliates to blockchain wallets for
+            receiving USDC payments.
           </p>
 
           <div>
             <h4 className="font-medium text-white mb-1">KYC Status</h4>
             <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
-              <li><strong>PENDING:</strong> Account created, awaiting KYC submission</li>
-              <li><strong>SUBMITTED:</strong> KYC documents submitted, under review</li>
-              <li><strong>APPROVED:</strong> KYC verified, can receive payments</li>
-              <li><strong>REJECTED:</strong> KYC rejected, needs resubmission</li>
-              <li><strong>EXPIRED:</strong> KYC expired, needs renewal</li>
+              <li>
+                <strong>PENDING:</strong> Account created, awaiting KYC
+                submission
+              </li>
+              <li>
+                <strong>SUBMITTED:</strong> KYC documents submitted, under
+                review
+              </li>
+              <li>
+                <strong>APPROVED:</strong> KYC verified, can receive payments
+              </li>
+              <li>
+                <strong>REJECTED:</strong> KYC rejected, needs resubmission
+              </li>
+              <li>
+                <strong>EXPIRED:</strong> KYC expired, needs renewal
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-medium text-white mb-1">Sync</h4>
             <p className="text-sm text-gray-400">
-              Syncing updates KYC status and account information from RiseWorks API.
-              This runs automatically via cron job daily.
+              Syncing updates KYC status and account information from RiseWorks
+              API. This runs automatically via cron job daily.
             </p>
           </div>
         </CardContent>

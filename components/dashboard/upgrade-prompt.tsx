@@ -29,7 +29,8 @@ export function UpgradePrompt(): React.ReactElement {
               Upgrade to PRO
             </h2>
             <p className="text-white/90 mb-4">
-              Get 15 symbols, 9 timeframes, and 20 alerts for just ${regularPrice}/month
+              Get 15 symbols, 9 timeframes, and 20 alerts for just $
+              {regularPrice}/month
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-white/80 mb-4">
               <li className="flex items-center gap-2">

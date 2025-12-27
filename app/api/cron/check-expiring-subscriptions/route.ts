@@ -58,10 +58,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       logger.warn('[CRON] Unauthorized cron request');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     logger.info('[CRON] Starting check expiring subscriptions...');
@@ -79,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       success: true,
       message: `Found ${result.processed} expiring subscriptions, ${result.reminders.length} reminders marked`,
       processed: result.processed,
-      reminders: result.reminders.map(r => ({
+      reminders: result.reminders.map((r) => ({
         userId: r.userId,
         email: r.email,
         expiresAt: r.expiresAt.toISOString(),
@@ -91,9 +88,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     logger.error('[CRON] Check expiring subscriptions error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    return NextResponse.json(
-      { error: 'Cron job failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Cron job failed' }, { status: 500 });
   }
 }

@@ -63,7 +63,9 @@ export function AffiliateFilters({
     <div className="flex flex-wrap gap-4">
       <Select
         value={status || 'all'}
-        onValueChange={(value) => onStatusChange(value === 'all' ? undefined : value)}
+        onValueChange={(value) =>
+          onStatusChange(value === 'all' ? undefined : value)
+        }
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Status" />
@@ -79,7 +81,9 @@ export function AffiliateFilters({
 
       <Select
         value={country || 'all'}
-        onValueChange={(value) => onCountryChange(value === 'all' ? undefined : value)}
+        onValueChange={(value) =>
+          onCountryChange(value === 'all' ? undefined : value)
+        }
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Country" />
@@ -95,7 +99,9 @@ export function AffiliateFilters({
 
       <Select
         value={paymentMethod || 'all'}
-        onValueChange={(value) => onPaymentMethodChange(value === 'all' ? undefined : value)}
+        onValueChange={(value) =>
+          onPaymentMethodChange(value === 'all' ? undefined : value)
+        }
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Payment Method" />

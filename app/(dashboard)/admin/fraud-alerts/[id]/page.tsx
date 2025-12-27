@@ -121,7 +121,9 @@ export default function FraudAlertDetailPage(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params['id']]);
 
-  const handleAction = async (action: 'review' | 'dismiss' | 'block'): Promise<void> => {
+  const handleAction = async (
+    action: 'review' | 'dismiss' | 'block'
+  ): Promise<void> => {
     setActionLoading(true);
     try {
       // In production, call API

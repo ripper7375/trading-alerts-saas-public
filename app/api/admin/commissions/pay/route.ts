@@ -49,9 +49,7 @@ const paySchema = z.object({
  * @returns 404 - Affiliate not found
  * @returns 500 - Server error
  */
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     const session = await requireAdmin();
@@ -67,7 +65,8 @@ export async function POST(
       );
     }
 
-    const { affiliateId, paymentMethod, paymentReference, commissionIds } = validation.data;
+    const { affiliateId, paymentMethod, paymentReference, commissionIds } =
+      validation.data;
 
     // Get affiliate
     const affiliate = await prisma.affiliateProfile.findUnique({

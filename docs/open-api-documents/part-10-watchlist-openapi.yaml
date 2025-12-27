@@ -72,25 +72,25 @@ paths:
               example:
                 success: true
                 watchlist:
-                  id: "wl_abc123"
-                  name: "My Watchlist"
+                  id: 'wl_abc123'
+                  name: 'My Watchlist'
                   items:
-                    - id: "wi_001"
-                      symbol: "BTCUSD"
-                      timeframe: "H1"
+                    - id: 'wi_001'
+                      symbol: 'BTCUSD'
+                      timeframe: 'H1'
                       order: 0
-                      createdAt: "2025-12-20T10:00:00Z"
-                    - id: "wi_002"
-                      symbol: "ETHUSD"
-                      timeframe: "D1"
+                      createdAt: '2025-12-20T10:00:00Z'
+                    - id: 'wi_002'
+                      symbol: 'ETHUSD'
+                      timeframe: 'D1'
                       order: 1
-                      createdAt: "2025-12-20T11:00:00Z"
+                      createdAt: '2025-12-20T11:00:00Z'
                 items:
-                  - id: "wi_001"
-                    symbol: "BTCUSD"
-                    timeframe: "H1"
+                  - id: 'wi_001'
+                    symbol: 'BTCUSD'
+                    timeframe: 'H1'
                     order: 0
-                    createdAt: "2025-12-20T10:00:00Z"
+                    createdAt: '2025-12-20T10:00:00Z'
         '401':
           description: Unauthorized
           content:
@@ -99,8 +99,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Unauthorized"
-                message: "You must be logged in to view your watchlist"
+                error: 'Unauthorized'
+                message: 'You must be logged in to view your watchlist'
         '500':
           description: Internal server error
           content:
@@ -109,8 +109,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Failed to fetch watchlist"
-                message: "An error occurred while fetching your watchlist. Please try again."
+                error: 'Failed to fetch watchlist'
+                message: 'An error occurred while fetching your watchlist. Please try again.'
 
     post:
       tags:
@@ -136,14 +136,14 @@ paths:
               basic:
                 summary: Add BTCUSD H1 to watchlist
                 value:
-                  symbol: "BTCUSD"
-                  timeframe: "H1"
+                  symbol: 'BTCUSD'
+                  timeframe: 'H1'
               withWatchlistId:
                 summary: Add to specific watchlist
                 value:
-                  watchlistId: "wl_abc123"
-                  symbol: "ETHUSD"
-                  timeframe: "D1"
+                  watchlistId: 'wl_abc123'
+                  symbol: 'ETHUSD'
+                  timeframe: 'D1'
       responses:
         '201':
           description: Watchlist item created successfully
@@ -154,11 +154,11 @@ paths:
               example:
                 success: true
                 item:
-                  id: "wi_003"
-                  symbol: "GBPUSD"
-                  timeframe: "H4"
+                  id: 'wi_003'
+                  symbol: 'GBPUSD'
+                  timeframe: 'H4'
                   order: 2
-                  createdAt: "2025-12-20T12:00:00Z"
+                  createdAt: '2025-12-20T12:00:00Z'
         '400':
           description: Invalid input
           content:
@@ -170,14 +170,14 @@ paths:
                   summary: Symbol not provided
                   value:
                     success: false
-                    error: "Invalid input"
-                    message: "Symbol is required"
+                    error: 'Invalid input'
+                    message: 'Symbol is required'
                 missingTimeframe:
                   summary: Timeframe not provided
                   value:
                     success: false
-                    error: "Invalid input"
-                    message: "Timeframe is required"
+                    error: 'Invalid input'
+                    message: 'Timeframe is required'
         '401':
           description: Unauthorized
           content:
@@ -186,8 +186,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Unauthorized"
-                message: "You must be logged in to add watchlist items"
+                error: 'Unauthorized'
+                message: 'You must be logged in to add watchlist items'
         '403':
           description: Forbidden - tier limit or access denied
           content:
@@ -199,20 +199,20 @@ paths:
                   summary: Watchlist limit reached
                   value:
                     success: false
-                    error: "Watchlist limit reached"
-                    message: "FREE tier allows maximum 5 watchlist items. Upgrade to PRO for 50 items."
+                    error: 'Watchlist limit reached'
+                    message: 'FREE tier allows maximum 5 watchlist items. Upgrade to PRO for 50 items.'
                 symbolDenied:
                   summary: Symbol not allowed
                   value:
                     success: false
-                    error: "Symbol access denied"
-                    message: "Symbol XAUUSD is not available in your FREE tier. Upgrade to PRO for access to all 15 symbols."
+                    error: 'Symbol access denied'
+                    message: 'Symbol XAUUSD is not available in your FREE tier. Upgrade to PRO for access to all 15 symbols.'
                 timeframeDenied:
                   summary: Timeframe not allowed
                   value:
                     success: false
-                    error: "Timeframe access denied"
-                    message: "Timeframe M5 requires PRO tier."
+                    error: 'Timeframe access denied'
+                    message: 'Timeframe M5 requires PRO tier.'
         '409':
           description: Duplicate combination
           content:
@@ -221,8 +221,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Duplicate combination"
-                message: "This symbol+timeframe combination already exists in your watchlist."
+                error: 'Duplicate combination'
+                message: 'This symbol+timeframe combination already exists in your watchlist.'
         '500':
           description: Internal server error
           content:
@@ -245,7 +245,7 @@ paths:
           description: Watchlist item ID
           schema:
             type: string
-          example: "wi_001"
+          example: 'wi_001'
       responses:
         '200':
           description: Watchlist item retrieved successfully
@@ -256,11 +256,11 @@ paths:
               example:
                 success: true
                 item:
-                  id: "wi_001"
-                  symbol: "BTCUSD"
-                  timeframe: "H1"
+                  id: 'wi_001'
+                  symbol: 'BTCUSD'
+                  timeframe: 'H1'
                   order: 0
-                  createdAt: "2025-12-20T10:00:00Z"
+                  createdAt: '2025-12-20T10:00:00Z'
         '400':
           description: Invalid request
           content:
@@ -269,8 +269,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Invalid request"
-                message: "Item ID is required"
+                error: 'Invalid request'
+                message: 'Item ID is required'
         '401':
           description: Unauthorized
           content:
@@ -285,8 +285,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Forbidden"
-                message: "You do not have permission to view this item"
+                error: 'Forbidden'
+                message: 'You do not have permission to view this item'
         '404':
           description: Item not found
           content:
@@ -295,8 +295,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Not found"
-                message: "Watchlist item not found"
+                error: 'Not found'
+                message: 'Watchlist item not found'
         '500':
           description: Internal server error
           content:
@@ -321,7 +321,7 @@ paths:
           description: Watchlist item ID
           schema:
             type: string
-          example: "wi_001"
+          example: 'wi_001'
       requestBody:
         required: true
         content:
@@ -340,11 +340,11 @@ paths:
               example:
                 success: true
                 item:
-                  id: "wi_001"
-                  symbol: "BTCUSD"
-                  timeframe: "H1"
+                  id: 'wi_001'
+                  symbol: 'BTCUSD'
+                  timeframe: 'H1'
                   order: 3
-                  createdAt: "2025-12-20T10:00:00Z"
+                  createdAt: '2025-12-20T10:00:00Z'
         '400':
           description: Invalid input
           content:
@@ -390,7 +390,7 @@ paths:
           description: Watchlist item ID
           schema:
             type: string
-          example: "wi_001"
+          example: 'wi_001'
       responses:
         '200':
           description: Watchlist item deleted successfully
@@ -400,7 +400,7 @@ paths:
                 $ref: '#/components/schemas/DeleteResponse'
               example:
                 success: true
-                message: "Watchlist item deleted successfully"
+                message: 'Watchlist item deleted successfully'
         '400':
           description: Invalid request
           content:
@@ -456,9 +456,9 @@ paths:
               $ref: '#/components/schemas/ReorderWatchlistRequest'
             example:
               itemIds:
-                - "wi_003"
-                - "wi_001"
-                - "wi_002"
+                - 'wi_003'
+                - 'wi_001'
+                - 'wi_002'
       responses:
         '200':
           description: Watchlist items reordered successfully
@@ -468,7 +468,7 @@ paths:
                 $ref: '#/components/schemas/ReorderResponse'
               example:
                 success: true
-                message: "Watchlist items reordered successfully"
+                message: 'Watchlist items reordered successfully'
                 updatedCount: 3
         '400':
           description: Invalid input
@@ -481,14 +481,14 @@ paths:
                   summary: No item IDs provided
                   value:
                     success: false
-                    error: "Invalid input"
-                    message: "At least one item ID is required"
+                    error: 'Invalid input'
+                    message: 'At least one item ID is required'
                 itemsNotFound:
                   summary: Some items not found
                   value:
                     success: false
-                    error: "Invalid items"
-                    message: "One or more watchlist items were not found"
+                    error: 'Invalid items'
+                    message: 'One or more watchlist items were not found'
         '401':
           description: Unauthorized
           content:
@@ -503,8 +503,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                error: "Forbidden"
-                message: "You do not have permission to reorder some of these items"
+                error: 'Forbidden'
+                message: 'You do not have permission to reorder some of these items'
         '500':
           description: Internal server error
           content:
@@ -530,17 +530,17 @@ components:
         watchlistId:
           type: string
           description: Optional watchlist ID (auto-created if not provided)
-          example: "wl_abc123"
+          example: 'wl_abc123'
         symbol:
           type: string
           minLength: 1
           description: Trading symbol (must be allowed for user's tier)
-          example: "BTCUSD"
+          example: 'BTCUSD'
         timeframe:
           type: string
           minLength: 1
           description: Timeframe (must be allowed for user's tier)
-          example: "H1"
+          example: 'H1'
 
     UpdateWatchlistItemRequest:
       type: object
@@ -562,7 +562,7 @@ components:
             type: string
           minItems: 1
           description: Array of item IDs in desired order
-          example: ["wi_003", "wi_001", "wi_002"]
+          example: ['wi_003', 'wi_001', 'wi_002']
 
     WatchlistItem:
       type: object
@@ -576,15 +576,15 @@ components:
         id:
           type: string
           description: Unique item identifier
-          example: "wi_001"
+          example: 'wi_001'
         symbol:
           type: string
           description: Trading symbol
-          example: "BTCUSD"
+          example: 'BTCUSD'
         timeframe:
           type: string
           description: Chart timeframe
-          example: "H1"
+          example: 'H1'
         order:
           type: integer
           description: Display order position
@@ -593,7 +593,7 @@ components:
           type: string
           format: date-time
           description: Item creation timestamp
-          example: "2025-12-20T10:00:00Z"
+          example: '2025-12-20T10:00:00Z'
 
     Watchlist:
       type: object
@@ -605,11 +605,11 @@ components:
         id:
           type: string
           description: Unique watchlist identifier
-          example: "wl_abc123"
+          example: 'wl_abc123'
         name:
           type: string
           description: Watchlist name
-          example: "My Watchlist"
+          example: 'My Watchlist'
         items:
           type: array
           items:
@@ -674,7 +674,7 @@ components:
           example: true
         message:
           type: string
-          example: "Watchlist item deleted successfully"
+          example: 'Watchlist item deleted successfully'
         error:
           type: string
 
@@ -688,7 +688,7 @@ components:
           example: true
         message:
           type: string
-          example: "Watchlist items reordered successfully"
+          example: 'Watchlist items reordered successfully'
         updatedCount:
           type: integer
           description: Number of items reordered
@@ -708,8 +708,8 @@ components:
         error:
           type: string
           description: Error type
-          example: "Unauthorized"
+          example: 'Unauthorized'
         message:
           type: string
           description: Human-readable error message
-          example: "You must be logged in to view your watchlist"
+          example: 'You must be logged in to view your watchlist'

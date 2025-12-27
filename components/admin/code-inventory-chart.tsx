@@ -40,10 +40,30 @@ export function CodeInventoryChart({ data }: CodeInventoryChartProps) {
   }
 
   const segments = [
-    { label: 'Active', value: data.active, color: '#22c55e', textColor: 'text-green-600' },
-    { label: 'Used', value: data.used, color: '#3b82f6', textColor: 'text-blue-600' },
-    { label: 'Expired', value: data.expired, color: '#f97316', textColor: 'text-orange-600' },
-    { label: 'Cancelled', value: data.cancelled, color: '#ef4444', textColor: 'text-red-600' },
+    {
+      label: 'Active',
+      value: data.active,
+      color: '#22c55e',
+      textColor: 'text-green-600',
+    },
+    {
+      label: 'Used',
+      value: data.used,
+      color: '#3b82f6',
+      textColor: 'text-blue-600',
+    },
+    {
+      label: 'Expired',
+      value: data.expired,
+      color: '#f97316',
+      textColor: 'text-orange-600',
+    },
+    {
+      label: 'Cancelled',
+      value: data.cancelled,
+      color: '#ef4444',
+      textColor: 'text-red-600',
+    },
   ].filter((s) => s.value > 0);
 
   // Calculate bar widths
@@ -69,7 +89,8 @@ export function CodeInventoryChart({ data }: CodeInventoryChartProps) {
                 <div className="flex justify-between text-sm">
                   <span className={segment.textColor}>{segment.label}</span>
                   <span className="text-muted-foreground">
-                    {segment.value.toLocaleString()} ({((segment.value / total) * 100).toFixed(1)}%)
+                    {segment.value.toLocaleString()} (
+                    {((segment.value / total) * 100).toFixed(1)}%)
                   </span>
                 </div>
                 <div className="h-4 w-full overflow-hidden rounded-full bg-muted">
@@ -90,7 +111,11 @@ export function CodeInventoryChart({ data }: CodeInventoryChartProps) {
             <div className="flex justify-between text-sm">
               <span>Utilization Rate:</span>
               <span className="font-medium">
-                {((data.used / (data.active + data.used + data.expired)) * 100).toFixed(1)}%
+                {(
+                  (data.used / (data.active + data.used + data.expired)) *
+                  100
+                ).toFixed(1)}
+                %
               </span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">

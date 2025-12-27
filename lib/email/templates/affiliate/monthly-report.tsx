@@ -68,9 +68,7 @@ export default function MonthlyReportEmail({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={heading}>
-            Monthly Performance Report 📊
-          </Heading>
+          <Heading style={heading}>Monthly Performance Report 📊</Heading>
           <Text style={periodText}>
             {reportMonth} {reportYear}
           </Text>
@@ -78,8 +76,8 @@ export default function MonthlyReportEmail({
           <Section style={section}>
             <Text style={text}>Hi {affiliateName},</Text>
             <Text style={text}>
-              Here&apos;s your affiliate performance summary for{' '}
-              {reportMonth} {reportYear}.
+              Here&apos;s your affiliate performance summary for {reportMonth}{' '}
+              {reportYear}.
             </Text>
           </Section>
 
@@ -98,11 +96,15 @@ export default function MonthlyReportEmail({
                 </tr>
                 <tr>
                   <td style={metricCard}>
-                    <Text style={metricValue}>{codesUsed}/{codesDistributed}</Text>
+                    <Text style={metricValue}>
+                      {codesUsed}/{codesDistributed}
+                    </Text>
                     <Text style={metricLabel}>Codes Used</Text>
                   </td>
                   <td style={metricCard}>
-                    <Text style={metricValue}>{conversionRate.toFixed(1)}%</Text>
+                    <Text style={metricValue}>
+                      {conversionRate.toFixed(1)}%
+                    </Text>
                     <Text style={metricLabel}>Conversion Rate</Text>
                   </td>
                 </tr>
@@ -139,9 +141,7 @@ export default function MonthlyReportEmail({
             <Text style={tipItem}>
               📈 Share codes on social media for broader reach
             </Text>
-            <Text style={tipItem}>
-              🎯 Target active trading communities
-            </Text>
+            <Text style={tipItem}>🎯 Target active trading communities</Text>
             <Text style={tipItem}>
               💬 Engage with potential customers personally
             </Text>

@@ -59,10 +59,7 @@ export async function POST(
     const { code } = await params;
 
     if (!code) {
-      return NextResponse.json(
-        { error: 'Code is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Code is required' }, { status: 400 });
     }
 
     // Normalize code to uppercase
@@ -94,10 +91,7 @@ export async function POST(
     });
 
     if (!affiliateCode) {
-      return NextResponse.json(
-        { error: 'Code not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Code not found' }, { status: 404 });
     }
 
     // Check if code can be cancelled

@@ -18,26 +18,14 @@ describe('StatsCard Component', () => {
   // ============================================================================
   describe('rendering', () => {
     it('should render with title and value', () => {
-      render(
-        <StatsCard
-          title="Total Alerts"
-          value={42}
-          icon={Activity}
-        />
-      );
+      render(<StatsCard title="Total Alerts" value={42} icon={Activity} />);
 
       expect(screen.getByText('Total Alerts')).toBeInTheDocument();
       expect(screen.getByText('42')).toBeInTheDocument();
     });
 
     it('should render with string value', () => {
-      render(
-        <StatsCard
-          title="Revenue"
-          value="$1,234"
-          icon={TrendingUp}
-        />
-      );
+      render(<StatsCard title="Revenue" value="$1,234" icon={TrendingUp} />);
 
       expect(screen.getByText('Revenue')).toBeInTheDocument();
       expect(screen.getByText('$1,234')).toBeInTheDocument();
@@ -45,11 +33,7 @@ describe('StatsCard Component', () => {
 
     it('should render the icon', () => {
       const { container } = render(
-        <StatsCard
-          title="Test"
-          value={0}
-          icon={Activity}
-        />
+        <StatsCard title="Test" value={0} icon={Activity} />
       );
 
       // Lucide icons render as SVG
@@ -104,12 +88,7 @@ describe('StatsCard Component', () => {
 
     it('should show zero change', () => {
       render(
-        <StatsCard
-          title="Stable"
-          value={100}
-          icon={Activity}
-          change={0}
-        />
+        <StatsCard title="Stable" value={100} icon={Activity} change={0} />
       );
 
       expect(screen.getByText('+0%')).toBeInTheDocument();
@@ -131,12 +110,7 @@ describe('StatsCard Component', () => {
 
     it('should apply green color for positive change', () => {
       render(
-        <StatsCard
-          title="Growth"
-          value={100}
-          icon={TrendingUp}
-          change={20}
-        />
+        <StatsCard title="Growth" value={100} icon={TrendingUp} change={20} />
       );
 
       const changeText = screen.getByText('+20%');
@@ -265,11 +239,7 @@ describe('StatsCard Component', () => {
   describe('styling', () => {
     it('should have proper card structure', () => {
       const { container } = render(
-        <StatsCard
-          title="Test Card"
-          value={42}
-          icon={Activity}
-        />
+        <StatsCard title="Test Card" value={42} icon={Activity} />
       );
 
       // Should be wrapped in a Card component
@@ -277,26 +247,14 @@ describe('StatsCard Component', () => {
     });
 
     it('should have proper text styling for title', () => {
-      render(
-        <StatsCard
-          title="Styled Title"
-          value={0}
-          icon={Activity}
-        />
-      );
+      render(<StatsCard title="Styled Title" value={0} icon={Activity} />);
 
       const title = screen.getByText('Styled Title');
       expect(title).toHaveClass('text-sm', 'font-medium');
     });
 
     it('should have proper text styling for value', () => {
-      render(
-        <StatsCard
-          title="Test"
-          value="Large Value"
-          icon={Activity}
-        />
-      );
+      render(<StatsCard title="Test" value="Large Value" icon={Activity} />);
 
       const value = screen.getByText('Large Value');
       expect(value).toHaveClass('text-2xl', 'font-bold');
@@ -308,37 +266,19 @@ describe('StatsCard Component', () => {
   // ============================================================================
   describe('edge cases', () => {
     it('should handle very large numbers', () => {
-      render(
-        <StatsCard
-          title="Big Number"
-          value={1000000}
-          icon={Activity}
-        />
-      );
+      render(<StatsCard title="Big Number" value={1000000} icon={Activity} />);
 
       expect(screen.getByText('1000000')).toBeInTheDocument();
     });
 
     it('should handle decimal values', () => {
-      render(
-        <StatsCard
-          title="Decimal"
-          value="99.99"
-          icon={Activity}
-        />
-      );
+      render(<StatsCard title="Decimal" value="99.99" icon={Activity} />);
 
       expect(screen.getByText('99.99')).toBeInTheDocument();
     });
 
     it('should handle empty string value', () => {
-      render(
-        <StatsCard
-          title="Empty"
-          value=""
-          icon={Activity}
-        />
-      );
+      render(<StatsCard title="Empty" value="" icon={Activity} />);
 
       expect(screen.getByText('Empty')).toBeInTheDocument();
     });

@@ -31,9 +31,9 @@ interface SubscriptionResponse {
     id: string;
     status: string;
     provider: 'STRIPE' | 'DLOCAL' | null; // NEW: Payment provider
-    planType: string | null;               // NEW: Plan type (MONTHLY, THREE_DAY)
-    currentPeriodEnd: string | null;       // For Stripe
-    expiresAt: string | null;              // NEW: For dLocal explicit expiry
+    planType: string | null; // NEW: Plan type (MONTHLY, THREE_DAY)
+    currentPeriodEnd: string | null; // For Stripe
+    expiresAt: string | null; // NEW: For dLocal explicit expiry
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;
     paymentMethod: {
@@ -149,7 +149,8 @@ export async function GET(): Promise<
     }
 
     // Determine payment provider
-    const provider: 'STRIPE' | 'DLOCAL' | null = user.subscription.dLocalPaymentId
+    const provider: 'STRIPE' | 'DLOCAL' | null = user.subscription
+      .dLocalPaymentId
       ? 'DLOCAL'
       : user.subscription.stripeSubscriptionId
         ? 'STRIPE'

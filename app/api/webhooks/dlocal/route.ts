@@ -20,7 +20,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyWebhookSignature, mapDLocalStatus } from '@/lib/dlocal/dlocal-payment.service';
+import {
+  verifyWebhookSignature,
+  mapDLocalStatus,
+} from '@/lib/dlocal/dlocal-payment.service';
 import { markThreeDayPlanUsed } from '@/lib/dlocal/three-day-validator.service';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
@@ -39,10 +42,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       logger.warn('Invalid webhook signature', {
         signaturePrefix: signature.substring(0, 10),
       });
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
     // Parse webhook payload
@@ -50,7 +50,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
       webhookData = JSON.parse(payload);
     } catch {
-      logger.error('Invalid webhook payload', { payload: payload.substring(0, 100) });
+      logger.error('Invalid webhook payload', {
+        payload: payload.substring(0, 100),
+      });
       return NextResponse.json(
         { error: 'Invalid JSON payload' },
         { status: 400 }
@@ -83,7 +85,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         orderId: webhookData.order_id,
       });
       // Return 200 to prevent retries for unknown payments
-      return NextResponse.json({ received: true, warning: 'Payment not found' });
+      return NextResponse.json({
+        received: true,
+        warning: 'Payment not found',
+      });
     }
 
     // Process based on status
@@ -145,9 +150,10 @@ async function handlePaymentCompleted(
 
   // Calculate subscription expiry based on plan type
   const now = new Date();
-  const expiresAt = payment.planType === 'THREE_DAY'
-    ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)  // 3 days
-    : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const expiresAt =
+    payment.planType === 'THREE_DAY'
+      ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) // 3 days
+      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
   // Use a transaction to ensure all updates succeed or fail together
   await prisma.$transaction(async (tx) => {
@@ -312,7 +318,7 @@ async function handlePaymentCancelled(
       userId: payment.userId,
       type: 'PAYMENT',
       title: 'Payment Cancelled',
-      body: 'Your payment was cancelled. You can try again whenever you\'re ready.',
+      body: "Your payment was cancelled. You can try again whenever you're ready.",
       priority: 'MEDIUM',
     },
   });

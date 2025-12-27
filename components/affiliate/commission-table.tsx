@@ -64,9 +64,7 @@ export function CommissionTable({
 }: CommissionTableProps): React.ReactElement {
   if (commissions.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        No commissions yet
-      </div>
+      <div className="text-center py-8 text-gray-500">No commissions yet</div>
     );
   }
 

@@ -52,7 +52,9 @@ export function SuspendAffiliateModal({
       await onConfirm(reason);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to suspend affiliate');
+      setError(
+        err instanceof Error ? err.message : 'Failed to suspend affiliate'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -64,8 +66,8 @@ export function SuspendAffiliateModal({
         <DialogHeader>
           <DialogTitle>Suspend Affiliate</DialogTitle>
           <DialogDescription>
-            Are you sure you want to suspend {affiliateName}? This will prevent them from
-            earning commissions and accessing the affiliate portal.
+            Are you sure you want to suspend {affiliateName}? This will prevent
+            them from earning commissions and accessing the affiliate portal.
           </DialogDescription>
         </DialogHeader>
 
@@ -80,16 +82,18 @@ export function SuspendAffiliateModal({
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleSubmit} disabled={isLoading}>
+          <Button
+            variant="destructive"
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
             {isLoading ? 'Suspending...' : 'Suspend Affiliate'}
           </Button>
         </DialogFooter>

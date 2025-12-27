@@ -6,7 +6,11 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import type { CommissionAggregate, PayableAffiliate, RiseWorksKycStatus } from '@/types/disbursement';
+import type {
+  CommissionAggregate,
+  PayableAffiliate,
+  RiseWorksKycStatus,
+} from '@/types/disbursement';
 import { MINIMUM_PAYOUT_USD } from '../constants';
 
 /**
@@ -117,34 +121,35 @@ export class CommissionAggregator {
    * @returns Array of payable affiliates with full details
    */
   async getPayableAffiliatesWithDetails(): Promise<PayableAffiliate[]> {
-    const affiliatesWithCommissions = await this.prisma.affiliateProfile.findMany({
-      where: {
-        status: 'ACTIVE',
-        commissions: {
-          some: {
-            status: 'APPROVED',
-            disbursementTransaction: null,
+    const affiliatesWithCommissions =
+      await this.prisma.affiliateProfile.findMany({
+        where: {
+          status: 'ACTIVE',
+          commissions: {
+            some: {
+              status: 'APPROVED',
+              disbursementTransaction: null,
+            },
           },
         },
-      },
-      include: {
-        user: {
-          select: {
-            email: true,
+        include: {
+          user: {
+            select: {
+              email: true,
+            },
           },
+          commissions: {
+            where: {
+              status: 'APPROVED',
+              disbursementTransaction: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+          riseAccount: true,
         },
-        commissions: {
-          where: {
-            status: 'APPROVED',
-            disbursementTransaction: null,
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-        riseAccount: true,
-      },
-    });
+      });
 
     return affiliatesWithCommissions
       .map((affiliate) => {
@@ -155,9 +160,7 @@ export class CommissionAggregator {
         );
 
         const oldestPendingDate =
-          commissions.length > 0
-            ? commissions[0]?.createdAt ?? null
-            : null;
+          commissions.length > 0 ? (commissions[0]?.createdAt ?? null) : null;
 
         const hasRiseAccount = !!affiliate.riseAccount;
         const kycApproved =
@@ -179,8 +182,9 @@ export class CommissionAggregator {
             hasAccount: hasRiseAccount,
             riseId: affiliate.riseAccount?.riseId,
             kycStatus: hasRiseAccount
-              ? (affiliate.riseAccount?.kycStatus as RiseWorksKycStatus) ?? 'PENDING'
-              : 'none' as const,
+              ? ((affiliate.riseAccount?.kycStatus as RiseWorksKycStatus) ??
+                'PENDING')
+              : ('none' as const),
             canReceivePayments,
           },
         };
@@ -204,7 +208,10 @@ export class CommissionAggregator {
       },
     });
 
-    return Number((result['_sum'] as { commissionAmount?: number } | undefined)?.commissionAmount ?? 0);
+    return Number(
+      (result['_sum'] as { commissionAmount?: number } | undefined)
+        ?.commissionAmount ?? 0
+    );
   }
 
   /**
@@ -231,7 +238,9 @@ export class CommissionAggregator {
     };
 
     for (const item of counts) {
-      const status = (item['status'] as string).toLowerCase() as keyof typeof result;
+      const status = (
+        item['status'] as string
+      ).toLowerCase() as keyof typeof result;
       if (status in result) {
         result[status] = item['_count'] as number;
       }

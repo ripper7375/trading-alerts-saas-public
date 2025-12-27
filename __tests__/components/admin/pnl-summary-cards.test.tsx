@@ -12,11 +12,11 @@ import { describe, it, expect } from '@jest/globals';
 import { PnLSummaryCards } from '@/components/admin/pnl-summary-cards';
 
 const defaultProps = {
-  grossRevenue: 50000.00,
-  discounts: 5000.00,
-  netRevenue: 45000.00,
-  totalCommissions: 9000.00,
-  netProfit: 36000.00,
+  grossRevenue: 50000.0,
+  discounts: 5000.0,
+  netRevenue: 45000.0,
+  totalCommissions: 9000.0,
+  netProfit: 36000.0,
   profitMargin: 72.0,
 };
 
@@ -187,22 +187,12 @@ describe('PnLSummaryCards Component', () => {
     });
 
     it('should format with two decimal places', () => {
-      render(
-        <PnLSummaryCards
-          {...defaultProps}
-          grossRevenue={1234.5}
-        />
-      );
+      render(<PnLSummaryCards {...defaultProps} grossRevenue={1234.5} />);
       expect(screen.getByText('$1,234.50')).toBeInTheDocument();
     });
 
     it('should format with thousand separators', () => {
-      render(
-        <PnLSummaryCards
-          {...defaultProps}
-          grossRevenue={1000000}
-        />
-      );
+      render(<PnLSummaryCards {...defaultProps} grossRevenue={1000000} />);
       expect(screen.getByText('$1,000,000.00')).toBeInTheDocument();
     });
 
@@ -315,7 +305,9 @@ describe('PnLSummaryCards Component', () => {
     });
 
     it('should handle exactly zero profit with green styling', () => {
-      render(<PnLSummaryCards {...defaultProps} netProfit={0} profitMargin={0} />);
+      render(
+        <PnLSummaryCards {...defaultProps} netProfit={0} profitMargin={0} />
+      );
       const zeroProfit = screen.getByText('$0.00');
       expect(zeroProfit).toHaveClass('text-green-600');
     });

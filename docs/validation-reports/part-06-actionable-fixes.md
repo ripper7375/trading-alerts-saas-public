@@ -11,6 +11,7 @@
 **Current Health Score:** 92/100
 
 **Status Breakdown:**
+
 - 🔴 Critical Blockers: 0
 - 🟡 Warnings: 2
 - 🟢 Enhancements: 2
@@ -28,14 +29,17 @@
 PRO indicators are implemented but not documented in the OpenAPI specification.
 
 **Impact:**
+
 - Severity: MEDIUM
 - Affects: API documentation accuracy
 - Blocks: Nothing (implementation is complete)
 
 **Location:**
+
 - File: `docs/open-api-documents/part-06-flask_mt5_openapi.yaml`
 
 **Missing Documentation:**
+
 ```yaml
 # PRO indicators not documented:
 # - momentum_candles
@@ -48,6 +52,7 @@ PRO indicators are implemented but not documented in the OpenAPI specification.
 Add PRO indicators to the `IndicatorData` schema in OpenAPI spec.
 
 **Prompt for Claude Code:**
+
 ```
 Update docs/open-api-documents/part-06-flask_mt5_openapi.yaml to add PRO indicators:
 
@@ -62,6 +67,7 @@ Reference implementation: mt5-service/app/services/indicator_reader.py
 ```
 
 **Validation:**
+
 - [ ] OpenAPI spec includes pro_indicators schema
 - [ ] All 6 PRO indicators documented
 - [ ] Schema matches implementation
@@ -74,6 +80,7 @@ Reference implementation: mt5-service/app/services/indicator_reader.py
 Flake8 and mypy are not installed globally, so linting was not verified.
 
 **Impact:**
+
 - Severity: LOW
 - Affects: Code quality assurance
 - Blocks: Nothing (code compiles successfully)
@@ -84,6 +91,7 @@ Run linting in virtual environment before production deployment.
 **Step-by-Step Fix:**
 
 1. **Create and activate virtual environment:**
+
    ```bash
    cd mt5-service
    python -m venv venv
@@ -91,11 +99,13 @@ Run linting in virtual environment before production deployment.
    ```
 
 2. **Install dev dependencies:**
+
    ```bash
    pip install -r requirements-dev.txt
    ```
 
 3. **Run linting:**
+
    ```bash
    flake8 app/ --max-line-length=100 --ignore=E501,W503
    mypy app/ --ignore-missing-imports
@@ -105,6 +115,7 @@ Run linting in virtual environment before production deployment.
 4. **Fix any issues found**
 
 **Validation:**
+
 - [ ] Flake8 passes with 0 errors
 - [ ] Mypy passes with 0 errors
 - [ ] Black check passes
@@ -119,6 +130,7 @@ Run linting in virtual environment before production deployment.
 Current tests cover tier service and connection pool. Could add more integration tests.
 
 **Current Coverage:**
+
 - ✅ Connection pool tests
 - ✅ Tier validation tests
 - ✅ Health monitor tests
@@ -126,6 +138,7 @@ Current tests cover tier service and connection pool. Could add more integration
 - ⚠️ Missing: Full API integration tests with mocked MT5
 
 **Prompt for Claude Code:**
+
 ```
 Add integration tests to mt5-service/tests/test_indicators.py:
 
@@ -145,6 +158,7 @@ Use pytest-mock for MT5 mocking.
 Request validation is basic. Could add Pydantic models for stronger validation.
 
 **Current State:**
+
 ```python
 # Current validation
 symbol = symbol.upper()
@@ -153,6 +167,7 @@ bars = min(int(request.args.get('bars', 1000)), 5000)
 ```
 
 **Enhanced State:**
+
 ```python
 from pydantic import BaseModel, validator
 
@@ -178,6 +193,7 @@ class IndicatorRequest(BaseModel):
 The MetaTrader5 Python package only works on Windows. The implementation includes graceful fallback for CI/CD on Linux.
 
 **Implementation:**
+
 ```python
 # Try to import MetaTrader5
 try:
@@ -216,22 +232,22 @@ Implementation includes 6 PRO-only indicators that enhance the original spec:
 
 ### Category A: Documentation Updates
 
-| Fix | Priority | Effort |
-|-----|----------|--------|
-| Update OpenAPI spec for PRO indicators | Medium | 30 min |
+| Fix                                    | Priority | Effort |
+| -------------------------------------- | -------- | ------ |
+| Update OpenAPI spec for PRO indicators | Medium   | 30 min |
 
 ### Category B: Quality Assurance
 
-| Fix | Priority | Effort |
-|-----|----------|--------|
-| Run linting in virtual environment | Low | 15 min |
-| Add more test coverage | Low | 2 hours |
+| Fix                                | Priority | Effort  |
+| ---------------------------------- | -------- | ------- |
+| Run linting in virtual environment | Low      | 15 min  |
+| Add more test coverage             | Low      | 2 hours |
 
 ### Category C: Code Improvements
 
-| Fix | Priority | Effort |
-|-----|----------|--------|
-| Add Pydantic validation models | Low | 1 hour |
+| Fix                            | Priority | Effort |
+| ------------------------------ | -------- | ------ |
+| Add Pydantic validation models | Low      | 1 hour |
 
 ---
 
@@ -244,6 +260,7 @@ Implementation includes 6 PRO-only indicators that enhance the original spec:
 ### Phase 2: During/After Localhost Testing
 
 1. **Run Tests:**
+
    ```bash
    cd mt5-service
    python -m venv venv
@@ -269,10 +286,12 @@ Implementation includes 6 PRO-only indicators that enhance the original spec:
 ## 📊 PROGRESS TRACKING
 
 ### Warnings
+
 - [ ] OpenAPI spec updated for PRO indicators
 - [ ] Linting verified in virtual environment
 
 ### Enhancements
+
 - [ ] Additional test coverage added
 - [ ] Pydantic validation models added (optional)
 
@@ -283,6 +302,7 @@ Implementation includes 6 PRO-only indicators that enhance the original spec:
 After fixes, re-validate:
 
 **Prompt for Claude Code:**
+
 ```
 Re-validate Part 06 Flask MT5 Service:
 
@@ -326,6 +346,7 @@ curl "http://localhost:5001/api/indicators/XAUUSD/H1" -H "X-User-Tier: FREE"
 ### Expected Responses:
 
 **Health (without MT5):**
+
 ```json
 {
   "status": "error",
@@ -337,6 +358,7 @@ curl "http://localhost:5001/api/indicators/XAUUSD/H1" -H "X-User-Tier: FREE"
 ```
 
 **Symbols (FREE tier):**
+
 ```json
 {
   "success": true,
@@ -346,6 +368,7 @@ curl "http://localhost:5001/api/indicators/XAUUSD/H1" -H "X-User-Tier: FREE"
 ```
 
 **Timeframes (FREE tier):**
+
 ```json
 {
   "success": true,

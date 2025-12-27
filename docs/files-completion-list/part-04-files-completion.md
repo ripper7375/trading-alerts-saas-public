@@ -15,5 +15,6 @@ File 6/6: `lib/tier/index.ts` - Module re-exports
 ## Notes
 
 **Files removed from original list (functionality already exists):**
+
 - ~~`lib/tier/middleware.ts`~~ - Validation logic covered by `lib/tier-validation.ts`
 - ~~`lib/config/plans.ts`~~ - Tier/pricing config covered by `lib/tier-config.ts`

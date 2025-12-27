@@ -109,13 +109,13 @@ model SystemConfigHistory {
 
 ### Part 17 API Endpoints for SystemConfig
 
-| Endpoint | Method | Auth | Purpose |
-|----------|--------|------|---------|
-| `/api/admin/system-config` | GET | Admin | List all configs |
-| `/api/admin/system-config/{key}` | GET | Admin | Get specific config |
-| `/api/admin/system-config/{key}` | PUT | Admin | Update config |
-| `/api/admin/system-config/history` | GET | Admin | View audit trail |
-| `/api/config/affiliate` | GET | Public | Frontend cache (5min) |
+| Endpoint                           | Method | Auth   | Purpose               |
+| ---------------------------------- | ------ | ------ | --------------------- |
+| `/api/admin/system-config`         | GET    | Admin  | List all configs      |
+| `/api/admin/system-config/{key}`   | GET    | Admin  | Get specific config   |
+| `/api/admin/system-config/{key}`   | PUT    | Admin  | Update config         |
+| `/api/admin/system-config/history` | GET    | Admin  | View audit trail      |
+| `/api/config/affiliate`            | GET    | Public | Frontend cache (5min) |
 
 ---
 
@@ -241,14 +241,14 @@ grep -r "\$4\.64" app/ components/ lib/
 
 **Replace with dynamic config:**
 
-| Hardcoded | Replace With (Frontend) | Replace With (Backend) |
-|-----------|------------------------|------------------------|
-| `20%` (discount) | `{discountPercent}%` | `config.discountPercent` |
-| `20%` (commission) | `{commissionPercent}%` | `config.commissionPercent` |
-| `$23.20` | `${calculateDiscountedPrice(29).toFixed(2)}` | `basePrice * (1 - discount/100)` |
-| `$5.80` | `${(29 - calculateDiscountedPrice(29)).toFixed(2)}` | `basePrice * (discount/100)` |
-| `$4.64` | `${(discountedPrice * commission/100).toFixed(2)}` | `netRevenue * (commission/100)` |
-| `0.2` or `0.8` | `discountPercent / 100` | `config.discountPercent / 100` |
+| Hardcoded          | Replace With (Frontend)                             | Replace With (Backend)           |
+| ------------------ | --------------------------------------------------- | -------------------------------- |
+| `20%` (discount)   | `{discountPercent}%`                                | `config.discountPercent`         |
+| `20%` (commission) | `{commissionPercent}%`                              | `config.commissionPercent`       |
+| `$23.20`           | `${calculateDiscountedPrice(29).toFixed(2)}`        | `basePrice * (1 - discount/100)` |
+| `$5.80`            | `${(29 - calculateDiscountedPrice(29)).toFixed(2)}` | `basePrice * (discount/100)`     |
+| `$4.64`            | `${(discountedPrice * commission/100).toFixed(2)}`  | `netRevenue * (commission/100)`  |
+| `0.2` or `0.8`     | `discountPercent / 100`                             | `config.discountPercent / 100`   |
 
 ### Affiliate Code Snapshot Behavior
 
@@ -281,6 +281,7 @@ grep -r "\$4\.64" app/ components/ lib/
 ```
 
 **Why this matters:**
+
 - ✅ **Customer Trust**: Customer was promised 20% off - they get 20% off
 - ✅ **Affiliate Trust**: Affiliate was promised 20% commission - they get 20%
 - ✅ **Business Flexibility**: Admin can change rates for future codes anytime

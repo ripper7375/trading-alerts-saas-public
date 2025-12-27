@@ -170,17 +170,24 @@ export async function buildCodeInventoryReport(
   });
 
   const monthlyDistribution =
-    (additionsByReason.find(
-      (a: Record<string, unknown>) => a['distributionReason'] === 'MONTHLY'
-    )?.['_count'] as { _all: number } | undefined)?.['_all'] ?? 0;
+    (
+      additionsByReason.find(
+        (a: Record<string, unknown>) => a['distributionReason'] === 'MONTHLY'
+      )?.['_count'] as { _all: number } | undefined
+    )?.['_all'] ?? 0;
   const initialDistribution =
-    (additionsByReason.find(
-      (a: Record<string, unknown>) => a['distributionReason'] === 'INITIAL'
-    )?.['_count'] as { _all: number } | undefined)?.['_all'] ?? 0;
+    (
+      additionsByReason.find(
+        (a: Record<string, unknown>) => a['distributionReason'] === 'INITIAL'
+      )?.['_count'] as { _all: number } | undefined
+    )?.['_all'] ?? 0;
   const bonusDistribution =
-    (additionsByReason.find(
-      (a: Record<string, unknown>) => a['distributionReason'] === 'ADMIN_BONUS'
-    )?.['_count'] as { _all: number } | undefined)?.['_all'] ?? 0;
+    (
+      additionsByReason.find(
+        (a: Record<string, unknown>) =>
+          a['distributionReason'] === 'ADMIN_BONUS'
+      )?.['_count'] as { _all: number } | undefined
+    )?.['_all'] ?? 0;
   const totalAdditions =
     monthlyDistribution + initialDistribution + bonusDistribution;
 
@@ -287,8 +294,13 @@ export async function buildCommissionSummary(
   ]);
 
   const getAmountByStatus = (status: string): number => {
-    const result = byStatus.find((b: Record<string, unknown>) => b['status'] === status);
-    return Number((result?.['_sum'] as { commissionAmount?: number } | undefined)?.commissionAmount ?? 0);
+    const result = byStatus.find(
+      (b: Record<string, unknown>) => b['status'] === status
+    );
+    return Number(
+      (result?.['_sum'] as { commissionAmount?: number } | undefined)
+        ?.commissionAmount ?? 0
+    );
   };
 
   const pending = getAmountByStatus('PENDING');
@@ -303,7 +315,13 @@ export async function buildCommissionSummary(
     approved,
     paid,
     cancelled,
-    thisMonth: Number((thisMonth['_sum'] as { commissionAmount?: number } | undefined)?.commissionAmount ?? 0),
-    lastMonth: Number((lastMonth['_sum'] as { commissionAmount?: number } | undefined)?.commissionAmount ?? 0),
+    thisMonth: Number(
+      (thisMonth['_sum'] as { commissionAmount?: number } | undefined)
+        ?.commissionAmount ?? 0
+    ),
+    lastMonth: Number(
+      (lastMonth['_sum'] as { commissionAmount?: number } | undefined)
+        ?.commissionAmount ?? 0
+    ),
   };
 }
