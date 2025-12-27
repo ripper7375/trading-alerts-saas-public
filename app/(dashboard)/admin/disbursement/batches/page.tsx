@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
+import {
+  BatchStatusBadge,
+  ProviderBadge,
+} from '@/components/admin/disbursement-badges';
 import { BatchesTableSkeleton } from '@/components/admin/disbursement-skeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,32 +59,6 @@ interface BatchPreviewSummary {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HELPER FUNCTIONS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function getStatusBadge(status: PaymentBatchStatus): React.ReactElement {
-  const statusConfig: Record<
-    PaymentBatchStatus,
-    { className: string; label: string }
-  > = {
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    QUEUED: { className: 'bg-blue-600', label: 'Queued' },
-    PROCESSING: { className: 'bg-purple-600', label: 'Processing' },
-    COMPLETED: { className: 'bg-green-600', label: 'Completed' },
-    FAILED: { className: 'bg-red-600', label: 'Failed' },
-    CANCELLED: { className: 'bg-gray-600', label: 'Cancelled' },
-  };
-
-  const config = statusConfig[status];
-
-  return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
-  );
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PAYMENT BATCHES PAGE
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -112,6 +90,8 @@ export default function PaymentBatchesPage(): React.ReactElement {
     items: BatchPreviewItem[];
     summary: BatchPreviewSummary;
   } | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchBatches = useCallback(async (): Promise<void> => {
     try {
@@ -140,6 +120,51 @@ export default function PaymentBatchesPage(): React.ReactElement {
   useEffect(() => {
     void fetchBatches();
   }, [fetchBatches]);
+
+  // Silent fetch for polling (doesn't show loading state)
+  const fetchBatchesSilent = useCallback(async (): Promise<void> => {
+    try {
+      const url =
+        statusFilter === 'ALL'
+          ? '/api/disbursement/batches'
+          : `/api/disbursement/batches?status=${statusFilter}`;
+
+      const response = await fetch(url);
+
+      if (response.ok) {
+        const data = await response.json();
+        setBatches(data.batches || []);
+      }
+    } catch {
+      // Silently fail on polling errors
+    }
+  }, [statusFilter]);
+
+  // Polling effect - auto-refresh every 5 seconds when enabled
+  useEffect(() => {
+    if (isPolling) {
+      pollingIntervalRef.current = setInterval(() => {
+        void fetchBatchesSilent();
+      }, 5000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [isPolling, fetchBatchesSilent]);
+
+  // Auto-enable polling when there are PROCESSING or QUEUED batches
+  useEffect(() => {
+    const hasActiveBatches = batches.some(
+      (b) => b.status === 'PROCESSING' || b.status === 'QUEUED'
+    );
+    if (hasActiveBatches && !isPolling) {
+      setIsPolling(true);
+    }
+  }, [batches, isPolling]);
 
   const handlePreviewBatch = async (): Promise<void> => {
     try {
@@ -204,10 +229,23 @@ export default function PaymentBatchesPage(): React.ReactElement {
   };
 
   const handleExecuteBatch = async (batchId: string): Promise<void> => {
+    // Store previous state for rollback
+    const previousBatches = [...batches];
+    const batch = batches.find((b) => b.id === batchId);
+    const batchNumber = batch?.batchNumber ?? 'Batch';
+
     try {
       setIsProcessing(true);
       setError(null);
       setSuccessMessage(null);
+
+      // Optimistic update: Change status to PROCESSING immediately
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === batchId ? { ...b, status: 'PROCESSING' as PaymentBatchStatus } : b
+        )
+      );
+      setSuccessMessage(`Executing ${batchNumber}...`);
 
       const response = await fetch(
         `/api/disbursement/batches/${batchId}/execute`,
@@ -225,8 +263,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
       setSuccessMessage(
         `Batch executed: ${data.result.successCount} succeeded, ${data.result.failedCount} failed`
       );
+      // Refresh to get updated data
       void fetchBatches();
     } catch (err) {
+      // Rollback on error
+      setBatches(previousBatches);
+      setSuccessMessage(null);
       setError(err instanceof Error ? err.message : 'Failed to execute batch');
     } finally {
       setIsProcessing(false);
@@ -236,10 +278,19 @@ export default function PaymentBatchesPage(): React.ReactElement {
   const handleDeleteBatch = async (batchId: string): Promise<void> => {
     if (!confirm('Are you sure you want to delete this batch?')) return;
 
+    // Store previous state for rollback
+    const previousBatches = [...batches];
+    const batch = batches.find((b) => b.id === batchId);
+    const batchNumber = batch?.batchNumber ?? 'Batch';
+
     try {
       setIsProcessing(true);
       setError(null);
       setSuccessMessage(null);
+
+      // Optimistic update: Remove batch from list immediately
+      setBatches((prev) => prev.filter((b) => b.id !== batchId));
+      setSuccessMessage(`Deleting ${batchNumber}...`);
 
       const response = await fetch(`/api/disbursement/batches/${batchId}`, {
         method: 'DELETE',
@@ -251,8 +302,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
       }
 
       setSuccessMessage('Batch deleted successfully');
+      // Refresh to get updated data
       void fetchBatches();
     } catch (err) {
+      // Rollback on error
+      setBatches(previousBatches);
+      setSuccessMessage(null);
       setError(err instanceof Error ? err.message : 'Failed to delete batch');
     } finally {
       setIsProcessing(false);
@@ -282,6 +337,15 @@ export default function PaymentBatchesPage(): React.ReactElement {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={() => setIsPolling(!isPolling)}
+            variant={isPolling ? 'default' : 'outline'}
+            className={isPolling ? 'bg-blue-600 hover:bg-blue-700' : ''}
+            aria-label={isPolling ? 'Disable auto-refresh' : 'Enable auto-refresh'}
+            aria-pressed={isPolling}
+          >
+            {isPolling ? 'Auto-refresh On' : 'Auto-refresh'}
+          </Button>
           <Button
             onClick={() => void fetchBatches()}
             variant="outline"
@@ -391,7 +455,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                         </Link>
                       </td>
                       <td className="py-3 px-4">
-                        {getStatusBadge(batch.status)}
+                        <BatchStatusBadge status={batch.status} />
                       </td>
                       <td className="py-3 px-4 text-gray-300">
                         {batch.paymentCount}
@@ -402,9 +466,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge className="bg-gray-600 text-white text-xs">
-                          {batch.provider}
-                        </Badge>
+                        <ProviderBadge provider={batch.provider} />
                       </td>
                       <td className="py-3 px-4 text-gray-400 text-xs">
                         {formatDate(batch.createdAt)}

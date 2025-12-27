@@ -1,13 +1,16 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 
+import {
+  TransactionStatusBadge,
+  ProviderBadge,
+} from '@/components/admin/disbursement-badges';
 import {
   TransactionsPageSkeleton,
   TransactionsTableSkeleton,
 } from '@/components/admin/disbursement-skeletons';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -55,33 +58,6 @@ interface Pagination {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HELPER FUNCTIONS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function getStatusBadge(
-  status: DisbursementTransactionStatus
-): React.ReactElement {
-  const statusConfig: Record<
-    DisbursementTransactionStatus,
-    { className: string; label: string }
-  > = {
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    PROCESSING: { className: 'bg-blue-600', label: 'Processing' },
-    COMPLETED: { className: 'bg-green-600', label: 'Completed' },
-    FAILED: { className: 'bg-red-600', label: 'Failed' },
-    CANCELLED: { className: 'bg-gray-600', label: 'Cancelled' },
-  };
-
-  const config = statusConfig[status];
-
-  return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
-  );
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TRANSACTIONS PAGE CONTENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -93,6 +69,8 @@ function TransactionsPageContent(): React.ReactElement {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const statusFilter = searchParams.get(
     'status'
@@ -131,6 +109,54 @@ function TransactionsPageContent(): React.ReactElement {
     void fetchTransactions();
   }, [fetchTransactions]);
 
+  // Silent fetch for polling (doesn't show loading state)
+  const fetchTransactionsSilent = useCallback(async (): Promise<void> => {
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      params.set('limit', limit.toString());
+      params.set('offset', currentOffset.toString());
+
+      const response = await fetch(
+        `/api/disbursement/transactions?${params.toString()}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions || []);
+        setPagination(data.pagination || null);
+      }
+    } catch {
+      // Silently fail on polling errors
+    }
+  }, [statusFilter, currentOffset]);
+
+  // Polling effect - auto-refresh every 5 seconds when enabled
+  useEffect(() => {
+    if (isPolling) {
+      pollingIntervalRef.current = setInterval(() => {
+        void fetchTransactionsSilent();
+      }, 5000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [isPolling, fetchTransactionsSilent]);
+
+  // Auto-enable polling when there are PROCESSING or PENDING transactions
+  useEffect(() => {
+    const hasActiveTransactions = transactions.some(
+      (t) => t.status === 'PROCESSING' || t.status === 'PENDING'
+    );
+    if (hasActiveTransactions && !isPolling) {
+      setIsPolling(true);
+    }
+  }, [transactions, isPolling]);
+
   const handleStatusFilter = (
     status: DisbursementTransactionStatus | 'ALL'
   ): void => {
@@ -167,6 +193,15 @@ function TransactionsPageContent(): React.ReactElement {
           <p className="text-gray-400 mt-1">All disbursement transactions</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={() => setIsPolling(!isPolling)}
+            variant={isPolling ? 'default' : 'outline'}
+            className={isPolling ? 'bg-blue-600 hover:bg-blue-700' : ''}
+            aria-label={isPolling ? 'Disable auto-refresh' : 'Enable auto-refresh'}
+            aria-pressed={isPolling}
+          >
+            {isPolling ? 'Auto-refresh On' : 'Auto-refresh'}
+          </Button>
           <Button
             onClick={() => void fetchTransactions()}
             variant="outline"
@@ -263,7 +298,7 @@ function TransactionsPageContent(): React.ReactElement {
                           {tx.transactionId}
                         </span>
                       </td>
-                      <td className="py-3 px-4">{getStatusBadge(tx.status)}</td>
+                      <td className="py-3 px-4"><TransactionStatusBadge status={tx.status} /></td>
                       <td className="py-3 px-4">
                         <span className="text-green-400 font-medium">
                           {formatCurrency(tx.amount)}

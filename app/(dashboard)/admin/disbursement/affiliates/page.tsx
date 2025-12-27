@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
+import { KycStatusBadge } from '@/components/admin/disbursement-badges';
 import { AffiliatesTableSkeleton } from '@/components/admin/disbursement-skeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,10 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type {
-  PayableAffiliate,
-  RiseWorksKycStatus,
-} from '@/types/disbursement';
+import type { PayableAffiliate } from '@/types/disbursement';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -26,32 +24,6 @@ interface PayableSummary {
   totalAffiliates: number;
   totalPendingAmount: number;
   readyForPayout: number;
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HELPER FUNCTIONS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function getKycStatusBadge(
-  status: RiseWorksKycStatus | 'none'
-): React.ReactElement {
-  const defaultConfig = { className: 'bg-gray-600', label: 'No Account' };
-  const statusConfig: Record<string, { className: string; label: string }> = {
-    APPROVED: { className: 'bg-green-600', label: 'Approved' },
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    SUBMITTED: { className: 'bg-blue-600', label: 'Submitted' },
-    REJECTED: { className: 'bg-red-600', label: 'Rejected' },
-    EXPIRED: { className: 'bg-gray-600', label: 'Expired' },
-    none: defaultConfig,
-  };
-
-  const config = statusConfig[status] ?? defaultConfig;
-
-  return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
-  );
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -131,10 +103,19 @@ export default function PayableAffiliatesPage(): React.ReactElement {
   };
 
   const handleQuickPay = async (affiliateId: string): Promise<void> => {
+    // Store previous state for rollback
+    const previousAffiliates = [...affiliates];
+    const affiliate = affiliates.find((a) => a.id === affiliateId);
+    const affiliateName = affiliate?.fullName ?? 'Affiliate';
+
     try {
       setIsProcessing(true);
       setError(null);
       setSuccessMessage(null);
+
+      // Optimistic update: Remove affiliate from list immediately
+      setAffiliates((prev) => prev.filter((a) => a.id !== affiliateId));
+      setSuccessMessage(`Processing payment for ${affiliateName}...`);
 
       const response = await fetch('/api/disbursement/pay', {
         method: 'POST',
@@ -149,8 +130,12 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       const data = await response.json();
       setSuccessMessage(`Payment successful! Batch ID: ${data.result.batchId}`);
+      // Refresh to get updated data
       void fetchAffiliates();
     } catch (err) {
+      // Rollback on error
+      setAffiliates(previousAffiliates);
+      setSuccessMessage(null);
       setError(err instanceof Error ? err.message : 'Payment failed');
     } finally {
       setIsProcessing(false);
@@ -160,16 +145,28 @@ export default function PayableAffiliatesPage(): React.ReactElement {
   const handleCreateBatch = async (): Promise<void> => {
     if (selectedAffiliates.size === 0) return;
 
+    // Store previous state for rollback
+    const previousAffiliates = [...affiliates];
+    const selectedIds = Array.from(selectedAffiliates);
+    const selectedCount = selectedAffiliates.size;
+
     try {
       setIsProcessing(true);
       setError(null);
       setSuccessMessage(null);
 
+      // Optimistic update: Remove selected affiliates from list immediately
+      setAffiliates((prev) =>
+        prev.filter((a) => !selectedAffiliates.has(a.id))
+      );
+      setSelectedAffiliates(new Set());
+      setSuccessMessage(`Creating batch for ${selectedCount} affiliates...`);
+
       const response = await fetch('/api/disbursement/batches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          affiliateIds: Array.from(selectedAffiliates),
+          affiliateIds: selectedIds,
         }),
       });
 
@@ -180,9 +177,13 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       const data = await response.json();
       setSuccessMessage(`Batch created! ID: ${data.batch.id}`);
-      setSelectedAffiliates(new Set());
+      // Refresh to get updated data
       void fetchAffiliates();
     } catch (err) {
+      // Rollback on error
+      setAffiliates(previousAffiliates);
+      setSelectedAffiliates(new Set(selectedIds));
+      setSuccessMessage(null);
       setError(err instanceof Error ? err.message : 'Failed to create batch');
     } finally {
       setIsProcessing(false);
@@ -397,7 +398,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                           : '-'}
                       </td>
                       <td className="py-3 px-4">
-                        {getKycStatusBadge(affiliate.riseAccount.kycStatus)}
+                        <KycStatusBadge status={affiliate.riseAccount.kycStatus} />
                       </td>
                       <td className="py-3 px-4 text-right">
                         <Button
@@ -484,7 +485,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                         {affiliate.pendingCommissionCount}
                       </td>
                       <td className="py-3 px-4">
-                        {getKycStatusBadge(affiliate.riseAccount.kycStatus)}
+                        <KycStatusBadge status={affiliate.riseAccount.kycStatus} />
                       </td>
                       <td className="py-3 px-4 text-gray-400 text-sm">
                         {!affiliate.riseAccount.hasAccount
