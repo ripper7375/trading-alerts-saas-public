@@ -64,7 +64,9 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/affiliates/reports/commission-owings?page=${page}`);
+      const response = await fetch(
+        `/api/admin/affiliates/reports/commission-owings?page=${page}`
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch commission owings report');
@@ -83,8 +85,13 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
     fetchReport();
   }, [fetchReport]);
 
-  const handlePayCommissions = async (affiliateId: string, fullName: string): Promise<void> => {
-    const paymentMethod = prompt('Enter payment method (e.g., PayPal, Bank Transfer):');
+  const handlePayCommissions = async (
+    affiliateId: string,
+    fullName: string
+  ): Promise<void> => {
+    const paymentMethod = prompt(
+      'Enter payment method (e.g., PayPal, Bank Transfer):'
+    );
     if (!paymentMethod) return;
 
     const paymentReference = prompt('Enter payment reference/transaction ID:');
@@ -139,8 +146,12 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">Commission Owings Report</h1>
-        <p className="text-gray-600">Affiliates with pending commissions ready for payout</p>
+        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+          Commission Owings Report
+        </h1>
+        <p className="text-gray-600">
+          Affiliates with pending commissions ready for payout
+        </p>
       </div>
 
       {/* Error State */}
@@ -167,13 +178,17 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Affiliates Owed</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Affiliates Owed
+              </h3>
               <p className="mt-2 text-3xl font-bold text-gray-900">
                 {report.summary.totalAffiliatesOwed}
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Ready for Payout</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Ready for Payout
+              </h3>
               <p className="mt-2 text-3xl font-bold text-green-600">
                 {report.summary.affiliatesReadyForPayout}
               </p>
@@ -182,7 +197,9 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Min Payout Threshold</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Min Payout Threshold
+              </h3>
               <p className="mt-2 text-3xl font-bold text-blue-600">
                 {formatCurrency(report.summary.minimumPayoutThreshold)}
               </p>
@@ -192,7 +209,9 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
           {/* Affiliates Table */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Affiliates with Pending Commissions</h2>
+              <h2 className="text-lg font-semibold">
+                Affiliates with Pending Commissions
+              </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -227,7 +246,10 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {report.affiliates.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                      <td
+                        colSpan={8}
+                        className="px-6 py-12 text-center text-gray-500"
+                      >
                         No affiliates with pending commissions above threshold
                       </td>
                     </tr>
@@ -236,18 +258,28 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                       <tr key={affiliate.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div>
-                            <div className="font-medium text-gray-900">{affiliate.fullName}</div>
-                            <div className="text-sm text-gray-500">{affiliate.email}</div>
+                            <div className="font-medium text-gray-900">
+                              {affiliate.fullName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {affiliate.email}
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-700">{affiliate.country}</td>
-                        <td className="px-6 py-4 text-gray-700">{affiliate.paymentMethod}</td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {affiliate.country}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {affiliate.paymentMethod}
+                        </td>
                         <td className="px-6 py-4">
                           <span className="text-lg font-semibold text-orange-600">
                             {formatCurrency(affiliate.balance.pending)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-gray-700">{affiliate.pendingCount}</td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {affiliate.pendingCount}
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {formatDate(affiliate.oldestPendingDate)}
                         </td>
@@ -272,11 +304,18 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                             </Link>
                             {affiliate.readyForPayout && (
                               <button
-                                onClick={() => handlePayCommissions(affiliate.id, affiliate.fullName)}
+                                onClick={() =>
+                                  handlePayCommissions(
+                                    affiliate.id,
+                                    affiliate.fullName
+                                  )
+                                }
                                 disabled={actionLoading === affiliate.id}
                                 className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
                               >
-                                {actionLoading === affiliate.id ? 'Processing...' : 'Pay'}
+                                {actionLoading === affiliate.id
+                                  ? 'Processing...'
+                                  : 'Pay'}
                               </button>
                             )}
                           </div>
@@ -292,7 +331,9 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
             {report.pagination.totalPages > 1 && (
               <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
                 <div className="text-sm text-gray-700">
-                  Page {report.pagination.page} of {report.pagination.totalPages} ({report.pagination.total} total)
+                  Page {report.pagination.page} of{' '}
+                  {report.pagination.totalPages} ({report.pagination.total}{' '}
+                  total)
                 </div>
                 <div className="flex space-x-2">
                   <button
@@ -303,7 +344,9 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                     Previous
                   </button>
                   <button
-                    onClick={() => setPage(Math.min(report.pagination.totalPages, page + 1))}
+                    onClick={() =>
+                      setPage(Math.min(report.pagination.totalPages, page + 1))
+                    }
                     disabled={page === report.pagination.totalPages}
                     className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50"
                   >

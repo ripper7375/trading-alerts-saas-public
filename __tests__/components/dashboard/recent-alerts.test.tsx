@@ -13,7 +13,13 @@ import { RecentAlerts } from '@/components/dashboard/recent-alerts';
 
 // Mock next/link
 jest.mock('next/link', () => {
-  return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
+  return function MockLink({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) {
     return <a href={href}>{children}</a>;
   };
 });
@@ -26,8 +32,8 @@ const sampleAlerts = [
     title: 'XAUUSD Price Alert',
     symbol: 'XAUUSD',
     timeframe: 'H1',
-    targetPrice: 2050.00,
-    currentPrice: 2040.50,
+    targetPrice: 2050.0,
+    currentPrice: 2040.5,
     createdAt: '2024-01-15T10:00:00Z',
   },
   {
@@ -36,8 +42,8 @@ const sampleAlerts = [
     title: 'EURUSD Breakout',
     symbol: 'EURUSD',
     timeframe: 'M15',
-    targetPrice: 1.0900,
-    currentPrice: 1.0920,
+    targetPrice: 1.09,
+    currentPrice: 1.092,
     createdAt: '2024-01-15T09:30:00Z',
   },
   {
@@ -46,8 +52,8 @@ const sampleAlerts = [
     title: 'GBPUSD Support',
     symbol: 'GBPUSD',
     timeframe: 'D1',
-    targetPrice: 1.2600,
-    currentPrice: 1.2650,
+    targetPrice: 1.26,
+    currentPrice: 1.265,
     createdAt: '2024-01-15T08:00:00Z',
   },
 ];
@@ -152,8 +158,8 @@ describe('RecentAlerts Component', () => {
     it('should show negative distance in red', () => {
       const alertWithNegativeDistance = {
         ...sampleAlerts[0],
-        targetPrice: 2030.00,
-        currentPrice: 2040.50,
+        targetPrice: 2030.0,
+        currentPrice: 2040.5,
       };
 
       render(<RecentAlerts alerts={[alertWithNegativeDistance]} />);
@@ -177,7 +183,9 @@ describe('RecentAlerts Component', () => {
     it('should show CTA message in empty state', () => {
       render(<RecentAlerts alerts={[]} />);
 
-      expect(screen.getByText('Set up alerts to get notified of price movements')).toBeInTheDocument();
+      expect(
+        screen.getByText('Set up alerts to get notified of price movements')
+      ).toBeInTheDocument();
     });
 
     it('should show Create Alert button in empty state', () => {
@@ -189,7 +197,9 @@ describe('RecentAlerts Component', () => {
     it('should link create button to new alert page', () => {
       render(<RecentAlerts alerts={[]} />);
 
-      const createButton = screen.getByText('Create Your First Alert').closest('a');
+      const createButton = screen
+        .getByText('Create Your First Alert')
+        .closest('a');
       expect(createButton).toHaveAttribute('href', '/dashboard/alerts/new');
     });
 
@@ -280,7 +290,7 @@ describe('RecentAlerts Component', () => {
     it('should have accessible alert titles', () => {
       render(<RecentAlerts alerts={sampleAlerts} />);
 
-      sampleAlerts.forEach(alert => {
+      sampleAlerts.forEach((alert) => {
         expect(screen.getByText(alert.title)).toBeInTheDocument();
       });
     });

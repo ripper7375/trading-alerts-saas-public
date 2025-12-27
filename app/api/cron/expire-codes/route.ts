@@ -53,10 +53,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       console.warn('[CRON] Unauthorized cron request');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log('[CRON] Starting code expiry check...');
@@ -86,9 +83,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     console.error('[CRON] Expire codes error:', error);
-    return NextResponse.json(
-      { error: 'Cron job failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Cron job failed' }, { status: 500 });
   }
 }

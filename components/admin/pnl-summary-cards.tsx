@@ -41,8 +41,16 @@ export function PnLSummaryCards({
       title: 'Revenue',
       items: [
         { label: 'Gross Revenue', value: formatCurrency(grossRevenue) },
-        { label: `Discounts Given (${discountPercent}%)`, value: `-${formatCurrency(discounts)}`, className: 'text-orange-600' },
-        { label: 'Net Revenue', value: formatCurrency(netRevenue), className: 'font-semibold' },
+        {
+          label: `Discounts Given (${discountPercent}%)`,
+          value: `-${formatCurrency(discounts)}`,
+          className: 'text-orange-600',
+        },
+        {
+          label: 'Net Revenue',
+          value: formatCurrency(netRevenue),
+          className: 'font-semibold',
+        },
       ],
     },
     {
@@ -55,8 +63,16 @@ export function PnLSummaryCards({
     {
       title: 'Profit',
       items: [
-        { label: 'Net Profit', value: formatCurrency(netProfit), className: netProfit >= 0 ? 'text-green-600' : 'text-red-600' },
-        { label: 'Profit Margin', value: `${profitMargin.toFixed(1)}%`, className: profitMargin >= 0 ? 'text-green-600' : 'text-red-600' },
+        {
+          label: 'Net Profit',
+          value: formatCurrency(netProfit),
+          className: netProfit >= 0 ? 'text-green-600' : 'text-red-600',
+        },
+        {
+          label: 'Profit Margin',
+          value: `${profitMargin.toFixed(1)}%`,
+          className: profitMargin >= 0 ? 'text-green-600' : 'text-red-600',
+        },
       ],
     },
   ];
@@ -72,8 +88,12 @@ export function PnLSummaryCards({
             <dl className="space-y-2">
               {card.items.map((item) => (
                 <div key={item.label} className="flex justify-between">
-                  <dt className="text-sm text-muted-foreground">{item.label}</dt>
-                  <dd className={`text-sm ${item.className || ''}`}>{item.value}</dd>
+                  <dt className="text-sm text-muted-foreground">
+                    {item.label}
+                  </dt>
+                  <dd className={`text-sm ${item.className || ''}`}>
+                    {item.value}
+                  </dd>
                 </div>
               ))}
             </dl>

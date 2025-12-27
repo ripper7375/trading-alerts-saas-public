@@ -5,7 +5,10 @@
  */
 
 import type { DLocalCountry, PaymentMethodInfo } from '@/types/dlocal';
-import { getPaymentMethods as getCountryPaymentMethods, isDLocalCountry } from '@/lib/dlocal/constants';
+import {
+  getPaymentMethods as getCountryPaymentMethods,
+  isDLocalCountry,
+} from '@/lib/dlocal/constants';
 import { logger } from '@/lib/logger';
 
 /**
@@ -20,7 +23,10 @@ export async function getPaymentMethodsForCountry(
   }
 
   const methods = getCountryPaymentMethods(country);
-  logger.info('Retrieved payment methods', { country, methodCount: methods.length });
+  logger.info('Retrieved payment methods', {
+    country,
+    methodCount: methods.length,
+  });
 
   return methods;
 }
@@ -28,7 +34,10 @@ export async function getPaymentMethodsForCountry(
 /**
  * Validates if a payment method is available for a country
  */
-export function isValidPaymentMethod(country: DLocalCountry, method: string): boolean {
+export function isValidPaymentMethod(
+  country: DLocalCountry,
+  method: string
+): boolean {
   const methods = getCountryPaymentMethods(country);
   return methods.includes(method);
 }
@@ -56,11 +65,29 @@ export async function getPaymentMethodDetails(
  * Determines the type of payment method
  */
 function getPaymentMethodType(method: string): string {
-  const bankMethods = ['Net Banking', 'Bank Transfer', 'Instant EFT', 'EFT', 'USSD'];
+  const bankMethods = [
+    'Net Banking',
+    'Bank Transfer',
+    'Instant EFT',
+    'EFT',
+    'USSD',
+  ];
   const walletMethods = [
-    'UPI', 'Paytm', 'PhonePe', 'GoPay', 'OVO', 'Dana', 'ShopeePay',
-    'TrueMoney', 'Rabbit LINE Pay', 'VNPay', 'MoMo', 'ZaloPay',
-    'JazzCash', 'Easypaisa', 'Paystack',
+    'UPI',
+    'Paytm',
+    'PhonePe',
+    'GoPay',
+    'OVO',
+    'Dana',
+    'ShopeePay',
+    'TrueMoney',
+    'Rabbit LINE Pay',
+    'VNPay',
+    'MoMo',
+    'ZaloPay',
+    'JazzCash',
+    'Easypaisa',
+    'Paystack',
   ];
   const qrMethods = ['Thai QR'];
 

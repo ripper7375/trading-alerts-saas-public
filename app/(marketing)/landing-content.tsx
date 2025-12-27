@@ -10,11 +10,18 @@ export default function LandingPageContent(): React.ReactElement {
   const affiliateCode = searchParams.get('ref');
 
   // Get dynamic affiliate config from SystemConfig
-  const { discountPercent, commissionPercent, regularPrice, calculateDiscountedPrice } = useAffiliateConfig();
+  const {
+    discountPercent,
+    commissionPercent,
+    regularPrice,
+    calculateDiscountedPrice,
+  } = useAffiliateConfig();
 
   // Pricing calculation using SystemConfig values
   const discountedPrice = calculateDiscountedPrice(regularPrice);
-  const proPriceDisplay = affiliateCode ? `$${discountedPrice.toFixed(2)}` : `$${regularPrice}`;
+  const proPriceDisplay = affiliateCode
+    ? `$${discountedPrice.toFixed(2)}`
+    : `$${regularPrice}`;
   const discount = affiliateCode ? `${discountPercent}% OFF` : null;
   const commissionAmount = discountedPrice * (commissionPercent / 100);
 
@@ -29,7 +36,10 @@ export default function LandingPageContent(): React.ReactElement {
             <code className="bg-white/20 px-2 py-0.5 rounded font-mono text-xs">
               {affiliateCode}
             </code>{' '}
-            and get <span className="font-bold">{discountPercent}% off your first month!</span>
+            and get{' '}
+            <span className="font-bold">
+              {discountPercent}% off your first month!
+            </span>
           </p>
         </div>
       )}
@@ -479,8 +489,8 @@ export default function LandingPageContent(): React.ReactElement {
             Become an Affiliate Partner
           </h2>
           <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Earn {commissionPercent}% commission for every PRO subscriber you refer. No approval
-            required.
+            Earn {commissionPercent}% commission for every PRO subscriber you
+            refer. No approval required.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">

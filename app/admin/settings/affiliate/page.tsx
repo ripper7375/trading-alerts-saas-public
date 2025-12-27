@@ -145,7 +145,8 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
           Affiliate Settings
         </h1>
         <p className="text-gray-600">
-          Configure discount and commission percentages for the affiliate program
+          Configure discount and commission percentages for the affiliate
+          program
         </p>
       </div>
 
@@ -191,7 +192,9 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   max="100"
                   step="0.1"
                   value={discountPercent}
-                  onChange={(e) => setDiscountPercent(parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    setDiscountPercent(parseFloat(e.target.value))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -220,7 +223,9 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   max="100"
                   step="0.1"
                   value={commissionPercent}
-                  onChange={(e) => setCommissionPercent(parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    setCommissionPercent(parseFloat(e.target.value))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -248,7 +253,9 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   min="1"
                   max="100"
                   value={codesPerMonth}
-                  onChange={(e) => setCodesPerMonth(parseInt(e.target.value, 10))}
+                  onChange={(e) =>
+                    setCodesPerMonth(parseInt(e.target.value, 10))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -326,16 +333,20 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                 <div className="flex justify-between text-orange-600">
                   <span>Discount ({discountPercent}%):</span>
                   <span className="font-medium">
-                    -${(basePrice * discountPercent / 100).toFixed(2)}
+                    -${((basePrice * discountPercent) / 100).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2">
                   <span className="text-gray-600">Customer Pays:</span>
-                  <span className="font-semibold">${exampleNetPrice.toFixed(2)}</span>
+                  <span className="font-semibold">
+                    ${exampleNetPrice.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-green-600">
                   <span>Affiliate Earns ({commissionPercent}%):</span>
-                  <span className="font-semibold">${exampleCommission.toFixed(2)}</span>
+                  <span className="font-semibold">
+                    ${exampleCommission.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-blue-600 border-t border-gray-200 pt-2">
                   <span>Company Revenue:</span>

@@ -56,12 +56,13 @@ const statusStyles: Record<CodeStatus, string> = {
  * <CodeTable codes={affiliateCodes} />
  * ```
  */
-export function CodeTable({ codes, className }: CodeTableProps): React.ReactElement {
+export function CodeTable({
+  codes,
+  className,
+}: CodeTableProps): React.ReactElement {
   if (codes.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        No codes available
-      </div>
+      <div className="text-center py-8 text-gray-500">No codes available</div>
     );
   }
 

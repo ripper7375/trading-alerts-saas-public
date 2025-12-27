@@ -89,7 +89,9 @@ jest.mock('@/lib/db/prisma', () => ({
       aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 500 } }),
     },
     commission: {
-      aggregate: jest.fn().mockResolvedValue({ _sum: { commissionAmount: 100 } }),
+      aggregate: jest
+        .fn()
+        .mockResolvedValue({ _sum: { commissionAmount: 100 } }),
     },
   },
 }));

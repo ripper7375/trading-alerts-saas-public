@@ -107,23 +107,23 @@ Add the following to `docs/files-completion-list/part-11-files-completion.md`:
 
 These client components are imported by the page components and provide interactive functionality:
 
-| # | File | Description | Status |
-|---|------|-------------|--------|
-| 11 | app/(dashboard)/alerts/alerts-client.tsx | Interactive alerts list with filtering, search, and actions | ✅ Complete |
-| 12 | app/(dashboard)/alerts/new/create-alert-client.tsx | Alert creation form with validation | ✅ Complete |
+| #   | File                                               | Description                                                 | Status      |
+| --- | -------------------------------------------------- | ----------------------------------------------------------- | ----------- |
+| 11  | app/(dashboard)/alerts/alerts-client.tsx           | Interactive alerts list with filtering, search, and actions | ✅ Complete |
+| 12  | app/(dashboard)/alerts/new/create-alert-client.tsx | Alert creation form with validation                         | ✅ Complete |
 ```
 
 ---
 
 ## Priority Order
 
-| Priority | Issue | Effort | Impact | Status |
-|----------|-------|--------|--------|--------|
-| ~~1~~ | ~~ESLint import order~~ | ~~1 min~~ | ~~Low - fixes warnings~~ | ✅ Done |
-| 1 | Documentation update | 5 min | Medium - improves accuracy | Pending |
-| 2 | Loading state for toggle | 15 min | Low - UX improvement | Optional |
-| 3 | Optimistic delete | 20 min | Low - UX improvement | Optional |
-| 4 | Zod client validation | 30 min | Low - already validated on API | Optional |
+| Priority | Issue                    | Effort    | Impact                         | Status   |
+| -------- | ------------------------ | --------- | ------------------------------ | -------- |
+| ~~1~~    | ~~ESLint import order~~  | ~~1 min~~ | ~~Low - fixes warnings~~       | ✅ Done  |
+| 1        | Documentation update     | 5 min     | Medium - improves accuracy     | Pending  |
+| 2        | Loading state for toggle | 15 min    | Low - UX improvement           | Optional |
+| 3        | Optimistic delete        | 20 min    | Low - UX improvement           | Optional |
+| 4        | Zod client validation    | 30 min    | Low - already validated on API | Optional |
 
 ---
 
@@ -142,6 +142,7 @@ npx tsc --noEmit --skipLibCheck 2>&1 | grep -E "use-alerts|alerts-client|create-
 ```
 
 ### Last Verification Run (2025-12-26):
+
 ```
 ✅ ESLint: 0 errors, 0 warnings
 ✅ TypeScript: No errors for Part 11 files

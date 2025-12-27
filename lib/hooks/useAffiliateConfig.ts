@@ -149,7 +149,8 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
 
   // Get current values with fallback to defaults
   const discountPercent = data?.discountPercent ?? DEFAULTS.discountPercent;
-  const commissionPercent = data?.commissionPercent ?? DEFAULTS.commissionPercent;
+  const commissionPercent =
+    data?.commissionPercent ?? DEFAULTS.commissionPercent;
   const codesPerMonth = data?.codesPerMonth ?? DEFAULTS.codesPerMonth;
   const regularPrice = data?.regularPrice ?? DEFAULTS.regularPrice;
 

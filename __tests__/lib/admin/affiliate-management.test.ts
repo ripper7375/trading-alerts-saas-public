@@ -30,11 +30,21 @@ describe('Admin Affiliate Management', () => {
   describe('getAffiliatesList', () => {
     it('should return paginated affiliates', async () => {
       const mockAffiliates = [
-        testFactories.createAffiliateProfile({ id: '1', fullName: 'John Doe', status: 'ACTIVE' }),
-        testFactories.createAffiliateProfile({ id: '2', fullName: 'Jane Smith', status: 'PENDING_VERIFICATION' }),
+        testFactories.createAffiliateProfile({
+          id: '1',
+          fullName: 'John Doe',
+          status: 'ACTIVE',
+        }),
+        testFactories.createAffiliateProfile({
+          id: '2',
+          fullName: 'Jane Smith',
+          status: 'PENDING_VERIFICATION',
+        }),
       ];
 
-      prismaMock.affiliateProfile.findMany.mockResolvedValue(mockAffiliates as never);
+      prismaMock.affiliateProfile.findMany.mockResolvedValue(
+        mockAffiliates as never
+      );
       prismaMock.affiliateProfile.count.mockResolvedValue(2);
 
       const result = await getAffiliatesList({ page: 1, limit: 20 });

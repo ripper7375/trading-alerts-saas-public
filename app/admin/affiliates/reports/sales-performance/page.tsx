@@ -52,14 +52,18 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
   const [report, setReport] = useState<SalesPerformanceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<'3months' | '6months' | '1year'>('3months');
+  const [period, setPeriod] = useState<'3months' | '6months' | '1year'>(
+    '3months'
+  );
 
   const fetchReport = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/affiliates/reports/sales-performance?period=${period}`);
+      const response = await fetch(
+        `/api/admin/affiliates/reports/sales-performance?period=${period}`
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch sales performance report');
@@ -100,8 +104,12 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">Sales Performance Report</h1>
-        <p className="text-gray-600">Top performing affiliates by conversions</p>
+        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+          Sales Performance Report
+        </h1>
+        <p className="text-gray-600">
+          Top performing affiliates by conversions
+        </p>
       </div>
 
       {/* Period Selector */}
@@ -117,7 +125,11 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                   : 'bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
-              {p === '3months' ? '3 Months' : p === '6months' ? '6 Months' : '1 Year'}
+              {p === '3months'
+                ? '3 Months'
+                : p === '6months'
+                  ? '6 Months'
+                  : '1 Year'}
             </button>
           ))}
         </div>
@@ -140,31 +152,40 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
         <>
           {/* Period Info */}
           <div className="bg-gray-50 px-4 py-3 rounded-lg mb-6 text-sm text-gray-600">
-            Report period: {formatDate(report.period.start)} - {formatDate(report.period.end)}
+            Report period: {formatDate(report.period.start)} -{' '}
+            {formatDate(report.period.end)}
           </div>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Active Affiliates</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Active Affiliates
+              </h3>
               <p className="mt-2 text-3xl font-bold text-gray-900">
                 {report.summary.totalAffiliates}
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Conversions</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Total Conversions
+              </h3>
               <p className="mt-2 text-3xl font-bold text-green-600">
                 {report.summary.totalConversions}
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Commissions</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Total Commissions
+              </h3>
               <p className="mt-2 text-3xl font-bold text-blue-600">
                 {formatCurrency(report.summary.totalCommissionsEarned)}
               </p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Avg per Affiliate</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Avg per Affiliate
+              </h3>
               <p className="mt-2 text-3xl font-bold text-purple-600">
                 {report.summary.averageConversionsPerAffiliate}
               </p>
@@ -210,7 +231,10 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {report.topPerformers.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                      <td
+                        colSpan={8}
+                        className="px-6 py-12 text-center text-gray-500"
+                      >
                         No affiliates with conversions in this period
                       </td>
                     </tr>
@@ -234,25 +258,34 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                         </td>
                         <td className="px-6 py-4">
                           <div>
-                            <div className="font-medium text-gray-900">{performer.fullName}</div>
-                            <div className="text-sm text-gray-500">{performer.email}</div>
+                            <div className="font-medium text-gray-900">
+                              {performer.fullName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {performer.email}
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-700">{performer.country}</td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {performer.country}
+                        </td>
                         <td className="px-6 py-4">
                           <span className="text-lg font-semibold text-green-600">
                             {performer.metrics.conversionsPeriod}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-700">
-                          {performer.metrics.codesUsed} / {performer.metrics.codesDistributed}
+                          {performer.metrics.codesUsed} /{' '}
+                          {performer.metrics.codesDistributed}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center">
                             <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                               <div
                                 className="bg-green-500 h-2 rounded-full"
-                                style={{ width: `${Math.min(performer.metrics.conversionRate, 100)}%` }}
+                                style={{
+                                  width: `${Math.min(performer.metrics.conversionRate, 100)}%`,
+                                }}
                               ></div>
                             </div>
                             <span className="text-sm text-gray-700">

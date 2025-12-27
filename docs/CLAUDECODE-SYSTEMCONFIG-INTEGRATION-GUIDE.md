@@ -104,13 +104,13 @@ export default function Component() {
 
 ### API Endpoints in Part 17
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/admin/system-config` | GET | List all system configurations |
-| `/api/admin/system-config/{key}` | GET | Get specific config by key |
-| `/api/admin/system-config/{key}` | PUT | Update config (with audit trail) |
-| `/api/admin/system-config/history` | GET | View configuration change history |
-| `/api/config/affiliate` | GET | Public endpoint for frontend (cached) |
+| Endpoint                           | Method | Purpose                               |
+| ---------------------------------- | ------ | ------------------------------------- |
+| `/api/admin/system-config`         | GET    | List all system configurations        |
+| `/api/admin/system-config/{key}`   | GET    | Get specific config by key            |
+| `/api/admin/system-config/{key}`   | PUT    | Update config (with audit trail)      |
+| `/api/admin/system-config/history` | GET    | View configuration change history     |
+| `/api/config/affiliate`            | GET    | Public endpoint for frontend (cached) |
 
 ---
 
@@ -152,14 +152,14 @@ When admin changes %discount or %commission in Part 17, the new values **automat
 
 They MUST use the SystemConfig integration:
 
-| Part | Files to Check | What to Replace |
-|------|----------------|-----------------|
-| Part 5 | Pricing components | Hardcoded `20%`, `$23.20` |
-| Part 8 | Checkout page | Hardcoded discount calculations |
-| Part 9 | Billing dashboard | Hardcoded subscription prices |
+| Part    | Files to Check           | What to Replace                            |
+| ------- | ------------------------ | ------------------------------------------ |
+| Part 5  | Pricing components       | Hardcoded `20%`, `$23.20`                  |
+| Part 8  | Checkout page            | Hardcoded discount calculations            |
+| Part 9  | Billing dashboard        | Hardcoded subscription prices              |
 | Part 12 | E-commerce/billing pages | Hardcoded discount prompts, price displays |
-| Part 14 | Admin overview | Hardcoded metrics/percentages |
-| Part 18 | Marketing pages | Hardcoded promotional text |
+| Part 14 | Admin overview           | Hardcoded metrics/percentages              |
+| Part 18 | Marketing pages          | Hardcoded promotional text                 |
 
 ### Part 12 (E-commerce & Billing) - Special Importance
 
@@ -219,8 +219,8 @@ import { getAffiliateConfigFromDB } from '@/lib/affiliate/constants';
 export async function GET(request: Request) {
   const config = await getAffiliateConfigFromDB();
 
-  const discount = config.discountPercent;  // Current value from Part 17
-  const commission = config.commissionPercent;  // Current value from Part 17
+  const discount = config.discountPercent; // Current value from Part 17
+  const commission = config.commissionPercent; // Current value from Part 17
 
   // Use dynamic values...
 }
@@ -255,6 +255,7 @@ export async function GET(request: Request) {
 ```
 
 This ensures:
+
 - ✅ **Customer Trust**: Discount promised when code was issued is honored
 - ✅ **Affiliate Trust**: Commission rate promised when code was issued is honored
 - ✅ **Business Flexibility**: New codes use updated rates
@@ -280,7 +281,7 @@ Step 6: Repeat for next page
 
 ### Use this prompt with Claude Code (web):
 
-```markdown
+````markdown
 Please update the file `[FILE_PATH]` to use dynamic affiliate discount and commission percentages from our SystemConfig system instead of hardcoded values.
 
 ## Context
@@ -305,6 +306,7 @@ This component has hardcoded percentages (20%, 20%, $23.20, etc.) that need to b
 ```typescript
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 ```
+````
 
 **Hook usage pattern:**
 
@@ -343,6 +345,7 @@ Please update the component with:
 - Only change the data source from hardcoded to dynamic
 - Ensure the component is a client component ('use client')
 - Do NOT change component structure, props, or exports
+
 ```
 
 ---
@@ -355,8 +358,10 @@ Please update the component with:
 
 Example:
 ```
+
 Please update the file `components/pricing-section.tsx` to use dynamic affiliate...
-```
+
+````
 
 **Step 3: Claude Code will:**
 - Read the file automatically
@@ -391,7 +396,7 @@ Please read `docs/SYSTEMCONFIG-USAGE-GUIDE.md` which explains our centralized co
 
 ```typescript
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
-```
+````
 
 **2. Use the hook in component:**
 
@@ -451,7 +456,8 @@ Please provide a complete Next.js 15 client component that:
 3. Matches the design requirements
 4. Is fully responsive
 5. Includes loading and error states (from the hook)
-```
+
+````
 
 ---
 
@@ -502,7 +508,7 @@ Please revise the component to use the dynamic values from useAffiliateConfig ho
 - Replace "$5.80" with ${(29.00 - calculateDiscountedPrice(29.00)).toFixed(2)}
 
 The component should display different values if admin changes the percentages from 20%/20% to 25%/25% or any other combination.
-```
+````
 
 ---
 
@@ -888,6 +894,7 @@ Please update the file `components/affiliate/earnings-widget.tsx` to use dynamic
 Read `docs/SYSTEMCONFIG-USAGE-GUIDE.md` for context.
 
 Replace:
+
 - Hardcoded commission percentage (20%)
 - Hardcoded price calculations ($4.64)
 
@@ -971,6 +978,7 @@ Please create a new checkout summary component at `components/checkout-summary.t
 3. Reads `docs/SYSTEMCONFIG-USAGE-GUIDE.md` for the pattern
 
 Props:
+
 - hasCode: boolean (whether affiliate code is applied)
 
 Must use useAffiliateConfig hook - no hardcoded percentages or prices.
@@ -1172,7 +1180,7 @@ I see the code still has hardcoded values. Please review `docs/SYSTEMCONFIG-USAG
    - "20%" (commission) → `{commissionPercent}%`
    - "$23.20" → `${calculateDiscountedPrice(29.00).toFixed(2)}`
    - "$5.80" → `${(29.00 - calculateDiscountedPrice(29.00)).toFixed(2)}`
-   - "$4.64" → `${(calculateDiscountedPrice(29.00) * (commissionPercent / 100)).toFixed(2)}`
+   - "$4.64" → `${(calculateDiscountedPrice(29.00) \* (commissionPercent / 100)).toFixed(2)}`
 
 Please provide the complete updated component with NO hardcoded percentages or prices.
 ```
@@ -1184,21 +1192,25 @@ Please provide the complete updated component with NO hardcoded percentages or p
 **Compared to previous v0.dev workflow:**
 
 ✅ **Direct File Access**
+
 - Claude Code reads files directly from your project
 - No need to manually upload guide documents
 - Seamless integration with your codebase
 
 ✅ **In-Place Editing**
+
 - Claude Code edits files directly in your project
 - No copy/paste needed
 - See diffs before approving changes
 
 ✅ **Context Awareness**
+
 - Claude Code understands your full project structure
 - Can reference other files and patterns
 - More consistent code generation
 
 ✅ **Interactive Workflow**
+
 - Ask follow-up questions immediately
 - Iterate on changes quickly
 - Real-time verification

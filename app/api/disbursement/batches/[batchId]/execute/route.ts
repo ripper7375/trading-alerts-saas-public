@@ -13,7 +13,10 @@ import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { PaymentOrchestrator } from '@/lib/disbursement/services/payment-orchestrator';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
-import { createPaymentProvider, isProviderAvailable } from '@/lib/disbursement/providers/provider-factory';
+import {
+  createPaymentProvider,
+  isProviderAvailable,
+} from '@/lib/disbursement/providers/provider-factory';
 
 interface RouteContext {
   params: Promise<{ batchId: string }>;
@@ -46,10 +49,7 @@ export async function POST(
     const batch = await batchManager.getBatchById(batchId);
 
     if (!batch) {
-      return NextResponse.json(
-        { error: 'Batch not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
     }
 
     // Check batch status
@@ -68,7 +68,8 @@ export async function POST(
       return NextResponse.json(
         {
           error: `Provider ${batch.provider} is not available`,
-          details: 'The selected payment provider is not implemented or unavailable',
+          details:
+            'The selected payment provider is not implemented or unavailable',
         },
         { status: 400 }
       );
@@ -131,16 +132,10 @@ export async function POST(
     // Handle specific error types
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 404 });
       }
       if (error.message.includes('Cannot execute')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
 

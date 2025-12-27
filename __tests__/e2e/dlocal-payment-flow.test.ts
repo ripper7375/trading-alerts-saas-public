@@ -15,11 +15,31 @@
  */
 
 import { detectCountry } from '@/lib/geo/detect-country';
-import { convertUSDToLocal, clearExchangeRateCache } from '@/lib/dlocal/currency-converter.service';
-import { getPaymentMethodsForCountry, isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
-import { createPayment, verifyWebhookSignature, mapDLocalStatus } from '@/lib/dlocal/dlocal-payment.service';
-import { canPurchaseThreeDayPlan, markThreeDayPlanUsed } from '@/lib/dlocal/three-day-validator.service';
-import { isDLocalCountry, getCurrency, getPriceUSD, getPlanDuration, PRICING, DLOCAL_SUPPORTED_COUNTRIES } from '@/lib/dlocal/constants';
+import {
+  convertUSDToLocal,
+  clearExchangeRateCache,
+} from '@/lib/dlocal/currency-converter.service';
+import {
+  getPaymentMethodsForCountry,
+  isValidPaymentMethod,
+} from '@/lib/dlocal/payment-methods.service';
+import {
+  createPayment,
+  verifyWebhookSignature,
+  mapDLocalStatus,
+} from '@/lib/dlocal/dlocal-payment.service';
+import {
+  canPurchaseThreeDayPlan,
+  markThreeDayPlanUsed,
+} from '@/lib/dlocal/three-day-validator.service';
+import {
+  isDLocalCountry,
+  getCurrency,
+  getPriceUSD,
+  getPlanDuration,
+  PRICING,
+  DLOCAL_SUPPORTED_COUNTRIES,
+} from '@/lib/dlocal/constants';
 import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
 import crypto from 'crypto';
 
@@ -106,12 +126,12 @@ describe('E2E: dLocal Payment Flow', () => {
       // Mock exchange rate API
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { INR: 83.50 } }),
+        json: async () => ({ rates: { INR: 83.5 } }),
       });
 
       const conversion = await convertUSDToLocal(usdPrice, currency);
       expect(conversion.localAmount).toBeCloseTo(166.165, 1);
-      expect(conversion.exchangeRate).toBe(83.50);
+      expect(conversion.exchangeRate).toBe(83.5);
       expect(conversion.currency).toBe('INR');
 
       // Step 6: Create payment
@@ -165,7 +185,8 @@ describe('E2E: dLocal Payment Flow', () => {
       const originalPrice = getPriceUSD(planType);
       expect(originalPrice).toBe(29.0);
 
-      const discountedPrice = originalPrice * (1 - discountResult.discountPercent / 100);
+      const discountedPrice =
+        originalPrice * (1 - discountResult.discountPercent / 100);
       expect(discountedPrice).toBe(26.1);
 
       // Step 5: Convert to local currency
@@ -262,7 +283,11 @@ describe('E2E: dLocal Payment Flow', () => {
         .digest('hex');
 
       // Verify webhook signature
-      const isValid = verifyWebhookSignature(payload, signature, WEBHOOK_SECRET);
+      const isValid = verifyWebhookSignature(
+        payload,
+        signature,
+        WEBHOOK_SECRET
+      );
       expect(isValid).toBe(true);
 
       // Map dLocal status to internal status
@@ -304,7 +329,9 @@ describe('E2E: dLocal Payment Flow', () => {
         .update(payload)
         .digest('hex');
 
-      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(true);
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
       expect(mapDLocalStatus(webhookPayload.status)).toBe('FAILED');
     });
 
@@ -312,7 +339,9 @@ describe('E2E: dLocal Payment Flow', () => {
       const payload = JSON.stringify({ id: 'pay-123', status: 'PAID' });
       const invalidSignature = 'tampered-signature';
 
-      expect(verifyWebhookSignature(payload, invalidSignature, WEBHOOK_SECRET)).toBe(false);
+      expect(
+        verifyWebhookSignature(payload, invalidSignature, WEBHOOK_SECRET)
+      ).toBe(false);
     });
 
     it('should detect tampered webhook payload', () => {
@@ -333,7 +362,9 @@ describe('E2E: dLocal Payment Flow', () => {
         amount: 290.0, // Tampered amount
       });
 
-      expect(verifyWebhookSignature(tamperedPayload, signature, WEBHOOK_SECRET)).toBe(false);
+      expect(
+        verifyWebhookSignature(tamperedPayload, signature, WEBHOOK_SECRET)
+      ).toBe(false);
     });
   });
 
@@ -347,12 +378,28 @@ describe('E2E: dLocal Payment Flow', () => {
       currency: DLocalCurrency;
       expectedMethods: string[];
     }> = [
-      { country: 'IN', currency: 'INR', expectedMethods: ['UPI', 'Paytm', 'PhonePe'] },
+      {
+        country: 'IN',
+        currency: 'INR',
+        expectedMethods: ['UPI', 'Paytm', 'PhonePe'],
+      },
       { country: 'NG', currency: 'NGN', expectedMethods: ['Bank Transfer'] },
-      { country: 'PK', currency: 'PKR', expectedMethods: ['JazzCash', 'Easypaisa'] },
+      {
+        country: 'PK',
+        currency: 'PKR',
+        expectedMethods: ['JazzCash', 'Easypaisa'],
+      },
       { country: 'VN', currency: 'VND', expectedMethods: ['MoMo', 'VNPay'] },
-      { country: 'ID', currency: 'IDR', expectedMethods: ['OVO', 'GoPay', 'Dana'] },
-      { country: 'TH', currency: 'THB', expectedMethods: ['TrueMoney', 'Thai QR'] },
+      {
+        country: 'ID',
+        currency: 'IDR',
+        expectedMethods: ['OVO', 'GoPay', 'Dana'],
+      },
+      {
+        country: 'TH',
+        currency: 'THB',
+        expectedMethods: ['TrueMoney', 'Thai QR'],
+      },
       { country: 'ZA', currency: 'ZAR', expectedMethods: ['Instant EFT'] },
       { country: 'TR', currency: 'TRY', expectedMethods: ['Bank Transfer'] },
     ];

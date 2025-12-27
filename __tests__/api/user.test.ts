@@ -54,7 +54,10 @@ jest.mock('@/lib/preferences/defaults', () => ({
     timezone: 'UTC',
     emailNotifications: true,
   },
-  mergePreferences: (defaults: Record<string, unknown>, stored: Record<string, unknown>) => ({
+  mergePreferences: (
+    defaults: Record<string, unknown>,
+    stored: Record<string, unknown>
+  ) => ({
     ...defaults,
     ...stored,
   }),
@@ -77,8 +80,14 @@ function createMockRequest(
 }
 
 // Import routes after mocks
-import { GET as getProfile, PATCH as patchProfile } from '@/app/api/user/profile/route';
-import { GET as getPreferences, PUT as putPreferences } from '@/app/api/user/preferences/route';
+import {
+  GET as getProfile,
+  PATCH as patchProfile,
+} from '@/app/api/user/profile/route';
+import {
+  GET as getPreferences,
+  PUT as putPreferences,
+} from '@/app/api/user/preferences/route';
 import { POST as changePassword } from '@/app/api/user/password/route';
 
 describe('User Settings API', () => {
@@ -204,7 +213,9 @@ describe('User Settings API', () => {
 
       mockUserFindUnique.mockResolvedValue({ id: 'other-user' });
 
-      const request = createMockRequest('PATCH', { email: 'existing@example.com' });
+      const request = createMockRequest('PATCH', {
+        email: 'existing@example.com',
+      });
       const response = await patchProfile(request);
       const data = await response.json();
 
@@ -456,7 +467,9 @@ describe('User Settings API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('New password must be different from current password');
+      expect(data.error).toBe(
+        'New password must be different from current password'
+      );
     });
   });
 });

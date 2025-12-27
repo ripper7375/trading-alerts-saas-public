@@ -19,7 +19,14 @@ import type { DLocalCurrency } from '@/types/dlocal';
 export const dynamic = 'force-dynamic';
 
 const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
-  'INR', 'NGN', 'PKR', 'VND', 'IDR', 'THB', 'ZAR', 'TRY'
+  'INR',
+  'NGN',
+  'PKR',
+  'VND',
+  'IDR',
+  'THB',
+  'ZAR',
+  'TRY',
 ];
 
 function isSupportedCurrency(currency: string): currency is DLocalCurrency {
@@ -43,7 +50,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'Invalid or unsupported currency',
-          supportedCurrencies: SUPPORTED_CURRENCIES
+          supportedCurrencies: SUPPORTED_CURRENCIES,
         },
         { status: 400 }
       );

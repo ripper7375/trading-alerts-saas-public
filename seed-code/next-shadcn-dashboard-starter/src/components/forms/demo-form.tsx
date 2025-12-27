@@ -293,7 +293,7 @@ export default function DemoForm() {
           <CardTitle>Form Data Preview</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className='bg-muted overflow-auto rounded-lg p-4 text-sm'>
+          <pre className='overflow-auto rounded-lg bg-muted p-4 text-sm'>
             {JSON.stringify(form.watch(), null, 2)}
           </pre>
         </CardContent>

@@ -58,7 +58,9 @@ describe('AffiliateFilters Component', () => {
     });
 
     it('should show PENDING_VERIFICATION status option', () => {
-      render(<AffiliateFilters {...mockHandlers} status="PENDING_VERIFICATION" />);
+      render(
+        <AffiliateFilters {...mockHandlers} status="PENDING_VERIFICATION" />
+      );
       expect(screen.getByText('Pending Verification')).toBeInTheDocument();
     });
 
@@ -103,7 +105,9 @@ describe('AffiliateFilters Component', () => {
   // ============================================================================
   describe('payment method filter', () => {
     it('should show BANK_TRANSFER option', () => {
-      render(<AffiliateFilters {...mockHandlers} paymentMethod="BANK_TRANSFER" />);
+      render(
+        <AffiliateFilters {...mockHandlers} paymentMethod="BANK_TRANSFER" />
+      );
       expect(screen.getByText('Bank Transfer')).toBeInTheDocument();
     });
 
@@ -113,7 +117,9 @@ describe('AffiliateFilters Component', () => {
     });
 
     it('should show CRYPTOCURRENCY option', () => {
-      render(<AffiliateFilters {...mockHandlers} paymentMethod="CRYPTOCURRENCY" />);
+      render(
+        <AffiliateFilters {...mockHandlers} paymentMethod="CRYPTOCURRENCY" />
+      );
       expect(screen.getByText('Cryptocurrency')).toBeInTheDocument();
     });
 
@@ -155,8 +161,10 @@ describe('AffiliateFilters Component', () => {
 
     it('should have fixed width triggers', () => {
       const { container } = render(<AffiliateFilters {...mockHandlers} />);
-      const triggers = container.querySelectorAll('[data-slot="select-trigger"]');
-      triggers.forEach(trigger => {
+      const triggers = container.querySelectorAll(
+        '[data-slot="select-trigger"]'
+      );
+      triggers.forEach((trigger) => {
         expect(trigger).toHaveClass('w-[180px]');
       });
     });

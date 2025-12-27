@@ -23,7 +23,10 @@ interface PnLTrendChartProps {
   title?: string;
 }
 
-export function PnLTrendChart({ data, title = 'Profit Trend' }: PnLTrendChartProps) {
+export function PnLTrendChart({
+  data,
+  title = 'Profit Trend',
+}: PnLTrendChartProps) {
   if (data.length === 0) {
     return (
       <Card>
@@ -39,7 +42,9 @@ export function PnLTrendChart({ data, title = 'Profit Trend' }: PnLTrendChartPro
     );
   }
 
-  const maxValue = Math.max(...data.flatMap((d) => [d.revenue, d.costs, d.profit]));
+  const maxValue = Math.max(
+    ...data.flatMap((d) => [d.revenue, d.costs, d.profit])
+  );
   const minValue = Math.min(...data.map((d) => d.profit), 0);
   const range = maxValue - minValue || 1;
 
@@ -56,7 +61,10 @@ export function PnLTrendChart({ data, title = 'Profit Trend' }: PnLTrendChartPro
 
   const createPath = (values: number[]) => {
     return values
-      .map((value, i) => `${i === 0 ? 'M' : 'L'} ${padding.left + i * xStep} ${getY(value)}`)
+      .map(
+        (value, i) =>
+          `${i === 0 ? 'M' : 'L'} ${padding.left + i * xStep} ${getY(value)}`
+      )
       .join(' ');
   };
 
@@ -67,7 +75,11 @@ export function PnLTrendChart({ data, title = 'Profit Trend' }: PnLTrendChartPro
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <svg width={chartWidth} height={chartHeight} className="min-w-[600px]">
+          <svg
+            width={chartWidth}
+            height={chartHeight}
+            className="min-w-[600px]"
+          >
             {/* Grid lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
               <line
@@ -133,11 +145,17 @@ export function PnLTrendChart({ data, title = 'Profit Trend' }: PnLTrendChartPro
             {/* Legend */}
             <g transform={`translate(${padding.left}, ${chartHeight - 5})`}>
               <circle cx={0} cy={-25} r={4} fill="#3b82f6" />
-              <text x={10} y={-21} className="fill-muted-foreground text-xs">Revenue</text>
+              <text x={10} y={-21} className="fill-muted-foreground text-xs">
+                Revenue
+              </text>
               <circle cx={80} cy={-25} r={4} fill="#f97316" />
-              <text x={90} y={-21} className="fill-muted-foreground text-xs">Costs</text>
+              <text x={90} y={-21} className="fill-muted-foreground text-xs">
+                Costs
+              </text>
               <circle cx={140} cy={-25} r={4} fill="#22c55e" />
-              <text x={150} y={-21} className="fill-muted-foreground text-xs">Profit</text>
+              <text x={150} y={-21} className="fill-muted-foreground text-xs">
+                Profit
+              </text>
             </g>
           </svg>
         </div>

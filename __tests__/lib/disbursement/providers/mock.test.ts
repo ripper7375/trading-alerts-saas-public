@@ -202,7 +202,9 @@ describe('MockPaymentProvider', () => {
       };
 
       const paymentResult = await provider.sendPayment(request);
-      const status = await provider.getPaymentStatus(paymentResult.transactionId);
+      const status = await provider.getPaymentStatus(
+        paymentResult.transactionId
+      );
 
       expect(status).toBe('COMPLETED');
     });

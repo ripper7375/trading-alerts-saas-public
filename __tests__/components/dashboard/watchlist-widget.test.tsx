@@ -13,8 +13,20 @@ import { WatchlistWidget } from '@/components/dashboard/watchlist-widget';
 
 // Mock next/link
 jest.mock('next/link', () => {
-  return function MockLink({ children, href, className }: { children: React.ReactNode; href: string; className?: string }) {
-    return <a href={href} className={className}>{children}</a>;
+  return function MockLink({
+    children,
+    href,
+    className,
+  }: {
+    children: React.ReactNode;
+    href: string;
+    className?: string;
+  }) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
   };
 });
 
@@ -24,8 +36,8 @@ const sampleItems = [
     id: 'item-1',
     symbol: 'XAUUSD',
     timeframe: 'H1',
-    currentPrice: 2040.50,
-    change: 15.20,
+    currentPrice: 2040.5,
+    change: 15.2,
     changePercent: 0.75,
     status: 'approaching' as const,
     lastUpdated: '2024-01-15T10:00:00Z',
@@ -34,8 +46,8 @@ const sampleItems = [
     id: 'item-2',
     symbol: 'EURUSD',
     timeframe: 'M15',
-    currentPrice: 1.0850,
-    change: -0.0020,
+    currentPrice: 1.085,
+    change: -0.002,
     changePercent: -0.18,
     status: 'neutral' as const,
     lastUpdated: '2024-01-15T09:45:00Z',
@@ -44,9 +56,9 @@ const sampleItems = [
     id: 'item-3',
     symbol: 'GBPUSD',
     timeframe: 'D1',
-    currentPrice: 1.2650,
-    change: 0.0050,
-    changePercent: 0.40,
+    currentPrice: 1.265,
+    change: 0.005,
+    changePercent: 0.4,
     status: 'away' as const,
     lastUpdated: '2024-01-15T09:30:00Z',
   },
@@ -188,7 +200,9 @@ describe('WatchlistWidget Component', () => {
     it('should show CTA message in empty state', () => {
       render(<WatchlistWidget items={[]} />);
 
-      expect(screen.getByText('Add symbols to track their price movements')).toBeInTheDocument();
+      expect(
+        screen.getByText('Add symbols to track their price movements')
+      ).toBeInTheDocument();
     });
 
     it('should show Add Symbol button in empty state', () => {
@@ -257,13 +271,17 @@ describe('WatchlistWidget Component', () => {
     it('should show prices updated message when items exist', () => {
       render(<WatchlistWidget items={sampleItems} />);
 
-      expect(screen.getByText('Prices updated automatically')).toBeInTheDocument();
+      expect(
+        screen.getByText('Prices updated automatically')
+      ).toBeInTheDocument();
     });
 
     it('should not show update message in empty state', () => {
       render(<WatchlistWidget items={[]} />);
 
-      expect(screen.queryByText('Prices updated automatically')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Prices updated automatically')
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -331,7 +349,7 @@ describe('WatchlistWidget Component', () => {
     it('should have accessible symbol names', () => {
       render(<WatchlistWidget items={sampleItems} />);
 
-      sampleItems.forEach(item => {
+      sampleItems.forEach((item) => {
         expect(screen.getByText(item.symbol)).toBeInTheDocument();
       });
     });

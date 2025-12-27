@@ -50,7 +50,9 @@ export function PayCommissionModal({
       return;
     }
     if (amount > pendingAmount) {
-      setError(`Cannot pay more than pending amount ($${pendingAmount.toFixed(2)})`);
+      setError(
+        `Cannot pay more than pending amount ($${pendingAmount.toFixed(2)})`
+      );
       return;
     }
     if (!reference.trim()) {
@@ -65,7 +67,9 @@ export function PayCommissionModal({
       await onConfirm(amount, reference);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process payment');
+      setError(
+        err instanceof Error ? err.message : 'Failed to process payment'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +93,9 @@ export function PayCommissionModal({
             </div>
             <div className="mt-2 flex justify-between text-sm">
               <span>Payment Method:</span>
-              <span className="font-medium">{paymentMethod.replace('_', ' ')}</span>
+              <span className="font-medium">
+                {paymentMethod.replace('_', ' ')}
+              </span>
             </div>
           </div>
 
@@ -116,9 +122,7 @@ export function PayCommissionModal({
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>

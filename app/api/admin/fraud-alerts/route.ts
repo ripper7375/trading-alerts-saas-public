@@ -70,12 +70,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const validatedParams = querySchema.safeParse(queryParams);
     if (!validatedParams.success) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: validatedParams.error.errors },
+        {
+          error: 'Invalid query parameters',
+          details: validatedParams.error.errors,
+        },
         { status: 400 }
       );
     }
 
-    const { page, pageSize, severity, status, pattern, userId } = validatedParams.data;
+    const { page, pageSize, severity, status, pattern, userId } =
+      validatedParams.data;
 
     // Build filters
     const filters: FraudAlertFilters = {};

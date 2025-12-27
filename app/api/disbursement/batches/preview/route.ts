@@ -36,9 +36,7 @@ const previewSchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -62,7 +60,9 @@ export async function POST(
     let aggregates;
     if (affiliateIds && affiliateIds.length > 0) {
       aggregates = await Promise.all(
-        affiliateIds.map((id: string) => aggregator.getAggregatesByAffiliate(id))
+        affiliateIds.map((id: string) =>
+          aggregator.getAggregatesByAffiliate(id)
+        )
       );
     } else {
       aggregates = await aggregator.getAllPayableAffiliates();
@@ -87,12 +87,19 @@ export async function POST(
           },
         });
 
-        const calculation = PayoutCalculator.calculatePayout(agg, feePercentage);
+        const calculation = PayoutCalculator.calculatePayout(
+          agg,
+          feePercentage
+        );
         const hasRiseAccount = !!profile?.riseAccount;
         const kycApproved = profile?.riseAccount?.kycStatus === 'APPROVED';
         const canReceivePayments = hasRiseAccount && kycApproved;
 
-        let status: 'ready' | 'below_threshold' | 'no_rise_account' | 'kyc_pending';
+        let status:
+          | 'ready'
+          | 'below_threshold'
+          | 'no_rise_account'
+          | 'kyc_pending';
         let statusReason: string;
 
         if (!calculation.eligible) {
@@ -133,8 +140,12 @@ export async function POST(
     type PreviewItem = (typeof previewItems)[number];
 
     // Separate into eligible and ineligible
-    const eligibleItems = previewItems.filter((item: PreviewItem) => item.eligible);
-    const ineligibleItems = previewItems.filter((item: PreviewItem) => !item.eligible);
+    const eligibleItems = previewItems.filter(
+      (item: PreviewItem) => item.eligible
+    );
+    const ineligibleItems = previewItems.filter(
+      (item: PreviewItem) => !item.eligible
+    );
 
     // Calculate totals for eligible only
     const eligibleTotal = eligibleItems.reduce(

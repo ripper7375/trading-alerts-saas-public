@@ -104,10 +104,7 @@ export async function POST(
         error.message.includes('Count must be') ||
         error.message.includes('Can only distribute')
       ) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
 

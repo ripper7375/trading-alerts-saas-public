@@ -31,7 +31,7 @@ export function DataTablePagination<TData>({
       )}
       {...props}
     >
-      <div className='text-muted-foreground flex-1 whitespace-nowrap text-sm'>
+      <div className='flex-1 whitespace-nowrap text-sm text-muted-foreground'>
         {table.getFilteredSelectedRowModel().rows.length > 0 ? (
           <>
             {table.getFilteredSelectedRowModel().rows.length} of{' '}

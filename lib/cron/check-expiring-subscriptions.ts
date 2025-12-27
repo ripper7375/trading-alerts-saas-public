@@ -60,7 +60,9 @@ export async function checkExpiringSubscriptions(
 
   try {
     const now = new Date();
-    const targetDate = new Date(now.getTime() + daysBeforeExpiry * 24 * 60 * 60 * 1000);
+    const targetDate = new Date(
+      now.getTime() + daysBeforeExpiry * 24 * 60 * 60 * 1000
+    );
     const windowStart = new Date(targetDate.getTime() - 12 * 60 * 60 * 1000); // 12 hours before target
     const windowEnd = new Date(targetDate.getTime() + 12 * 60 * 60 * 1000); // 12 hours after target
 
@@ -100,7 +102,11 @@ export async function checkExpiringSubscriptions(
 
     for (const subscription of expiringSubscriptions) {
       try {
-        if (!subscription.user || !subscription.user.email || !subscription.expiresAt) {
+        if (
+          !subscription.user ||
+          !subscription.user.email ||
+          !subscription.expiresAt
+        ) {
           logger.warn('Skipping subscription - missing user, email or expiry', {
             subscriptionId: subscription.id,
           });

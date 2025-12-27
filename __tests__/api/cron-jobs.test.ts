@@ -91,7 +91,9 @@ describe('Cron Jobs API Routes', () => {
   describe('POST /api/cron/distribute-codes', () => {
     it('should return 401 without authorization', async () => {
       const { POST } = await import('@/app/api/cron/distribute-codes/route');
-      const request = new MockRequest('http://localhost/api/cron/distribute-codes');
+      const request = new MockRequest(
+        'http://localhost/api/cron/distribute-codes'
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -101,9 +103,12 @@ describe('Cron Jobs API Routes', () => {
 
     it('should return 401 with wrong secret', async () => {
       const { POST } = await import('@/app/api/cron/distribute-codes/route');
-      const request = new MockRequest('http://localhost/api/cron/distribute-codes', {
-        headers: { authorization: 'Bearer wrong-secret' },
-      });
+      const request = new MockRequest(
+        'http://localhost/api/cron/distribute-codes',
+        {
+          headers: { authorization: 'Bearer wrong-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -120,9 +125,12 @@ describe('Cron Jobs API Routes', () => {
       });
 
       const { POST } = await import('@/app/api/cron/distribute-codes/route');
-      const request = new MockRequest('http://localhost/api/cron/distribute-codes', {
-        headers: { authorization: 'Bearer test-cron-secret' },
-      });
+      const request = new MockRequest(
+        'http://localhost/api/cron/distribute-codes',
+        {
+          headers: { authorization: 'Bearer test-cron-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -136,9 +144,12 @@ describe('Cron Jobs API Routes', () => {
       mockRunMonthlyDistribution.mockRejectedValue(new Error('Database error'));
 
       const { POST } = await import('@/app/api/cron/distribute-codes/route');
-      const request = new MockRequest('http://localhost/api/cron/distribute-codes', {
-        headers: { authorization: 'Bearer test-cron-secret' },
-      });
+      const request = new MockRequest(
+        'http://localhost/api/cron/distribute-codes',
+        {
+          headers: { authorization: 'Bearer test-cron-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -166,9 +177,12 @@ describe('Cron Jobs API Routes', () => {
       mockAffiliateCodeUpdateMany.mockResolvedValue({ count: 42 });
 
       const { POST } = await import('@/app/api/cron/expire-codes/route');
-      const request = new MockRequest('http://localhost/api/cron/expire-codes', {
-        headers: { authorization: 'Bearer test-cron-secret' },
-      });
+      const request = new MockRequest(
+        'http://localhost/api/cron/expire-codes',
+        {
+          headers: { authorization: 'Bearer test-cron-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -182,9 +196,12 @@ describe('Cron Jobs API Routes', () => {
       mockAffiliateCodeUpdateMany.mockResolvedValue({ count: 0 });
 
       const { POST } = await import('@/app/api/cron/expire-codes/route');
-      const request = new MockRequest('http://localhost/api/cron/expire-codes', {
-        headers: { authorization: 'Bearer test-cron-secret' },
-      });
+      const request = new MockRequest(
+        'http://localhost/api/cron/expire-codes',
+        {
+          headers: { authorization: 'Bearer test-cron-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -200,8 +217,12 @@ describe('Cron Jobs API Routes', () => {
 
   describe('POST /api/cron/send-monthly-reports', () => {
     it('should return 401 without authorization', async () => {
-      const { POST } = await import('@/app/api/cron/send-monthly-reports/route');
-      const request = new MockRequest('http://localhost/api/cron/send-monthly-reports');
+      const { POST } = await import(
+        '@/app/api/cron/send-monthly-reports/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/cron/send-monthly-reports'
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -227,10 +248,15 @@ describe('Cron Jobs API Routes', () => {
         _sum: { commissionAmount: 50.0 },
       });
 
-      const { POST } = await import('@/app/api/cron/send-monthly-reports/route');
-      const request = new MockRequest('http://localhost/api/cron/send-monthly-reports', {
-        headers: { authorization: 'Bearer test-cron-secret' },
-      });
+      const { POST } = await import(
+        '@/app/api/cron/send-monthly-reports/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/cron/send-monthly-reports',
+        {
+          headers: { authorization: 'Bearer test-cron-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -243,10 +269,15 @@ describe('Cron Jobs API Routes', () => {
     it('should handle no active affiliates', async () => {
       mockAffiliateFindMany.mockResolvedValue([]);
 
-      const { POST } = await import('@/app/api/cron/send-monthly-reports/route');
-      const request = new MockRequest('http://localhost/api/cron/send-monthly-reports', {
-        headers: { authorization: 'Bearer test-cron-secret' },
-      });
+      const { POST } = await import(
+        '@/app/api/cron/send-monthly-reports/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/cron/send-monthly-reports',
+        {
+          headers: { authorization: 'Bearer test-cron-secret' },
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 

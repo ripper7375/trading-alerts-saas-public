@@ -13,7 +13,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { DisbursementTransactionStatus, DisbursementProvider } from '@/types/disbursement';
+import type {
+  DisbursementTransactionStatus,
+  DisbursementProvider,
+} from '@/types/disbursement';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -51,8 +54,13 @@ interface Pagination {
 // HELPER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function getStatusBadge(status: DisbursementTransactionStatus): React.ReactElement {
-  const statusConfig: Record<DisbursementTransactionStatus, { className: string; label: string }> = {
+function getStatusBadge(
+  status: DisbursementTransactionStatus
+): React.ReactElement {
+  const statusConfig: Record<
+    DisbursementTransactionStatus,
+    { className: string; label: string }
+  > = {
     PENDING: { className: 'bg-yellow-600', label: 'Pending' },
     PROCESSING: { className: 'bg-blue-600', label: 'Processing' },
     COMPLETED: { className: 'bg-green-600', label: 'Completed' },
@@ -82,7 +90,9 @@ function TransactionsPageContent(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const statusFilter = searchParams.get('status') as DisbursementTransactionStatus | null;
+  const statusFilter = searchParams.get(
+    'status'
+  ) as DisbursementTransactionStatus | null;
   const currentOffset = parseInt(searchParams.get('offset') || '0', 10);
   const limit = 20;
 
@@ -94,7 +104,9 @@ function TransactionsPageContent(): React.ReactElement {
       params.set('limit', limit.toString());
       params.set('offset', currentOffset.toString());
 
-      const response = await fetch(`/api/disbursement/transactions?${params.toString()}`);
+      const response = await fetch(
+        `/api/disbursement/transactions?${params.toString()}`
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -115,7 +127,9 @@ function TransactionsPageContent(): React.ReactElement {
     void fetchTransactions();
   }, [fetchTransactions]);
 
-  const handleStatusFilter = (status: DisbursementTransactionStatus | 'ALL'): void => {
+  const handleStatusFilter = (
+    status: DisbursementTransactionStatus | 'ALL'
+  ): void => {
     const params = new URLSearchParams();
     if (status !== 'ALL') params.set('status', status);
     params.set('offset', '0');
@@ -146,9 +160,7 @@ function TransactionsPageContent(): React.ReactElement {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Transactions
           </h1>
-          <p className="text-gray-400 mt-1">
-            All disbursement transactions
-          </p>
+          <p className="text-gray-400 mt-1">All disbursement transactions</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -209,14 +221,30 @@ function TransactionsPageContent(): React.ReactElement {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Transaction ID</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Amount</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Provider</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Provider TX</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Payee</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Retries</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Created</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Transaction ID
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Amount
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Provider
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Provider TX
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Payee
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Retries
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Created
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,7 +287,13 @@ function TransactionsPageContent(): React.ReactElement {
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={tx.retryCount > 0 ? 'text-yellow-400' : 'text-gray-400'}>
+                        <span
+                          className={
+                            tx.retryCount > 0
+                              ? 'text-yellow-400'
+                              : 'text-gray-400'
+                          }
+                        >
                           {tx.retryCount}
                         </span>
                       </td>
@@ -278,14 +312,18 @@ function TransactionsPageContent(): React.ReactElement {
             <CardContent className="border-t border-gray-700">
               <div className="flex items-center justify-between">
                 <p className="text-gray-400 text-sm">
-                  Showing {currentOffset + 1} - {Math.min(currentOffset + limit, pagination.total)} of {pagination.total}
+                  Showing {currentOffset + 1} -{' '}
+                  {Math.min(currentOffset + limit, pagination.total)} of{' '}
+                  {pagination.total}
                 </p>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={currentOffset === 0}
-                    onClick={() => handlePageChange(Math.max(0, currentOffset - limit))}
+                    onClick={() =>
+                      handlePageChange(Math.max(0, currentOffset - limit))
+                    }
                   >
                     Previous
                   </Button>
@@ -314,25 +352,38 @@ function TransactionsPageContent(): React.ReactElement {
       {statusFilter === 'FAILED' && transactions.length > 0 && (
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Failed Transaction Details</CardTitle>
+            <CardTitle className="text-white">
+              Failed Transaction Details
+            </CardTitle>
             <CardDescription className="text-gray-400">
               Error information for failed transactions
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {transactions.filter(tx => tx.errorMessage).map((tx) => (
-                <div key={tx.id} className="p-3 bg-red-900/30 border border-red-600/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-mono text-xs">{tx.transactionId}</span>
-                    <span className="text-gray-400 text-xs">{formatDate(tx.failedAt || tx.createdAt)}</span>
+              {transactions
+                .filter((tx) => tx.errorMessage)
+                .map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="p-3 bg-red-900/30 border border-red-600/50 rounded-lg"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-mono text-xs">
+                        {tx.transactionId}
+                      </span>
+                      <span className="text-gray-400 text-xs">
+                        {formatDate(tx.failedAt || tx.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-red-400 text-sm">{tx.errorMessage}</p>
+                    {tx.retryCount > 0 && (
+                      <p className="text-yellow-400 text-xs mt-1">
+                        Retried {tx.retryCount} times
+                      </p>
+                    )}
                   </div>
-                  <p className="text-red-400 text-sm">{tx.errorMessage}</p>
-                  {tx.retryCount > 0 && (
-                    <p className="text-yellow-400 text-xs mt-1">Retried {tx.retryCount} times</p>
-                  )}
-                </div>
-              ))}
+                ))}
             </div>
           </CardContent>
         </Card>

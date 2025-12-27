@@ -108,15 +108,15 @@ export function IndicatorToggles({
           </div>
           <p className="text-xs text-gray-500 truncate">{meta.description}</p>
         </div>
-        {!hasAccess && (
-          <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-        )}
+        {!hasAccess && <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />}
       </label>
     );
   };
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200', className)}>
+    <div
+      className={cn('bg-white rounded-lg border border-gray-200', className)}
+    >
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200">
         <h3 className="text-sm font-semibold text-gray-900">

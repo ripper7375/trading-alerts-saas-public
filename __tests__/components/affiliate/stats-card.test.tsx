@@ -42,10 +42,14 @@ describe('StatsCard Component', () => {
     });
 
     it('should not render icon container when icon is not provided', () => {
-      const { container } = render(<StatsCard title="Balance" value="$50.00" />);
+      const { container } = render(
+        <StatsCard title="Balance" value="$50.00" />
+      );
 
       // The icon container should not exist
-      const iconContainer = container.querySelector('[data-testid="icon-container"]');
+      const iconContainer = container.querySelector(
+        '[data-testid="icon-container"]'
+      );
       expect(iconContainer).toBeNull();
     });
   });

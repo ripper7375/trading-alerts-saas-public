@@ -8,11 +8,11 @@
 
 ## Quick Reference
 
-| Priority | Issue | File | Status |
-|----------|-------|------|--------|
-| 🟡 Low | Implicit any types in callbacks | notification-bell.tsx | Optional |
-| 🟡 Very Low | Base color mismatch | components.json | Optional |
-| 🟡 None | CSS variable format | globals.css | No action |
+| Priority    | Issue                           | File                  | Status    |
+| ----------- | ------------------------------- | --------------------- | --------- |
+| 🟡 Low      | Implicit any types in callbacks | notification-bell.tsx | Optional  |
+| 🟡 Very Low | Base color mismatch             | components.json       | Optional  |
+| 🟡 None     | CSS variable format             | globals.css           | No action |
 
 ---
 
@@ -43,9 +43,11 @@ npm run dev
 ## W1: Implicit Any Types in Callbacks
 
 ### Issue Description
+
 Multiple callback functions in notification components have implicit `any` types for parameters like `prev` and `n`. While TypeScript can infer these types, explicit typing improves code clarity and catches errors earlier.
 
 ### Affected Files
+
 - `components/notifications/notification-bell.tsx` (lines 120-127, 142-148, 164-168)
 - `components/notifications/notification-list.tsx` (lines 139-145, 161-168, 183-189)
 
@@ -71,20 +73,18 @@ Do NOT change the logic, only add type annotations to callback parameters.
 ### Manual Fix Example
 
 **Before:**
+
 ```typescript
 setNotifications((prev) =>
-  prev.map((n) =>
-    n.id === id ? { ...n, read: true } : n
-  )
+  prev.map((n) => (n.id === id ? { ...n, read: true } : n))
 );
 ```
 
 **After:**
+
 ```typescript
 setNotifications((prev: Notification[]) =>
-  prev.map((n: Notification) =>
-    n.id === id ? { ...n, read: true } : n
-  )
+  prev.map((n: Notification) => (n.id === id ? { ...n, read: true } : n))
 );
 ```
 
@@ -93,9 +93,11 @@ setNotifications((prev: Notification[]) =>
 ## W2: Base Color Mismatch (Optional)
 
 ### Issue Description
+
 The project `components.json` uses `slate` as the base color while the v0 reference uses `neutral`. This is a minor visual difference and both are valid.
 
 ### Affected File
+
 - `components.json`
 
 ### Fix Prompt (Only if alignment needed)
@@ -113,6 +115,7 @@ Note: This will change the default neutral colors slightly. Only apply if strict
 ```
 
 ### Recommendation
+
 **No action needed** - The current `slate` base provides good visual consistency.
 
 ---
@@ -126,6 +129,7 @@ These are informational items that require attention when integrating related se
 **File:** `lib/websocket/server.ts` (lines 92-103)
 
 **Current State:**
+
 ```typescript
 // In production, verify the token against NextAuth session
 // For now, we use the token as the userId
@@ -135,6 +139,7 @@ const userId = authData.token;
 **When to Fix:** When deploying to production with real authentication
 
 **Fix Prompt:**
+
 ```
 In lib/websocket/server.ts, implement proper session token verification:
 
@@ -153,6 +158,7 @@ Replace the placeholder token verification (lines 92-103) with proper JWT/sessio
 **File:** `lib/monitoring/system-monitor.ts` (lines 73-91)
 
 **Current State:**
+
 ```typescript
 // Placeholder - implement actual Redis check when integrated
 return {
@@ -165,6 +171,7 @@ return {
 **When to Fix:** When Redis is added to the infrastructure
 
 **Fix Prompt:**
+
 ```
 In lib/monitoring/system-monitor.ts, implement Redis health check:
 
@@ -183,6 +190,7 @@ The Redis client should already be configured in lib/redis or similar location.
 **File:** `lib/monitoring/system-monitor.ts` (lines 97-127)
 
 **Current State:**
+
 ```typescript
 // Placeholder - implement actual MT5 service check when integrated
 const mt5ServiceUrl = process.env['MT5_SERVICE_URL'];
@@ -198,6 +206,7 @@ if (!mt5ServiceUrl) {
 **When to Fix:** When the Flask MT5 service is deployed
 
 **Fix Prompt:**
+
 ```
 In lib/monitoring/system-monitor.ts, implement MT5 service health check:
 
@@ -231,6 +240,7 @@ After applying fixes, verify:
 ## Test Scenarios for Localhost
 
 ### Scenario 1: Notification Bell
+
 1. Log in as a test user
 2. Click the notification bell
 3. Verify popover opens with loading state
@@ -241,6 +251,7 @@ After applying fixes, verify:
 8. Test delete notification (click three dots)
 
 ### Scenario 2: Notification List Page
+
 1. Navigate to `/dashboard/notifications`
 2. Verify full list renders
 3. Test status filter tabs
@@ -250,6 +261,7 @@ After applying fixes, verify:
 7. Test delete functionality
 
 ### Scenario 3: API Endpoints (via curl or Postman)
+
 ```bash
 # Get notifications
 curl -H "Authorization: Bearer <token>" http://localhost:3000/api/notifications

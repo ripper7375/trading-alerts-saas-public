@@ -44,9 +44,7 @@ const querySchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -63,7 +61,9 @@ export async function GET(
     }
 
     const { period, limit } = validation.data;
-    const { start, end } = getReportingPeriod(period as '3months' | '6months' | '1year');
+    const { start, end } = getReportingPeriod(
+      period as '3months' | '6months' | '1year'
+    );
 
     // Get affiliate performance grouped by affiliate
     const affiliatePerformance = await prisma.affiliateProfile.findMany({
@@ -102,10 +102,11 @@ export async function GET(
 
     // Transform data
     const topPerformers = affiliatePerformance.map((affiliate) => {
-      const totalCommissions = affiliate.commissions?.reduce(
-        (sum: number, c) => sum + Number(c.commissionAmount),
-        0
-      ) ?? 0;
+      const totalCommissions =
+        affiliate.commissions?.reduce(
+          (sum: number, c) => sum + Number(c.commissionAmount),
+          0
+        ) ?? 0;
       const conversionCount = affiliate.commissions?.length ?? 0;
       const conversionRate =
         affiliate.totalCodesDistributed > 0

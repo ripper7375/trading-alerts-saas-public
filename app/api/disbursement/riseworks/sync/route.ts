@@ -24,9 +24,7 @@ import { prisma } from '@/lib/db/prisma';
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function POST(
-  _request: NextRequest
-): Promise<NextResponse> {
+export async function POST(_request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     const session = await requireAdmin();

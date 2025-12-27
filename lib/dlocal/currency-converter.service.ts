@@ -9,7 +9,10 @@ import type { DLocalCurrency, CurrencyConversionResult } from '@/types/dlocal';
 import { logger } from '@/lib/logger';
 
 // Cache for exchange rates with 1-hour TTL
-const exchangeRateCache: Map<DLocalCurrency, { rate: number; timestamp: number }> = new Map();
+const exchangeRateCache: Map<
+  DLocalCurrency,
+  { rate: number; timestamp: number }
+> = new Map();
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 // Fallback rates for development/offline mode (updated periodically)
@@ -47,12 +50,17 @@ function isSupportedCurrency(currency: string): currency is DLocalCurrency {
  * Fetches exchange rate from external API
  * Falls back to cached/fallback rates on failure
  */
-async function fetchExchangeRateFromAPI(currency: DLocalCurrency): Promise<number> {
+async function fetchExchangeRateFromAPI(
+  currency: DLocalCurrency
+): Promise<number> {
   try {
     // Use exchangerate-api.com (free tier available)
-    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD', {
-      next: { revalidate: 3600 }, // Cache for 1 hour in Next.js
-    });
+    const response = await fetch(
+      'https://api.exchangerate-api.com/v4/latest/USD',
+      {
+        next: { revalidate: 3600 }, // Cache for 1 hour in Next.js
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`API responded with status ${response.status}`);
@@ -83,7 +91,9 @@ async function fetchExchangeRateFromAPI(currency: DLocalCurrency): Promise<numbe
  * Gets the exchange rate for a currency (USD base)
  * Uses caching to minimize API calls
  */
-export async function getExchangeRate(currency: DLocalCurrency): Promise<number> {
+export async function getExchangeRate(
+  currency: DLocalCurrency
+): Promise<number> {
   // Validate currency
   if (!isSupportedCurrency(currency)) {
     throw new Error('Unsupported currency');

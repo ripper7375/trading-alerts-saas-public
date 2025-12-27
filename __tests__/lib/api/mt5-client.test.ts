@@ -504,7 +504,9 @@ describe('MT5 Client - API Functions', () => {
         json: async () => ({ error: 'Symbol not found' }),
       });
 
-      await expect(fetchIndicatorData('INVALID', 'H1', 'FREE')).rejects.toThrow(MT5ServiceError);
+      await expect(fetchIndicatorData('INVALID', 'H1', 'FREE')).rejects.toThrow(
+        MT5ServiceError
+      );
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -519,7 +521,9 @@ describe('MT5 Client - API Functions', () => {
         }),
       });
 
-      await expect(fetchIndicatorData('GBPJPY', 'M5', 'FREE')).rejects.toThrow(MT5AccessDeniedError);
+      await expect(fetchIndicatorData('GBPJPY', 'M5', 'FREE')).rejects.toThrow(
+        MT5AccessDeniedError
+      );
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
@@ -535,10 +539,29 @@ describe('MT5 Client - API Functions', () => {
           success: true,
           data: {
             ohlc: [],
-            horizontal: { peak_1: [], peak_2: [], peak_3: [], bottom_1: [], bottom_2: [], bottom_3: [] },
-            diagonal: { ascending_1: [], ascending_2: [], ascending_3: [], descending_1: [], descending_2: [], descending_3: [] },
+            horizontal: {
+              peak_1: [],
+              peak_2: [],
+              peak_3: [],
+              bottom_1: [],
+              bottom_2: [],
+              bottom_3: [],
+            },
+            diagonal: {
+              ascending_1: [],
+              ascending_2: [],
+              ascending_3: [],
+              descending_1: [],
+              descending_2: [],
+              descending_3: [],
+            },
             fractals: { peaks: [], bottoms: [] },
-            metadata: { symbol: 'XAUUSD', timeframe: 'H1', tier: 'FREE', bars_returned: 0 },
+            metadata: {
+              symbol: 'XAUUSD',
+              timeframe: 'H1',
+              tier: 'FREE',
+              bars_returned: 0,
+            },
           },
         }),
       });
@@ -557,7 +580,9 @@ describe('MT5 Client - API Functions', () => {
         }),
       });
 
-      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(MT5ServiceError);
+      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
+        MT5ServiceError
+      );
     });
 
     it('should handle null response data', async () => {
@@ -569,7 +594,9 @@ describe('MT5 Client - API Functions', () => {
         }),
       });
 
-      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(MT5ServiceError);
+      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
+        MT5ServiceError
+      );
     });
 
     it('should use default error message when none provided', async () => {
@@ -665,10 +692,29 @@ describe('MT5 Client - API Functions', () => {
           success: true,
           data: {
             ohlc: [],
-            horizontal: { peak_1: [], peak_2: [], peak_3: [], bottom_1: [], bottom_2: [], bottom_3: [] },
-            diagonal: { ascending_1: [], ascending_2: [], ascending_3: [], descending_1: [], descending_2: [], descending_3: [] },
+            horizontal: {
+              peak_1: [],
+              peak_2: [],
+              peak_3: [],
+              bottom_1: [],
+              bottom_2: [],
+              bottom_3: [],
+            },
+            diagonal: {
+              ascending_1: [],
+              ascending_2: [],
+              ascending_3: [],
+              descending_1: [],
+              descending_2: [],
+              descending_3: [],
+            },
             fractals: { peaks: [], bottoms: [] },
-            metadata: { symbol: 'BTCUSD', timeframe: 'M15', tier: 'PRO', bars_returned: 100 },
+            metadata: {
+              symbol: 'BTCUSD',
+              timeframe: 'M15',
+              tier: 'PRO',
+              bars_returned: 100,
+            },
           },
         }),
       });
@@ -688,10 +734,29 @@ describe('MT5 Client - API Functions', () => {
           success: true,
           data: {
             ohlc: [],
-            horizontal: { peak_1: [], peak_2: [], peak_3: [], bottom_1: [], bottom_2: [], bottom_3: [] },
-            diagonal: { ascending_1: [], ascending_2: [], ascending_3: [], descending_1: [], descending_2: [], descending_3: [] },
+            horizontal: {
+              peak_1: [],
+              peak_2: [],
+              peak_3: [],
+              bottom_1: [],
+              bottom_2: [],
+              bottom_3: [],
+            },
+            diagonal: {
+              ascending_1: [],
+              ascending_2: [],
+              ascending_3: [],
+              descending_1: [],
+              descending_2: [],
+              descending_3: [],
+            },
             fractals: { peaks: [], bottoms: [] },
-            metadata: { symbol: 'EURUSD', timeframe: 'H4', tier: 'FREE', bars_returned: 1000 },
+            metadata: {
+              symbol: 'EURUSD',
+              timeframe: 'H4',
+              tier: 'FREE',
+              bars_returned: 1000,
+            },
           },
         }),
       });

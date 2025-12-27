@@ -33,9 +33,7 @@ const createAccountSchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  _request: NextRequest
-): Promise<NextResponse> {
+export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -63,13 +61,25 @@ export async function GET(
     const summary = {
       total: accounts.length,
       byKycStatus: {
-        pending: accounts.filter((a: AccountWithProfile) => a.kycStatus === 'PENDING').length,
-        submitted: accounts.filter((a: AccountWithProfile) => a.kycStatus === 'SUBMITTED').length,
-        approved: accounts.filter((a: AccountWithProfile) => a.kycStatus === 'APPROVED').length,
-        rejected: accounts.filter((a: AccountWithProfile) => a.kycStatus === 'REJECTED').length,
-        expired: accounts.filter((a: AccountWithProfile) => a.kycStatus === 'EXPIRED').length,
+        pending: accounts.filter(
+          (a: AccountWithProfile) => a.kycStatus === 'PENDING'
+        ).length,
+        submitted: accounts.filter(
+          (a: AccountWithProfile) => a.kycStatus === 'SUBMITTED'
+        ).length,
+        approved: accounts.filter(
+          (a: AccountWithProfile) => a.kycStatus === 'APPROVED'
+        ).length,
+        rejected: accounts.filter(
+          (a: AccountWithProfile) => a.kycStatus === 'REJECTED'
+        ).length,
+        expired: accounts.filter(
+          (a: AccountWithProfile) => a.kycStatus === 'EXPIRED'
+        ).length,
       },
-      canReceivePayments: accounts.filter((a: AccountWithProfile) => a.kycStatus === 'APPROVED').length,
+      canReceivePayments: accounts.filter(
+        (a: AccountWithProfile) => a.kycStatus === 'APPROVED'
+      ).length,
     };
 
     return NextResponse.json({
@@ -121,9 +131,7 @@ export async function GET(
  * @returns 409 - Account already exists
  * @returns 500 - Server error
  */
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();

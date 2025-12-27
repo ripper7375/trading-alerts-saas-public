@@ -86,7 +86,8 @@ jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   prisma: {
     affiliateProfile: {
-      findUnique: (...args: unknown[]) => mockAffiliateProfileFindUnique(...args),
+      findUnique: (...args: unknown[]) =>
+        mockAffiliateProfileFindUnique(...args),
       update: (...args: unknown[]) => mockAffiliateProfileUpdate(...args),
     },
     user: {
@@ -129,10 +130,13 @@ describe('Affiliate Registration API Routes', () => {
       mockRequireAuth.mockRejectedValue(new Error('Unauthorized'));
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(validRegistrationData),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(validRegistrationData),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -146,10 +150,13 @@ describe('Affiliate Registration API Routes', () => {
       });
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(validRegistrationData),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(validRegistrationData),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -163,14 +170,17 @@ describe('Affiliate Registration API Routes', () => {
       });
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          fullName: 'J', // Too short
-          country: 'USA', // Should be 2 chars
-          paymentMethod: 'INVALID',
-        }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            fullName: 'J', // Too short
+            country: 'USA', // Should be 2 chars
+            paymentMethod: 'INVALID',
+          }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -190,10 +200,13 @@ describe('Affiliate Registration API Routes', () => {
       });
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(validRegistrationData),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(validRegistrationData),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -228,10 +241,13 @@ describe('Affiliate Registration API Routes', () => {
       };
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(dataWithSocials),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(dataWithSocials),
+        }
+      );
       await POST(request as unknown as Request);
 
       expect(mockRegisterAffiliate).toHaveBeenCalledWith(
@@ -247,13 +263,18 @@ describe('Affiliate Registration API Routes', () => {
         user: { id: 'user-1', email: 'test@example.com', isAffiliate: false },
       });
 
-      mockRegisterAffiliate.mockRejectedValue(new Error('Database connection error'));
+      mockRegisterAffiliate.mockRejectedValue(
+        new Error('Database connection error')
+      );
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(validRegistrationData),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(validRegistrationData),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -264,11 +285,16 @@ describe('Affiliate Registration API Routes', () => {
 
   describe('POST /api/affiliate/auth/verify-email', () => {
     it('should return 400 for missing token', async () => {
-      const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const { POST } = await import(
+        '@/app/api/affiliate/auth/verify-email/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/verify-email',
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -277,13 +303,22 @@ describe('Affiliate Registration API Routes', () => {
     });
 
     it('should return 400 for invalid/expired token', async () => {
-      mockVerifyAffiliateEmail.mockRejectedValue(new Error('Invalid verification token'));
+      mockVerifyAffiliateEmail.mockRejectedValue(
+        new Error('Invalid verification token')
+      );
 
-      const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
-        method: 'POST',
-        body: JSON.stringify({ token: 'invalid-token-1234567890123456789012' }),
-      });
+      const { POST } = await import(
+        '@/app/api/affiliate/auth/verify-email/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/verify-email',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            token: 'invalid-token-1234567890123456789012',
+          }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -298,11 +333,18 @@ describe('Affiliate Registration API Routes', () => {
         codesDistributed: 15,
       });
 
-      const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
-        method: 'POST',
-        body: JSON.stringify({ token: 'valid-token-12345678901234567890123' }),
-      });
+      const { POST } = await import(
+        '@/app/api/affiliate/auth/verify-email/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/verify-email',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            token: 'valid-token-12345678901234567890123',
+          }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -312,13 +354,20 @@ describe('Affiliate Registration API Routes', () => {
     });
 
     it('should handle verification errors gracefully', async () => {
-      mockVerifyAffiliateEmail.mockRejectedValue(new Error('Database connection failed'));
+      mockVerifyAffiliateEmail.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
-      const { POST } = await import('@/app/api/affiliate/auth/verify-email/route');
-      const request = new MockRequest('http://localhost/api/affiliate/auth/verify-email', {
-        method: 'POST',
-        body: JSON.stringify({ token: 'some-token-with-32-characters-min' }),
-      });
+      const { POST } = await import(
+        '@/app/api/affiliate/auth/verify-email/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/affiliate/auth/verify-email',
+        {
+          method: 'POST',
+          body: JSON.stringify({ token: 'some-token-with-32-characters-min' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 

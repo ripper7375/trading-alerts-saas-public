@@ -60,7 +60,11 @@ export async function GET(
       },
       include: {
         affiliateCode: {
-          select: { code: true, discountPercent: true, commissionPercent: true },
+          select: {
+            code: true,
+            discountPercent: true,
+            commissionPercent: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -70,17 +74,20 @@ export async function GET(
 
     // Calculate totals
     const totalAmount = commissions.reduce(
-      (sum: number, comm: CommissionWithCode) => sum + Number(comm.commissionAmount),
+      (sum: number, comm: CommissionWithCode) =>
+        sum + Number(comm.commissionAmount),
       0
     );
 
     const totalGrossRevenue = commissions.reduce(
-      (sum: number, comm: CommissionWithCode) => sum + Number(comm.grossRevenue),
+      (sum: number, comm: CommissionWithCode) =>
+        sum + Number(comm.grossRevenue),
       0
     );
 
     const totalDiscount = commissions.reduce(
-      (sum: number, comm: CommissionWithCode) => sum + Number(comm.discountAmount),
+      (sum: number, comm: CommissionWithCode) =>
+        sum + Number(comm.discountAmount),
       0
     );
 
@@ -108,9 +115,14 @@ export async function GET(
         totalAmount,
         totalGrossRevenue,
         totalDiscount,
-        averageCommission: commissions.length > 0 ? totalAmount / commissions.length : 0,
-        oldestCommission: commissions.length > 0 ? commissions[commissions.length - 1]?.createdAt : null,
-        newestCommission: commissions.length > 0 ? commissions[0]?.createdAt : null,
+        averageCommission:
+          commissions.length > 0 ? totalAmount / commissions.length : 0,
+        oldestCommission:
+          commissions.length > 0
+            ? commissions[commissions.length - 1]?.createdAt
+            : null,
+        newestCommission:
+          commissions.length > 0 ? commissions[0]?.createdAt : null,
       },
     });
   } catch (error) {

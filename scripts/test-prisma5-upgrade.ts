@@ -52,52 +52,84 @@ async function runTest(
   }
 }
 
-async function testConnection(): Promise<{ success: boolean; details?: string }> {
+async function testConnection(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   await prisma.$connect();
   return { success: true, details: 'Connected successfully' };
 }
 
-async function testUserCount(): Promise<{ success: boolean; details?: string }> {
+async function testUserCount(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.user.count();
   return { success: true, details: `${count} users in database` };
 }
 
-async function testSubscriptionCount(): Promise<{ success: boolean; details?: string }> {
+async function testSubscriptionCount(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.subscription.count();
   return { success: true, details: `${count} subscriptions in database` };
 }
 
-async function testAlertCount(): Promise<{ success: boolean; details?: string }> {
+async function testAlertCount(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.alert.count();
   return { success: true, details: `${count} alerts in database` };
 }
 
-async function testSystemConfig(): Promise<{ success: boolean; details?: string }> {
+async function testSystemConfig(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const configs = await prisma.systemConfig.findMany({ take: 5 });
-  return { success: true, details: `${configs.length} system configs retrieved` };
+  return {
+    success: true,
+    details: `${configs.length} system configs retrieved`,
+  };
 }
 
-async function testSystemConfigHistory(): Promise<{ success: boolean; details?: string }> {
+async function testSystemConfigHistory(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.systemConfigHistory.count();
   return { success: true, details: `${count} history records` };
 }
 
-async function testRelations(): Promise<{ success: boolean; details?: string }> {
+async function testRelations(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const subscription = await prisma.subscription.findFirst({
     include: { user: true },
   });
 
   if (!subscription) {
-    return { success: true, details: 'No subscriptions to test relations (skipped)' };
+    return {
+      success: true,
+      details: 'No subscriptions to test relations (skipped)',
+    };
   }
 
   return {
     success: subscription.user !== undefined,
-    details: subscription.user ? 'Relation loaded successfully' : 'Relation failed to load'
+    details: subscription.user
+      ? 'Relation loaded successfully'
+      : 'Relation failed to load',
   };
 }
 
-async function testInteractiveTransaction(): Promise<{ success: boolean; details?: string }> {
+async function testInteractiveTransaction(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const result = await prisma.$transaction(async (tx) => {
     const userCount = await tx.user.count();
     const alertCount = await tx.alert.count();
@@ -106,7 +138,7 @@ async function testInteractiveTransaction(): Promise<{ success: boolean; details
 
   return {
     success: true,
-    details: `Transaction completed: ${result.userCount} users, ${result.alertCount} alerts`
+    details: `Transaction completed: ${result.userCount} users, ${result.alertCount} alerts`,
   };
 }
 
@@ -117,11 +149,14 @@ async function testRawQuery(): Promise<{ success: boolean; details?: string }> {
 
   return {
     success: true,
-    details: `Raw query returned: ${result[0].count} users`
+    details: `Raw query returned: ${result[0].count} users`,
   };
 }
 
-async function testAggregation(): Promise<{ success: boolean; details?: string }> {
+async function testAggregation(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const result = await prisma.user.aggregate({
     _count: { id: true },
   });
@@ -130,11 +165,14 @@ async function testAggregation(): Promise<{ success: boolean; details?: string }
   const countResult = result as { _count: { id: number } };
   return {
     success: true,
-    details: `Aggregation: ${countResult['_count'].id} users`
+    details: `Aggregation: ${countResult['_count'].id} users`,
   };
 }
 
-async function testPrisma5Features(): Promise<{ success: boolean; details?: string }> {
+async function testPrisma5Features(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const features: string[] = [];
 
   // Check for $metrics (Prisma 5.x feature)
@@ -154,7 +192,10 @@ async function testPrisma5Features(): Promise<{ success: boolean; details?: stri
   return { success: true, details: features.join(', ') };
 }
 
-async function testStringFilterMode(): Promise<{ success: boolean; details?: string }> {
+async function testStringFilterMode(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   // Test case-insensitive search (Prisma 5.x feature)
   try {
     const users = await prisma.user.findMany({
@@ -166,10 +207,16 @@ async function testStringFilterMode(): Promise<{ success: boolean; details?: str
       },
       take: 1,
     });
-    return { success: true, details: `Case-insensitive search works (${users.length} results)` };
+    return {
+      success: true,
+      details: `Case-insensitive search works (${users.length} results)`,
+    };
   } catch {
     // If it fails, might be database doesn't support it or feature not available
-    return { success: true, details: 'Case-insensitive search not tested (may require specific DB)' };
+    return {
+      success: true,
+      details: 'Case-insensitive search not tested (may require specific DB)',
+    };
   }
 }
 
@@ -178,11 +225,16 @@ async function testFindMany(): Promise<{ success: boolean; details?: string }> {
   return { success: true, details: `findMany returned ${users.length} users` };
 }
 
-async function testFindFirst(): Promise<{ success: boolean; details?: string }> {
+async function testFindFirst(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const user = await prisma.user.findFirst();
   return {
     success: true,
-    details: user ? `findFirst returned user: ${user.email}` : 'No users found (OK)'
+    details: user
+      ? `findFirst returned user: ${user.email}`
+      : 'No users found (OK)',
   };
 }
 
@@ -194,24 +246,36 @@ async function testGroupBy(): Promise<{ success: boolean; details?: string }> {
     });
     return {
       success: true,
-      details: `groupBy returned ${groups.length} tier groups`
+      details: `groupBy returned ${groups.length} tier groups`,
     };
   } catch {
-    return { success: true, details: 'groupBy skipped (no data or unsupported)' };
+    return {
+      success: true,
+      details: 'groupBy skipped (no data or unsupported)',
+    };
   }
 }
 
-async function testPaymentModel(): Promise<{ success: boolean; details?: string }> {
+async function testPaymentModel(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.payment.count();
   return { success: true, details: `${count} payments in database` };
 }
 
-async function testAffiliateProfile(): Promise<{ success: boolean; details?: string }> {
+async function testAffiliateProfile(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.affiliateProfile.count();
   return { success: true, details: `${count} affiliate profiles in database` };
 }
 
-async function testNotification(): Promise<{ success: boolean; details?: string }> {
+async function testNotification(): Promise<{
+  success: boolean;
+  details?: string;
+}> {
   const count = await prisma.notification.count();
   return { success: true, details: `${count} notifications in database` };
 }
@@ -267,12 +331,17 @@ async function main(): Promise<void> {
   console.log('='.repeat(60));
   console.log('');
 
-  const passed = results.filter(r => r.status === 'PASS').length;
-  const failed = results.filter(r => r.status === 'FAIL').length;
-  const skipped = results.filter(r => r.status === 'SKIP').length;
+  const passed = results.filter((r) => r.status === 'PASS').length;
+  const failed = results.filter((r) => r.status === 'FAIL').length;
+  const skipped = results.filter((r) => r.status === 'SKIP').length;
 
-  results.forEach(r => {
-    const icon = r.status === 'PASS' ? '[PASS]' : r.status === 'FAIL' ? '[FAIL]' : '[SKIP]';
+  results.forEach((r) => {
+    const icon =
+      r.status === 'PASS'
+        ? '[PASS]'
+        : r.status === 'FAIL'
+          ? '[FAIL]'
+          : '[SKIP]';
     const duration = r.duration ? ` (${r.duration}ms)` : '';
     console.log(`  ${icon} ${r.test}${duration}`);
     if (r.details) {
@@ -282,13 +351,17 @@ async function main(): Promise<void> {
 
   console.log('');
   console.log('='.repeat(60));
-  console.log(`  Total: ${results.length} | Passed: ${passed} | Failed: ${failed} | Skipped: ${skipped}`);
+  console.log(
+    `  Total: ${results.length} | Passed: ${passed} | Failed: ${failed} | Skipped: ${skipped}`
+  );
   console.log('='.repeat(60));
 
   if (failed > 0) {
     console.log('');
     console.log('  [ERROR] VALIDATION FAILED');
-    console.log('  Please review failed tests before proceeding with deployment.');
+    console.log(
+      '  Please review failed tests before proceeding with deployment.'
+    );
     process.exit(1);
   } else {
     console.log('');

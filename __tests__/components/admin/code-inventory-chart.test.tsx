@@ -118,7 +118,9 @@ describe('CodeInventoryChart Component', () => {
 
     it('should display utilization description', () => {
       render(<CodeInventoryChart data={mockData} />);
-      expect(screen.getByText('Percentage of distributed codes that have been used')).toBeInTheDocument();
+      expect(
+        screen.getByText('Percentage of distributed codes that have been used')
+      ).toBeInTheDocument();
     });
   });
 
@@ -127,12 +129,20 @@ describe('CodeInventoryChart Component', () => {
   // ============================================================================
   describe('empty state', () => {
     it('should show empty message when all values are zero', () => {
-      render(<CodeInventoryChart data={{ active: 0, used: 0, expired: 0, cancelled: 0 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 0, used: 0, expired: 0, cancelled: 0 }}
+        />
+      );
       expect(screen.getByText('No codes distributed yet')).toBeInTheDocument();
     });
 
     it('should still render card title in empty state', () => {
-      render(<CodeInventoryChart data={{ active: 0, used: 0, expired: 0, cancelled: 0 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 0, used: 0, expired: 0, cancelled: 0 }}
+        />
+      );
       expect(screen.getByText('Code Inventory')).toBeInTheDocument();
     });
   });
@@ -142,7 +152,11 @@ describe('CodeInventoryChart Component', () => {
   // ============================================================================
   describe('zero segment filtering', () => {
     it('should not display segments with zero values', () => {
-      render(<CodeInventoryChart data={{ active: 100, used: 50, expired: 0, cancelled: 0 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 100, used: 50, expired: 0, cancelled: 0 }}
+        />
+      );
       expect(screen.getByText('Active')).toBeInTheDocument();
       expect(screen.getByText('Used')).toBeInTheDocument();
       expect(screen.queryByText('Expired')).not.toBeInTheDocument();
@@ -150,7 +164,11 @@ describe('CodeInventoryChart Component', () => {
     });
 
     it('should handle only one non-zero segment', () => {
-      render(<CodeInventoryChart data={{ active: 100, used: 0, expired: 0, cancelled: 0 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 100, used: 0, expired: 0, cancelled: 0 }}
+        />
+      );
       expect(screen.getByText('Active')).toBeInTheDocument();
       expect(screen.getByText(/100.*100\.0%/)).toBeInTheDocument();
     });
@@ -168,7 +186,9 @@ describe('CodeInventoryChart Component', () => {
 
     it('should have transition animation class on bars', () => {
       const { container } = render(<CodeInventoryChart data={mockData} />);
-      const animatedBars = container.querySelectorAll('.transition-all.duration-500');
+      const animatedBars = container.querySelectorAll(
+        '.transition-all.duration-500'
+      );
       expect(animatedBars.length).toBeGreaterThan(0);
     });
   });
@@ -178,12 +198,25 @@ describe('CodeInventoryChart Component', () => {
   // ============================================================================
   describe('large numbers', () => {
     it('should format large numbers with locale string', () => {
-      render(<CodeInventoryChart data={{ active: 10000, used: 5000, expired: 2000, cancelled: 1000 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 10000, used: 5000, expired: 2000, cancelled: 1000 }}
+        />
+      );
       expect(screen.getByText('18,000')).toBeInTheDocument();
     });
 
     it('should handle very large total', () => {
-      render(<CodeInventoryChart data={{ active: 500000, used: 300000, expired: 100000, cancelled: 50000 }} />);
+      render(
+        <CodeInventoryChart
+          data={{
+            active: 500000,
+            used: 300000,
+            expired: 100000,
+            cancelled: 50000,
+          }}
+        />
+      );
       expect(screen.getByText('950,000')).toBeInTheDocument();
     });
   });
@@ -193,7 +226,11 @@ describe('CodeInventoryChart Component', () => {
   // ============================================================================
   describe('edge cases', () => {
     it('should handle all values equal', () => {
-      render(<CodeInventoryChart data={{ active: 100, used: 100, expired: 100, cancelled: 100 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 100, used: 100, expired: 100, cancelled: 100 }}
+        />
+      );
       expect(screen.getByText('400')).toBeInTheDocument();
       // Each should be 25%
       const percentages = screen.getAllByText(/25\.0%/);
@@ -201,7 +238,11 @@ describe('CodeInventoryChart Component', () => {
     });
 
     it('should handle single non-zero value', () => {
-      render(<CodeInventoryChart data={{ active: 0, used: 0, expired: 0, cancelled: 100 }} />);
+      render(
+        <CodeInventoryChart
+          data={{ active: 0, used: 0, expired: 0, cancelled: 100 }}
+        />
+      );
       expect(screen.getByText('Cancelled')).toBeInTheDocument();
       expect(screen.getByText(/100\.0%/)).toBeInTheDocument();
     });

@@ -23,7 +23,9 @@ describe('WebhookVerifier', () => {
     });
 
     it('should throw error for empty secret', () => {
-      expect(() => new WebhookVerifier('')).toThrow('Webhook secret is required');
+      expect(() => new WebhookVerifier('')).toThrow(
+        'Webhook secret is required'
+      );
     });
   });
 

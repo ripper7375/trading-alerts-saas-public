@@ -15,8 +15,8 @@ const defaultProps = {
   totalAffiliates: 50,
   activeAffiliates: 35,
   pendingAffiliates: 15,
-  totalCommissionsPaid: 12500.00,
-  pendingCommissions: 2500.00,
+  totalCommissionsPaid: 12500.0,
+  pendingCommissions: 2500.0,
   totalCodesDistributed: 200,
   totalCodesUsed: 150,
 };
@@ -133,7 +133,7 @@ describe('AffiliateStatsBanner Component', () => {
         <AffiliateStatsBanner
           {...defaultProps}
           totalCommissionsPaid={1234.56}
-          pendingCommissions={78.90}
+          pendingCommissions={78.9}
         />
       );
       expect(screen.getByText('$1,234.56')).toBeInTheDocument();
@@ -268,7 +268,7 @@ describe('AffiliateStatsBanner Component', () => {
           activeAffiliates={500000}
           pendingAffiliates={499999}
           totalCommissionsPaid={9999999.99}
-          pendingCommissions={1000000.00}
+          pendingCommissions={1000000.0}
           totalCodesDistributed={1000000}
           totalCodesUsed={500000}
         />

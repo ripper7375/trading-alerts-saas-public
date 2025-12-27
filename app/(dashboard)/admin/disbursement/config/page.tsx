@@ -129,9 +129,7 @@ export default function ConfigurationPage(): React.ReactElement {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
             Configuration
           </h1>
-          <p className="text-gray-400 mt-1">
-            Disbursement system settings
-          </p>
+          <p className="text-gray-400 mt-1">Disbursement system settings</p>
         </div>
         <div className="flex gap-2">
           {!isEditing ? (
@@ -184,10 +182,16 @@ export default function ConfigurationPage(): React.ReactElement {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">Provider</CardDescription>
+              <CardDescription className="text-gray-400">
+                Provider
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Badge className={config.provider === 'RISE' ? 'bg-green-600' : 'bg-gray-600'}>
+              <Badge
+                className={
+                  config.provider === 'RISE' ? 'bg-green-600' : 'bg-gray-600'
+                }
+              >
                 {config.provider}
               </Badge>
             </CardContent>
@@ -195,7 +199,9 @@ export default function ConfigurationPage(): React.ReactElement {
 
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">Status</CardDescription>
+              <CardDescription className="text-gray-400">
+                Status
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Badge className={config.enabled ? 'bg-green-600' : 'bg-red-600'}>
@@ -206,7 +212,9 @@ export default function ConfigurationPage(): React.ReactElement {
 
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">Minimum Payout</CardDescription>
+              <CardDescription className="text-gray-400">
+                Minimum Payout
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
@@ -217,7 +225,9 @@ export default function ConfigurationPage(): React.ReactElement {
 
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">Batch Size</CardDescription>
+              <CardDescription className="text-gray-400">
+                Batch Size
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
@@ -251,7 +261,10 @@ export default function ConfigurationPage(): React.ReactElement {
                     value="MOCK"
                     checked={editConfig.provider === 'MOCK'}
                     onChange={(e) =>
-                      setEditConfig({ ...editConfig, provider: e.target.value as DisbursementProvider })
+                      setEditConfig({
+                        ...editConfig,
+                        provider: e.target.value as DisbursementProvider,
+                      })
                     }
                     className="text-green-600"
                   />
@@ -264,7 +277,10 @@ export default function ConfigurationPage(): React.ReactElement {
                     value="RISE"
                     checked={editConfig.provider === 'RISE'}
                     onChange={(e) =>
-                      setEditConfig({ ...editConfig, provider: e.target.value as DisbursementProvider })
+                      setEditConfig({
+                        ...editConfig,
+                        provider: e.target.value as DisbursementProvider,
+                      })
                     }
                     className="text-green-600"
                   />
@@ -272,7 +288,8 @@ export default function ConfigurationPage(): React.ReactElement {
                 </label>
               </div>
               <p className="text-gray-500 text-xs mt-1">
-                MOCK provider simulates payments for testing. RISE uses RiseWorks blockchain.
+                MOCK provider simulates payments for testing. RISE uses
+                RiseWorks blockchain.
               </p>
             </div>
 
@@ -308,7 +325,10 @@ export default function ConfigurationPage(): React.ReactElement {
                 step="0.01"
                 value={editConfig.minimumPayout}
                 onChange={(e) =>
-                  setEditConfig({ ...editConfig, minimumPayout: parseFloat(e.target.value) || 0 })
+                  setEditConfig({
+                    ...editConfig,
+                    minimumPayout: parseFloat(e.target.value) || 0,
+                  })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
@@ -328,7 +348,10 @@ export default function ConfigurationPage(): React.ReactElement {
                 max="500"
                 value={editConfig.batchSize}
                 onChange={(e) =>
-                  setEditConfig({ ...editConfig, batchSize: parseInt(e.target.value) || 100 })
+                  setEditConfig({
+                    ...editConfig,
+                    batchSize: parseInt(e.target.value) || 100,
+                  })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
@@ -356,7 +379,8 @@ export default function ConfigurationPage(): React.ReactElement {
                 <option value="production">Production</option>
               </select>
               <p className="text-gray-500 text-xs mt-1">
-                Production environment processes real payments. Use staging for testing.
+                Production environment processes real payments. Use staging for
+                testing.
               </p>
             </div>
           </CardContent>
@@ -372,31 +396,39 @@ export default function ConfigurationPage(): React.ReactElement {
           <div>
             <h4 className="font-medium text-white mb-1">Payment Provider</h4>
             <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
-              <li><strong>MOCK:</strong> Simulates payments instantly. Use for development and testing.</li>
-              <li><strong>RISE:</strong> RiseWorks blockchain provider. Sends USDC to affiliates.</li>
+              <li>
+                <strong>MOCK:</strong> Simulates payments instantly. Use for
+                development and testing.
+              </li>
+              <li>
+                <strong>RISE:</strong> RiseWorks blockchain provider. Sends USDC
+                to affiliates.
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-medium text-white mb-1">Minimum Payout</h4>
             <p className="text-sm text-gray-400">
-              The minimum commission balance required before an affiliate becomes eligible for payout.
-              This helps reduce transaction fees for small amounts.
+              The minimum commission balance required before an affiliate
+              becomes eligible for payout. This helps reduce transaction fees
+              for small amounts.
             </p>
           </div>
 
           <div>
             <h4 className="font-medium text-white mb-1">Batch Size</h4>
             <p className="text-sm text-gray-400">
-              Maximum number of payments to include in a single batch.
-              Larger batches are more efficient but take longer to process.
+              Maximum number of payments to include in a single batch. Larger
+              batches are more efficient but take longer to process.
             </p>
           </div>
 
           <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-3">
             <p className="text-yellow-400 text-sm">
-              <strong>Warning:</strong> Changing the provider to RISE in production will trigger real
-              blockchain transactions. Ensure all RiseWorks API credentials are properly configured.
+              <strong>Warning:</strong> Changing the provider to RISE in
+              production will trigger real blockchain transactions. Ensure all
+              RiseWorks API credentials are properly configured.
             </p>
           </div>
         </CardContent>

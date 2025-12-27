@@ -29,19 +29,20 @@
 
 ### Why Migrate?
 
-| Factor | Vercel Crons | Flask APScheduler |
-|--------|-------------|-------------------|
-| **Job Limit** | 2 (free), 10 (Pro) | Unlimited |
-| **Scheduling** | Basic cron syntax | Cron, interval, date triggers |
-| **Retry Logic** | None built-in | Configurable retries |
-| **Job Persistence** | None | PostgreSQL-backed |
-| **Monitoring** | Basic logs | Custom dashboards |
-| **Cost** | $20/mo for Pro | Included in Railway |
-| **Timeout** | 60s (free), 300s (Pro) | No limit |
+| Factor              | Vercel Crons           | Flask APScheduler             |
+| ------------------- | ---------------------- | ----------------------------- |
+| **Job Limit**       | 2 (free), 10 (Pro)     | Unlimited                     |
+| **Scheduling**      | Basic cron syntax      | Cron, interval, date triggers |
+| **Retry Logic**     | None built-in          | Configurable retries          |
+| **Job Persistence** | None                   | PostgreSQL-backed             |
+| **Monitoring**      | Basic logs             | Custom dashboards             |
+| **Cost**            | $20/mo for Pro         | Included in Railway           |
+| **Timeout**         | 60s (free), 300s (Pro) | No limit                      |
 
 ### Recommendation
 
 Migrate all maintenance cron jobs to Flask backend when:
+
 1. You upgrade to Railway Pro Plan (always-on guarantee)
 2. You need more than 2 cron jobs
 3. You need advanced features (retries, persistence, monitoring)
@@ -72,6 +73,7 @@ Migrate all maintenance cron jobs to Flask backend when:
 ### Jobs Currently Consolidated
 
 The `daily-maintenance` endpoint combines 3 logical jobs:
+
 1. **Expire Affiliate Codes** - Mark expired codes as EXPIRED
 2. **Check Expiring Subscriptions** - 3-day renewal reminder for dLocal
 3. **Downgrade Expired Subscriptions** - Move expired dLocal users to FREE
@@ -79,6 +81,7 @@ The `daily-maintenance` endpoint combines 3 logical jobs:
 ### Future Job Candidates
 
 Jobs that will benefit from Flask migration:
+
 - Email notification sending (batch processing)
 - Usage analytics aggregation
 - Database cleanup tasks
@@ -140,13 +143,13 @@ Jobs that will benefit from Flask migration:
 
 ### Component Responsibilities
 
-| Component | Responsibility |
-|-----------|---------------|
+| Component       | Responsibility                                  |
+| --------------- | ----------------------------------------------- |
 | **APScheduler** | Job scheduling, trigger management, retry logic |
-| **Job Store** | Persist job definitions across restarts |
-| **Executors** | Run jobs in background threads |
-| **Cron Routes** | Manual trigger endpoints, job management API |
-| **Job History** | Track execution results for monitoring |
+| **Job Store**   | Persist job definitions across restarts         |
+| **Executors**   | Run jobs in background threads                  |
+| **Cron Routes** | Manual trigger endpoints, job management API    |
+| **Job History** | Track execution results for monitoring          |
 
 ---
 
@@ -164,16 +167,17 @@ APScheduler (Advanced Python Scheduler) is a Python library for scheduling jobs.
 
 ### APScheduler vs Alternatives
 
-| Feature | APScheduler | Celery Beat | Python-crontab |
-|---------|-------------|-------------|----------------|
-| Complexity | Low | High | Very Low |
-| Dependencies | 1 package | Redis/RabbitMQ | System cron |
-| Job Persistence | Yes (SQLAlchemy) | Yes (Redis) | No |
-| Dynamic Jobs | Yes | Limited | No |
-| Django/Flask Integration | Native | Native | Manual |
-| Memory Usage | ~50MB | ~200MB | N/A |
+| Feature                  | APScheduler      | Celery Beat    | Python-crontab |
+| ------------------------ | ---------------- | -------------- | -------------- |
+| Complexity               | Low              | High           | Very Low       |
+| Dependencies             | 1 package        | Redis/RabbitMQ | System cron    |
+| Job Persistence          | Yes (SQLAlchemy) | Yes (Redis)    | No             |
+| Dynamic Jobs             | Yes              | Limited        | No             |
+| Django/Flask Integration | Native           | Native         | Manual         |
+| Memory Usage             | ~50MB            | ~200MB         | N/A            |
 
 **Why APScheduler for your use case:**
+
 - No additional infrastructure (Celery needs Redis/RabbitMQ)
 - Native Flask integration
 - Job persistence using existing PostgreSQL
@@ -1367,7 +1371,7 @@ def dashboard():
 
 ### Alerting Integration
 
-```python
+````python
 # app/services/alerting.py
 
 import os
@@ -1454,7 +1458,7 @@ def on_job_error(event):
         severity='error',
         job_id=event.job_id
     )
-```
+````
 
 ---
 
@@ -1553,13 +1557,13 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 ### Railway Pro Plan Benefits
 
-| Feature | Hobby Plan | Pro Plan |
-|---------|------------|----------|
-| **Uptime** | May sleep | Always running |
-| **Instances** | 1 | Unlimited |
-| **Memory** | 512MB | 8GB+ |
-| **CPU** | Shared | Dedicated |
-| **Support** | Community | Priority |
+| Feature       | Hobby Plan | Pro Plan       |
+| ------------- | ---------- | -------------- |
+| **Uptime**    | May sleep  | Always running |
+| **Instances** | 1          | Unlimited      |
+| **Memory**    | 512MB      | 8GB+           |
+| **CPU**       | Shared     | Dedicated      |
+| **Support**   | Community  | Priority       |
 
 **Critical**: APScheduler requires always-on hosting. Railway Pro Plan guarantees this.
 
@@ -1691,27 +1695,27 @@ stop_scheduler()  # Jobs stop but definitions remain in PostgreSQL
 
 ### Current Costs (Vercel Only)
 
-| Item | Cost |
-|------|------|
-| Vercel Hobby | $0/month |
+| Item                             | Cost      |
+| -------------------------------- | --------- |
+| Vercel Hobby                     | $0/month  |
 | Vercel Pro (if needed for crons) | $20/month |
 
 ### Post-Migration Costs (Railway)
 
-| Item | Cost |
-|------|------|
-| Railway Pro | $5/month base + usage |
-| PostgreSQL (shared) | Included |
+| Item                     | Cost                     |
+| ------------------------ | ------------------------ |
+| Railway Pro              | $5/month base + usage    |
+| PostgreSQL (shared)      | Included                 |
 | Compute (~$0.000463/min) | ~$20/month for always-on |
-| **Total** | ~$25/month |
+| **Total**                | ~$25/month               |
 
 ### Cost Comparison
 
-| Scenario | Vercel + Railway Hobby | Vercel + Railway Pro |
-|----------|------------------------|----------------------|
-| 2 crons | $0 | $25 |
-| 5 crons | $20 (Vercel Pro) | $25 |
-| 10+ crons | $20 (Vercel Pro limit) | $25 (unlimited) |
+| Scenario  | Vercel + Railway Hobby | Vercel + Railway Pro |
+| --------- | ---------------------- | -------------------- |
+| 2 crons   | $0                     | $25                  |
+| 5 crons   | $20 (Vercel Pro)       | $25                  |
+| 10+ crons | $20 (Vercel Pro limit) | $25 (unlimited)      |
 
 **Break-even**: Railway Pro is cost-effective when you need >2 crons with advanced features.
 
@@ -1721,27 +1725,27 @@ stop_scheduler()  # Jobs stop but definitions remain in PostgreSQL
 
 ### High Risk
 
-| Risk | Mitigation |
-|------|------------|
-| Railway downtime | Health checks, alerting, Vercel cron fallback |
-| Job store corruption | Regular PostgreSQL backups |
-| Scheduler crash | Auto-restart via Railway, job persistence |
+| Risk                 | Mitigation                                    |
+| -------------------- | --------------------------------------------- |
+| Railway downtime     | Health checks, alerting, Vercel cron fallback |
+| Job store corruption | Regular PostgreSQL backups                    |
+| Scheduler crash      | Auto-restart via Railway, job persistence     |
 
 ### Medium Risk
 
-| Risk | Mitigation |
-|------|------------|
-| Missed jobs | Misfire grace time (1 hour), coalesce enabled |
-| Database connection loss | Connection pooling, retry logic |
-| Memory issues | Monitor usage, scale if needed |
+| Risk                     | Mitigation                                    |
+| ------------------------ | --------------------------------------------- |
+| Missed jobs              | Misfire grace time (1 hour), coalesce enabled |
+| Database connection loss | Connection pooling, retry logic               |
+| Memory issues            | Monitor usage, scale if needed                |
 
 ### Low Risk
 
-| Risk | Mitigation |
-|------|------------|
-| Time zone issues | All times in UTC, explicit timezone config |
-| Concurrent execution | max_instances=1 per job |
-| Job conflicts | Sequential scheduling (5 minute gaps) |
+| Risk                 | Mitigation                                 |
+| -------------------- | ------------------------------------------ |
+| Time zone issues     | All times in UTC, explicit timezone config |
+| Concurrent execution | max_instances=1 per job                    |
+| Job conflicts        | Sequential scheduling (5 minute gaps)      |
 
 ---
 
@@ -1750,6 +1754,7 @@ stop_scheduler()  # Jobs stop but definitions remain in PostgreSQL
 ### When to Migrate
 
 Migrate to Flask APScheduler when:
+
 - ✅ You have Railway Pro Plan (always-on guarantee)
 - ✅ You need more than 2 cron jobs
 - ✅ You need advanced features (retries, persistence, monitoring)
@@ -1766,15 +1771,15 @@ Migrate to Flask APScheduler when:
 
 ### Implementation Effort
 
-| Phase | Files | Effort |
-|-------|-------|--------|
-| Phase 1: Scheduler Infrastructure | 2 | 2 hours |
-| Phase 2: Job Implementations | 5 | 3 hours |
-| Phase 3: API Routes | 1 | 2 hours |
-| Phase 4: App Integration | 1 | 1 hour |
-| Phase 5: Database Migration | 1 | 30 min |
-| Phase 6: Deployment & Testing | - | 2 hours |
-| **Total** | 10 files | ~10 hours |
+| Phase                             | Files    | Effort    |
+| --------------------------------- | -------- | --------- |
+| Phase 1: Scheduler Infrastructure | 2        | 2 hours   |
+| Phase 2: Job Implementations      | 5        | 3 hours   |
+| Phase 3: API Routes               | 1        | 2 hours   |
+| Phase 4: App Integration          | 1        | 1 hour    |
+| Phase 5: Database Migration       | 1        | 30 min    |
+| Phase 6: Deployment & Testing     | -        | 2 hours   |
+| **Total**                         | 10 files | ~10 hours |
 
 ---
 

@@ -29,7 +29,11 @@ class MockRequest {
 
   constructor(
     url: string,
-    options?: { method?: string; headers?: Record<string, string>; body?: string }
+    options?: {
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+    }
   ) {
     this.url = url;
     this.method = options?.method || 'POST';
@@ -90,17 +94,18 @@ describe('RiseWorks Webhook API', () => {
   });
 
   it('should reject request with missing signature', async () => {
-    const { POST } = await import(
-      '@/app/api/webhooks/riseworks/route'
-    );
+    const { POST } = await import('@/app/api/webhooks/riseworks/route');
 
-    const request = new MockRequest('http://localhost:3000/api/webhooks/riseworks', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ event: 'payment.completed' }),
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/webhooks/riseworks',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ event: 'payment.completed' }),
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(401);
@@ -110,18 +115,19 @@ describe('RiseWorks Webhook API', () => {
   });
 
   it('should reject request with invalid signature', async () => {
-    const { POST } = await import(
-      '@/app/api/webhooks/riseworks/route'
-    );
+    const { POST } = await import('@/app/api/webhooks/riseworks/route');
 
-    const request = new MockRequest('http://localhost:3000/api/webhooks/riseworks', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-rise-signature': 'invalid-signature',
-      },
-      body: JSON.stringify({ event: 'payment.completed' }),
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/webhooks/riseworks',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-rise-signature': 'invalid-signature',
+        },
+        body: JSON.stringify({ event: 'payment.completed' }),
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(401);
@@ -131,9 +137,7 @@ describe('RiseWorks Webhook API', () => {
   });
 
   it('should reject request with invalid JSON', async () => {
-    const { POST } = await import(
-      '@/app/api/webhooks/riseworks/route'
-    );
+    const { POST } = await import('@/app/api/webhooks/riseworks/route');
 
     // Create valid signature for invalid JSON
     const crypto = await import('crypto');
@@ -143,14 +147,17 @@ describe('RiseWorks Webhook API', () => {
       .update(payload, 'utf8')
       .digest('hex');
 
-    const request = new MockRequest('http://localhost:3000/api/webhooks/riseworks', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-rise-signature': signature,
-      },
-      body: payload,
-    });
+    const request = new MockRequest(
+      'http://localhost:3000/api/webhooks/riseworks',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-rise-signature': signature,
+        },
+        body: payload,
+      }
+    );
 
     const response = await POST(request as any);
     expect(response.status).toBe(400);

@@ -146,7 +146,9 @@ export class PrismaClient {
 
   // Prisma 5.x specific
   $metrics = {
-    json: jest.fn().mockResolvedValue({ counters: [], gauges: [], histograms: [] }),
+    json: jest
+      .fn()
+      .mockResolvedValue({ counters: [], gauges: [], histograms: [] }),
     prometheus: jest.fn().mockResolvedValue(''),
   };
   $extends = jest.fn().mockReturnThis();

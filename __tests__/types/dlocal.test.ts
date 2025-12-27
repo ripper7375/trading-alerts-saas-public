@@ -30,7 +30,16 @@ describe('dLocal Types', () => {
 
   describe('DLocalCountry', () => {
     it('should have 8 supported countries', () => {
-      const countries: DLocalCountry[] = ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR'];
+      const countries: DLocalCountry[] = [
+        'IN',
+        'NG',
+        'PK',
+        'VN',
+        'ID',
+        'TH',
+        'ZA',
+        'TR',
+      ];
       expect(countries).toHaveLength(8);
     });
 
@@ -47,7 +56,16 @@ describe('dLocal Types', () => {
 
   describe('DLocalCurrency', () => {
     it('should have matching currencies for countries', () => {
-      const currencies: DLocalCurrency[] = ['INR', 'NGN', 'PKR', 'VND', 'IDR', 'THB', 'ZAR', 'TRY'];
+      const currencies: DLocalCurrency[] = [
+        'INR',
+        'NGN',
+        'PKR',
+        'VND',
+        'IDR',
+        'THB',
+        'ZAR',
+        'TRY',
+      ];
       expect(currencies).toHaveLength(8);
     });
 
@@ -71,7 +89,13 @@ describe('dLocal Types', () => {
 
   describe('PaymentStatus', () => {
     it('should have all expected statuses', () => {
-      const statuses: PaymentStatus[] = ['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED'];
+      const statuses: PaymentStatus[] = [
+        'PENDING',
+        'COMPLETED',
+        'FAILED',
+        'CANCELLED',
+        'REFUNDED',
+      ];
       expect(statuses).toContain('PENDING');
       expect(statuses).toContain('COMPLETED');
       expect(statuses).toContain('FAILED');

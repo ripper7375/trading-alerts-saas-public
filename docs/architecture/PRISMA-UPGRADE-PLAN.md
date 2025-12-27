@@ -179,6 +179,7 @@ Claude Code created a **manual TypeScript declaration file** to provide type def
    ```
 
 4. **Prisma Namespace** - Input types for queries:
+
    ```typescript
    namespace Prisma {
      interface SystemConfigWhereInput {

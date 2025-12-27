@@ -78,10 +78,7 @@ export async function POST(
       }
 
       if (error.message.includes('not suspended')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
 

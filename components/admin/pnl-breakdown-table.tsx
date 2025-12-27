@@ -47,18 +47,26 @@ export function PnLBreakdownTable({ data }: PnLBreakdownTableProps) {
             <tr key={row.month} className="border-b hover:bg-muted/25">
               <td className="px-4 py-3 font-medium">{row.month}</td>
               <td className="px-4 py-3 text-right">{row.sales}</td>
-              <td className="px-4 py-3 text-right">{formatCurrency(row.grossRevenue)}</td>
+              <td className="px-4 py-3 text-right">
+                {formatCurrency(row.grossRevenue)}
+              </td>
               <td className="px-4 py-3 text-right text-orange-600">
                 -{formatCurrency(row.discounts)}
               </td>
-              <td className="px-4 py-3 text-right">{formatCurrency(row.netRevenue)}</td>
+              <td className="px-4 py-3 text-right">
+                {formatCurrency(row.netRevenue)}
+              </td>
               <td className="px-4 py-3 text-right text-orange-600">
                 -{formatCurrency(row.commissions)}
               </td>
-              <td className={`px-4 py-3 text-right font-medium ${row.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <td
+                className={`px-4 py-3 text-right font-medium ${row.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
                 {formatCurrency(row.profit)}
               </td>
-              <td className={`px-4 py-3 text-right ${row.margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <td
+                className={`px-4 py-3 text-right ${row.margin >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
                 {row.margin.toFixed(1)}%
               </td>
             </tr>

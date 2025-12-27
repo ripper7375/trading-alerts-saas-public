@@ -39,7 +39,9 @@ describe('Check Expiring Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await checkExpiringSubscriptions();
 
@@ -68,7 +70,9 @@ describe('Check Expiring Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       await checkExpiringSubscriptions();
 
@@ -142,7 +146,9 @@ describe('Check Expiring Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await checkExpiringSubscriptions();
 
@@ -171,7 +177,9 @@ describe('Check Expiring Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await checkExpiringSubscriptions();
 
@@ -208,7 +216,9 @@ describe('Check Expiring Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await checkExpiringSubscriptions({ dryRun: true });
 
@@ -235,8 +245,12 @@ describe('Check Expiring Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
-      prismaMock.subscription.update.mockRejectedValue(new Error('Update failed'));
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
+      prismaMock.subscription.update.mockRejectedValue(
+        new Error('Update failed')
+      );
 
       const result = await checkExpiringSubscriptions();
 

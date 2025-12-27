@@ -37,10 +37,7 @@ export async function GET(
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { paymentId } = await params;
@@ -61,18 +58,12 @@ export async function GET(
     });
 
     if (!payment) {
-      return NextResponse.json(
-        { error: 'Payment not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
     // Verify ownership
     if (payment.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Get status from dLocal (for real-time status)
@@ -87,7 +78,10 @@ export async function GET(
       };
     }
 
-    logger.info('Payment status retrieved', { paymentId, status: payment.status });
+    logger.info('Payment status retrieved', {
+      paymentId,
+      status: payment.status,
+    });
 
     return NextResponse.json({
       id: payment.id,

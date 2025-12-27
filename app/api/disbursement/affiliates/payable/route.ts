@@ -24,9 +24,7 @@ import { CommissionAggregator } from '@/lib/disbursement/services/commission-agg
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  _request: NextRequest
-): Promise<NextResponse> {
+export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -76,8 +74,11 @@ export async function GET(
       totalPendingAmount: aggregates.reduce((sum, a) => sum + a.totalAmount, 0),
       readyForPayout: affiliates.filter((a) => a.readyForPayout).length,
       meetsThreshold: affiliates.filter((a) => a.meetsThreshold).length,
-      withRiseAccount: affiliates.filter((a) => a.riseAccount.hasAccount).length,
-      withApprovedKyc: affiliates.filter((a) => a.riseAccount.canReceivePayments).length,
+      withRiseAccount: affiliates.filter((a) => a.riseAccount.hasAccount)
+        .length,
+      withApprovedKyc: affiliates.filter(
+        (a) => a.riseAccount.canReceivePayments
+      ).length,
     };
 
     return NextResponse.json({

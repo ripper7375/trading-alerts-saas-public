@@ -177,12 +177,14 @@ export async function PATCH(
     });
 
     // Cast to access fields that will exist after prisma generate
-    const alertData = updatedAlert as typeof updatedAlert & {
-      amount?: { toString(): string } | null;
-      createdAt: Date;
-      updatedAt: Date;
-      reviewedAt?: Date | null;
-    } | null;
+    const alertData = updatedAlert as
+      | (typeof updatedAlert & {
+          amount?: { toString(): string } | null;
+          createdAt: Date;
+          updatedAt: Date;
+          reviewedAt?: Date | null;
+        })
+      | null;
 
     return NextResponse.json({
       alert: {

@@ -6,10 +6,15 @@
  */
 
 import crypto from 'crypto';
-import type { DLocalPaymentRequest, DLocalPaymentResponse, PaymentStatus } from '@/types/dlocal';
+import type {
+  DLocalPaymentRequest,
+  DLocalPaymentResponse,
+  PaymentStatus,
+} from '@/types/dlocal';
 import { logger } from '@/lib/logger';
 
-const DLOCAL_API_URL = process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
+const DLOCAL_API_URL =
+  process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
 const DLOCAL_API_KEY = process.env['DLOCAL_API_KEY'] || '';
 const DLOCAL_SECRET_KEY = process.env['DLOCAL_SECRET_KEY'] || '';
 const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || '';
@@ -18,7 +23,10 @@ const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || '';
  * Generates HMAC signature for dLocal API requests
  */
 function generateSignature(body: string): string {
-  return crypto.createHmac('sha256', DLOCAL_SECRET_KEY).update(body).digest('hex');
+  return crypto
+    .createHmac('sha256', DLOCAL_SECRET_KEY)
+    .update(body)
+    .digest('hex');
 }
 
 /**
@@ -53,7 +61,10 @@ export async function createPayment(
     const body = JSON.stringify(requestBody);
     const signature = generateSignature(body);
 
-    logger.info('Creating dLocal payment', { orderId, country: request.country });
+    logger.info('Creating dLocal payment', {
+      orderId,
+      country: request.country,
+    });
 
     // In production, this would call the dLocal API
     // For development/testing, we simulate a response
@@ -83,7 +94,10 @@ export async function createPayment(
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('dLocal API error', { status: response.status, error: errorText });
+      logger.error('dLocal API error', {
+        status: response.status,
+        error: errorText,
+      });
       throw new Error('Failed to create payment');
     }
 
@@ -94,7 +108,8 @@ export async function createPayment(
     return {
       paymentId: data.id || `dlocal-${Date.now()}`,
       orderId,
-      paymentUrl: data.redirect_url || `https://sandbox.dlocal.com/payment/${data.id}`,
+      paymentUrl:
+        data.redirect_url || `https://sandbox.dlocal.com/payment/${data.id}`,
       status: 'PENDING' as PaymentStatus,
       amount: request.amount,
       currency: request.currency,

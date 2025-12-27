@@ -129,7 +129,8 @@ export function calculateBackoffDelay(
   attempt: number,
   config = DEFAULT_RETRY_CONFIG
 ): number {
-  const delay = config.initialDelay * Math.pow(config.backoffMultiplier, attempt - 1);
+  const delay =
+    config.initialDelay * Math.pow(config.backoffMultiplier, attempt - 1);
   return Math.min(delay, config.maxDelay);
 }
 

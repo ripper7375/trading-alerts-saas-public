@@ -22,7 +22,14 @@ import { isValidProvider } from '@/lib/disbursement/constants';
  */
 const querySchema = z.object({
   status: z
-    .enum(['PENDING', 'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'])
+    .enum([
+      'PENDING',
+      'QUEUED',
+      'PROCESSING',
+      'COMPLETED',
+      'FAILED',
+      'CANCELLED',
+    ])
     .optional(),
   limit: z.coerce.number().min(1).max(100).default(50),
 });
@@ -46,9 +53,7 @@ const createBatchSchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -59,7 +64,10 @@ export async function GET(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: validation.error.flatten() },
+        {
+          error: 'Invalid query parameters',
+          details: validation.error.flatten(),
+        },
         { status: 400 }
       );
     }
@@ -122,9 +130,7 @@ export async function GET(
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     const session = await requireAdmin();
@@ -157,20 +163,25 @@ export async function POST(
     let aggregates;
     if (affiliateIds && affiliateIds.length > 0) {
       aggregates = await Promise.all(
-        affiliateIds.map((id: string) => aggregator.getAggregatesByAffiliate(id))
+        affiliateIds.map((id: string) =>
+          aggregator.getAggregatesByAffiliate(id)
+        )
       );
     } else {
       aggregates = await aggregator.getAllPayableAffiliates();
     }
 
     // Filter to only payable aggregates (meeting threshold)
-    const payableAggregates = aggregates.filter((agg: { canPayout: boolean }) => agg.canPayout);
+    const payableAggregates = aggregates.filter(
+      (agg: { canPayout: boolean }) => agg.canPayout
+    );
 
     if (payableAggregates.length === 0) {
       return NextResponse.json(
         {
           error: 'No payable affiliates found',
-          details: 'All affiliates are either below the minimum payout threshold or have no approved commissions',
+          details:
+            'All affiliates are either below the minimum payout threshold or have no approved commissions',
         },
         { status: 400 }
       );

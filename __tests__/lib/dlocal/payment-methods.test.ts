@@ -86,7 +86,16 @@ describe('Payment Methods Service', () => {
     });
 
     it('should return non-empty array for all supported countries', async () => {
-      const countries: DLocalCountry[] = ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR'];
+      const countries: DLocalCountry[] = [
+        'IN',
+        'NG',
+        'PK',
+        'VN',
+        'ID',
+        'TH',
+        'ZA',
+        'TR',
+      ];
 
       for (const country of countries) {
         const methods = await getPaymentMethodsForCountry(country);
@@ -174,7 +183,16 @@ describe('Payment Methods Service', () => {
     });
 
     it('should return default for all supported countries', () => {
-      const countries: DLocalCountry[] = ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR'];
+      const countries: DLocalCountry[] = [
+        'IN',
+        'NG',
+        'PK',
+        'VN',
+        'ID',
+        'TH',
+        'ZA',
+        'TR',
+      ];
 
       countries.forEach((country) => {
         const defaultMethod = getDefaultPaymentMethod(country);

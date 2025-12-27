@@ -123,10 +123,13 @@ describe('Affiliate Conversion Flow API', () => {
   describe('POST /api/checkout/validate-code', () => {
     it('should return 400 when no code provided', async () => {
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -137,10 +140,13 @@ describe('Affiliate Conversion Flow API', () => {
 
     it('should return 400 for invalid code format', async () => {
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'short' }), // Less than 8 chars
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'short' }), // Less than 8 chars
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -153,10 +159,13 @@ describe('Affiliate Conversion Flow API', () => {
       mockAffiliateCodeFindUnique.mockResolvedValue(null);
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'NOTFOUND' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'NOTFOUND' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -180,10 +189,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'USED1234' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'USED1234' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -208,10 +220,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'EXPIRED1' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'EXPIRED1' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -235,10 +250,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'INACTIVE' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'INACTIVE' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -263,10 +281,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'VALID123' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'VALID123' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -299,10 +320,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'lower123' }), // Lowercase input
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'lower123' }), // Lowercase input
+        }
+      );
       await POST(request as unknown as Request);
 
       expect(mockAffiliateCodeFindUnique).toHaveBeenCalledWith(
@@ -313,13 +337,18 @@ describe('Affiliate Conversion Flow API', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      mockAffiliateCodeFindUnique.mockRejectedValue(new Error('Database connection failed'));
+      mockAffiliateCodeFindUnique.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'DBERROR1' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'DBERROR1' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -346,10 +375,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'CALC2020' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'CALC2020' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -378,10 +410,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'BOUNDARY' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'BOUNDARY' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -405,10 +440,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'CANCELD1' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'CANCELD1' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
@@ -432,10 +470,13 @@ describe('Affiliate Conversion Flow API', () => {
       });
 
       const { POST } = await import('@/app/api/checkout/validate-code/route');
-      const request = new MockRequest('http://localhost/api/checkout/validate-code', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'EXPSTAT1' }),
-      });
+      const request = new MockRequest(
+        'http://localhost/api/checkout/validate-code',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'EXPSTAT1' }),
+        }
+      );
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 

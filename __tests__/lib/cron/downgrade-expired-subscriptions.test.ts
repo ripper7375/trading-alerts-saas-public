@@ -41,7 +41,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -69,7 +71,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       await downgradeExpiredSubscriptions();
 
@@ -97,7 +101,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       await downgradeExpiredSubscriptions();
 
@@ -125,7 +131,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       await downgradeExpiredSubscriptions();
 
@@ -201,7 +209,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -240,7 +250,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       const result = await downgradeExpiredSubscriptions({ dryRun: true });
 
@@ -284,7 +296,9 @@ describe('Downgrade Expired Subscriptions Cron', () => {
         },
       ];
 
-      prismaMock.subscription.findMany.mockResolvedValue(mockSubscriptions as never);
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
 
       // First user update fails, second succeeds
       prismaMock.user.update

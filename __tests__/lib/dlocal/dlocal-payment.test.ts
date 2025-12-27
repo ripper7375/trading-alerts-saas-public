@@ -101,7 +101,10 @@ describe('dLocal Payment Service', () => {
 
     it('should verify valid webhook signature', () => {
       const payload = JSON.stringify({ id: 'payment-123', status: 'PAID' });
-      const signature = crypto.createHmac('sha256', testSecret).update(payload).digest('hex');
+      const signature = crypto
+        .createHmac('sha256', testSecret)
+        .update(payload)
+        .digest('hex');
 
       const isValid = verifyWebhookSignature(payload, signature, testSecret);
       expect(isValid).toBe(true);
@@ -111,21 +114,41 @@ describe('dLocal Payment Service', () => {
       const payload = JSON.stringify({ id: 'payment-123', status: 'PAID' });
       const invalidSignature = 'invalid-signature-12345';
 
-      const isValid = verifyWebhookSignature(payload, invalidSignature, testSecret);
+      const isValid = verifyWebhookSignature(
+        payload,
+        invalidSignature,
+        testSecret
+      );
       expect(isValid).toBe(false);
     });
 
     it('should reject tampered payload', () => {
-      const originalPayload = JSON.stringify({ id: 'payment-123', status: 'PAID' });
-      const signature = crypto.createHmac('sha256', testSecret).update(originalPayload).digest('hex');
+      const originalPayload = JSON.stringify({
+        id: 'payment-123',
+        status: 'PAID',
+      });
+      const signature = crypto
+        .createHmac('sha256', testSecret)
+        .update(originalPayload)
+        .digest('hex');
 
-      const tamperedPayload = JSON.stringify({ id: 'payment-123', status: 'REJECTED' });
-      const isValid = verifyWebhookSignature(tamperedPayload, signature, testSecret);
+      const tamperedPayload = JSON.stringify({
+        id: 'payment-123',
+        status: 'REJECTED',
+      });
+      const isValid = verifyWebhookSignature(
+        tamperedPayload,
+        signature,
+        testSecret
+      );
       expect(isValid).toBe(false);
     });
 
     it('should handle empty payload', () => {
-      const signature = crypto.createHmac('sha256', testSecret).update('').digest('hex');
+      const signature = crypto
+        .createHmac('sha256', testSecret)
+        .update('')
+        .digest('hex');
       const isValid = verifyWebhookSignature('', signature, testSecret);
       expect(isValid).toBe(true);
     });

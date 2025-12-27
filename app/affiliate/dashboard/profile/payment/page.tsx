@@ -60,9 +60,7 @@ export default function AffiliatePaymentPage(): React.ReactElement {
         });
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load payment settings'
+          err instanceof Error ? err.message : 'Failed to load payment settings'
         );
       } finally {
         setLoading(false);

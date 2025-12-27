@@ -83,6 +83,7 @@ Before starting Part 19B, verify Part 19A is complete:
 ### Rule 1: NEVER Create Custom Interfaces for Prisma Models
 
 ❌ **WRONG - Causes Type Drift:**
+
 ```typescript
 // DO NOT DO THIS!
 interface PaymentBatchWithTransactions {
@@ -99,12 +100,14 @@ interface PaymentBatchWithTransactions {
 ```
 
 **Why this breaks:**
+
 - Prisma returns fields you didn't define
 - TypeScript types don't match runtime data
 - Services depending on nested data get `undefined`
 - Tests pass but production fails
 
 ✅ **CORRECT - Use Prisma.Validator:**
+
 ```typescript
 import { Prisma } from '@prisma/client';
 
@@ -134,6 +137,7 @@ async getBatchById(batchId: string): Promise<PaymentBatchWithTransactions | null
 ```
 
 **Benefits:**
+
 - TypeScript enforces the exact Prisma structure
 - If Prisma schema changes, TypeScript errors immediately
 - No possibility of type drift
@@ -361,15 +365,16 @@ import { Prisma } from '@prisma/client';
  * - PaymentOrchestrator.executeBatch()
  * - Admin APIs that display batch details
  */
-export const BATCH_WITH_TRANSACTIONS = Prisma.validator<Prisma.PaymentBatchInclude>()({
-  transactions: {
-    include: {
-      commission: true,               // Needed for status updates
-      affiliateRiseAccount: true,     // Needed for payment requests
+export const BATCH_WITH_TRANSACTIONS =
+  Prisma.validator<Prisma.PaymentBatchInclude>()({
+    transactions: {
+      include: {
+        commission: true, // Needed for status updates
+        affiliateRiseAccount: true, // Needed for payment requests
+      },
     },
-  },
-  auditLogs: true,
-});
+    auditLogs: true,
+  });
 
 /**
  * Full transaction with all relations for reports and APIs
@@ -379,28 +384,29 @@ export const BATCH_WITH_TRANSACTIONS = Prisma.validator<Prisma.PaymentBatchInclu
  * - Report generation
  * - Audit log viewing
  */
-export const TRANSACTION_WITH_DETAILS = Prisma.validator<Prisma.DisbursementTransactionInclude>()({
-  commission: {
-    include: {
-      affiliateProfile: {
-        select: {
-          id: true,
-          fullName: true,
+export const TRANSACTION_WITH_DETAILS =
+  Prisma.validator<Prisma.DisbursementTransactionInclude>()({
+    commission: {
+      include: {
+        affiliateProfile: {
+          select: {
+            id: true,
+            fullName: true,
+          },
         },
       },
     },
-  },
-  batch: {
-    select: {
-      batchNumber: true,
-      executedAt: true,
-      status: true,
+    batch: {
+      select: {
+        batchNumber: true,
+        executedAt: true,
+        status: true,
+      },
     },
-  },
-  affiliateRiseAccount: true,
-  webhookEvents: true,
-  auditLogs: true,
-});
+    affiliateRiseAccount: true,
+    webhookEvents: true,
+    auditLogs: true,
+  });
 
 /**
  * Lightweight batch list (for paginated APIs)
@@ -454,6 +460,7 @@ export type BatchListView = Prisma.PaymentBatchGetPayload<{
 ```
 
 **Validation:**
+
 ```bash
 # After creating this file
 npx tsc --noEmit
@@ -464,6 +471,7 @@ node -e "const { BATCH_WITH_TRANSACTIONS } = require('./lib/disbursement/query-p
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/query-patterns.ts
 git commit -m "feat(disbursement-19b): add Prisma query pattern constants (prevents type drift)"
@@ -552,6 +560,7 @@ export class TransactionLogger {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/transaction-logger.ts
 git commit -m "feat(disbursement-19b): add transaction logger"
@@ -643,6 +652,7 @@ export class RetryHandler {
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/retry-handler.ts
 git commit -m "feat(disbursement-19b): add retry handler"
@@ -700,7 +710,7 @@ describe('BatchManager', () => {
       batchNumber: 'BATCH-2025-001',
       totalAmount: 100.0,
       paymentCount: 1,
-      transactions: [],      // Include nested structure even if empty
+      transactions: [], // Include nested structure even if empty
       auditLogs: [],
     };
 
@@ -768,6 +778,7 @@ describe('BatchManager', () => {
 ```
 
 **Run test:**
+
 ```bash
 npm test -- batch.test.ts
 ```
@@ -791,7 +802,7 @@ import { generateBatchNumber, MAX_BATCH_SIZE } from '../constants';
 import { TransactionLogger } from './transaction-logger';
 import {
   BATCH_WITH_TRANSACTIONS,
-  BatchWithTransactions
+  BatchWithTransactions,
 } from '../query-patterns';
 
 export class BatchManager {
@@ -922,6 +933,7 @@ export class BatchManager {
 ```
 
 **Run test:**
+
 ```bash
 npm test -- batch.test.ts
 ```
@@ -929,6 +941,7 @@ npm test -- batch.test.ts
 Expected: ✅ PASSES
 
 **✅ VALIDATION CHECKPOINT 1:**
+
 ```bash
 # Verify batch manager uses query patterns correctly
 grep -n "BATCH_WITH_TRANSACTIONS" lib/disbursement/services/batch-manager.ts
@@ -944,6 +957,7 @@ npx tsc --noEmit
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/batch-manager.ts __tests__/lib/disbursement/services/batch.test.ts
 git commit -m "feat(disbursement-19b): add batch manager with type-safe query patterns"
@@ -996,11 +1010,13 @@ describe('PaymentOrchestrator', () => {
           amount: 50.0,
           currency: 'USD',
           payeeRiseId: '0xA35b...',
-          commission: {              // ← Required by orchestrator
+          commission: {
+            // ← Required by orchestrator
             id: 'comm-1',
             status: 'APPROVED',
           },
-          affiliateRiseAccount: {    // ← Required by orchestrator
+          affiliateRiseAccount: {
+            // ← Required by orchestrator
             affiliateProfileId: 'aff-123',
             riseId: '0xA35b...',
           },
@@ -1015,8 +1031,12 @@ describe('PaymentOrchestrator', () => {
     );
 
     // Mock transaction updates
-    (mockPrisma.disbursementTransaction.update as jest.Mock).mockResolvedValue({});
-    (mockPrisma.disbursementTransaction.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.disbursementTransaction.update as jest.Mock).mockResolvedValue(
+      {}
+    );
+    (
+      mockPrisma.disbursementTransaction.findUnique as jest.Mock
+    ).mockResolvedValue({
       id: 'txn-1',
       transactionId: 'TXN-123',
       commissionId: 'comm-1',
@@ -1065,13 +1085,19 @@ describe('PaymentOrchestrator', () => {
       auditLogs: [],
     };
 
-    (mockPrisma.paymentBatch.findUnique as jest.Mock).mockResolvedValue(mockBatch);
-    (mockPrisma.disbursementTransaction.findUnique as jest.Mock).mockResolvedValue({
+    (mockPrisma.paymentBatch.findUnique as jest.Mock).mockResolvedValue(
+      mockBatch
+    );
+    (
+      mockPrisma.disbursementTransaction.findUnique as jest.Mock
+    ).mockResolvedValue({
       id: 'txn-1',
       transactionId: 'TXN-123',
       retryCount: 0,
     });
-    (mockPrisma.disbursementTransaction.update as jest.Mock).mockResolvedValue({});
+    (mockPrisma.disbursementTransaction.update as jest.Mock).mockResolvedValue(
+      {}
+    );
 
     const result = await orchestrator.executeBatch('batch-123');
 
@@ -1083,6 +1109,7 @@ describe('PaymentOrchestrator', () => {
 ```
 
 **Run test:**
+
 ```bash
 npm test -- orchestrator.test.ts
 ```
@@ -1271,6 +1298,7 @@ export class PaymentOrchestrator {
 ```
 
 **Run test:**
+
 ```bash
 npm test
 ```
@@ -1278,6 +1306,7 @@ npm test
 Expected: ✅ ALL TESTS PASS
 
 **✅ VALIDATION CHECKPOINT 2:**
+
 ```bash
 # Verify orchestrator imports query patterns
 grep -n "BatchWithTransactions" lib/disbursement/services/payment-orchestrator.ts
@@ -1297,6 +1326,7 @@ npx tsc --noEmit
 ```
 
 **Commit:**
+
 ```bash
 git add lib/disbursement/services/payment-orchestrator.ts __tests__/lib/disbursement/services/orchestrator.test.ts
 git commit -m "feat(disbursement-19b): add payment orchestrator with type-safe data flow"
@@ -1655,6 +1685,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **Commit:**
+
 ```bash
 git add app/api/disbursement/affiliates/ app/api/disbursement/riseworks/ __tests__/api/disbursement/affiliates/
 git commit -m "feat(disbursement-19b): add affiliate and riseworks API routes"
@@ -1928,16 +1959,21 @@ jest.mock('@/lib/auth', () => ({
 
 describe('Batch API Routes', () => {
   it('GET should return batches', async () => {
-    const request = new NextRequest('http://localhost:3000/api/disbursement/batches');
+    const request = new NextRequest(
+      'http://localhost:3000/api/disbursement/batches'
+    );
     const response = await GET(request);
     expect(response.status).toBe(200);
   });
 
   it('POST should create batch', async () => {
-    const request = new NextRequest('http://localhost:3000/api/disbursement/batches', {
-      method: 'POST',
-      body: JSON.stringify({ provider: 'MOCK' }),
-    });
+    const request = new NextRequest(
+      'http://localhost:3000/api/disbursement/batches',
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider: 'MOCK' }),
+      }
+    );
     const response = await POST(request);
     expect([201, 400]).toContain(response.status); // 400 if no payable affiliates
   });
@@ -1961,7 +1997,9 @@ describe('Batch Execution API', () => {
     const { getServerSession } = await import('@/lib/auth');
     (getServerSession as jest.Mock).mockResolvedValueOnce(null);
 
-    const request = new NextRequest('http://localhost:3000/api/disbursement/batches/batch-123/execute');
+    const request = new NextRequest(
+      'http://localhost:3000/api/disbursement/batches/batch-123/execute'
+    );
     const response = await POST(request, { params: { batchId: 'batch-123' } });
     expect(response.status).toBe(401);
   });
@@ -1969,6 +2007,7 @@ describe('Batch Execution API', () => {
 ```
 
 **Commit:**
+
 ```bash
 git add app/api/disbursement/batches/ __tests__/api/disbursement/batches/
 git commit -m "feat(disbursement-19b): add batch management API routes with tests"
@@ -1981,6 +2020,7 @@ git commit -m "feat(disbursement-19b): add batch management API routes with test
 ### Pitfall 1: Changing Prisma Includes Without Updating Dependents
 
 **Symptom:**
+
 ```
 TypeError: Cannot read property 'affiliateRiseAccount' of undefined
 at PaymentOrchestrator.executeBatch (payment-orchestrator.ts:45)
@@ -1989,6 +2029,7 @@ at PaymentOrchestrator.executeBatch (payment-orchestrator.ts:45)
 **Cause:** You changed `getBatchById` includes but `PaymentOrchestrator` expects nested data.
 
 **Example:**
+
 ```typescript
 // ❌ WRONG - BatchManager removed nested includes
 async getBatchById(batchId: string) {
@@ -2005,6 +2046,7 @@ batch.transactions.map((txn) => ({
 ```
 
 **Prevention:**
+
 1. Use shared `BATCH_WITH_TRANSACTIONS` constant from `query-patterns.ts`
 2. Never modify Prisma includes without checking all usages
 3. Run `grep -r "getBatchById" lib/` to find all dependencies before changing
@@ -2016,6 +2058,7 @@ batch.transactions.map((txn) => ({
 **Symptom:** Tests fail in CI but pass locally, or tests affect each other. One test's mock affects another test.
 
 **Cause:**
+
 ```typescript
 // At top of test file - WRONG!
 jest.mock('@/lib/disbursement/constants');
@@ -2024,6 +2067,7 @@ jest.mock('@/lib/disbursement/constants');
 ```
 
 **Prevention:**
+
 ```typescript
 // Inside describe block - CORRECT!
 describe('BatchManager', () => {
@@ -2053,6 +2097,7 @@ describe('BatchManager', () => {
 **Cause:** Creating custom interfaces instead of using Prisma-generated types.
 
 **Example:**
+
 ```typescript
 // ❌ WRONG - Custom interface drifts
 interface PaymentBatchWithTransactions {
@@ -2076,6 +2121,7 @@ interface PaymentBatchWithTransactions {
 **Prevention:** Review the "Data Flow Contract" section before making changes.
 
 **Dependency Map:**
+
 ```
 PaymentOrchestrator.executeBatch()
   └─ Depends on: BatchManager.getBatchById()
@@ -2093,6 +2139,7 @@ PaymentOrchestrator.executeBatch()
 **Cause:** Mock data doesn't include nested relations that real Prisma returns.
 
 **Example:**
+
 ```typescript
 // ❌ WRONG - Mock missing nested data
 const mockBatch = {
@@ -2123,6 +2170,7 @@ const mockBatch = {
 After completing each step, verify:
 
 ### Checkpoint 0: Query Patterns Created
+
 ```bash
 # File exists
 ls lib/disbursement/query-patterns.ts
@@ -2136,6 +2184,7 @@ grep "export type" lib/disbursement/query-patterns.ts
 ```
 
 ### Checkpoint 1: Batch Manager Uses Query Patterns
+
 ```bash
 # Import check
 grep "BATCH_WITH_TRANSACTIONS" lib/disbursement/services/batch-manager.ts
@@ -2148,6 +2197,7 @@ npm test -- batch.test.ts
 ```
 
 ### Checkpoint 2: Orchestrator Depends on Correct Types
+
 ```bash
 # Import check
 grep "BatchWithTransactions" lib/disbursement/services/payment-orchestrator.ts
@@ -2163,6 +2213,7 @@ npx tsc --noEmit
 ```
 
 ### Checkpoint 3: APIs Functional
+
 ```bash
 # TypeScript check
 npx tsc --noEmit
@@ -2211,15 +2262,19 @@ npm test -- --watch
 Before proceeding to Part 19C, verify:
 
 ### 1. TypeScript Compilation ✅
+
 ```bash
 npx tsc --noEmit
 ```
+
 Expected: 0 errors
 
 ### 2. Test Suite ✅
+
 ```bash
 npm test
 ```
+
 Expected: All 11+ tests passing (6 from 19A + 5 from 19B)
 
 ### 3. File Count ✅
@@ -2227,6 +2282,7 @@ Expected: All 11+ tests passing (6 from 19A + 5 from 19B)
 Verify these 19 new files exist:
 
 **Production Files (14):**
+
 1. `lib/disbursement/query-patterns.ts`
 2. `lib/disbursement/services/payment-orchestrator.ts`
 3. `lib/disbursement/services/batch-manager.ts`
@@ -2243,6 +2299,7 @@ Verify these 19 new files exist:
 14. `app/api/disbursement/batches/[batchId]/execute/route.ts`
 
 **Test Files (5):**
+
 1. `__tests__/lib/disbursement/services/orchestrator.test.ts`
 2. `__tests__/lib/disbursement/services/batch.test.ts`
 3. `__tests__/api/disbursement/affiliates/payable.test.ts`
@@ -2250,6 +2307,7 @@ Verify these 19 new files exist:
 5. `__tests__/api/disbursement/batches/execute.test.ts`
 
 ### 4. Query Patterns Verification ✅
+
 ```bash
 # Verify query patterns file exists and compiles
 ls lib/disbursement/query-patterns.ts
@@ -2286,6 +2344,7 @@ curl -X POST http://localhost:3000/api/disbursement/batches \
 ```
 
 ### 6. Type Safety Verification ✅
+
 ```bash
 # Verify no type errors
 npx tsc --noEmit
@@ -2409,6 +2468,7 @@ Part 19B is complete when:
 **Error:** `Cannot find module '@/lib/disbursement/services/...'`
 
 **Solution:**
+
 ```bash
 # Verify all Part 19A files exist
 ls lib/disbursement/providers/*.ts
@@ -2425,6 +2485,7 @@ cat tsconfig.json | grep paths
 **Error:** `Invalid prisma.paymentBatch.create() invocation`
 
 **Solution:**
+
 ```bash
 npx prisma generate
 npx prisma migrate dev
@@ -2449,6 +2510,7 @@ async getBatchById(batchId: string): Promise<PaymentBatch | null>
 **Error:** `401 Unauthorized` on API calls
 
 **Solution:**
+
 - Verify NextAuth session exists
 - Check user has ADMIN role
 - Review auth middleware configuration
@@ -2458,6 +2520,7 @@ async getBatchById(batchId: string): Promise<PaymentBatch | null>
 **Cause:** Global mocks leaking between tests
 
 **Solution:**
+
 ```typescript
 // Add to every test file
 beforeEach(() => {
@@ -2487,6 +2550,7 @@ After Part 19B validation gate passes:
 **Proceed to Part 19C: Webhooks, Automation & Reports**
 
 Part 19C completes the system with:
+
 - Webhook processing
 - Automated cron jobs
 - Reporting APIs

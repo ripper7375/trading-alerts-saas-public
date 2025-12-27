@@ -41,12 +41,18 @@ describe('Admin Code Distribution', () => {
         fullName: 'John Doe',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
       (distributeCodes as jest.Mock).mockResolvedValue([
         testFactories.createAffiliateCode(),
       ]);
 
-      const result = await distributeCodesAdmin('aff-1', 10, 'Bonus for performance');
+      const result = await distributeCodesAdmin(
+        'aff-1',
+        10,
+        'Bonus for performance'
+      );
 
       expect(result.success).toBe(true);
       expect(distributeCodes).toHaveBeenCalledWith('aff-1', 10, 'ADMIN_BONUS');
@@ -58,11 +64,13 @@ describe('Admin Code Distribution', () => {
         status: 'SUSPENDED',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
 
-      await expect(
-        distributeCodesAdmin('aff-1', 10, 'Bonus')
-      ).rejects.toThrow('Can only distribute codes to active affiliates');
+      await expect(distributeCodesAdmin('aff-1', 10, 'Bonus')).rejects.toThrow(
+        'Can only distribute codes to active affiliates'
+      );
     });
 
     it('should reject distribution to pending affiliate', async () => {
@@ -71,23 +79,25 @@ describe('Admin Code Distribution', () => {
         status: 'PENDING_VERIFICATION',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
 
-      await expect(
-        distributeCodesAdmin('aff-1', 10, 'Bonus')
-      ).rejects.toThrow('Can only distribute codes to active affiliates');
+      await expect(distributeCodesAdmin('aff-1', 10, 'Bonus')).rejects.toThrow(
+        'Can only distribute codes to active affiliates'
+      );
     });
 
     it('should validate count minimum (1)', async () => {
-      await expect(
-        distributeCodesAdmin('aff-1', 0, 'Bonus')
-      ).rejects.toThrow('Count must be between 1 and 50');
+      await expect(distributeCodesAdmin('aff-1', 0, 'Bonus')).rejects.toThrow(
+        'Count must be between 1 and 50'
+      );
     });
 
     it('should validate count maximum (50)', async () => {
-      await expect(
-        distributeCodesAdmin('aff-1', 51, 'Bonus')
-      ).rejects.toThrow('Count must be between 1 and 50');
+      await expect(distributeCodesAdmin('aff-1', 51, 'Bonus')).rejects.toThrow(
+        'Count must be between 1 and 50'
+      );
     });
 
     it('should throw if affiliate not found', async () => {
@@ -110,7 +120,9 @@ describe('Admin Code Distribution', () => {
         status: 'ACTIVE',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
       prismaMock.affiliateProfile.update.mockResolvedValue({
         ...mockAffiliate,
         status: 'SUSPENDED',
@@ -136,25 +148,27 @@ describe('Admin Code Distribution', () => {
         status: 'SUSPENDED',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
 
-      await expect(
-        suspendAffiliate('aff-1', 'Another reason')
-      ).rejects.toThrow('Affiliate is already suspended');
+      await expect(suspendAffiliate('aff-1', 'Another reason')).rejects.toThrow(
+        'Affiliate is already suspended'
+      );
     });
 
     it('should throw if affiliate not found', async () => {
       prismaMock.affiliateProfile.findUnique.mockResolvedValue(null);
 
-      await expect(
-        suspendAffiliate('nonexistent', 'Reason')
-      ).rejects.toThrow('Affiliate not found');
+      await expect(suspendAffiliate('nonexistent', 'Reason')).rejects.toThrow(
+        'Affiliate not found'
+      );
     });
 
     it('should require a suspension reason', async () => {
-      await expect(
-        suspendAffiliate('aff-1', '')
-      ).rejects.toThrow('Suspension reason is required');
+      await expect(suspendAffiliate('aff-1', '')).rejects.toThrow(
+        'Suspension reason is required'
+      );
     });
   });
 
@@ -169,7 +183,9 @@ describe('Admin Code Distribution', () => {
         status: 'SUSPENDED',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
       prismaMock.affiliateProfile.update.mockResolvedValue({
         ...mockAffiliate,
         status: 'ACTIVE',
@@ -196,19 +212,21 @@ describe('Admin Code Distribution', () => {
         status: 'ACTIVE',
       });
 
-      prismaMock.affiliateProfile.findUnique.mockResolvedValue(mockAffiliate as never);
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
 
-      await expect(
-        reactivateAffiliate('aff-1')
-      ).rejects.toThrow('Affiliate is not suspended');
+      await expect(reactivateAffiliate('aff-1')).rejects.toThrow(
+        'Affiliate is not suspended'
+      );
     });
 
     it('should throw if affiliate not found', async () => {
       prismaMock.affiliateProfile.findUnique.mockResolvedValue(null);
 
-      await expect(
-        reactivateAffiliate('nonexistent')
-      ).rejects.toThrow('Affiliate not found');
+      await expect(reactivateAffiliate('nonexistent')).rejects.toThrow(
+        'Affiliate not found'
+      );
     });
   });
 });

@@ -78,7 +78,10 @@ interface BatchDetails {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function getBatchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
-  const statusConfig: Record<PaymentBatchStatus, { className: string; label: string }> = {
+  const statusConfig: Record<
+    PaymentBatchStatus,
+    { className: string; label: string }
+  > = {
     PENDING: { className: 'bg-yellow-600', label: 'Pending' },
     QUEUED: { className: 'bg-blue-600', label: 'Queued' },
     PROCESSING: { className: 'bg-purple-600', label: 'Processing' },
@@ -90,14 +93,17 @@ function getBatchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-white`}>
-      {config.label}
-    </Badge>
+    <Badge className={`${config.className} text-white`}>{config.label}</Badge>
   );
 }
 
-function getTransactionStatusBadge(status: DisbursementTransactionStatus): React.ReactElement {
-  const statusConfig: Record<DisbursementTransactionStatus, { className: string; label: string }> = {
+function getTransactionStatusBadge(
+  status: DisbursementTransactionStatus
+): React.ReactElement {
+  const statusConfig: Record<
+    DisbursementTransactionStatus,
+    { className: string; label: string }
+  > = {
     PENDING: { className: 'bg-yellow-600', label: 'Pending' },
     PROCESSING: { className: 'bg-blue-600', label: 'Processing' },
     COMPLETED: { className: 'bg-green-600', label: 'Completed' },
@@ -115,7 +121,10 @@ function getTransactionStatusBadge(status: DisbursementTransactionStatus): React
 }
 
 function getAuditStatusBadge(status: AuditLogStatus): React.ReactElement {
-  const statusConfig: Record<AuditLogStatus, { className: string; label: string }> = {
+  const statusConfig: Record<
+    AuditLogStatus,
+    { className: string; label: string }
+  > = {
     SUCCESS: { className: 'bg-green-600', label: 'Success' },
     FAILURE: { className: 'bg-red-600', label: 'Failure' },
     WARNING: { className: 'bg-yellow-600', label: 'Warning' },
@@ -186,9 +195,12 @@ export default function BatchDetailsPage(): React.ReactElement {
       setError(null);
       setSuccessMessage(null);
 
-      const response = await fetch(`/api/disbursement/batches/${batchId}/execute`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/disbursement/batches/${batchId}/execute`,
+        {
+          method: 'POST',
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -247,8 +259,12 @@ export default function BatchDetailsPage(): React.ReactElement {
     );
   }
 
-  const completedTransactions = batch.transactions.filter(t => t.status === 'COMPLETED');
-  const failedTransactions = batch.transactions.filter(t => t.status === 'FAILED');
+  const completedTransactions = batch.transactions.filter(
+    (t) => t.status === 'COMPLETED'
+  );
+  const failedTransactions = batch.transactions.filter(
+    (t) => t.status === 'FAILED'
+  );
 
   return (
     <div className="space-y-6">
@@ -321,7 +337,9 @@ export default function BatchDetailsPage(): React.ReactElement {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Total Amount</CardDescription>
+            <CardDescription className="text-gray-400">
+              Total Amount
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-400">
@@ -332,16 +350,22 @@ export default function BatchDetailsPage(): React.ReactElement {
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Payments</CardDescription>
+            <CardDescription className="text-gray-400">
+              Payments
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">{batch.paymentCount}</div>
+            <div className="text-3xl font-bold text-white">
+              {batch.paymentCount}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Completed</CardDescription>
+            <CardDescription className="text-gray-400">
+              Completed
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-400">
@@ -422,12 +446,24 @@ export default function BatchDetailsPage(): React.ReactElement {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Transaction ID</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Amount</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Payee</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Provider TX</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Retries</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Transaction ID
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Amount
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Payee
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Provider TX
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Retries
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -441,7 +477,9 @@ export default function BatchDetailsPage(): React.ReactElement {
                           {tx.transactionId}
                         </span>
                       </td>
-                      <td className="py-3 px-4">{getTransactionStatusBadge(tx.status)}</td>
+                      <td className="py-3 px-4">
+                        {getTransactionStatusBadge(tx.status)}
+                      </td>
                       <td className="py-3 px-4">
                         <span className="text-green-400 font-medium">
                           {formatCurrency(tx.amount)}
@@ -449,7 +487,9 @@ export default function BatchDetailsPage(): React.ReactElement {
                       </td>
                       <td className="py-3 px-4">
                         <span className="text-gray-400 font-mono text-xs">
-                          {tx.payeeRiseId ? `${tx.payeeRiseId.slice(0, 10)}...` : '-'}
+                          {tx.payeeRiseId
+                            ? `${tx.payeeRiseId.slice(0, 10)}...`
+                            : '-'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
@@ -457,14 +497,18 @@ export default function BatchDetailsPage(): React.ReactElement {
                           {tx.providerTxId || '-'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-400">{tx.retryCount}</td>
+                      <td className="py-3 px-4 text-gray-400">
+                        {tx.retryCount}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-4">No transactions yet.</p>
+            <p className="text-gray-400 text-center py-4">
+              No transactions yet.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -490,7 +534,9 @@ export default function BatchDetailsPage(): React.ReactElement {
                 >
                   <div className="mt-1">{getAuditStatusBadge(log.status)}</div>
                   <div className="flex-1">
-                    <p className="text-white text-sm font-medium">{log.action}</p>
+                    <p className="text-white text-sm font-medium">
+                      {log.action}
+                    </p>
                     {log.actor && (
                       <p className="text-gray-400 text-xs">by {log.actor}</p>
                     )}

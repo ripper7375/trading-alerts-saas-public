@@ -154,8 +154,9 @@ export async function GET(
       totalPending,
       successRate:
         transactions.length > 0
-          ? Math.round((completedTxns.length / transactions.length) * 100 * 10) /
-            10
+          ? Math.round(
+              (completedTxns.length / transactions.length) * 100 * 10
+            ) / 10
           : 0,
     };
 

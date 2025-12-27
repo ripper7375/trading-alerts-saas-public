@@ -203,8 +203,18 @@ export interface FractalData {
  * Trendline data from MT5
  */
 export interface TrendlineData {
-  ascending: Array<{ startTime: number; endTime: number; startPrice: number; endPrice: number }>;
-  descending: Array<{ startTime: number; endTime: number; startPrice: number; endPrice: number }>;
+  ascending: Array<{
+    startTime: number;
+    endTime: number;
+    startPrice: number;
+    endPrice: number;
+  }>;
+  descending: Array<{
+    startTime: number;
+    endTime: number;
+    startPrice: number;
+    endPrice: number;
+  }>;
 }
 
 /**
@@ -219,8 +229,11 @@ export interface ChartDataPoint {
 /**
  * Type guard to check if chart data point is valid
  */
-export function isValidChartDataPoint(
-  point: { time?: Time; value?: number }
-): point is ChartDataPoint {
-  return point.time !== undefined && point.value !== undefined && !isNaN(point.value);
+export function isValidChartDataPoint(point: {
+  time?: Time;
+  value?: number;
+}): point is ChartDataPoint {
+  return (
+    point.time !== undefined && point.value !== undefined && !isNaN(point.value)
+  );
 }

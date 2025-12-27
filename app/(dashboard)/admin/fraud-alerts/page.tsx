@@ -107,7 +107,10 @@ export default function FraudAlertsPage(): React.ReactElement {
           return;
         }
         if (res.status === 403) {
-          showError('Access Denied', 'You do not have permission to view fraud alerts.');
+          showError(
+            'Access Denied',
+            'You do not have permission to view fraud alerts.'
+          );
           return;
         }
         throw new Error('Failed to fetch fraud alerts');
@@ -144,12 +147,10 @@ export default function FraudAlertsPage(): React.ReactElement {
             Monitor and manage suspicious payment activities
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleRefresh}
-          disabled={loading}
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+        <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+          />
           Refresh
         </Button>
       </div>
@@ -164,19 +165,25 @@ export default function FraudAlertsPage(): React.ReactElement {
         </Card>
         <Card className="border-red-200">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">{stats.critical}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {stats.critical}
+            </div>
             <div className="text-sm text-muted-foreground">Critical</div>
           </CardContent>
         </Card>
         <Card className="border-orange-200">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">{stats.high}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {stats.high}
+            </div>
             <div className="text-sm text-muted-foreground">High</div>
           </CardContent>
         </Card>
         <Card className="border-yellow-200">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">{stats.medium}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats.medium}
+            </div>
             <div className="text-sm text-muted-foreground">Medium</div>
           </CardContent>
         </Card>
@@ -188,7 +195,9 @@ export default function FraudAlertsPage(): React.ReactElement {
         </Card>
         <Card className="border-orange-200">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {stats.pending}
+            </div>
             <div className="text-sm text-muted-foreground">Pending</div>
           </CardContent>
         </Card>
@@ -203,7 +212,10 @@ export default function FraudAlertsPage(): React.ReactElement {
             <select
               value={filter.severity}
               onChange={(e) =>
-                setFilter({ ...filter, severity: e.target.value as SeverityLevel | 'ALL' })
+                setFilter({
+                  ...filter,
+                  severity: e.target.value as SeverityLevel | 'ALL',
+                })
               }
               className="rounded border p-1 text-sm"
             >
@@ -219,7 +231,10 @@ export default function FraudAlertsPage(): React.ReactElement {
             <select
               value={filter.status}
               onChange={(e) =>
-                setFilter({ ...filter, status: e.target.value as AlertStatus | 'ALL' })
+                setFilter({
+                  ...filter,
+                  status: e.target.value as AlertStatus | 'ALL',
+                })
               }
               className="rounded border p-1 text-sm"
             >

@@ -13,7 +13,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { PaymentBatchStatus, DisbursementProvider } from '@/types/disbursement';
+import type {
+  PaymentBatchStatus,
+  DisbursementProvider,
+} from '@/types/disbursement';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -55,7 +58,10 @@ interface BatchPreviewSummary {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function getStatusBadge(status: PaymentBatchStatus): React.ReactElement {
-  const statusConfig: Record<PaymentBatchStatus, { className: string; label: string }> = {
+  const statusConfig: Record<
+    PaymentBatchStatus,
+    { className: string; label: string }
+  > = {
     PENDING: { className: 'bg-yellow-600', label: 'Pending' },
     QUEUED: { className: 'bg-blue-600', label: 'Queued' },
     PROCESSING: { className: 'bg-purple-600', label: 'Processing' },
@@ -93,7 +99,9 @@ function getStatusBadge(status: PaymentBatchStatus): React.ReactElement {
  */
 export default function PaymentBatchesPage(): React.ReactElement {
   const [batches, setBatches] = useState<PaymentBatch[]>([]);
-  const [statusFilter, setStatusFilter] = useState<PaymentBatchStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<PaymentBatchStatus | 'ALL'>(
+    'ALL'
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,9 +115,10 @@ export default function PaymentBatchesPage(): React.ReactElement {
   const fetchBatches = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
-      const url = statusFilter === 'ALL'
-        ? '/api/disbursement/batches'
-        : `/api/disbursement/batches?status=${statusFilter}`;
+      const url =
+        statusFilter === 'ALL'
+          ? '/api/disbursement/batches'
+          : `/api/disbursement/batches?status=${statusFilter}`;
 
       const response = await fetch(url);
 
@@ -150,7 +159,11 @@ export default function PaymentBatchesPage(): React.ReactElement {
       const data = await response.json();
       setPreview({
         items: data.preview || [],
-        summary: data.summary || { totalAffiliates: 0, eligibleAffiliates: 0, totalAmount: 0 },
+        summary: data.summary || {
+          totalAffiliates: 0,
+          eligibleAffiliates: 0,
+          totalAmount: 0,
+        },
       });
       setShowCreateModal(true);
     } catch (err) {
@@ -195,9 +208,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
       setError(null);
       setSuccessMessage(null);
 
-      const response = await fetch(`/api/disbursement/batches/${batchId}/execute`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/disbursement/batches/${batchId}/execute`,
+        {
+          method: 'POST',
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -309,7 +325,11 @@ export default function PaymentBatchesPage(): React.ReactElement {
                 variant={statusFilter === status ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setStatusFilter(status)}
-                className={statusFilter === status ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={
+                  statusFilter === status
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : ''
+                }
               >
                 {status === 'ALL' ? 'All Batches' : status}
               </Button>
@@ -330,13 +350,27 @@ export default function PaymentBatchesPage(): React.ReactElement {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Batch #</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Payments</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Amount</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Provider</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Created</th>
-                    <th className="text-right py-3 px-4 text-gray-400 font-medium">Actions</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Batch #
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Payments
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Amount
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Provider
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                      Created
+                    </th>
+                    <th className="text-right py-3 px-4 text-gray-400 font-medium">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -353,8 +387,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
                           {batch.batchNumber}
                         </Link>
                       </td>
-                      <td className="py-3 px-4">{getStatusBadge(batch.status)}</td>
-                      <td className="py-3 px-4 text-gray-300">{batch.paymentCount}</td>
+                      <td className="py-3 px-4">
+                        {getStatusBadge(batch.status)}
+                      </td>
+                      <td className="py-3 px-4 text-gray-300">
+                        {batch.paymentCount}
+                      </td>
                       <td className="py-3 px-4">
                         <span className="text-green-400 font-medium">
                           {formatCurrency(batch.totalAmount)}
@@ -379,7 +417,9 @@ export default function PaymentBatchesPage(): React.ReactElement {
                             Execute
                           </Button>
                         )}
-                        {(batch.status === 'PENDING' || batch.status === 'CANCELLED' || batch.status === 'FAILED') && (
+                        {(batch.status === 'PENDING' ||
+                          batch.status === 'CANCELLED' ||
+                          batch.status === 'FAILED') && (
                           <Button
                             size="sm"
                             variant="destructive"
@@ -425,11 +465,15 @@ export default function PaymentBatchesPage(): React.ReactElement {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="bg-gray-700/50 rounded-lg p-3">
                   <p className="text-gray-400 text-sm">Total Affiliates</p>
-                  <p className="text-2xl font-bold text-white">{preview.summary.totalAffiliates}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {preview.summary.totalAffiliates}
+                  </p>
                 </div>
                 <div className="bg-gray-700/50 rounded-lg p-3">
                   <p className="text-gray-400 text-sm">Eligible</p>
-                  <p className="text-2xl font-bold text-green-400">{preview.summary.eligibleAffiliates}</p>
+                  <p className="text-2xl font-bold text-green-400">
+                    {preview.summary.eligibleAffiliates}
+                  </p>
                 </div>
                 <div className="bg-gray-700/50 rounded-lg p-3">
                   <p className="text-gray-400 text-sm">Total Amount</p>
@@ -445,23 +489,44 @@ export default function PaymentBatchesPage(): React.ReactElement {
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-gray-800">
                       <tr className="border-b border-gray-700">
-                        <th className="text-left py-2 px-3 text-gray-400">Affiliate</th>
-                        <th className="text-left py-2 px-3 text-gray-400">Commissions</th>
-                        <th className="text-left py-2 px-3 text-gray-400">Amount</th>
-                        <th className="text-left py-2 px-3 text-gray-400">Eligible</th>
+                        <th className="text-left py-2 px-3 text-gray-400">
+                          Affiliate
+                        </th>
+                        <th className="text-left py-2 px-3 text-gray-400">
+                          Commissions
+                        </th>
+                        <th className="text-left py-2 px-3 text-gray-400">
+                          Amount
+                        </th>
+                        <th className="text-left py-2 px-3 text-gray-400">
+                          Eligible
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {preview.items.map((item) => (
-                        <tr key={item.affiliateId} className="border-b border-gray-700/50">
-                          <td className="py-2 px-3 text-gray-300 text-xs">{item.affiliateId}</td>
-                          <td className="py-2 px-3 text-gray-300">{item.commissionCount}</td>
-                          <td className="py-2 px-3 text-green-400">{formatCurrency(item.totalAmount)}</td>
+                        <tr
+                          key={item.affiliateId}
+                          className="border-b border-gray-700/50"
+                        >
+                          <td className="py-2 px-3 text-gray-300 text-xs">
+                            {item.affiliateId}
+                          </td>
+                          <td className="py-2 px-3 text-gray-300">
+                            {item.commissionCount}
+                          </td>
+                          <td className="py-2 px-3 text-green-400">
+                            {formatCurrency(item.totalAmount)}
+                          </td>
                           <td className="py-2 px-3">
                             {item.eligible ? (
-                              <Badge className="bg-green-600 text-xs">Yes</Badge>
+                              <Badge className="bg-green-600 text-xs">
+                                Yes
+                              </Badge>
                             ) : (
-                              <Badge className="bg-red-600 text-xs">{item.reason || 'No'}</Badge>
+                              <Badge className="bg-red-600 text-xs">
+                                {item.reason || 'No'}
+                              </Badge>
                             )}
                           </td>
                         </tr>
@@ -491,7 +556,9 @@ export default function PaymentBatchesPage(): React.ReactElement {
                 <Button
                   className="bg-green-600 hover:bg-green-700"
                   onClick={() => void handleCreateBatch()}
-                  disabled={isProcessing || preview.summary.eligibleAffiliates === 0}
+                  disabled={
+                    isProcessing || preview.summary.eligibleAffiliates === 0
+                  }
                 >
                   {isProcessing ? 'Creating...' : 'Create Batch'}
                 </Button>

@@ -7,13 +7,13 @@
 
 ## Quick Reference
 
-| Priority | Count | Action Required |
-|----------|-------|-----------------|
-| 🔴 Blockers | 0 | None |
-| 🟡 Warnings | 0 | All resolved |
-| ✅ Fixed | 2 | Full fraud detection system implemented |
-| 🟢 Enhancements | 3 | Optional |
-| ℹ️ Informational | 4 | No action |
+| Priority         | Count | Action Required                         |
+| ---------------- | ----- | --------------------------------------- |
+| 🔴 Blockers      | 0     | None                                    |
+| 🟡 Warnings      | 0     | All resolved                            |
+| ✅ Fixed         | 2     | Full fraud detection system implemented |
+| 🟢 Enhancements  | 3     | Optional                                |
+| ℹ️ Informational | 4     | No action                               |
 
 ---
 
@@ -61,6 +61,7 @@
 **Status:** FIXED on 2025-12-26
 
 **What was implemented:**
+
 - Added `useToast` hook import from `@/hooks/use-toast`
 - Added `ToastContainer` component import from `@/components/ui/toast-container`
 - Added toast notification in catch block: `showError('Failed to load fraud alerts', 'Please try again later.')`
@@ -77,6 +78,7 @@
 **Benefit:** Handle large datasets efficiently
 
 **Ready-to-Use Prompt:**
+
 ```
 Add pagination to the fraud alerts page:
 
@@ -122,6 +124,7 @@ setTotalPages(Math.ceil(data.total / PAGE_SIZE));
 **Benefit:** Allow admins to export alerts for reporting
 
 **Ready-to-Use Prompt:**
+
 ```
 Add CSV export button to fraud alerts page:
 
@@ -164,6 +167,7 @@ const exportToCSV = () => {
 **Benefit:** Efficiently handle multiple alerts
 
 **Ready-to-Use Prompt:**
+
 ```
 Add bulk selection and actions to fraud alerts:
 
@@ -205,6 +209,7 @@ const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 **Location:** Multiple files
 
 **How it works:**
+
 - User table has `hasUsedThreeDayPlan` boolean
 - `check-three-day-eligibility` API checks this flag
 - On successful payment, webhook sets `hasUsedThreeDayPlan = true`
@@ -217,6 +222,7 @@ const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 **Location:** `components/payments/DiscountCodeInput.tsx`
 
 **Behavior:**
+
 - Discount codes only work for `MONTHLY` plan
 - `THREE_DAY` plan shows "not available" message
 - Real-time validation via `/api/payments/dlocal/validate-discount`
@@ -228,11 +234,13 @@ const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 **Location:** `lib/dlocal/currency-converter.service.ts`
 
 **Cache Settings:**
+
 ```typescript
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 ```
 
 **Fallback Rates:**
+
 - INR: 83.12
 - NGN: 1505.5
 - PKR: 278.45
@@ -249,6 +257,7 @@ const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 **Location:** `lib/dlocal/dlocal-payment.service.ts`
 
 **Implementation:**
+
 ```typescript
 const expectedSignature = crypto
   .createHmac('sha256', webhookSecret)
@@ -257,6 +266,7 @@ const expectedSignature = crypto
 ```
 
 **Required Environment Variable:**
+
 ```
 DLOCAL_WEBHOOK_SECRET=your-secret-here
 ```
@@ -281,4 +291,4 @@ Before deploying to production:
 
 ---
 
-*Document saved to: docs/validation-reports/part-18-actionable-fixes.md*
+_Document saved to: docs/validation-reports/part-18-actionable-fixes.md_

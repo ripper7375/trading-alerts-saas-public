@@ -123,7 +123,9 @@ describe('PriceDisplay', () => {
       render(<PriceDisplay {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /refresh/i })
+        ).toBeInTheDocument();
       });
 
       // Initial call

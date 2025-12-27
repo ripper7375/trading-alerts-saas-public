@@ -106,10 +106,7 @@ export async function POST(
         error.message.includes('already suspended') ||
         error.message.includes('reason is required')
       ) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
 

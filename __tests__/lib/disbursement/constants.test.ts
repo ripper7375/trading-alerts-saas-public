@@ -50,9 +50,7 @@ describe('Disbursement Constants', () => {
 
   describe('API URLs', () => {
     it('should have production and staging URLs', () => {
-      expect(RISE_API_URLS.production).toBe(
-        'https://b2b-api.riseworks.io/v1'
-      );
+      expect(RISE_API_URLS.production).toBe('https://b2b-api.riseworks.io/v1');
       expect(RISE_API_URLS.staging).toBe(
         'https://b2b-api.staging-riseworks.io/v1'
       );

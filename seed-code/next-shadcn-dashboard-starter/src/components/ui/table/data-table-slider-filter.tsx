@@ -137,7 +137,7 @@ export function DataTableSliderFilter<TData>({
               role='button'
               aria-label={`Clear ${title} filter`}
               tabIndex={0}
-              className='focus-visible:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1'
+              className='rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
               onClick={onReset}
             >
               <XCircle />
@@ -184,7 +184,7 @@ export function DataTableSliderFilter<TData>({
                 className={cn('h-8 w-24', unit && 'pr-8')}
               />
               {unit && (
-                <span className='bg-accent text-muted-foreground absolute bottom-0 right-0 top-0 flex items-center rounded-r-md px-2 text-sm'>
+                <span className='absolute bottom-0 right-0 top-0 flex items-center rounded-r-md bg-accent px-2 text-sm text-muted-foreground'>
                   {unit}
                 </span>
               )}
@@ -208,7 +208,7 @@ export function DataTableSliderFilter<TData>({
                 className={cn('h-8 w-24', unit && 'pr-8')}
               />
               {unit && (
-                <span className='bg-accent text-muted-foreground absolute bottom-0 right-0 top-0 flex items-center rounded-r-md px-2 text-sm'>
+                <span className='absolute bottom-0 right-0 top-0 flex items-center rounded-r-md bg-accent px-2 text-sm text-muted-foreground'>
                   {unit}
                 </span>
               )}

@@ -92,10 +92,16 @@ describe('Admin Reports API Routes', () => {
 
   describe('GET /api/admin/affiliates/reports/profit-loss', () => {
     it('should return 401 when not authenticated', async () => {
-      mockRequireAdmin.mockRejectedValue(new MockAuthError('Unauthorized', 401));
+      mockRequireAdmin.mockRejectedValue(
+        new MockAuthError('Unauthorized', 401)
+      );
 
-      const { GET } = await import('@/app/api/admin/affiliates/reports/profit-loss/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates/reports/profit-loss');
+      const { GET } = await import(
+        '@/app/api/admin/affiliates/reports/profit-loss/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates/reports/profit-loss'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -106,8 +112,12 @@ describe('Admin Reports API Routes', () => {
     it('should return 403 when not admin', async () => {
       mockRequireAdmin.mockRejectedValue(new MockAuthError('Forbidden', 403));
 
-      const { GET } = await import('@/app/api/admin/affiliates/reports/profit-loss/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates/reports/profit-loss');
+      const { GET } = await import(
+        '@/app/api/admin/affiliates/reports/profit-loss/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates/reports/profit-loss'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -134,8 +144,12 @@ describe('Admin Reports API Routes', () => {
         },
       ]);
 
-      const { GET } = await import('@/app/api/admin/affiliates/reports/profit-loss/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates/reports/profit-loss?period=3months');
+      const { GET } = await import(
+        '@/app/api/admin/affiliates/reports/profit-loss/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates/reports/profit-loss?period=3months'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -150,8 +164,12 @@ describe('Admin Reports API Routes', () => {
       mockRequireAdmin.mockResolvedValue(undefined);
       mockFindMany.mockResolvedValue([]);
 
-      const { GET } = await import('@/app/api/admin/affiliates/reports/profit-loss/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates/reports/profit-loss');
+      const { GET } = await import(
+        '@/app/api/admin/affiliates/reports/profit-loss/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates/reports/profit-loss'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 
@@ -164,8 +182,12 @@ describe('Admin Reports API Routes', () => {
       mockRequireAdmin.mockResolvedValue(undefined);
       mockFindMany.mockRejectedValue(new Error('Database error'));
 
-      const { GET } = await import('@/app/api/admin/affiliates/reports/profit-loss/route');
-      const request = new MockRequest('http://localhost/api/admin/affiliates/reports/profit-loss');
+      const { GET } = await import(
+        '@/app/api/admin/affiliates/reports/profit-loss/route'
+      );
+      const request = new MockRequest(
+        'http://localhost/api/admin/affiliates/reports/profit-loss'
+      );
       const response = await GET(request as unknown as Request);
       const data = await response.json();
 

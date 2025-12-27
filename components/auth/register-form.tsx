@@ -40,11 +40,8 @@ export default function RegisterForm(): JSX.Element {
   const searchParams = useSearchParams();
 
   // Get dynamic affiliate config from SystemConfig
-  const {
-    discountPercent,
-    regularPrice,
-    calculateDiscountedPrice,
-  } = useAffiliateConfig();
+  const { discountPercent, regularPrice, calculateDiscountedPrice } =
+    useAffiliateConfig();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -175,7 +172,9 @@ export default function RegisterForm(): JSX.Element {
             </h2>
             {isCodeValid && (
               <p className="text-green-600 font-medium mb-2">
-                🎉 {discountPercent}% discount activated! You&apos;ll pay ${calculateDiscountedPrice(regularPrice).toFixed(2)}/month for PRO.
+                🎉 {discountPercent}% discount activated! You&apos;ll pay $
+                {calculateDiscountedPrice(regularPrice).toFixed(2)}/month for
+                PRO.
               </p>
             )}
             <p className="text-gray-600 mb-4">
@@ -486,8 +485,9 @@ export default function RegisterForm(): JSX.Element {
               <>
                 <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
                   <Check className="w-4 h-4 flex-shrink-0" />
-                  Valid code! You&apos;ll get {discountPercent}% off PRO (${calculateDiscountedPrice(regularPrice).toFixed(2)}/month instead
-                  of ${regularPrice.toFixed(2)})
+                  Valid code! You&apos;ll get {discountPercent}% off PRO ($
+                  {calculateDiscountedPrice(regularPrice).toFixed(2)}/month
+                  instead of ${regularPrice.toFixed(2)})
                 </p>
                 <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold mt-2 inline-block">
                   🎉 {discountPercent}% DISCOUNT APPLIED

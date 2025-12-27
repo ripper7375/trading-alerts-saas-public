@@ -12,7 +12,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPaymentMethodsForCountry, getPaymentMethodDetails } from '@/lib/dlocal/payment-methods.service';
+import {
+  getPaymentMethodsForCountry,
+  getPaymentMethodDetails,
+} from '@/lib/dlocal/payment-methods.service';
 import { isDLocalCountry } from '@/lib/dlocal/constants';
 import { logger } from '@/lib/logger';
 import type { DLocalCountry } from '@/types/dlocal';
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'Invalid or unsupported country',
-          supportedCountries: ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
+          supportedCountries: ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR'],
         },
         { status: 400 }
       );
@@ -47,7 +50,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Return detailed info if requested
     if (detailed) {
-      const methodDetails = await getPaymentMethodDetails(country as DLocalCountry);
+      const methodDetails = await getPaymentMethodDetails(
+        country as DLocalCountry
+      );
       return NextResponse.json({
         country,
         methods: methodDetails,

@@ -74,8 +74,8 @@ export function PaymentFailureEmail({
         </p>
 
         <p style={{ fontSize: '16px', color: '#333', marginBottom: '20px' }}>
-          Unfortunately, we couldn&apos;t process your payment. Don&apos;t
-          worry - no charges have been made to your account.
+          Unfortunately, we couldn&apos;t process your payment. Don&apos;t worry
+          - no charges have been made to your account.
         </p>
 
         {/* Error box */}

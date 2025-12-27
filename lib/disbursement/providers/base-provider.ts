@@ -92,7 +92,10 @@ export class PaymentProviderError extends Error {
   /**
    * Create a network error (retryable)
    */
-  static networkError(provider: string, originalError?: Error): PaymentProviderError {
+  static networkError(
+    provider: string,
+    originalError?: Error
+  ): PaymentProviderError {
     return new PaymentProviderError(
       originalError?.message ?? 'Network error occurred',
       'NETWORK_ERROR',
@@ -104,7 +107,10 @@ export class PaymentProviderError extends Error {
   /**
    * Create an authentication error (not retryable)
    */
-  static authenticationError(provider: string, message?: string): PaymentProviderError {
+  static authenticationError(
+    provider: string,
+    message?: string
+  ): PaymentProviderError {
     return new PaymentProviderError(
       message ?? 'Authentication failed',
       'AUTH_ERROR',
@@ -116,7 +122,10 @@ export class PaymentProviderError extends Error {
   /**
    * Create a validation error (not retryable)
    */
-  static validationError(provider: string, message: string): PaymentProviderError {
+  static validationError(
+    provider: string,
+    message: string
+  ): PaymentProviderError {
     return new PaymentProviderError(
       message,
       'VALIDATION_ERROR',

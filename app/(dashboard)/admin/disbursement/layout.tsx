@@ -26,13 +26,48 @@ interface NavItem {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const disbursementNavItems: NavItem[] = [
-  { id: 'overview', icon: '📊', label: 'Overview', href: '/admin/disbursement' },
-  { id: 'affiliates', icon: '👥', label: 'Payable Affiliates', href: '/admin/disbursement/affiliates' },
-  { id: 'batches', icon: '📦', label: 'Payment Batches', href: '/admin/disbursement/batches' },
-  { id: 'transactions', icon: '💸', label: 'Transactions', href: '/admin/disbursement/transactions' },
-  { id: 'accounts', icon: '🔗', label: 'RiseWorks Accounts', href: '/admin/disbursement/accounts' },
-  { id: 'audit', icon: '📋', label: 'Audit Logs', href: '/admin/disbursement/audit' },
-  { id: 'config', icon: '⚙️', label: 'Configuration', href: '/admin/disbursement/config' },
+  {
+    id: 'overview',
+    icon: '📊',
+    label: 'Overview',
+    href: '/admin/disbursement',
+  },
+  {
+    id: 'affiliates',
+    icon: '👥',
+    label: 'Payable Affiliates',
+    href: '/admin/disbursement/affiliates',
+  },
+  {
+    id: 'batches',
+    icon: '📦',
+    label: 'Payment Batches',
+    href: '/admin/disbursement/batches',
+  },
+  {
+    id: 'transactions',
+    icon: '💸',
+    label: 'Transactions',
+    href: '/admin/disbursement/transactions',
+  },
+  {
+    id: 'accounts',
+    icon: '🔗',
+    label: 'RiseWorks Accounts',
+    href: '/admin/disbursement/accounts',
+  },
+  {
+    id: 'audit',
+    icon: '📋',
+    label: 'Audit Logs',
+    href: '/admin/disbursement/audit',
+  },
+  {
+    id: 'config',
+    icon: '⚙️',
+    label: 'Configuration',
+    href: '/admin/disbursement/config',
+  },
 ];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -125,9 +160,7 @@ export default async function DisbursementLayout({
             </p>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm text-gray-300">
-                RiseWorks (USDC)
-              </span>
+              <span className="text-sm text-gray-300">RiseWorks (USDC)</span>
             </div>
           </div>
 

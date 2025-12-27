@@ -105,9 +105,7 @@ export class MockPaymentProvider extends PaymentProvider {
    */
   async sendPayment(request: PaymentRequest): Promise<PaymentResult> {
     await this.simulateDelay();
-    this.log(
-      `Sending payment of $${request.amount} to ${request.riseId}`
-    );
+    this.log(`Sending payment of $${request.amount} to ${request.riseId}`);
 
     const transactionId = generateTransactionId();
 

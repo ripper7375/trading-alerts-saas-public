@@ -121,10 +121,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       console.warn('[CRON] Unauthorized cron request');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log('[CRON] Starting monthly report distribution...');
@@ -133,8 +130,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Get previous month's date range
     const now = new Date();
     const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    const monthName = startOfPrevMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const endOfPrevMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+    const monthName = startOfPrevMonth.toLocaleString('default', {
+      month: 'long',
+      year: 'numeric',
+    });
 
     // Fetch all active affiliates
     const affiliates = await prisma.affiliateProfile.findMany({
@@ -151,7 +159,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    console.log(`[CRON] Generating reports for ${affiliates.length} affiliates`);
+    console.log(
+      `[CRON] Generating reports for ${affiliates.length} affiliates`
+    );
 
     let sent = 0;
     const errors: string[] = [];
@@ -186,11 +196,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // });
 
         sent++;
-        console.log(`[CRON] Generated report for ${affiliate.user?.email ?? 'unknown'}`);
+        console.log(
+          `[CRON] Generated report for ${affiliate.user?.email ?? 'unknown'}`
+        );
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
         errors.push(`${affiliate.user?.email ?? 'unknown'}: ${errorMessage}`);
-        console.error(`[CRON] Failed to generate report for ${affiliate.user?.email ?? 'unknown'}:`, error);
+        console.error(
+          `[CRON] Failed to generate report for ${affiliate.user?.email ?? 'unknown'}:`,
+          error
+        );
       }
     }
 
@@ -207,9 +223,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     console.error('[CRON] Send reports error:', error);
-    return NextResponse.json(
-      { error: 'Cron job failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Cron job failed' }, { status: 500 });
   }
 }

@@ -46,14 +46,12 @@ export async function GET(
     const batch = await batchManager.getBatchById(batchId);
 
     if (!batch) {
-      return NextResponse.json(
-        { error: 'Batch not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
     }
 
     // Get transaction status counts
-    const statusCounts = await transactionService.getTransactionCountsByStatus(batchId);
+    const statusCounts =
+      await transactionService.getTransactionCountsByStatus(batchId);
 
     type BatchTransaction = NonNullable<typeof batch.transactions>[number];
     type BatchAuditLog = NonNullable<typeof batch.auditLogs>[number];
@@ -62,7 +60,10 @@ export async function GET(
     const paidAmount = batch.transactions
       ? batch.transactions
           .filter((t: BatchTransaction) => t.status === 'COMPLETED')
-          .reduce((sum: number, t: BatchTransaction) => sum + Number(t.amount), 0)
+          .reduce(
+            (sum: number, t: BatchTransaction) => sum + Number(t.amount),
+            0
+          )
       : 0;
 
     return NextResponse.json({
@@ -84,33 +85,35 @@ export async function GET(
         createdAt: batch.createdAt,
         updatedAt: batch.updatedAt,
       },
-      transactions: batch.transactions?.map((txn: BatchTransaction) => ({
-        id: txn.id,
-        transactionId: txn.transactionId,
-        providerTxId: txn.providerTxId,
-        commissionId: txn.commissionId,
-        affiliateProfileId: txn.commission?.affiliateProfileId,
-        affiliateRiseId: txn.affiliateRiseAccount?.riseId,
-        amount: Number(txn.amount),
-        amountRiseUnits: txn.amountRiseUnits?.toString(),
-        currency: txn.currency,
-        status: txn.status,
-        retryCount: txn.retryCount,
-        lastRetryAt: txn.lastRetryAt,
-        errorMessage: txn.errorMessage,
-        createdAt: txn.createdAt,
-        completedAt: txn.completedAt,
-        failedAt: txn.failedAt,
-      })) || [],
+      transactions:
+        batch.transactions?.map((txn: BatchTransaction) => ({
+          id: txn.id,
+          transactionId: txn.transactionId,
+          providerTxId: txn.providerTxId,
+          commissionId: txn.commissionId,
+          affiliateProfileId: txn.commission?.affiliateProfileId,
+          affiliateRiseId: txn.affiliateRiseAccount?.riseId,
+          amount: Number(txn.amount),
+          amountRiseUnits: txn.amountRiseUnits?.toString(),
+          currency: txn.currency,
+          status: txn.status,
+          retryCount: txn.retryCount,
+          lastRetryAt: txn.lastRetryAt,
+          errorMessage: txn.errorMessage,
+          createdAt: txn.createdAt,
+          completedAt: txn.completedAt,
+          failedAt: txn.failedAt,
+        })) || [],
       transactionCounts: statusCounts,
-      auditLogs: batch.auditLogs?.map((log: BatchAuditLog) => ({
-        id: log.id,
-        action: log.action,
-        status: log.status,
-        actor: log.actor,
-        details: log.details,
-        createdAt: log.createdAt,
-      })) || [],
+      auditLogs:
+        batch.auditLogs?.map((log: BatchAuditLog) => ({
+          id: log.id,
+          action: log.action,
+          status: log.status,
+          actor: log.actor,
+          details: log.details,
+          createdAt: log.createdAt,
+        })) || [],
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -156,20 +159,14 @@ export async function DELETE(
     const batch = await batchManager.getBatchById(batchId);
 
     if (!batch) {
-      return NextResponse.json(
-        { error: 'Batch not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
     }
 
     try {
       await batchManager.deleteBatch(batchId);
     } catch (error) {
       if (error instanceof Error) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
       throw error;
     }

@@ -18,7 +18,7 @@ const mockAffiliates = [
     email: 'john@example.com',
     sales: 150,
     conversionRate: 15.5,
-    commissionsEarned: 4500.00,
+    commissionsEarned: 4500.0,
     rank: 1,
   },
   {
@@ -27,7 +27,7 @@ const mockAffiliates = [
     email: 'jane@example.com',
     sales: 120,
     conversionRate: 12.3,
-    commissionsEarned: 3600.00,
+    commissionsEarned: 3600.0,
     rank: 2,
   },
   {
@@ -36,7 +36,7 @@ const mockAffiliates = [
     email: 'bob@example.com',
     sales: 100,
     conversionRate: 10.0,
-    commissionsEarned: 3000.00,
+    commissionsEarned: 3000.0,
     rank: 3,
   },
   {
@@ -45,7 +45,7 @@ const mockAffiliates = [
     email: 'alice@example.com',
     sales: 80,
     conversionRate: 8.5,
-    commissionsEarned: 2400.00,
+    commissionsEarned: 2400.0,
     rank: 4,
   },
 ];
@@ -184,7 +184,9 @@ describe('SalesPerformanceTable Component', () => {
   describe('empty state', () => {
     it('should show empty message when no affiliates', () => {
       render(<SalesPerformanceTable affiliates={[]} />);
-      expect(screen.getByText('No performance data available')).toBeInTheDocument();
+      expect(
+        screen.getByText('No performance data available')
+      ).toBeInTheDocument();
     });
 
     it('should still render table structure when empty', () => {
@@ -198,20 +200,26 @@ describe('SalesPerformanceTable Component', () => {
   // ============================================================================
   describe('table structure', () => {
     it('should have horizontal scroll wrapper', () => {
-      const { container } = render(<SalesPerformanceTable affiliates={mockAffiliates} />);
+      const { container } = render(
+        <SalesPerformanceTable affiliates={mockAffiliates} />
+      );
       expect(container.querySelector('.overflow-x-auto')).toBeInTheDocument();
     });
 
     it('should have styled header row', () => {
-      const { container } = render(<SalesPerformanceTable affiliates={mockAffiliates} />);
+      const { container } = render(
+        <SalesPerformanceTable affiliates={mockAffiliates} />
+      );
       const thead = container.querySelector('thead');
       expect(thead).toHaveClass('border-b', 'bg-muted/50');
     });
 
     it('should have hover effect on data rows', () => {
-      const { container } = render(<SalesPerformanceTable affiliates={mockAffiliates} />);
+      const { container } = render(
+        <SalesPerformanceTable affiliates={mockAffiliates} />
+      );
       const rows = container.querySelectorAll('tbody tr');
-      rows.forEach(row => {
+      rows.forEach((row) => {
         expect(row).toHaveClass('hover:bg-muted/25');
       });
     });
@@ -228,21 +236,27 @@ describe('SalesPerformanceTable Component', () => {
     });
 
     it('should handle affiliate with long name', () => {
-      const longNameAffiliate = [{
-        ...mockAffiliates[0],
-        name: 'Very Long Name That Might Cause Layout Issues',
-      }];
+      const longNameAffiliate = [
+        {
+          ...mockAffiliates[0],
+          name: 'Very Long Name That Might Cause Layout Issues',
+        },
+      ];
       render(<SalesPerformanceTable affiliates={longNameAffiliate} />);
-      expect(screen.getByText('Very Long Name That Might Cause Layout Issues')).toBeInTheDocument();
+      expect(
+        screen.getByText('Very Long Name That Might Cause Layout Issues')
+      ).toBeInTheDocument();
     });
 
     it('should handle zero sales', () => {
-      const zeroSalesAffiliate = [{
-        ...mockAffiliates[0],
-        sales: 0,
-        conversionRate: 0,
-        commissionsEarned: 0,
-      }];
+      const zeroSalesAffiliate = [
+        {
+          ...mockAffiliates[0],
+          sales: 0,
+          conversionRate: 0,
+          commissionsEarned: 0,
+        },
+      ];
       render(<SalesPerformanceTable affiliates={zeroSalesAffiliate} />);
       expect(screen.getByText('0')).toBeInTheDocument();
       expect(screen.getByText('0.0%')).toBeInTheDocument();
@@ -250,19 +264,23 @@ describe('SalesPerformanceTable Component', () => {
     });
 
     it('should handle large commission amounts', () => {
-      const largeCommissionAffiliate = [{
-        ...mockAffiliates[0],
-        commissionsEarned: 999999.99,
-      }];
+      const largeCommissionAffiliate = [
+        {
+          ...mockAffiliates[0],
+          commissionsEarned: 999999.99,
+        },
+      ];
       render(<SalesPerformanceTable affiliates={largeCommissionAffiliate} />);
       expect(screen.getByText('$999,999.99')).toBeInTheDocument();
     });
 
     it('should handle 5th rank and beyond', () => {
-      const fifthRankAffiliate = [{
-        ...mockAffiliates[0],
-        rank: 5,
-      }];
+      const fifthRankAffiliate = [
+        {
+          ...mockAffiliates[0],
+          rank: 5,
+        },
+      ];
       render(<SalesPerformanceTable affiliates={fifthRankAffiliate} />);
       expect(screen.getByText('#5')).toBeInTheDocument();
     });

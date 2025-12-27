@@ -58,10 +58,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     if (authHeader !== `Bearer ${cronSecret}`) {
       logger.warn('[CRON] Unauthorized cron request');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     logger.info('[CRON] Starting downgrade expired subscriptions...');
@@ -79,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       success: true,
       message: `Downgraded ${result.downgrades.length} users`,
       processed: result.processed,
-      downgrades: result.downgrades.map(d => ({
+      downgrades: result.downgrades.map((d) => ({
         userId: d.userId,
         email: d.email,
         expiredAt: d.expiredAt.toISOString(),
@@ -91,9 +88,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     logger.error('[CRON] Downgrade expired subscriptions error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-    return NextResponse.json(
-      { error: 'Cron job failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Cron job failed' }, { status: 500 });
   }
 }

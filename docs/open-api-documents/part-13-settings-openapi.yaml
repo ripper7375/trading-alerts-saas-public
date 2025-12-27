@@ -74,15 +74,15 @@ paths:
                 $ref: '#/components/schemas/ProfileResponse'
               example:
                 user:
-                  id: "cm4f8j0nh0001i7jqe2rm3y6p"
-                  name: "John Doe"
-                  email: "john@example.com"
-                  image: "https://lh3.googleusercontent.com/a/example"
-                  tier: "PRO"
-                  role: "USER"
+                  id: 'cm4f8j0nh0001i7jqe2rm3y6p'
+                  name: 'John Doe'
+                  email: 'john@example.com'
+                  image: 'https://lh3.googleusercontent.com/a/example'
+                  tier: 'PRO'
+                  role: 'USER'
                   emailVerified: true
-                  createdAt: "2025-11-15T10:00:00.000Z"
-                  updatedAt: "2025-12-20T14:30:00.000Z"
+                  createdAt: '2025-11-15T10:00:00.000Z'
+                  updatedAt: '2025-12-20T14:30:00.000Z'
         '401':
           description: Unauthorized
           content:
@@ -90,7 +90,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Unauthorized"
+                error: 'Unauthorized'
         '404':
           description: User not found
           content:
@@ -98,7 +98,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "User not found"
+                error: 'User not found'
         '500':
           description: Internal server error
           content:
@@ -133,15 +133,15 @@ paths:
               updateName:
                 summary: Update name
                 value:
-                  name: "Jane Doe"
+                  name: 'Jane Doe'
               updateEmail:
                 summary: Change email
                 value:
-                  email: "jane.new@example.com"
+                  email: 'jane.new@example.com'
               updateAvatar:
                 summary: Update avatar
                 value:
-                  avatarUrl: "https://example.com/avatar.jpg"
+                  avatarUrl: 'https://example.com/avatar.jpg'
       responses:
         '200':
           description: Profile updated successfully
@@ -150,17 +150,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/UpdateProfileResponse'
               example:
-                message: "Profile updated successfully"
+                message: 'Profile updated successfully'
                 user:
-                  id: "cm4f8j0nh0001i7jqe2rm3y6p"
-                  name: "Jane Doe"
-                  email: "jane.new@example.com"
-                  image: "https://example.com/avatar.jpg"
-                  tier: "PRO"
-                  role: "USER"
+                  id: 'cm4f8j0nh0001i7jqe2rm3y6p'
+                  name: 'Jane Doe'
+                  email: 'jane.new@example.com'
+                  image: 'https://example.com/avatar.jpg'
+                  tier: 'PRO'
+                  role: 'USER'
                   emailVerified: false
-                  createdAt: "2025-11-15T10:00:00.000Z"
-                  updatedAt: "2025-12-20T15:00:00.000Z"
+                  createdAt: '2025-11-15T10:00:00.000Z'
+                  updatedAt: '2025-12-20T15:00:00.000Z'
         '400':
           description: Validation error
           content:
@@ -180,7 +180,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Email already exists"
+                error: 'Email already exists'
         '500':
           description: Internal server error
           content:
@@ -212,20 +212,20 @@ paths:
                 $ref: '#/components/schemas/PreferencesResponse'
               example:
                 preferences:
-                  theme: "dark"
-                  colorScheme: "blue"
-                  language: "en"
-                  timezone: "America/New_York"
-                  dateFormat: "MDY"
-                  timeFormat: "12h"
-                  currency: "USD"
-                  profileVisibility: "private"
+                  theme: 'dark'
+                  colorScheme: 'blue'
+                  language: 'en'
+                  timezone: 'America/New_York'
+                  dateFormat: 'MDY'
+                  timeFormat: '12h'
+                  currency: 'USD'
+                  profileVisibility: 'private'
                   showStats: true
                   showEmail: false
                   emailNotifications: true
                   pushNotifications: false
-                  chartUpColor: "#22c55e"
-                  chartDownColor: "#ef4444"
+                  chartUpColor: '#22c55e'
+                  chartDownColor: '#ef4444'
                   gridOpacity: 10
         '401':
           description: Unauthorized
@@ -253,7 +253,7 @@ paths:
               updateTheme:
                 summary: Change to dark theme
                 value:
-                  theme: "dark"
+                  theme: 'dark'
               updateNotifications:
                 summary: Enable notifications
                 value:
@@ -262,11 +262,11 @@ paths:
               updateLocalization:
                 summary: Set to European format
                 value:
-                  language: "de"
-                  timezone: "Europe/Berlin"
-                  dateFormat: "DMY"
-                  timeFormat: "24h"
-                  currency: "EUR"
+                  language: 'de'
+                  timezone: 'Europe/Berlin'
+                  dateFormat: 'DMY'
+                  timeFormat: '24h'
+                  currency: 'EUR'
       responses:
         '200':
           description: Preferences updated successfully
@@ -275,15 +275,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/UpdatePreferencesResponse'
               example:
-                message: "Preferences updated successfully"
+                message: 'Preferences updated successfully'
                 preferences:
-                  theme: "dark"
-                  colorScheme: "blue"
-                  language: "de"
-                  timezone: "Europe/Berlin"
-                  dateFormat: "DMY"
-                  timeFormat: "24h"
-                  currency: "EUR"
+                  theme: 'dark'
+                  colorScheme: 'blue'
+                  language: 'de'
+                  timezone: 'Europe/Berlin'
+                  dateFormat: 'DMY'
+                  timeFormat: '24h'
+                  currency: 'EUR'
         '400':
           description: Validation error
           content:
@@ -328,8 +328,8 @@ paths:
             schema:
               $ref: '#/components/schemas/ChangePasswordRequest'
             example:
-              currentPassword: "OldPassword123"
-              newPassword: "NewSecurePassword456"
+              currentPassword: 'OldPassword123'
+              newPassword: 'NewSecurePassword456'
       responses:
         '200':
           description: Password changed successfully
@@ -340,7 +340,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Password changed successfully"
+                    example: 'Password changed successfully'
         '400':
           description: Validation error
           content:
@@ -351,15 +351,15 @@ paths:
                 incorrectPassword:
                   summary: Current password incorrect
                   value:
-                    error: "Current password is incorrect"
+                    error: 'Current password is incorrect'
                 samePassword:
                   summary: Same as current password
                   value:
-                    error: "New password must be different from current password"
+                    error: 'New password must be different from current password'
                 weakPassword:
                   summary: Password too weak
                   value:
-                    error: "Password must be at least 8 characters"
+                    error: 'Password must be at least 8 characters'
         '401':
           description: Unauthorized
           content:
@@ -398,9 +398,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/DeletionRequestResponse'
               example:
-                message: "Account deletion scheduled"
-                scheduledFor: "2025-12-27T15:00:00.000Z"
-                cancellationToken: "del_abc123xyz456"
+                message: 'Account deletion scheduled'
+                scheduledFor: '2025-12-27T15:00:00.000Z'
+                cancellationToken: 'del_abc123xyz456'
         '400':
           description: Deletion already requested
           content:
@@ -408,8 +408,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Deletion already requested"
-                message: "Your account is already scheduled for deletion"
+                error: 'Deletion already requested'
+                message: 'Your account is already scheduled for deletion'
         '401':
           description: Unauthorized
           content:
@@ -447,7 +447,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ConfirmDeletionRequest'
             example:
-              token: "del_abc123xyz456"
+              token: 'del_abc123xyz456'
       responses:
         '200':
           description: Account deleted successfully
@@ -458,7 +458,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Account deleted successfully"
+                    example: 'Account deleted successfully'
         '400':
           description: Invalid or expired token
           content:
@@ -466,7 +466,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Invalid deletion token"
+                error: 'Invalid deletion token'
         '500':
           description: Internal server error
           content:
@@ -491,7 +491,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CancelDeletionRequest'
             example:
-              token: "del_abc123xyz456"
+              token: 'del_abc123xyz456'
       responses:
         '200':
           description: Deletion cancelled successfully
@@ -502,7 +502,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Account deletion cancelled successfully"
+                    example: 'Account deletion cancelled successfully'
         '400':
           description: Invalid token or no pending deletion
           content:
@@ -510,7 +510,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "No pending deletion request found"
+                error: 'No pending deletion request found'
         '500':
           description: Internal server error
           content:
@@ -547,39 +547,39 @@ components:
       properties:
         id:
           type: string
-          example: "cm4f8j0nh0001i7jqe2rm3y6p"
+          example: 'cm4f8j0nh0001i7jqe2rm3y6p'
         name:
           type: string
           nullable: true
-          example: "John Doe"
+          example: 'John Doe'
         email:
           type: string
           nullable: true
-          example: "john@example.com"
+          example: 'john@example.com'
         image:
           type: string
           format: uri
           nullable: true
-          example: "https://lh3.googleusercontent.com/a/example"
+          example: 'https://lh3.googleusercontent.com/a/example'
         tier:
           type: string
           enum: [FREE, PRO]
-          example: "PRO"
+          example: 'PRO'
         role:
           type: string
           enum: [USER, ADMIN]
-          example: "USER"
+          example: 'USER'
         emailVerified:
           type: boolean
           example: true
         createdAt:
           type: string
           format: date-time
-          example: "2025-11-15T10:00:00.000Z"
+          example: '2025-11-15T10:00:00.000Z'
         updatedAt:
           type: string
           format: date-time
-          example: "2025-12-20T14:30:00.000Z"
+          example: '2025-12-20T14:30:00.000Z'
 
     UpdateProfileRequest:
       type: object
@@ -588,16 +588,16 @@ components:
           type: string
           minLength: 2
           maxLength: 50
-          example: "Jane Doe"
+          example: 'Jane Doe'
         email:
           type: string
           format: email
-          example: "jane.new@example.com"
+          example: 'jane.new@example.com'
         avatarUrl:
           type: string
           format: uri
           nullable: true
-          example: "https://example.com/avatar.jpg"
+          example: 'https://example.com/avatar.jpg'
 
     UpdateProfileResponse:
       type: object
@@ -607,7 +607,7 @@ components:
       properties:
         message:
           type: string
-          example: "Profile updated successfully"
+          example: 'Profile updated successfully'
         user:
           $ref: '#/components/schemas/UserProfile'
 
@@ -625,32 +625,32 @@ components:
         theme:
           type: string
           enum: [light, dark, system]
-          example: "dark"
+          example: 'dark'
         colorScheme:
           type: string
           enum: [blue, purple, green, orange]
-          example: "blue"
+          example: 'blue'
         language:
           type: string
-          example: "en"
+          example: 'en'
         timezone:
           type: string
-          example: "America/New_York"
+          example: 'America/New_York'
         dateFormat:
           type: string
           enum: [MDY, DMY, YMD]
-          example: "MDY"
+          example: 'MDY'
         timeFormat:
           type: string
-          enum: ["12h", "24h"]
-          example: "12h"
+          enum: ['12h', '24h']
+          example: '12h'
         currency:
           type: string
-          example: "USD"
+          example: 'USD'
         profileVisibility:
           type: string
           enum: [public, private, connections]
-          example: "private"
+          example: 'private'
         showStats:
           type: boolean
           example: true
@@ -665,10 +665,10 @@ components:
           example: false
         chartUpColor:
           type: string
-          example: "#22c55e"
+          example: '#22c55e'
         chartDownColor:
           type: string
-          example: "#ef4444"
+          example: '#ef4444'
         gridOpacity:
           type: number
           minimum: 0
@@ -693,7 +693,7 @@ components:
           enum: [MDY, DMY, YMD]
         timeFormat:
           type: string
-          enum: ["12h", "24h"]
+          enum: ['12h', '24h']
         currency:
           type: string
         profileVisibility:
@@ -724,7 +724,7 @@ components:
       properties:
         message:
           type: string
-          example: "Preferences updated successfully"
+          example: 'Preferences updated successfully'
         preferences:
           $ref: '#/components/schemas/UserPreferences'
 
@@ -737,12 +737,12 @@ components:
         currentPassword:
           type: string
           format: password
-          example: "OldPassword123"
+          example: 'OldPassword123'
         newPassword:
           type: string
           format: password
           minLength: 8
-          example: "NewSecurePassword456"
+          example: 'NewSecurePassword456'
 
     DeletionRequestResponse:
       type: object
@@ -753,14 +753,14 @@ components:
       properties:
         message:
           type: string
-          example: "Account deletion scheduled"
+          example: 'Account deletion scheduled'
         scheduledFor:
           type: string
           format: date-time
-          example: "2025-12-27T15:00:00.000Z"
+          example: '2025-12-27T15:00:00.000Z'
         cancellationToken:
           type: string
-          example: "del_abc123xyz456"
+          example: 'del_abc123xyz456'
 
     ConfirmDeletionRequest:
       type: object
@@ -769,7 +769,7 @@ components:
       properties:
         token:
           type: string
-          example: "del_abc123xyz456"
+          example: 'del_abc123xyz456'
 
     CancelDeletionRequest:
       type: object
@@ -778,7 +778,7 @@ components:
       properties:
         token:
           type: string
-          example: "del_abc123xyz456"
+          example: 'del_abc123xyz456'
 
     ErrorResponse:
       type: object
@@ -787,10 +787,10 @@ components:
       properties:
         error:
           type: string
-          example: "Unauthorized"
+          example: 'Unauthorized'
         message:
           type: string
-          example: "Additional error details"
+          example: 'Additional error details'
 
     ValidationErrorResponse:
       type: object
@@ -799,7 +799,7 @@ components:
       properties:
         error:
           type: string
-          example: "Validation failed"
+          example: 'Validation failed'
         details:
           type: array
           items:

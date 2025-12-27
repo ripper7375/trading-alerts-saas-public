@@ -113,23 +113,23 @@ paths:
                 simple:
                   summary: Simple list
                   value:
-                    country: "IN"
+                    country: 'IN'
                     methods:
-                      - "UPI"
-                      - "PAYTM"
-                      - "PHONEPE"
-                      - "GOOGLEPAY"
+                      - 'UPI'
+                      - 'PAYTM'
+                      - 'PHONEPE'
+                      - 'GOOGLEPAY'
                 detailed:
                   summary: Detailed information
                   value:
-                    country: "IN"
+                    country: 'IN'
                     methods:
-                      - id: "UPI"
-                        name: "UPI"
-                        icon: "upi-icon.svg"
-                      - id: "PAYTM"
-                        name: "Paytm Wallet"
-                        icon: "paytm-icon.svg"
+                      - id: 'UPI'
+                        name: 'UPI'
+                        icon: 'upi-icon.svg'
+                      - id: 'PAYTM'
+                        name: 'Paytm Wallet'
+                        icon: 'paytm-icon.svg'
         '400':
           description: Invalid or unsupported country
           content:
@@ -137,8 +137,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Invalid or unsupported country"
-                supportedCountries: ["IN", "NG", "PK", "VN", "ID", "TH", "ZA", "TR"]
+                error: 'Invalid or unsupported country'
+                supportedCountries:
+                  ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
         '500':
           description: Internal server error
           content:
@@ -174,10 +175,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExchangeRateResponse'
               example:
-                from: "USD"
-                to: "INR"
+                from: 'USD'
+                to: 'INR'
                 rate: 83.25
-                timestamp: "2025-12-25T10:00:00.000Z"
+                timestamp: '2025-12-25T10:00:00.000Z'
         '400':
           description: Invalid currency
           content:
@@ -227,7 +228,7 @@ paths:
                 $ref: '#/components/schemas/ConvertResponse'
               example:
                 amountUSD: 29
-                currency: "INR"
+                currency: 'INR'
                 convertedAmount: 2414.25
                 exchangeRate: 83.25
         '400':
@@ -277,18 +278,18 @@ paths:
               threeDayPlan:
                 summary: 3-day plan (India)
                 value:
-                  country: "IN"
-                  paymentMethod: "UPI"
-                  planType: "THREE_DAY"
-                  currency: "INR"
+                  country: 'IN'
+                  paymentMethod: 'UPI'
+                  planType: 'THREE_DAY'
+                  currency: 'INR'
               monthlyPlanWithDiscount:
                 summary: Monthly plan with discount
                 value:
-                  country: "NG"
-                  paymentMethod: "BANK_TRANSFER"
-                  planType: "MONTHLY"
-                  currency: "NGN"
-                  discountCode: "SAVE20"
+                  country: 'NG'
+                  paymentMethod: 'BANK_TRANSFER'
+                  planType: 'MONTHLY'
+                  currency: 'NGN'
+                  discountCode: 'SAVE20'
       responses:
         '200':
           description: Payment created successfully
@@ -297,11 +298,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreatePaymentResponse'
               example:
-                paymentId: "dlp_abc123xyz456"
-                redirectUrl: "https://pay.dlocal.com/checkout/dlp_abc123xyz456"
+                paymentId: 'dlp_abc123xyz456'
+                redirectUrl: 'https://pay.dlocal.com/checkout/dlp_abc123xyz456'
                 amount: 249
-                currency: "INR"
-                expiresAt: "2025-12-25T11:00:00.000Z"
+                currency: 'INR'
+                expiresAt: '2025-12-25T11:00:00.000Z'
         '400':
           description: Validation error
           content:
@@ -312,9 +313,9 @@ paths:
                 invalidPaymentMethod:
                   summary: Invalid payment method
                   value:
-                    error: "Invalid payment method for this country"
-                    country: "IN"
-                    paymentMethod: "INVALID_METHOD"
+                    error: 'Invalid payment method for this country'
+                    country: 'IN'
+                    paymentMethod: 'INVALID_METHOD'
         '401':
           description: Unauthorized
           content:
@@ -331,12 +332,12 @@ paths:
                 alreadySubscribed:
                   summary: Already has subscription
                   value:
-                    error: "You already have an active subscription"
+                    error: 'You already have an active subscription'
                 threeDayNotEligible:
                   summary: Not eligible for 3-day plan
                   value:
-                    error: "You have already used the 3-day promotional plan"
-                    reason: "ALREADY_USED"
+                    error: 'You have already used the 3-day promotional plan'
+                    reason: 'ALREADY_USED'
         '500':
           description: Internal server error
           content:
@@ -366,7 +367,7 @@ paths:
           description: dLocal payment ID
           schema:
             type: string
-          example: "dlp_abc123xyz456"
+          example: 'dlp_abc123xyz456'
       responses:
         '200':
           description: Payment status retrieved successfully
@@ -375,13 +376,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentStatusResponse'
               example:
-                paymentId: "dlp_abc123xyz456"
-                status: "PAID"
+                paymentId: 'dlp_abc123xyz456'
+                status: 'PAID'
                 amount: 249
-                currency: "INR"
-                planType: "THREE_DAY"
-                createdAt: "2025-12-25T10:00:00.000Z"
-                paidAt: "2025-12-25T10:05:00.000Z"
+                currency: 'INR'
+                planType: 'THREE_DAY'
+                createdAt: '2025-12-25T10:00:00.000Z'
+                paidAt: '2025-12-25T10:05:00.000Z'
         '401':
           description: Unauthorized
           content:
@@ -430,8 +431,8 @@ paths:
             schema:
               $ref: '#/components/schemas/ValidateDiscountRequest'
             example:
-              code: "SAVE20"
-              planType: "MONTHLY"
+              code: 'SAVE20'
+              planType: 'MONTHLY'
       responses:
         '200':
           description: Validation result
@@ -444,15 +445,15 @@ paths:
                   summary: Valid discount code
                   value:
                     valid: true
-                    code: "SAVE20"
-                    discountType: "PERCENTAGE"
+                    code: 'SAVE20'
+                    discountType: 'PERCENTAGE'
                     discountValue: 20
                     finalPrice: 23.20
                 invalidCode:
                   summary: Invalid code
                   value:
                     valid: false
-                    error: "Code not found or expired"
+                    error: 'Code not found or expired'
         '400':
           description: Validation error
           content:
@@ -498,7 +499,7 @@ paths:
                   summary: User not eligible
                   value:
                     eligible: false
-                    reason: "ALREADY_USED"
+                    reason: 'ALREADY_USED'
         '401':
           description: Unauthorized
           content:
@@ -689,14 +690,14 @@ components:
         country:
           type: string
           enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
-          example: "IN"
+          example: 'IN'
         methods:
           type: array
           items:
             oneOf:
               - type: string
               - $ref: '#/components/schemas/PaymentMethodDetail'
-          example: ["UPI", "PAYTM", "PHONEPE"]
+          example: ['UPI', 'PAYTM', 'PHONEPE']
 
     PaymentMethodDetail:
       type: object
@@ -706,13 +707,13 @@ components:
       properties:
         id:
           type: string
-          example: "UPI"
+          example: 'UPI'
         name:
           type: string
-          example: "UPI"
+          example: 'UPI'
         icon:
           type: string
-          example: "upi-icon.svg"
+          example: 'upi-icon.svg'
 
     ExchangeRateResponse:
       type: object
@@ -724,10 +725,10 @@ components:
       properties:
         from:
           type: string
-          example: "USD"
+          example: 'USD'
         to:
           type: string
-          example: "INR"
+          example: 'INR'
         rate:
           type: number
           format: float
@@ -735,7 +736,7 @@ components:
         timestamp:
           type: string
           format: date-time
-          example: "2025-12-25T10:00:00.000Z"
+          example: '2025-12-25T10:00:00.000Z'
 
     ConvertResponse:
       type: object
@@ -750,7 +751,7 @@ components:
           example: 29
         currency:
           type: string
-          example: "INR"
+          example: 'INR'
         convertedAmount:
           type: number
           format: float
@@ -771,22 +772,22 @@ components:
         country:
           type: string
           enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
-          example: "IN"
+          example: 'IN'
         paymentMethod:
           type: string
-          example: "UPI"
+          example: 'UPI'
         planType:
           type: string
           enum: [THREE_DAY, MONTHLY]
-          example: "THREE_DAY"
+          example: 'THREE_DAY'
         currency:
           type: string
           enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
-          example: "INR"
+          example: 'INR'
         discountCode:
           type: string
           description: Optional discount code (MONTHLY plan only)
-          example: "SAVE20"
+          example: 'SAVE20'
 
     CreatePaymentResponse:
       type: object
@@ -800,24 +801,24 @@ components:
         paymentId:
           type: string
           description: dLocal payment ID
-          example: "dlp_abc123xyz456"
+          example: 'dlp_abc123xyz456'
         redirectUrl:
           type: string
           format: uri
           description: URL to redirect user for payment completion
-          example: "https://pay.dlocal.com/checkout/dlp_abc123xyz456"
+          example: 'https://pay.dlocal.com/checkout/dlp_abc123xyz456'
         amount:
           type: number
           description: Amount in local currency
           example: 249
         currency:
           type: string
-          example: "INR"
+          example: 'INR'
         expiresAt:
           type: string
           format: date-time
           description: Payment link expiration
-          example: "2025-12-25T11:00:00.000Z"
+          example: '2025-12-25T11:00:00.000Z'
 
     PaymentStatusResponse:
       type: object
@@ -831,30 +832,30 @@ components:
       properties:
         paymentId:
           type: string
-          example: "dlp_abc123xyz456"
+          example: 'dlp_abc123xyz456'
         status:
           type: string
           enum: [PENDING, PAID, REJECTED, CANCELLED, EXPIRED]
-          example: "PAID"
+          example: 'PAID'
         amount:
           type: number
           example: 249
         currency:
           type: string
-          example: "INR"
+          example: 'INR'
         planType:
           type: string
           enum: [THREE_DAY, MONTHLY]
-          example: "THREE_DAY"
+          example: 'THREE_DAY'
         createdAt:
           type: string
           format: date-time
-          example: "2025-12-25T10:00:00.000Z"
+          example: '2025-12-25T10:00:00.000Z'
         paidAt:
           type: string
           format: date-time
           nullable: true
-          example: "2025-12-25T10:05:00.000Z"
+          example: '2025-12-25T10:05:00.000Z'
 
     ValidateDiscountRequest:
       type: object
@@ -864,11 +865,11 @@ components:
       properties:
         code:
           type: string
-          example: "SAVE20"
+          example: 'SAVE20'
         planType:
           type: string
           enum: [MONTHLY]
-          example: "MONTHLY"
+          example: 'MONTHLY'
 
     ValidateDiscountResponse:
       type: object
@@ -880,11 +881,11 @@ components:
           example: true
         code:
           type: string
-          example: "SAVE20"
+          example: 'SAVE20'
         discountType:
           type: string
           enum: [PERCENTAGE, FIXED]
-          example: "PERCENTAGE"
+          example: 'PERCENTAGE'
         discountValue:
           type: number
           description: Percentage (1-100) or fixed amount
@@ -896,7 +897,7 @@ components:
         error:
           type: string
           description: Error message if invalid
-          example: "Code not found or expired"
+          example: 'Code not found or expired'
 
     ThreeDayEligibilityResponse:
       type: object
@@ -941,15 +942,15 @@ components:
       properties:
         error:
           type: string
-          example: "Unauthorized"
+          example: 'Unauthorized'
         message:
           type: string
-          example: "Additional error details"
+          example: 'Additional error details'
         supportedCountries:
           type: array
           items:
             type: string
-          example: ["IN", "NG", "PK", "VN", "ID", "TH", "ZA", "TR"]
+          example: ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
 
     ValidationErrorResponse:
       type: object
@@ -958,10 +959,10 @@ components:
       properties:
         error:
           type: string
-          example: "Validation error"
+          example: 'Validation error'
         details:
           type: object
           description: Field-level validation errors
           example:
-            country: ["Invalid country code"]
-            paymentMethod: ["Payment method is required"]
+            country: ['Invalid country code']
+            paymentMethod: ['Payment method is required']

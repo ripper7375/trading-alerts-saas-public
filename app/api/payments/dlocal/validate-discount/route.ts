@@ -90,7 +90,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!affiliateCode) {
-      logger.info('Discount code not found or inactive', { code: normalizedCode });
+      logger.info('Discount code not found or inactive', {
+        code: normalizedCode,
+      });
       return NextResponse.json({
         valid: false,
         message: 'Invalid or expired discount code',

@@ -482,7 +482,7 @@ paths:
                       tier: FREE
                       role: USER
                       isAffiliate: false
-                    expires: "2025-01-25T12:00:00.000Z"
+                    expires: '2025-01-25T12:00:00.000Z'
                 notAuthenticated:
                   summary: No session
                   value: null
@@ -662,7 +662,7 @@ components:
           type: string
           format: date-time
           description: Session expiration timestamp
-          example: "2025-01-25T12:00:00.000Z"
+          example: '2025-01-25T12:00:00.000Z'
 
     ErrorResponse:
       type: object
@@ -752,7 +752,7 @@ components:
           format: date-time
           nullable: true
           description: Timestamp when email was verified
-          example: "2025-12-20T10:30:00.000Z"
+          example: '2025-12-20T10:30:00.000Z'
         image:
           type: string
           format: uri
@@ -875,7 +875,7 @@ components:
           tier: PRO
           role: USER
           isAffiliate: true
-        expires: "2025-01-25T12:00:00.000Z"
+        expires: '2025-01-25T12:00:00.000Z'
 
     SessionNotAuthenticated:
       summary: No active session

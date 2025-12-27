@@ -36,7 +36,9 @@ jest.mock('lightweight-charts', () => {
 
 // Mock IndicatorOverlay
 jest.mock('@/components/charts/indicator-overlay', () => ({
-  IndicatorOverlay: () => <div data-testid="indicator-overlay">Indicator Overlay</div>,
+  IndicatorOverlay: () => (
+    <div data-testid="indicator-overlay">Indicator Overlay</div>
+  ),
 }));
 
 // Mock fetch
@@ -169,7 +171,12 @@ describe('TradingChart Component', () => {
     it('should show error message on fetch failure', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
-        json: () => Promise.resolve({ success: false, error: 'API Error', message: 'Failed' }),
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'API Error',
+            message: 'Failed',
+          }),
       });
 
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
@@ -182,7 +189,12 @@ describe('TradingChart Component', () => {
     it('should show error details', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
-        json: () => Promise.resolve({ success: false, error: 'Not Found', message: 'Symbol not found' }),
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'Not Found',
+            message: 'Symbol not found',
+          }),
       });
 
       render(<TradingChart symbol="INVALID" timeframe="H1" tier="FREE" />);
@@ -238,7 +250,9 @@ describe('TradingChart Component', () => {
   // ============================================================================
   describe('chart rendering', () => {
     it('should render chart container', async () => {
-      const { container } = render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+      const { container } = render(
+        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+      );
 
       await waitFor(() => {
         // Chart container should exist
@@ -344,7 +358,9 @@ describe('TradingChart Component', () => {
   describe('indicator overlay', () => {
     it('should have IndicatorOverlay mock configured', () => {
       // Verify the mock is set up correctly for testing
-      const { IndicatorOverlay } = jest.requireMock('@/components/charts/indicator-overlay');
+      const { IndicatorOverlay } = jest.requireMock(
+        '@/components/charts/indicator-overlay'
+      );
       expect(IndicatorOverlay).toBeDefined();
     });
   });
@@ -426,7 +442,13 @@ describe('TradingChart Component', () => {
         data: {
           ...sampleApiResponse.data,
           ohlc: [
-            { time: 1704067200, open: 145.123, high: 145.5, low: 145.0, close: 145.234 },
+            {
+              time: 1704067200,
+              open: 145.123,
+              high: 145.5,
+              low: 145.0,
+              close: 145.234,
+            },
           ],
         },
       };
@@ -449,7 +471,13 @@ describe('TradingChart Component', () => {
         data: {
           ...sampleApiResponse.data,
           ohlc: [
-            { time: 1704067200, open: 1.08500, high: 1.08600, low: 1.08400, close: 1.08523 },
+            {
+              time: 1704067200,
+              open: 1.085,
+              high: 1.086,
+              low: 1.084,
+              close: 1.08523,
+            },
           ],
         },
       };

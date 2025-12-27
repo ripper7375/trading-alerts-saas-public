@@ -57,9 +57,9 @@ describe('Currency Converter Service', () => {
     });
 
     it('should throw error for unsupported currency', async () => {
-      await expect(getExchangeRate('INVALID' as DLocalCurrency)).rejects.toThrow(
-        'Unsupported currency'
-      );
+      await expect(
+        getExchangeRate('INVALID' as DLocalCurrency)
+      ).rejects.toThrow('Unsupported currency');
     });
 
     it('should use fallback rate on API failure', async () => {
@@ -125,21 +125,36 @@ describe('Currency Converter Service', () => {
     });
 
     it('should throw error for zero amount', async () => {
-      await expect(convertUSDToLocal(0, 'INR')).rejects.toThrow('Amount must be positive');
+      await expect(convertUSDToLocal(0, 'INR')).rejects.toThrow(
+        'Amount must be positive'
+      );
     });
 
     it('should throw error for negative amount', async () => {
-      await expect(convertUSDToLocal(-10, 'INR')).rejects.toThrow('Amount must be positive');
+      await expect(convertUSDToLocal(-10, 'INR')).rejects.toThrow(
+        'Amount must be positive'
+      );
     });
 
     it('should work with all supported currencies', async () => {
-      const currencies: DLocalCurrency[] = ['INR', 'NGN', 'PKR', 'VND', 'IDR', 'THB', 'ZAR', 'TRY'];
+      const currencies: DLocalCurrency[] = [
+        'INR',
+        'NGN',
+        'PKR',
+        'VND',
+        'IDR',
+        'THB',
+        'ZAR',
+        'TRY',
+      ];
 
       for (const currency of currencies) {
         clearExchangeRateCache();
         mockFetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ rates: { [currency]: getFallbackRate(currency) } }),
+          json: async () => ({
+            rates: { [currency]: getFallbackRate(currency) },
+          }),
         });
 
         const result = await convertUSDToLocal(29.0, currency);
@@ -158,7 +173,16 @@ describe('Currency Converter Service', () => {
     });
 
     it('should return fallback rate for all currencies', () => {
-      const currencies: DLocalCurrency[] = ['INR', 'NGN', 'PKR', 'VND', 'IDR', 'THB', 'ZAR', 'TRY'];
+      const currencies: DLocalCurrency[] = [
+        'INR',
+        'NGN',
+        'PKR',
+        'VND',
+        'IDR',
+        'THB',
+        'ZAR',
+        'TRY',
+      ];
 
       currencies.forEach((currency) => {
         const rate = getFallbackRate(currency);

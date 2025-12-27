@@ -43,9 +43,7 @@ const querySchema = z.object({
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
  */
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require admin access
     await requireAdmin();
@@ -62,7 +60,9 @@ export async function GET(
     }
 
     const { period } = validation.data;
-    const { start, end } = getReportingPeriod(period as '3months' | '6months' | '1year');
+    const { start, end } = getReportingPeriod(
+      period as '3months' | '6months' | '1year'
+    );
 
     // Get code statistics
     const [
@@ -140,7 +140,9 @@ export async function GET(
 
     // Parse reason counts
     const getReasonCount = (reason: string): number => {
-      const found = reasonCounts.find((r) => r['distributionReason'] === reason);
+      const found = reasonCounts.find(
+        (r) => r['distributionReason'] === reason
+      );
       return (found?.['_count'] as number) ?? 0;
     };
 
@@ -150,8 +152,7 @@ export async function GET(
     const cancelledCodes = getStatusCount('CANCELLED');
 
     // Calculate conversion rate
-    const conversionRate =
-      totalCodes > 0 ? (usedCodes / totalCodes) * 100 : 0;
+    const conversionRate = totalCodes > 0 ? (usedCodes / totalCodes) * 100 : 0;
 
     return NextResponse.json({
       period: {

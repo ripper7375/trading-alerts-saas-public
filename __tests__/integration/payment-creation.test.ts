@@ -5,11 +5,27 @@
  * This test validates that all services work together correctly.
  */
 
-import { convertUSDToLocal, clearExchangeRateCache } from '@/lib/dlocal/currency-converter.service';
-import { getPaymentMethodsForCountry, isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
-import { createPayment, verifyWebhookSignature, mapDLocalStatus } from '@/lib/dlocal/dlocal-payment.service';
+import {
+  convertUSDToLocal,
+  clearExchangeRateCache,
+} from '@/lib/dlocal/currency-converter.service';
+import {
+  getPaymentMethodsForCountry,
+  isValidPaymentMethod,
+} from '@/lib/dlocal/payment-methods.service';
+import {
+  createPayment,
+  verifyWebhookSignature,
+  mapDLocalStatus,
+} from '@/lib/dlocal/dlocal-payment.service';
 import { detectCountry } from '@/lib/geo/detect-country';
-import { isDLocalCountry, getCurrency, getPriceUSD, getPlanDuration, PRICING } from '@/lib/dlocal/constants';
+import {
+  isDLocalCountry,
+  getCurrency,
+  getPriceUSD,
+  getPlanDuration,
+  PRICING,
+} from '@/lib/dlocal/constants';
 import type { DLocalCountry, DLocalCurrency } from '@/types/dlocal';
 import crypto from 'crypto';
 
@@ -38,13 +54,17 @@ describe('Integration: Payment Creation Flow', () => {
       expect(isDLocalCountry(country)).toBe(true);
 
       // Step 2: Get payment methods
-      const methods = await getPaymentMethodsForCountry(country as DLocalCountry);
+      const methods = await getPaymentMethodsForCountry(
+        country as DLocalCountry
+      );
       expect(methods).toContain('UPI');
       expect(methods).toContain('Paytm');
 
       // Step 3: Validate selected payment method
       const selectedMethod = 'UPI';
-      expect(isValidPaymentMethod(country as DLocalCountry, selectedMethod)).toBe(true);
+      expect(
+        isValidPaymentMethod(country as DLocalCountry, selectedMethod)
+      ).toBe(true);
 
       // Step 4: Get currency for country
       const currency = getCurrency(country as DLocalCountry);
@@ -93,7 +113,9 @@ describe('Integration: Payment Creation Flow', () => {
       expect(country).toBe('TH');
 
       // Step 2: Get payment methods
-      const methods = await getPaymentMethodsForCountry(country as DLocalCountry);
+      const methods = await getPaymentMethodsForCountry(
+        country as DLocalCountry
+      );
       expect(methods).toContain('TrueMoney');
 
       // Step 3: Get currency and pricing
@@ -119,7 +141,16 @@ describe('Integration: Payment Creation Flow', () => {
     });
 
     it('should handle payment for all 8 supported countries', async () => {
-      const countries: DLocalCountry[] = ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR'];
+      const countries: DLocalCountry[] = [
+        'IN',
+        'NG',
+        'PK',
+        'VN',
+        'ID',
+        'TH',
+        'ZA',
+        'TR',
+      ];
 
       for (const country of countries) {
         clearExchangeRateCache();
@@ -177,7 +208,9 @@ describe('Integration: Payment Creation Flow', () => {
         .digest('hex');
 
       // Verify signature
-      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(true);
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
 
       // Map status
       expect(mapDLocalStatus(webhookPayload.status)).toBe('COMPLETED');
@@ -201,7 +234,9 @@ describe('Integration: Payment Creation Flow', () => {
         .update(payload)
         .digest('hex');
 
-      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(true);
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
       expect(mapDLocalStatus(webhookPayload.status)).toBe('FAILED');
     });
 
@@ -223,7 +258,9 @@ describe('Integration: Payment Creation Flow', () => {
         amount: 290.0, // Tampered!
       });
 
-      expect(verifyWebhookSignature(tamperedPayload, signature, WEBHOOK_SECRET)).toBe(false);
+      expect(
+        verifyWebhookSignature(tamperedPayload, signature, WEBHOOK_SECRET)
+      ).toBe(false);
     });
   });
 

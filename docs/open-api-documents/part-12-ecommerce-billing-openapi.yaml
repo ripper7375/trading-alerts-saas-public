@@ -75,26 +75,26 @@ paths:
                 freeUser:
                   summary: FREE tier user
                   value:
-                    tier: "FREE"
-                    status: "none"
+                    tier: 'FREE'
+                    status: 'none'
                     subscription: null
                 stripeProUser:
                   summary: PRO tier with Stripe
                   value:
-                    tier: "PRO"
-                    status: "active"
+                    tier: 'PRO'
+                    status: 'active'
                     subscription:
-                      id: "sub_1234567890"
-                      status: "active"
-                      provider: "STRIPE"
-                      planType: "MONTHLY"
-                      currentPeriodEnd: "2026-01-20T00:00:00.000Z"
+                      id: 'sub_1234567890'
+                      status: 'active'
+                      provider: 'STRIPE'
+                      planType: 'MONTHLY'
+                      currentPeriodEnd: '2026-01-20T00:00:00.000Z'
                       expiresAt: null
                       cancelAtPeriodEnd: false
                       trialEnd: null
                       paymentMethod:
-                        brand: "visa"
-                        last4: "4242"
+                        brand: 'visa'
+                        last4: '4242'
                         expiryMonth: 12
                         expiryYear: 2026
                       dLocalPaymentMethod: null
@@ -102,20 +102,20 @@ paths:
                 dLocalProUser:
                   summary: PRO tier with dLocal
                   value:
-                    tier: "PRO"
-                    status: "active"
+                    tier: 'PRO'
+                    status: 'active'
                     subscription:
-                      id: "dl_abc123"
-                      status: "active"
-                      provider: "DLOCAL"
-                      planType: "THREE_DAY"
+                      id: 'dl_abc123'
+                      status: 'active'
+                      provider: 'DLOCAL'
+                      planType: 'THREE_DAY'
                       currentPeriodEnd: null
-                      expiresAt: "2025-12-23T00:00:00.000Z"
+                      expiresAt: '2025-12-23T00:00:00.000Z'
                       cancelAtPeriodEnd: false
                       trialEnd: null
                       paymentMethod: null
-                      dLocalPaymentMethod: "pix"
-                      dLocalCountry: "BR"
+                      dLocalPaymentMethod: 'pix'
+                      dLocalCountry: 'BR'
         '401':
           description: Unauthorized
           content:
@@ -123,7 +123,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Unauthorized"
+                error: 'Unauthorized'
         '500':
           description: Internal server error
           content:
@@ -153,9 +153,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/CancelSubscriptionResponse'
               example:
-                message: "Subscription cancelled successfully"
+                message: 'Subscription cancelled successfully'
                 cancelAtPeriodEnd: true
-                currentPeriodEnd: "2026-01-20T00:00:00.000Z"
+                currentPeriodEnd: '2026-01-20T00:00:00.000Z'
         '400':
           description: No active subscription
           content:
@@ -166,15 +166,15 @@ paths:
                 noSubscription:
                   summary: No subscription found
                   value:
-                    error: "No subscription"
-                    message: "No active subscription found to cancel"
-                    code: "NO_SUBSCRIPTION"
+                    error: 'No subscription'
+                    message: 'No active subscription found to cancel'
+                    code: 'NO_SUBSCRIPTION'
                 alreadyCancelled:
                   summary: Already cancelled
                   value:
-                    error: "Already cancelled"
-                    message: "Subscription is already set to cancel"
-                    code: "ALREADY_CANCELLED"
+                    error: 'Already cancelled'
+                    message: 'Subscription is already set to cancel'
+                    code: 'ALREADY_CANCELLED'
         '401':
           description: Unauthorized
           content:
@@ -218,7 +218,7 @@ paths:
               withAffiliateCode:
                 summary: Checkout with affiliate code
                 value:
-                  affiliateCode: "PARTNER123"
+                  affiliateCode: 'PARTNER123'
       responses:
         '200':
           description: Checkout session created successfully
@@ -227,8 +227,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckoutResponse'
               example:
-                sessionId: "cs_test_a1b2c3d4e5f6g7h8i9j0"
-                url: "https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0"
+                sessionId: 'cs_test_a1b2c3d4e5f6g7h8i9j0'
+                url: 'https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0'
         '400':
           description: Invalid request
           content:
@@ -239,15 +239,15 @@ paths:
                 alreadyPro:
                   summary: User already has PRO
                   value:
-                    error: "Already subscribed"
-                    message: "You are already on the PRO tier"
-                    code: "ALREADY_PRO"
+                    error: 'Already subscribed'
+                    message: 'You are already on the PRO tier'
+                    code: 'ALREADY_PRO'
                 emailRequired:
                   summary: Email missing
                   value:
-                    error: "Email required"
-                    message: "Your account must have an email address to upgrade"
-                    code: "EMAIL_REQUIRED"
+                    error: 'Email required'
+                    message: 'Your account must have an email address to upgrade'
+                    code: 'EMAIL_REQUIRED'
         '401':
           description: Unauthorized
           content:
@@ -281,7 +281,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ValidateCodeRequest'
             example:
-              code: "PARTNER123"
+              code: 'PARTNER123'
       responses:
         '200':
           description: Code validation result
@@ -294,14 +294,14 @@ paths:
                   summary: Valid affiliate code
                   value:
                     valid: true
-                    code: "PARTNER123"
-                    affiliateName: "Tech Partner"
+                    code: 'PARTNER123'
+                    affiliateName: 'Tech Partner'
                     discount: null
                 invalidCode:
                   summary: Invalid code
                   value:
                     valid: false
-                    error: "Code not found or inactive"
+                    error: 'Code not found or inactive'
         '400':
           description: Invalid request
           content:
@@ -339,20 +339,20 @@ paths:
                 $ref: '#/components/schemas/InvoicesResponse'
               example:
                 invoices:
-                  - id: "in_1234567890"
-                    number: "INV-2025-001"
+                  - id: 'in_1234567890'
+                    number: 'INV-2025-001'
                     amount: 2900
-                    currency: "usd"
-                    status: "paid"
-                    date: "2025-12-20T00:00:00.000Z"
-                    pdfUrl: "https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf"
-                  - id: "in_0987654321"
-                    number: "INV-2025-002"
+                    currency: 'usd'
+                    status: 'paid'
+                    date: '2025-12-20T00:00:00.000Z'
+                    pdfUrl: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
+                  - id: 'in_0987654321'
+                    number: 'INV-2025-002'
                     amount: 2900
-                    currency: "usd"
-                    status: "paid"
-                    date: "2025-11-20T00:00:00.000Z"
-                    pdfUrl: "https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf"
+                    currency: 'usd'
+                    status: 'paid'
+                    date: '2025-11-20T00:00:00.000Z'
+                    pdfUrl: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
         '401':
           description: Unauthorized
           content:
@@ -443,11 +443,11 @@ components:
           type: string
           enum: [FREE, PRO]
           description: User's current tier
-          example: "PRO"
+          example: 'PRO'
         status:
           type: string
           description: Subscription status
-          example: "active"
+          example: 'active'
         subscription:
           $ref: '#/components/schemas/Subscription'
 
@@ -458,35 +458,35 @@ components:
         id:
           type: string
           description: Subscription ID
-          example: "sub_1234567890"
+          example: 'sub_1234567890'
         status:
           type: string
           description: Subscription status
-          example: "active"
+          example: 'active'
         provider:
           type: string
           enum: [STRIPE, DLOCAL]
           nullable: true
           description: Payment provider
-          example: "STRIPE"
+          example: 'STRIPE'
         planType:
           type: string
           enum: [MONTHLY, THREE_DAY]
           nullable: true
           description: Subscription plan type
-          example: "MONTHLY"
+          example: 'MONTHLY'
         currentPeriodEnd:
           type: string
           format: date-time
           nullable: true
           description: Current billing period end (Stripe)
-          example: "2026-01-20T00:00:00.000Z"
+          example: '2026-01-20T00:00:00.000Z'
         expiresAt:
           type: string
           format: date-time
           nullable: true
           description: Subscription expiration (dLocal)
-          example: "2025-12-23T00:00:00.000Z"
+          example: '2025-12-23T00:00:00.000Z'
         cancelAtPeriodEnd:
           type: boolean
           description: Whether subscription cancels at period end
@@ -503,12 +503,12 @@ components:
           type: string
           nullable: true
           description: dLocal payment method type
-          example: "pix"
+          example: 'pix'
         dLocalCountry:
           type: string
           nullable: true
           description: dLocal country code
-          example: "BR"
+          example: 'BR'
 
     PaymentMethod:
       type: object
@@ -517,11 +517,11 @@ components:
         brand:
           type: string
           description: Card brand
-          example: "visa"
+          example: 'visa'
         last4:
           type: string
           description: Last 4 digits
-          example: "4242"
+          example: '4242'
         expiryMonth:
           type: integer
           description: Expiry month
@@ -539,7 +539,7 @@ components:
       properties:
         message:
           type: string
-          example: "Subscription cancelled successfully"
+          example: 'Subscription cancelled successfully'
         cancelAtPeriodEnd:
           type: boolean
           example: true
@@ -547,7 +547,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          example: "2026-01-20T00:00:00.000Z"
+          example: '2026-01-20T00:00:00.000Z'
 
     CheckoutRequest:
       type: object
@@ -555,7 +555,7 @@ components:
         affiliateCode:
           type: string
           description: Optional affiliate promotional code
-          example: "PARTNER123"
+          example: 'PARTNER123'
 
     CheckoutResponse:
       type: object
@@ -566,12 +566,12 @@ components:
         sessionId:
           type: string
           description: Stripe Checkout session ID
-          example: "cs_test_a1b2c3d4e5f6g7h8i9j0"
+          example: 'cs_test_a1b2c3d4e5f6g7h8i9j0'
         url:
           type: string
           format: uri
           description: Stripe Checkout URL to redirect user
-          example: "https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0"
+          example: 'https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0'
 
     ValidateCodeRequest:
       type: object
@@ -581,7 +581,7 @@ components:
         code:
           type: string
           description: Affiliate code to validate
-          example: "PARTNER123"
+          example: 'PARTNER123'
 
     ValidateCodeResponse:
       type: object
@@ -593,10 +593,10 @@ components:
           example: true
         code:
           type: string
-          example: "PARTNER123"
+          example: 'PARTNER123'
         affiliateName:
           type: string
-          example: "Tech Partner"
+          example: 'Tech Partner'
         discount:
           type: object
           nullable: true
@@ -609,7 +609,7 @@ components:
               example: 5
         error:
           type: string
-          example: "Code not found or inactive"
+          example: 'Code not found or inactive'
 
     InvoicesResponse:
       type: object
@@ -633,11 +633,11 @@ components:
         id:
           type: string
           description: Invoice ID
-          example: "in_1234567890"
+          example: 'in_1234567890'
         number:
           type: string
           description: Invoice number
-          example: "INV-2025-001"
+          example: 'INV-2025-001'
         amount:
           type: integer
           description: Amount in cents
@@ -645,22 +645,22 @@ components:
         currency:
           type: string
           description: Currency code
-          example: "usd"
+          example: 'usd'
         status:
           type: string
           description: Payment status
           enum: [paid, open, void, uncollectible]
-          example: "paid"
+          example: 'paid'
         date:
           type: string
           format: date-time
           description: Invoice date
-          example: "2025-12-20T00:00:00.000Z"
+          example: '2025-12-20T00:00:00.000Z'
         pdfUrl:
           type: string
           format: uri
           description: PDF download URL
-          example: "https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf"
+          example: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
 
     ErrorResponse:
       type: object
@@ -670,12 +670,12 @@ components:
         error:
           type: string
           description: Error message
-          example: "Unauthorized"
+          example: 'Unauthorized'
         message:
           type: string
           description: Detailed error message
-          example: "You must be logged in"
+          example: 'You must be logged in'
         code:
           type: string
           description: Error code
-          example: "UNAUTHORIZED"
+          example: 'UNAUTHORIZED'

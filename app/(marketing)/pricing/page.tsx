@@ -28,7 +28,11 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { DLOCAL_SUPPORTED_COUNTRIES, COUNTRY_NAMES, PRICING } from '@/lib/dlocal/constants';
+import {
+  DLOCAL_SUPPORTED_COUNTRIES,
+  COUNTRY_NAMES,
+  PRICING,
+} from '@/lib/dlocal/constants';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import type { DLocalCountry } from '@/types/dlocal';
 
@@ -122,12 +126,19 @@ function PricingPageContent(): React.ReactElement {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const [detectedCountry, setDetectedCountry] = useState<DLocalCountry | null>(null);
+  const [detectedCountry, setDetectedCountry] = useState<DLocalCountry | null>(
+    null
+  );
   const [canUseThreeDayPlan, setCanUseThreeDayPlan] = useState(false);
-  const [threeDayEligibilityChecked, setThreeDayEligibilityChecked] = useState(false);
+  const [threeDayEligibilityChecked, setThreeDayEligibilityChecked] =
+    useState(false);
 
   // Get dynamic affiliate config from SystemConfig
-  const { discountPercent, regularPrice: PRO_PRICE, calculateDiscountedPrice } = useAffiliateConfig();
+  const {
+    discountPercent,
+    regularPrice: PRO_PRICE,
+    calculateDiscountedPrice,
+  } = useAffiliateConfig();
 
   // Get affiliate code from URL
   const affiliateCode = searchParams.get('ref');
@@ -139,7 +150,10 @@ function PricingPageContent(): React.ReactElement {
         const res = await fetch('/api/geo/detect');
         if (res.ok) {
           const data = await res.json();
-          if (data.country && DLOCAL_SUPPORTED_COUNTRIES.includes(data.country)) {
+          if (
+            data.country &&
+            DLOCAL_SUPPORTED_COUNTRIES.includes(data.country)
+          ) {
             setDetectedCountry(data.country as DLocalCountry);
           }
         }
@@ -159,7 +173,9 @@ function PricingPageContent(): React.ReactElement {
       }
 
       try {
-        const res = await fetch('/api/payments/dlocal/check-three-day-eligibility');
+        const res = await fetch(
+          '/api/payments/dlocal/check-three-day-eligibility'
+        );
         if (res.ok) {
           const data = await res.json();
           setCanUseThreeDayPlan(data.eligible === true);
@@ -184,11 +200,12 @@ function PricingPageContent(): React.ReactElement {
   // Build FAQ items with dynamic values
   const FAQ_ITEMS = FAQ_ITEMS_TEMPLATE.map((item) => ({
     question: item.question,
-    answer: 'answerTemplate' in item
-      ? (item.answerTemplate as (val: number) => string)(
-          item.question.includes('affiliate') ? discountPercent : PRO_PRICE
-        )
-      : item.answer,
+    answer:
+      'answerTemplate' in item
+        ? (item.answerTemplate as (val: number) => string)(
+            item.question.includes('affiliate') ? discountPercent : PRO_PRICE
+          )
+        : item.answer,
   }));
 
   // Check user's current tier
@@ -265,45 +282,55 @@ function PricingPageContent(): React.ReactElement {
         </div>
 
         {/* dLocal 3-Day Trial Banner for supported countries */}
-        {isDLocalCountry && canUseThreeDayPlan && threeDayEligibilityChecked && (
-          <div className="mx-auto mb-8 max-w-4xl">
-            <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50">
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
-                      <Clock className="h-8 w-8 text-purple-600" />
+        {isDLocalCountry &&
+          canUseThreeDayPlan &&
+          threeDayEligibilityChecked && (
+            <div className="mx-auto mb-8 max-w-4xl">
+              <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <div className="flex-shrink-0">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
+                        <Clock className="h-8 w-8 text-purple-600" />
+                      </div>
+                    </div>
+                    <div className="flex-1 text-center md:text-left">
+                      <Badge className="mb-2 bg-purple-600 text-white">
+                        One-Time Offer for {COUNTRY_NAMES[detectedCountry]}
+                      </Badge>
+                      <h3 className="text-2xl font-bold mb-2">
+                        Try PRO for Just ${PRICING.THREE_DAY_USD}
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        Get 3 days of full PRO access to test all features
+                        before committing. Pay with local payment methods like{' '}
+                        {detectedCountry === 'IN' && 'UPI, Paytm, PhonePe'}
+                        {detectedCountry === 'NG' && 'Bank Transfer, Paystack'}
+                        {detectedCountry === 'ID' && 'GoPay, OVO, Dana'}
+                        {detectedCountry === 'TH' && 'TrueMoney, Thai QR'}
+                        {!['IN', 'NG', 'ID', 'TH'].includes(detectedCountry) &&
+                          'local wallets'}
+                        .
+                      </p>
+                      <Link
+                        href={`/checkout?country=${detectedCountry}&plan=THREE_DAY`}
+                      >
+                        <Button className="bg-purple-600 hover:bg-purple-700">
+                          <Globe className="mr-2 h-4 w-4" />
+                          Start 3-Day Trial - ${PRICING.THREE_DAY_USD}
+                        </Button>
+                      </Link>
                     </div>
                   </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <Badge className="mb-2 bg-purple-600 text-white">
-                      One-Time Offer for {COUNTRY_NAMES[detectedCountry]}
-                    </Badge>
-                    <h3 className="text-2xl font-bold mb-2">Try PRO for Just ${PRICING.THREE_DAY_USD}</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Get 3 days of full PRO access to test all features before committing.
-                      Pay with local payment methods like{' '}
-                      {detectedCountry === 'IN' && 'UPI, Paytm, PhonePe'}
-                      {detectedCountry === 'NG' && 'Bank Transfer, Paystack'}
-                      {detectedCountry === 'ID' && 'GoPay, OVO, Dana'}
-                      {detectedCountry === 'TH' && 'TrueMoney, Thai QR'}
-                      {!['IN', 'NG', 'ID', 'TH'].includes(detectedCountry) && 'local wallets'}.
-                    </p>
-                    <Link href={`/checkout?country=${detectedCountry}&plan=THREE_DAY`}>
-                      <Button className="bg-purple-600 hover:bg-purple-700">
-                        <Globe className="mr-2 h-4 w-4" />
-                        Start 3-Day Trial - ${PRICING.THREE_DAY_USD}
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
         {/* Pricing Cards */}
-        <div className={`mx-auto mb-16 grid max-w-5xl gap-8 ${isDLocalCountry ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <div
+          className={`mx-auto mb-16 grid max-w-5xl gap-8 ${isDLocalCountry ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}
+        >
           {/* FREE TIER */}
           <Card className="flex flex-col">
             <CardHeader>
@@ -456,11 +483,15 @@ function PricingPageContent(): React.ReactElement {
             <Card className="flex flex-col border-2 border-purple-300">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Badge className="w-fit bg-purple-600 text-white">LOCAL PAYMENTS</Badge>
+                  <Badge className="w-fit bg-purple-600 text-white">
+                    LOCAL PAYMENTS
+                  </Badge>
                   <Globe className="h-4 w-4 text-purple-600" />
                 </div>
                 <CardTitle className="flex items-baseline gap-2 mt-4">
-                  <span className="text-4xl font-bold text-purple-600">${PRO_PRICE}</span>
+                  <span className="text-4xl font-bold text-purple-600">
+                    ${PRO_PRICE}
+                  </span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </CardTitle>
                 <p className="text-muted-foreground">
@@ -484,14 +515,16 @@ function PricingPageContent(): React.ReactElement {
                         <Check className="h-4 w-4 text-purple-600" /> PhonePe
                       </li>
                       <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-purple-600" /> Net Banking
+                        <Check className="h-4 w-4 text-purple-600" /> Net
+                        Banking
                       </li>
                     </>
                   )}
                   {detectedCountry === 'NG' && (
                     <>
                       <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-purple-600" /> Bank Transfer
+                        <Check className="h-4 w-4 text-purple-600" /> Bank
+                        Transfer
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-purple-600" /> USSD
@@ -516,7 +549,8 @@ function PricingPageContent(): React.ReactElement {
                   )}
                   {!['IN', 'NG', 'ID'].includes(detectedCountry) && (
                     <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-purple-600" /> Local payment methods
+                      <Check className="h-4 w-4 text-purple-600" /> Local
+                      payment methods
                     </li>
                   )}
                 </ul>
@@ -533,7 +567,9 @@ function PricingPageContent(): React.ReactElement {
                     className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
                     disabled={userTier === 'PRO'}
                   >
-                    {userTier === 'PRO' ? 'Current Plan' : 'Pay with Local Methods'}
+                    {userTier === 'PRO'
+                      ? 'Current Plan'
+                      : 'Pay with Local Methods'}
                   </Button>
                 </Link>
                 <p className="text-center text-sm text-muted-foreground">

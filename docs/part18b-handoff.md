@@ -15,10 +15,12 @@
 No new migrations needed - all required fields already existed:
 
 **User Model:**
+
 - `hasUsedThreeDayPlan: Boolean` - Tracks 3-day plan usage (anti-abuse)
 - `threeDayPlanUsedAt: DateTime?` - When 3-day plan was used
 
 **Subscription Model:**
+
 - `planType: String?` - 'MONTHLY' or 'THREE_DAY'
 - `dLocalPaymentId: String?` - dLocal payment reference
 - `dLocalPaymentMethod: String?` - 'UPI', 'PAYTM', etc.
@@ -32,6 +34,7 @@ No new migrations needed - all required fields already existed:
 ### 2. Services Implemented
 
 #### A. Three-Day Plan Validator Service
+
 **Location:** `lib/dlocal/three-day-validator.service.ts`
 
 ```typescript
@@ -46,11 +49,13 @@ validatePlanPurchase(userId: string, planType: PlanType): Promise<ThreeDayPlanEl
 ```
 
 **Rules Enforced:**
+
 - 3-day plan can only be purchased ONCE per account (lifetime)
 - Cannot purchase 3-day plan with active subscription
 - Returns detailed reason if not eligible
 
 #### B. Check Expiring Subscriptions Service
+
 **Location:** `lib/cron/check-expiring-subscriptions.ts`
 
 ```typescript
@@ -58,12 +63,14 @@ checkExpiringSubscriptions(options?: CheckExpiringOptions): Promise<CheckExpirin
 ```
 
 **Features:**
+
 - Finds dLocal subscriptions expiring in 3 days
 - Marks `renewalReminderSent = true` to prevent duplicates
 - Returns list of users needing reminder emails
 - Supports dry-run mode for testing
 
 #### C. Downgrade Expired Subscriptions Service
+
 **Location:** `lib/cron/downgrade-expired-subscriptions.ts`
 
 ```typescript
@@ -71,6 +78,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ```
 
 **Features:**
+
 - Finds expired dLocal subscriptions (only dLocal, not Stripe)
 - Sets user tier to FREE
 - Sets subscription status to CANCELED
@@ -84,6 +92,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 **Location:** `app/api/webhooks/dlocal/route.ts`
 
 **New Capabilities (Part 18B):**
+
 - Creates subscription record on payment completion
 - Upgrades user to PRO tier
 - Calculates correct expiry date (3 days or 30 days)
@@ -92,6 +101,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 - Uses database transaction for atomicity
 
 **Flow on PAID webhook:**
+
 1. Update payment status to COMPLETED
 2. Upgrade user to PRO tier
 3. Create/update subscription with expiry date
@@ -104,11 +114,13 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ### 4. Cron API Routes
 
 **A. Check Expiring Subscriptions**
+
 - **Endpoint:** `GET /api/cron/check-expiring-subscriptions`
 - **Schedule:** Daily at 9:00 AM UTC (`0 9 * * *`)
 - **Auth:** Bearer token (CRON_SECRET)
 
 **B. Downgrade Expired Subscriptions**
+
 - **Endpoint:** `GET /api/cron/downgrade-expired-subscriptions`
 - **Schedule:** Daily at 10:00 AM UTC (`0 10 * * *`)
 - **Auth:** Bearer token (CRON_SECRET)
@@ -118,7 +130,9 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ### 5. Part 12 API Integration
 
 #### A. Subscription API (`/api/subscription`)
+
 **New Response Fields:**
+
 ```typescript
 {
   tier: 'FREE' | 'PRO',
@@ -140,7 +154,9 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ```
 
 #### B. Invoices API (`/api/invoices`)
+
 **Now returns unified invoices from both providers:**
+
 ```typescript
 {
   invoices: [
@@ -165,6 +181,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ### 6. Cron Schedule Updates
 
 **vercel.json consolidated to 2 crons (Vercel free tier limit):**
+
 ```json
 {
   "crons": [
@@ -175,6 +192,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ```
 
 **Daily Maintenance Cron** (`/api/cron/daily-maintenance`) combines:
+
 1. Expire affiliate codes (previously end-of-month only)
 2. Check expiring dLocal subscriptions (3-day reminder)
 3. Downgrade expired dLocal subscriptions
@@ -184,6 +202,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ### 7. Test Coverage
 
 **New Test Files:**
+
 - `__tests__/lib/dlocal/three-day-validator.test.ts`
 - `__tests__/lib/cron/check-expiring-subscriptions.test.ts`
 - `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`
@@ -197,20 +216,24 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ### 1. Frontend Components
 
 **A. Country Selector Component**
+
 - Auto-detect user country
 - Allow manual selection
 - Display available payment methods
 
 **B. Plan Selector Component**
+
 - Show 3-day plan option (if eligible)
 - Show monthly plan
 - Apply discounts
 
 **C. Payment Method Selector**
+
 - Display country-specific methods (UPI, GoPay, etc.)
 - Show method logos
 
 **D. Checkout Form**
+
 - Price display with currency conversion
 - Discount code input
 - Payment button
@@ -218,29 +241,35 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ### 2. Pages
 
 **A. dLocal Checkout Page**
+
 - `/checkout/dlocal` or unified `/checkout`
 - Integration with Part 18A/18B services
 
 **B. Subscription Management Updates**
+
 - Show dLocal subscription details
 - Renewal instructions for dLocal users
 
 ### 3. Email Templates
 
 **A. Renewal Reminder Email**
+
 - Sent 3 days before expiry
 - dLocal-specific renewal instructions
 
 **B. Subscription Expired Email**
+
 - Sent when downgraded to FREE
 - Re-subscription CTA
 
 **C. dLocal Payment Receipt**
+
 - Provider-specific receipt format
 
 ### 4. Admin Features (Optional)
 
 **A. Fraud Alerts Dashboard**
+
 - View 3-day plan abuse attempts
 - Review fraud alerts
 
@@ -249,6 +278,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 ## API Endpoints Available for Part 18C
 
 ### From Part 18A:
+
 - `GET /api/payments/dlocal/methods` - Get payment methods for country
 - `GET /api/payments/dlocal/exchange-rate` - Get exchange rate
 - `GET /api/payments/dlocal/convert` - Convert USD to local currency
@@ -256,6 +286,7 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 - `GET /api/payments/dlocal/[paymentId]` - Get payment status
 
 ### From Part 18B:
+
 - `GET /api/subscription` - Get subscription with provider info
 - `GET /api/invoices` - Get unified invoice history
 - `GET /api/cron/check-expiring-subscriptions` - Check expiring (cron)
@@ -263,12 +294,19 @@ downgradeExpiredSubscriptions(options?: DowngradeExpiredOptions): Promise<Downgr
 - `POST /api/webhooks/dlocal` - Enhanced webhook with subscription creation
 
 ### Service Functions:
+
 ```typescript
 // 3-day plan validation
-import { canPurchaseThreeDayPlan, validatePlanPurchase } from '@/lib/dlocal/three-day-validator.service';
+import {
+  canPurchaseThreeDayPlan,
+  validatePlanPurchase,
+} from '@/lib/dlocal/three-day-validator.service';
 
 // Currency conversion
-import { convertUSDToLocal, getExchangeRate } from '@/lib/dlocal/currency-converter.service';
+import {
+  convertUSDToLocal,
+  getExchangeRate,
+} from '@/lib/dlocal/currency-converter.service';
 
 // Payment methods
 import { getPaymentMethodsForCountry } from '@/lib/dlocal/payment-methods.service';
@@ -300,6 +338,7 @@ CRON_SECRET=your_secure_cron_secret
 ## Validation Checklist for Part 18B
 
 ### Functionality
+
 - [x] 3-day plan validation enforced
 - [x] Webhook creates subscriptions with correct expiry
 - [x] User upgraded to PRO on payment success
@@ -310,10 +349,12 @@ CRON_SECRET=your_secure_cron_secret
 - [x] Stripe flow unaffected
 
 ### Testing
+
 - [x] All new tests passing
 - [x] Integration with Part 18A services working
 
 ### Critical Check
+
 - [x] **STRIPE STILL WORKS** - No breaking changes to Stripe flow
 
 ---
@@ -337,6 +378,7 @@ CRON_SECRET=your_secure_cron_secret
 ## Files Created/Modified in Part 18B
 
 ### New Files (10):
+
 1. `lib/dlocal/three-day-validator.service.ts`
 2. `lib/cron/check-expiring-subscriptions.ts`
 3. `lib/cron/downgrade-expired-subscriptions.ts`
@@ -349,6 +391,7 @@ CRON_SECRET=your_secure_cron_secret
 10. `docs/part18b-handoff.md`
 
 ### Modified Files (4):
+
 1. `app/api/webhooks/dlocal/route.ts` - Added subscription creation
 2. `app/api/subscription/route.ts` - Added provider info
 3. `app/api/invoices/route.ts` - Added dLocal payments

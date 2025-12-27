@@ -225,9 +225,10 @@ export class PayoutCalculator {
    * @param amounts Array of amounts to validate
    * @returns Validation result with any errors
    */
-  static validateBatchAmounts(
-    amounts: number[]
-  ): { valid: boolean; errors: string[] } {
+  static validateBatchAmounts(amounts: number[]): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     for (let i = 0; i < amounts.length; i++) {

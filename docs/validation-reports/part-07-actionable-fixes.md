@@ -11,6 +11,7 @@
 **Current Health Score:** 95/100
 
 **Status Breakdown:**
+
 - 🔴 Critical Blockers: 0
 - 🟡 Warnings: 2
 - 🟢 Enhancements: 3
@@ -32,15 +33,18 @@
 
 **Issue:**
 The `Tier` type is defined in two places:
+
 - `lib/tier-config.ts` (line 7)
 - `types/tier.ts` (line 18)
 
 **Impact:**
+
 - Severity: MEDIUM
 - Affects: Type consistency across the codebase
 - Risk: Potential type mismatches if definitions drift
 
 **Locations:**
+
 - `lib/tier-config.ts:7` - `export type Tier = 'FREE' | 'PRO';`
 - `types/tier.ts:18` - `export type Tier = 'FREE' | 'PRO';`
 
@@ -57,16 +61,17 @@ Choose a single source of truth. Since `lib/tier-config.ts` is the primary tier 
 The `PRO_TIER_EXCLUSIVE_SYMBOLS` in `types/tier.ts` differs from `PRO_EXCLUSIVE_SYMBOLS` in `lib/tier-config.ts`.
 
 **Impact:**
+
 - Severity: MEDIUM
 - Affects: Symbol availability consistency
 - Risk: Different symbol lists could cause confusion
 
 **Differences Found:**
 
-| File | Contains | Missing |
-|------|----------|---------|
-| `types/tier.ts` | EURJPY, NAS100, SPX500 | ETHUSD, NDX100 |
-| `lib/tier-config.ts` | ETHUSD, NDX100 | EURJPY, NAS100, SPX500 |
+| File                 | Contains               | Missing                |
+| -------------------- | ---------------------- | ---------------------- |
+| `types/tier.ts`      | EURJPY, NAS100, SPX500 | ETHUSD, NDX100         |
+| `lib/tier-config.ts` | ETHUSD, NDX100         | EURJPY, NAS100, SPX500 |
 
 **Source of Truth:**
 `lib/tier-config.ts` should be the source of truth as it's used by the API routes.
@@ -75,6 +80,7 @@ The `PRO_TIER_EXCLUSIVE_SYMBOLS` in `types/tier.ts` differs from `PRO_EXCLUSIVE_
 If `types/tier.ts` is used elsewhere, update it to match `lib/tier-config.ts`.
 
 **Prompt for Claude Code:**
+
 ```
 Check all usages of PRO_TIER_EXCLUSIVE_SYMBOLS from types/tier.ts.
 If not used, consider removing the duplicate constants.
@@ -93,10 +99,12 @@ If used, update to match lib/tier-config.ts:
 Consider implementing rate limiting on indicator endpoints to prevent abuse.
 
 **Benefit:**
+
 - Protects Flask MT5 service from excessive requests
 - Improves system stability
 
 **Implementation Suggestion:**
+
 ```typescript
 // Using tier-based rate limits from TIER_CONFIGS
 // FREE: 60 requests/hour
@@ -113,11 +121,13 @@ Consider implementing rate limiting on indicator endpoints to prevent abuse.
 Consider caching indicator data with a short TTL (e.g., 30 seconds).
 
 **Benefit:**
+
 - Reduces load on Flask MT5 service
 - Improves response times for repeated requests
 
 **Implementation Suggestion:**
 Use Redis or in-memory cache with TTL based on timeframe:
+
 - M5: 30 seconds
 - H1-H4: 60 seconds
 - D1: 300 seconds
@@ -132,11 +142,13 @@ Use Redis or in-memory cache with TTL based on timeframe:
 Consider using Zod schemas for formal request validation.
 
 **Benefit:**
+
 - Type-safe validation
 - Better error messages
 - Consistent validation pattern
 
 **Example:**
+
 ```typescript
 import { z } from 'zod';
 
@@ -194,11 +206,13 @@ curl http://localhost:3000/api/indicators/XAUUSD/H1?bars=100 \
 ### Phase 1: Environment Setup (5 minutes)
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Verify environment variables:
+
    ```bash
    # Check .env.local or .env
    cat .env.local | grep MT5
@@ -213,11 +227,13 @@ curl http://localhost:3000/api/indicators/XAUUSD/H1?bars=100 \
 ### Phase 2: Validation (5 minutes)
 
 1. TypeScript check:
+
    ```bash
    npx tsc --noEmit
    ```
 
 2. Linting check:
+
    ```bash
    npm run lint
    ```
@@ -243,10 +259,12 @@ curl http://localhost:3000/api/indicators/XAUUSD/H1?bars=100 \
 ## 📊 PROGRESS TRACKING
 
 ### Warnings
+
 - [ ] Warning #1: Duplicate Tier type (optional fix)
 - [ ] Warning #2: Symbol list mismatch (optional fix)
 
 ### Pre-Localhost
+
 - [ ] npm install complete
 - [ ] TypeScript compilation passes
 - [ ] Linting passes
@@ -254,6 +272,7 @@ curl http://localhost:3000/api/indicators/XAUUSD/H1?bars=100 \
 - [ ] Flask MT5 service running
 
 ### Localhost Tests
+
 - [ ] GET /api/tier/symbols works
 - [ ] GET /api/tier/check/{symbol} works
 - [ ] GET /api/tier/combinations works
@@ -269,6 +288,7 @@ curl http://localhost:3000/api/indicators/XAUUSD/H1?bars=100 \
 After fixes, re-run validation:
 
 **Prompt for Claude Code:**
+
 ```
 Re-validate Part 07 after fixes:
 - Read all Part 07 files again
@@ -285,6 +305,7 @@ Re-validate Part 07 after fixes:
 **Status:** ✅ READY (Conditional)
 
 **Conditions:**
+
 1. ✅ All API routes implemented correctly
 2. ✅ Authentication in place
 3. ✅ Tier validation working
@@ -295,14 +316,14 @@ Re-validate Part 07 after fixes:
 
 **Part 07 Specific Tests:**
 
-| Test | Expected Result |
-|------|-----------------|
-| FREE user requests XAUUSD/H1 | 200 OK with indicator data |
-| FREE user requests AUDJPY/H1 | 403 Tier Restriction |
-| FREE user requests XAUUSD/M5 | 403 Tier Restriction |
-| PRO user requests AUDJPY/M5 | 200 OK with indicator data |
-| PRO user requests invalid symbol | 400 Invalid Symbol |
-| Unauthenticated request | 401 Unauthorized |
+| Test                             | Expected Result            |
+| -------------------------------- | -------------------------- |
+| FREE user requests XAUUSD/H1     | 200 OK with indicator data |
+| FREE user requests AUDJPY/H1     | 403 Tier Restriction       |
+| FREE user requests XAUUSD/M5     | 403 Tier Restriction       |
+| PRO user requests AUDJPY/M5      | 200 OK with indicator data |
+| PRO user requests invalid symbol | 400 Invalid Symbol         |
+| Unauthenticated request          | 401 Unauthorized           |
 
 ---
 
