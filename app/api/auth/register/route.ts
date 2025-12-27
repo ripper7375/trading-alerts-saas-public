@@ -47,12 +47,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       `Verification email would be sent to: ${validated.email} with token: ${verificationToken}`
     );
 
-    return NextResponse.json({
-      success: true,
-      userId: user.id,
-      message:
-        'Registration successful. Please check your email to verify your account.',
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        userId: user.id,
+        message:
+          'Registration successful. Please check your email to verify your account.',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof AccountExistsError) {
       return NextResponse.json(

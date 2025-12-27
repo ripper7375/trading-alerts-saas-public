@@ -1,8 +1,9 @@
 # Part 05 - Authentication System: Actionable Fixes Document
 
 **Generated:** 2025-12-27
+**Updated:** 2025-12-27 (All warnings fixed)
 **Related Report:** `part-05-validation-report.md`
-**Status:** Ready for Implementation
+**Status:** ✅ All Issues Resolved
 
 ---
 
@@ -24,75 +25,66 @@ All critical blockers have been resolved:
 
 ---
 
-## 🟡 WARNINGS (Should Fix)
+## ✅ WARNINGS (All Fixed)
 
-### WARNING-1: Register API Returns 200 Instead of 201
+### ~~WARNING-1: Register API Returns 200 Instead of 201~~ ✅ FIXED
 
 **File:** `app/api/auth/register/route.ts`
-**Priority:** Low
-**Impact:** Minor inconsistency with REST conventions (201 Created is standard for resource creation)
+**Status:** ✅ RESOLVED
+**Commit:** See latest commit
 
-#### Ready-to-Use Prompt:
-
-```
-In app/api/auth/register/route.ts, update the success response to return HTTP 201 Created instead of 200 OK.
-
-Find the line that returns the successful registration response (around line 50) and add { status: 201 } as the second parameter to NextResponse.json().
-
-The change should be:
-FROM: return NextResponse.json({ message: 'Registration successful...', userId: user.id });
-TO: return NextResponse.json({ message: 'Registration successful...', userId: user.id }, { status: 201 });
-```
-
-#### Expected Outcome:
-- POST /api/auth/register returns 201 Created on success
+#### What Was Fixed:
+- Updated `NextResponse.json()` to include `{ status: 201 }` as second parameter
+- POST /api/auth/register now returns 201 Created on success
 - Aligns with REST API best practices
-- No frontend changes needed (both 200 and 201 are success codes)
+
+#### Code Change:
+```typescript
+// FROM:
+return NextResponse.json({
+  success: true,
+  userId: user.id,
+  message: 'Registration successful...',
+});
+
+// TO:
+return NextResponse.json(
+  {
+    success: true,
+    userId: user.id,
+    message: 'Registration successful...',
+  },
+  { status: 201 }
+);
+```
 
 ---
 
-### WARNING-2: Reset Password Field Naming Inconsistency
+### ~~WARNING-2: Reset Password Field Naming Inconsistency~~ ✅ FIXED
 
-**File:** `app/api/auth/reset-password/route.ts`
-**Priority:** Low
-**Impact:** OpenAPI spec uses `newPassword`, implementation uses `password`
+**File:** `app/(auth)/forgot-password/page.tsx`
+**Status:** ✅ RESOLVED
+**Commit:** See latest commit
 
-#### Ready-to-Use Prompt:
+#### What Was Fixed:
+- Updated frontend to send `newPassword` instead of `password` to align with API schema
+- API already used `newPassword` in Zod schema
+- Frontend now matches OpenAPI specification
 
+#### Code Change:
+```typescript
+// FROM:
+body: JSON.stringify({
+  token,
+  password: data.password,
+}),
+
+// TO:
+body: JSON.stringify({
+  token,
+  newPassword: data.password,
+}),
 ```
-This is an INFORMATIONAL warning only. The frontend has already been adjusted to use `password` instead of `newPassword`.
-
-If you want to align with OpenAPI spec, update the Zod schema in app/api/auth/reset-password/route.ts:
-
-FROM:
-const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-TO:
-const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-Then update the destructuring:
-FROM: const { token, password } = validatedData;
-TO: const { token, newPassword } = validatedData;
-
-And update the bcrypt hash call:
-FROM: const hashedPassword = await bcrypt.hash(password, 12);
-TO: const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-NOTE: If you make this change, you MUST also update app/(auth)/forgot-password/page.tsx to send `newPassword` instead of `password`.
-```
-
-#### Expected Outcome:
-- API aligns with OpenAPI specification
-- Requires coordinated frontend update
-
-#### Recommendation:
-**Keep current implementation.** The `password` field name is simpler and the frontend already works correctly.
 
 ---
 
@@ -533,16 +525,17 @@ const passwordValidation = {
 
 ## Implementation Order
 
-For best results, implement fixes in this order:
+For best results, implement enhancements in this order:
 
-| Order | Fix | Priority | Estimated Effort |
-|-------|-----|----------|------------------|
-| 1 | ENHANCEMENT-3: Email Integration | High | 30 min |
-| 2 | WARNING-1: 201 Status Code | Low | 5 min |
-| 3 | ENHANCEMENT-1: Rate Limiting | Medium | 20 min |
-| 4 | ENHANCEMENT-2: CSRF Protection | Medium | 15 min |
-| 5 | ENHANCEMENT-4: shadcn Migration | Low | 45 min |
-| 6 | ENHANCEMENT-5: Special Char | Low | 10 min |
+| Order | Fix | Priority | Estimated Effort | Status |
+|-------|-----|----------|------------------|--------|
+| 1 | ENHANCEMENT-3: Email Integration | High | 30 min | Pending |
+| 2 | ~~WARNING-1: 201 Status Code~~ | Low | 5 min | ✅ DONE |
+| 3 | ~~WARNING-2: Field Naming~~ | Low | 5 min | ✅ DONE |
+| 4 | ENHANCEMENT-1: Rate Limiting | Medium | 20 min | Pending |
+| 5 | ENHANCEMENT-2: CSRF Protection | Medium | 15 min | Pending |
+| 6 | ENHANCEMENT-4: shadcn Migration | Low | 45 min | Pending |
+| 7 | ENHANCEMENT-5: Special Char | Low | 10 min | Pending |
 
 ---
 
@@ -577,11 +570,13 @@ RESEND_API_KEY=re_your_api_key
 
 ## Verification Checklist
 
-After implementing fixes, verify:
+### ✅ Completed
+- [x] `npm run lint` passes with no errors
+- [x] `npx tsc --noEmit` passes with no errors
+- [x] Registration returns 201 status code
+- [x] Reset password uses `newPassword` field (matches OpenAPI spec)
 
-- [ ] `npm run lint` passes with no errors
-- [ ] `npx tsc --noEmit` passes with no errors
-- [ ] Registration returns 201 status code
+### Pending (After Enhancements)
 - [ ] Rate limiting returns 429 after too many requests
 - [ ] Verification emails are sent and received
 - [ ] Password reset emails are sent and received
@@ -591,4 +586,5 @@ After implementing fixes, verify:
 ---
 
 *Document generated: 2025-12-27*
+*Updated: 2025-12-27 (Warnings fixed)*
 *For Part 05 - Authentication System*
