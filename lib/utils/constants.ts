@@ -5,6 +5,9 @@
  * and other application-wide constants.
  */
 
+import type { Tier } from '@/lib/tier-config';
+export type { Tier };
+
 /**
  * All supported timeframes (7 total)
  */
@@ -66,8 +69,7 @@ export const TIMEFRAME_NAMES: Record<Timeframe, string> = {
 /**
  * Tier types
  */
-export const TIERS = ['FREE', 'PRO'] as const;
-export type Tier = (typeof TIERS)[number];
+export const TIERS = ['FREE', 'PRO'] as const satisfies readonly Tier[];
 
 /**
  * Tier limits configuration

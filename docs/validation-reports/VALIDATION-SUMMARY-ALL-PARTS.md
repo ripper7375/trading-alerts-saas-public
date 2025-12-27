@@ -11,7 +11,7 @@
 | Category | Total Count | Status |
 |----------|-------------|--------|
 | 🔴 Critical Blockers | **0** | ✅ All resolved |
-| 🟡 Warnings | **12** | Should fix (1 resolved) |
+| 🟡 Warnings | **12** | Should fix (3 resolved) |
 | 🟢 Enhancements | **47** | Optional improvements |
 | ℹ️ Informational | **18** | No action required |
 
@@ -50,7 +50,7 @@ Should be fixed for production quality:
 | Part | Issue | Location | Description | Effort |
 |------|-------|----------|-------------|--------|
 | ~~02~~ | ~~Missing Migrations~~ | ~~`prisma/migrations/`~~ | ~~No migration files exist~~ | ✅ FIXED |
-| 04 | Duplicate Tier Type | `lib/tier-config.ts`, `lib/tier-validation.ts` | Tier type defined in 2 places - risk of drift | 5 min |
+| ~~04~~ | ~~Duplicate Tier Type~~ | ~~`lib/tier-config.ts`, `lib/tier-validation.ts`~~ | ~~Tier type defined in 2 places - risk of drift~~ | ✅ FIXED |
 
 ### API & Documentation (4)
 
@@ -58,7 +58,7 @@ Should be fixed for production quality:
 |------|-------|----------|-------------|--------|
 | 06 | OpenAPI Needs Update | `docs/open-api-documents/part-06-flask_mt5_openapi.yaml` | PRO indicators implemented but not documented | 30 min |
 | 06 | Linting Not Verified | `mt5-service/` | Flake8/mypy not run in virtual environment | 15 min |
-| 07 | Duplicate Tier Type | `lib/tier-config.ts`, `types/tier.ts` | Same Tier type defined in 2 places | 5 min |
+| ~~07~~ | ~~Duplicate Tier Type~~ | ~~`lib/tier-config.ts`, `types/tier.ts`~~ | ~~types/tier.ts correctly imports and re-exports from tier-config~~ | ✅ NOT AN ISSUE |
 | 07 | Symbol List Mismatch | `types/tier.ts`, `lib/tier-config.ts` | PRO symbol lists differ between files | 10 min |
 
 ### Frontend & UI (5)
@@ -236,7 +236,7 @@ npx prisma db push
 
 ### Short-term (This Week)
 
-1. Consolidate duplicate Tier type definitions (Parts 04, 07)
+1. ~~Consolidate duplicate Tier type definitions (Parts 04, 07)~~ ✅ DONE
 2. Update Part 06 OpenAPI spec with PRO indicators
 3. Add notification button click handler (Part 08)
 4. Fix footer links or create placeholder pages (Part 08)
