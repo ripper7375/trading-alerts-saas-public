@@ -3,7 +3,8 @@
  * Validates user access based on subscription tier
  */
 
-export type Tier = 'FREE' | 'PRO';
+import type { Tier } from './tier-config';
+export type { Tier };
 
 export interface TierConfig {
   maxSymbols: number;
