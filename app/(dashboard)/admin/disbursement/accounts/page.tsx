@@ -191,8 +191,9 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+      <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Loading RiseWorks accounts">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" aria-hidden="true" />
+        <span className="sr-only">Loading RiseWorks accounts...</span>
       </div>
     );
   }
@@ -214,12 +215,14 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
             onClick={() => void handleSync()}
             variant="outline"
             disabled={isSyncing}
+            aria-label="Sync all RiseWorks accounts"
           >
             {isSyncing ? 'Syncing...' : 'Sync All'}
           </Button>
           <Button
             onClick={() => setShowCreateModal(true)}
             className="bg-green-600 hover:bg-green-700"
+            aria-label="Create new RiseWorks account"
           >
             Create Account
           </Button>
@@ -228,7 +231,7 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-red-300">{error}</p>
           </CardContent>
@@ -236,7 +239,7 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
       )}
 
       {successMessage && (
-        <Card className="bg-green-900/50 border-green-600">
+        <Card className="bg-green-900/50 border-green-600" role="status" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-green-300">{successMessage}</p>
           </CardContent>
@@ -397,6 +400,7 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
             <Button
               onClick={() => setShowCreateModal(true)}
               className="bg-green-600 hover:bg-green-700"
+              aria-label="Create your first RiseWorks account"
             >
               Create First Account
             </Button>
@@ -406,10 +410,10 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
 
       {/* Create Account Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="create-account-title">
           <Card className="bg-gray-800 border-gray-700 max-w-md w-full">
             <CardHeader>
-              <CardTitle className="text-white">
+              <CardTitle id="create-account-title" className="text-white">
                 Create RiseWorks Account
               </CardTitle>
               <CardDescription className="text-gray-400">
@@ -418,10 +422,11 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="affiliateProfileId" className="block text-sm font-medium text-gray-300 mb-2">
                   Affiliate Profile ID
                 </label>
                 <input
+                  id="affiliateProfileId"
                   type="text"
                   value={createForm.affiliateProfileId}
                   onChange={(e) =>
@@ -432,14 +437,16 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                   }
                   placeholder="clp123abc456def"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  aria-describedby="affiliateProfileId-hint"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="riseId" className="block text-sm font-medium text-gray-300 mb-2">
                   Rise ID (Wallet Address)
                 </label>
                 <input
+                  id="riseId"
                   type="text"
                   value={createForm.riseId}
                   onChange={(e) =>
@@ -447,14 +454,16 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                   }
                   placeholder="0xA35b2F326F07a7C92BedB0D318C237F30948E425"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
+                  aria-describedby="riseId-hint"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="accountEmail" className="block text-sm font-medium text-gray-300 mb-2">
                   Email
                 </label>
                 <input
+                  id="accountEmail"
                   type="email"
                   value={createForm.email}
                   onChange={(e) =>
@@ -462,6 +471,7 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                   }
                   placeholder="affiliate@example.com"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  aria-describedby="accountEmail-hint"
                 />
               </div>
 
@@ -476,6 +486,7 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                       email: '',
                     });
                   }}
+                  aria-label="Cancel account creation"
                 >
                   Cancel
                 </Button>
@@ -483,6 +494,7 @@ export default function RiseWorksAccountsPage(): React.ReactElement {
                   className="bg-green-600 hover:bg-green-700"
                   onClick={() => void handleCreateAccount()}
                   disabled={isCreating}
+                  aria-label="Create RiseWorks account"
                 >
                   {isCreating ? 'Creating...' : 'Create Account'}
                 </Button>

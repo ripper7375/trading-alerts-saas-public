@@ -190,8 +190,9 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+      <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Loading payable affiliates">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" aria-hidden="true" />
+        <span className="sr-only">Loading payable affiliates...</span>
       </div>
     );
   }
@@ -216,6 +217,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
             onClick={() => void fetchAffiliates()}
             variant="outline"
             disabled={isLoading}
+            aria-label="Refresh payable affiliates list"
           >
             Refresh
           </Button>
@@ -224,6 +226,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
               onClick={() => void handleCreateBatch()}
               className="bg-green-600 hover:bg-green-700"
               disabled={isProcessing}
+              aria-label={`Create payment batch for ${selectedAffiliates.size} selected affiliates`}
             >
               {isProcessing
                 ? 'Creating...'
@@ -235,7 +238,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-red-300">{error}</p>
           </CardContent>
@@ -243,7 +246,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       )}
 
       {successMessage && (
-        <Card className="bg-green-900/50 border-green-600">
+        <Card className="bg-green-900/50 border-green-600" role="status" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-green-300">{successMessage}</p>
           </CardContent>
@@ -310,7 +313,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                   Affiliates with approved RiseWorks accounts
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+              <Button variant="outline" size="sm" onClick={handleSelectAll} aria-label={selectedAffiliates.size === readyAffiliates.length ? 'Deselect all affiliates' : 'Select all affiliates for batch payment'}>
                 {selectedAffiliates.size === readyAffiliates.length
                   ? 'Deselect All'
                   : 'Select All'}
@@ -406,6 +409,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                           className="bg-green-600 hover:bg-green-700"
                           onClick={() => void handleQuickPay(affiliate.id)}
                           disabled={isProcessing}
+                          aria-label={`Pay ${affiliate.fullName} now`}
                         >
                           Pay Now
                         </Button>

@@ -122,19 +122,21 @@ export default function DisbursementDashboardPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+      <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Loading disbursement data">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" aria-hidden="true" />
+        <span className="sr-only">Loading disbursement dashboard...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-8" role="alert" aria-live="polite">
         <p className="text-red-400 mb-4">{error}</p>
         <Button
           onClick={() => window.location.reload()}
           className="bg-green-600 hover:bg-green-700"
+          aria-label="Retry loading disbursement data"
         >
           Retry
         </Button>
@@ -155,8 +157,8 @@ export default function DisbursementDashboardPage(): React.ReactElement {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/disbursement/batches">
-            <Button className="bg-green-600 hover:bg-green-700">
+          <Link href="/admin/disbursement/batches" aria-label="Navigate to create payment batch">
+            <Button className="bg-green-600 hover:bg-green-700" aria-label="Create new payment batch">
               Create Batch
             </Button>
           </Link>
@@ -184,16 +186,20 @@ export default function DisbursementDashboardPage(): React.ReactElement {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-4 text-sm" role="list" aria-label="System health checks">
+              <div className="flex items-center gap-2" role="listitem">
                 <span
                   className={`w-2 h-2 rounded-full ${health.checks.database ? 'bg-green-500' : 'bg-red-500'}`}
+                  role="img"
+                  aria-label={health.checks.database ? 'Database healthy' : 'Database unhealthy'}
                 />
                 <span className="text-gray-300">Database</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" role="listitem">
                 <span
                   className={`w-2 h-2 rounded-full ${health.checks.provider ? 'bg-green-500' : 'bg-red-500'}`}
+                  role="img"
+                  aria-label={health.checks.provider ? 'Provider healthy' : 'Provider unhealthy'}
                 />
                 <span className="text-gray-300">Provider</span>
               </div>
@@ -321,28 +327,32 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               Common disbursement tasks
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2" role="navigation" aria-label="Quick actions">
             <Link
               href="/admin/disbursement/affiliates"
               className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              aria-label="View affiliates with pending payouts"
             >
               👥 View Payable Affiliates
             </Link>
             <Link
               href="/admin/disbursement/batches"
               className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              aria-label="Manage payment batches"
             >
               📦 Manage Payment Batches
             </Link>
             <Link
               href="/admin/disbursement/transactions?status=FAILED"
               className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              aria-label="View failed transactions"
             >
               🚨 View Failed Transactions
             </Link>
             <Link
               href="/admin/disbursement/accounts"
               className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              aria-label="Manage RiseWorks blockchain accounts"
             >
               🔗 Manage RiseWorks Accounts
             </Link>
@@ -418,8 +428,8 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               Total affiliates: {payableSummary?.totalAffiliates ?? 0}
             </p>
             {payableSummary && payableSummary.readyForPayout > 0 && (
-              <Link href="/admin/disbursement/affiliates">
-                <Button className="w-full bg-green-600 hover:bg-green-700">
+              <Link href="/admin/disbursement/affiliates" aria-label={`View and process ${payableSummary.readyForPayout} ready payouts`}>
+                <Button className="w-full bg-green-600 hover:bg-green-700" aria-label="View and process affiliate payouts">
                   View & Process Payouts
                 </Button>
               </Link>

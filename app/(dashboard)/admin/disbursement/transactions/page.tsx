@@ -167,6 +167,7 @@ function TransactionsPageContent(): React.ReactElement {
             onClick={() => void fetchTransactions()}
             variant="outline"
             disabled={isLoading}
+            aria-label="Refresh transactions list"
           >
             Refresh
           </Button>
@@ -175,7 +176,7 @@ function TransactionsPageContent(): React.ReactElement {
 
       {/* Error Message */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-red-300">{error}</p>
           </CardContent>
@@ -185,7 +186,7 @@ function TransactionsPageContent(): React.ReactElement {
       {/* Status Filter */}
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="py-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter transactions by status">
             {statusOptions.map((status) => (
               <Button
                 key={status}
@@ -201,6 +202,8 @@ function TransactionsPageContent(): React.ReactElement {
                     ? 'bg-green-600 hover:bg-green-700'
                     : ''
                 }
+                aria-pressed={(status === 'ALL' && !statusFilter) || statusFilter === status}
+                aria-label={`Filter by ${status === 'ALL' ? 'all transactions' : status.toLowerCase()} status`}
               >
                 {status === 'ALL' ? 'All Transactions' : status}
               </Button>
@@ -211,8 +214,9 @@ function TransactionsPageContent(): React.ReactElement {
 
       {/* Transactions Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" />
+        <div className="flex items-center justify-center min-h-[200px]" role="status" aria-label="Loading transactions">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" aria-hidden="true" />
+          <span className="sr-only">Loading transactions...</span>
         </div>
       ) : transactions.length > 0 ? (
         <Card className="bg-gray-800 border-gray-700">
@@ -311,12 +315,12 @@ function TransactionsPageContent(): React.ReactElement {
           {pagination && (
             <CardContent className="border-t border-gray-700">
               <div className="flex items-center justify-between">
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-sm" aria-live="polite">
                   Showing {currentOffset + 1} -{' '}
                   {Math.min(currentOffset + limit, pagination.total)} of{' '}
                   {pagination.total}
                 </p>
-                <div className="flex gap-2">
+                <nav className="flex gap-2" aria-label="Transaction pagination">
                   <Button
                     variant="outline"
                     size="sm"
@@ -324,6 +328,7 @@ function TransactionsPageContent(): React.ReactElement {
                     onClick={() =>
                       handlePageChange(Math.max(0, currentOffset - limit))
                     }
+                    aria-label="Go to previous page"
                   >
                     Previous
                   </Button>
@@ -332,10 +337,11 @@ function TransactionsPageContent(): React.ReactElement {
                     size="sm"
                     disabled={!pagination.hasMore}
                     onClick={() => handlePageChange(currentOffset + limit)}
+                    aria-label="Go to next page"
                   >
                     Next
                   </Button>
-                </div>
+                </nav>
               </div>
             </CardContent>
           )}
@@ -412,8 +418,9 @@ export default function TransactionsPage(): React.ReactElement {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+        <div className="flex items-center justify-center min-h-[400px]" role="status" aria-label="Loading transactions page">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" aria-hidden="true" />
+          <span className="sr-only">Loading transactions page...</span>
         </div>
       }
     >

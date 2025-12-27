@@ -285,6 +285,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
             onClick={() => void fetchBatches()}
             variant="outline"
             disabled={isLoading}
+            aria-label="Refresh payment batches list"
           >
             Refresh
           </Button>
@@ -292,6 +293,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
             onClick={() => void handlePreviewBatch()}
             className="bg-green-600 hover:bg-green-700"
             disabled={isProcessing}
+            aria-label="Create new payment batch"
           >
             {isProcessing ? 'Loading...' : 'Create Batch'}
           </Button>
@@ -300,7 +302,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="bg-red-900/50 border-red-600" role="alert" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-red-300">{error}</p>
           </CardContent>
@@ -308,7 +310,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
       )}
 
       {successMessage && (
-        <Card className="bg-green-900/50 border-green-600">
+        <Card className="bg-green-900/50 border-green-600" role="status" aria-live="polite">
           <CardContent className="py-4">
             <p className="text-green-300">{successMessage}</p>
           </CardContent>
@@ -318,7 +320,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
       {/* Status Filter */}
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="py-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter batches by status">
             {statusOptions.map((status) => (
               <Button
                 key={status}
@@ -330,6 +332,8 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     ? 'bg-green-600 hover:bg-green-700'
                     : ''
                 }
+                aria-pressed={statusFilter === status}
+                aria-label={`Filter by ${status === 'ALL' ? 'all batches' : status.toLowerCase()} status`}
               >
                 {status === 'ALL' ? 'All Batches' : status}
               </Button>
@@ -340,8 +344,9 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       {/* Batches Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" />
+        <div className="flex items-center justify-center min-h-[200px]" role="status" aria-label="Loading payment batches">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" aria-hidden="true" />
+          <span className="sr-only">Loading payment batches...</span>
         </div>
       ) : batches.length > 0 ? (
         <Card className="bg-gray-800 border-gray-700">
@@ -413,6 +418,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                             className="bg-green-600 hover:bg-green-700"
                             onClick={() => void handleExecuteBatch(batch.id)}
                             disabled={isProcessing}
+                            aria-label={`Execute batch ${batch.batchNumber}`}
                           >
                             Execute
                           </Button>
@@ -425,11 +431,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
                             variant="destructive"
                             onClick={() => void handleDeleteBatch(batch.id)}
                             disabled={isProcessing}
+                            aria-label={`Delete batch ${batch.batchNumber}`}
                           >
                             Delete
                           </Button>
                         )}
-                        <Link href={`/admin/disbursement/batches/${batch.id}`}>
+                        <Link href={`/admin/disbursement/batches/${batch.id}`} aria-label={`View details for batch ${batch.batchNumber}`}>
                           <Button size="sm" variant="outline">
                             Details
                           </Button>
@@ -452,10 +459,10 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       {/* Create Batch Modal */}
       {showCreateModal && preview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="create-batch-title">
           <Card className="bg-gray-800 border-gray-700 max-w-2xl w-full max-h-[80vh] overflow-auto">
             <CardHeader>
-              <CardTitle className="text-white">Create Payment Batch</CardTitle>
+              <CardTitle id="create-batch-title" className="text-white">Create Payment Batch</CardTitle>
               <CardDescription className="text-gray-400">
                 Review the batch preview before creating
               </CardDescription>
@@ -550,6 +557,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     setShowCreateModal(false);
                     setPreview(null);
                   }}
+                  aria-label="Cancel batch creation"
                 >
                   Cancel
                 </Button>
@@ -559,6 +567,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                   disabled={
                     isProcessing || preview.summary.eligibleAffiliates === 0
                   }
+                  aria-label={`Create batch with ${preview.summary.eligibleAffiliates} eligible affiliates`}
                 >
                   {isProcessing ? 'Creating...' : 'Create Batch'}
                 </Button>
