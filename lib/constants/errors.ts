@@ -72,21 +72,23 @@ export type ErrorDetail = (typeof ERROR_DETAILS)[keyof typeof ERROR_DETAILS];
 export function isMT5ServiceError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
 
-  // Check 1: Direct instanceof (works in production)
-  // Note: We check constructor.name since the actual class might not be importable here
+  // Check 1: Error name property (most reliable, set in constructor)
+  if (error instanceof Error && error.name === 'MT5ServiceError') {
+    return true;
+  }
+
+  // Check 2: Constructor name (works in production)
   const constructorName = (error as Error).constructor?.name;
   if (constructorName === 'MT5ServiceError') return true;
 
-  // Check 2: Property-based detection (works with Jest mocks)
+  // Check 3: Property-based detection (fallback)
   if (error instanceof Error) {
     const hasStatusCode =
       'statusCode' in error &&
       typeof (error as { statusCode?: unknown }).statusCode === 'number';
-    const hasResponseBody = 'responseBody' in error;
 
-    // MT5ServiceError has statusCode; if it also has responseBody, it's very likely
+    // MT5ServiceError has statusCode property
     if (hasStatusCode) return true;
-    if (hasStatusCode && hasResponseBody) return true;
   }
 
   return false;
@@ -98,11 +100,16 @@ export function isMT5ServiceError(error: unknown): boolean {
 export function isMT5AccessDeniedError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
 
-  // Check 1: Constructor name
+  // Check 1: Error name property (most reliable, set in constructor)
+  if (error instanceof Error && error.name === 'MT5AccessDeniedError') {
+    return true;
+  }
+
+  // Check 2: Constructor name (works in production)
   const constructorName = (error as Error).constructor?.name;
   if (constructorName === 'MT5AccessDeniedError') return true;
 
-  // Check 2: Property-based detection
+  // Check 3: Property-based detection (fallback)
   if (error instanceof Error) {
     const hasTier =
       'tier' in error &&

@@ -70,7 +70,8 @@ const mockFetchIndicatorData = jest.fn();
 jest.mock('@/lib/api/mt5-client', () => ({
   __esModule: true,
   fetchIndicatorData: (...args: unknown[]) => mockFetchIndicatorData(...args),
-  MT5AccessDeniedError: class extends Error {
+  // Named class with name property for reliable error detection
+  MT5AccessDeniedError: class MT5AccessDeniedError extends Error {
     tier: string;
     accessibleSymbols: readonly string[];
     accessibleTimeframes: readonly string[];
@@ -81,16 +82,19 @@ jest.mock('@/lib/api/mt5-client', () => ({
       timeframes: readonly string[]
     ) {
       super(message);
+      this.name = 'MT5AccessDeniedError';
       this.tier = tier;
       this.accessibleSymbols = symbols;
       this.accessibleTimeframes = timeframes;
     }
   },
-  MT5ServiceError: class extends Error {
+  // Named class with name property for reliable error detection
+  MT5ServiceError: class MT5ServiceError extends Error {
     statusCode: number;
     responseBody?: unknown;
     constructor(message: string, statusCode: number, responseBody?: unknown) {
       super(message);
+      this.name = 'MT5ServiceError';
       this.statusCode = statusCode;
       this.responseBody = responseBody;
     }
