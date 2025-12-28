@@ -12,6 +12,8 @@ from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 
+from app.constants.errors import ValidationMessages
+
 
 # ============================================================================
 # VALID SYMBOLS (15 total)
@@ -107,7 +109,7 @@ class IndicatorRequest(BaseModel):
         v_upper = v.upper()
         if v_upper not in VALID_SYMBOLS:
             raise ValueError(
-                f'Invalid symbol: {v}. Must be one of: {", ".join(VALID_SYMBOLS)}'
+                ValidationMessages.invalid_symbol(v, VALID_SYMBOLS)
             )
         return v_upper
 
@@ -117,10 +119,8 @@ class IndicatorRequest(BaseModel):
         """Validate timeframe is in the allowed list (NO M1 or W1!)"""
         v_upper = v.upper()
         if v_upper not in VALID_TIMEFRAMES:
-            valid_tf = ", ".join(VALID_TIMEFRAMES)
             raise ValueError(
-                f'Invalid timeframe: {v}. Must be one of: {valid_tf}. '
-                f'Note: M1 and W1 are not supported.'
+                ValidationMessages.invalid_timeframe(v, VALID_TIMEFRAMES)
             )
         return v_upper
 
@@ -269,21 +269,19 @@ def validate_tier_access(
 
     # Validate symbol exists in system
     if symbol_upper not in VALID_SYMBOLS:
-        valid_list = ', '.join(VALID_SYMBOLS)
-        return False, f"Invalid symbol: {symbol}. Valid symbols: {valid_list}"
+        return False, ValidationMessages.invalid_symbol(symbol, VALID_SYMBOLS)
 
     # Validate timeframe exists in system
     if timeframe_upper not in VALID_TIMEFRAMES:
-        valid_list = ', '.join(VALID_TIMEFRAMES)
-        return False, f"Invalid timeframe: {timeframe}. Valid: {valid_list}"
+        return False, ValidationMessages.invalid_timeframe(
+            timeframe, VALID_TIMEFRAMES
+        )
 
     # Validate tier access
     if not is_symbol_allowed(symbol_upper, tier):
-        msg = f"Symbol {symbol} requires PRO tier. Upgrade to access all symbols."
-        return False, msg
+        return False, ValidationMessages.symbol_pro_required(symbol)
 
     if not is_timeframe_allowed(timeframe_upper, tier):
-        msg = f"Timeframe {timeframe} requires PRO. Upgrade for all timeframes."
-        return False, msg
+        return False, ValidationMessages.timeframe_pro_required(timeframe)
 
     return True, None

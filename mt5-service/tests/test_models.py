@@ -7,6 +7,7 @@ Tests for request/response validation models.
 import pytest
 from pydantic import ValidationError
 
+from app.constants.errors import ValidationMessages
 from app.models.requests import (
     IndicatorRequest,
     SymbolsRequest,
@@ -256,13 +257,15 @@ class TestValidateTierAccess:
         """Test FREE tier denied for PRO-only symbol"""
         allowed, error = validate_tier_access('GBPUSD', 'H1', Tier.FREE)
         assert allowed is False
-        assert 'requires PRO tier' in error
+        # Use constant to ensure test stays synchronized with implementation
+        assert ValidationMessages.SYMBOL_PRO_REQUIRED in error
 
     def test_free_tier_denied_timeframe(self):
         """Test FREE tier denied for PRO-only timeframe"""
         allowed, error = validate_tier_access('XAUUSD', 'M5', Tier.FREE)
         assert allowed is False
-        assert 'requires PRO tier' in error
+        # Use constant to ensure test stays synchronized with implementation
+        assert ValidationMessages.TIMEFRAME_PRO_REQUIRED in error
 
     def test_pro_tier_all_allowed(self):
         """Test PRO tier can access any valid combination"""

@@ -30,6 +30,13 @@ import {
   setCachedIndicatorData,
 } from '@/lib/cache/cache-manager';
 import {
+  ERROR_DETAILS,
+  ERROR_MESSAGES,
+  HTTP_STATUS,
+  isMT5AccessDeniedError,
+  isMT5ServiceError,
+} from '@/lib/constants/errors';
+import {
   filterIndicatorData,
   getIndicatorUpgradeInfo,
 } from '@/lib/indicator-filter';
@@ -233,10 +240,10 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: ERROR_MESSAGES.UNAUTHORIZED,
           message: 'You must be logged in to fetch indicator data',
         } as ErrorResponse,
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -251,7 +258,7 @@ export async function GET(
     if (!rateLimitResult.success) {
       const rateLimitResponse: RateLimitErrorResponse = {
         success: false,
-        error: 'Rate limit exceeded',
+        error: ERROR_MESSAGES.RATE_LIMIT_EXCEEDED,
         message:
           userTier === 'FREE'
             ? 'Free tier: 60 requests per hour. Upgrade to Pro for 300 requests/hour.'
@@ -271,7 +278,7 @@ export async function GET(
       };
 
       return NextResponse.json(rateLimitResponse, {
-        status: 429,
+        status: HTTP_STATUS.TOO_MANY_REQUESTS,
         headers: getRateLimitHeaders(rateLimitResult),
       });
     }
@@ -299,11 +306,11 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid symbol',
+          error: ERROR_MESSAGES.INVALID_SYMBOL,
           message: `Symbol ${upperSymbol} is not a valid trading symbol. Valid symbols: ${ALL_SYMBOLS.join(', ')}`,
         } as ErrorResponse,
         {
-          status: 400,
+          status: HTTP_STATUS.BAD_REQUEST,
           headers: getRateLimitHeaders(rateLimitResult),
         }
       );
@@ -316,11 +323,11 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid timeframe',
+          error: ERROR_MESSAGES.INVALID_TIMEFRAME,
           message: `Timeframe ${upperTimeframe} is not valid. Valid timeframes: ${ALL_TIMEFRAMES.join(', ')}`,
         } as ErrorResponse,
         {
-          status: 400,
+          status: HTTP_STATUS.BAD_REQUEST,
           headers: getRateLimitHeaders(rateLimitResult),
         }
       );
@@ -332,7 +339,7 @@ export async function GET(
     if (!canAccessSymbol(userTier, upperSymbol)) {
       const errorResponse: ErrorResponse = {
         success: false,
-        error: 'Tier restriction',
+        error: ERROR_MESSAGES.TIER_RESTRICTION,
         message: `FREE tier cannot access ${upperSymbol}. Upgrade to PRO for access to all 15 symbols.`,
         tier: userTier,
         accessibleSymbols: getAccessibleSymbols(userTier),
@@ -341,7 +348,7 @@ export async function GET(
       };
 
       return NextResponse.json(errorResponse, {
-        status: 403,
+        status: HTTP_STATUS.FORBIDDEN,
         headers: getRateLimitHeaders(rateLimitResult),
       });
     }
@@ -352,7 +359,7 @@ export async function GET(
     if (!canAccessTimeframe(userTier, upperTimeframe)) {
       const errorResponse: ErrorResponse = {
         success: false,
-        error: 'Tier restriction',
+        error: ERROR_MESSAGES.TIER_RESTRICTION,
         message: `FREE tier cannot access ${upperTimeframe} timeframe. Upgrade to PRO for access to all 9 timeframes.`,
         tier: userTier,
         accessibleTimeframes: getAccessibleTimeframes(userTier),
@@ -361,7 +368,7 @@ export async function GET(
       };
 
       return NextResponse.json(errorResponse, {
-        status: 403,
+        status: HTTP_STATUS.FORBIDDEN,
         headers: getRateLimitHeaders(rateLimitResult),
       });
     }
@@ -496,30 +503,32 @@ export async function GET(
       : undefined;
 
     // Handle MT5 access denied errors
-    if (error instanceof MT5AccessDeniedError) {
+    // Use utility function for Jest mock compatibility
+    if (
+      error instanceof MT5AccessDeniedError ||
+      isMT5AccessDeniedError(error)
+    ) {
+      const accessError = error as MT5AccessDeniedError;
       const errorResponse: ErrorResponse = {
         success: false,
-        error: 'Tier restriction',
-        message: error.message,
-        tier: error.tier,
-        accessibleSymbols: error.accessibleSymbols,
-        accessibleTimeframes: error.accessibleTimeframes,
+        error: ERROR_MESSAGES.TIER_RESTRICTION,
+        message: accessError.message,
+        tier: accessError.tier,
+        accessibleSymbols: accessError.accessibleSymbols,
+        accessibleTimeframes: accessError.accessibleTimeframes,
         upgradeRequired: true,
         upgradeUrl: '/pricing',
       };
 
-      return NextResponse.json(errorResponse, { status: 403, headers });
+      return NextResponse.json(errorResponse, {
+        status: HTTP_STATUS.FORBIDDEN,
+        headers,
+      });
     }
 
     // Handle MT5 service errors
-    // Check both instanceof and name/properties for Jest mock compatibility
-    const isMT5ServiceError =
-      error instanceof MT5ServiceError ||
-      (error instanceof Error &&
-        'statusCode' in error &&
-        typeof (error as MT5ServiceError).statusCode === 'number');
-
-    if (isMT5ServiceError) {
+    // Use utility function for Jest mock compatibility
+    if (error instanceof MT5ServiceError || isMT5ServiceError(error)) {
       const mt5Error = error as MT5ServiceError;
       console.error('MT5 Service Error:', {
         statusCode: mt5Error.statusCode,
@@ -531,11 +540,10 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'MT5 service error',
-          message:
-            'Failed to fetch indicator data from MT5 service. Please try again later.',
+          error: ERROR_MESSAGES.MT5_SERVICE,
+          message: ERROR_DETAILS.MT5_SERVICE_FAILURE,
         } as ErrorResponse,
-        { status: 500, headers }
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR, headers }
       );
     }
 
@@ -549,10 +557,10 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
-        message: 'An unexpected error occurred. Please try again later.',
+        error: ERROR_MESSAGES.INTERNAL_SERVER,
+        message: ERROR_DETAILS.UNEXPECTED_ERROR,
       } as ErrorResponse,
-      { status: 500, headers }
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR, headers }
     );
   }
 }

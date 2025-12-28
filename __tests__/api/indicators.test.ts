@@ -4,6 +4,9 @@
  * Tests for GET /api/indicators and GET /api/indicators/[symbol]/[timeframe]
  */
 
+// Import error constants for synchronized test assertions
+import { ERROR_MESSAGES } from '@/lib/constants/errors';
+
 // Mock Next.js server globals
 class MockHeaders {
   private headers: Map<string, string> = new Map();
@@ -109,7 +112,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(401);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe(ERROR_MESSAGES.UNAUTHORIZED);
     });
 
     it('should return list of indicator types when authenticated', async () => {
@@ -190,7 +193,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(401);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe(ERROR_MESSAGES.UNAUTHORIZED);
     });
 
     it('should return 400 for invalid symbol', async () => {
@@ -211,7 +214,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Invalid symbol');
+      expect(data.error).toBe(ERROR_MESSAGES.INVALID_SYMBOL);
     });
 
     it('should return 400 for invalid timeframe', async () => {
@@ -232,7 +235,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Invalid timeframe');
+      expect(data.error).toBe(ERROR_MESSAGES.INVALID_TIMEFRAME);
     });
 
     it('should return 403 when FREE tier accesses PRO symbol', async () => {
@@ -253,7 +256,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(403);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Tier restriction');
+      expect(data.error).toBe(ERROR_MESSAGES.TIER_RESTRICTION);
       expect(data.upgradeRequired).toBe(true);
     });
 
@@ -455,7 +458,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(500);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('MT5 service error');
+      expect(data.error).toBe(ERROR_MESSAGES.MT5_SERVICE);
     });
 
     it('should handle MT5AccessDeniedError', async () => {
@@ -503,7 +506,7 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(500);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Internal server error');
+      expect(data.error).toBe(ERROR_MESSAGES.INTERNAL_SERVER);
     });
   });
 });
