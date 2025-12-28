@@ -23,7 +23,7 @@ interface RouteContext {
  * Users can only revoke their own sessions.
  */
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   context: RouteContext
 ): Promise<NextResponse> {
   try {

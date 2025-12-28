@@ -8,11 +8,31 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
-import type { UserSession } from '@prisma/client';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Local type for UserSession from Prisma (avoids CI generation issues) */
+interface UserSessionRecord {
+  id: string;
+  userId: string;
+  sessionToken: string | null;
+  userAgent: string | null;
+  ipAddress: string | null;
+  browser: string | null;
+  browserVersion: string | null;
+  os: string | null;
+  osVersion: string | null;
+  deviceType: string | null;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  isActive: boolean;
+  lastActiveAt: Date;
+  createdAt: Date;
+  expiresAt: Date;
+}
 
 export interface SessionInfo {
   id: string;
@@ -210,7 +230,7 @@ export async function getUserSessions(
     orderBy: { lastActiveAt: 'desc' },
   });
 
-  return sessions.map((session: UserSession) => ({
+  return sessions.map((session: UserSessionRecord) => ({
     id: session.id,
     device: formatDevice(session.browser, session.os),
     browser: session.browser || 'Unknown',
