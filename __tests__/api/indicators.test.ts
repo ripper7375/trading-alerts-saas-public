@@ -94,8 +94,14 @@ jest.mock('@/lib/api/mt5-client', () => ({
   },
 }));
 
+// ✅ Import cache clearing function (Added for Part 1.4)
+import { clearAllCache } from '@/lib/cache/indicator-cache';
+
 describe('Indicators API Routes', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // ✅ Clear cache before each test to ensure isolation (Added for Part 1.4)
+    await clearAllCache();
+
     jest.clearAllMocks();
   });
 

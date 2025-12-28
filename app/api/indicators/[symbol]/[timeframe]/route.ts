@@ -28,7 +28,10 @@ import {
 } from '@/lib/tier-config';
 import type { ProIndicatorData } from '@/types/indicator';
 import type { Tier } from '@/types/tier';
-import { getCachedIndicatorData } from '@/lib/cache/indicator-cache';
+import {
+  getCachedIndicatorData,
+  setCachedIndicatorData,
+} from '@/lib/cache/indicator-cache';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -321,6 +324,23 @@ export async function GET(
       data.proIndicators,
       userTier
     );
+
+    //────────────────────────────────────────────────────────────────
+    // STEP 9.5: Cache Write (Added in Part 1.4)
+    //────────────────────────────────────────────────────────────────
+    const dataToCache = {
+      ...data,
+      proIndicatorsTransformed,
+    };
+
+    setCachedIndicatorData(
+      upperSymbol,
+      upperTimeframe,
+      dataToCache,
+      bars
+    ).catch((err) => {
+      console.error('[API] Failed to cache indicator data:', err);
+    });
 
     //───────────────────────────────────────────────────────
     // STEP 10: Return Response
