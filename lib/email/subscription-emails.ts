@@ -6,9 +6,12 @@
  * - Cancellation confirmation
  * - Payment failed notification
  * - Payment receipt
+ * - Subscription canceled with access end date
  *
  * @module lib/email/subscription-emails
  */
+
+import { sendEmail } from './email';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -18,6 +21,12 @@ interface EmailTemplate {
   subject: string;
   html: string;
   text: string;
+}
+
+export interface EmailResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -396,20 +405,18 @@ ${APP_URL}`,
  * @param email - Recipient email address
  * @param name - User's display name
  * @param nextBillingDate - Optional next billing date
+ * @returns Email result with success status
  */
 export async function sendUpgradeEmail(
   email: string,
   name: string,
   nextBillingDate?: Date
-): Promise<void> {
+): Promise<EmailResult> {
   const template = getUpgradeEmailTemplate(name, nextBillingDate);
 
-  // TODO: Implement actual email sending with provider (SendGrid, Resend, etc.)
   console.log(`[Email] Sending upgrade email to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  return sendEmail(email, template.subject, template.html);
 }
 
 /**
@@ -417,19 +424,17 @@ export async function sendUpgradeEmail(
  *
  * @param email - Recipient email address
  * @param name - User's display name
+ * @returns Email result with success status
  */
 export async function sendCancellationEmail(
   email: string,
   name: string
-): Promise<void> {
+): Promise<EmailResult> {
   const template = getCancellationEmailTemplate(name);
 
-  // TODO: Implement actual email sending with provider
   console.log(`[Email] Sending cancellation email to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  return sendEmail(email, template.subject, template.html);
 }
 
 /**
@@ -438,20 +443,18 @@ export async function sendCancellationEmail(
  * @param email - Recipient email address
  * @param name - User's display name
  * @param reason - Failure reason
+ * @returns Email result with success status
  */
 export async function sendPaymentFailedEmail(
   email: string,
   name: string,
   reason: string
-): Promise<void> {
+): Promise<EmailResult> {
   const template = getPaymentFailedEmailTemplate(name, reason);
 
-  // TODO: Implement actual email sending with provider
   console.log(`[Email] Sending payment failed email to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  return sendEmail(email, template.subject, template.html);
 }
 
 /**
@@ -462,6 +465,7 @@ export async function sendPaymentFailedEmail(
  * @param amount - Payment amount in USD
  * @param nextBillingDate - Next billing date
  * @param invoiceUrl - Optional URL to Stripe invoice PDF
+ * @returns Email result with success status
  */
 export async function sendPaymentReceiptEmail(
   email: string,
@@ -469,7 +473,7 @@ export async function sendPaymentReceiptEmail(
   amount: number,
   nextBillingDate: Date,
   invoiceUrl?: string
-): Promise<void> {
+): Promise<EmailResult> {
   const template = getPaymentReceiptEmailTemplate(
     name,
     amount,
@@ -477,10 +481,391 @@ export async function sendPaymentReceiptEmail(
     invoiceUrl
   );
 
-  // TODO: Implement actual email sending with provider
   console.log(`[Email] Sending payment receipt to ${email}`);
-  console.log(`[Email] Subject: ${template.subject}`);
 
-  // Placeholder for email sending logic
-  // await sendEmail({ to: email, ...template });
+  return sendEmail(email, template.subject, template.html);
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SUBSCRIPTION CANCELED EMAIL (Phase 5)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Generate subscription canceled email template with access end date
+ *
+ * This is sent when a user cancels their PRO subscription but still has
+ * access until the end of their billing period.
+ *
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param cancelAt - Date when access will end
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getSubscriptionCanceledEmailTemplate(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  cancelAt: Date
+): EmailTemplate {
+  const formattedDate = cancelAt.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return {
+    subject: 'Subscription Canceled - Trading Alerts',
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Canceled</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #cc0000; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">Subscription Canceled</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi ${name},</p>
+
+    <p style="font-size: 16px;">Your <strong>${plan}</strong> subscription has been canceled.</p>
+
+    <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+      <p style="margin: 0; font-size: 14px;">
+        <strong>Access Until:</strong> ${formattedDate}<br>
+        You'll continue to have ${plan} access until ${formattedDate}.
+      </p>
+    </div>
+
+    <p style="font-size: 16px;">After that, your account will revert to the <strong>Free</strong> plan with:</p>
+
+    <ul style="font-size: 16px; padding-left: 20px;">
+      <li style="margin-bottom: 8px;">5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)</li>
+      <li style="margin-bottom: 8px;">3 timeframes (H1, H4, D1)</li>
+      <li style="margin-bottom: 8px;">5 alerts</li>
+      <li style="margin-bottom: 8px;">2 basic indicators (Fractals, Trendlines)</li>
+    </ul>
+
+    <p style="font-size: 16px;">
+      Changed your mind? <a href="${APP_URL}/settings/billing" style="color: #0066cc; font-weight: 600;">Reactivate your subscription</a>
+    </p>
+
+    <p style="font-size: 14px; color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      Need help? Contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #2563eb;">${SUPPORT_EMAIL}</a><br><br>
+      The ${APP_NAME} Team<br>
+      <a href="${APP_URL}" style="color: #2563eb;">${APP_URL}</a>
+    </p>
+  </div>
+</body>
+</html>`,
+    text: `Subscription Canceled
+
+Hi ${name},
+
+Your ${plan} subscription has been canceled.
+
+Access Until: ${formattedDate}
+You'll continue to have ${plan} access until ${formattedDate}.
+
+After that, your account will revert to the Free plan with:
+- 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
+- 3 timeframes (H1, H4, D1)
+- 5 alerts
+- 2 basic indicators (Fractals, Trendlines)
+
+Changed your mind? Reactivate: ${APP_URL}/settings/billing
+
+Need help? ${SUPPORT_EMAIL}
+
+The ${APP_NAME} Team
+${APP_URL}`,
+  };
+}
+
+/**
+ * Send subscription canceled email with access end date
+ *
+ * @param email - Recipient email address
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param cancelAt - Date when access will end
+ * @returns Email result with success status
+ */
+export async function sendSubscriptionCanceledEmail(
+  email: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  cancelAt: Date
+): Promise<EmailResult> {
+  const template = getSubscriptionCanceledEmailTemplate(name, plan, cancelAt);
+
+  console.log(`[Email] Sending subscription canceled email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RENEWAL REMINDER EMAIL (Phase 5)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Generate renewal reminder email template
+ *
+ * Sent before billing to remind users their subscription will renew.
+ *
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param billingPeriod - Billing period ('monthly' | 'yearly')
+ * @param renewalDate - Date when subscription will renew
+ * @param amount - Amount to be charged in cents
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getRenewalReminderEmailTemplate(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  billingPeriod: 'monthly' | 'yearly',
+  renewalDate: Date,
+  amount: number
+): EmailTemplate {
+  const formattedDate = renewalDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const amountDisplay = `$${(amount / 100).toFixed(2)}`;
+  const periodDisplay = billingPeriod === 'monthly' ? 'month' : 'year';
+
+  return {
+    subject: `Your ${APP_NAME} subscription renews soon`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Renewal Reminder</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #2563eb; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">Subscription Renewal Reminder</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi ${name},</p>
+
+    <p style="font-size: 16px;">This is a friendly reminder that your <strong>${plan}</strong> subscription will renew soon.</p>
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
+      <p style="margin: 0; font-size: 14px;">
+        <strong>Plan:</strong> ${plan}<br>
+        <strong>Billing Period:</strong> ${billingPeriod === 'monthly' ? 'Monthly' : 'Yearly'}<br>
+        <strong>Renewal Date:</strong> ${formattedDate}<br>
+        <strong>Amount:</strong> ${amountDisplay}/${periodDisplay}
+      </p>
+    </div>
+
+    <p style="font-size: 16px;">Your card on file will be charged automatically on ${formattedDate}.</p>
+
+    <p style="font-size: 16px;">
+      <a href="${APP_URL}/settings/billing" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">Manage Subscription</a>
+    </p>
+
+    ${
+      billingPeriod === 'monthly'
+        ? `
+    <div style="background: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
+      <p style="margin: 0; font-size: 14px; color: #065f46;">
+        <strong>Save $58!</strong> Switch to yearly billing ($290/year instead of $348/year).
+      </p>
+    </div>
+    `
+        : ''
+    }
+
+    <p style="font-size: 14px; color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      Need help? Contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #2563eb;">${SUPPORT_EMAIL}</a><br><br>
+      The ${APP_NAME} Team<br>
+      <a href="${APP_URL}" style="color: #2563eb;">${APP_URL}</a>
+    </p>
+  </div>
+</body>
+</html>`,
+    text: `Subscription Renewal Reminder
+
+Hi ${name},
+
+This is a friendly reminder that your ${plan} subscription will renew soon.
+
+Plan: ${plan}
+Billing Period: ${billingPeriod === 'monthly' ? 'Monthly' : 'Yearly'}
+Renewal Date: ${formattedDate}
+Amount: ${amountDisplay}/${periodDisplay}
+
+Your card on file will be charged automatically on ${formattedDate}.
+
+Manage your subscription: ${APP_URL}/settings/billing
+
+${billingPeriod === 'monthly' ? 'Save $58! Switch to yearly billing ($290/year instead of $348/year).' : ''}
+
+Need help? ${SUPPORT_EMAIL}
+
+The ${APP_NAME} Team
+${APP_URL}`,
+  };
+}
+
+/**
+ * Send renewal reminder email
+ *
+ * @param email - Recipient email address
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param billingPeriod - Billing period ('monthly' | 'yearly')
+ * @param renewalDate - Date when subscription will renew
+ * @param amount - Amount to be charged in cents
+ * @returns Email result with success status
+ */
+export async function sendRenewalReminderEmail(
+  email: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  billingPeriod: 'monthly' | 'yearly',
+  renewalDate: Date,
+  amount: number
+): Promise<EmailResult> {
+  const template = getRenewalReminderEmailTemplate(
+    name,
+    plan,
+    billingPeriod,
+    renewalDate,
+    amount
+  );
+
+  console.log(`[Email] Sending renewal reminder email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AFFILIATE COMMISSION EMAIL (Phase 5)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Generate affiliate commission earned email template
+ *
+ * Sent when an affiliate code is used and commission is earned.
+ *
+ * @param name - Affiliate's display name
+ * @param code - Affiliate code that was used
+ * @param commissionAmount - Commission earned in USD
+ * @param totalEarnings - Total earnings to date in USD
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getAffiliateCommissionEmailTemplate(
+  name: string,
+  code: string,
+  commissionAmount: number,
+  totalEarnings: number
+): EmailTemplate {
+  return {
+    subject: `Commission Earned! $${commissionAmount.toFixed(2)} - ${APP_NAME}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commission Earned</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">Commission Earned!</h1>
+  </div>
+
+  <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px;">Hi ${name},</p>
+
+    <p style="font-size: 16px;">Great news! Your affiliate code was just used and you've earned a commission.</p>
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #666;">Code Used</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">${code}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #666;">Commission Earned</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; color: #22c55e;">+$${commissionAmount.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #666;">Total Earnings</td>
+          <td style="padding: 10px 0; text-align: right; font-weight: 600;">$${totalEarnings.toFixed(2)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="font-size: 14px; color: #666;">
+      <strong>Commission Rate:</strong> 20% of subscription revenue
+    </p>
+
+    <p style="font-size: 16px;">
+      <a href="${APP_URL}/affiliate/dashboard" style="display: inline-block; background: #22c55e; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600;">View Dashboard</a>
+    </p>
+
+    <p style="font-size: 14px; color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      The ${APP_NAME} Team<br>
+      <a href="${APP_URL}" style="color: #2563eb;">${APP_URL}</a>
+    </p>
+  </div>
+</body>
+</html>`,
+    text: `Commission Earned!
+
+Hi ${name},
+
+Great news! Your affiliate code was just used and you've earned a commission.
+
+Code Used: ${code}
+Commission Earned: +$${commissionAmount.toFixed(2)}
+Total Earnings: $${totalEarnings.toFixed(2)}
+
+Commission Rate: 20% of subscription revenue
+
+View your dashboard: ${APP_URL}/affiliate/dashboard
+
+The ${APP_NAME} Team
+${APP_URL}`,
+  };
+}
+
+/**
+ * Send affiliate commission earned email
+ *
+ * @param email - Recipient email address
+ * @param name - Affiliate's display name
+ * @param code - Affiliate code that was used
+ * @param commissionAmount - Commission earned in USD
+ * @param totalEarnings - Total earnings to date in USD
+ * @returns Email result with success status
+ */
+export async function sendAffiliateCommissionEmail(
+  email: string,
+  name: string,
+  code: string,
+  commissionAmount: number,
+  totalEarnings: number
+): Promise<EmailResult> {
+  const template = getAffiliateCommissionEmailTemplate(
+    name,
+    code,
+    commissionAmount,
+    totalEarnings
+  );
+
+  console.log(`[Email] Sending affiliate commission email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
 }
