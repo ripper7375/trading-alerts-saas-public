@@ -363,14 +363,19 @@ export async function GET(
     //───────────────────────────────────────────────────────
 
     // Handle MT5 access denied errors
-    if (error instanceof MT5AccessDeniedError) {
+    // Also check error.name to support Jest mocks where instanceof may fail
+    if (
+      error instanceof MT5AccessDeniedError ||
+      (error as Error)?.name === 'MT5AccessDeniedError'
+    ) {
+      const accessDeniedError = error as MT5AccessDeniedError;
       const errorResponse: ErrorResponse = {
         success: false,
         error: 'Tier restriction',
-        message: error.message,
-        tier: error.tier,
-        accessibleSymbols: error.accessibleSymbols,
-        accessibleTimeframes: error.accessibleTimeframes,
+        message: accessDeniedError.message,
+        tier: accessDeniedError.tier,
+        accessibleSymbols: accessDeniedError.accessibleSymbols,
+        accessibleTimeframes: accessDeniedError.accessibleTimeframes,
         upgradeRequired: true,
         upgradeUrl: '/pricing',
       };
@@ -379,11 +384,16 @@ export async function GET(
     }
 
     // Handle MT5 service errors
-    if (error instanceof MT5ServiceError) {
+    // Also check error.name to support Jest mocks where instanceof may fail
+    if (
+      error instanceof MT5ServiceError ||
+      (error as Error)?.name === 'MT5ServiceError'
+    ) {
+      const serviceError = error as MT5ServiceError;
       console.error('MT5 Service Error:', {
-        statusCode: error.statusCode,
-        message: error.message,
-        responseBody: error.responseBody,
+        statusCode: serviceError.statusCode,
+        message: serviceError.message,
+        responseBody: serviceError.responseBody,
         timestamp: new Date().toISOString(),
       });
 
