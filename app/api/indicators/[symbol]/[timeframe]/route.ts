@@ -28,6 +28,7 @@ import {
 } from '@/lib/tier-config';
 import type { ProIndicatorData } from '@/types/indicator';
 import type { Tier } from '@/types/tier';
+import { getCachedIndicatorData } from '@/lib/cache/indicator-cache';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -46,6 +47,7 @@ interface IndicatorDataResponse {
     proIndicatorsTransformed: ProIndicatorData;
   };
   tier: Tier;
+  cached: boolean;
   requestedAt: string;
 }
 
@@ -208,6 +210,34 @@ export async function GET(
       : 1000;
 
     //───────────────────────────────────────────────────────
+    // STEP 2.5: Check Cache First (Added in Part 1.3)
+    //───────────────────────────────────────────────────────
+    const cachedData = await getCachedIndicatorData(
+      upperSymbol,
+      upperTimeframe,
+      bars
+    );
+    if (cachedData) {
+      console.log(`[API] Cache HIT: ${upperSymbol}/${upperTimeframe}`);
+      return NextResponse.json(
+        {
+          success: true,
+          data: cachedData,
+          cached: true,
+          requestedAt: new Date().toISOString(),
+        },
+        {
+          status: 200,
+          headers: {
+            'X-Cache': 'HIT',
+          },
+        }
+      );
+    }
+    console.log(`[API] Cache MISS: ${upperSymbol}/${upperTimeframe}`);
+    // End cache check - continue with existing logic below
+
+    //───────────────────────────────────────────────────────
     // STEP 3: Validate Symbol
     //───────────────────────────────────────────────────────
     if (!isValidSymbol(upperSymbol)) {
@@ -302,10 +332,16 @@ export async function GET(
         proIndicatorsTransformed,
       },
       tier: userTier,
+      cached: false,
       requestedAt: new Date().toISOString(),
     };
 
-    return NextResponse.json(response, { status: 200 });
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        'X-Cache': 'MISS',
+      },
+    });
   } catch (error) {
     //───────────────────────────────────────────────────────
     // Error Handling
