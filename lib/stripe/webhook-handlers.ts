@@ -15,11 +15,12 @@ import type Stripe from 'stripe';
 
 import { prisma } from '@/lib/db/prisma';
 import {
-  sendUpgradeEmail,
-  sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
+  sendSubscriptionCanceledEmail,
+  sendAffiliateCommissionEmail,
 } from '@/lib/email/subscription-emails';
+import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 
@@ -54,6 +55,11 @@ export async function handleCheckoutCompleted(
   }
 
   try {
+    // Determine billing period from session metadata or line items
+    const billingPeriod =
+      session.metadata?.['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
+    const amountUsd = billingPeriod === 'yearly' ? 290 : 29;
+
     // Update user tier to PRO
     const user = await prisma.user.update({
       where: { id: userId },
@@ -65,9 +71,16 @@ export async function handleCheckoutCompleted(
       },
     });
 
-    // Calculate next billing date (30 days from now for trial, or from current period end)
+    // Calculate next billing date based on billing period
     const nextBillingDate = new Date();
-    nextBillingDate.setDate(nextBillingDate.getDate() + 30);
+    if (billingPeriod === 'yearly') {
+      nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+    } else {
+      nextBillingDate.setDate(nextBillingDate.getDate() + 30);
+    }
+
+    // Map billing period to plan type
+    const planType = billingPeriod === 'yearly' ? 'YEARLY' : 'MONTHLY';
 
     // Create or update subscription record
     await prisma.subscription.upsert({
@@ -76,7 +89,8 @@ export async function handleCheckoutCompleted(
         stripeCustomerId: customerId,
         stripeSubscriptionId: subscriptionId,
         status: 'ACTIVE',
-        amountUsd: 29,
+        amountUsd,
+        planType,
         stripeCurrentPeriodEnd: nextBillingDate,
         expiresAt: nextBillingDate,
       },
@@ -85,16 +99,21 @@ export async function handleCheckoutCompleted(
         stripeCustomerId: customerId,
         stripeSubscriptionId: subscriptionId,
         status: 'ACTIVE',
-        amountUsd: 29,
-        planType: 'MONTHLY',
+        amountUsd,
+        planType,
         stripeCurrentPeriodEnd: nextBillingDate,
         expiresAt: nextBillingDate,
       },
     });
 
-    // Send upgrade confirmation email
+    // Send subscription confirmation email with correct tier features
     if (user.email) {
-      await sendUpgradeEmail(user.email, user.name || 'User', nextBillingDate);
+      await sendSubscriptionConfirmationEmail(
+        user.email,
+        user.name || 'User',
+        'PRO',
+        billingPeriod
+      );
     }
 
     // Handle affiliate code commission if present
@@ -103,7 +122,9 @@ export async function handleCheckoutCompleted(
       await processAffiliateCommission(affiliateCode, userId, subscriptionId);
     }
 
-    console.log(`[Webhook] User ${userId} upgraded to PRO`);
+    console.log(
+      `[Webhook] User ${userId} upgraded to PRO (${billingPeriod} billing)`
+    );
   } catch (error) {
     console.error('[Webhook] Error handling checkout completed:', error);
     throw error;
@@ -207,6 +228,11 @@ export async function handleSubscriptionDeleted(
       return;
     }
 
+    // Get the cancel_at date from Stripe subscription (when access ends)
+    const cancelAt = subscription.cancel_at
+      ? new Date(subscription.cancel_at * 1000)
+      : new Date(); // If no cancel_at, access ends immediately
+
     // Update user tier to FREE
     await prisma.user.update({
       where: { id: dbSubscription.userId },
@@ -223,11 +249,13 @@ export async function handleSubscriptionDeleted(
       data: { status: 'CANCELED' },
     });
 
-    // Send cancellation email
+    // Send subscription canceled email with access end date
     if (dbSubscription.user?.email) {
-      await sendCancellationEmail(
+      await sendSubscriptionCanceledEmail(
         dbSubscription.user.email,
-        dbSubscription.user.name || 'User'
+        dbSubscription.user.name || 'User',
+        'PRO',
+        cancelAt
       );
     }
 
@@ -351,9 +379,19 @@ export async function handleInvoiceSucceeded(
       return;
     }
 
-    // Calculate next billing date
+    // Determine billing period based on amount paid
+    // $29 (2900 cents) = monthly, $290 (29000 cents) = yearly
+    const amountPaid = invoice.amount_paid || 0;
+    const isYearly = amountPaid >= 28000; // Allow some flexibility for rounding
+    const billingPeriod = isYearly ? 'yearly' : 'monthly';
+
+    // Calculate next billing date based on billing period
     const nextBillingDate = new Date();
-    nextBillingDate.setDate(nextBillingDate.getDate() + 30);
+    if (isYearly) {
+      nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+    } else {
+      nextBillingDate.setDate(nextBillingDate.getDate() + 30);
+    }
 
     // Update subscription with new billing period
     await prisma.subscription.update({
@@ -363,6 +401,8 @@ export async function handleInvoiceSucceeded(
         stripeCurrentPeriodEnd: nextBillingDate,
         expiresAt: nextBillingDate,
         renewalReminderSent: false,
+        planType: isYearly ? 'YEARLY' : 'MONTHLY',
+        amountUsd: isYearly ? 290 : 29,
       },
     });
 
@@ -377,14 +417,14 @@ export async function handleInvoiceSucceeded(
       await sendPaymentReceiptEmail(
         dbSubscription.user.email,
         dbSubscription.user.name || 'User',
-        (invoice.amount_paid || 0) / 100, // Convert cents to dollars
+        amountPaid / 100, // Convert cents to dollars
         nextBillingDate,
         invoice.invoice_pdf || undefined
       );
     }
 
     console.log(
-      `[Webhook] Payment succeeded for user ${dbSubscription.userId}, amount: $${(invoice.amount_paid || 0) / 100}`
+      `[Webhook] Payment succeeded for user ${dbSubscription.userId}, amount: $${amountPaid / 100} (${billingPeriod})`
     );
   } catch (error) {
     console.error('[Webhook] Error handling invoice succeeded:', error);
@@ -498,12 +538,20 @@ async function processAffiliateCommission(
     });
 
     // Update affiliate profile stats
-    await prisma.affiliateProfile.update({
+    const updatedProfile = await prisma.affiliateProfile.update({
       where: { id: affiliateCode.affiliateProfileId },
       data: {
         totalCodesUsed: { increment: 1 },
         totalEarnings: { increment: breakdown.commissionAmount },
         pendingCommissions: { increment: breakdown.commissionAmount },
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -511,8 +559,16 @@ async function processAffiliateCommission(
       `[Webhook] Affiliate commission created: $${breakdown.commissionAmount} for code ${code}`
     );
 
-    // TODO: Send commission notification email to affiliate
-    // await sendCodeUsedEmail(affiliateCode.affiliateProfile, code, breakdown.commissionAmount);
+    // Send commission notification email to affiliate
+    if (updatedProfile.user?.email) {
+      await sendAffiliateCommissionEmail(
+        updatedProfile.user.email,
+        updatedProfile.user.name || 'Affiliate',
+        code,
+        breakdown.commissionAmount,
+        updatedProfile.totalEarnings
+      );
+    }
   } catch (error) {
     // Log but don't throw - we don't want to fail the checkout for affiliate issues
     console.error('[Webhook] Error processing affiliate commission:', error);
