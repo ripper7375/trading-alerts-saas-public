@@ -390,7 +390,7 @@ export async function getCachedIndicatorData(
   symbol: string,
   timeframe: string,
   bars?: number
-): Promise<any | null> {
+): Promise<unknown> {
   const key = generateCacheKey(symbol, timeframe, bars);
 
   try {
@@ -434,7 +434,7 @@ export async function getCachedIndicatorData(
 export async function setCachedIndicatorData(
   symbol: string,
   timeframe: string,
-  data: any,
+  data: unknown,
   bars?: number
 ): Promise<void> {
   const key = generateCacheKey(symbol, timeframe, bars);
