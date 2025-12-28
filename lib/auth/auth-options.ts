@@ -4,6 +4,8 @@ import { type NextAuthOptions } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+import LinkedInProvider from 'next-auth/providers/linkedin';
+import TwitterProvider from 'next-auth/providers/twitter';
 
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
@@ -73,6 +75,24 @@ export const authOptions: NextAuthOptions = {
           prompt: 'consent',
           access_type: 'offline',
           response_type: 'code',
+        },
+      },
+    }),
+
+    // Twitter (X) OAuth Provider
+    TwitterProvider({
+      clientId: process.env['TWITTER_CLIENT_ID']!,
+      clientSecret: process.env['TWITTER_CLIENT_SECRET']!,
+      version: '2.0',
+    }),
+
+    // LinkedIn OAuth Provider
+    LinkedInProvider({
+      clientId: process.env['LINKEDIN_CLIENT_ID']!,
+      clientSecret: process.env['LINKEDIN_CLIENT_SECRET']!,
+      authorization: {
+        params: {
+          scope: 'openid profile email',
         },
       },
     }),
