@@ -154,7 +154,7 @@ export default function RegisterForm(): JSX.Element {
         body: JSON.stringify(submitData),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (response.ok) {
         setSuccess(true);
@@ -166,7 +166,7 @@ export default function RegisterForm(): JSX.Element {
         setError('Database connection error. Please try again later.');
       } else {
         // Display the actual error message from the API if available
-        setError(data?.error || 'Registration failed. Please try again.');
+        setError(responseData?.error || 'Registration failed. Please try again.');
       }
     } catch (err) {
       console.error('Registration error:', err);
