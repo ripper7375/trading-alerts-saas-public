@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { InvalidTokenError, ExpiredTokenError } from '@/lib/auth/errors';
+import { ExpiredTokenError, InvalidTokenError } from '@/lib/auth/errors';
+import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
 
 const resetPasswordSchema = z.object({
@@ -11,6 +12,11 @@ const resetPasswordSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // CSRF protection: validate request origin
+  if (!(await validateOrigin())) {
+    return csrfErrorResponse() as NextResponse;
+  }
+
   try {
     const body = await request.json();
     const validated = resetPasswordSchema.parse(body);

@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { AccountExistsError } from '@/lib/auth/errors';
+import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { sendVerificationEmail, sendWelcomeEmail } from '@/lib/email/email';
 
@@ -24,6 +25,11 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // CSRF protection: validate request origin
+  if (!(await validateOrigin())) {
+    return csrfErrorResponse() as NextResponse;
+  }
+
   try {
     const body = await request.json();
     const validated = registerSchema.parse(body);
