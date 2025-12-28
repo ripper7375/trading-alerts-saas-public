@@ -108,7 +108,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Log detailed error for debugging
+    // Log detailed error for debugging (visible in server console only)
     console.error('Registration failed:', error);
 
     // Check for Prisma-specific errors
@@ -122,19 +122,26 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
       if (prismaError.code === 'P1001' || prismaError.code === 'P1002') {
         return NextResponse.json(
-          { error: 'Database connection error. Please try again later.' },
+          { error: 'Service temporarily unavailable. Please try again later.' },
           { status: 503 }
         );
       }
     }
 
-    // Return more detailed error in development
-    const errorMessage = process.env['NODE_ENV'] === 'development' && error instanceof Error
-      ? error.message
-      : 'Internal server error';
+    // Check for database connection errors by message pattern
+    const errMsg = error instanceof Error ? error.message : '';
+    if (errMsg.includes("Can't reach database server") ||
+        errMsg.includes('Connection refused') ||
+        errMsg.includes('ECONNREFUSED')) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable. Please try again later.' },
+        { status: 503 }
+      );
+    }
 
+    // Return user-friendly error message (details logged to console above)
     return NextResponse.json(
-      { error: errorMessage },
+      { error: 'Registration failed. Please try again.' },
       { status: 500 }
     );
   }
