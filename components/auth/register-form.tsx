@@ -154,14 +154,19 @@ export default function RegisterForm(): JSX.Element {
         body: JSON.stringify(submitData),
       });
 
+      const responseData = await response.json();
+
       if (response.ok) {
         setSuccess(true);
         reset();
         setError(null);
       } else if (response.status === 409) {
         setError('An account with this email already exists.');
+      } else if (response.status === 503) {
+        setError('Database connection error. Please try again later.');
       } else {
-        setError('Registration failed. Please try again.');
+        // Display the actual error message from the API if available
+        setError(responseData?.error || 'Registration failed. Please try again.');
       }
     } catch (err) {
       console.error('Registration error:', err);
