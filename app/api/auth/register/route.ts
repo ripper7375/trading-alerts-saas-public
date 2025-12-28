@@ -102,9 +102,33 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
+    // Log detailed error for debugging
     console.error('Registration failed:', error);
+
+    // Check for Prisma-specific errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as { code: string; message?: string };
+      if (prismaError.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'A user with this email already exists' },
+          { status: 409 }
+        );
+      }
+      if (prismaError.code === 'P1001' || prismaError.code === 'P1002') {
+        return NextResponse.json(
+          { error: 'Database connection error. Please try again later.' },
+          { status: 503 }
+        );
+      }
+    }
+
+    // Return more detailed error in development
+    const errorMessage = process.env['NODE_ENV'] === 'development' && error instanceof Error
+      ? error.message
+      : 'Internal server error';
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
