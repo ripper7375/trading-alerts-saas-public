@@ -1,4 +1,14 @@
-import { Bell, Eye, Zap, TrendingUp, Lightbulb } from 'lucide-react';
+import {
+  Bell,
+  Eye,
+  Zap,
+  TrendingUp,
+  Lightbulb,
+  BarChart3,
+  Clock,
+  LineChart,
+  Activity,
+} from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
@@ -158,6 +168,15 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   // Get tier limits (with fallback to FREE if tier is invalid)
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
 
+  // Tier-based stats with CORRECT values
+  const tierStats = {
+    symbols: userTier === 'FREE' ? 5 : 15,
+    timeframes: userTier === 'FREE' ? 3 : 9,
+    combinations: userTier === 'FREE' ? 15 : 135,
+    maxAlerts: userTier === 'FREE' ? 5 : 20,
+    indicators: userTier === 'FREE' ? 2 : 8,
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -215,7 +234,43 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
+      {/* Tier Stats Cards - Correct values per tier */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+        <StatsCard
+          title="Symbols"
+          value={`${tierStats.symbols}`}
+          icon={BarChart3}
+          description={
+            userTier === 'FREE' ? 'BTC, EUR, USD, US30, XAU' : 'All available'
+          }
+        />
+        <StatsCard
+          title="Timeframes"
+          value={`${tierStats.timeframes}`}
+          icon={Clock}
+          description={userTier === 'FREE' ? 'H1, H4, D1' : 'M5 to D1'}
+        />
+        <StatsCard
+          title="Charts"
+          value={`${tierStats.combinations}`}
+          icon={LineChart}
+          description={`${tierStats.symbols} × ${tierStats.timeframes}`}
+        />
+        <StatsCard
+          title="Max Alerts"
+          value={`${tierStats.maxAlerts}`}
+          icon={Bell}
+          description={`${alertCount} active`}
+        />
+        <StatsCard
+          title="Indicators"
+          value={`${tierStats.indicators}`}
+          icon={Activity}
+          description={userTier === 'FREE' ? '2 basic' : 'All included'}
+        />
+      </div>
+
+      {/* Usage Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatsCard
           title="Active Alerts"
