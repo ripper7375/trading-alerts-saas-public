@@ -12,8 +12,8 @@ const mockUserFindUnique = jest.fn();
 const mockSubscriptionFindFirst = jest.fn();
 const mockSubscriptionUpdate = jest.fn();
 const mockSubscriptionUpsert = jest.fn();
-const mockSendUpgradeEmail = jest.fn();
-const mockSendCancellationEmail = jest.fn();
+const mockSendSubscriptionConfirmationEmail = jest.fn();
+const mockSendSubscriptionCanceledEmail = jest.fn();
 
 jest.mock('next-auth', () => ({
   __esModule: true,
@@ -42,11 +42,34 @@ jest.mock('@/lib/db/prisma', () => ({
 
 jest.mock('@/lib/email/subscription-emails', () => ({
   __esModule: true,
-  sendUpgradeEmail: (...args: unknown[]) => mockSendUpgradeEmail(...args),
-  sendCancellationEmail: (...args: unknown[]) =>
-    mockSendCancellationEmail(...args),
+  sendSubscriptionCanceledEmail: (...args: unknown[]) =>
+    mockSendSubscriptionCanceledEmail(...args),
   sendPaymentFailedEmail: jest.fn(),
   sendPaymentReceiptEmail: jest.fn(),
+  sendAffiliateCommissionEmail: jest.fn(),
+}));
+
+jest.mock('@/lib/email/email', () => ({
+  __esModule: true,
+  sendSubscriptionConfirmationEmail: (...args: unknown[]) =>
+    mockSendSubscriptionConfirmationEmail(...args),
+}));
+
+jest.mock('@/lib/affiliate/commission-calculator', () => ({
+  __esModule: true,
+  calculateFullBreakdown: jest.fn().mockReturnValue({
+    grossRevenue: 29,
+    discountAmount: 0,
+    netRevenue: 29,
+    commissionAmount: 5.8,
+  }),
+}));
+
+jest.mock('@/lib/affiliate/constants', () => ({
+  __esModule: true,
+  AFFILIATE_CONFIG: {
+    BASE_PRICE_USD: 29,
+  },
 }));
 
 // Import after mocks
@@ -137,7 +160,7 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
         tier: 'PRO',
       });
       mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
-      mockSendUpgradeEmail.mockResolvedValue(undefined);
+      mockSendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
 
       // Process checkout completion
       await handleCheckoutCompleted(mockCheckoutSession);
@@ -206,7 +229,7 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
       mockUserUpdate.mockResolvedValue({ id: 'user-123', tier: 'FREE' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
-      mockSendCancellationEmail.mockResolvedValue(undefined);
+      mockSendSubscriptionCanceledEmail.mockResolvedValue(undefined);
 
       // Process subscription deletion
       await handleSubscriptionDeleted(mockCanceledSubscription);

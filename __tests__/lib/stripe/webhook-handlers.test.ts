@@ -29,20 +29,43 @@ jest.mock('@/lib/db/prisma', () => ({
 }));
 
 // Mock email functions
-const mockSendUpgradeEmail = jest.fn();
-const mockSendCancellationEmail = jest.fn();
+const mockSendSubscriptionConfirmationEmail = jest.fn();
+const mockSendSubscriptionCanceledEmail = jest.fn();
 const mockSendPaymentFailedEmail = jest.fn();
 const mockSendPaymentReceiptEmail = jest.fn();
 
 jest.mock('@/lib/email/subscription-emails', () => ({
   __esModule: true,
-  sendUpgradeEmail: (...args: unknown[]) => mockSendUpgradeEmail(...args),
-  sendCancellationEmail: (...args: unknown[]) =>
-    mockSendCancellationEmail(...args),
+  sendSubscriptionCanceledEmail: (...args: unknown[]) =>
+    mockSendSubscriptionCanceledEmail(...args),
   sendPaymentFailedEmail: (...args: unknown[]) =>
     mockSendPaymentFailedEmail(...args),
   sendPaymentReceiptEmail: (...args: unknown[]) =>
     mockSendPaymentReceiptEmail(...args),
+  sendAffiliateCommissionEmail: jest.fn(),
+}));
+
+jest.mock('@/lib/email/email', () => ({
+  __esModule: true,
+  sendSubscriptionConfirmationEmail: (...args: unknown[]) =>
+    mockSendSubscriptionConfirmationEmail(...args),
+}));
+
+jest.mock('@/lib/affiliate/commission-calculator', () => ({
+  __esModule: true,
+  calculateFullBreakdown: jest.fn().mockReturnValue({
+    grossRevenue: 29,
+    discountAmount: 0,
+    netRevenue: 29,
+    commissionAmount: 5.8,
+  }),
+}));
+
+jest.mock('@/lib/affiliate/constants', () => ({
+  __esModule: true,
+  AFFILIATE_CONFIG: {
+    BASE_PRICE_USD: 29,
+  },
 }));
 
 import {
@@ -74,7 +97,7 @@ describe('Stripe Webhook Handlers', () => {
       };
       mockUserUpdate.mockResolvedValue(mockUser);
       mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
-      mockSendUpgradeEmail.mockResolvedValue(undefined);
+      mockSendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
 
       await handleCheckoutCompleted(mockSession);
 
@@ -102,11 +125,12 @@ describe('Stripe Webhook Handlers', () => {
         })
       );
 
-      // Verify email was sent
-      expect(mockSendUpgradeEmail).toHaveBeenCalledWith(
+      // Verify subscription confirmation email was sent
+      expect(mockSendSubscriptionConfirmationEmail).toHaveBeenCalledWith(
         'user@example.com',
         'Test User',
-        expect.any(Date)
+        'PRO',
+        'monthly'
       );
     });
 
@@ -154,14 +178,15 @@ describe('Stripe Webhook Handlers', () => {
       };
       mockUserUpdate.mockResolvedValue(mockUser);
       mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
-      mockSendUpgradeEmail.mockResolvedValue(undefined);
+      mockSendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
 
       await handleCheckoutCompleted(mockSession);
 
-      expect(mockSendUpgradeEmail).toHaveBeenCalledWith(
+      expect(mockSendSubscriptionConfirmationEmail).toHaveBeenCalledWith(
         'user@example.com',
         'User',
-        expect.any(Date)
+        'PRO',
+        'monthly'
       );
     });
 
@@ -176,7 +201,7 @@ describe('Stripe Webhook Handlers', () => {
 
       await handleCheckoutCompleted(mockSession);
 
-      expect(mockSendUpgradeEmail).not.toHaveBeenCalled();
+      expect(mockSendSubscriptionConfirmationEmail).not.toHaveBeenCalled();
     });
 
     it('should propagate database errors', async () => {
@@ -317,7 +342,7 @@ describe('Stripe Webhook Handlers', () => {
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
       mockUserUpdate.mockResolvedValue({ id: 'user-123' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
-      mockSendCancellationEmail.mockResolvedValue(undefined);
+      mockSendSubscriptionCanceledEmail.mockResolvedValue(undefined);
 
       await handleSubscriptionDeleted(mockSubscription);
 
@@ -336,10 +361,12 @@ describe('Stripe Webhook Handlers', () => {
         data: { status: 'CANCELED' },
       });
 
-      // Verify cancellation email was sent
-      expect(mockSendCancellationEmail).toHaveBeenCalledWith(
+      // Verify subscription canceled email was sent with access end date
+      expect(mockSendSubscriptionCanceledEmail).toHaveBeenCalledWith(
         'user@example.com',
-        'Test User'
+        'Test User',
+        'PRO',
+        expect.any(Date)
       );
     });
 
@@ -351,13 +378,15 @@ describe('Stripe Webhook Handlers', () => {
       mockSubscriptionFindFirst.mockResolvedValue(dbSubNoName);
       mockUserUpdate.mockResolvedValue({ id: 'user-123' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
-      mockSendCancellationEmail.mockResolvedValue(undefined);
+      mockSendSubscriptionCanceledEmail.mockResolvedValue(undefined);
 
       await handleSubscriptionDeleted(mockSubscription);
 
-      expect(mockSendCancellationEmail).toHaveBeenCalledWith(
+      expect(mockSendSubscriptionCanceledEmail).toHaveBeenCalledWith(
         'user@example.com',
-        'User'
+        'User',
+        'PRO',
+        expect.any(Date)
       );
     });
 
@@ -372,7 +401,7 @@ describe('Stripe Webhook Handlers', () => {
 
       await handleSubscriptionDeleted(mockSubscription);
 
-      expect(mockSendCancellationEmail).not.toHaveBeenCalled();
+      expect(mockSendSubscriptionCanceledEmail).not.toHaveBeenCalled();
     });
 
     it('should return early if subscription not found', async () => {
