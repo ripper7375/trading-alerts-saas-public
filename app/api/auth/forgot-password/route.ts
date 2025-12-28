@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { sendPasswordResetEmail } from '@/lib/email/email';
 
@@ -11,6 +12,11 @@ const forgotPasswordSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // CSRF protection: validate request origin
+  if (!(await validateOrigin())) {
+    return csrfErrorResponse() as NextResponse;
+  }
+
   try {
     const body = await request.json();
     const validated = forgotPasswordSchema.parse(body);
