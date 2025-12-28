@@ -8,7 +8,7 @@ import { Loader2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { TIER_CONFIG, type Tier } from '@/types/tier';
+import { type Tier } from '@/types/tier';
 
 /**
  * Settings Page
@@ -33,7 +33,6 @@ export default function SettingsPage(): React.ReactElement {
   });
 
   const tier = (session?.user?.tier || 'FREE') as Tier;
-  const tierConfig = TIER_CONFIG[tier] ?? TIER_CONFIG.FREE;
 
   useEffect(() => {
     // Simulate fetching usage data
