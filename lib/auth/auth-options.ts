@@ -1,12 +1,39 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { type NextAuthOptions } from 'next-auth';
-import type { Adapter } from 'next-auth/adapters';
+import type { Adapter, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
+
+/**
+ * Custom Prisma Adapter that extends the default adapter to set default values
+ * for new OAuth users (tier: FREE, role: USER, emailVerified: now)
+ */
+function CustomPrismaAdapter(): Adapter {
+  const baseAdapter = PrismaAdapter(prisma);
+
+  return {
+    ...baseAdapter,
+    // Override createUser to set default tier, role, and auto-verify OAuth users
+    createUser: async (data) => {
+      const user = await prisma.user.create({
+        data: {
+          email: data.email,
+          name: data.name,
+          image: data.image,
+          emailVerified: data.emailVerified ?? new Date(), // Auto-verify OAuth users
+          tier: 'FREE',
+          role: 'USER',
+          isAffiliate: false,
+        },
+      });
+      return user as AdapterUser;
+    },
+  };
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 1. NEXT AUTH CONFIGURATION
@@ -83,14 +110,14 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          // Return user object
+          // Return user object with actual database values
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             tier: user.tier as UserTier,
             role: user.role as UserRole,
-            isAffiliate: false, // TODO: Add to Prisma schema in future
+            isAffiliate: user.isAffiliate,
             image: user.image,
             isActive: user.isActive,
             createdAt: user.createdAt,
@@ -117,7 +144,7 @@ export const authOptions: NextAuthOptions = {
   // DATABASE ADAPTER (for OAuth accounts)
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  adapter: PrismaAdapter(prisma) as Adapter,
+  adapter: CustomPrismaAdapter(),
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // CALLBACKS
@@ -125,91 +152,37 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     /**
-     * SignIn Callback - Verified-Only Account Linking
+     * SignIn Callback - Security Check for Account Linking
      *
      * SECURITY CRITICAL: Prevents account takeover via OAuth
-     * 1. If Google OAuth user exists and email is NOT verified → REJECT linking
-     * 2. If new Google OAuth user → Create with FREE tier + auto-verify
-     * 3. If existing verified user → Link Google account
+     * - If OAuth user exists with unverified email → REJECT (prevents takeover)
+     * - User creation is handled by CustomPrismaAdapter (not here)
+     * - Account linking is handled automatically by NextAuth + adapter
      */
     async signIn({ user, account }) {
       try {
-        // Only apply security check to Google OAuth
-        if (account?.provider === 'google') {
+        // Only apply security check to OAuth providers (not credentials)
+        if (account?.provider && account.provider !== 'credentials') {
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
           });
 
           // SECURITY: Prevent account takeover via unverified OAuth
+          // If a user registered with email/password but hasn't verified,
+          // don't allow someone else to link OAuth to that account
           if (existingUser && !existingUser.emailVerified) {
             console.error(
-              `Prevented OAuth account takeover attempt for email: ${user.email}`
+              `Prevented OAuth account takeover attempt for unverified email: ${user.email}`
             );
             return false; // Reject linking to unverified account
           }
 
-          // If new user → Create with FREE tier and auto-verify
-          if (!existingUser) {
-            await prisma.user.create({
-              data: {
-                email: user.email!,
-                name: user.name,
-                image: user.image,
-                emailVerified: new Date(), // Auto-verify OAuth users
-                password: null, // OAuth-only users don't need passwords
-                tier: 'FREE' as UserTier,
-                role: 'USER' as UserRole,
-                // isAffiliate: false, // TODO: Add to Prisma schema in future
-                accounts: {
-                  create: {
-                    type: account.type,
-                    provider: account.provider,
-                    providerAccountId: account.providerAccountId,
-                    access_token: account.access_token,
-                    refresh_token: account.refresh_token,
-                    expires_at: account.expires_at,
-                    token_type: account.token_type,
-                    scope: account.scope,
-                    id_token: account.id_token,
-                  },
-                },
-              },
+          // Update profile picture from OAuth if user doesn't have one
+          if (existingUser && !existingUser.image && user.image) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { image: user.image },
             });
-          } else {
-            // Existing verified user → Link Google account if not already linked
-            const existingAccount = await prisma.account.findUnique({
-              where: {
-                provider_providerAccountId: {
-                  provider: 'google',
-                  providerAccountId: account.providerAccountId,
-                },
-              },
-            });
-
-            if (!existingAccount) {
-              await prisma.account.create({
-                data: {
-                  userId: existingUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  access_token: account.access_token,
-                  refresh_token: account.refresh_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                },
-              });
-            }
-
-            // Update profile picture from Google if user doesn't have one
-            if (!existingUser.image && user.image) {
-              await prisma.user.update({
-                where: { id: existingUser.id },
-                data: { image: user.image },
-              });
-            }
           }
         }
 
@@ -222,20 +195,59 @@ export const authOptions: NextAuthOptions = {
 
     /**
      * JWT Callback - Include tier, role, and affiliate status
+     *
+     * Fetches fresh user data from database on initial sign-in to ensure
+     * tier, role, and isAffiliate are correctly populated in the JWT token.
      */
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger }) {
       try {
-        // Initial sign-in: Add user data to token
+        // Initial sign-in: Fetch fresh user data from database
+        // This is needed because OAuth adapter creates users without tier/role
         if (user) {
-          token.id = user.id;
-          token.tier = user.tier;
-          token.role = user.role;
-          token.isAffiliate = user.isAffiliate || false;
+          // For credentials provider, user already has tier/role
+          // For OAuth, we need to fetch from database
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              tier: true,
+              role: true,
+              isAffiliate: true,
+            },
+          });
+
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.email = dbUser.email;
+            token.name = dbUser.name;
+            token.image = dbUser.image;
+            token.tier = dbUser.tier as UserTier;
+            token.role = dbUser.role as UserRole;
+            token.isAffiliate = dbUser.isAffiliate;
+          } else {
+            // Fallback to user object (credentials provider)
+            token.id = user.id;
+            token.tier = user.tier || 'FREE';
+            token.role = user.role || 'USER';
+            token.isAffiliate = user.isAffiliate || false;
+          }
         }
 
-        // Session update: Check for tier changes (e.g., subscription upgrade)
-        if (trigger === 'update' && session?.tier) {
-          token.tier = session.tier;
+        // Session update: Refresh from database (e.g., after subscription upgrade)
+        if (trigger === 'update') {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { tier: true, role: true, isAffiliate: true },
+          });
+
+          if (dbUser) {
+            token.tier = dbUser.tier as UserTier;
+            token.role = dbUser.role as UserRole;
+            token.isAffiliate = dbUser.isAffiliate;
+          }
         }
 
         return token;
