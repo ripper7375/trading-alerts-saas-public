@@ -15,8 +15,6 @@ import type Stripe from 'stripe';
 
 import { prisma } from '@/lib/db/prisma';
 import {
-  sendUpgradeEmail,
-  sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
   sendSubscriptionCanceledEmail,
