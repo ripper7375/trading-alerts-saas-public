@@ -1,9 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Check, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Check, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -42,6 +42,7 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export default function RegisterForm(): JSX.Element {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Get dynamic affiliate config from SystemConfig
   const { discountPercent, regularPrice, calculateDiscountedPrice } =
@@ -50,7 +51,6 @@ export default function RegisterForm(): JSX.Element {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Referral code state
@@ -157,9 +157,10 @@ export default function RegisterForm(): JSX.Element {
       const responseData = await response.json();
 
       if (response.ok) {
-        setSuccess(true);
-        reset();
-        setError(null);
+        // Redirect to verification pending page with email
+        const encodedEmail = encodeURIComponent(data.email);
+        router.push(`/verify-email/pending?email=${encodedEmail}`);
+        return;
       } else if (response.status === 409) {
         setError('An account with this email already exists.');
       } else if (response.status === 503) {
@@ -175,40 +176,6 @@ export default function RegisterForm(): JSX.Element {
       setIsSubmitting(false);
     }
   };
-
-  // Success screen with animation
-  if (success) {
-    return (
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <CheckCircle2 className="w-10 h-10 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Account created successfully!
-            </h2>
-            {isCodeValid && (
-              <p className="text-green-600 font-medium mb-2">
-                🎉 {discountPercent}% discount activated! You&apos;ll pay $
-                {calculateDiscountedPrice(regularPrice).toFixed(2)}/month for
-                PRO.
-              </p>
-            )}
-            <p className="text-gray-600 mb-4">
-              Please check your email to verify your account.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              Go to Login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-md">
