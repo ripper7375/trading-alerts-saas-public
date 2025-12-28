@@ -22,7 +22,11 @@ const registrationSchema = z
       .min(8, 'Password must be at least 8 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
+      .regex(/[0-9]/, 'Password must contain at least one number')
+      .regex(
+        /[!@#$%^&*(),.?":{}|<>]/,
+        'Password must contain at least one special character'
+      ),
     confirmPassword: z.string(),
     referralCode: z.string().optional(),
     agreedToTerms: z
@@ -80,6 +84,7 @@ export default function RegisterForm(): JSX.Element {
     hasUppercase: /[A-Z]/.test(password || ''),
     hasLowercase: /[a-z]/.test(password || ''),
     hasNumber: /[0-9]/.test(password || ''),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password || ''),
   };
 
   // Pre-fill referral code from URL
@@ -365,6 +370,22 @@ export default function RegisterForm(): JSX.Element {
                     }
                   >
                     One number
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {passwordValidation.hasSpecial ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <X className="w-4 h-4 text-gray-400" />
+                  )}
+                  <span
+                    className={
+                      passwordValidation.hasSpecial
+                        ? 'text-green-600'
+                        : 'text-gray-600'
+                    }
+                  >
+                    One special character (!@#$%^&*)
                   </span>
                 </div>
               </div>
