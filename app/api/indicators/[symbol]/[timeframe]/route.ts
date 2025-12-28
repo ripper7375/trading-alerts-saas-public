@@ -28,7 +28,10 @@ import {
 } from '@/lib/tier-config';
 import type { ProIndicatorData } from '@/types/indicator';
 import type { Tier } from '@/types/tier';
-import { getCachedIndicatorData } from '@/lib/cache/indicator-cache';
+import {
+  getCachedIndicatorData,
+  setCachedIndicatorData,
+} from '@/lib/cache/indicator-cache';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -335,6 +338,18 @@ export async function GET(
       cached: false,
       requestedAt: new Date().toISOString(),
     };
+
+    // ✅ CACHE WRITE - Added in Part 1.4
+    // Fire-and-forget: don't wait, don't fail request if caching fails
+    setCachedIndicatorData(
+      upperSymbol,
+      upperTimeframe,
+      response.data,
+      bars
+    ).catch((err) => {
+      console.error('[API] Failed to cache indicator data:', err);
+      // Don't throw - caching failure shouldn't break the response
+    });
 
     return NextResponse.json(response, {
       status: 200,
