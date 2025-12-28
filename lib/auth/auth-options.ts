@@ -18,7 +18,7 @@ function CustomPrismaAdapter(): Adapter {
   return {
     ...baseAdapter,
     // Override createUser to set default tier, role, and auto-verify OAuth users
-    createUser: async (data) => {
+    createUser: async (data: Omit<AdapterUser, 'id'>) => {
       const user = await prisma.user.create({
         data: {
           email: data.email,
