@@ -21,6 +21,13 @@ import {
 import { transformProIndicators } from '@/lib/api/mt5-transform';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
+  getCachedIndicatorData,
+  setCachedIndicatorData,
+  recordCacheHit,
+  recordCacheMiss,
+  getTimeframeTTL,
+} from '@/lib/cache/indicator-cache';
+import {
   FREE_SYMBOLS,
   FREE_TIMEFRAMES,
   PRO_SYMBOLS,
@@ -46,6 +53,9 @@ interface IndicatorDataResponse {
     proIndicatorsTransformed: ProIndicatorData;
   };
   tier: Tier;
+  cached: boolean;
+  cacheHit: boolean;
+  cacheTTL?: number;
   requestedAt: string;
 }
 
@@ -275,7 +285,38 @@ export async function GET(
     }
 
     //───────────────────────────────────────────────────────
-    // STEP 8: Fetch Data from Flask MT5 Service
+    // STEP 8: Check Cache First
+    //───────────────────────────────────────────────────────
+    const cachedData = await getCachedIndicatorData<
+      MT5IndicatorData & { proIndicatorsTransformed: ProIndicatorData }
+    >(upperSymbol, upperTimeframe, bars);
+
+    if (cachedData) {
+      recordCacheHit();
+
+      const response: IndicatorDataResponse = {
+        success: true,
+        data: cachedData,
+        tier: userTier,
+        cached: true,
+        cacheHit: true,
+        cacheTTL: getTimeframeTTL(upperTimeframe),
+        requestedAt: new Date().toISOString(),
+      };
+
+      return NextResponse.json(response, {
+        status: 200,
+        headers: {
+          'X-Cache': 'HIT',
+          'X-Cache-Tier': userTier,
+        },
+      });
+    }
+
+    recordCacheMiss();
+
+    //───────────────────────────────────────────────────────
+    // STEP 9: Fetch Data from Flask MT5 Service (Cache Miss)
     //───────────────────────────────────────────────────────
     const data = await fetchIndicatorData(
       upperSymbol,
@@ -285,7 +326,7 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 9: Transform PRO Indicators (null -> undefined)
+    // STEP 10: Transform PRO Indicators (null -> undefined)
     //───────────────────────────────────────────────────────
     const proIndicatorsTransformed = transformProIndicators(
       data.proIndicators,
@@ -293,19 +334,42 @@ export async function GET(
     );
 
     //───────────────────────────────────────────────────────
-    // STEP 10: Return Response
+    // STEP 11: Cache the Response Data
+    //───────────────────────────────────────────────────────
+    const responseData = {
+      ...data,
+      proIndicatorsTransformed,
+    };
+
+    // Store in cache (async, don't wait - fire and forget)
+    // Uses automatic TTL based on timeframe from Part 0 business-rules
+    setCachedIndicatorData(upperSymbol, upperTimeframe, responseData, bars).catch(
+      (err) => {
+        console.error('[API] Failed to cache indicator data:', err);
+        // Don't fail the request if caching fails
+      }
+    );
+
+    //───────────────────────────────────────────────────────
+    // STEP 12: Return Response
     //───────────────────────────────────────────────────────
     const response: IndicatorDataResponse = {
       success: true,
-      data: {
-        ...data,
-        proIndicatorsTransformed,
-      },
+      data: responseData,
       tier: userTier,
+      cached: false,
+      cacheHit: false,
+      cacheTTL: getTimeframeTTL(upperTimeframe),
       requestedAt: new Date().toISOString(),
     };
 
-    return NextResponse.json(response, { status: 200 });
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        'X-Cache': 'MISS',
+        'X-Cache-Tier': userTier,
+      },
+    });
   } catch (error) {
     //───────────────────────────────────────────────────────
     // Error Handling
