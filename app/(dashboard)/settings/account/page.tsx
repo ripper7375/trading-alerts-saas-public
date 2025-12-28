@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
 import {
@@ -11,10 +11,12 @@ import {
   Laptop,
   Smartphone,
   Monitor,
+  Tablet,
   AlertTriangle,
   Loader2,
   Check,
   Shield,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -52,42 +54,37 @@ interface PasswordVisibility {
   confirm: boolean;
 }
 
-interface Session {
+interface SessionData {
   id: string;
   device: string;
-  icon: React.ComponentType<{ className?: string }>;
+  browser: string;
+  os: string;
   location: string;
   lastActive: string;
   isCurrent: boolean;
 }
 
-// Mock active sessions
-const mockSessions: Session[] = [
-  {
-    id: '1',
-    device: 'Chrome on MacOS',
-    icon: Monitor,
-    location: 'New York, US',
-    lastActive: 'Current session',
-    isCurrent: true,
-  },
-  {
-    id: '2',
-    device: 'Safari on iPhone',
-    icon: Smartphone,
-    location: 'New York, US',
-    lastActive: '2 hours ago',
-    isCurrent: false,
-  },
-  {
-    id: '3',
-    device: 'Firefox on Windows',
-    icon: Laptop,
-    location: 'Los Angeles, US',
-    lastActive: '1 day ago',
-    isCurrent: false,
-  },
-];
+/**
+ * Get icon component based on OS name
+ */
+function getDeviceIcon(
+  os: string
+): React.ComponentType<{ className?: string }> {
+  const osLower = os.toLowerCase();
+  if (osLower.includes('ios') || osLower.includes('iphone')) {
+    return Smartphone;
+  }
+  if (osLower.includes('android')) {
+    return Smartphone;
+  }
+  if (osLower.includes('ipad')) {
+    return Tablet;
+  }
+  if (osLower.includes('mac') || osLower.includes('windows') || osLower.includes('linux')) {
+    return Monitor;
+  }
+  return Laptop;
+}
 
 function getPasswordStrength(password: string): PasswordStrength {
   let score = 0;
@@ -152,6 +149,58 @@ export default function AccountSettingsPage(): React.ReactElement {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sessions state (real data from API)
+  const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [isRevokingSession, setIsRevokingSession] = useState<string | null>(null);
+
+  // Fetch active sessions from API
+  const fetchSessions = useCallback(async () => {
+    setIsLoadingSessions(true);
+    try {
+      const response = await fetch('/api/user/sessions');
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data.sessions || []);
+      } else {
+        console.error('Failed to fetch sessions');
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  }, []);
+
+  // Fetch sessions on mount
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  // Revoke a specific session
+  const handleRevokeSession = async (sessionId: string): Promise<void> => {
+    setIsRevokingSession(sessionId);
+    try {
+      const response = await fetch(`/api/user/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        success('Session Revoked', 'The session has been logged out.');
+        // Remove from local state
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      } else {
+        const data = await response.json();
+        showError('Failed', data.error || 'Could not revoke session');
+      }
+    } catch (error) {
+      console.error('Error revoking session:', error);
+      showError('Error', 'Failed to revoke session');
+    } finally {
+      setIsRevokingSession(null);
+    }
+  };
 
   const passwordStrength = newPassword
     ? getPasswordStrength(newPassword)
@@ -239,9 +288,27 @@ export default function AccountSettingsPage(): React.ReactElement {
 
   // Handle sign out all devices
   const handleSignOutAllDevices = async (): Promise<void> => {
-    // In a real implementation, this would invalidate all sessions
-    console.log('Signing out all devices');
-    await signOut({ callbackUrl: '/login' });
+    try {
+      // Revoke all other sessions via API
+      const response = await fetch('/api/user/sessions', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        success(
+          'Sessions Revoked',
+          `Logged out from ${data.revokedCount} other device${data.revokedCount === 1 ? '' : 's'}.`
+        );
+        // Refresh sessions list
+        fetchSessions();
+      } else {
+        showError('Failed', 'Could not revoke other sessions');
+      }
+    } catch (error) {
+      console.error('Error signing out all devices:', error);
+      showError('Error', 'Failed to sign out other devices');
+    }
   };
 
   // Handle account deletion
@@ -491,52 +558,102 @@ export default function AccountSettingsPage(): React.ReactElement {
 
       {/* Active Sessions */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Active Sessions
-        </h3>
-        <div className="space-y-3">
-          {mockSessions.map((sessionItem) => {
-            const Icon = sessionItem.icon;
-            return (
-              <Card key={sessionItem.id}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5 text-gray-500" />
-                    <div>
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white">
-                        {sessionItem.device}
-                        {sessionItem.isCurrent && (
-                          <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                            Current
-                          </Badge>
-                        )}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {sessionItem.location} • {sessionItem.lastActive}
-                      </p>
-                    </div>
-                  </div>
-                  {!sessionItem.isCurrent && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Revoke
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Active Sessions
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchSessions}
+            disabled={isLoadingSessions}
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-1 ${isLoadingSessions ? 'animate-spin' : ''}`}
+            />
+            Refresh
+          </Button>
         </div>
-        <Button
-          variant="destructive"
-          className="mt-4"
-          onClick={handleSignOutAllDevices}
-        >
-          Sign Out All Devices
-        </Button>
+
+        <div className="space-y-3">
+          {isLoadingSessions ? (
+            // Loading skeleton
+            <>
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          ) : sessions.length === 0 ? (
+            // No sessions found
+            <Card>
+              <CardContent className="p-4 text-center text-gray-500">
+                No active sessions found
+              </CardContent>
+            </Card>
+          ) : (
+            // Sessions list
+            sessions.map((sessionItem) => {
+              const Icon = getDeviceIcon(sessionItem.os);
+              return (
+                <Card key={sessionItem.id}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                          {sessionItem.device}
+                          {sessionItem.isCurrent && (
+                            <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
+                              Current
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {sessionItem.location} • {sessionItem.lastActive}
+                        </p>
+                      </div>
+                    </div>
+                    {!sessionItem.isCurrent && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleRevokeSession(sessionItem.id)}
+                        disabled={isRevokingSession === sessionItem.id}
+                      >
+                        {isRevokingSession === sessionItem.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Revoke'
+                        )}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+
+        {sessions.length > 1 && (
+          <Button
+            variant="destructive"
+            className="mt-4"
+            onClick={handleSignOutAllDevices}
+          >
+            Sign Out All Other Devices
+          </Button>
+        )}
       </section>
 
       <Separator className="my-8" />

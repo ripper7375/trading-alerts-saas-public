@@ -420,6 +420,27 @@ declare module '@prisma/client' {
     user?: User;
   }
 
+  export interface UserSession {
+    id: string;
+    userId: string;
+    userAgent: string | null;
+    ipAddress: string | null;
+    deviceType: string | null;
+    browser: string | null;
+    browserVersion: string | null;
+    os: string | null;
+    osVersion: string | null;
+    country: string | null;
+    city: string | null;
+    region: string | null;
+    isActive: boolean;
+    lastActiveAt: Date;
+    createdAt: Date;
+    expiresAt: Date;
+    sessionToken: string | null;
+    user?: User;
+  }
+
   export interface VerificationToken {
     identifier: string;
     token: string;
@@ -1028,6 +1049,7 @@ declare module '@prisma/client' {
     disbursementAuditLog: ModelDelegate<DisbursementAuditLog>;
     systemConfig: ModelDelegate<SystemConfig>;
     systemConfigHistory: ModelDelegate<SystemConfigHistory>;
+    userSession: ModelDelegate<UserSession>;
   }
 }
 

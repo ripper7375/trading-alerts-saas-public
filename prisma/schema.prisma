@@ -169,6 +169,42 @@ model Session {
   @@index([userId])
 }
 
+/// Extended session tracking for device/location monitoring
+/// Separate from NextAuth Session to preserve auth functionality
+model UserSession {
+  id            String   @id @default(cuid())
+  userId        String
+
+  /// Session metadata
+  userAgent     String?  // Full user agent string
+  ipAddress     String?  // Client IP address
+  deviceType    String?  // desktop, mobile, tablet
+  browser       String?  // Chrome, Safari, Firefox, etc.
+  browserVersion String? // Browser version
+  os            String?  // MacOS, Windows, iOS, Android
+  osVersion     String?  // OS version
+
+  /// Geolocation (from IP)
+  country       String?  // Country code (US, UK, etc.)
+  city          String?  // City name
+  region        String?  // State/region
+
+  /// Session state
+  isActive      Boolean  @default(true)
+  lastActiveAt  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  /// Link to NextAuth session token (for revoking)
+  sessionToken  String?  @unique
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([isActive])
+  @@index([lastActiveAt])
+  @@map("user_sessions")
+}
+
 model VerificationToken {
   identifier String
   token      String   @unique
