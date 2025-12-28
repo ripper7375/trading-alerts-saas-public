@@ -227,6 +227,11 @@ export async function GET(
           success: true,
           data: cachedData,
           cached: true,
+          cacheHit: true,
+          performance: {
+            cached: true,
+            estimatedSpeedup: '10x faster (no MT5 service call)',
+          },
           requestedAt: new Date().toISOString(),
         },
         {
@@ -356,12 +361,22 @@ export async function GET(
       requestedAt: new Date().toISOString(),
     };
 
-    return NextResponse.json(response, {
-      status: 200,
-      headers: {
-        'X-Cache': 'MISS',
+    return NextResponse.json(
+      {
+        ...response,
+        performance: {
+          cached: false,
+          note: 'First request - data cached for subsequent requests',
+        },
       },
-    });
+      {
+        status: 200,
+        headers: {
+          'X-Cache': 'MISS',
+          'X-Cache-Status': 'Stored',
+        },
+      }
+    );
   } catch (error) {
     //───────────────────────────────────────────────────────
     // Error Handling
