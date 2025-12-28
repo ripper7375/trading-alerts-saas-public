@@ -42,13 +42,7 @@ export async function DELETE(
       );
     }
 
-    // Get current session token to prevent self-revocation
-    const currentSessionToken =
-      req.cookies.get('next-auth.session-token')?.value ||
-      req.cookies.get('__Secure-next-auth.session-token')?.value;
-
-    // Check if trying to revoke current session
-    // (This should be handled on frontend, but double-check here)
+    // Revoke the session
     const success = await revokeSession(sessionId, session.user.id);
 
     if (!success) {

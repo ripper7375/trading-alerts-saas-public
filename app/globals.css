@@ -103,16 +103,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
+    background-color: oklch(var(--muted-foreground) / 0.3);
+    @apply rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    background-color: oklch(var(--muted-foreground) / 0.5);
   }
 
   /* Selection */
   ::selection {
-    @apply bg-primary/20;
+    background-color: oklch(var(--primary) / 0.2);
   }
 }
 
@@ -160,7 +161,8 @@
   }
 
   .status-inactive {
-    @apply w-2 h-2 rounded-full bg-muted-foreground/30;
+    @apply w-2 h-2 rounded-full;
+    background-color: oklch(var(--muted-foreground) / 0.3);
   }
 
   .status-triggered {
@@ -189,11 +191,11 @@
 
   /* Gradient backgrounds */
   .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-primary/80;
+    background: linear-gradient(to right, oklch(var(--primary)), oklch(var(--primary) / 0.8));
   }
 
   .gradient-success {
-    @apply bg-gradient-to-r from-[oklch(var(--success))] to-[oklch(var(--success))]/80;
+    background: linear-gradient(to right, oklch(var(--success)), oklch(var(--success) / 0.8));
   }
 
   /* Hide scrollbar but keep functionality */

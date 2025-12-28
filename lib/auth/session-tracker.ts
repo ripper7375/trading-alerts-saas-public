@@ -8,6 +8,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import type { UserSession } from '@prisma/client';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -126,7 +127,7 @@ export function parseUserAgent(userAgent: string): ParsedUserAgent {
  */
 function extractVersion(userAgent: string, regex: RegExp): string {
   const match = userAgent.match(regex);
-  return match ? match[1] : '';
+  return match && match[1] ? match[1] : '';
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -209,7 +210,7 @@ export async function getUserSessions(
     orderBy: { lastActiveAt: 'desc' },
   });
 
-  return sessions.map((session) => ({
+  return sessions.map((session: UserSession) => ({
     id: session.id,
     device: formatDevice(session.browser, session.os),
     browser: session.browser || 'Unknown',
@@ -288,8 +289,8 @@ export async function revokeAllSessions(
 
   // Delete NextAuth sessions
   const tokenList = sessionsToRevoke
-    .map((s) => s.sessionToken)
-    .filter((t): t is string => t !== null);
+    .map((s: { sessionToken: string | null }) => s.sessionToken)
+    .filter((t): t is string => t !== null && t !== undefined);
 
   if (tokenList.length > 0) {
     await prisma.session.deleteMany({
