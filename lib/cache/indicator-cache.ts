@@ -148,37 +148,46 @@ function getCacheClient(): CacheClient {
     return cacheClient;
   }
 
-  // Try to use Redis if available
-  try {
-    // Dynamic import to avoid issues if Redis is not configured
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getRedisClient } = require('@/lib/redis/client');
-    const redis = getRedisClient();
+  // Check for Redis URL first - if not set, skip Redis entirely
+  const redisUrl = process.env['REDIS_URL'];
 
-    cacheClient = new RedisCache(redis);
-    isUsingMemoryCache = false;
+  if (redisUrl) {
+    try {
+      // Dynamic import to avoid issues if Redis is not configured
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { getRedisClient } = require('@/lib/redis/client');
+      const redis = getRedisClient();
 
-    if (process.env['NODE_ENV'] !== 'production') {
-      console.log('[Indicator Cache] Using Redis cache');
+      cacheClient = new RedisCache(redis);
+      isUsingMemoryCache = false;
+
+      if (process.env['NODE_ENV'] !== 'production') {
+        console.log('[Indicator Cache] Using Redis cache');
+      }
+
+      return cacheClient;
+    } catch (error) {
+      // Redis initialization failed, fall through to memory cache
+      if (process.env['NODE_ENV'] !== 'production') {
+        console.warn(
+          '[Indicator Cache] Redis initialization failed, using in-memory cache:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
     }
-
-    return cacheClient;
-  } catch (error) {
-    // Redis not available, use memory cache
-    if (process.env['NODE_ENV'] !== 'production') {
-      console.warn(
-        '[Indicator Cache] Redis unavailable, using in-memory cache:',
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-    }
-
-    const memCache = new MemoryCache();
-    memCache.startCleanup();
-    cacheClient = memCache;
-    isUsingMemoryCache = true;
-
-    return cacheClient;
   }
+
+  // Use memory cache (either REDIS_URL not set or Redis initialization failed)
+  if (process.env['NODE_ENV'] !== 'production' && !redisUrl) {
+    console.log('[Indicator Cache] REDIS_URL not set, using in-memory cache');
+  }
+
+  const memCache = new MemoryCache();
+  memCache.startCleanup();
+  cacheClient = memCache;
+  isUsingMemoryCache = true;
+
+  return cacheClient;
 }
 
 // ============================================================================
