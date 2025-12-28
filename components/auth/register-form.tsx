@@ -69,8 +69,16 @@ export default function RegisterForm(): JSX.Element {
     reset,
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
-    mode: 'onBlur',
+    mode: 'onChange',
     reValidateMode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      referralCode: '',
+      agreedToTerms: false,
+    },
   });
 
   const password = watch('password');
@@ -93,7 +101,7 @@ export default function RegisterForm(): JSX.Element {
     if (refCode) {
       const upperCode = refCode.toUpperCase();
       setReferralCode(upperCode);
-      setValue('referralCode', upperCode);
+      setValue('referralCode', upperCode, { shouldValidate: true });
       verifyCode(upperCode);
     }
   }, [searchParams, setValue]);
@@ -463,7 +471,7 @@ export default function RegisterForm(): JSX.Element {
                   onChange={(e) => {
                     const upper = e.target.value.toUpperCase();
                     setReferralCode(upper);
-                    setValue('referralCode', upper);
+                    setValue('referralCode', upper, { shouldValidate: true });
                     // Reset validation states when user types
                     if (isCodeValid || codeError) {
                       setIsCodeValid(false);
