@@ -51,7 +51,7 @@ export default function SocialAuthButtons(): JSX.Element {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex justify-center items-center px-4 py-2 border border-border shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loadingProvider === 'google' ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -87,7 +87,7 @@ export default function SocialAuthButtons(): JSX.Element {
         type="button"
         onClick={handleTwitterSignIn}
         disabled={isLoading}
-        className="w-full flex justify-center items-center px-4 py-2 border border-black shadow-sm text-sm font-medium rounded-md text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex justify-center items-center px-4 py-2 border border-black dark:border-white shadow-sm text-sm font-medium rounded-md text-white dark:text-black bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loadingProvider === 'twitter' ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

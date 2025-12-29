@@ -129,18 +129,18 @@ describe('Header Component', () => {
       expect(screen.getByText(/PRO/)).toBeInTheDocument();
     });
 
-    it('should have blue styling for PRO badge', () => {
+    it('should have primary styling for PRO badge', () => {
       render(<Header user={proUser} />);
 
       const proBadge = screen.getByText(/PRO/);
-      expect(proBadge).toHaveClass('bg-blue-600');
+      expect(proBadge).toHaveClass('bg-primary');
     });
 
-    it('should have gray styling for FREE badge', () => {
+    it('should have secondary styling for FREE badge', () => {
       render(<Header user={sampleUser} />);
 
       const freeBadge = screen.getByText('FREE');
-      expect(freeBadge).toHaveClass('bg-gray-100');
+      expect(freeBadge).toHaveClass('bg-secondary');
     });
   });
 

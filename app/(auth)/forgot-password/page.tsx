@@ -198,22 +198,22 @@ function RequestResetStep({
   };
 
   return (
-    <div className="bg-white shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
+    <div className="bg-card shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
       <Link
         href="/login"
-        className="text-sm text-blue-600 hover:underline cursor-pointer mb-6 inline-flex items-center gap-1"
+        className="text-sm text-primary hover:underline cursor-pointer mb-6 inline-flex items-center gap-1"
       >
         ← Back to login
       </Link>
 
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
-          <Lock className="w-16 h-16 text-gray-700" />
+          <Lock className="w-16 h-16 text-muted-foreground" />
         </div>
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">
           Forgot Password?
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           No worries, we&apos;ll send you reset instructions
         </p>
       </div>
@@ -222,7 +222,7 @@ function RequestResetStep({
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-foreground mb-2"
           >
             Email Address
           </label>
@@ -232,12 +232,12 @@ function RequestResetStep({
             placeholder="john@example.com"
             autoFocus
             {...register('email')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {errors.email && (
             <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
           )}
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Enter the email address associated with your account
           </p>
         </div>
@@ -295,7 +295,7 @@ function RequestResetStep({
         <button
           type="submit"
           disabled={!isValid || isLoading || error === 'rate-limit'}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 text-lg font-semibold rounded-md shadow-lg text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+          className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md shadow-lg text-primary-foreground disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-200"
         >
           {isLoading ? (
             <>
@@ -308,10 +308,10 @@ function RequestResetStep({
         </button>
       </form>
 
-      <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 mt-6">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-4 mt-6">
         <div className="flex gap-3">
-          <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-800">
+          <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">
             You&apos;ll receive an email with a link to reset your password. The
             link will expire in 1 hour.
           </p>
@@ -346,42 +346,42 @@ function ConfirmationStep({
   };
 
   return (
-    <div className="bg-white shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
+    <div className="bg-card shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
       <div className="text-center">
         <div className="flex justify-center mb-6">
-          <CheckCircle2 className="w-20 h-20 text-green-600 animate-in zoom-in duration-500" />
+          <CheckCircle2 className="w-20 h-20 text-green-600 dark:text-green-400 animate-in zoom-in duration-500" />
         </div>
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">
           Check Your Email
         </h1>
-        <p className="text-gray-600 mb-2">
+        <p className="text-muted-foreground mb-2">
           We&apos;ve sent password reset instructions to:
         </p>
-        <div className="inline-block bg-gray-100 px-4 py-2 rounded-lg">
-          <p className="text-lg font-semibold text-gray-900">{email}</p>
+        <div className="inline-block bg-muted px-4 py-2 rounded-lg">
+          <p className="text-lg font-semibold text-foreground">{email}</p>
         </div>
       </div>
 
-      <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-card border-2 border-border rounded-xl p-6 mt-8">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           Next Steps:
         </h2>
         <ol className="space-y-2 list-decimal list-inside">
-          <li className="text-gray-700">Open the email from Trading Alerts</li>
-          <li className="text-gray-700">
+          <li className="text-muted-foreground">Open the email from Trading Alerts</li>
+          <li className="text-muted-foreground">
             Click the &apos;Reset Password&apos; button
           </li>
-          <li className="text-gray-700">Create your new password</li>
+          <li className="text-muted-foreground">Create your new password</li>
         </ol>
       </div>
 
       <div className="mt-8 text-center">
-        <p className="text-gray-600 mb-3">Didn&apos;t receive the email?</p>
+        <p className="text-muted-foreground mb-3">Didn&apos;t receive the email?</p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={handleResend}
             disabled={isResending}
-            className="px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 border-2 border-primary text-primary rounded-lg hover:bg-primary/10 bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isResending ? (
               <>
@@ -394,17 +394,17 @@ function ConfirmationStep({
           </button>
           <button
             onClick={handleTryAnother}
-            className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 bg-transparent transition-colors"
+            className="px-6 py-2 border-2 border-border text-muted-foreground rounded-lg hover:bg-muted bg-transparent transition-colors"
           >
             Try Another Email
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-4">Check your spam folder</p>
+        <p className="text-xs text-muted-foreground mt-4">Check your spam folder</p>
       </div>
 
       <Link
         href="/login"
-        className="text-blue-600 hover:underline text-center block mt-8 mx-auto"
+        className="text-primary hover:underline text-center block mt-8 mx-auto"
       >
         ← Back to login
       </Link>
@@ -514,19 +514,19 @@ function ResetPasswordStep({
 
   if (tokenExpired || tokenInvalid) {
     return (
-      <div className="bg-white shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+      <div className="bg-card shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
+        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg">
           <div className="flex gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-red-800">
+              <p className="text-sm text-red-800 dark:text-red-300">
                 {tokenExpired
                   ? 'This password reset link has expired. Please request a new one.'
                   : 'Invalid password reset link. Please request a new one.'}
               </p>
               <button
                 onClick={handleRequestNewLink}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md mt-4 hover:bg-blue-700 transition-colors"
+                className="bg-primary text-primary-foreground px-6 py-2 rounded-md mt-4 hover:bg-primary/90 transition-colors"
               >
                 Request New Link
               </button>
@@ -538,15 +538,15 @@ function ResetPasswordStep({
   }
 
   return (
-    <div className="bg-white shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
+    <div className="bg-card shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
-          <Key className="w-16 h-16 text-gray-700" />
+          <Key className="w-16 h-16 text-muted-foreground" />
         </div>
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">
           Create New Password
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Choose a strong password for your account
         </p>
       </div>
@@ -555,7 +555,7 @@ function ResetPasswordStep({
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-foreground mb-2"
           >
             New Password
           </label>
@@ -565,12 +565,12 @@ function ResetPasswordStep({
               type={showPassword ? 'text' : 'password'}
               placeholder="Enter new password"
               {...register('password')}
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? (
                 <EyeOff className="w-5 h-5" />
@@ -583,20 +583,20 @@ function ResetPasswordStep({
           {password && (
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Password strength:</span>
+                <span className="text-muted-foreground">Password strength:</span>
                 <span
                   className={`font-medium ${
                     strength <= 2
-                      ? 'text-red-600'
+                      ? 'text-red-600 dark:text-red-400'
                       : strength <= 3
-                        ? 'text-yellow-600'
-                        : 'text-green-600'
+                        ? 'text-yellow-600 dark:text-yellow-400'
+                        : 'text-green-600 dark:text-green-400'
                   }`}
                 >
                   {getStrengthLabel()}
                 </span>
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${getStrengthColor()} ${getStrengthWidth()}`}
                 />
@@ -605,13 +605,13 @@ function ResetPasswordStep({
               <div className="space-y-1 mt-3">
                 <div className="flex items-center gap-2 text-sm">
                   {validations.length ? (
-                    <Check className="w-4 h-4 text-green-600" />
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-gray-400" />
+                    <X className="w-4 h-4 text-muted-foreground" />
                   )}
                   <span
                     className={
-                      validations.length ? 'text-green-600' : 'text-gray-600'
+                      validations.length ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                     }
                   >
                     At least 8 characters
@@ -619,13 +619,13 @@ function ResetPasswordStep({
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {validations.uppercase ? (
-                    <Check className="w-4 h-4 text-green-600" />
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-gray-400" />
+                    <X className="w-4 h-4 text-muted-foreground" />
                   )}
                   <span
                     className={
-                      validations.uppercase ? 'text-green-600' : 'text-gray-600'
+                      validations.uppercase ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                     }
                   >
                     One uppercase letter
@@ -633,13 +633,13 @@ function ResetPasswordStep({
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {validations.lowercase ? (
-                    <Check className="w-4 h-4 text-green-600" />
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-gray-400" />
+                    <X className="w-4 h-4 text-muted-foreground" />
                   )}
                   <span
                     className={
-                      validations.lowercase ? 'text-green-600' : 'text-gray-600'
+                      validations.lowercase ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                     }
                   >
                     One lowercase letter
@@ -647,13 +647,13 @@ function ResetPasswordStep({
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {validations.number ? (
-                    <Check className="w-4 h-4 text-green-600" />
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-gray-400" />
+                    <X className="w-4 h-4 text-muted-foreground" />
                   )}
                   <span
                     className={
-                      validations.number ? 'text-green-600' : 'text-gray-600'
+                      validations.number ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                     }
                   >
                     One number
@@ -667,7 +667,7 @@ function ResetPasswordStep({
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-foreground mb-2"
           >
             Confirm New Password
           </label>
@@ -677,12 +677,12 @@ function ResetPasswordStep({
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirm new password"
               {...register('confirmPassword')}
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showConfirmPassword ? (
                 <EyeOff className="w-5 h-5" />
@@ -712,7 +712,7 @@ function ResetPasswordStep({
         <button
           type="submit"
           disabled={!isValid || isLoading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 text-lg font-semibold rounded-md shadow-lg text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+          className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md shadow-lg text-primary-foreground disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-200"
         >
           {isLoading ? (
             <>
@@ -735,27 +735,27 @@ function SuccessStep({
   autoRedirectCountdown: number;
 }): JSX.Element {
   return (
-    <div className="bg-white shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
+    <div className="bg-card shadow-xl p-8 rounded-lg animate-in fade-in duration-300">
       <div className="text-center">
         <div className="flex justify-center mb-6">
-          <CheckCircle2 className="w-20 h-20 text-green-600 animate-in zoom-in duration-500" />
+          <CheckCircle2 className="w-20 h-20 text-green-600 dark:text-green-400 animate-in zoom-in duration-500" />
         </div>
-        <h1 className="text-3xl font-bold mb-2 text-gray-900">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">
           Password Reset Successful!
         </h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-muted-foreground mb-8">
           Your password has been successfully reset. You can now log in with
           your new password.
         </p>
 
         <Link
           href="/login"
-          className="inline-flex items-center px-8 py-3 rounded-md text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-colors"
+          className="inline-flex items-center px-8 py-3 rounded-md text-lg font-semibold text-primary-foreground bg-primary hover:bg-primary/90 shadow-lg transition-colors"
         >
           Go to Login
         </Link>
 
-        <p className="text-sm text-gray-500 mt-4">
+        <p className="text-sm text-muted-foreground mt-4">
           Redirecting in {autoRedirectCountdown} seconds...
         </p>
       </div>
@@ -769,10 +769,10 @@ export default function ForgotPasswordPage(): JSX.Element {
     <Suspense
       fallback={
         <div className="w-full max-w-md">
-          <div className="bg-white shadow-xl p-8 rounded-lg">
+          <div className="bg-card shadow-xl p-8 rounded-lg">
             <div className="text-center py-8">
-              <Loader2 className="w-10 h-10 mx-auto animate-spin text-indigo-600" />
-              <p className="text-gray-600 mt-4">Loading...</p>
+              <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
+              <p className="text-muted-foreground mt-4">Loading...</p>
             </div>
           </div>
         </div>
