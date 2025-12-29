@@ -15,6 +15,7 @@ import { signOut } from 'next-auth/react';
 import { useState } from 'react';
 
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b bg-white dark:bg-gray-800 dark:border-gray-700">
+      <header className="sticky top-0 z-40 border-b bg-background">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Left side: Logo + Mobile menu button */}
           <div className="flex items-center gap-4">
@@ -90,7 +91,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
               <span className="text-2xl" role="img" aria-label="Trading Alerts">
                 📊
               </span>
-              <span className="hidden sm:inline-block font-bold text-lg text-gray-900 dark:text-white">
+              <span className="hidden sm:inline-block font-bold text-lg text-foreground">
                 Trading Alerts
               </span>
             </Link>
@@ -103,8 +104,8 @@ export function Header({ user }: HeaderProps): React.ReactElement {
               variant={user.tier === 'PRO' ? 'default' : 'secondary'}
               className={
                 user.tier === 'PRO'
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }
             >
               {user.tier === 'PRO' ? '⭐ PRO' : 'FREE'}
@@ -137,6 +138,9 @@ export function Header({ user }: HeaderProps): React.ReactElement {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -153,10 +157,10 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline-block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  <span className="hidden sm:inline-block text-sm font-medium text-foreground">
                     {user.name.split(' ')[0]}
                   </span>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
