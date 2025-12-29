@@ -137,6 +137,13 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
+          // Check if email is verified (only for email/password registration)
+          // Users who registered via email must verify their email before logging in
+          if (!user.emailVerified) {
+            console.log('[Auth] Login rejected: Email not verified for', user.email);
+            throw new Error('EMAIL_NOT_VERIFIED');
+          }
+
           // Return user object with actual database values
           return {
             id: user.id,
@@ -151,6 +158,10 @@ export const authOptions: NextAuthOptions = {
             updatedAt: user.updatedAt,
           };
         } catch (error) {
+          // Re-throw EMAIL_NOT_VERIFIED error to be handled by NextAuth
+          if (error instanceof Error && error.message === 'EMAIL_NOT_VERIFIED') {
+            throw error;
+          }
           console.error('Credentials authorization error:', error);
           return null;
         }

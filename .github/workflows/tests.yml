@@ -127,9 +127,9 @@ jobs:
         run: |
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "Bundle size: ${BUNDLE_SIZE}MB"
-          # Threshold increased from 360MB to 365MB for UI components and session tracking
-          if [ $BUNDLE_SIZE -gt 365 ]; then
-            echo "❌ Bundle size exceeds 365MB"
+          # Threshold increased from 365MB to 370MB for email verification feature
+          if [ $BUNDLE_SIZE -gt 370 ]; then
+            echo "❌ Bundle size exceeds 370MB"
             exit 1
           fi
           echo "✅ Bundle size is acceptable"
