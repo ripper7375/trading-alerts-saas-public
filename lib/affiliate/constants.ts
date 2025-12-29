@@ -195,6 +195,22 @@ export async function getCodesPerMonth(): Promise<number> {
   return config.codesPerMonth;
 }
 
+/**
+ * Get base price from SystemConfig
+ * @returns Current base price in USD
+ *
+ * @example
+ * ```typescript
+ * // In an API route or webhook:
+ * const basePrice = await getBasePriceUsd();
+ * console.log(`Current PRO price: $${basePrice}`);
+ * ```
+ */
+export async function getBasePriceUsd(): Promise<number> {
+  const config = await getAffiliateConfigFromDB();
+  return config.basePriceUsd;
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DERIVED TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

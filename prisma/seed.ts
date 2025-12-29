@@ -163,6 +163,48 @@ async function main() {
     }
 
     console.log('✅ Sample alerts created (2 demonstration alerts)');
+
+    // Create SystemConfig entries for affiliate settings
+    const systemConfigEntries = [
+      {
+        key: 'affiliate_discount_percent',
+        value: '20.0',
+        valueType: 'number',
+        description: 'Discount percentage for customers using affiliate codes',
+        category: 'affiliate',
+      },
+      {
+        key: 'affiliate_commission_percent',
+        value: '20.0',
+        valueType: 'number',
+        description: 'Commission percentage for affiliates on net revenue',
+        category: 'affiliate',
+      },
+      {
+        key: 'affiliate_codes_per_month',
+        value: '15',
+        valueType: 'number',
+        description: 'Number of codes distributed to each affiliate monthly',
+        category: 'affiliate',
+      },
+      {
+        key: 'affiliate_base_price',
+        value: '29.0',
+        valueType: 'number',
+        description: 'Base subscription price in USD before discount',
+        category: 'affiliate',
+      },
+    ];
+
+    for (const config of systemConfigEntries) {
+      await prisma.systemConfig.upsert({
+        where: { key: config.key },
+        update: {},
+        create: config,
+      });
+    }
+
+    console.log('✅ SystemConfig entries created (affiliate settings)');
     console.log('');
     console.log('🎉 Database seeding completed successfully!');
     console.log('');

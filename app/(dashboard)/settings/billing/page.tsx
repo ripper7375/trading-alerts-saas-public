@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
 /**
@@ -81,6 +82,7 @@ export default function BillingSettingsPage(): React.ReactElement {
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
+  const { regularPrice } = useAffiliateConfig();
 
   // Mock usage data - in real app, fetch from API
   const [usageStats] = useState<UsageStats>({
@@ -138,7 +140,7 @@ export default function BillingSettingsPage(): React.ReactElement {
           {/* Pricing */}
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-4xl font-bold text-gray-900 dark:text-white">
-              ${userTier === 'PRO' ? '29.00' : '0'}
+              ${userTier === 'PRO' ? regularPrice.toFixed(2) : '0'}
             </span>
             <span className="text-gray-600 dark:text-gray-400">/month</span>
           </div>
@@ -374,7 +376,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <h3 className="text-xl font-bold mb-2">Unlock More with PRO</h3>
                 <p className="text-white/90 mb-4">
                   Get 15 symbols, 9 timeframes, 20 alerts, and priority support
-                  for just $29/month.
+                  for just ${regularPrice}/month.
                 </p>
                 <Link href="/pricing">
                   <Button className="bg-white text-blue-600 hover:bg-white/90 font-semibold">

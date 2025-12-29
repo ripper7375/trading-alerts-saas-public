@@ -8,6 +8,7 @@ import { Loader2, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { type Tier } from '@/types/tier';
 
 /**
@@ -33,6 +34,7 @@ export default function SettingsPage(): React.ReactElement {
   });
 
   const tier = (session?.user?.tier || 'FREE') as Tier;
+  const { regularPrice } = useAffiliateConfig();
 
   useEffect(() => {
     // Simulate fetching usage data
@@ -87,7 +89,7 @@ export default function SettingsPage(): React.ReactElement {
                 {tier} Plan
               </div>
               <div className="text-gray-600 dark:text-gray-400 mt-1">
-                {tier === 'FREE' ? 'Free Forever' : '$29/month'}
+                {tier === 'FREE' ? 'Free Forever' : `$${regularPrice}/month`}
               </div>
             </div>
 

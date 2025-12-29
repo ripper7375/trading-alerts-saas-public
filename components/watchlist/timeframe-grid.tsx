@@ -15,6 +15,7 @@ import { useCallback } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import {
   Dialog,
   DialogContent,
@@ -177,6 +178,7 @@ export function TimeframeUpgradeDialog({
   lockedTimeframe,
 }: UpgradeDialogProps): React.JSX.Element {
   const timeframeInfo = TIMEFRAME_INFO.find((t) => t.id === lockedTimeframe);
+  const { regularPrice } = useAffiliateConfig();
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -221,7 +223,7 @@ export function TimeframeUpgradeDialog({
               asChild
               className="flex-1 bg-purple-600 hover:bg-purple-700"
             >
-              <Link href="/pricing">Upgrade to PRO - $29/mo</Link>
+              <Link href="/pricing">Upgrade to PRO - ${regularPrice}/mo</Link>
             </Button>
           </div>
         </div>
