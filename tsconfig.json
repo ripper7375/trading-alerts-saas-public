@@ -151,6 +151,7 @@
     "dist", // Distribution output
     "build", // Build artifacts
     "seed-code", // Seed/template code
+    "e2e", // E2E tests (use Playwright's TypeScript handling)
     "**/*.test.ts", // Test files (checked separately by Jest)
     "**/*.test.tsx",
     "**/*.spec.ts",
