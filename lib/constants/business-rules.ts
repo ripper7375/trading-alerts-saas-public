@@ -347,10 +347,14 @@ export function canAccessIndicator(indicator: string, tier: Tier): boolean {
 
 /**
  * Get upgrade message for a locked resource
+ *
+ * Note: Does not include specific price as it's configurable via SystemConfig.
+ * For price display, use useAffiliateConfig() hook on frontend
+ * or getBasePriceUsd() from lib/affiliate/constants on backend.
  */
 export function getUpgradeMessage(
   _resourceType: 'symbol' | 'indicator',
   resourceName: string
 ): string {
-  return `${resourceName} requires PRO tier. Upgrade for $29/month with 7-day free trial.`;
+  return `${resourceName} requires PRO tier. Upgrade to PRO with a 7-day free trial.`;
 }

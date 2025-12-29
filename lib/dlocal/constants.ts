@@ -3,6 +3,12 @@
  *
  * Defines supported countries, currencies, payment methods,
  * and pricing for dLocal payment processing.
+ *
+ * NOTE: For dynamic pricing from SystemConfig, use:
+ * - Backend: getBasePriceUsd() from lib/affiliate/constants
+ * - Frontend: useAffiliateConfig() hook
+ *
+ * The PRICING.MONTHLY_USD constant here is a default fallback value.
  */
 
 import type {
@@ -68,10 +74,15 @@ export const PAYMENT_METHODS: Record<DLocalCountry, string[]> = {
 };
 
 /**
- * USD pricing for plans
+ * Default USD pricing for plans
+ *
+ * For dynamic MONTHLY price from SystemConfig, use getBasePriceUsd()
+ * from lib/affiliate/constants.ts in API routes and webhooks.
  */
 export const PRICING = {
+  /** Fixed price for 3-day trial (not configurable) */
   THREE_DAY_USD: 1.99,
+  /** Default monthly price - use getBasePriceUsd() for dynamic value from SystemConfig */
   MONTHLY_USD: 29.0,
 } as const;
 

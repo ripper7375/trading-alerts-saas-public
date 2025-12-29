@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 /**
  * TierComparison Component
@@ -12,8 +13,14 @@ import { Button } from '@/components/ui/button';
  *
  * FREE: 5 symbols, 3 timeframes, 15 combinations
  * PRO: 15 symbols, 9 timeframes, 135 combinations
+ *
+ * Pricing is fetched dynamically from SystemConfig via useAffiliateConfig hook.
  */
 export function TierComparison(): React.ReactElement {
+  // Get dynamic PRO price from SystemConfig
+  const { regularPrice } = useAffiliateConfig();
+  const yearlyPrice = Math.round(regularPrice * 10); // 10 months for yearly (save 2 months)
+  const yearlySavings = regularPrice * 12 - yearlyPrice;
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -254,13 +261,13 @@ export function TierComparison(): React.ReactElement {
             </td>
             <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
               <div className="font-bold text-2xl text-blue-600 dark:text-blue-400">
-                $29
+                ${regularPrice}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 per month
               </div>
               <div className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
-                or $290/year (save $58)
+                or ${yearlyPrice}/year (save ${yearlySavings})
               </div>
               <div className="text-sm text-green-600 dark:text-green-400 font-medium mt-1">
                 7-day free trial

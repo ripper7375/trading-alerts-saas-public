@@ -93,7 +93,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'How do I upgrade to PRO?',
     answer:
-      'Go to Settings > Billing and click "Upgrade to PRO". You can pay monthly ($29/month) with credit card or other payment methods. Your upgrade takes effect immediately.',
+      'Go to Settings > Billing and click "Upgrade to PRO", or visit the Pricing page for current pricing details. You can pay monthly with credit card or other payment methods. Your upgrade takes effect immediately.',
   },
   {
     question: 'Can I cancel my PRO subscription?',
