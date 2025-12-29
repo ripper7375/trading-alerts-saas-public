@@ -123,15 +123,15 @@ export default function LoginForm(): JSX.Element {
   if (isSuccess) {
     return (
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-card rounded-lg shadow-xl p-8">
           <div className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <CheckCircle2 className="w-10 h-10 text-green-600" />
+            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
+              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               Welcome back!
             </h2>
-            <p className="text-gray-600">Redirecting to dashboard...</p>
+            <p className="text-muted-foreground">Redirecting to dashboard...</p>
           </div>
         </div>
       </div>
@@ -140,12 +140,12 @@ export default function LoginForm(): JSX.Element {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-lg shadow-xl p-8">
+      <div className="bg-card rounded-lg shadow-xl p-8">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900">
+          <h1 className="text-3xl font-bold mb-2 text-foreground">
             Welcome Back
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Sign in to your Trading Alerts account
           </p>
         </div>
@@ -193,7 +193,7 @@ export default function LoginForm(): JSX.Element {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground"
             >
               Email Address
             </label>
@@ -203,12 +203,12 @@ export default function LoginForm(): JSX.Element {
                 type="email"
                 placeholder="john@example.com"
                 {...register('email')}
-                className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 ${
+                className={`w-full px-3 py-2 pr-10 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
                   errors.email
                     ? 'border-red-500 focus:ring-red-500'
                     : touchedFields.email && !errors.email
                       ? 'border-green-500 focus:ring-green-500'
-                      : 'border-gray-300'
+                      : 'border-border'
                 }`}
                 aria-describedby={errors.email ? 'email-error' : undefined}
               />
@@ -237,7 +237,7 @@ export default function LoginForm(): JSX.Element {
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-foreground"
             >
               Password
             </label>
@@ -247,12 +247,12 @@ export default function LoginForm(): JSX.Element {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 {...register('password')}
-                className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 ${
+                className={`w-full px-3 py-2 pr-10 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
                   errors.password
                     ? 'border-red-500 focus:ring-red-500'
                     : touchedFields.password && !errors.password
                       ? 'border-green-500 focus:ring-green-500'
-                      : 'border-gray-300'
+                      : 'border-border'
                 }`}
                 aria-describedby={
                   errors.password ? 'password-error' : undefined
@@ -261,7 +261,7 @@ export default function LoginForm(): JSX.Element {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -285,11 +285,11 @@ export default function LoginForm(): JSX.Element {
                 id="rememberMe"
                 type="checkbox"
                 {...register('rememberMe')}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
               />
               <label
                 htmlFor="rememberMe"
-                className="text-sm text-gray-600 cursor-pointer font-normal"
+                className="text-sm text-muted-foreground cursor-pointer font-normal"
               >
                 Remember me for 30 days
               </label>
@@ -305,7 +305,7 @@ export default function LoginForm(): JSX.Element {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 text-lg font-semibold rounded-md text-white shadow-lg transition-all duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md text-primary-foreground shadow-lg transition-all duration-200 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
             disabled={isSubmitting || !isValid}
           >
             {isSubmitting ? (
@@ -322,10 +322,10 @@ export default function LoginForm(): JSX.Element {
         {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-400">OR</span>
+            <span className="px-4 bg-card text-muted-foreground">OR</span>
           </div>
         </div>
 
@@ -334,10 +334,10 @@ export default function LoginForm(): JSX.Element {
 
         {/* Footer Links */}
         <div className="text-center mt-6">
-          <span className="text-gray-600">Don&apos;t have an account?</span>
+          <span className="text-muted-foreground">Don&apos;t have an account?</span>
           <Link
             href="/register"
-            className="text-blue-600 font-semibold hover:underline ml-1"
+            className="text-primary font-semibold hover:underline ml-1"
           >
             Sign up for free →
           </Link>
