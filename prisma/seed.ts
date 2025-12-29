@@ -194,6 +194,13 @@ async function main() {
         description: 'Base subscription price in USD before discount',
         category: 'affiliate',
       },
+      {
+        key: 'affiliate_three_day_price',
+        value: '1.99',
+        valueType: 'number',
+        description: '3-day trial plan price in USD (dLocal only)',
+        category: 'affiliate',
+      },
     ];
 
     for (const config of systemConfigEntries) {

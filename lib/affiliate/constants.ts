@@ -29,6 +29,7 @@ export interface DynamicAffiliateConfig {
   commissionPercent: number;
   codesPerMonth: number;
   basePriceUsd: number;
+  threeDayPriceUsd: number;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -130,6 +131,7 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
             'affiliate_commission_percent',
             'affiliate_codes_per_month',
             'affiliate_base_price',
+            'affiliate_three_day_price',
           ],
         },
       },
@@ -152,6 +154,9 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
         10
       ),
       basePriceUsd: parseFloat(configMap['affiliate_base_price'] || '29.0'),
+      threeDayPriceUsd: parseFloat(
+        configMap['affiliate_three_day_price'] || '1.99'
+      ),
     };
   } catch (error) {
     console.error(
@@ -164,6 +169,7 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
       commissionPercent: AFFILIATE_CONFIG.COMMISSION_PERCENT,
       codesPerMonth: AFFILIATE_CONFIG.CODES_PER_MONTH,
       basePriceUsd: AFFILIATE_CONFIG.BASE_PRICE_USD,
+      threeDayPriceUsd: 1.99,
     };
   }
 }
@@ -209,6 +215,22 @@ export async function getCodesPerMonth(): Promise<number> {
 export async function getBasePriceUsd(): Promise<number> {
   const config = await getAffiliateConfigFromDB();
   return config.basePriceUsd;
+}
+
+/**
+ * Get 3-day trial price from SystemConfig
+ * @returns Current 3-day trial price in USD
+ *
+ * @example
+ * ```typescript
+ * // In an API route or webhook:
+ * const threeDayPrice = await getThreeDayPriceUsd();
+ * console.log(`Current 3-day trial price: $${threeDayPrice}`);
+ * ```
+ */
+export async function getThreeDayPriceUsd(): Promise<number> {
+  const config = await getAffiliateConfigFromDB();
+  return config.threeDayPriceUsd;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

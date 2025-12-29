@@ -4,15 +4,17 @@
  * Plan Selector Component
  *
  * Displays plan cards for selection:
- * - 3-Day Trial plan ($1.99) - only for eligible users in dLocal countries
- * - Monthly plan ($29.00) - always available
+ * - 3-Day Trial plan - only for eligible users in dLocal countries
+ * - Monthly plan - always available
+ *
+ * Prices are fetched from SystemConfig via useAffiliateConfig hook.
  *
  * @module components/payments/PlanSelector
  */
 
 import { Check, Clock, Star } from 'lucide-react';
 import type { PlanType } from '@/types/dlocal';
-import { PRICING } from '@/lib/dlocal/constants';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { cn } from '@/lib/utils';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -43,6 +45,9 @@ export function PlanSelector({
   showThreeDayPlan,
   disabled = false,
 }: PlanSelectorProps): React.ReactElement {
+  // Get dynamic prices from SystemConfig
+  const { regularPrice, threeDayPrice } = useAffiliateConfig();
+
   const handlePlanSelect = (plan: PlanType): void => {
     if (disabled) return;
     if (plan === 'THREE_DAY' && !canUseThreeDayPlan) return;
@@ -94,7 +99,7 @@ export function PlanSelector({
                   <span className="text-lg font-bold">3-Day Trial</span>
                 </div>
                 <div className="text-2xl font-bold text-purple-600">
-                  ${PRICING.THREE_DAY_USD.toFixed(2)}
+                  ${threeDayPrice.toFixed(2)}
                 </div>
               </div>
               {value === 'THREE_DAY' && canUseThreeDayPlan && (
@@ -143,7 +148,7 @@ export function PlanSelector({
                 <span className="text-lg font-bold">Monthly</span>
               </div>
               <div className="text-2xl font-bold text-blue-600">
-                ${PRICING.MONTHLY_USD.toFixed(2)}
+                ${regularPrice.toFixed(2)}
                 <span className="text-sm font-normal text-muted-foreground">
                   /month
                 </span>
