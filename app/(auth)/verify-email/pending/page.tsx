@@ -20,9 +20,11 @@ function VerifyEmailPendingContent(): JSX.Element {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (countdown === 0 && resendStatus === 'rate_limited') {
+    }
+    if (countdown === 0 && resendStatus === 'rate_limited') {
       setResendStatus('idle');
     }
+    return undefined;
   }, [countdown, resendStatus]);
 
   const handleResendEmail = async (): Promise<void> => {
