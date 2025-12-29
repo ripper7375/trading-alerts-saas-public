@@ -66,7 +66,6 @@ export default function RegisterForm(): JSX.Element {
     watch,
     setValue,
     formState: { errors, touchedFields, isValid },
-    reset,
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     mode: 'onChange',
