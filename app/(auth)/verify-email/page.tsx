@@ -86,7 +86,7 @@ function VerifyEmailContent(): JSX.Element {
               Email verified successfully!
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Redirecting to login...
+              Your account is now active. Redirecting to sign in...
             </p>
           </div>
         );
@@ -113,12 +113,15 @@ function VerifyEmailContent(): JSX.Element {
               Verification failed
             </h2>
             <p className="mt-2 text-sm text-gray-600">{error}</p>
+            <p className="mt-2 text-sm text-gray-500">
+              The link may have expired. Try signing in to request a new verification email.
+            </p>
             <div className="mt-6">
               <Link
                 href="/login"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Back to Login
+                Go to Sign In
               </Link>
             </div>
           </div>
@@ -127,9 +130,9 @@ function VerifyEmailContent(): JSX.Element {
       case 'missing':
         return (
           <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
               <svg
-                className="h-6 w-6 text-red-600"
+                className="h-6 w-6 text-amber-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -142,18 +145,21 @@ function VerifyEmailContent(): JSX.Element {
                 ></path>
               </svg>
             </div>
-            <h2 className="mt-4 text-xl font-semibold text-red-600">
-              Invalid verification link
+            <h2 className="mt-4 text-xl font-semibold text-amber-600">
+              Verification link missing
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              The verification link is missing or invalid.
+              The verification token is missing from the link.
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              Please click the link in your verification email, or sign in to request a new one.
             </p>
             <div className="mt-6">
               <Link
                 href="/login"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Back to Login
+                Go to Sign In
               </Link>
             </div>
           </div>

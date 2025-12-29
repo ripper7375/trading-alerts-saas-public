@@ -1,9 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Check, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Check, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -22,7 +22,11 @@ const registrationSchema = z
       .min(8, 'Password must be at least 8 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
+      .regex(/[0-9]/, 'Password must contain at least one number')
+      .regex(
+        /[!@#$%^&*(),.?":{}|<>]/,
+        'Password must contain at least one special character'
+      ),
     confirmPassword: z.string(),
     referralCode: z.string().optional(),
     agreedToTerms: z
@@ -38,6 +42,7 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export default function RegisterForm(): JSX.Element {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Get dynamic affiliate config from SystemConfig
   const { discountPercent, regularPrice, calculateDiscountedPrice } =
@@ -46,7 +51,6 @@ export default function RegisterForm(): JSX.Element {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Referral code state
@@ -62,11 +66,18 @@ export default function RegisterForm(): JSX.Element {
     watch,
     setValue,
     formState: { errors, touchedFields, isValid },
-    reset,
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
-    mode: 'onBlur',
+    mode: 'onChange',
     reValidateMode: 'onChange',
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      referralCode: '',
+      agreedToTerms: false,
+    },
   });
 
   const password = watch('password');
@@ -80,6 +91,7 @@ export default function RegisterForm(): JSX.Element {
     hasUppercase: /[A-Z]/.test(password || ''),
     hasLowercase: /[a-z]/.test(password || ''),
     hasNumber: /[0-9]/.test(password || ''),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password || ''),
   };
 
   // Pre-fill referral code from URL
@@ -88,7 +100,7 @@ export default function RegisterForm(): JSX.Element {
     if (refCode) {
       const upperCode = refCode.toUpperCase();
       setReferralCode(upperCode);
-      setValue('referralCode', upperCode);
+      setValue('referralCode', upperCode, { shouldValidate: true });
       verifyCode(upperCode);
     }
   }, [searchParams, setValue]);
@@ -141,14 +153,20 @@ export default function RegisterForm(): JSX.Element {
         body: JSON.stringify(submitData),
       });
 
+      const responseData = await response.json();
+
       if (response.ok) {
-        setSuccess(true);
-        reset();
-        setError(null);
+        // Redirect to verification pending page with email
+        const encodedEmail = encodeURIComponent(data.email);
+        router.push(`/verify-email/pending?email=${encodedEmail}`);
+        return;
       } else if (response.status === 409) {
         setError('An account with this email already exists.');
+      } else if (response.status === 503) {
+        setError('Database connection error. Please try again later.');
       } else {
-        setError('Registration failed. Please try again.');
+        // Display the actual error message from the API if available
+        setError(responseData?.error || 'Registration failed. Please try again.');
       }
     } catch (err) {
       console.error('Registration error:', err);
@@ -157,40 +175,6 @@ export default function RegisterForm(): JSX.Element {
       setIsSubmitting(false);
     }
   };
-
-  // Success screen with animation
-  if (success) {
-    return (
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl p-8">
-          <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              Account created successfully!
-            </h2>
-            {isCodeValid && (
-              <p className="text-green-600 dark:text-green-400 font-medium mb-2">
-                🎉 {discountPercent}% discount activated! You&apos;ll pay $
-                {calculateDiscountedPrice(regularPrice).toFixed(2)}/month for
-                PRO.
-              </p>
-            )}
-            <p className="text-muted-foreground mb-4">
-              Please check your email to verify your account.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90"
-            >
-              Go to Login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-md">
@@ -367,6 +351,22 @@ export default function RegisterForm(): JSX.Element {
                     One number
                   </span>
                 </div>
+                <div className="flex items-center gap-2 text-sm">
+                  {passwordValidation.hasSpecial ? (
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  )}
+                  <span
+                    className={
+                      passwordValidation.hasSpecial
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    One special character (!@#$%^&*)
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -442,7 +442,7 @@ export default function RegisterForm(): JSX.Element {
                   onChange={(e) => {
                     const upper = e.target.value.toUpperCase();
                     setReferralCode(upper);
-                    setValue('referralCode', upper);
+                    setValue('referralCode', upper, { shouldValidate: true });
                     // Reset validation states when user types
                     if (isCodeValid || codeError) {
                       setIsCodeValid(false);
@@ -541,8 +541,8 @@ export default function RegisterForm(): JSX.Element {
 
           {/* Error Display */}
           {error && (
-            <div className="rounded-md bg-red-50 p-4 border border-red-200">
-              <div className="text-sm text-red-700">{error}</div>
+            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+              <div className="text-sm text-red-700 dark:text-red-300">{error}</div>
             </div>
           )}
 

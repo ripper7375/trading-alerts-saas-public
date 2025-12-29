@@ -27,7 +27,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-type ErrorType = 'invalid' | 'locked' | 'server' | null;
+type ErrorType = 'invalid' | 'locked' | 'server' | 'unverified' | null;
 
 export default function LoginForm(): JSX.Element {
   const router = useRouter();
@@ -35,6 +35,7 @@ export default function LoginForm(): JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<ErrorType>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState('');
 
   const {
     register,
@@ -48,6 +49,7 @@ export default function LoginForm(): JSX.Element {
   const onSubmit = async (data: LoginFormData): Promise<void> => {
     setIsSubmitting(true);
     setError(null);
+    setCurrentEmail(data.email);
 
     try {
       const result = await signIn('credentials', {
@@ -58,7 +60,9 @@ export default function LoginForm(): JSX.Element {
 
       if (result?.error) {
         // Parse error to determine type
-        if (result.error.includes('locked')) {
+        if (result.error.includes('EMAIL_NOT_VERIFIED')) {
+          setError('unverified');
+        } else if (result.error.includes('locked')) {
           setError('locked');
         } else {
           setError('invalid');
@@ -84,6 +88,7 @@ export default function LoginForm(): JSX.Element {
     border: string;
     text: string;
     icon: string;
+    action?: 'verify' | 'reset';
   } | null => {
     switch (error) {
       case 'invalid':
@@ -94,6 +99,16 @@ export default function LoginForm(): JSX.Element {
           text: 'text-red-800',
           icon: 'text-red-600',
         };
+      case 'unverified':
+        return {
+          title: 'Please verify your email address before signing in.',
+          subtitle: 'Check your inbox for the verification link.',
+          bg: 'bg-amber-50',
+          border: 'border-amber-500',
+          text: 'text-amber-800',
+          icon: 'text-amber-600',
+          action: 'verify',
+        };
       case 'locked':
         return {
           title:
@@ -103,6 +118,7 @@ export default function LoginForm(): JSX.Element {
           border: 'border-orange-500',
           text: 'text-orange-800',
           icon: 'text-orange-600',
+          action: 'reset',
         };
       case 'server':
         return {
@@ -169,7 +185,15 @@ export default function LoginForm(): JSX.Element {
                     {errorConfig.subtitle}
                   </p>
                 )}
-                {error === 'locked' && (
+                {errorConfig?.action === 'verify' && currentEmail && (
+                  <Link
+                    href={`/verify-email/pending?email=${encodeURIComponent(currentEmail)}`}
+                    className="text-blue-600 underline text-sm mt-2 hover:text-blue-700 block"
+                  >
+                    Resend verification email
+                  </Link>
+                )}
+                {errorConfig?.action === 'reset' && (
                   <Link
                     href="/forgot-password"
                     className="text-blue-600 underline text-sm mt-2 hover:text-blue-700 block"
