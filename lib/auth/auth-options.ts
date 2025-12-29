@@ -84,6 +84,11 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env['TWITTER_CLIENT_ID']!,
       clientSecret: process.env['TWITTER_CLIENT_SECRET']!,
       version: '2.0',
+      authorization: {
+        params: {
+          scope: 'tweet.read users.read offline.access',
+        },
+      },
     }),
 
     // LinkedIn OAuth Provider
@@ -140,7 +145,10 @@ export const authOptions: NextAuthOptions = {
           // Check if email is verified (only for email/password registration)
           // Users who registered via email must verify their email before logging in
           if (!user.emailVerified) {
-            console.log('[Auth] Login rejected: Email not verified for', user.email);
+            console.log(
+              '[Auth] Login rejected: Email not verified for',
+              user.email
+            );
             throw new Error('EMAIL_NOT_VERIFIED');
           }
 
@@ -159,7 +167,10 @@ export const authOptions: NextAuthOptions = {
           };
         } catch (error) {
           // Re-throw EMAIL_NOT_VERIFIED error to be handled by NextAuth
-          if (error instanceof Error && error.message === 'EMAIL_NOT_VERIFIED') {
+          if (
+            error instanceof Error &&
+            error.message === 'EMAIL_NOT_VERIFIED'
+          ) {
             throw error;
           }
           console.error('Credentials authorization error:', error);
@@ -199,7 +210,12 @@ export const authOptions: NextAuthOptions = {
      */
     async signIn({ user, account }) {
       try {
-        console.log('[SignIn] Provider:', account?.provider, 'Email:', user.email);
+        console.log(
+          '[SignIn] Provider:',
+          account?.provider,
+          'Email:',
+          user.email
+        );
 
         // Only apply security check to OAuth providers (not credentials)
         if (account?.provider && account.provider !== 'credentials') {
