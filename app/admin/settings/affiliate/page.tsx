@@ -28,6 +28,7 @@ interface AffiliateSettings {
   commissionPercent: ConfigValue;
   codesPerMonth: ConfigValue;
   basePrice: ConfigValue;
+  threeDayPrice: ConfigValue;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -46,6 +47,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
   const [commissionPercent, setCommissionPercent] = useState<number>(20);
   const [codesPerMonth, setCodesPerMonth] = useState<number>(15);
   const [basePrice, setBasePrice] = useState<number>(29);
+  const [threeDayPrice, setThreeDayPrice] = useState<number>(1.99);
   const [reason, setReason] = useState<string>('');
 
   // Fetch current settings
@@ -68,6 +70,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
       setCommissionPercent(data.commissionPercent.value);
       setCodesPerMonth(data.codesPerMonth.value);
       setBasePrice(data.basePrice.value);
+      setThreeDayPrice(data.threeDayPrice.value);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -95,6 +98,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
           commissionPercent,
           codesPerMonth,
           basePrice,
+          threeDayPrice,
           reason: reason || undefined,
         }),
       });
@@ -269,7 +273,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   htmlFor="basePrice"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Base Subscription Price ($)
+                  Monthly Subscription Price ($)
                 </label>
                 <input
                   type="number"
@@ -281,7 +285,29 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Regular subscription price before discount
+                  Regular monthly subscription price before discount
+                </p>
+              </div>
+
+              {/* 3-Day Trial Price */}
+              <div>
+                <label
+                  htmlFor="threeDayPrice"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  3-Day Trial Price ($)
+                </label>
+                <input
+                  type="number"
+                  id="threeDayPrice"
+                  min="0"
+                  step="0.01"
+                  value={threeDayPrice}
+                  onChange={(e) => setThreeDayPrice(parseFloat(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  3-day trial plan price in USD (dLocal countries only)
                 </p>
               </div>
 

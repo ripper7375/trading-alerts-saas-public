@@ -76,11 +76,14 @@ export const PAYMENT_METHODS: Record<DLocalCountry, string[]> = {
 /**
  * Default USD pricing for plans
  *
- * For dynamic MONTHLY price from SystemConfig, use getBasePriceUsd()
- * from lib/affiliate/constants.ts in API routes and webhooks.
+ * ⚠️ IMPORTANT: These are fallback default values only.
+ *
+ * For dynamic prices from SystemConfig, use:
+ * - Backend: getBasePriceUsd() and getThreeDayPriceUsd() from lib/affiliate/constants
+ * - Frontend: useAffiliateConfig() hook (provides regularPrice and threeDayPrice)
  */
 export const PRICING = {
-  /** Fixed price for 3-day trial (not configurable) */
+  /** Default 3-day trial price - use getThreeDayPriceUsd() for dynamic value from SystemConfig */
   THREE_DAY_USD: 1.99,
   /** Default monthly price - use getBasePriceUsd() for dynamic value from SystemConfig */
   MONTHLY_USD: 29.0,

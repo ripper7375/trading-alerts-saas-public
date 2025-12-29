@@ -27,6 +27,7 @@ interface GetResponse {
   commissionPercent: ConfigValue;
   codesPerMonth: ConfigValue;
   basePrice: ConfigValue;
+  threeDayPrice: ConfigValue;
 }
 
 interface PatchRequest {
@@ -34,6 +35,7 @@ interface PatchRequest {
   commissionPercent?: number;
   codesPerMonth?: number;
   basePrice?: number;
+  threeDayPrice?: number;
   reason?: string;
 }
 
@@ -56,6 +58,7 @@ const CONFIG_KEYS = {
   commissionPercent: 'affiliate_commission_percent',
   codesPerMonth: 'affiliate_codes_per_month',
   basePrice: 'affiliate_base_price',
+  threeDayPrice: 'affiliate_three_day_price',
 } as const;
 
 const DEFAULTS = {
@@ -63,6 +66,7 @@ const DEFAULTS = {
   affiliate_commission_percent: '20.0',
   affiliate_codes_per_month: '15',
   affiliate_base_price: '29.0',
+  affiliate_three_day_price: '1.99',
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -147,6 +151,16 @@ export async function GET(
           configMap[CONFIG_KEYS.basePrice]?.updatedAt?.toISOString() ??
           new Date().toISOString(),
       },
+      threeDayPrice: {
+        value: parseFloat(
+          configMap[CONFIG_KEYS.threeDayPrice]?.value ??
+            DEFAULTS.affiliate_three_day_price
+        ),
+        updatedBy: configMap[CONFIG_KEYS.threeDayPrice]?.updatedBy ?? null,
+        updatedAt:
+          configMap[CONFIG_KEYS.threeDayPrice]?.updatedAt?.toISOString() ??
+          new Date().toISOString(),
+      },
     };
 
     return NextResponse.json(response);
@@ -195,6 +209,7 @@ export async function PATCH(
       commissionPercent,
       codesPerMonth,
       basePrice,
+      threeDayPrice,
       reason,
     } = body;
 
@@ -230,6 +245,15 @@ export async function PATCH(
       if (basePrice < 0) {
         return NextResponse.json(
           { error: 'Base price must be positive' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (threeDayPrice !== undefined) {
+      if (threeDayPrice < 0) {
+        return NextResponse.json(
+          { error: '3-day trial price must be positive' },
           { status: 400 }
         );
       }
@@ -290,6 +314,20 @@ export async function PATCH(
       );
       if (change) {
         changes.push({ setting: 'basePrice', ...change });
+      }
+    }
+
+    // Update 3-day trial price
+    if (threeDayPrice !== undefined) {
+      const change = await updateConfig(
+        CONFIG_KEYS.threeDayPrice,
+        threeDayPrice.toString(),
+        adminId,
+        adminEmail,
+        reason
+      );
+      if (change) {
+        changes.push({ setting: 'threeDayPrice', ...change });
       }
     }
 
@@ -395,6 +433,8 @@ function getDescription(key: string): string {
       return 'Number of codes distributed to each affiliate monthly';
     case 'affiliate_base_price':
       return 'Base subscription price in USD before discount';
+    case 'affiliate_three_day_price':
+      return '3-day trial plan price in USD (dLocal only)';
     default:
       return '';
   }

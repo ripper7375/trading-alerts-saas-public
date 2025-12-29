@@ -20,6 +20,7 @@ interface AffiliateConfigResponse {
   commissionPercent: number;
   codesPerMonth: number;
   regularPrice: number;
+  threeDayPrice: number;
   lastUpdated: string;
 }
 
@@ -33,6 +34,7 @@ const DEFAULTS = {
   affiliate_commission_percent: '20.0',
   affiliate_codes_per_month: '15',
   affiliate_base_price: '29.0',
+  affiliate_three_day_price: '1.99',
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -59,6 +61,7 @@ export async function GET(
             'affiliate_commission_percent',
             'affiliate_codes_per_month',
             'affiliate_base_price',
+            'affiliate_three_day_price',
           ],
         },
       },
@@ -93,6 +96,10 @@ export async function GET(
       regularPrice: parseFloat(
         configMap['affiliate_base_price'] ?? DEFAULTS['affiliate_base_price']
       ),
+      threeDayPrice: parseFloat(
+        configMap['affiliate_three_day_price'] ??
+          DEFAULTS['affiliate_three_day_price']
+      ),
       lastUpdated: latestUpdate?.toISOString() ?? new Date().toISOString(),
     };
 
@@ -111,6 +118,7 @@ export async function GET(
       commissionPercent: parseFloat(DEFAULTS.affiliate_commission_percent),
       codesPerMonth: parseInt(DEFAULTS.affiliate_codes_per_month, 10),
       regularPrice: parseFloat(DEFAULTS.affiliate_base_price),
+      threeDayPrice: parseFloat(DEFAULTS.affiliate_three_day_price),
       lastUpdated: new Date().toISOString(),
     };
 

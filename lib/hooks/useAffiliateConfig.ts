@@ -28,6 +28,8 @@ export interface AffiliateConfig {
   codesPerMonth: number;
   /** Base subscription price in USD */
   regularPrice: number;
+  /** 3-day trial plan price in USD (dLocal only) */
+  threeDayPrice: number;
   /** ISO timestamp of when config was last updated */
   lastUpdated: string;
 }
@@ -46,6 +48,8 @@ export interface UseAffiliateConfigReturn {
   codesPerMonth: number;
   /** Base subscription price (default: 29.00) */
   regularPrice: number;
+  /** 3-day trial plan price (default: 1.99) */
+  threeDayPrice: number;
   /** Helper function to calculate discounted price */
   calculateDiscountedPrice: (price: number) => number;
   /** Helper function to calculate commission amount */
@@ -68,6 +72,7 @@ const DEFAULTS = {
   commissionPercent: 20,
   codesPerMonth: 15,
   regularPrice: 29.0,
+  threeDayPrice: 1.99,
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -153,6 +158,7 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
     data?.commissionPercent ?? DEFAULTS.commissionPercent;
   const codesPerMonth = data?.codesPerMonth ?? DEFAULTS.codesPerMonth;
   const regularPrice = data?.regularPrice ?? DEFAULTS.regularPrice;
+  const threeDayPrice = data?.threeDayPrice ?? DEFAULTS.threeDayPrice;
 
   /**
    * Calculate price after applying affiliate discount
@@ -188,6 +194,7 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
     commissionPercent,
     codesPerMonth,
     regularPrice,
+    threeDayPrice,
     calculateDiscountedPrice,
     calculateCommissionAmount,
     calculateDiscountAmount,
