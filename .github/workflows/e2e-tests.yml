@@ -1,0 +1,327 @@
+name: E2E Tests
+
+# ============================================================================
+# E2E Testing Workflow
+# ============================================================================
+# This workflow runs Playwright E2E tests in the following scenarios:
+# 1. Manual trigger (workflow_dispatch) - On-demand testing
+# 2. Scheduled runs - Nightly at 2 AM UTC
+# 3. Pre-release gates - When pushing to main or creating releases
+# 4. Pull requests to main - Optional, can be enabled
+# ============================================================================
+
+on:
+  # Manual trigger with options
+  workflow_dispatch:
+    inputs:
+      test_group:
+        description: 'Test group to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - group-a
+          - group-b
+      browser:
+        description: 'Browser to test'
+        required: true
+        default: 'chromium'
+        type: choice
+        options:
+          - chromium
+          - firefox
+          - webkit
+          - all
+      environment:
+        description: 'Environment to test against'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - local
+          - preview
+          - production
+
+  # Scheduled nightly runs at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Pre-release: Run on pushes to main branch
+  push:
+    branches:
+      - main
+    paths:
+      # Only run if relevant files changed
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'e2e/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+  # Optional: Run on PRs to main (commented out to save resources)
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'e2e/**'
+
+# Prevent concurrent runs
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Default environment variables
+  NODE_ENV: test
+  SKIP_ENV_VALIDATION: true
+
+jobs:
+  # =========================================================================
+  # Setup Job - Prepare environment and cache
+  # =========================================================================
+  setup:
+    name: Setup E2E Environment
+    runs-on: ubuntu-latest
+    outputs:
+      playwright-version: ${{ steps.playwright-version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: |
+          PLAYWRIGHT_VERSION=$(node -p "require('./package.json').devDependencies['@playwright/test']")
+          echo "version=$PLAYWRIGHT_VERSION" >> $GITHUB_OUTPUT
+          echo "Playwright version: $PLAYWRIGHT_VERSION"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Generate Prisma Client
+        run: pnpm exec prisma generate
+
+  # =========================================================================
+  # E2E Test Job - Run the actual tests
+  # =========================================================================
+  e2e-tests:
+    name: E2E Tests (${{ matrix.test-group }} - ${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Test groups for parallel execution
+        test-group:
+          - group-a  # Paths 1, 2, 3 (Auth + Subscription)
+          - group-b  # Paths 4, 5, 6, 7 (Features)
+        browser:
+          - chromium
+        # Add more browsers for scheduled/manual runs
+        include:
+          - test-group: group-a
+            browser: firefox
+            scheduled-only: true
+          - test-group: group-b
+            browser: firefox
+            scheduled-only: true
+
+    # Skip non-chromium browsers unless scheduled or manual
+    # This saves resources on regular pushes
+    env:
+      SKIP_BROWSER: ${{ matrix.scheduled-only == true && github.event_name == 'push' }}
+
+    steps:
+      - name: Check if should skip
+        if: env.SKIP_BROWSER == 'true'
+        run: |
+          echo "Skipping ${{ matrix.browser }} tests (only run on schedule/manual)"
+          exit 0
+
+      - name: Checkout code
+        if: env.SKIP_BROWSER != 'true'
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        if: env.SKIP_BROWSER != 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        if: env.SKIP_BROWSER != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Restore Playwright browsers
+        if: env.SKIP_BROWSER != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ needs.setup.outputs.playwright-version }}
+
+      - name: Install dependencies
+        if: env.SKIP_BROWSER != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        if: env.SKIP_BROWSER != 'true'
+        run: pnpm exec prisma generate
+
+      - name: Build application
+        if: env.SKIP_BROWSER != 'true'
+        run: pnpm run build
+
+      - name: Run E2E tests
+        if: env.SKIP_BROWSER != 'true'
+        run: |
+          # Determine which tests to run
+          if [ "${{ matrix.test-group }}" == "group-a" ]; then
+            TEST_PATTERN="Path 1|Path 2|Path 3"
+          else
+            TEST_PATTERN="Path 4|Path 5|Path 6|Path 7"
+          fi
+
+          # Run tests with the specified browser
+          pnpm exec playwright test \
+            --config=e2e/playwright.config.ts \
+            --project=${{ matrix.browser }} \
+            --grep "$TEST_PATTERN" \
+            --reporter=github,html
+        env:
+          # Test environment variables
+          BASE_URL: http://localhost:3000
+          CI: true
+
+      - name: Upload test results
+        if: always() && env.SKIP_BROWSER != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.test-group }}-${{ matrix.browser }}
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+
+      - name: Upload failure screenshots
+        if: failure() && env.SKIP_BROWSER != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failures-${{ matrix.test-group }}-${{ matrix.browser }}
+          path: e2e/test-results/**/*.png
+          retention-days: 7
+
+  # =========================================================================
+  # Summary Job - Aggregate results
+  # =========================================================================
+  e2e-summary:
+    name: E2E Test Summary
+    runs-on: ubuntu-latest
+    needs: [setup, e2e-tests]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate summary
+        run: |
+          echo "## 🎭 E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results by Group" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Group | Browser | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Check results
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "| Group A | Chromium | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            echo "| Group B | Chromium | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Tests | Mixed | ⚠️ Check details |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "Test reports and screenshots are available in the workflow artifacts." >> $GITHUB_STEP_SUMMARY
+
+      - name: Check overall status
+        if: needs.e2e-tests.result == 'failure'
+        run: |
+          echo "❌ E2E tests failed"
+          exit 1
+
+  # =========================================================================
+  # Notify Job - Send notifications on failure (optional)
+  # =========================================================================
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+    if: failure() && github.event_name == 'schedule'
+
+    steps:
+      - name: Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 E2E Tests Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            ## E2E Test Failure Report
+
+            **Workflow Run:** [View Details](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})
+            **Trigger:** Scheduled nightly run
+            **Branch:** main
+
+            ### Next Steps
+            1. Check the workflow logs for failure details
+            2. Download test artifacts for screenshots
+            3. Fix the failing tests
+            4. Re-run the workflow manually to verify
+
+            /cc @${process.env.GITHUB_ACTOR}
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'e2e-tests', 'automated']
+            });
