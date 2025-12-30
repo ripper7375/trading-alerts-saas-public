@@ -34,23 +34,23 @@ export class LoginPage {
     this.page = page;
 
     // Form elements
-    this.emailInput = page.locator('input[type="email"]');
-    this.passwordInput = page.locator('input[type="password"]');
+    this.emailInput = page.locator('#email');
+    this.passwordInput = page.locator('#password');
     this.submitButton = page.locator('button[type="submit"]');
-    this.rememberMeCheckbox = page.locator('input[name="remember"]');
+    this.rememberMeCheckbox = page.locator('#rememberMe');
 
-    // OAuth buttons
-    this.googleButton = page.locator('[data-testid="google-login"]');
-    this.twitterButton = page.locator('[data-testid="twitter-login"]');
-    this.linkedinButton = page.locator('[data-testid="linkedin-login"]');
+    // OAuth buttons - using text-based locators
+    this.googleButton = page.locator('button:has-text("Google")');
+    this.twitterButton = page.locator('button:has-text("Login with X")');
+    this.linkedinButton = page.locator('button:has-text("LinkedIn")');
 
     // Links
     this.forgotPasswordLink = page.locator('a[href*="forgot-password"]');
     this.registerLink = page.locator('a[href*="register"]');
 
-    // Messages
-    this.errorMessage = page.locator('[data-testid="error-message"]');
-    this.successMessage = page.locator('[data-testid="success-message"]');
+    // Messages - login form shows errors in an alert div with border-l-4 class
+    this.errorMessage = page.locator('.border-l-4 p').first();
+    this.successMessage = page.locator('text=Welcome back');
   }
 
   /**
