@@ -1,6 +1,7 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { type NextAuthOptions } from 'next-auth';
+import type { Account, User } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
@@ -53,6 +54,7 @@ function CustomPrismaAdapter(): Adapter {
  *
  * Features:
  * - Google OAuth 2.0 for seamless user authentication
+ * - Twitter/X OAuth 2.0 for social login
  * - Email/password credentials provider for traditional login
  * - JWT session strategy for serverless-friendly authentication
  * - Verified-only account linking (security-first)
@@ -199,76 +201,183 @@ export const authOptions: NextAuthOptions = {
   // CALLBACKS
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  async signIn({ user, account }) {
-    try {
-      console.log(
-        '[SignIn] Provider:',
-        account?.provider,
-        'Email:',
-        user.email
-      );
+  callbacks: {
+    /**
+     * SignIn Callback - Security Check for Account Linking
+     *
+     * SECURITY CRITICAL: Prevents account takeover via OAuth
+     * - If OAuth user exists with unverified email → REJECT (prevents takeover)
+     * - User creation is handled by CustomPrismaAdapter (not here)
+     * - Account linking is handled automatically by NextAuth + adapter
+     */
+    async signIn({ user, account }: { user: User; account: Account | null }) {
+      try {
+        console.log(
+          '[SignIn] Provider:',
+          account?.provider,
+          'Email:',
+          user.email
+        );
 
-      // Only apply security check to OAuth providers (not credentials)
-      if (account?.provider && account.provider !== 'credentials') {
-        if (!user.email) {
-          console.error('[SignIn] OAuth user has no email');
-          return false;
-        }
+        // Only apply security check to OAuth providers (not credentials)
+        if (account?.provider && account.provider !== 'credentials') {
+          if (!user.email) {
+            console.error('[SignIn] OAuth user has no email');
+            return false;
+          }
 
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email },
-          include: {
-            accounts: true, // Include linked accounts
-          },
-        });
-
-        console.log('[SignIn] Existing user found:', !!existingUser);
-
-        // SECURITY: Prevent account takeover via unverified OAuth
-        // Only block if:
-        // 1. User exists
-        // 2. Email is NOT verified
-        // 3. User has NO OAuth accounts (meaning they registered with email/password)
-        if (
-          existingUser &&
-          !existingUser.emailVerified &&
-          existingUser.accounts.length === 0
-        ) {
-          console.error(
-            `[SignIn] Prevented OAuth account takeover for unverified email: ${user.email}`
-          );
-          return false; // Reject linking to unverified email/password account
-        }
-
-        // For OAuth sign-ins, auto-verify email since OAuth providers verify emails
-        if (
-          existingUser &&
-          !existingUser.emailVerified &&
-          existingUser.accounts.length > 0
-        ) {
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: { emailVerified: new Date() },
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email },
+            include: {
+              accounts: true, // Include linked accounts
+            },
           });
-          console.log('[SignIn] Auto-verified email for OAuth user');
+
+          console.log('[SignIn] Existing user found:', !!existingUser);
+
+          // SECURITY: Prevent account takeover via unverified OAuth
+          // Only block if:
+          // 1. User exists
+          // 2. Email is NOT verified
+          // 3. User has NO OAuth accounts (meaning they registered with email/password)
+          if (
+            existingUser &&
+            !existingUser.emailVerified &&
+            existingUser.accounts &&
+            existingUser.accounts.length === 0
+          ) {
+            console.error(
+              `[SignIn] Prevented OAuth account takeover for unverified email: ${user.email}`
+            );
+            return false; // Reject linking to unverified email/password account
+          }
+
+          // For OAuth sign-ins, auto-verify email since OAuth providers verify emails
+          if (
+            existingUser &&
+            !existingUser.emailVerified &&
+            existingUser.accounts &&
+            existingUser.accounts.length > 0
+          ) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { emailVerified: new Date() },
+            });
+            console.log('[SignIn] Auto-verified email for OAuth user');
+          }
+
+          // Update profile picture from OAuth if user doesn't have one
+          if (existingUser && !existingUser.image && user.image) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { image: user.image },
+            });
+            console.log('[SignIn] Updated user profile image');
+          }
         }
 
-        // Update profile picture from OAuth if user doesn't have one
-        if (existingUser && !existingUser.image && user.image) {
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: { image: user.image },
-          });
-          console.log('[SignIn] Updated user profile image');
-        }
+        console.log('[SignIn] Allowing sign-in');
+        return true; // Allow sign-in
+      } catch (error) {
+        console.error('[SignIn] Callback error:', error);
+        return false;
       }
+    },
 
-      console.log('[SignIn] Allowing sign-in');
-      return true; // Allow sign-in
-    } catch (error) {
-      console.error('[SignIn] Callback error:', error);
-      return false;
-    }
+    /**
+     * JWT Callback - Include tier, role, and affiliate status
+     *
+     * Fetches fresh user data from database on initial sign-in to ensure
+     * tier, role, and isAffiliate are correctly populated in the JWT token.
+     */
+    async jwt({ token, user, trigger }) {
+      try {
+        console.log('[JWT] Trigger:', trigger, 'Has user:', !!user);
+
+        // Initial sign-in: Fetch fresh user data from database
+        // This is needed because OAuth adapter creates users without tier/role
+        if (user) {
+          console.log('[JWT] User ID:', user.id);
+
+          // For credentials provider, user already has tier/role
+          // For OAuth, we need to fetch from database
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              tier: true,
+              role: true,
+              isAffiliate: true,
+            },
+          });
+
+          console.log('[JWT] DB user found:', !!dbUser);
+
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.email = dbUser.email;
+            token.name = dbUser.name;
+            token.image = dbUser.image;
+            token.tier = dbUser.tier as UserTier;
+            token.role = dbUser.role as UserRole;
+            token.isAffiliate = dbUser.isAffiliate;
+            console.log('[JWT] Token populated from DB');
+          } else {
+            // Fallback to user object (credentials provider)
+            token.id = user.id;
+            token.tier = ('tier' in user ? user.tier : 'FREE') as UserTier;
+            token.role = ('role' in user ? user.role : 'USER') as UserRole;
+            token.isAffiliate = (
+              'isAffiliate' in user ? user.isAffiliate : false
+            ) as boolean;
+            console.log('[JWT] Token populated from user object (fallback)');
+          }
+        }
+
+        // Session update: Refresh from database (e.g., after subscription upgrade)
+        if (trigger === 'update') {
+          console.log('[JWT] Session update, refreshing from DB');
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { tier: true, role: true, isAffiliate: true },
+          });
+
+          if (dbUser) {
+            token.tier = dbUser.tier as UserTier;
+            token.role = dbUser.role as UserRole;
+            token.isAffiliate = dbUser.isAffiliate;
+          }
+        }
+
+        return token;
+      } catch (error) {
+        console.error('[JWT] Callback error:', error);
+        return token;
+      }
+    },
+
+    /**
+     * Session Callback - Expose tier, role, and affiliate status to client
+     */
+    async session({ session, token }) {
+      try {
+        console.log('[Session] Building session for user:', token.email);
+        if (session.user) {
+          session.user.id = token.id as string;
+          session.user.tier = token.tier as UserTier;
+          session.user.role = token.role as UserRole;
+          session.user.isAffiliate = token.isAffiliate as boolean;
+        }
+        console.log('[Session] Session built successfully');
+        return session;
+      } catch (error) {
+        console.error('[Session] Callback error:', error);
+        return session;
+      }
+    },
   },
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
