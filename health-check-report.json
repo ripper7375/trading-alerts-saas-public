@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-12-30T08:24:17+00:00",
+  "summary": {
+    "total_pages": 59,
+    "files_exist": 59,
+    "files_missing": 0,
+    "http_checked": false
+  },
+  "missing_files": [
+
+  ],
+  "broken_routes": [
+
+  ]
+}
