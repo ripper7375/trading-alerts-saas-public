@@ -112,6 +112,9 @@ const nextConfig = {
     ];
   },
 
+  // Exclude test packages from the bundle
+  serverExternalPackages: ['@playwright/test', 'playwright', 'playwright-core'],
+
   // Webpack configuration (for advanced customization)
   webpack: (config, { isServer }) => {
     // Handle chart library (lightweight-charts) properly
@@ -122,6 +125,12 @@ const nextConfig = {
         net: false,
         tls: false,
       };
+    }
+
+    // Exclude test/E2E packages from bundle
+    config.externals = config.externals || [];
+    if (Array.isArray(config.externals)) {
+      config.externals.push('@playwright/test', 'playwright', 'playwright-core');
     }
 
     return config;
