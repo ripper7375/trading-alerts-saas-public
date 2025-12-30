@@ -1,0 +1,63 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Trading Alerts" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Welcome to our secure trading platform
+    - generic [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - heading "Welcome Back" [level=1] [ref=e11]
+          - paragraph [ref=e12]: Sign in to your Trading Alerts account
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - paragraph [ref=e18]: Invalid email or password. Please try again.
+          - button "×" [ref=e19] [cursor=pointer]
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: Email Address
+            - generic [ref=e23]:
+              - textbox "Email Address" [ref=e24]:
+                - /placeholder: john@example.com
+                - text: nonexistent@example.com
+              - img [ref=e26]
+          - generic [ref=e28]:
+            - generic [ref=e29]: Password
+            - generic [ref=e30]:
+              - textbox "Password" [ref=e31]:
+                - /placeholder: Enter your password
+                - text: TestPass123!
+              - button [ref=e32] [cursor=pointer]:
+                - img [ref=e33]
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - checkbox "Remember me for 30 days" [ref=e38]
+              - generic [ref=e39] [cursor=pointer]: Remember me for 30 days
+            - link "Forgot password?" [ref=e40] [cursor=pointer]:
+              - /url: /forgot-password
+          - button "Sign In" [ref=e41] [cursor=pointer]
+        - generic [ref=e46]: OR
+        - generic [ref=e47]:
+          - button "Sign in with Google" [ref=e48] [cursor=pointer]:
+            - img [ref=e49]
+            - text: Sign in with Google
+          - button "Login with X" [ref=e54] [cursor=pointer]:
+            - img [ref=e55]
+            - text: Login with X
+          - button "Sign in with LinkedIn" [ref=e57] [cursor=pointer]:
+            - img [ref=e58]
+            - text: Sign in with LinkedIn
+        - generic [ref=e60]:
+          - text: Don't have an account?
+          - link "Sign up for free →" [ref=e61] [cursor=pointer]:
+            - /url: /register
+      - generic [ref=e62]:
+        - text: Don't have an account?
+        - link "Sign up" [ref=e63] [cursor=pointer]:
+          - /url: /register
+  - button "Open Next.js Dev Tools" [ref=e69] [cursor=pointer]:
+    - img [ref=e70]
+  - alert [ref=e73]
+```

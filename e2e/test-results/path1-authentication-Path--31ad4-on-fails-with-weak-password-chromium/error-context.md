@@ -1,0 +1,107 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Trading Alerts" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Welcome to our secure trading platform
+    - generic [ref=e7]:
+      - generic [ref=e9]:
+        - heading "Create Your Account" [level=1] [ref=e10]
+        - paragraph [ref=e11]: Start trading smarter today
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - generic [ref=e14]: Full Name
+            - generic [ref=e15]:
+              - textbox "Full Name" [ref=e16]:
+                - /placeholder: John Trader
+                - text: Test User
+              - img [ref=e17]
+          - generic [ref=e19]:
+            - generic [ref=e20]: Email Address
+            - generic [ref=e21]:
+              - textbox "Email Address" [ref=e22]:
+                - /placeholder: john@example.com
+                - text: weak-pass-1767136076060-h1oura@trading-alerts.test
+              - img [ref=e23]
+          - generic [ref=e25]:
+            - generic [ref=e26]: Password
+            - generic [ref=e27]:
+              - textbox "Password" [ref=e28]:
+                - /placeholder: ••••••••
+                - text: "123"
+              - button [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+            - generic [ref=e33]:
+              - generic [ref=e34]:
+                - img [ref=e35]
+                - generic [ref=e38]: At least 8 characters
+              - generic [ref=e39]:
+                - img [ref=e40]
+                - generic [ref=e43]: One uppercase letter
+              - generic [ref=e44]:
+                - img [ref=e45]
+                - generic [ref=e48]: One lowercase letter
+              - generic [ref=e49]:
+                - img [ref=e50]
+                - generic [ref=e52]: One number
+              - generic [ref=e53]:
+                - img [ref=e54]
+                - generic [ref=e57]: One special character (!@#$%^&*)
+          - generic [ref=e58]:
+            - generic [ref=e59]: Confirm Password
+            - generic [ref=e60]:
+              - textbox "Confirm Password" [ref=e61]:
+                - /placeholder: ••••••••
+                - text: "123"
+              - button [ref=e62] [cursor=pointer]:
+                - img [ref=e63]
+              - img [ref=e66]
+          - generic [ref=e68]:
+            - generic [ref=e69]: Referral Code (Optional)
+            - paragraph [ref=e70]: Have an affiliate code? Get 20% off this month!
+            - generic [ref=e71]:
+              - textbox "Referral Code (Optional)" [ref=e73]:
+                - /placeholder: REF-ABC123XYZ
+              - button "Verify" [disabled] [ref=e74]
+          - generic [ref=e75]:
+            - checkbox "I agree to the Terms of Service and Privacy Policy" [checked] [active] [ref=e76]
+            - generic [ref=e78] [cursor=pointer]:
+              - text: I agree to the
+              - link "Terms of Service" [ref=e79]:
+                - /url: /terms
+              - text: and
+              - link "Privacy Policy" [ref=e80]:
+                - /url: /privacy
+          - button "Create Account" [disabled] [ref=e81]
+        - generic [ref=e86]: Or register with
+        - generic [ref=e87]:
+          - button "Sign in with Google" [ref=e88] [cursor=pointer]:
+            - img [ref=e89]
+            - text: Sign in with Google
+          - button "Login with X" [ref=e94] [cursor=pointer]:
+            - img [ref=e95]
+            - text: Login with X
+          - button "Sign in with LinkedIn" [ref=e97] [cursor=pointer]:
+            - img [ref=e98]
+            - text: Sign in with LinkedIn
+        - generic [ref=e100]:
+          - paragraph [ref=e101]:
+            - text: Already have an account?
+            - link "Login" [ref=e102] [cursor=pointer]:
+              - /url: /login
+          - generic [ref=e103]:
+            - link "Forgot password?" [ref=e104] [cursor=pointer]:
+              - /url: /forgot-password
+            - generic [ref=e105]: —
+            - link "Don't have a referral code? Join our Affiliate Program" [ref=e106] [cursor=pointer]:
+              - /url: /affiliate/join
+      - generic [ref=e107]:
+        - text: Already have an account?
+        - link "Sign in" [ref=e108] [cursor=pointer]:
+          - /url: /login
+  - button "Open Next.js Dev Tools" [ref=e114] [cursor=pointer]:
+    - img [ref=e115]
+  - alert [ref=e118]
+```

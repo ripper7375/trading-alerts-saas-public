@@ -73,7 +73,11 @@ export class LoginPage {
    */
   async login(email: string, password: string): Promise<void> {
     await this.emailInput.fill(email);
+    await this.emailInput.press('Tab');
     await this.passwordInput.fill(password);
+    await this.passwordInput.press('Tab');
+    // Wait for validation
+    await this.page.waitForTimeout(200);
     await this.submitButton.click();
   }
 

@@ -43,7 +43,7 @@ test.describe('Path 1: Authentication', () => {
 
       // Verify pending message is displayed
       await expect(
-        page.locator('text=verification email has been sent')
+        page.locator('text=sent a verification link')
       ).toBeVisible();
     });
 

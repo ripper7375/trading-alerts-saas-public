@@ -37,7 +37,7 @@ export class RegisterPage {
 
     // Form elements
     this.nameInput = page.locator('#name');
-    this.emailInput = page.locator('input[type="email"]');
+    this.emailInput = page.locator('#email');
     this.passwordInput = page.locator('#password');
     this.confirmPasswordInput = page.locator('#confirmPassword');
     this.termsCheckbox = page.locator('#terms');
@@ -53,7 +53,7 @@ export class RegisterPage {
 
     // Messages - register form shows errors in a div and validation errors in p tags
     this.errorMessage = page.locator('.bg-red-50 .text-red-700, .dark\\:bg-red-900\\/20 .text-red-300');
-    this.successMessage = page.locator('text=verification email has been sent');
+    this.successMessage = page.locator('text=sent a verification link');
     this.validationErrors = page.locator('.text-red-600.text-sm');
   }
 
@@ -81,10 +81,21 @@ export class RegisterPage {
     password: string,
     confirmPassword?: string
   ): Promise<void> {
+    // Fill each field and press Tab to trigger blur/validation
     await this.nameInput.fill(name);
+    await this.nameInput.press('Tab');
+
     await this.emailInput.fill(email);
+    await this.emailInput.press('Tab');
+
     await this.passwordInput.fill(password);
+    await this.passwordInput.press('Tab');
+
     await this.confirmPasswordInput.fill(confirmPassword || password);
+    await this.confirmPasswordInput.press('Tab');
+
+    // Wait a moment for validation to complete
+    await this.page.waitForTimeout(200);
   }
 
   /**

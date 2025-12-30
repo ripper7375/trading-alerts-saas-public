@@ -1,0 +1,210 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - banner [ref=e13]:
+      - generic [ref=e14]:
+        - link "Trading Alerts Trading Alerts" [ref=e16] [cursor=pointer]:
+          - /url: /dashboard
+          - img "Trading Alerts" [ref=e17]: 📊
+          - generic [ref=e18]: Trading Alerts
+        - generic [ref=e19]:
+          - generic [ref=e20]: ⭐ PRO
+          - button "Notifications" [ref=e21] [cursor=pointer]:
+            - img [ref=e22]
+          - button "Toggle theme" [ref=e26] [cursor=pointer]:
+            - img [ref=e27]
+            - img
+            - generic [ref=e33]: Toggle theme
+          - button "PT Pro" [ref=e34] [cursor=pointer]:
+            - generic [ref=e36]: PT
+            - generic [ref=e37]: Pro
+            - img [ref=e38]
+    - generic [ref=e40]:
+      - complementary [ref=e41]:
+        - generic [ref=e42]:
+          - navigation [ref=e43]:
+            - paragraph [ref=e45]: Main Menu
+            - link "Dashboard" [ref=e46] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e47]
+              - generic [ref=e52]: Dashboard
+            - link "Charts" [ref=e53] [cursor=pointer]:
+              - /url: /dashboard/charts
+              - img [ref=e54]
+              - generic [ref=e57]: Charts
+            - link "Alerts" [ref=e58] [cursor=pointer]:
+              - /url: /dashboard/alerts
+              - img [ref=e59]
+              - generic [ref=e62]: Alerts
+            - link "Watchlist" [ref=e63] [cursor=pointer]:
+              - /url: /dashboard/watchlist
+              - img [ref=e64]
+              - generic [ref=e67]: Watchlist
+            - link "Analytics" [ref=e68] [cursor=pointer]:
+              - /url: /dashboard/analytics
+              - img [ref=e69]
+              - generic [ref=e71]: Analytics
+            - link "Custom Indicators" [ref=e72] [cursor=pointer]:
+              - /url: /dashboard/indicators
+              - img [ref=e73]
+              - generic [ref=e75]: Custom Indicators
+          - generic [ref=e76]:
+            - link "Settings" [ref=e77] [cursor=pointer]:
+              - /url: /dashboard/settings
+              - img [ref=e78]
+              - generic [ref=e81]: Settings
+            - link "Help" [ref=e82] [cursor=pointer]:
+              - /url: /dashboard/help
+              - img [ref=e83]
+              - generic [ref=e86]: Help
+      - main [ref=e87]:
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - heading "Welcome back, Pro!" [level=1] [ref=e92]
+              - paragraph [ref=e93]: Here's what's happening with your trading alerts
+            - generic [ref=e94]: ⭐ PRO TIER
+          - generic [ref=e97]:
+            - img [ref=e98]
+            - generic [ref=e100]:
+              - heading "Quick Start Tips" [level=2] [ref=e101]
+              - list [ref=e102]:
+                - listitem [ref=e103]:
+                  - generic [ref=e104]: "1"
+                  - text: Add symbols to your Watchlist
+                - listitem [ref=e105]:
+                  - generic [ref=e106]: "2"
+                  - text: View live charts with fractal lines
+                - listitem [ref=e107]:
+                  - generic [ref=e108]: "3"
+                  - text: Create alerts for price levels
+          - generic [ref=e109]:
+            - generic [ref=e110]:
+              - generic [ref=e111]:
+                - generic [ref=e112]: Symbols
+                - img [ref=e113]
+              - generic [ref=e115]:
+                - generic [ref=e116]: "15"
+                - paragraph [ref=e117]: All available
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - generic [ref=e120]: Timeframes
+                - img [ref=e121]
+              - generic [ref=e124]:
+                - generic [ref=e125]: "9"
+                - paragraph [ref=e126]: M5 to D1
+            - generic [ref=e127]:
+              - generic [ref=e128]:
+                - generic [ref=e129]: Charts
+                - img [ref=e130]
+              - generic [ref=e133]:
+                - generic [ref=e134]: "135"
+                - paragraph [ref=e135]: 15 × 9
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - generic [ref=e138]: Max Alerts
+                - img [ref=e139]
+              - generic [ref=e142]:
+                - generic [ref=e143]: "20"
+                - paragraph [ref=e144]: 0 active
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - generic [ref=e147]: Indicators
+                - img [ref=e148]
+              - generic [ref=e150]:
+                - generic [ref=e151]: "8"
+                - paragraph [ref=e152]: All included
+          - generic [ref=e153]:
+            - generic [ref=e154]:
+              - generic [ref=e155]:
+                - generic [ref=e156]: Active Alerts
+                - img [ref=e157]
+              - generic [ref=e160]:
+                - generic [ref=e161]: 0/20
+                - generic [ref=e163]:
+                  - generic [ref=e164]: 0 / 20
+                  - generic [ref=e165]: 0%
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e169]: Watchlist Items
+                - img [ref=e170]
+              - generic [ref=e173]:
+                - generic [ref=e174]: 0/50
+                - generic [ref=e176]:
+                  - generic [ref=e177]: 0 / 50
+                  - generic [ref=e178]: 0%
+            - generic [ref=e180]:
+              - generic [ref=e181]:
+                - generic [ref=e182]: API Usage
+                - img [ref=e183]
+              - generic [ref=e185]:
+                - generic [ref=e186]: 42/60
+                - paragraph [ref=e187]: requests this hour
+                - generic [ref=e189]:
+                  - generic [ref=e190]: 42 / 60
+                  - generic [ref=e191]: 70%
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - generic [ref=e196]: Chart Views
+                - img [ref=e197]
+              - generic [ref=e200]:
+                - generic [ref=e201]: "156"
+                - paragraph [ref=e202]: this week
+                - generic [ref=e203]:
+                  - img [ref=e204]
+                  - generic [ref=e206]: +12%
+                  - generic [ref=e207]: from last week
+          - generic [ref=e208]:
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - generic [ref=e211]:
+                  - img [ref=e212]
+                  - text: Watchlist
+                - link "Add" [ref=e216] [cursor=pointer]:
+                  - /url: /dashboard/watchlist/add
+                  - button "Add" [ref=e217]:
+                    - img [ref=e218]
+                    - generic [ref=e219]: Add
+              - generic [ref=e221]:
+                - generic [ref=e222]: 📋
+                - heading "No symbols in watchlist" [level=3] [ref=e223]
+                - paragraph [ref=e224]: Add symbols to track their price movements
+                - link "Add Symbol" [ref=e225] [cursor=pointer]:
+                  - /url: /dashboard/watchlist/add
+                  - button "Add Symbol" [ref=e226]:
+                    - img [ref=e227]
+                    - text: Add Symbol
+            - generic [ref=e228]:
+              - generic [ref=e230]:
+                - img [ref=e231]
+                - text: Recent Alerts
+              - generic [ref=e235]:
+                - generic [ref=e236]: 🔔
+                - heading "No alerts yet" [level=3] [ref=e237]
+                - paragraph [ref=e238]: Set up alerts to get notified of price movements
+                - link "Create Your First Alert" [ref=e239] [cursor=pointer]:
+                  - /url: /dashboard/alerts/new
+                  - button "Create Your First Alert" [ref=e240]
+    - contentinfo [ref=e242]:
+      - generic [ref=e244]:
+        - generic [ref=e245]:
+          - img "Trading Alerts" [ref=e246]: 📊
+          - generic [ref=e247]: © 2025 Trading Alerts. All rights reserved.
+        - navigation [ref=e248]:
+          - link "Help Center" [ref=e249] [cursor=pointer]:
+            - /url: /settings/help
+          - generic [ref=e250]: ·
+          - link "Privacy" [ref=e251] [cursor=pointer]:
+            - /url: /settings/privacy
+          - generic [ref=e252]: ·
+          - link "Terms" [ref=e253] [cursor=pointer]:
+            - /url: /settings/terms
+          - generic [ref=e254]: ·
+          - link "Status" [ref=e255] [cursor=pointer]:
+            - /url: https://status.tradingalerts.com
+```
