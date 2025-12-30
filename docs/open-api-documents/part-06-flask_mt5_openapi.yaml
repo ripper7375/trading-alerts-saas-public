@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Flask MT5 Microservice API
-  version: 5.0.1
+  version: 5.0.2
   description: |
     MT5 integration microservice for Trading Alerts SaaS platform.
 
@@ -1329,11 +1329,21 @@ components:
           type: integer
           description: Actual number of bars returned
           example: 1000
+        terminal_id:
+          type: string
+          description: MT5 terminal ID that handled this request (MT5_01 through MT5_15)
+          example: MT5_15
+        pro_indicators_enabled:
+          type: boolean
+          description: Whether PRO indicators are included in the response (true for PRO tier)
+          example: true
       required:
         - symbol
         - timeframe
         - tier
         - bars_returned
+        - terminal_id
+        - pro_indicators_enabled
 
     # ============================================
     # ERROR SCHEMAS
@@ -1646,3 +1656,5 @@ components:
             timeframe: H1
             tier: FREE
             bars_returned: 1000
+            terminal_id: MT5_15
+            pro_indicators_enabled: false
