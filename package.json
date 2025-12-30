@@ -32,6 +32,8 @@
     "test:e2e:ci": "playwright test --config=e2e/playwright.config.ts --reporter=github,html",
     "playwright:install": "playwright install --with-deps",
     "e2e:setup": "bash scripts/setup-e2e.sh",
+    "health:check": "bash scripts/health-check-ui.sh",
+    "health:check:http": "bash scripts/health-check-ui.sh --http",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "validate": "npm run validate:types && npm run validate:lint && npm run validate:format && npm run validate:policies",
