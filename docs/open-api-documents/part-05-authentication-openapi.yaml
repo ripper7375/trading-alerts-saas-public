@@ -7,7 +7,7 @@ info:
 
     This API provides comprehensive authentication capabilities including:
     - User registration with email verification
-    - Email and OAuth authentication (Google, GitHub)
+    - Email and OAuth authentication (Google, Twitter/X, LinkedIn)
     - Password reset functionality
     - Session management
     - Tier-based access control
@@ -27,6 +27,8 @@ info:
     - Password reset tokens expire after 1 hour
     - Session-based authentication via NextAuth
     - Tier-based access control (FREE, PRO)
+    - CSRF protection on all mutating endpoints
+    - Strong password requirements (uppercase, lowercase, number, special char)
 
   contact:
     name: API Support
@@ -69,9 +71,14 @@ paths:
 
         **Business Rules:**
         - Email must be unique
-        - Password minimum 8 characters
+        - Password minimum 8 characters with:
+          - At least one uppercase letter
+          - At least one lowercase letter
+          - At least one number
+          - At least one special character (!@#$%^&*(),.?":{}|<>)
         - New users start with FREE tier
         - Email verification required before login
+        - CSRF protection via Origin header validation
       operationId: registerUser
       requestBody:
         required: true
@@ -92,7 +99,7 @@ paths:
                   password: SecurePass123
                   name: John Doe
       responses:
-        '200':
+        '201':
           description: Registration successful
           content:
             application/json:
@@ -117,6 +124,30 @@ paths:
                   summary: Password too short
                   value:
                     error: Password must be at least 8 characters
+                missingUppercase:
+                  summary: Missing uppercase letter
+                  value:
+                    error: Password must contain at least one uppercase letter
+                missingLowercase:
+                  summary: Missing lowercase letter
+                  value:
+                    error: Password must contain at least one lowercase letter
+                missingNumber:
+                  summary: Missing number
+                  value:
+                    error: Password must contain at least one number
+                missingSpecialChar:
+                  summary: Missing special character
+                  value:
+                    error: 'Password must contain at least one special character'
+        '403':
+          description: CSRF validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid request origin
         '409':
           description: User already exists
           content:
@@ -132,7 +163,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: Internal server error
+                error: Registration failed. Please try again.
+        '503':
+          description: Service temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Service temporarily unavailable. Please try again later.
 
   /api/auth/verify-email:
     get:
@@ -214,6 +253,7 @@ paths:
         - Always returns success (prevents email enumeration)
         - Token is single-use
         - 1-hour expiration
+        - CSRF protection via Origin header validation
       operationId: forgotPassword
       requestBody:
         required: true
@@ -241,6 +281,14 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: Invalid email format
+        '403':
+          description: CSRF validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid request origin
         '500':
           description: Internal server error
           content:
@@ -269,6 +317,7 @@ paths:
         - Token must be valid
         - Token must not be expired (1 hour limit)
         - New password must meet requirements (min 8 chars)
+        - CSRF protection via Origin header validation
       operationId: resetPassword
       requestBody:
         required: true
@@ -312,6 +361,14 @@ paths:
                   summary: Token not provided
                   value:
                     error: Reset token is required
+        '403':
+          description: CSRF validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid request origin
         '500':
           description: Internal server error
           content:
@@ -320,6 +377,85 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: Internal server error
+
+  /api/auth/resend-verification:
+    post:
+      tags:
+        - Email Verification
+      summary: Resend verification email
+      description: |
+        Resends the verification email to a user who hasn't verified their email yet.
+
+        **Features:**
+        - Generates new verification token
+        - Sends verification email
+        - Rate limited (60 seconds between requests)
+        - Does not reveal if email exists (security)
+
+        **Security:**
+        - Always returns success (prevents email enumeration)
+        - Rate limited to prevent abuse
+        - CSRF protection via Origin header validation
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+            example:
+              email: user@example.com
+      responses:
+        '200':
+          description: Verification email sent (or would be sent if email exists)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResendVerificationResponse'
+              examples:
+                success:
+                  summary: Email sent successfully
+                  value:
+                    success: true
+                    message: Verification email sent. Please check your inbox.
+                generic:
+                  summary: Generic response (security)
+                  value:
+                    success: true
+                    message: If your email is registered, you will receive a verification email.
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid email format
+        '403':
+          description: CSRF validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid request origin
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitErrorResponse'
+              example:
+                error: Please wait 45 seconds before requesting another verification email.
+                retryAfter: 45
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Failed to resend verification email. Please try again.
 
   /api/auth/signin:
     post:
@@ -332,7 +468,8 @@ paths:
         **Supported Methods:**
         - Credentials (email + password)
         - Google OAuth
-        - GitHub OAuth
+        - Twitter/X OAuth
+        - LinkedIn OAuth
 
         **Process:**
         1. Submit credentials or OAuth
@@ -548,6 +685,17 @@ components:
           description: New password (minimum 8 characters)
           example: NewSecurePass123
 
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to resend verification to
+          example: user@example.com
+
     CredentialsSignInRequest:
       type: object
       required:
@@ -572,7 +720,7 @@ components:
       properties:
         provider:
           type: string
-          enum: [google, github]
+          enum: [google, twitter, linkedin]
           description: OAuth provider to use
           example: google
 
@@ -642,6 +790,36 @@ components:
           description: Success message with next steps
           example: Password reset successfully. You can now sign in with your new password.
 
+    ResendVerificationResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Always true for security (prevents email enumeration)
+          example: true
+        message:
+          type: string
+          description: Success message
+          example: Verification email sent. Please check your inbox.
+
+    RateLimitErrorResponse:
+      type: object
+      required:
+        - error
+        - retryAfter
+      properties:
+        error:
+          type: string
+          description: Rate limit error message
+          example: Please wait 45 seconds before requesting another verification email.
+        retryAfter:
+          type: integer
+          description: Seconds to wait before retrying
+          example: 45
+
     SignInResponse:
       type: object
       required:
@@ -704,6 +882,7 @@ components:
             - ADMIN_ERROR
             - NOT_ADMIN
             - RATE_LIMIT_EXCEEDED
+            - CSRF_ERROR
             - ACCOUNT_ERROR
             - ACCOUNT_INACTIVE
             - ACCOUNT_BLOCKED
@@ -880,3 +1059,26 @@ components:
     SessionNotAuthenticated:
       summary: No active session
       value: null
+
+    ResendVerificationSuccess:
+      summary: Verification email sent
+      value:
+        success: true
+        message: Verification email sent. Please check your inbox.
+
+    ResendVerificationGeneric:
+      summary: Generic response (security)
+      value:
+        success: true
+        message: If your email is registered, you will receive a verification email.
+
+    ResendVerificationRateLimited:
+      summary: Rate limit exceeded
+      value:
+        error: Please wait 45 seconds before requesting another verification email.
+        retryAfter: 45
+
+    CsrfError:
+      summary: CSRF validation failed
+      value:
+        error: Invalid request origin
