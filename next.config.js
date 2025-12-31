@@ -82,7 +82,41 @@ const nextConfig = {
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin',
+          },
+          // HSTS - Enforce HTTPS (1 year, include subdomains, preload ready)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          // Permissions Policy - Restrict browser features
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          // XSS Protection for legacy browsers
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          // Basic Content Security Policy
+          // Note: Next.js requires 'unsafe-inline' and 'unsafe-eval' for scripts
+          // A stricter CSP with nonces should be implemented for production
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://*.googleusercontent.com https://*.githubusercontent.com https://*.stripe.com",
+              "font-src 'self' data:",
+              "connect-src 'self' https://api.stripe.com https://checkout.stripe.com wss://*.pusher.com https://*.vercel-analytics.com",
+              "frame-src 'self' https://js.stripe.com https://checkout.stripe.com",
+              "frame-ancestors 'self'",
+              "form-action 'self'",
+              "base-uri 'self'",
+              "object-src 'none'",
+            ].join('; '),
           },
         ],
       },
