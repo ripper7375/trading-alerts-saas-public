@@ -45,6 +45,7 @@ process.env.NEXTAUTH_URL = 'http://localhost:3000';
 process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
 process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_mock';
 process.env.MT5_API_URL = 'http://localhost:5000';
+process.env.CRON_SECRET = 'test-cron-secret';
 
 // Mock Next.js router (if needed in tests)
 // jest.mock('next/navigation', () => ({

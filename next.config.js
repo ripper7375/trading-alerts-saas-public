@@ -7,6 +7,13 @@ const nextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
 
+  // Modular imports for better tree-shaking of icon libraries
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+  },
+
   // Image optimization configuration
   images: {
     // Allow images from these domains
