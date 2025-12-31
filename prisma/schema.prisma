@@ -205,6 +205,96 @@ model UserSession {
   @@map("user_sessions")
 }
 
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LOGIN HISTORY & SECURITY ALERTS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  BLOCKED
+}
+
+enum SecurityAlertType {
+  NEW_DEVICE_LOGIN
+  PASSWORD_CHANGED
+  EMAIL_CHANGED
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  SUSPICIOUS_LOGIN
+  ACCOUNT_LOCKED
+}
+
+/// Tracks all login attempts for security monitoring
+model LoginHistory {
+  id            String       @id @default(cuid())
+  userId        String
+
+  /// Login details
+  status        LoginStatus
+  provider      String       // 'credentials', 'google', 'twitter', 'linkedin'
+
+  /// Device/browser info
+  userAgent     String?
+  deviceType    String?      // desktop, mobile, tablet
+  browser       String?
+  browserVersion String?
+  os            String?
+  osVersion     String?
+
+  /// Geolocation (from IP)
+  ipAddress     String?
+  country       String?
+  city          String?
+  region        String?
+
+  /// Device fingerprint for new device detection
+  deviceFingerprint String?
+  isNewDevice   Boolean      @default(false)
+
+  /// Failure info
+  failureReason String?
+
+  createdAt     DateTime     @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([ipAddress])
+  @@index([deviceFingerprint])
+  @@index([createdAt])
+  @@map("login_history")
+}
+
+/// Security alerts sent to users
+model SecurityAlert {
+  id            String             @id @default(cuid())
+  userId        String
+
+  /// Alert details
+  type          SecurityAlertType
+  title         String
+  message       String
+
+  /// Context
+  ipAddress     String?
+  deviceInfo    String?
+  location      String?
+
+  /// Status
+  emailSent     Boolean            @default(false)
+  emailSentAt   DateTime?
+  read          Boolean            @default(false)
+  readAt        DateTime?
+
+  createdAt     DateTime           @default(now())
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([type])
+  @@index([createdAt])
+  @@map("security_alerts")
+}
+
 model VerificationToken {
   identifier String
   token      String   @unique

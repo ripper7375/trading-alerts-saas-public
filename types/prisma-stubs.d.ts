@@ -161,6 +161,31 @@ declare module '@prisma/client' {
     INFO: 'INFO';
   };
 
+  export type LoginStatus = 'SUCCESS' | 'FAILED' | 'BLOCKED';
+  export const LoginStatus: {
+    SUCCESS: 'SUCCESS';
+    FAILED: 'FAILED';
+    BLOCKED: 'BLOCKED';
+  };
+
+  export type SecurityAlertType =
+    | 'NEW_DEVICE_LOGIN'
+    | 'PASSWORD_CHANGED'
+    | 'EMAIL_CHANGED'
+    | 'TWO_FACTOR_ENABLED'
+    | 'TWO_FACTOR_DISABLED'
+    | 'SUSPICIOUS_LOGIN'
+    | 'ACCOUNT_LOCKED';
+  export const SecurityAlertType: {
+    NEW_DEVICE_LOGIN: 'NEW_DEVICE_LOGIN';
+    PASSWORD_CHANGED: 'PASSWORD_CHANGED';
+    EMAIL_CHANGED: 'EMAIL_CHANGED';
+    TWO_FACTOR_ENABLED: 'TWO_FACTOR_ENABLED';
+    TWO_FACTOR_DISABLED: 'TWO_FACTOR_DISABLED';
+    SUSPICIOUS_LOGIN: 'SUSPICIOUS_LOGIN';
+    ACCOUNT_LOCKED: 'ACCOUNT_LOCKED';
+  };
+
   // ============================================================
   // UTILITY TYPES
   // ============================================================
@@ -779,6 +804,43 @@ declare module '@prisma/client' {
     changedAt: Date;
   }
 
+  export interface LoginHistory {
+    id: string;
+    userId: string;
+    status: LoginStatus;
+    provider: string;
+    userAgent: string | null;
+    deviceType: string | null;
+    browser: string | null;
+    browserVersion: string | null;
+    os: string | null;
+    osVersion: string | null;
+    ipAddress: string | null;
+    country: string | null;
+    city: string | null;
+    region: string | null;
+    deviceFingerprint: string | null;
+    isNewDevice: boolean;
+    failureReason: string | null;
+    createdAt: Date;
+  }
+
+  export interface SecurityAlert {
+    id: string;
+    userId: string;
+    type: SecurityAlertType;
+    title: string;
+    message: string;
+    ipAddress: string | null;
+    deviceInfo: string | null;
+    location: string | null;
+    emailSent: boolean;
+    emailSentAt: Date | null;
+    read: boolean;
+    readAt: Date | null;
+    createdAt: Date;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1050,6 +1112,8 @@ declare module '@prisma/client' {
     systemConfig: ModelDelegate<SystemConfig>;
     systemConfigHistory: ModelDelegate<SystemConfigHistory>;
     userSession: ModelDelegate<UserSession>;
+    loginHistory: ModelDelegate<LoginHistory>;
+    securityAlert: ModelDelegate<SecurityAlert>;
   }
 }
 
