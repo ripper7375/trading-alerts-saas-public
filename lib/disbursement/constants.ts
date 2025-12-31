@@ -5,6 +5,8 @@
  * default values for the disbursement system.
  */
 
+import crypto from 'crypto';
+
 import { DisbursementProvider } from '@/types/disbursement';
 
 // Minimum payout threshold in USD
@@ -95,23 +97,23 @@ export function isValidProvider(
 }
 
 /**
- * Generate a unique batch number
+ * Generate a unique batch number using cryptographically secure random
  * Format: BATCH-YYYY-TIMESTAMPRANDOM
  */
 export function generateBatchNumber(): string {
   const year = new Date().getFullYear();
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `BATCH-${year}-${timestamp}${random}`;
 }
 
 /**
- * Generate a unique transaction ID
+ * Generate a unique transaction ID using cryptographically secure random
  * Format: TXN-TIMESTAMP-RANDOM
  */
 export function generateTransactionId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `TXN-${timestamp}-${random}`;
 }
 
