@@ -118,6 +118,12 @@ model User {
   verificationToken String? @unique
   resetToken        String? @unique
   resetTokenExpiry  DateTime?
+
+  // Two-Factor Authentication (TOTP)
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorSecret      String?  // Encrypted TOTP secret
+  twoFactorBackupCodes String?  // JSON array of hashed backup codes
+  twoFactorVerifiedAt  DateTime? // When 2FA was successfully enabled
   
   accounts          Account[]
   alerts            Alert[]

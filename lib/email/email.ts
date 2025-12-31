@@ -767,3 +767,198 @@ export async function sendPasswordChangedEmail(
   const html = getPasswordChangedEmail(name, ipAddress, location, new Date());
   return sendEmail(to, 'Security Alert: Password Changed', html);
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TWO-FACTOR AUTHENTICATION EMAILS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Generate 2FA enabled alert email HTML
+ */
+export function getTwoFactorEnabledEmail(
+  name: string,
+  ipAddress: string,
+  location: string,
+  timestamp: Date
+): string {
+  const formattedTime = timestamp.toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Two-Factor Authentication Enabled</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: #dcfce7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+          <h1 style="color: #166534; margin: 0; font-size: 20px;">Two-Factor Authentication Enabled</h1>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, two-factor authentication has been successfully enabled on your Trading Alerts account.
+        </p>
+
+        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Time:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Location:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${location}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${ipAddress}</td>
+            </tr>
+          </table>
+        </div>
+
+        <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Important Reminders:</h3>
+        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+          <li>Keep your backup codes in a safe place</li>
+          <li>You'll need your authenticator app to sign in</li>
+          <li>If you lose access to your authenticator, use a backup code</li>
+        </ul>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If you didn't enable 2FA:</strong> Your account may be compromised. Please contact support immediately.
+        </p>
+
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Manage Security Settings
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          You're receiving this email because you have security alerts enabled.
+          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send 2FA enabled alert email
+ */
+export async function sendTwoFactorEnabledEmail(
+  to: string,
+  name: string,
+  ipAddress: string,
+  location: string
+): Promise<{ success: boolean; error?: string }> {
+  const html = getTwoFactorEnabledEmail(name, ipAddress, location, new Date());
+  return sendEmail(to, 'Security Alert: Two-Factor Authentication Enabled', html);
+}
+
+/**
+ * Generate 2FA disabled alert email HTML
+ */
+export function getTwoFactorDisabledEmail(
+  name: string,
+  ipAddress: string,
+  location: string,
+  timestamp: Date
+): string {
+  const formattedTime = timestamp.toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Two-Factor Authentication Disabled</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: #fef3c7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+          <h1 style="color: #92400e; margin: 0; font-size: 20px;">Two-Factor Authentication Disabled</h1>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, two-factor authentication has been disabled on your Trading Alerts account.
+        </p>
+
+        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Time:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Location:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${location}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${ipAddress}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="color: #dc2626; line-height: 1.6; margin: 16px 0; font-weight: 500;">
+          Your account is now less secure without two-factor authentication.
+        </p>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If you disabled 2FA:</strong> We recommend re-enabling it for maximum security.
+        </p>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If you didn't disable 2FA:</strong> Your account may be compromised. Please:
+        </p>
+
+        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+          <li>Change your password immediately</li>
+          <li>Re-enable two-factor authentication</li>
+          <li>Review your account for unauthorized changes</li>
+        </ul>
+
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Secure My Account
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          You're receiving this email because you have security alerts enabled.
+          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send 2FA disabled alert email
+ */
+export async function sendTwoFactorDisabledEmail(
+  to: string,
+  name: string,
+  ipAddress: string,
+  location: string
+): Promise<{ success: boolean; error?: string }> {
+  const html = getTwoFactorDisabledEmail(name, ipAddress, location, new Date());
+  return sendEmail(to, 'Security Alert: Two-Factor Authentication Disabled', html);
+}
