@@ -36,25 +36,25 @@ export class RegisterPage {
     this.page = page;
 
     // Form elements
-    this.nameInput = page.locator('input[name="name"]');
-    this.emailInput = page.locator('input[type="email"]');
-    this.passwordInput = page.locator('input[name="password"]');
-    this.confirmPasswordInput = page.locator('input[name="confirmPassword"]');
-    this.termsCheckbox = page.locator('input[name="terms"]');
+    this.nameInput = page.locator('#name');
+    this.emailInput = page.locator('#email');
+    this.passwordInput = page.locator('#password');
+    this.confirmPasswordInput = page.locator('#confirmPassword');
+    this.termsCheckbox = page.locator('#terms');
     this.submitButton = page.locator('button[type="submit"]');
 
-    // OAuth buttons
-    this.googleButton = page.locator('[data-testid="google-register"]');
-    this.twitterButton = page.locator('[data-testid="twitter-register"]');
-    this.linkedinButton = page.locator('[data-testid="linkedin-register"]');
+    // OAuth buttons - using text-based locators
+    this.googleButton = page.locator('button:has-text("Google")');
+    this.twitterButton = page.locator('button:has-text("Login with X")');
+    this.linkedinButton = page.locator('button:has-text("LinkedIn")');
 
     // Links
     this.loginLink = page.locator('a[href*="login"]');
 
-    // Messages
-    this.errorMessage = page.locator('[data-testid="error-message"]');
-    this.successMessage = page.locator('[data-testid="success-message"]');
-    this.validationErrors = page.locator('[data-testid="validation-error"]');
+    // Messages - register form shows errors in a div and validation errors in p tags
+    this.errorMessage = page.locator('.bg-red-50 .text-red-700, .dark\\:bg-red-900\\/20 .text-red-300');
+    this.successMessage = page.locator('text=sent a verification link');
+    this.validationErrors = page.locator('.text-red-600.text-sm');
   }
 
   /**
@@ -81,10 +81,21 @@ export class RegisterPage {
     password: string,
     confirmPassword?: string
   ): Promise<void> {
+    // Fill each field and press Tab to trigger blur/validation
     await this.nameInput.fill(name);
+    await this.nameInput.press('Tab');
+
     await this.emailInput.fill(email);
+    await this.emailInput.press('Tab');
+
     await this.passwordInput.fill(password);
+    await this.passwordInput.press('Tab');
+
     await this.confirmPasswordInput.fill(confirmPassword || password);
+    await this.confirmPasswordInput.press('Tab');
+
+    // Wait a moment for validation to complete
+    await this.page.waitForTimeout(200);
   }
 
   /**

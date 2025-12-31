@@ -1,15 +1,24 @@
 {
-  "timestamp": "2025-12-30T08:24:17+00:00",
+  "timestamp": "2025-12-30T11:30:26.061Z",
   "summary": {
     "total_pages": 59,
     "files_exist": 59,
     "files_missing": 0,
-    "http_checked": false
+    "http_ok": 19,
+    "http_redirect": 38,
+    "http_fail": 2
   },
-  "missing_files": [
-
-  ],
+  "missing_files": [],
   "broken_routes": [
-
+    {
+      "route": "/error",
+      "description": "Global error page",
+      "code": 404
+    },
+    {
+      "route": "/affiliate",
+      "description": "Affiliate layout",
+      "code": 404
+    }
   ]
 }

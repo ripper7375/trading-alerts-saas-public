@@ -53,58 +53,44 @@ export class CheckoutPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Pricing page elements
-    this.pricingTitle = page.locator('[data-testid="pricing-title"]');
-    this.freePlanCard = page.locator('[data-testid="free-plan-card"]');
-    this.proPlanCard = page.locator('[data-testid="pro-plan-card"]');
-    this.proUpgradeButton = page.locator('[data-testid="pro-upgrade-button"]');
-    this.currentPlanBadge = page.locator('[data-testid="current-plan-badge"]');
+    // Pricing page elements - using text and CSS based selectors from pricing page
+    this.pricingTitle = page.locator('h1:has-text("Choose Your Plan")');
+    this.freePlanCard = page.locator('.inline-flex:has-text("FREE TIER")').locator('xpath=ancestor::div[contains(@class, "rounded-lg")]');
+    this.proPlanCard = page.locator('.inline-flex:has-text("PRO TIER")').locator('xpath=ancestor::div[contains(@class, "rounded-lg")]');
+    this.proUpgradeButton = page.locator('button:has-text("Start 7-Day Trial"), button:has-text("Start PRO Trial")');
+    this.currentPlanBadge = page.locator('button:has-text("Current Plan")');
 
-    // Plan details
-    this.proPriceDisplay = page.locator('[data-testid="pro-price"]');
-    this.proFeaturesList = page.locator('[data-testid="pro-features"]');
+    // Plan details - use text selectors
+    this.proPriceDisplay = page.locator('.text-6xl').filter({ hasText: '$' });
+    this.proFeaturesList = page.locator('ul:has(.text-blue-600)');
 
-    // Discount code elements
-    this.discountCodeInput = page.locator('[data-testid="discount-code-input"]');
-    this.applyDiscountButton = page.locator(
-      '[data-testid="apply-discount-button"]'
-    );
-    this.discountAppliedBadge = page.locator(
-      '[data-testid="discount-applied-badge"]'
-    );
-    this.discountError = page.locator('[data-testid="discount-error"]');
-    this.originalPrice = page.locator('[data-testid="original-price"]');
-    this.discountedPrice = page.locator('[data-testid="discounted-price"]');
-    this.discountAmount = page.locator('[data-testid="discount-amount"]');
+    // Discount code elements - using text/placeholder based selectors
+    this.discountCodeInput = page.locator('input[placeholder*="code"], input[name="code"]');
+    this.applyDiscountButton = page.locator('button:has-text("Apply")');
+    this.discountAppliedBadge = page.locator('text=Discount Applied, text=discount active').first();
+    this.discountError = page.locator('.text-red-600, .text-red-500').filter({ hasText: /invalid|expired/i });
+    this.originalPrice = page.locator('.line-through');
+    this.discountedPrice = page.locator('.text-green-600').filter({ hasText: '$' });
+    this.discountAmount = page.locator('text=/Save \\$/');
 
-    // dLocal elements
-    this.countryDetectedBadge = page.locator(
-      '[data-testid="country-detected-badge"]'
-    );
-    this.planSelector = page.locator('[data-testid="plan-selector"]');
-    this.threeDayPlanOption = page.locator('[data-testid="three-day-plan"]');
-    this.monthlyPlanOption = page.locator('[data-testid="monthly-plan"]');
-    this.paymentMethodSelector = page.locator(
-      '[data-testid="payment-method-selector"]'
-    );
-    this.paymentMethodOptions = page.locator(
-      '[data-testid="payment-method-option"]'
-    );
-    this.localPriceDisplay = page.locator('[data-testid="local-price"]');
-    this.currencyDisplay = page.locator('[data-testid="currency-display"]');
-    this.proceedToPaymentButton = page.locator(
-      '[data-testid="proceed-to-payment"]'
-    );
+    // dLocal elements - using text and class based selectors
+    this.countryDetectedBadge = page.locator('.inline-flex:has-text("LOCAL PAYMENTS")');
+    this.planSelector = page.locator('text=Choose a plan, text=Select plan').first();
+    this.threeDayPlanOption = page.locator('button:has-text("3-Day Trial"), a:has-text("3-Day Trial")');
+    this.monthlyPlanOption = page.locator('button:has-text("Pay with Local Methods")');
+    this.paymentMethodSelector = page.locator('text=Payment Method').first();
+    this.paymentMethodOptions = page.locator('li:has(.text-purple-600)');
+    this.localPriceDisplay = page.locator('.text-purple-600').filter({ hasText: '$' });
+    this.currencyDisplay = page.locator('text=/INR|NGN|IDR|THB/');
+    this.proceedToPaymentButton = page.locator('button:has-text("Proceed"), button:has-text("Pay")');
 
     // Stripe elements
-    this.stripeCheckoutButton = page.locator(
-      '[data-testid="stripe-checkout-button"]'
-    );
+    this.stripeCheckoutButton = page.locator('button:has-text("Checkout"), button:has-text("Pay")');
 
     // Messages
-    this.errorMessage = page.locator('[data-testid="checkout-error"]');
-    this.successMessage = page.locator('[data-testid="checkout-success"]');
-    this.loadingSpinner = page.locator('[data-testid="loading-spinner"]');
+    this.errorMessage = page.locator('.text-red-700, .text-red-600').first();
+    this.successMessage = page.locator('text=Success, text=Thank you').first();
+    this.loadingSpinner = page.locator('.animate-spin');
   }
 
   /**

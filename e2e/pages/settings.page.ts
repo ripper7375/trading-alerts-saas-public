@@ -58,15 +58,11 @@ export class SettingsPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Tabs
-    this.profileTab = page.locator('[data-testid="settings-profile-tab"]');
-    this.subscriptionTab = page.locator(
-      '[data-testid="settings-subscription-tab"]'
-    );
-    this.notificationsTab = page.locator(
-      '[data-testid="settings-notifications-tab"]'
-    );
-    this.securityTab = page.locator('[data-testid="settings-security-tab"]');
+    // Tabs - using link text or button text based selectors
+    this.profileTab = page.locator('a:has-text("Profile"), button:has-text("Profile")');
+    this.subscriptionTab = page.locator('a:has-text("Billing"), a:has-text("Subscription"), button:has-text("Billing")');
+    this.notificationsTab = page.locator('a:has-text("Notifications"), button:has-text("Notifications")');
+    this.securityTab = page.locator('a:has-text("Security"), button:has-text("Security")');
 
     // Profile section
     this.nameInput = page.locator('[data-testid="profile-name-input"]');
@@ -74,27 +70,19 @@ export class SettingsPage {
     this.saveProfileButton = page.locator('[data-testid="save-profile-button"]');
     this.avatarUpload = page.locator('[data-testid="avatar-upload"]');
 
-    // Subscription section
-    this.currentPlanDisplay = page.locator('[data-testid="current-plan"]');
-    this.subscriptionStatus = page.locator('[data-testid="subscription-status"]');
-    this.renewalDate = page.locator('[data-testid="renewal-date"]');
-    this.cancelSubscriptionButton = page.locator(
-      '[data-testid="cancel-subscription-button"]'
-    );
-    this.upgradeButton = page.locator('[data-testid="upgrade-button"]');
-    this.paymentMethod = page.locator('[data-testid="payment-method"]');
+    // Subscription section - using text-based selectors from subscription-card component
+    this.currentPlanDisplay = page.locator('.inline-flex').filter({ hasText: /FREE|PRO/ });
+    this.subscriptionStatus = page.locator('text=Active, text=Cancelled, text=Trialing').first();
+    this.renewalDate = page.locator('text=/Next billing:/').locator('xpath=following-sibling::*');
+    this.cancelSubscriptionButton = page.locator('button:has-text("Cancel Subscription")');
+    this.upgradeButton = page.locator('button:has-text("Upgrade to PRO")');
+    this.paymentMethod = page.locator('text=/ending in/');
 
-    // Cancel modal
-    this.cancelModal = page.locator('[data-testid="cancel-modal"]');
-    this.cancelConfirmButton = page.locator(
-      '[data-testid="confirm-cancel-button"]'
-    );
-    this.cancelDismissButton = page.locator(
-      '[data-testid="dismiss-cancel-button"]'
-    );
-    this.cancellationReason = page.locator(
-      '[data-testid="cancellation-reason"]'
-    );
+    // Cancel modal - using text and class based selectors
+    this.cancelModal = page.locator('[role="dialog"], .fixed.inset-0').filter({ hasText: /cancel/i });
+    this.cancelConfirmButton = page.locator('button:has-text("Confirm"), button:has-text("Yes, Cancel")');
+    this.cancelDismissButton = page.locator('button:has-text("Keep"), button:has-text("No"), button:has-text("Dismiss")');
+    this.cancellationReason = page.locator('select, [role="listbox"]');
 
     // Notifications section
     this.emailNotificationsToggle = page.locator(
@@ -127,8 +115,8 @@ export class SettingsPage {
     );
 
     // Messages
-    this.successMessage = page.locator('[data-testid="success-message"]');
-    this.errorMessage = page.locator('[data-testid="error-message"]');
+    this.successMessage = page.locator('text=Success, text=Saved, text=Updated').first();
+    this.errorMessage = page.locator('.text-red-700, .text-red-600').first();
   }
 
   /**

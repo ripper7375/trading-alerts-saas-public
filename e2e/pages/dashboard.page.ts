@@ -41,12 +41,12 @@ export class DashboardPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Header elements
-    this.userMenu = page.locator('[data-testid="user-menu"]');
-    this.notificationBell = page.locator('[data-testid="notification-bell"]');
-    this.unreadBadge = page.locator('[data-testid="unread-badge"]');
-    this.upgradeButton = page.locator('[data-testid="upgrade-button"]');
-    this.tierBadge = page.locator('[data-testid="tier-badge"]');
+    // Header elements - using actual selectors from header.tsx
+    this.userMenu = page.locator('button:has(.h-8.w-8)');
+    this.notificationBell = page.locator('button[aria-label="Notifications"]');
+    this.unreadBadge = page.locator('.rounded-full.bg-red-500');
+    this.upgradeButton = page.locator('a:has-text("Upgrade")');
+    this.tierBadge = page.locator('.inline-flex.items-center.rounded-full').filter({ hasText: /FREE|PRO/ });
 
     // Navigation
     this.alertsTab = page.locator('[data-testid="nav-alerts"]');
@@ -58,10 +58,10 @@ export class DashboardPage {
     this.alertCount = page.locator('[data-testid="alert-count"]');
     this.watchlistCount = page.locator('[data-testid="watchlist-count"]');
 
-    // User menu items
-    this.logoutButton = page.locator('[data-testid="logout-button"]');
-    this.profileLink = page.locator('[data-testid="profile-link"]');
-    this.settingsLink = page.locator('[data-testid="settings-link"]');
+    // User menu items - using text-based locators for dropdown menu items
+    this.logoutButton = page.locator('text=Log out');
+    this.profileLink = page.locator('text=Profile');
+    this.settingsLink = page.locator('text=Settings');
 
     // Notification dropdown
     this.notificationDropdown = page.locator(

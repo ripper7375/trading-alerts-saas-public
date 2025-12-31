@@ -1,6 +1,7 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { type NextAuthOptions } from 'next-auth';
+import type { Account, User } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
@@ -53,6 +54,7 @@ function CustomPrismaAdapter(): Adapter {
  *
  * Features:
  * - Google OAuth 2.0 for seamless user authentication
+ * - Twitter/X OAuth 2.0 for social login
  * - Email/password credentials provider for traditional login
  * - JWT session strategy for serverless-friendly authentication
  * - Verified-only account linking (security-first)
@@ -208,7 +210,7 @@ export const authOptions: NextAuthOptions = {
      * - User creation is handled by CustomPrismaAdapter (not here)
      * - Account linking is handled automatically by NextAuth + adapter
      */
-    async signIn({ user, account }) {
+    async signIn({ user, account }: { user: User; account: Account | null }) {
       try {
         console.log(
           '[SignIn] Provider:',
@@ -226,18 +228,42 @@ export const authOptions: NextAuthOptions = {
 
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email },
+            include: {
+              accounts: true, // Include linked accounts
+            },
           });
 
           console.log('[SignIn] Existing user found:', !!existingUser);
 
           // SECURITY: Prevent account takeover via unverified OAuth
-          // If a user registered with email/password but hasn't verified,
-          // don't allow someone else to link OAuth to that account
-          if (existingUser && !existingUser.emailVerified) {
+          // Only block if:
+          // 1. User exists
+          // 2. Email is NOT verified
+          // 3. User has NO OAuth accounts (meaning they registered with email/password)
+          if (
+            existingUser &&
+            !existingUser.emailVerified &&
+            existingUser.accounts &&
+            existingUser.accounts.length === 0
+          ) {
             console.error(
               `[SignIn] Prevented OAuth account takeover for unverified email: ${user.email}`
             );
-            return false; // Reject linking to unverified account
+            return false; // Reject linking to unverified email/password account
+          }
+
+          // For OAuth sign-ins, auto-verify email since OAuth providers verify emails
+          if (
+            existingUser &&
+            !existingUser.emailVerified &&
+            existingUser.accounts &&
+            existingUser.accounts.length > 0
+          ) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { emailVerified: new Date() },
+            });
+            console.log('[SignIn] Auto-verified email for OAuth user');
           }
 
           // Update profile picture from OAuth if user doesn't have one
@@ -302,9 +328,11 @@ export const authOptions: NextAuthOptions = {
           } else {
             // Fallback to user object (credentials provider)
             token.id = user.id;
-            token.tier = user.tier || 'FREE';
-            token.role = user.role || 'USER';
-            token.isAffiliate = user.isAffiliate || false;
+            token.tier = ('tier' in user ? user.tier : 'FREE') as UserTier;
+            token.role = ('role' in user ? user.role : 'USER') as UserRole;
+            token.isAffiliate = (
+              'isAffiliate' in user ? user.isAffiliate : false
+            ) as boolean;
             console.log('[JWT] Token populated from user object (fallback)');
           }
         }
