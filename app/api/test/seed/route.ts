@@ -133,6 +133,74 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             });
         }
 
+        // Create AffiliateProfile for affiliate test user
+        const affiliateUser = createdUsers.find((u) => u.email === 'affiliate-test@trading-alerts.test');
+        if (affiliateUser) {
+            await prisma.affiliateProfile.upsert({
+                where: { userId: affiliateUser.id },
+                update: {
+                    fullName: 'Affiliate Test User',
+                    country: 'US',
+                    status: 'ACTIVE',
+                    paymentMethod: 'BANK_TRANSFER',
+                    paymentDetails: { bankName: 'Test Bank', accountNumber: '123456789' },
+                    verifiedAt: new Date(),
+                },
+                create: {
+                    userId: affiliateUser.id,
+                    fullName: 'Affiliate Test User',
+                    country: 'US',
+                    status: 'ACTIVE',
+                    paymentMethod: 'BANK_TRANSFER',
+                    paymentDetails: { bankName: 'Test Bank', accountNumber: '123456789' },
+                    verifiedAt: new Date(),
+                },
+            });
+
+            // Create some test affiliate codes for the affiliate user
+            const affiliateProfile = await prisma.affiliateProfile.findUnique({
+                where: { userId: affiliateUser.id },
+            });
+
+            if (affiliateProfile) {
+                await prisma.affiliateCode.upsert({
+                    where: { code: 'TESTCODE10' },
+                    update: {
+                        discountPercent: 10,
+                        commissionPercent: 20,
+                        status: 'ACTIVE',
+                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+                    },
+                    create: {
+                        code: 'TESTCODE10',
+                        affiliateProfileId: affiliateProfile.id,
+                        discountPercent: 10,
+                        commissionPercent: 20,
+                        status: 'ACTIVE',
+                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+                    },
+                });
+
+                await prisma.affiliateCode.upsert({
+                    where: { code: 'TESTCODE20' },
+                    update: {
+                        discountPercent: 20,
+                        commissionPercent: 20,
+                        status: 'ACTIVE',
+                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                    },
+                    create: {
+                        code: 'TESTCODE20',
+                        affiliateProfileId: affiliateProfile.id,
+                        discountPercent: 20,
+                        commissionPercent: 20,
+                        status: 'ACTIVE',
+                        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+                    },
+                });
+            }
+        }
+
         return NextResponse.json({
             success: true,
             message: `Seeded ${createdUsers.length} test users`,
