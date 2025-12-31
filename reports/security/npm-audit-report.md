@@ -1,8 +1,9 @@
-# npm Audit Report - Phase 6 Security Testing
+# Security Audit Report - Phase 6 Security Testing
 
 **Date:** 2025-12-31
 **Project:** Trading Alerts SaaS V7
 **Phase:** 6 - Pre-Launch Security Testing
+**Package Manager:** pnpm
 
 ---
 
@@ -41,10 +42,12 @@ The `qs` package's arrayLimit bypass in bracket notation allows Denial of Servic
 - `newman-reporter-htmlextra` (depends on newman)
 
 **Fix Applied:**
-Added npm override in `package.json`:
+Added pnpm override in `package.json`:
 ```json
-"overrides": {
-  "qs": "^6.14.1"
+"pnpm": {
+  "overrides": {
+    "qs": "^6.14.1"
+  }
 }
 ```
 
@@ -65,10 +68,12 @@ The `jose` package is vulnerable to resource exhaustion via specifically crafted
 - `postman-runtime` (depends on vulnerable jose)
 
 **Fix Applied:**
-Added npm override in `package.json`:
+Added pnpm override in `package.json`:
 ```json
-"overrides": {
-  "jose": "^4.15.5"
+"pnpm": {
+  "overrides": {
+    "jose": "^4.15.5"
+  }
 }
 ```
 
@@ -76,27 +81,89 @@ Added npm override in `package.json`:
 
 ---
 
-## Existing Overrides (Previously Applied)
+### 3. node-forge - ASN.1 Vulnerabilities (HIGH)
 
-The following overrides were already in place before this security audit:
+**CVE/Advisory:** GHSA-554w-wpv2-vw27, GHSA-5gfm-wpxj-wjgq, GHSA-65ch-62r8-g69g
+**Affected Version:** < 1.3.2
+
+**Description:**
+Multiple ASN.1 related vulnerabilities including unbounded recursion, interpretation conflict, and OID integer truncation.
+
+**Affected Packages:**
+- `node-forge` (transitive via postman-runtime)
+
+**Fix Applied:**
+Added pnpm override in `package.json`:
+```json
+"pnpm": {
+  "overrides": {
+    "node-forge": "^1.3.2"
+  }
+}
+```
+
+**Status:** ✅ FIXED
+
+---
+
+### 4. nodemailer - DoS via Uncontrolled Recursion (MODERATE)
+
+**CVE/Advisory:** GHSA-46j5-6fg5-4gv3, GHSA-rcmh-qjqh-p98v
+**Affected Version:** < 7.0.11
+
+**Description:**
+Nodemailer's addressparser is vulnerable to DoS caused by recursive calls.
+
+**Affected Packages:**
+- `nodemailer` (transitive via next-auth)
+
+**Fix Applied:**
+Added pnpm override in `package.json`:
+```json
+"pnpm": {
+  "overrides": {
+    "nodemailer": "^7.0.11"
+  }
+}
+```
+
+**Status:** ✅ FIXED
+
+---
+
+## Complete pnpm Overrides Configuration
+
+```json
+"pnpm": {
+  "overrides": {
+    "node-forge": "^1.3.2",
+    "qs": "^6.14.1",
+    "jose": "^4.15.5",
+    "nodemailer": "^7.0.11"
+  }
+}
+```
+
+## npm Overrides (for npm compatibility)
 
 | Package | Version | Reason |
 |---------|---------|--------|
 | `react` | ^19.2.1 | React 19 compatibility |
 | `react-dom` | ^19.2.1 | React 19 compatibility |
 | `node-forge` | ^1.3.2 | Security patch |
+| `qs` | ^6.14.1 | Security patch |
+| `jose` | ^4.15.5 | Security patch |
 
 ---
 
 ## Actions Taken
 
-1. **Ran `npm audit`** - Identified 5 HIGH severity vulnerabilities
-2. **Analyzed dependency tree** - All vulnerabilities traced to newman (dev dependency)
-3. **Verified production impact** - Ran `npm audit --omit=dev` - 0 vulnerabilities in production
-4. **Applied npm overrides** - Added `qs` and `jose` to overrides section
-5. **Reinstalled dependencies** - `rm -rf node_modules package-lock.json && npm install`
-6. **Verified fix** - `npm audit` now shows 0 vulnerabilities
-7. **Added security scripts** - Added `security:audit`, `security:audit:prod`, `security:check` to package.json
+1. **Ran `pnpm audit`** - Identified 8 vulnerabilities (4 HIGH, 3 MODERATE, 1 LOW)
+2. **Analyzed dependency tree** - Vulnerabilities in newman (dev) and next-auth (prod) dependencies
+3. **Applied pnpm overrides** - Added `qs`, `jose`, `node-forge`, `nodemailer` to pnpm.overrides
+4. **Reinstalled dependencies** - `rm -rf node_modules && pnpm install`
+5. **Verified fix** - `pnpm audit` now shows "No known vulnerabilities found"
+6. **Added security scripts** - Added `security:audit`, `security:audit:prod`, `security:check` to package.json
 
 ---
 
@@ -104,23 +171,23 @@ The following overrides were already in place before this security audit:
 
 ```json
 {
-  "security:audit": "npm audit --audit-level=high",
-  "security:audit:prod": "npm audit --omit=dev --audit-level=high",
-  "security:audit:json": "npm audit --json > reports/security/npm-audit-latest.json",
-  "security:check": "npm run security:audit:prod && echo '✅ No high/critical vulnerabilities'"
+  "security:audit": "pnpm audit",
+  "security:audit:prod": "pnpm audit --prod",
+  "security:audit:json": "pnpm audit --json > reports/security/pnpm-audit-latest.json",
+  "security:check": "pnpm audit --prod && echo '✅ No high/critical vulnerabilities'"
 }
 ```
 
 **Usage:**
 ```bash
 # Check all dependencies
-npm run security:audit
+pnpm run security:audit
 
 # Check production dependencies only
-npm run security:audit:prod
+pnpm run security:audit:prod
 
 # Full security check (recommended for CI/CD)
-npm run security:check
+pnpm run security:check
 ```
 
 ---
@@ -147,15 +214,15 @@ These are tracked but do not pose immediate security risks. They will be address
 
 ```bash
 # Verify no vulnerabilities
-npm audit
-# Expected output: found 0 vulnerabilities
+pnpm audit
+# Expected output: No known vulnerabilities found
 
 # Verify production-only (recommended)
-npm audit --omit=dev
-# Expected output: found 0 vulnerabilities
+pnpm audit --prod
+# Expected output: No known vulnerabilities found
 
 # Run security check script
-npm run security:check
+pnpm run security:check
 # Expected output: ✅ No high/critical vulnerabilities in production dependencies
 ```
 
