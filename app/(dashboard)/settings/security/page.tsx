@@ -8,7 +8,6 @@ import {
   Shield,
   History,
   Bell,
-  Loader2,
   RefreshCw,
   Monitor,
   Smartphone,

@@ -187,12 +187,13 @@ export async function getGeoLocation(ipAddress: string): Promise<GeoLocation> {
  */
 export function generateDeviceFingerprint(
   userAgent: string,
-  ipAddress: string
+  _ipAddress: string
 ): string {
   const device = parseUserAgent(userAgent);
   // Create a fingerprint from device + browser + OS combination
   // Note: This is a simplified fingerprint. For production, consider using
   // client-side fingerprinting libraries like FingerprintJS
+  // IP is not included in fingerprint to allow same device from different networks
   const fingerprintBase = `${device.browser}|${device.os}|${device.deviceType}|${userAgent.substring(0, 100)}`;
   return crypto.createHash('sha256').update(fingerprintBase).digest('hex').substring(0, 32);
 }
