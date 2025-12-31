@@ -1,0 +1,274 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - button "Open Next.js Dev Tools" [ref=e6] [cursor=pointer]:
+    - img [ref=e7]
+  - alert
+  - generic:
+    - banner:
+      - generic:
+        - generic:
+          - link:
+            - /url: /dashboard
+            - img: 📊
+            - generic: Trading Alerts
+        - generic:
+          - generic: FREE
+          - button [expanded]:
+            - img
+          - button:
+            - img
+            - generic: Toggle theme
+          - button:
+            - generic:
+              - generic: FT
+            - generic: Free
+            - img
+    - generic:
+      - complementary:
+        - generic:
+          - navigation:
+            - generic:
+              - paragraph: Main Menu
+            - link:
+              - /url: /dashboard
+              - img
+              - generic: Dashboard
+            - link:
+              - /url: /dashboard/charts
+              - img
+              - generic: Charts
+            - link:
+              - /url: /dashboard/alerts
+              - img
+              - generic: Alerts
+            - link:
+              - /url: /dashboard/watchlist
+              - img
+              - generic: Watchlist
+            - link:
+              - /url: /dashboard/settings/billing
+              - img
+              - generic: Analytics
+              - generic:
+                - img
+                - generic: PRO
+            - link:
+              - /url: /dashboard/settings/billing
+              - img
+              - generic: Custom Indicators
+              - generic:
+                - img
+                - generic: PRO
+          - generic:
+            - paragraph: Upgrade to PRO
+            - paragraph: Get 15 symbols, 9 timeframes, and 20 alerts
+            - link:
+              - /url: /dashboard/settings/billing
+              - text: Upgrade Now
+          - generic:
+            - link:
+              - /url: /dashboard/settings
+              - img
+              - generic: Settings
+            - link:
+              - /url: /dashboard/help
+              - img
+              - generic: Help
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=1]: Welcome back, Free!
+                - paragraph: Here's what's happening with your trading alerts
+              - generic: 🆓 FREE TIER
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - generic:
+                    - heading [level=2]: Quick Start Tips
+                    - list:
+                      - listitem:
+                        - generic: "1"
+                        - text: Add symbols to your Watchlist
+                      - listitem:
+                        - generic: "2"
+                        - text: View live charts with fractal lines
+                      - listitem:
+                        - generic: "3"
+                        - text: Create alerts for price levels
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Symbols
+                  - img
+                - generic:
+                  - generic: "5"
+                  - paragraph: BTC, EUR, USD, US30, XAU
+              - generic:
+                - generic:
+                  - generic: Timeframes
+                  - img
+                - generic:
+                  - generic: "3"
+                  - paragraph: H1, H4, D1
+              - generic:
+                - generic:
+                  - generic: Charts
+                  - img
+                - generic:
+                  - generic: "15"
+                  - paragraph: 5 × 3
+              - generic:
+                - generic:
+                  - generic: Max Alerts
+                  - img
+                - generic:
+                  - generic: "5"
+                  - paragraph: 0 active
+              - generic:
+                - generic:
+                  - generic: Indicators
+                  - img
+                - generic:
+                  - generic: "2"
+                  - paragraph: 2 basic
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Active Alerts
+                  - img
+                - generic:
+                  - generic: 0/5
+                  - generic:
+                    - generic:
+                      - generic: 0 / 5
+                      - generic: 0%
+              - generic:
+                - generic:
+                  - generic: Watchlist Items
+                  - img
+                - generic:
+                  - generic: 0/10
+                  - generic:
+                    - generic:
+                      - generic: 0 / 10
+                      - generic: 0%
+              - generic:
+                - generic:
+                  - generic: API Usage
+                  - img
+                - generic:
+                  - generic: 42/60
+                  - paragraph: requests this hour
+                  - generic:
+                    - generic:
+                      - generic: 42 / 60
+                      - generic: 70%
+              - generic:
+                - generic:
+                  - generic: Chart Views
+                  - img
+                - generic:
+                  - generic: "156"
+                  - paragraph: this week
+                  - generic:
+                    - img
+                    - generic: +12%
+                    - generic: from last week
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Watchlist
+                  - generic:
+                    - link:
+                      - /url: /dashboard/watchlist/add
+                      - button:
+                        - img
+                        - generic: Add
+                - generic:
+                  - generic:
+                    - generic: 📋
+                    - heading [level=3]: No symbols in watchlist
+                    - paragraph: Add symbols to track their price movements
+                    - link:
+                      - /url: /dashboard/watchlist/add
+                      - button:
+                        - img
+                        - text: Add Symbol
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Recent Alerts
+                - generic:
+                  - generic:
+                    - generic: 🔔
+                    - heading [level=3]: No alerts yet
+                    - paragraph: Set up alerts to get notified of price movements
+                    - link:
+                      - /url: /dashboard/alerts/new
+                      - button: Create Your First Alert
+            - generic:
+              - generic:
+                - generic:
+                  - generic: ⭐
+                  - generic:
+                    - heading [level=2]: Upgrade to PRO
+                    - paragraph: Get 15 symbols, 9 timeframes, and 20 alerts for just $29/month
+                    - list:
+                      - listitem:
+                        - generic: ✓
+                        - text: 15 trading symbols
+                      - listitem:
+                        - generic: ✓
+                        - text: 9 timeframes (M5-D1)
+                      - listitem:
+                        - generic: ✓
+                        - text: 20 active alerts
+                      - listitem:
+                        - generic: ✓
+                        - text: Priority updates (30s)
+                    - generic:
+                      - link:
+                        - /url: /dashboard/settings/billing
+                        - button: Upgrade Now - $29/month
+                      - link:
+                        - /url: /pricing
+                        - text: See full comparison
+    - generic:
+      - contentinfo:
+        - generic:
+          - generic:
+            - generic:
+              - img: 📊
+              - generic: © 2025 Trading Alerts. All rights reserved.
+            - navigation:
+              - link:
+                - /url: /settings/help
+                - text: Help Center
+              - generic: ·
+              - link:
+                - /url: /settings/privacy
+                - text: Privacy
+              - generic: ·
+              - link:
+                - /url: /settings/terms
+                - text: Terms
+              - generic: ·
+              - link:
+                - /url: https://status.tradingalerts.com
+                - text: Status
+  - menu "Notifications" [active] [ref=e10]:
+    - generic [ref=e11]: Notifications
+    - separator [ref=e12]
+    - generic [ref=e13]:
+      - img [ref=e14]
+      - paragraph [ref=e17]: No new notifications
+      - paragraph [ref=e18]: You'll be notified when your alerts are triggered
+```
