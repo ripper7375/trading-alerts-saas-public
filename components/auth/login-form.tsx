@@ -27,7 +27,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-type ErrorType = 'invalid' | 'locked' | 'server' | 'unverified' | null;
+type ErrorType = 'invalid' | 'locked' | 'server' | 'unverified' | '2fa_required' | null;
 
 export default function LoginForm(): JSX.Element {
   const router = useRouter();
@@ -60,7 +60,13 @@ export default function LoginForm(): JSX.Element {
 
       if (result?.error) {
         // Parse error to determine type
-        if (result.error.includes('EMAIL_NOT_VERIFIED')) {
+        if (result.error.includes('TWO_FACTOR_REQUIRED:')) {
+          // Extract the 2FA token from the error message
+          const token = result.error.replace('TWO_FACTOR_REQUIRED:', '');
+          // Redirect to 2FA verification page with token
+          router.push(`/verify-2fa?token=${encodeURIComponent(token)}`);
+          return;
+        } else if (result.error.includes('EMAIL_NOT_VERIFIED')) {
           setError('unverified');
         } else if (result.error.includes('locked')) {
           setError('locked');

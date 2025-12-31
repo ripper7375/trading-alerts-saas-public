@@ -1,5 +1,6 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { type NextAuthOptions } from 'next-auth';
 import type { Account, User } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
@@ -10,6 +11,22 @@ import TwitterProvider from 'next-auth/providers/twitter';
 
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
+
+/**
+ * Generate a temporary 2FA token for the verification step
+ */
+export function generate2FAToken(userId: string, email: string): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error('NEXTAUTH_SECRET not configured');
+  }
+
+  return jwt.sign(
+    { userId, email, purpose: '2fa_verification' },
+    secret,
+    { expiresIn: '5m' } // Token expires in 5 minutes
+  );
+}
 
 /**
  * Custom Prisma Adapter that extends the default adapter to set default values
@@ -124,6 +141,56 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          // Handle 2FA-verified login (special case)
+          if (credentials.email === '__2fa_verified__') {
+            // The password contains the 2FA token
+            const twoFactorToken = credentials.password;
+
+            try {
+              const secret = process.env.NEXTAUTH_SECRET;
+              if (!secret) {
+                throw new Error('NEXTAUTH_SECRET not configured');
+              }
+
+              const decoded = jwt.verify(twoFactorToken, secret) as {
+                userId: string;
+                email: string;
+                purpose: string;
+              };
+
+              if (decoded.purpose !== '2fa_verification') {
+                return null;
+              }
+
+              // Token is valid, get user and complete login
+              const user = await prisma.user.findUnique({
+                where: { id: decoded.userId },
+              });
+
+              if (!user) {
+                return null;
+              }
+
+              console.log('[Auth] 2FA verification complete for:', user.email);
+
+              return {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                tier: user.tier as UserTier,
+                role: user.role as UserRole,
+                isAffiliate: user.isAffiliate,
+                image: user.image,
+                isActive: user.isActive,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+              };
+            } catch {
+              console.error('[Auth] Invalid 2FA token');
+              return null;
+            }
+          }
+
           // Find user in database
           const user = await prisma.user.findUnique({
             where: { email: credentials.email },
@@ -154,6 +221,15 @@ export const authOptions: NextAuthOptions = {
             throw new Error('EMAIL_NOT_VERIFIED');
           }
 
+          // Check if 2FA is enabled
+          if (user.twoFactorEnabled) {
+            console.log('[Auth] 2FA required for user:', user.email);
+            // Generate temporary token for 2FA verification
+            const twoFactorToken = generate2FAToken(user.id, user.email);
+            // Throw special error with token to trigger 2FA flow
+            throw new Error(`TWO_FACTOR_REQUIRED:${twoFactorToken}`);
+          }
+
           // Return user object with actual database values
           return {
             id: user.id,
@@ -168,12 +244,14 @@ export const authOptions: NextAuthOptions = {
             updatedAt: user.updatedAt,
           };
         } catch (error) {
-          // Re-throw EMAIL_NOT_VERIFIED error to be handled by NextAuth
-          if (
-            error instanceof Error &&
-            error.message === 'EMAIL_NOT_VERIFIED'
-          ) {
-            throw error;
+          // Re-throw EMAIL_NOT_VERIFIED and TWO_FACTOR_REQUIRED errors
+          if (error instanceof Error) {
+            if (
+              error.message === 'EMAIL_NOT_VERIFIED' ||
+              error.message.startsWith('TWO_FACTOR_REQUIRED:')
+            ) {
+              throw error;
+            }
           }
           console.error('Credentials authorization error:', error);
           return null;
