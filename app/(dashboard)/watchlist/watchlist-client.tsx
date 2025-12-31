@@ -17,9 +17,10 @@ import {
   Trash2,
   Plus,
   Loader2,
+  Undo2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -220,6 +221,14 @@ export function WatchlistClient({
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Undo state for remove operations
+  const [removedItem, setRemovedItem] = useState<WatchlistItem | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Pending add state for optimistic UI
+  const [pendingAddId, setPendingAddId] = useState<string | null>(null);
+
   const usedSlots = items.length;
 
   // Get available symbols and timeframes based on tier
@@ -242,12 +251,43 @@ export function WatchlistClient({
     usedSlots < limit &&
     !isAdding;
 
-  // Add item handler
+  // Cleanup undo timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Add item handler (optimistic)
   const handleAddItem = useCallback(async (): Promise<void> => {
     if (!canAdd) return;
 
     setIsAdding(true);
     setError(null);
+
+    // Create optimistic item with temporary ID
+    const tempId = `temp-${Date.now()}`;
+    const optimisticItem: WatchlistItem = {
+      id: tempId,
+      symbol: selectedSymbol,
+      timeframe: selectedTimeframe,
+      order: items.length,
+      createdAt: new Date(),
+    };
+
+    // Store previous state for rollback
+    const previousItems = items;
+    const previousSymbol = selectedSymbol;
+    const previousTimeframe = selectedTimeframe;
+
+    // Optimistically add item
+    setItems((prev) => [...prev, optimisticItem]);
+    setPendingAddId(tempId);
+    setSelectedSymbol('');
+    setSelectedTimeframe('');
+    setShowAddForm(false);
 
     try {
       const response = await fetch('/api/watchlist', {
@@ -255,8 +295,8 @@ export function WatchlistClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           watchlistId,
-          symbol: selectedSymbol,
-          timeframe: selectedTimeframe,
+          symbol: previousSymbol,
+          timeframe: previousTimeframe,
         }),
       });
 
@@ -266,39 +306,122 @@ export function WatchlistClient({
         throw new Error(data.error || 'Failed to add item');
       }
 
-      setItems((prev) => [...prev, data.item]);
-      setSelectedSymbol('');
-      setSelectedTimeframe('');
-      setShowAddForm(false);
+      // Replace temporary item with real item from server
+      setItems((prev) =>
+        prev.map((item) => (item.id === tempId ? data.item : item))
+      );
     } catch (err) {
+      // Rollback on error
+      setItems(previousItems);
+      setSelectedSymbol(previousSymbol);
+      setSelectedTimeframe(previousTimeframe);
+      setShowAddForm(true);
       setError(err instanceof Error ? err.message : 'Failed to add item');
     } finally {
       setIsAdding(false);
+      setPendingAddId(null);
     }
-  }, [canAdd, watchlistId, selectedSymbol, selectedTimeframe]);
+  }, [canAdd, watchlistId, selectedSymbol, selectedTimeframe, items]);
 
-  // Remove item handler
-  const handleRemoveItem = useCallback(async (id: string): Promise<void> => {
-    setIsRemoving(id);
-    setError(null);
+  // Remove item handler (optimistic)
+  const handleRemoveItem = useCallback(
+    async (id: string): Promise<void> => {
+      setIsRemoving(id);
+      setError(null);
 
-    try {
-      const response = await fetch(`/api/watchlist/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to remove item');
+      // Store item for undo
+      const itemToRemove = items.find((item) => item.id === id);
+      if (!itemToRemove) {
+        setIsRemoving(null);
+        return;
       }
 
+      // Store previous state for rollback
+      const previousItems = items;
+
+      // Set up undo state
+      setRemovedItem(itemToRemove);
+      setShowUndo(true);
+
+      // Clear previous timeout
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+
+      // Auto-hide undo after 5 seconds
+      undoTimeoutRef.current = setTimeout(() => {
+        setShowUndo(false);
+        setRemovedItem(null);
+      }, 5000);
+
+      // Optimistically remove item
       setItems((prev) => prev.filter((item) => item.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove item');
-    } finally {
-      setIsRemoving(null);
+
+      try {
+        const response = await fetch(`/api/watchlist/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to remove item');
+        }
+      } catch (err) {
+        // Rollback on error
+        setItems(previousItems);
+        setShowUndo(false);
+        setRemovedItem(null);
+        if (undoTimeoutRef.current) {
+          clearTimeout(undoTimeoutRef.current);
+        }
+        setError(err instanceof Error ? err.message : 'Failed to remove item');
+      } finally {
+        setIsRemoving(null);
+      }
+    },
+    [items]
+  );
+
+  // Undo remove - restore the item
+  const handleUndoRemove = useCallback(async (): Promise<void> => {
+    if (!removedItem) return;
+
+    // Clear timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
     }
-  }, []);
+
+    // Restore the item optimistically
+    const itemToRestore = removedItem;
+    setItems((prev) => {
+      // Insert back in the correct position based on order
+      const restored = [...prev, itemToRestore].sort(
+        (a, b) => a.order - b.order
+      );
+      return restored;
+    });
+
+    setShowUndo(false);
+    setRemovedItem(null);
+
+    // Re-create the item on the server
+    try {
+      await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          watchlistId,
+          symbol: itemToRestore.symbol,
+          timeframe: itemToRestore.timeframe,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to restore watchlist item:', err);
+      // Remove the item if server restore failed
+      setItems((prev) => prev.filter((item) => item.id !== itemToRestore.id));
+      setError('Failed to restore item');
+    }
+  }, [removedItem, watchlistId]);
 
   // Get symbol info
   const getSymbolInfo = (symbol: string): SymbolInfo | undefined => {
@@ -482,6 +605,24 @@ export function WatchlistClient({
         </Card>
       )}
 
+      {/* Undo Remove Banner */}
+      {showUndo && removedItem && (
+        <div className="flex items-center justify-between bg-gray-800 text-white px-4 py-3 rounded-lg animate-in slide-in-from-top-2">
+          <span className="text-sm">
+            Removed {removedItem.symbol} - {removedItem.timeframe}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUndoRemove}
+            className="text-white hover:text-white hover:bg-gray-700"
+          >
+            <Undo2 className="h-4 w-4 mr-2" />
+            Undo
+          </Button>
+        </div>
+      )}
+
       {/* Watchlist Items */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">
@@ -493,11 +634,14 @@ export function WatchlistClient({
             {items.map((item) => {
               const symbolInfo = getSymbolInfo(item.symbol);
               const timeframeInfo = getTimeframeInfo(item.timeframe);
+              const isPending = item.id === pendingAddId;
 
               return (
                 <Card
                   key={item.id}
-                  className="shadow-md hover:shadow-xl transition-shadow border-l-4 border-blue-500"
+                  className={`shadow-md hover:shadow-xl transition-shadow border-l-4 border-blue-500 ${
+                    isPending ? 'opacity-70' : ''
+                  }`}
                 >
                   <CardContent className="p-6">
                     {/* Header */}

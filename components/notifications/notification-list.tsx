@@ -12,13 +12,15 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
+  Undo2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -75,6 +77,12 @@ export function NotificationList(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Undo state for delete operations
+  const [deletedNotification, setDeletedNotification] =
+    useState<Notification | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const PAGE_SIZE = 20;
 
   // Fetch notifications from API
@@ -128,69 +136,214 @@ export function NotificationList(): React.JSX.Element {
     setPage(1);
   }, [statusFilter, typeFilter]);
 
-  // Mark single notification as read
-  const handleMarkAsRead = async (id: string): Promise<void> => {
-    try {
+  // Clear undo timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Optimistic mark as read mutation
+  const markAsReadMutation = useOptimisticMutation<void, string>({
+    mutationFn: async (id) => {
       const response = await fetch(`/api/notifications/${id}/read`, {
         method: 'POST',
       });
+      if (!response.ok) {
+        throw new Error('Failed to mark as read');
+      }
+    },
+    onMutate: (id) => {
+      // Store previous state
+      const previousNotifications = notifications;
+      const previousUnreadCount = unreadCount;
+      const notification = notifications.find((n) => n.id === id);
+      const wasUnread = notification && !notification.read;
 
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === id
-              ? { ...n, read: true, readAt: new Date().toISOString() }
-              : n
-          )
-        );
+      // Optimistically update
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === id
+            ? { ...n, read: true, readAt: new Date().toISOString() }
+            : n
+        )
+      );
+      if (wasUnread) {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-    }
+
+      // Return rollback function
+      return () => {
+        setNotifications(previousNotifications);
+        setUnreadCount(previousUnreadCount);
+      };
+    },
+    onError: (error, _id, rollback) => {
+      rollback?.();
+      console.error('Failed to mark notification as read:', error);
+    },
+  });
+
+  // Mark single notification as read (optimistic)
+  const handleMarkAsRead = async (id: string): Promise<void> => {
+    await markAsReadMutation.mutate(id);
   };
 
-  // Mark all notifications as read
-  const handleMarkAllAsRead = async (): Promise<void> => {
-    try {
+  // Optimistic mark all as read mutation
+  const markAllAsReadMutation = useOptimisticMutation<void, void>({
+    mutationFn: async () => {
       const response = await fetch('/api/notifications', {
         method: 'POST',
       });
-
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => ({
-            ...n,
-            read: true,
-            readAt: new Date().toISOString(),
-          }))
-        );
-        setUnreadCount(0);
+      if (!response.ok) {
+        throw new Error('Failed to mark all as read');
       }
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
-    }
+    },
+    onMutate: () => {
+      // Store previous state
+      const previousNotifications = notifications;
+      const previousUnreadCount = unreadCount;
+
+      // Optimistically update all
+      setNotifications((prev) =>
+        prev.map((n) => ({
+          ...n,
+          read: true,
+          readAt: new Date().toISOString(),
+        }))
+      );
+      setUnreadCount(0);
+
+      // Return rollback function
+      return () => {
+        setNotifications(previousNotifications);
+        setUnreadCount(previousUnreadCount);
+      };
+    },
+    onError: (error, _vars, rollback) => {
+      rollback?.();
+      console.error('Failed to mark all as read:', error);
+    },
+  });
+
+  // Mark all notifications as read (optimistic)
+  const handleMarkAllAsRead = async (): Promise<void> => {
+    await markAllAsReadMutation.mutate();
   };
 
-  // Delete notification
-  const handleDelete = async (id: string): Promise<void> => {
-    try {
+  // Optimistic delete mutation
+  const deleteMutation = useOptimisticMutation<void, string>({
+    mutationFn: async (id) => {
       const response = await fetch(`/api/notifications/${id}`, {
         method: 'DELETE',
       });
-
-      if (response.ok) {
-        const deletedNotification = notifications.find((n) => n.id === id);
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
-        setTotal((prev) => prev - 1);
-        if (deletedNotification && !deletedNotification.read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
+      if (!response.ok) {
+        throw new Error('Failed to delete notification');
       }
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
-    }
+    },
+    onMutate: (id) => {
+      // Store previous state
+      const previousNotifications = notifications;
+      const previousTotal = total;
+      const previousUnreadCount = unreadCount;
+      const notification = notifications.find((n) => n.id === id);
+      const wasUnread = notification && !notification.read;
+
+      // Store deleted notification for undo
+      if (notification) {
+        setDeletedNotification(notification);
+        setShowUndo(true);
+
+        // Clear previous timeout
+        if (undoTimeoutRef.current) {
+          clearTimeout(undoTimeoutRef.current);
+        }
+
+        // Auto-hide undo after 5 seconds
+        undoTimeoutRef.current = setTimeout(() => {
+          setShowUndo(false);
+          setDeletedNotification(null);
+        }, 5000);
+      }
+
+      // Optimistically remove
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      setTotal((prev) => prev - 1);
+      if (wasUnread) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+
+      // Return rollback function
+      return () => {
+        setNotifications(previousNotifications);
+        setTotal(previousTotal);
+        setUnreadCount(previousUnreadCount);
+        setShowUndo(false);
+        setDeletedNotification(null);
+        if (undoTimeoutRef.current) {
+          clearTimeout(undoTimeoutRef.current);
+        }
+      };
+    },
+    onError: (error, _id, rollback) => {
+      rollback?.();
+      console.error('Failed to delete notification:', error);
+    },
+    onSuccess: () => {
+      // Clear undo state after successful deletion (server confirmed)
+      // But we keep showing undo until timeout for UX
+    },
+  });
+
+  // Delete notification (optimistic)
+  const handleDelete = async (id: string): Promise<void> => {
+    await deleteMutation.mutate(id);
   };
+
+  // Undo delete - restore the notification
+  const handleUndoDelete = useCallback((): void => {
+    if (!deletedNotification) return;
+
+    // Clear timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    // Restore the notification (add it back to the list)
+    setNotifications((prev) => {
+      // Insert back in the correct position based on createdAt
+      const restored = [...prev, deletedNotification].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      return restored;
+    });
+    setTotal((prev) => prev + 1);
+    if (!deletedNotification.read) {
+      setUnreadCount((prev) => prev + 1);
+    }
+
+    setShowUndo(false);
+    setDeletedNotification(null);
+
+    // Re-create the notification on the server
+    // Note: This is a best-effort - in a real app you might want
+    // a dedicated undo endpoint
+    fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: deletedNotification.type,
+        title: deletedNotification.title,
+        body: deletedNotification.body,
+        priority: deletedNotification.priority,
+      }),
+    }).catch((err) => {
+      console.error('Failed to restore notification:', err);
+    });
+  }, [deletedNotification]);
 
   // Handle notification click
   const handleNotificationClick = async (
@@ -333,6 +486,22 @@ export function NotificationList(): React.JSX.Element {
             )
           )}
         </div>
+
+        {/* Undo Delete Banner */}
+        {showUndo && deletedNotification && (
+          <div className="mb-4 flex items-center justify-between bg-gray-800 text-white px-4 py-3 rounded-lg animate-in slide-in-from-top-2">
+            <span className="text-sm">Notification deleted</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleUndoDelete}
+              className="text-white hover:text-white hover:bg-gray-700"
+            >
+              <Undo2 className="h-4 w-4 mr-2" />
+              Undo
+            </Button>
+          </div>
+        )}
 
         {/* Notifications List */}
         {isLoading ? (
