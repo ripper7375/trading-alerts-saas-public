@@ -12,6 +12,23 @@ import TwitterProvider from 'next-auth/providers/twitter';
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
 
+// Type for user with 2FA fields (until Prisma client is regenerated)
+interface PrismaUserWith2FA {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  password: string | null;
+  tier: string;
+  role: string;
+  isAffiliate: boolean;
+  isActive: boolean;
+  emailVerified: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  twoFactorEnabled: boolean;
+}
+
 /**
  * Generate a temporary 2FA token for the verification step
  */
@@ -192,9 +209,9 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Find user in database
-          const user = await prisma.user.findUnique({
+          const user = (await prisma.user.findUnique({
             where: { email: credentials.email },
-          });
+          })) as PrismaUserWith2FA | null;
 
           // OAuth-only users don't have passwords
           if (!user || !user.password) {

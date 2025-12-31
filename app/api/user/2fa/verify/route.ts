@@ -10,6 +10,15 @@ import {
   isBackupCode,
 } from '@/lib/auth/two-factor';
 
+// Type for user with 2FA fields (until Prisma client is regenerated)
+interface UserWith2FA {
+  id: string;
+  email: string;
+  twoFactorEnabled: boolean;
+  twoFactorSecret: string | null;
+  twoFactorBackupCodes: string | null;
+}
+
 /**
  * 2FA Verification API Route
  *
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user with 2FA data
-    const user = await prisma.user.findUnique({
+    const user = (await prisma.user.findUnique({
       where: { id: tokenPayload.userId },
       select: {
         id: true,
@@ -75,7 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         twoFactorSecret: true,
         twoFactorBackupCodes: true,
       },
-    });
+    })) as UserWith2FA | null;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

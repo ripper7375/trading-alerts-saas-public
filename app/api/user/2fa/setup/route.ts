@@ -10,6 +10,14 @@ import {
   encryptSecret,
 } from '@/lib/auth/two-factor';
 
+// Type for user with 2FA fields (until Prisma client is regenerated)
+interface UserWith2FA {
+  id: string;
+  email: string;
+  twoFactorEnabled: boolean;
+  twoFactorVerifiedAt: Date | null;
+}
+
 /**
  * 2FA Setup API Route
  *
@@ -34,14 +42,14 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user
-    const user = await prisma.user.findUnique({
+    const user = (await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
         id: true,
         email: true,
         twoFactorEnabled: true,
       },
-    });
+    })) as Pick<UserWith2FA, 'id' | 'email' | 'twoFactorEnabled'> | null;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -106,13 +114,13 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     }
 
     // Get user 2FA status
-    const user = await prisma.user.findUnique({
+    const user = (await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
         twoFactorEnabled: true,
         twoFactorVerifiedAt: true,
       },
-    });
+    })) as Pick<UserWith2FA, 'twoFactorEnabled' | 'twoFactorVerifiedAt'> | null;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

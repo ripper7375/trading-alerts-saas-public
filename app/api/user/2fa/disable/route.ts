@@ -12,6 +12,16 @@ import {
   formatLocation,
 } from '@/lib/security/device-detection';
 
+// Type for user with 2FA fields (until Prisma client is regenerated)
+interface UserWith2FA {
+  id: string;
+  email: string;
+  name: string | null;
+  password: string | null;
+  twoFactorEnabled: boolean;
+  twoFactorSecret: string | null;
+}
+
 /**
  * 2FA Disable API Route
  *
@@ -58,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { password, code } = validation.data;
 
     // Get user with password and 2FA data
-    const user = await prisma.user.findUnique({
+    const user = (await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
         id: true,
@@ -68,7 +78,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         twoFactorEnabled: true,
         twoFactorSecret: true,
       },
-    });
+    })) as UserWith2FA | null;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
