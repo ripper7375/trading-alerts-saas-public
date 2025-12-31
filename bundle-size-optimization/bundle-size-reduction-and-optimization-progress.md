@@ -235,6 +235,8 @@ Reduce Next.js bundle size from **~380MB** to under **340MB** (target), with int
 | `68dd493` | fix: add permissions for PR comments and make comment step non-blocking | ✅ |
 | `41f4949` | docs: add bundle size optimization progress document | ✅ |
 | `45b5ab0` | perf: add modularizeImports for lucide-react tree-shaking | ✅ |
+| `53f27d6` | docs: update progress document with Phase 1 completion | ✅ |
+| `5b6e84b` | fix: resolve Jest ESM transformation errors for lucide-react | ✅ |
 
 ### CI/CD Status
 - **Unit & Component Tests:** ✅ Passing
@@ -383,6 +385,72 @@ BUNDLE_SIZE=$(du -sm .next/ | cut -f1)  # Note the trailing slash
 
 ---
 
+### 7. modularizeImports Breaks Jest - Requires Mock Configuration
+
+**Problem:** Adding `modularizeImports` for `lucide-react` in `next.config.js` causes Jest tests to fail with "unexpected token" errors.
+
+**Error Message:**
+```
+SyntaxError: Cannot use import statement outside a module
+
+/node_modules/.pnpm/lucide-react@0.303.0_react@19.2.3/node_modules/lucide-react/dist/esm/icons/check.js:8
+import createLucideIcon from '../createLucideIcon.js';
+^^^^^^
+```
+
+**Root Cause:** The `modularizeImports` feature transforms barrel imports like `import { Check } from 'lucide-react'` into specific ESM imports like `lucide-react/dist/esm/icons/check.js`. Jest cannot parse these ESM files because `node_modules` is ignored by transformers by default.
+
+**Solution:** Create a mock file and configure Jest's `moduleNameMapper`:
+
+```javascript
+// __mocks__/lucide-react-icon.js
+const React = require('react');
+
+const createMockIcon = (displayName) => {
+  const Icon = React.forwardRef((props, ref) => {
+    const lucideClass = `lucide lucide-${displayName.toLowerCase()}`;
+    return React.createElement('svg', {
+      ref,
+      className: props.className ? `${lucideClass} ${props.className}` : lucideClass,
+      'data-testid': `lucide-${displayName}`,
+      ...props,
+    });
+  });
+  Icon.displayName = displayName || 'LucideIcon';
+  return Icon;
+};
+
+module.exports = createMockIcon('MockIcon');
+module.exports.default = createMockIcon('MockIcon');
+```
+
+```javascript
+// jest.config.js - add to moduleNameMapper
+moduleNameMapper: {
+  '^@/(.*)$': '<rootDir>/$1',
+  '^lucide-react/dist/esm/icons/(.*)$': '<rootDir>/__mocks__/lucide-react-icon.js',
+},
+```
+
+**Key Insight:** When using `modularizeImports` for any library, always verify Jest compatibility and add appropriate mocks if the transformed imports use ESM syntax.
+
+---
+
+### 8. Missing Environment Variables in Jest Setup
+
+**Problem:** Tests for cron job routes fail with "CRON_SECRET not configured" error.
+
+**Solution:** Add all required environment variables to `jest.setup.js`:
+
+```javascript
+// jest.setup.js
+process.env.CRON_SECRET = 'test-cron-secret';
+```
+
+**Prevention:** When adding new environment variable checks in code, always add corresponding mock values to `jest.setup.js`.
+
+---
+
 ## Known Issues & Workarounds
 
 ### Issue 1: Network Restrictions in Development Environment
@@ -402,50 +470,64 @@ BUNDLE_SIZE=$(du -sm .next/ | cut -f1)  # Note the trailing slash
 
 ## Next Steps for Continuation
 
-### For AI Agents Continuing This Work:
+### Phase 1 Status: ✅ COMPLETED
 
-1. **Check Current CI Status:**
+All Phase 1 optimizations have been completed and merged:
+- ✅ Stripe components - Already server-side (no changes needed)
+- ✅ Admin dashboard - Uses lightweight UI primitives (route-level splitting sufficient)
+- ✅ lucide-react - Added `modularizeImports` with Jest mock
+- ✅ date-fns - Already using optimized imports
+- ✅ Jest compatibility - Fixed ESM transformation errors
+
+### For AI Agents Continuing to Phase 2:
+
+1. **Check Current State:**
    ```bash
-   git fetch origin
-   git log origin/claude/reduce-bundle-size-CQRkm --oneline -5
+   git checkout main
+   git pull origin main
    ```
 
-2. **Verify Branch is Up-to-date:**
+2. **Create Phase 2 Branch:**
    ```bash
-   git checkout claude/reduce-bundle-size-CQRkm
-   git pull origin claude/reduce-bundle-size-CQRkm
+   git checkout -b claude/bundle-phase2-advanced-<session-id>
    ```
 
-3. **Check for New Error Reports:**
-   ```bash
-   git fetch origin main
-   ls -la errors/pr138-*/
-   ```
-
-4. **Review Current Bundle Size:**
+3. **Review Current Bundle Size:**
    - Check GitHub Actions "Bundle Size Monitor" job output
-   - Look for the "📊 Current bundle size: XXX MB" line
+   - Current: ~381MB, Target: <340MB
 
-5. **Priority Tasks for Phase 1:**
-   - [ ] Implement Stripe dynamic imports (Step 1.1)
-   - [ ] Optimize admin dashboard loading (Step 1.2)
-   - [ ] Review and optimize icon imports (Step 1.3)
+4. **Priority Tasks for Phase 2:**
+   - [ ] Step 2.1: Route-based code splitting analysis
+   - [ ] Step 2.2: Shared chunk optimization (webpack config)
+   - [ ] Step 2.3: External package analysis (CDN candidates)
+   - [ ] Step 2.4: Image optimization audit
 
-6. **Before Any Changes:**
-   - Read this progress document
-   - Check the [Lessons Learned](#lessons-learned) section
+5. **Before Any Changes:**
+   - Read this progress document thoroughly
+   - Check the [Lessons Learned](#lessons-learned) section (8 lessons documented)
+   - Test locally before pushing: `pnpm run test:ci`
    - Ensure lockfile is synchronized after dependency changes
+
+6. **Key Files to Review:**
+   - `next.config.js` - Has `modularizeImports` for lucide-react
+   - `jest.config.js` - Has `moduleNameMapper` for lucide-react mock
+   - `__mocks__/lucide-react-icon.js` - Jest mock for ESM icons
 
 ---
 
 ## Reference Files
 
 ### Key Configuration Files
-- `next.config.js` - Next.js configuration with bundle analyzer
+- `next.config.js` - Next.js configuration with bundle analyzer and `modularizeImports`
+- `jest.config.js` - Jest configuration with `moduleNameMapper` for ESM mocks
+- `jest.setup.js` - Jest environment variables (CRON_SECRET, etc.)
 - `package.json` - Dependencies and scripts
 - `pnpm-lock.yaml` - Dependency lockfile (must stay in sync)
 - `.github/workflows/bundle-monitor.yml` - Bundle monitoring workflow
 - `.github/workflows/tests.yml` - Main CI workflow with bundle checks
+
+### Jest Mock Files
+- `__mocks__/lucide-react-icon.js` - Mock for lucide-react ESM icons (required for modularizeImports)
 
 ### Dynamic Import Example Files
 - `app/(dashboard)/charts/[symbol]/[timeframe]/trading-chart-client.tsx` - Client Component wrapper pattern
@@ -470,6 +552,8 @@ du -sh .next/*/
 | Date | Author | Changes |
 |------|--------|---------|
 | 2025-12-31 | Claude (Opus 4.5) | Initial document creation; Phase 0 progress documented |
+| 2025-12-31 | Claude (Opus 4.5) | Phase 1 completed; Added modularizeImports for lucide-react |
+| 2025-12-31 | Claude (Opus 4.5) | Fixed Jest ESM errors; Added lessons 7-8; Updated for Phase 2 handoff |
 
 ---
 
