@@ -31,6 +31,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm exec prisma generate
 
+      - name: Clean previous build artifacts
+        run: rm -rf .next tsconfig.tsbuildinfo
+
       - name: Build Next.js
         run: pnpm run build
         env:
@@ -39,7 +42,7 @@ jobs:
       - name: Check bundle size
         id: bundle-check
         run: |
-          BUNDLE_SIZE=$(du -sm .next | cut -f1)
+          BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "📊 Current bundle size: ${BUNDLE_SIZE}MB"
           echo "bundle_size=${BUNDLE_SIZE}" >> $GITHUB_OUTPUT
 
