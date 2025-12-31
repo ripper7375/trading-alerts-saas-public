@@ -10,6 +10,7 @@ import {
   CreditCard,
   Globe,
   HelpCircle,
+  Shield,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -53,6 +54,12 @@ const settingsTabs: SettingsTab[] = [
     icon: Lock,
     label: 'Account',
     href: '/settings/account',
+  },
+  {
+    id: 'security',
+    icon: Shield,
+    label: 'Security',
+    href: '/settings/security',
   },
   {
     id: 'privacy',

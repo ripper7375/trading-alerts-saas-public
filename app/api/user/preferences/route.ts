@@ -35,6 +35,9 @@ const preferencesSchema = z.object({
   showEmail: z.boolean().optional(),
   emailNotifications: z.boolean().optional(),
   pushNotifications: z.boolean().optional(),
+  // Security alerts
+  newDeviceAlerts: z.boolean().optional(),
+  passwordChangeAlerts: z.boolean().optional(),
   chartUpColor: z.string().optional(),
   chartDownColor: z.string().optional(),
   gridOpacity: z.number().min(0).max(100).optional(),
