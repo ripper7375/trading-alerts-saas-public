@@ -1,4 +1,4 @@
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
@@ -7,7 +7,7 @@ import { UpgradeButton } from '@/components/ui/upgrade-button';
 
 // Dynamic import for TradingChart to reduce initial bundle size
 // lightweight-charts library (~200KB) is only loaded when needed
-const TradingChart = dynamic(
+const TradingChart = nextDynamic(
   () =>
     import('@/components/charts/trading-chart').then((mod) => mod.TradingChart),
   {
