@@ -27,8 +27,13 @@ const config = {
   // ============================================================================
   // CRITICAL: Must match tsconfig.json paths for @ alias
   // Allows imports like: import { Button } from '@/components/Button'
+  //
+  // Note: lucide-react ESM icons are mocked because modularizeImports in
+  // next.config.js transforms imports to ESM files that Jest can't parse.
+  // The mock returns a simple React component for each icon.
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^lucide-react/dist/esm/icons/(.*)$': '<rootDir>/__mocks__/lucide-react-icon.js',
   },
 
   // ============================================================================
