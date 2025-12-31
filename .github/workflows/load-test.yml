@@ -1,0 +1,218 @@
+name: Load Test (Smoke)
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test type to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - full
+          - spike
+      base_url:
+        description: 'Base URL to test against'
+        required: false
+        default: ''
+        type: string
+
+  # Scheduled weekly run (Sunday at midnight)
+  schedule:
+    - cron: '0 0 * * 0'
+
+  # Run on main/staging deployments (optional)
+  # push:
+  #   branches: [main, staging]
+
+env:
+  # Default to staging URL, can be overridden by workflow_dispatch input
+  DEFAULT_BASE_URL: ${{ secrets.STAGING_URL || 'http://localhost:3000' }}
+
+jobs:
+  smoke-load-test:
+    name: Smoke Load Test
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.test_type == 'smoke'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Verify k6 installation
+        run: k6 version
+
+      - name: Run Health Check Load Test
+        run: |
+          k6 run k6-tests/01-health-check.js \
+            --out json=results/health-check.json \
+            --summary-export=results/health-check-summary.json
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+        continue-on-error: true
+
+      - name: Create results directory
+        run: mkdir -p results
+        if: always()
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-smoke-results
+          path: results/
+          retention-days: 30
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Smoke Load Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Health Check |" >> $GITHUB_STEP_SUMMARY
+          echo "| Base URL | ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u) |" >> $GITHUB_STEP_SUMMARY
+
+  full-load-test:
+    name: Full Load Test Suite
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'full'
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Create results directory
+        run: mkdir -p results
+
+      - name: Run Health Check Test
+        run: |
+          k6 run k6-tests/01-health-check.js \
+            --out json=results/01-health-check.json \
+            --summary-export=results/01-health-check-summary.json
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+        continue-on-error: true
+
+      - name: Run Auth Load Test
+        run: |
+          k6 run k6-tests/02-auth-load.js \
+            --out json=results/02-auth-load.json \
+            --summary-export=results/02-auth-load-summary.json
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+          TEST_EMAIL: ${{ secrets.LOAD_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.LOAD_TEST_PASSWORD }}
+        continue-on-error: true
+
+      - name: Run Alerts API Load Test
+        run: |
+          k6 run k6-tests/03-alerts-api-load.js \
+            --out json=results/03-alerts-api.json \
+            --summary-export=results/03-alerts-api-summary.json
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+          TEST_EMAIL: ${{ secrets.LOAD_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.LOAD_TEST_PASSWORD }}
+        continue-on-error: true
+
+      - name: Run Checkout Load Test
+        run: |
+          k6 run k6-tests/04-checkout-load.js \
+            --out json=results/04-checkout.json \
+            --summary-export=results/04-checkout-summary.json
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+          TEST_EMAIL: ${{ secrets.LOAD_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.LOAD_TEST_PASSWORD }}
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-full-results
+          path: results/
+          retention-days: 30
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Full Load Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | See artifacts |" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth Load | See artifacts |" >> $GITHUB_STEP_SUMMARY
+          echo "| Alerts API | See artifacts |" >> $GITHUB_STEP_SUMMARY
+          echo "| Checkout | See artifacts |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifacts for detailed results." >> $GITHUB_STEP_SUMMARY
+
+  spike-test:
+    name: Spike Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'spike'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Create results directory
+        run: mkdir -p results
+
+      - name: Run Spike Test
+        run: |
+          k6 run k6-tests/06-spike-test.js \
+            --out json=results/06-spike-test.json \
+            --summary-export=results/06-spike-test-summary.json
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || env.DEFAULT_BASE_URL }}
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-spike-results
+          path: results/
+          retention-days: 30
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Spike Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Test simulated 10x traffic spike to verify system stability." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download artifacts for detailed performance metrics." >> $GITHUB_STEP_SUMMARY
