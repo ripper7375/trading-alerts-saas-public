@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { ChartControls } from '@/components/charts/chart-controls';
-import { TradingChart } from '@/components/charts/trading-chart';
 import { UpgradeButton } from '@/components/ui/upgrade-button';
+import { TradingChartClient } from './trading-chart-client';
 import { getSession } from '@/lib/auth/session';
 import {
   FREE_SYMBOLS,
@@ -190,8 +190,8 @@ export default async function ChartPage({
         selectedTimeframe={upperTimeframe}
       />
 
-      {/* Trading Chart */}
-      <TradingChart
+      {/* Trading Chart - Client Component wrapper for dynamic import */}
+      <TradingChartClient
         symbol={upperSymbol}
         timeframe={upperTimeframe}
         tier={tier}

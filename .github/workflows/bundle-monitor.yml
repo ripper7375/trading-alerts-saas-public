@@ -1,0 +1,162 @@
+name: Bundle Size Monitor
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop, claude/**]
+
+# Permissions needed for PR comments
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  monitor-bundle:
+    name: Monitor Bundle Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm exec prisma generate
+
+      - name: Clean previous build artifacts
+        run: rm -rf .next tsconfig.tsbuildinfo
+
+      - name: Build Next.js
+        run: pnpm run build
+        env:
+          SKIP_ENV_VALIDATION: true
+
+      - name: Check bundle size
+        id: bundle-check
+        run: |
+          # Verify .next directory exists
+          if [ ! -d ".next" ]; then
+            echo "❌ ERROR: .next directory not found!"
+            exit 1
+          fi
+
+          BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
+          echo "📊 Current bundle size: ${BUNDLE_SIZE}MB"
+          echo "bundle_size=${BUNDLE_SIZE}" >> $GITHUB_OUTPUT
+
+          # Debug: Show .next contents breakdown
+          echo "📁 .next directory breakdown:"
+          du -sh .next/*/ 2>/dev/null || echo "Could not list subdirectories"
+
+          # Set status based on thresholds
+          if [ $BUNDLE_SIZE -lt 340 ]; then
+            echo "status=excellent" >> $GITHUB_OUTPUT
+            echo "status_emoji=✅" >> $GITHUB_OUTPUT
+            echo "status_message=Excellent! Bundle size is under 340MB target" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 370 ]; then
+            echo "status=good" >> $GITHUB_OUTPUT
+            echo "status_emoji=✅" >> $GITHUB_OUTPUT
+            echo "status_message=Good! Bundle size is within acceptable limits" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 450 ]; then
+            echo "status=warning" >> $GITHUB_OUTPUT
+            echo "status_emoji=⚠️" >> $GITHUB_OUTPUT
+            echo "status_message=Warning: Bundle size approaching limit (Phase 0-1 threshold: 450MB)" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 500 ]; then
+            echo "status=critical" >> $GITHUB_OUTPUT
+            echo "status_emoji=🚨" >> $GITHUB_OUTPUT
+            echo "status_message=Critical: Bundle size nearing panic threshold (500MB)" >> $GITHUB_OUTPUT
+          else
+            echo "status=panic" >> $GITHUB_OUTPUT
+            echo "status_emoji=❌" >> $GITHUB_OUTPUT
+            echo "status_message=PANIC: Bundle size exceeded 500MB - immediate action required!" >> $GITHUB_OUTPUT
+          fi
+
+          # Hard fail at 500MB (panic threshold)
+          if [ $BUNDLE_SIZE -gt 500 ]; then
+            echo "❌ CRITICAL: Bundle size exceeded panic threshold (500MB)"
+            exit 1
+          fi
+
+          echo "✅ Bundle size check passed"
+
+      - name: Generate bundle report
+        run: |
+          echo "## 📦 Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Current Size:** ${{ steps.bundle-check.outputs.bundle_size }}MB" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.bundle-check.outputs.status_emoji }} ${{ steps.bundle-check.outputs.status_message }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Thresholds" >> $GITHUB_STEP_SUMMARY
+          echo "| Level | Threshold | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎯 Target | <340MB | Phase 0 Goal |" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Good | <370MB | Normal operation |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚠️ Warning | <450MB | Phase 0-1 limit |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚨 Critical | <500MB | Approaching panic |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Panic | >500MB | Build fails |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true  # Don't fail workflow if commenting fails
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const bundleSize = '${{ steps.bundle-check.outputs.bundle_size }}';
+            const status = '${{ steps.bundle-check.outputs.status }}';
+            const statusEmoji = '${{ steps.bundle-check.outputs.status_emoji }}';
+            const statusMessage = '${{ steps.bundle-check.outputs.status_message }}';
+
+            const body = `## 📦 Bundle Size Report
+
+            **Current Size:** ${bundleSize}MB
+
+            ${statusEmoji} ${statusMessage}
+
+            | Threshold | Size | Status |
+            |-----------|------|--------|
+            | 🎯 Target | <340MB | ${parseInt(bundleSize) < 340 ? '✅' : '❌'} |
+            | ✅ Good | <370MB | ${parseInt(bundleSize) < 370 ? '✅' : '❌'} |
+            | ⚠️ Warning | <450MB | ${parseInt(bundleSize) < 450 ? '✅' : '❌'} |
+            | 🚨 Panic | <500MB | ${parseInt(bundleSize) < 500 ? '✅' : '❌'} |
+            `;
+
+            // Find existing bundle size comment
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const bundleComment = comments.find(c => c.body.includes('📦 Bundle Size Report'));
+
+            if (bundleComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                comment_id: bundleComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
