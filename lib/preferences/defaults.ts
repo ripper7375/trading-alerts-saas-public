@@ -44,6 +44,10 @@ export interface UserPreferences {
   emailNotifications: boolean;
   pushNotifications: boolean;
 
+  // Security Alerts
+  newDeviceAlerts: boolean;
+  passwordChangeAlerts: boolean;
+
   // Chart Preferences
   chartUpColor: string;
   chartDownColor: string;
@@ -76,6 +80,10 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   // Notifications
   emailNotifications: true,
   pushNotifications: true,
+
+  // Security Alerts (enabled by default)
+  newDeviceAlerts: true,
+  passwordChangeAlerts: true,
 
   // Chart Preferences
   chartUpColor: '#22c55e',
@@ -123,6 +131,8 @@ export function isValidPreference(
     case 'showEmail':
     case 'emailNotifications':
     case 'pushNotifications':
+    case 'newDeviceAlerts':
+    case 'passwordChangeAlerts':
       return typeof value === 'boolean';
     case 'language':
     case 'timezone':

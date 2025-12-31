@@ -555,3 +555,215 @@ export async function sendUpgradePromptEmail(
   const html = getUpgradePromptEmail(name, reason);
   return sendEmail(to, 'Upgrade to Pro - 7-Day Free Trial', html);
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SECURITY ALERT EMAILS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface NewDeviceLoginDetails {
+  device: string;
+  browser: string;
+  os: string;
+  location: string;
+  ipAddress: string;
+  timestamp: Date;
+}
+
+/**
+ * Generate new device login alert email HTML
+ */
+export function getNewDeviceLoginEmail(
+  name: string,
+  details: NewDeviceLoginDetails
+): string {
+  const formattedTime = details.timestamp.toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Device Login</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: #fef3c7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+          <h1 style="color: #92400e; margin: 0; font-size: 20px;">New Device Login Detected</h1>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, we noticed a login to your Trading Alerts account from a new device:
+        </p>
+
+        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Device:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.device}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Browser:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.browser}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Operating System:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.os}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Location:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.location}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.ipAddress}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Time:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If this was you:</strong> No action is needed. You can safely ignore this email.
+        </p>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If this wasn't you:</strong> Someone may have access to your account. We recommend:
+        </p>
+
+        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+          <li>Change your password immediately</li>
+          <li>Review your active sessions and sign out unknown devices</li>
+          <li>Enable two-factor authentication for added security</li>
+        </ul>
+
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin-right: 8px;">
+          Secure My Account
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          You're receiving this email because you have security alerts enabled.
+          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send new device login alert email
+ */
+export async function sendNewDeviceLoginEmail(
+  to: string,
+  name: string,
+  details: NewDeviceLoginDetails
+): Promise<{ success: boolean; error?: string }> {
+  const html = getNewDeviceLoginEmail(name, details);
+  return sendEmail(to, 'Security Alert: New Device Login Detected', html);
+}
+
+/**
+ * Generate password changed alert email HTML
+ */
+export function getPasswordChangedEmail(
+  name: string,
+  ipAddress: string,
+  location: string,
+  timestamp: Date
+): string {
+  const formattedTime = timestamp.toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Changed</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: #dbeafe; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+          <h1 style="color: #1e40af; margin: 0; font-size: 20px;">Password Changed Successfully</h1>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${name}, your Trading Alerts account password was changed.
+        </p>
+
+        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Time:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">Location:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${location}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
+              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${ipAddress}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If you made this change:</strong> No action is needed. Your account is secure.
+        </p>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
+          <strong>If you didn't make this change:</strong> Your account may be compromised. Please:
+        </p>
+
+        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+          <li>Reset your password immediately using the "Forgot Password" feature</li>
+          <li>Review your account for any unauthorized changes</li>
+          <li>Contact our support team if you need assistance</li>
+        </ul>
+
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/forgot-password" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Reset Password
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          You're receiving this email because you have security alerts enabled.
+          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send password changed alert email
+ */
+export async function sendPasswordChangedEmail(
+  to: string,
+  name: string,
+  ipAddress: string,
+  location: string
+): Promise<{ success: boolean; error?: string }> {
+  const html = getPasswordChangedEmail(name, ipAddress, location, new Date());
+  return sendEmail(to, 'Security Alert: Password Changed', html);
+}
