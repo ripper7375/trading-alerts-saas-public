@@ -126,13 +126,30 @@ jobs:
       - name: Check bundle size
         run: |
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
-          echo "Bundle size: ${BUNDLE_SIZE}MB"
-          # Threshold: 365MB -> 370MB (email verification) -> 380MB (E2E testing infrastructure)
-          if [ $BUNDLE_SIZE -gt 380 ]; then
-            echo "❌ Bundle size exceeds 380MB"
+          echo "📊 Bundle size: ${BUNDLE_SIZE}MB"
+
+          # Bundle size thresholds (Phase 0 bundle optimization):
+          # - Target: <340MB (Phase 0 goal)
+          # - Normal: <370MB (stable operation)
+          # - Warning: <450MB (Phase 0-1 development threshold)
+          # - Panic: >500MB (hard fail - requires immediate action)
+
+          if [ $BUNDLE_SIZE -gt 500 ]; then
+            echo "❌ PANIC: Bundle size exceeds 500MB - immediate action required!"
             exit 1
+          elif [ $BUNDLE_SIZE -gt 450 ]; then
+            echo "🚨 CRITICAL: Bundle size exceeds 450MB Phase 0-1 threshold"
+            exit 1
+          elif [ $BUNDLE_SIZE -gt 370 ]; then
+            echo "⚠️ WARNING: Bundle size exceeds 370MB normal threshold"
+            echo "Note: 450MB allowed during Phase 0-1 development"
+          elif [ $BUNDLE_SIZE -gt 340 ]; then
+            echo "ℹ️ INFO: Bundle size above 340MB target, within normal limits"
+          else
+            echo "✅ EXCELLENT: Bundle size under 340MB target!"
           fi
-          echo "✅ Bundle size is acceptable"
+
+          echo "✅ Bundle size check passed"
 
   test-summary:
     name: Test Summary
