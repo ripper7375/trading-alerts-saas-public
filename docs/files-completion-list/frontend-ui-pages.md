@@ -2,7 +2,7 @@
 
 This document lists all frontend UI pages (page.tsx and layout.tsx files) in the Trading Alerts SaaS system.
 
-**Total Pages:** 54 files (41 page.tsx + 13 layout.tsx)
+**Total Pages:** 62 files (54 page.tsx + 8 layout.tsx)
 
 ---
 
@@ -79,38 +79,46 @@ This document lists all frontend UI pages (page.tsx and layout.tsx files) in the
 | 26 | `app/(dashboard)/settings/language/page.tsx` | Language settings page | Part 13 |
 | 27 | `app/(dashboard)/settings/help/page.tsx` | Help settings page | Part 13 |
 
+### Security
+
+| # | File Path | Description | Source |
+|---|-----------|-------------|--------|
+| 28 | `app/(dashboard)/settings/security/page.tsx` | Two-Factor Authentication (TOTP-based 2FA with backup codes) | 2FA Feature |
+| 29 | `app/(dashboard)/settings/security/login-history/page.tsx` | Login History (recent logins with location/device) | 2FA Feature |
+| 30 | `app/(dashboard)/settings/security/alerts/page.tsx` | Security Alerts (email on new device login, password change) | 2FA Feature |
+
 ---
 
 ## Admin Section (Dashboard)
 
 | # | File Path | Description | Source |
 |---|-----------|-------------|--------|
-| 28 | `app/(dashboard)/admin/layout.tsx` | Admin dashboard layout | Part 14 |
-| 29 | `app/(dashboard)/admin/page.tsx` | Admin dashboard home | Part 14 |
-| 30 | `app/(dashboard)/admin/users/page.tsx` | User management page | Part 14 |
-| 31 | `app/(dashboard)/admin/api-usage/page.tsx` | API usage monitoring page | Part 14 |
-| 32 | `app/(dashboard)/admin/errors/page.tsx` | Error logs page | Part 14 |
+| 31 | `app/(dashboard)/admin/layout.tsx` | Admin dashboard layout | Part 14 |
+| 32 | `app/(dashboard)/admin/page.tsx` | Admin dashboard home | Part 14 |
+| 33 | `app/(dashboard)/admin/users/page.tsx` | User management page | Part 14 |
+| 34 | `app/(dashboard)/admin/api-usage/page.tsx` | API usage monitoring page | Part 14 |
+| 35 | `app/(dashboard)/admin/errors/page.tsx` | Error logs page | Part 14 |
 
 ### Admin - Fraud Alerts
 
 | # | File Path | Description | Source |
 |---|-----------|-------------|--------|
-| 33 | `app/(dashboard)/admin/fraud-alerts/page.tsx` | Fraud alerts list page | Part 18C |
-| 34 | `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` | Fraud alert detail page | Part 18C |
+| 36 | `app/(dashboard)/admin/fraud-alerts/page.tsx` | Fraud alerts list page | Part 18C |
+| 37 | `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` | Fraud alert detail page | Part 18C |
 
 ### Admin - Disbursement
 
 | # | File Path | Description | Source |
 |---|-----------|-------------|--------|
-| 35 | `app/(dashboard)/admin/disbursement/layout.tsx` | Disbursement admin layout | Part 19D |
-| 36 | `app/(dashboard)/admin/disbursement/page.tsx` | Disbursement overview dashboard | Part 19D |
-| 37 | `app/(dashboard)/admin/disbursement/affiliates/page.tsx` | Payable affiliates page | Part 19D |
-| 38 | `app/(dashboard)/admin/disbursement/batches/page.tsx` | Payment batches list page | Part 19D |
-| 39 | `app/(dashboard)/admin/disbursement/batches/[batchId]/page.tsx` | Batch details page | Part 19D |
-| 40 | `app/(dashboard)/admin/disbursement/transactions/page.tsx` | Transactions list page | Part 19D |
-| 41 | `app/(dashboard)/admin/disbursement/audit/page.tsx` | Audit logs page | Part 19D |
-| 42 | `app/(dashboard)/admin/disbursement/config/page.tsx` | Disbursement config page | Part 19D |
-| 43 | `app/(dashboard)/admin/disbursement/accounts/page.tsx` | RiseWorks accounts page | Part 19D |
+| 38 | `app/(dashboard)/admin/disbursement/layout.tsx` | Disbursement admin layout | Part 19D |
+| 39 | `app/(dashboard)/admin/disbursement/page.tsx` | Disbursement overview dashboard | Part 19D |
+| 40 | `app/(dashboard)/admin/disbursement/affiliates/page.tsx` | Payable affiliates page | Part 19D |
+| 41 | `app/(dashboard)/admin/disbursement/batches/page.tsx` | Payment batches list page | Part 19D |
+| 42 | `app/(dashboard)/admin/disbursement/batches/[batchId]/page.tsx` | Batch details page | Part 19D |
+| 43 | `app/(dashboard)/admin/disbursement/transactions/page.tsx` | Transactions list page | Part 19D |
+| 44 | `app/(dashboard)/admin/disbursement/audit/page.tsx` | Audit logs page | Part 19D |
+| 45 | `app/(dashboard)/admin/disbursement/config/page.tsx` | Disbursement config page | Part 19D |
+| 46 | `app/(dashboard)/admin/disbursement/accounts/page.tsx` | RiseWorks accounts page | Part 19D |
 
 ---
 
@@ -118,13 +126,13 @@ This document lists all frontend UI pages (page.tsx and layout.tsx files) in the
 
 | # | File Path | Description | Source |
 |---|-----------|-------------|--------|
-| 44 | `app/admin/login/page.tsx` | Admin login page | Part 5 |
-| 45 | `app/admin/affiliates/page.tsx` | Affiliate management page | Part 17B-1 |
-| 46 | `app/admin/affiliates/[id]/page.tsx` | Affiliate detail page | Part 17B-1 |
-| 47 | `app/admin/affiliates/reports/profit-loss/page.tsx` | Profit & loss report page | Part 17B-1 |
-| 48 | `app/admin/affiliates/reports/sales-performance/page.tsx` | Sales performance report page | Part 17B-1 |
-| 49 | `app/admin/affiliates/reports/commission-owings/page.tsx` | Commission owings report page | Part 17B-1 |
-| 50 | `app/admin/affiliates/reports/code-inventory/page.tsx` | Code inventory report page | Part 17B-1 |
+| 47 | `app/admin/login/page.tsx` | Admin login page | Part 5 |
+| 48 | `app/admin/affiliates/page.tsx` | Affiliate management page | Part 17B-1 |
+| 49 | `app/admin/affiliates/[id]/page.tsx` | Affiliate detail page | Part 17B-1 |
+| 50 | `app/admin/affiliates/reports/profit-loss/page.tsx` | Profit & loss report page | Part 17B-1 |
+| 51 | `app/admin/affiliates/reports/sales-performance/page.tsx` | Sales performance report page | Part 17B-1 |
+| 52 | `app/admin/affiliates/reports/commission-owings/page.tsx` | Commission owings report page | Part 17B-1 |
+| 53 | `app/admin/affiliates/reports/code-inventory/page.tsx` | Code inventory report page | Part 17B-1 |
 
 ---
 
@@ -132,14 +140,14 @@ This document lists all frontend UI pages (page.tsx and layout.tsx files) in the
 
 | # | File Path | Description | Source |
 |---|-----------|-------------|--------|
-| 51 | `app/affiliate/layout.tsx` | Affiliate portal layout | Part 17A-2 |
-| 52 | `app/affiliate/register/page.tsx` | Affiliate registration page | Part 17A-2 |
-| 53 | `app/affiliate/verify/page.tsx` | Affiliate email verification page | Part 17A-2 |
-| 54 | `app/affiliate/dashboard/page.tsx` | Affiliate dashboard page | Part 17A-2 |
-| 55 | `app/affiliate/dashboard/codes/page.tsx` | Affiliate codes page | Part 17A-2 |
-| 56 | `app/affiliate/dashboard/commissions/page.tsx` | Affiliate commissions page | Part 17A-2 |
-| 57 | `app/affiliate/dashboard/profile/page.tsx` | Affiliate profile page | Part 17A-2 |
-| 58 | `app/affiliate/dashboard/profile/payment/page.tsx` | Affiliate payment settings page | Part 17A-2 |
+| 54 | `app/affiliate/layout.tsx` | Affiliate portal layout | Part 17A-2 |
+| 55 | `app/affiliate/register/page.tsx` | Affiliate registration page | Part 17A-2 |
+| 56 | `app/affiliate/verify/page.tsx` | Affiliate email verification page | Part 17A-2 |
+| 57 | `app/affiliate/dashboard/page.tsx` | Affiliate dashboard page | Part 17A-2 |
+| 58 | `app/affiliate/dashboard/codes/page.tsx` | Affiliate codes page | Part 17A-2 |
+| 59 | `app/affiliate/dashboard/commissions/page.tsx` | Affiliate commissions page | Part 17A-2 |
+| 60 | `app/affiliate/dashboard/profile/page.tsx` | Affiliate profile page | Part 17A-2 |
+| 61 | `app/affiliate/dashboard/profile/payment/page.tsx` | Affiliate payment settings page | Part 17A-2 |
 
 ---
 
@@ -147,7 +155,7 @@ This document lists all frontend UI pages (page.tsx and layout.tsx files) in the
 
 | # | File Path | Description | Source |
 |---|-----------|-------------|--------|
-| 59 | `app/checkout/page.tsx` | Unified checkout page (Stripe + dLocal) | Part 18C |
+| 62 | `app/checkout/page.tsx` | Unified checkout page (Stripe + dLocal) | Part 18C |
 
 ---
 
@@ -163,13 +171,14 @@ This document lists all frontend UI pages (page.tsx and layout.tsx files) in the
 | Dashboard - Watchlist | 1 | 0 | 1 |
 | Dashboard - Alerts | 2 | 0 | 2 |
 | Dashboard - Settings | 7 | 1 | 8 |
+| Dashboard - Security | 3 | 0 | 3 |
 | Admin (Dashboard) | 4 | 1 | 5 |
 | Admin - Fraud Alerts | 2 | 0 | 2 |
 | Admin - Disbursement | 8 | 1 | 9 |
 | Admin (Standalone) | 7 | 0 | 7 |
 | Affiliate Portal | 7 | 1 | 8 |
 | Checkout | 1 | 0 | 1 |
-| **TOTAL** | **51** | **8** | **59** |
+| **TOTAL** | **54** | **8** | **62** |
 
 ---
 
@@ -188,5 +197,5 @@ This document lists all frontend UI pages (page.tsx and layout.tsx files) in the
 
 ---
 
-*Last Updated: 2025-12-29*
+*Last Updated: 2025-12-31*
 *Generated from: docs/files-completion-list/*
