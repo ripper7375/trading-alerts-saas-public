@@ -25,6 +25,23 @@ interface LoginHistoryItem {
   createdAt: string;
 }
 
+interface LoginHistoryEntry {
+  id: string;
+  status: string;
+  provider: string;
+  deviceType: string | null;
+  browser: string | null;
+  browserVersion: string | null;
+  os: string | null;
+  osVersion: string | null;
+  ipAddress: string | null;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  isNewDevice: boolean;
+  createdAt: Date;
+}
+
 /**
  * GET /api/user/login-history
  * Fetch the authenticated user's login history
@@ -72,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     // Format the response
-    const formattedHistory: LoginHistoryItem[] = loginHistory.map((entry) => {
+    const formattedHistory: LoginHistoryItem[] = (loginHistory as LoginHistoryEntry[]).map((entry) => {
       // Format location
       const locationParts = [entry.city, entry.region, entry.country].filter(
         (p) => p && p !== 'Unknown'

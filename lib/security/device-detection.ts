@@ -115,7 +115,8 @@ export async function getClientIP(): Promise<string> {
   const xForwardedFor = headersList.get('x-forwarded-for');
   if (xForwardedFor) {
     // x-forwarded-for may contain multiple IPs; the first one is the client
-    return xForwardedFor.split(',')[0].trim();
+    const firstIP = xForwardedFor.split(',')[0];
+    return firstIP ? firstIP.trim() : 'Unknown';
   }
 
   const xRealIP = headersList.get('x-real-ip');
@@ -258,8 +259,8 @@ export async function getSecurityPreferences(
 
   const preferences = prefs.preferences as Record<string, unknown>;
   return {
-    newDeviceAlerts: preferences.newDeviceAlerts !== false, // Default true
-    passwordChangeAlerts: preferences.passwordChangeAlerts !== false, // Default true
+    newDeviceAlerts: preferences['newDeviceAlerts'] !== false, // Default true
+    passwordChangeAlerts: preferences['passwordChangeAlerts'] !== false, // Default true
   };
 }
 
