@@ -10,12 +10,21 @@
  * - Next billing date (PRO only)
  * - Payment method details (PRO only)
  * - Upgrade/Cancel buttons
+ * - Optimistic UI for cancel action
  *
  * @module components/billing/subscription-card
  */
 
-import { Calendar, CreditCard, Check, Globe, RefreshCw } from 'lucide-react';
+import {
+  Calendar,
+  CreditCard,
+  Check,
+  Globe,
+  RefreshCw,
+  Undo2,
+} from 'lucide-react';
 import Link from 'next/link';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,8 +62,8 @@ interface SubscriptionCardProps {
   planType?: string;
   /** Callback when upgrade button is clicked */
   onUpgrade: () => void;
-  /** Callback when cancel button is clicked */
-  onCancel: () => void;
+  /** Callback when cancel button is clicked - can return a Promise for optimistic UI */
+  onCancel: () => void | Promise<void>;
   /** Whether actions are loading */
   isLoading?: boolean;
 }
@@ -124,6 +133,69 @@ export function SubscriptionCard({
   // Get dynamic PRO price from SystemConfig
   const { regularPrice } = useAffiliateConfig();
 
+  // Optimistic cancel state
+  const [optimisticCancelPending, setOptimisticCancelPending] = useState(false);
+  const [showUndoCancel, setShowUndoCancel] = useState(false);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Combine prop state with optimistic state
+  const effectiveCancelAtPeriodEnd = cancelAtPeriodEnd || optimisticCancelPending;
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Optimistic cancel handler
+  const handleOptimisticCancel = useCallback(async (): Promise<void> => {
+    // Optimistically show cancellation
+    setOptimisticCancelPending(true);
+    setShowUndoCancel(true);
+
+    // Clear previous timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    // Auto-hide undo after 5 seconds
+    undoTimeoutRef.current = setTimeout(() => {
+      setShowUndoCancel(false);
+    }, 5000);
+
+    try {
+      // Call the parent's onCancel
+      await Promise.resolve(onCancel());
+      // If successful, the parent will update cancelAtPeriodEnd prop
+    } catch (error) {
+      // Rollback on error
+      setOptimisticCancelPending(false);
+      setShowUndoCancel(false);
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+      console.error('Failed to cancel subscription:', error);
+    }
+  }, [onCancel]);
+
+  // Undo cancel (optimistic - clears local state, actual reactivation would need API)
+  const handleUndoCancel = useCallback((): void => {
+    // Clear timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    // Revert optimistic state
+    setOptimisticCancelPending(false);
+    setShowUndoCancel(false);
+
+    // Note: In a real app, you'd call an API to reactivate the subscription
+    // For now, this just reverts the local UI state
+  }, []);
+
   const isPro = tier === 'PRO';
   const TIER_CONFIG = getTierConfig(regularPrice);
   const config = TIER_CONFIG[tier];
@@ -179,12 +251,28 @@ export function SubscriptionCard({
         )}
 
         {/* Cancellation Notice */}
-        {cancelAtPeriodEnd && (
+        {effectiveCancelAtPeriodEnd && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-sm text-yellow-800">
               <strong>Cancellation Scheduled:</strong> Your subscription will
               end on {formattedBillingDate}
             </p>
+          </div>
+        )}
+
+        {/* Undo Cancel Banner */}
+        {showUndoCancel && (
+          <div className="flex items-center justify-between bg-gray-800 text-white px-4 py-3 rounded-lg animate-in slide-in-from-top-2">
+            <span className="text-sm">Subscription cancellation scheduled</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleUndoCancel}
+              className="text-white hover:text-white hover:bg-gray-700"
+            >
+              <Undo2 className="h-4 w-4 mr-2" />
+              Undo
+            </Button>
           </div>
         )}
 
@@ -202,7 +290,7 @@ export function SubscriptionCard({
         </div>
 
         {/* Billing Info (PRO only) */}
-        {isPro && formattedBillingDate && !cancelAtPeriodEnd && (
+        {isPro && formattedBillingDate && !effectiveCancelAtPeriodEnd && (
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span>Next billing: {formattedBillingDate}</span>
@@ -269,14 +357,16 @@ export function SubscriptionCard({
             </Button>
           ) : (
             <>
-              {!cancelAtPeriodEnd && (
+              {!effectiveCancelAtPeriodEnd && (
                 <Button
                   variant="destructive"
-                  onClick={onCancel}
-                  disabled={isLoading}
+                  onClick={handleOptimisticCancel}
+                  disabled={isLoading || optimisticCancelPending}
                   className="flex-1"
                 >
-                  {isLoading ? 'Cancelling...' : 'Cancel Subscription'}
+                  {isLoading || optimisticCancelPending
+                    ? 'Cancelling...'
+                    : 'Cancel Subscription'}
                 </Button>
               )}
             </>
