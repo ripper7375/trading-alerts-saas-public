@@ -82,6 +82,13 @@ coverage/
 htmlcov/
 .pytest_cache/
 
+# Playwright E2E Test Artifacts
+e2e/test-results/
+e2e/playwright-report/
+e2e/.auth/
+playwright-report/
+test-results/
+
 # ============================================================================
 # IDEs & EDITORS
 # ============================================================================
