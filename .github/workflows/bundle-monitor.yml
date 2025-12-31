@@ -42,9 +42,19 @@ jobs:
       - name: Check bundle size
         id: bundle-check
         run: |
+          # Verify .next directory exists
+          if [ ! -d ".next" ]; then
+            echo "❌ ERROR: .next directory not found!"
+            exit 1
+          fi
+
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "📊 Current bundle size: ${BUNDLE_SIZE}MB"
           echo "bundle_size=${BUNDLE_SIZE}" >> $GITHUB_OUTPUT
+
+          # Debug: Show .next contents breakdown
+          echo "📁 .next directory breakdown:"
+          du -sh .next/*/ 2>/dev/null || echo "Could not list subdirectories"
 
           # Set status based on thresholds
           if [ $BUNDLE_SIZE -lt 340 ]; then
