@@ -637,6 +637,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
             <div className="space-y-4">
               {qrCode && (
                 <div className="flex justify-center p-4 bg-white rounded-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
                 </div>
               )}
@@ -727,7 +728,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                   Important: Save these codes now!
                 </p>
                 <p className="text-amber-700 dark:text-amber-300 text-sm mt-1">
-                  You won't be able to see them again. Each code can only be used once.
+                  You won&apos;t be able to see them again. Each code can only be used once.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg font-mono text-sm">

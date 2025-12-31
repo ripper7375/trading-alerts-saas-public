@@ -21,6 +21,11 @@ export interface User {
   hasUsedThreeDayPlan: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Two-Factor Authentication (TOTP)
+  twoFactorEnabled: boolean;
+  twoFactorSecret: string | null;
+  twoFactorBackupCodes: string | null;
+  twoFactorVerifiedAt: Date | null;
 }
 
 /**

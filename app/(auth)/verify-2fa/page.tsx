@@ -66,7 +66,7 @@ function TwoFactorVerificationContent(): JSX.Element {
     const newCode = [...code];
 
     for (let i = 0; i < pastedData.length && i < 6; i++) {
-      newCode[i] = pastedData[i];
+      newCode[i] = pastedData[i] ?? '';
     }
 
     setCode(newCode);
