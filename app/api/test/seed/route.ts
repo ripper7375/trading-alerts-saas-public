@@ -67,7 +67,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Optional: Check for test secret header for additional security
     const testSecret = request.headers.get('x-test-secret');
-    const expectedSecret = process.env.TEST_SECRET || 'test-secret';
+    const expectedSecret = process.env['TEST_SECRET'] || 'test-secret';
     if (testSecret && testSecret !== expectedSecret) {
         return NextResponse.json(
             { error: 'Invalid test secret' },
@@ -170,7 +170,7 @@ export async function GET(): Promise<NextResponse> {
 }
 
 // DELETE endpoint to clean up test users
-export async function DELETE(request: NextRequest): Promise<NextResponse> {
+export async function DELETE(_request: NextRequest): Promise<NextResponse> {
     const nodeEnv = process.env.NODE_ENV || 'production';
     if (!ALLOWED_ENVIRONMENTS.includes(nodeEnv)) {
         return NextResponse.json(
