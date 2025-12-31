@@ -5,6 +5,12 @@ import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { sendPasswordChangedEmail } from '@/lib/email/email';
+import {
+  getLoginContext,
+  getSecurityPreferences,
+  formatLocation,
+} from '@/lib/security/device-detection';
 
 /**
  * Password Change API Route
@@ -114,8 +120,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { password: hashedPassword },
     });
 
-    // In production, send password change notification email
     console.log(`[Password] Password changed for user: ${user.email}`);
+
+    // Send password change security alert if enabled
+    try {
+      const prefs = await getSecurityPreferences(session.user.id);
+      if (prefs.passwordChangeAlerts) {
+        const context = await getLoginContext();
+        const location = formatLocation(context.location);
+
+        // Create security alert record
+        await prisma.securityAlert.create({
+          data: {
+            userId: session.user.id,
+            type: 'PASSWORD_CHANGED',
+            title: 'Password Changed',
+            message: 'Your account password was changed.',
+            ipAddress: context.ipAddress,
+            location,
+            emailSent: true,
+            emailSentAt: new Date(),
+          },
+        });
+
+        // Send email notification
+        await sendPasswordChangedEmail(
+          user.email,
+          user.name || 'User',
+          context.ipAddress,
+          location
+        );
+      }
+    } catch (alertError) {
+      // Don't fail the password change if alert fails
+      console.error('[Password] Failed to send security alert:', alertError);
+    }
 
     return NextResponse.json({
       success: true,

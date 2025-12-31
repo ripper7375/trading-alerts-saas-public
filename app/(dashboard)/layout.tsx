@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
+import { LoginTracker } from '@/components/auth/login-tracker';
 import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -43,6 +44,9 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Login tracking - records device/location for security */}
+      <LoginTracker />
+
       {/* Header - sticky at top */}
       <Header user={user} />
 
