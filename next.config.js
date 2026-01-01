@@ -1,6 +1,9 @@
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
+// Conditionally load bundle analyzer only when ANALYZE=true
+// This prevents errors when @next/bundle-analyzer is not installed
+const withBundleAnalyzer =
+  process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({ enabled: true })
+    : (config) => config;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
