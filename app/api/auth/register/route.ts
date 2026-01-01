@@ -7,7 +7,11 @@ import { z } from 'zod';
 import { AccountExistsError } from '@/lib/auth/errors';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
-import { sendVerificationEmail, sendWelcomeEmail } from '@/lib/email/email';
+import {
+  isEmailServiceConfigured,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from '@/lib/email/email';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -49,6 +53,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
+    // Check if email service is configured
+    // In development without email service, auto-verify users so they can log in
+    const emailConfigured = isEmailServiceConfigured();
+    const autoVerify =
+      !emailConfigured && process.env.NODE_ENV === 'development';
+
+    if (autoVerify) {
+      console.log(
+        '[Register] Email service not configured - auto-verifying user in development'
+      );
+    }
+
     // Create user in database
     const user = await prisma.user.create({
       data: {
@@ -58,20 +74,23 @@ export async function POST(request: Request): Promise<NextResponse> {
         tier: 'FREE',
         role: 'USER',
         isAffiliate: false,
-        emailVerified: null,
-        verificationToken,
+        // Auto-verify in development if email service not configured
+        emailVerified: autoVerify ? new Date() : null,
+        verificationToken: autoVerify ? null : verificationToken,
       },
     });
 
-    // Send verification email
-    const emailResult = await sendVerificationEmail(
-      validated.email,
-      validated.name || 'User',
-      verificationToken
-    );
+    // Send verification email (only if email service is configured)
+    if (!autoVerify) {
+      const emailResult = await sendVerificationEmail(
+        validated.email,
+        validated.name || 'User',
+        verificationToken
+      );
 
-    if (!emailResult.success) {
-      console.error('Failed to send verification email:', emailResult.error);
+      if (!emailResult.success) {
+        console.error('Failed to send verification email:', emailResult.error);
+      }
     }
 
     // Send welcome email
@@ -84,12 +103,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.error('Failed to send welcome email:', welcomeResult.error);
     }
 
+    // Return appropriate message based on verification status
+    const message = autoVerify
+      ? 'Registration successful. You can now log in. (Email verification skipped in development)'
+      : 'Registration successful. Please check your email to verify your account.';
+
     return NextResponse.json(
       {
         success: true,
         userId: user.id,
-        message:
-          'Registration successful. Please check your email to verify your account.',
+        message,
+        autoVerified: autoVerify,
       },
       { status: 201 }
     );
