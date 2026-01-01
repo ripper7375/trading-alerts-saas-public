@@ -347,6 +347,13 @@ export const authOptions: NextAuthOptions = {
 
         // Only apply security check to OAuth providers (not credentials)
         if (account?.provider && account.provider !== 'credentials') {
+          // Twitter doesn't provide email - generate a placeholder email using Twitter ID
+          if (!user.email && account.provider === 'twitter') {
+            const twitterId = account.providerAccountId;
+            user.email = `twitter_${twitterId}@twitter.placeholder`;
+            console.log('[SignIn] Twitter user without email, using placeholder:', user.email);
+          }
+
           if (!user.email) {
             console.error('[SignIn] OAuth user has no email');
             return false;
