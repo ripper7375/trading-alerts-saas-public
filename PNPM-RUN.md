@@ -33,3 +33,6 @@ Step 4: Sync database (for the missing SystemConfig table)
 In a new terminal:
 
 pnpm prisma db push
+
+============================================================
+pnpm prisma studio --> for add/delete data in prisma
