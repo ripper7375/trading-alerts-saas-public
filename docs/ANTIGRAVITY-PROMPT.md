@@ -26,6 +26,58 @@ app/auth/...
 
 ---
 
+### File Deletion Rules
+
+```
+🚫 NEVER DELETE ANY EXISTING FILES
+
+❌ FORBIDDEN ACTIONS:
+- Deleting any page.tsx file
+- Deleting any layout.tsx file
+- Deleting any component file
+- Removing any directory
+- Using rm, unlink, or delete commands on project files
+```
+
+**YOU MUST:**
+- ✅ ONLY create new files or modify existing files
+- ✅ If a file has issues, FIX it - do not delete it
+- ✅ If a file seems unused, leave it alone and note it in report
+- ❌ NEVER delete any file, even if it appears broken or unused
+
+**IF YOU DELETE ANY EXISTING FILE → YOU HAVE FAILED THE TASK**
+
+---
+
+### Git & Version Control Rules
+
+```
+🚫 DO NOT USE GIT COMMANDS
+
+❌ FORBIDDEN ACTIONS:
+- git commit
+- git push
+- git branch
+- git checkout
+- Creating new branches
+- Pushing to GitHub
+- Any git operations
+```
+
+**YOU MUST:**
+- ✅ ONLY make file changes locally
+- ✅ Leave all git operations to the human reviewer
+- ✅ Document all changes in the summary report
+- ❌ NEVER run any git commands
+- ❌ NEVER create commits or branches
+- ❌ NEVER push anything to remote repository
+
+**The human will review your changes locally and handle all git operations after manual testing.**
+
+**IF YOU RUN ANY GIT COMMAND → YOU HAVE FAILED THE TASK**
+
+---
+
 ## 🔧 ENVIRONMENT SETUP
 
 ```bash
@@ -510,13 +562,18 @@ These pages correctly redirect to /login when not authenticated:
 
 Before finishing, verify:
 
+**Task Completion:**
 - [ ] All 55 URLs from the page list have been checked
 - [ ] Each issue found is logged with status
 - [ ] All fixable issues have been fixed
 - [ ] Complex issues are documented for manual review
 - [ ] Summary report created at `docs/FRONTEND-UI-VERIFICATION-REPORT.md`
-- [ ] No `app/dashboard/` or `app/marketing/` or `app/auth/` directories created (only route groups with parentheses)
 - [ ] All file modifications listed in report
+
+**Critical Rules Followed:**
+- [ ] No `app/dashboard/` or `app/marketing/` or `app/auth/` directories created (only route groups with parentheses)
+- [ ] No existing files were deleted
+- [ ] No git commands were executed (no commits, no branches, no pushes)
 
 ---
 
@@ -527,4 +584,5 @@ Before finishing, verify:
 3. Open browser to `http://localhost:3000`
 4. Begin checking pages from Section 1
 5. Document and fix issues as you go
-6. Create final report when complete
+6. Create summary report when complete
+7. **STOP** - Do NOT run any git commands. Human will handle git operations after review.
