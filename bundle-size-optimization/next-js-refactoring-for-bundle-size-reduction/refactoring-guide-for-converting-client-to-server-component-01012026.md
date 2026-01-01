@@ -25,12 +25,12 @@
 
 ### Project Statistics
 
-| Metric | Value | Ideal |
-|--------|-------|-------|
-| Total page.tsx files | 55 | - |
-| Client Component pages | 47 (85%) | <10% |
-| Server Component pages | 8 (15%) | >90% |
-| Layout with 'use client' | 1 | 0 |
+| Metric                   | Value    | Ideal |
+| ------------------------ | -------- | ----- |
+| Total page.tsx files     | 55       | -     |
+| Client Component pages   | 47 (85%) | <10%  |
+| Server Component pages   | 8 (15%)  | >90%  |
+| Layout with 'use client' | 1        | 0     |
 
 ### Pages Currently Using Client Components
 
@@ -115,13 +115,13 @@ app/(marketing)/page.tsx                 ✅
 
 ### Performance Comparison
 
-| Metric | Client Component | Server Component | Improvement |
-|--------|------------------|------------------|-------------|
-| Time to First Byte | 200ms | 200ms | Same |
-| Time to First Paint | 1-2s | 300-500ms | 3-4x faster |
-| Time to Interactive | 2-5s | 500ms-1s | 3-5x faster |
-| JavaScript Downloaded | 100-500KB | 10-50KB | 80-90% less |
-| API Calls | 1+ per page | 0 | Eliminated |
+| Metric                | Client Component | Server Component | Improvement |
+| --------------------- | ---------------- | ---------------- | ----------- |
+| Time to First Byte    | 200ms            | 200ms            | Same        |
+| Time to First Paint   | 1-2s             | 300-500ms        | 3-4x faster |
+| Time to Interactive   | 2-5s             | 500ms-1s         | 3-5x faster |
+| JavaScript Downloaded | 100-500KB        | 10-50KB          | 80-90% less |
+| API Calls             | 1+ per page      | 0                | Eliminated  |
 
 ---
 
@@ -179,14 +179,14 @@ app/
 
 Before refactoring, analyze the page and categorize each part:
 
-| Part | Needs Client? | Reason |
-|------|---------------|--------|
-| Page title/header | No | Static content |
-| Data display (cards, tables) | No | Just rendering data |
-| Click handlers | Yes | User interaction |
-| Form inputs | Yes | State management |
-| Search/filter | Yes | Real-time updates |
-| Pagination | Maybe | Can be URL-based (Server) or state-based (Client) |
+| Part                         | Needs Client? | Reason                                            |
+| ---------------------------- | ------------- | ------------------------------------------------- |
+| Page title/header            | No            | Static content                                    |
+| Data display (cards, tables) | No            | Just rendering data                               |
+| Click handlers               | Yes           | User interaction                                  |
+| Form inputs                  | Yes           | State management                                  |
+| Search/filter                | Yes           | Real-time updates                                 |
+| Pagination                   | Maybe         | Can be URL-based (Server) or state-based (Client) |
 
 ### Step 2: Extract Client Component
 
@@ -276,7 +276,7 @@ export default async function AdminPage() {
 // This can be a Server Component too!
 function MetricCard({ title, value }: { title: string; value: number }) {
   return (
-    <div className="bg-gray-800 p-4 rounded-lg">
+    <div className="rounded-lg bg-gray-800 p-4">
       <p className="text-gray-400">{title}</p>
       <p className="text-2xl font-bold">{value.toLocaleString()}</p>
     </div>
@@ -293,17 +293,14 @@ If you need real-time updates or user-triggered refreshes:
 export const revalidate = 60; // Revalidate every 60 seconds
 
 // Option B: Client Component for specific interactive sections
-<AdminClient
-  initialData={metrics}
-  refreshEndpoint="/api/admin/analytics"
-/>
+<AdminClient initialData={metrics} refreshEndpoint="/api/admin/analytics" />;
 
 // Option C: URL-based state (no client JS needed)
 // Use searchParams for filters/pagination
 export default async function AdminPage({
-  searchParams
+  searchParams,
 }: {
-  searchParams: { page?: string; filter?: string }
+  searchParams: { page?: string; filter?: string };
 }) {
   const page = parseInt(searchParams.page || '1');
   const filter = searchParams.filter || 'all';
@@ -364,6 +361,7 @@ export default function AdminDashboardPage() {
 ```
 
 **Problems:**
+
 1. `'use client'` at page level → entire tree becomes client
 2. `fetch('/api/admin/analytics')` → unnecessary round trip
 3. Loading state → user sees spinner while waiting
@@ -394,7 +392,7 @@ export default async function AlertsPage() {
   });
 
   // Transform data on server
-  const alertsWithStatus = alerts.map(alert => ({
+  const alertsWithStatus = alerts.map((alert) => ({
     ...alert,
     status: computeAlertStatus(alert.isActive, alert.lastTriggered),
   }));
@@ -410,6 +408,7 @@ export default async function AlertsPage() {
 ```
 
 **Benefits:**
+
 1. No `'use client'` at page level → page is Server Component
 2. Direct Prisma query → no API round trip
 3. Data transformation on server → less client JS
@@ -421,18 +420,18 @@ export default async function AlertsPage() {
 
 ### Priority 1: High-Traffic Admin Pages
 
-| Page | Current | Effort | Impact |
-|------|---------|--------|--------|
-| `admin/page.tsx` | Client | Medium | High |
-| `admin/users/page.tsx` | Client | Medium | High |
-| `admin/errors/page.tsx` | Client | Low | Medium |
+| Page                    | Current | Effort | Impact |
+| ----------------------- | ------- | ------ | ------ |
+| `admin/page.tsx`        | Client  | Medium | High   |
+| `admin/users/page.tsx`  | Client  | Medium | High   |
+| `admin/errors/page.tsx` | Client  | Low    | Medium |
 
 ### Priority 2: Auth Pages
 
-| Page | Current | Effort | Impact |
-|------|---------|--------|--------|
-| `login/page.tsx` | Client | Medium | High |
-| `register/page.tsx` | Client | Medium | High |
+| Page                | Current | Effort | Impact |
+| ------------------- | ------- | ------ | ------ |
+| `login/page.tsx`    | Client  | Medium | High   |
+| `register/page.tsx` | Client  | Medium | High   |
 
 **Note:** Auth pages need special handling because forms require client-side validation and submission. Pattern:
 
@@ -443,15 +442,15 @@ import { LoginForm } from './login-form';
 export default function LoginPage() {
   return (
     <div>
-      <h1>Sign In</h1>  {/* Server rendered */}
-      <p>Welcome back</p>  {/* Server rendered */}
-      <LoginForm />  {/* Client Component */}
+      <h1>Sign In</h1> {/* Server rendered */}
+      <p>Welcome back</p> {/* Server rendered */}
+      <LoginForm /> {/* Client Component */}
     </div>
   );
 }
 
 // login-form.tsx (Client)
-'use client';
+('use client');
 export function LoginForm() {
   // Form handling here
 }
@@ -459,11 +458,11 @@ export function LoginForm() {
 
 ### Priority 3: Disbursement Pages
 
-| Page | Current | Effort | Impact |
-|------|---------|--------|--------|
-| `disbursement/page.tsx` | Client | High | Medium |
-| `disbursement/accounts/page.tsx` | Client | Medium | Medium |
-| `disbursement/batches/page.tsx` | Client | Medium | Medium |
+| Page                             | Current | Effort | Impact |
+| -------------------------------- | ------- | ------ | ------ |
+| `disbursement/page.tsx`          | Client  | High   | Medium |
+| `disbursement/accounts/page.tsx` | Client  | Medium | Medium |
+| `disbursement/batches/page.tsx`  | Client  | Medium | Medium |
 
 ---
 
@@ -513,12 +512,12 @@ Since refactoring 47 pages is a significant undertaking, this roadmap provides a
 
 #### Actions
 
-| Action | Description | Status |
-|--------|-------------|--------|
-| New pages follow Server Component pattern | All NEW pages must be Server Components by default | 🔄 Start Now |
-| Update coding guidelines | Document the Server Component pattern in team guidelines | ⬜ To Do |
-| Add to PR checklist | "Is 'use client' at page level? If yes, justify." | ⬜ To Do |
-| Team knowledge sharing | Share this guide with all developers | ⬜ To Do |
+| Action                                    | Description                                              | Status       |
+| ----------------------------------------- | -------------------------------------------------------- | ------------ |
+| New pages follow Server Component pattern | All NEW pages must be Server Components by default       | 🔄 Start Now |
+| Update coding guidelines                  | Document the Server Component pattern in team guidelines | ⬜ To Do     |
+| Add to PR checklist                       | "Is 'use client' at page level? If yes, justify."        | ⬜ To Do     |
+| Team knowledge sharing                    | Share this guide with all developers                     | ⬜ To Do     |
 
 #### New Page Template
 
@@ -560,14 +559,14 @@ export default async function NewPage() {
 
 #### Target Pages
 
-| Page | Complexity | Estimated Time | Notes |
-|------|------------|----------------|-------|
-| `settings/profile/page.tsx` | Low | 2-3 hours | Mostly display, form can be extracted |
-| `settings/notifications/page.tsx` | Low | 2-3 hours | Toggle switches → client component |
-| `settings/appearance/page.tsx` | Low | 1-2 hours | Theme selector → client component |
-| `admin/errors/page.tsx` | Low | 2-3 hours | Error list display |
-| `admin/api-usage/page.tsx` | Low | 3-4 hours | Stats display with filter |
-| `verify-email/pending/page.tsx` | Low | 1 hour | Almost entirely static |
+| Page                              | Complexity | Estimated Time | Notes                                 |
+| --------------------------------- | ---------- | -------------- | ------------------------------------- |
+| `settings/profile/page.tsx`       | Low        | 2-3 hours      | Mostly display, form can be extracted |
+| `settings/notifications/page.tsx` | Low        | 2-3 hours      | Toggle switches → client component    |
+| `settings/appearance/page.tsx`    | Low        | 1-2 hours      | Theme selector → client component     |
+| `admin/errors/page.tsx`           | Low        | 2-3 hours      | Error list display                    |
+| `admin/api-usage/page.tsx`        | Low        | 3-4 hours      | Stats display with filter             |
+| `verify-email/pending/page.tsx`   | Low        | 1 hour         | Almost entirely static                |
 
 #### Success Criteria
 
@@ -582,6 +581,7 @@ export default async function NewPage() {
 ## Phase 1 Progress Tracker
 
 ### Completed
+
 - [ ] settings/profile/page.tsx
 - [ ] settings/notifications/page.tsx
 - [ ] settings/appearance/page.tsx
@@ -590,10 +590,11 @@ export default async function NewPage() {
 - [ ] verify-email/pending/page.tsx
 
 ### Metrics
-- Pages Converted: ___ / 6
-- Bundle Size Before: ___KB
-- Bundle Size After: ___KB
-- Reduction: ___%
+
+- Pages Converted: \_\_\_ / 6
+- Bundle Size Before: \_\_\_KB
+- Bundle Size After: \_\_\_KB
+- Reduction: \_\_\_%
 ```
 
 ---
@@ -604,15 +605,15 @@ export default async function NewPage() {
 
 #### Target Pages
 
-| Page | Complexity | Estimated Time | Notes |
-|------|------------|----------------|-------|
-| `admin/page.tsx` | Medium | 4-6 hours | Main admin dashboard |
-| `admin/users/page.tsx` | Medium | 4-6 hours | User list with search/filter |
-| `admin/users/[id]/page.tsx` | Medium | 3-4 hours | User detail view |
-| `settings/billing/page.tsx` | Medium | 4-6 hours | Subscription info display |
-| `settings/security/page.tsx` | Medium | 4-6 hours | 2FA settings |
-| `affiliate/dashboard/page.tsx` | Medium | 4-6 hours | Affiliate stats |
-| `affiliate/analytics/page.tsx` | Medium | 4-6 hours | Charts and metrics |
+| Page                           | Complexity | Estimated Time | Notes                        |
+| ------------------------------ | ---------- | -------------- | ---------------------------- |
+| `admin/page.tsx`               | Medium     | 4-6 hours      | Main admin dashboard         |
+| `admin/users/page.tsx`         | Medium     | 4-6 hours      | User list with search/filter |
+| `admin/users/[id]/page.tsx`    | Medium     | 3-4 hours      | User detail view             |
+| `settings/billing/page.tsx`    | Medium     | 4-6 hours      | Subscription info display    |
+| `settings/security/page.tsx`   | Medium     | 4-6 hours      | 2FA settings                 |
+| `affiliate/dashboard/page.tsx` | Medium     | 4-6 hours      | Affiliate stats              |
+| `affiliate/analytics/page.tsx` | Medium     | 4-6 hours      | Charts and metrics           |
 
 #### Refactoring Pattern for Admin Dashboard
 
@@ -661,14 +662,14 @@ export function AdminDashboardClient({ initialMetrics }) {
 
 #### Target Pages
 
-| Page | Complexity | Estimated Time | Notes |
-|------|------------|----------------|-------|
-| `login/page.tsx` | Medium | 3-4 hours | Extract LoginForm to client |
-| `register/page.tsx` | Medium | 3-4 hours | Extract RegisterForm to client |
-| `forgot-password/page.tsx` | Medium | 2-3 hours | Extract form to client |
-| `reset-password/page.tsx` | Medium | 2-3 hours | Extract form to client |
-| `verify-email/page.tsx` | Low | 1-2 hours | Mostly static + small client |
-| `verify-2fa/page.tsx` | Medium | 3-4 hours | Extract 2FA form to client |
+| Page                       | Complexity | Estimated Time | Notes                          |
+| -------------------------- | ---------- | -------------- | ------------------------------ |
+| `login/page.tsx`           | Medium     | 3-4 hours      | Extract LoginForm to client    |
+| `register/page.tsx`        | Medium     | 3-4 hours      | Extract RegisterForm to client |
+| `forgot-password/page.tsx` | Medium     | 2-3 hours      | Extract form to client         |
+| `reset-password/page.tsx`  | Medium     | 2-3 hours      | Extract form to client         |
+| `verify-email/page.tsx`    | Low        | 1-2 hours      | Mostly static + small client   |
+| `verify-2fa/page.tsx`      | Medium     | 3-4 hours      | Extract 2FA form to client     |
 
 #### Auth Page Pattern
 
@@ -687,9 +688,9 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center">
       {/* Static content - rendered on server */}
-      <div className="max-w-md w-full">
+      <div className="w-full max-w-md">
         <h1 className="text-2xl font-bold">Welcome Back</h1>
         <p className="text-gray-400">Sign in to your account</p>
 
@@ -706,7 +707,7 @@ export default async function LoginPage() {
 }
 
 // login-form.tsx (Client Component)
-'use client';
+('use client');
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 
@@ -721,11 +722,7 @@ export function LoginForm() {
     await signIn('credentials', { email, password });
   };
 
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* Form fields */}
-    </form>
-  );
+  return <form onSubmit={handleSubmit}>{/* Form fields */}</form>;
 }
 ```
 
@@ -744,16 +741,16 @@ export function LoginForm() {
 
 #### Target Pages
 
-| Page | Complexity | Estimated Time | Notes |
-|------|------------|----------------|-------|
-| `disbursement/page.tsx` | High | 6-8 hours | Complex dashboard |
-| `disbursement/accounts/page.tsx` | High | 4-6 hours | Account management |
-| `disbursement/batches/page.tsx` | High | 4-6 hours | Batch processing |
-| `disbursement/transactions/page.tsx` | High | 4-6 hours | Transaction list |
-| `disbursement/affiliates/page.tsx` | High | 4-6 hours | Affiliate management |
-| `admin/fraud-alerts/page.tsx` | Medium | 4-6 hours | Alert list |
-| `admin/fraud-alerts/[id]/page.tsx` | Medium | 3-4 hours | Alert detail |
-| Plus ~8 more disbursement/admin pages | Variable | 3-6 hours each | |
+| Page                                  | Complexity | Estimated Time | Notes                |
+| ------------------------------------- | ---------- | -------------- | -------------------- |
+| `disbursement/page.tsx`               | High       | 6-8 hours      | Complex dashboard    |
+| `disbursement/accounts/page.tsx`      | High       | 4-6 hours      | Account management   |
+| `disbursement/batches/page.tsx`       | High       | 4-6 hours      | Batch processing     |
+| `disbursement/transactions/page.tsx`  | High       | 4-6 hours      | Transaction list     |
+| `disbursement/affiliates/page.tsx`    | High       | 4-6 hours      | Affiliate management |
+| `admin/fraud-alerts/page.tsx`         | Medium     | 4-6 hours      | Alert list           |
+| `admin/fraud-alerts/[id]/page.tsx`    | Medium     | 3-4 hours      | Alert detail         |
+| Plus ~8 more disbursement/admin pages | Variable   | 3-6 hours each |                      |
 
 #### Strategy for Complex Pages
 
@@ -807,11 +804,11 @@ export default async function DisbursementPage() {
 
 #### Strategy
 
-| Approach | When to Apply |
-|----------|---------------|
-| **Opportunistic** | Convert pages when touching them for bug fixes |
-| **Feature-driven** | Convert when adding new features to a page |
-| **Batch cleanup** | Dedicate 1-2 days per quarter for remaining pages |
+| Approach           | When to Apply                                     |
+| ------------------ | ------------------------------------------------- |
+| **Opportunistic**  | Convert pages when touching them for bug fixes    |
+| **Feature-driven** | Convert when adding new features to a page        |
+| **Batch cleanup**  | Dedicate 1-2 days per quarter for remaining pages |
 
 #### Remaining Pages (Lower Priority)
 
@@ -840,31 +837,35 @@ Use this template to track overall refactoring progress:
 # Server Component Refactoring Progress
 
 ## Overview
-| Phase | Status | Pages | Progress |
-|-------|--------|-------|----------|
-| Phase 0: Foundation | 🔄 In Progress | N/A | Ongoing |
-| Phase 1: Quick Wins | ⬜ Not Started | 6 | 0/6 |
-| Phase 2: High-Impact | ⬜ Not Started | 7 | 0/7 |
-| Phase 3: Auth & Forms | ⬜ Not Started | 6 | 0/6 |
-| Phase 4: Complex | ⬜ Not Started | 15 | 0/15 |
-| Phase 5: Remaining | ⬜ Not Started | ~13 | 0/13 |
+
+| Phase                 | Status         | Pages | Progress |
+| --------------------- | -------------- | ----- | -------- |
+| Phase 0: Foundation   | 🔄 In Progress | N/A   | Ongoing  |
+| Phase 1: Quick Wins   | ⬜ Not Started | 6     | 0/6      |
+| Phase 2: High-Impact  | ⬜ Not Started | 7     | 0/7      |
+| Phase 3: Auth & Forms | ⬜ Not Started | 6     | 0/6      |
+| Phase 4: Complex      | ⬜ Not Started | 15    | 0/15     |
+| Phase 5: Remaining    | ⬜ Not Started | ~13   | 0/13     |
 
 ## Metrics
-| Metric | Baseline | Current | Target |
-|--------|----------|---------|--------|
-| Client Component Pages | 47 | 47 | <10 |
-| Average Page JS Size | 150KB | 150KB | 30KB |
-| Time to Interactive | 2-3s | 2-3s | <1s |
+
+| Metric                 | Baseline | Current | Target |
+| ---------------------- | -------- | ------- | ------ |
+| Client Component Pages | 47       | 47      | <10    |
+| Average Page JS Size   | 150KB    | 150KB   | 30KB   |
+| Time to Interactive    | 2-3s     | 2-3s    | <1s    |
 
 ## Recent Conversions
+
 | Date | Page | Before | After | Notes |
-|------|------|--------|-------|-------|
-| | | | | |
+| ---- | ---- | ------ | ----- | ----- |
+|      |      |        |       |       |
 
 ## Blockers & Issues
+
 | Issue | Page | Status | Resolution |
-|-------|------|--------|------------|
-| | | | |
+| ----- | ---- | ------ | ---------- |
+|       |      |        |            |
 ```
 
 ---
@@ -902,7 +903,7 @@ export default async function Page() {
   return (
     <div>
       <StaticContent data={data} />
-      <InteractivePart />  {/* Only this is client */}
+      <InteractivePart /> {/* Only this is client */}
     </div>
   );
 }
@@ -933,7 +934,9 @@ export default async function Page() {
 // ❌ BAD - Unnecessary API call
 'use client';
 useEffect(() => {
-  fetch('/api/users').then(res => res.json()).then(setUsers);
+  fetch('/api/users')
+    .then((res) => res.json())
+    .then(setUsers);
 }, []);
 ```
 
@@ -949,11 +952,11 @@ export default async function Page() {
 
 ```tsx
 // ❌ BAD - Entire dataset goes to client bundle
-<ClientComponent allItems={items} />  // 1000 items = large JS
+<ClientComponent allItems={items} />; // 1000 items = large JS
 
 // ✅ GOOD - Paginate on server, send only what's needed
 const pageItems = items.slice(0, 10);
-<ClientComponent items={pageItems} totalCount={items.length} />
+<ClientComponent items={pageItems} totalCount={items.length} />;
 ```
 
 ### Pitfall 5: Layout with 'use client'
@@ -981,7 +984,7 @@ import { InteractiveNav } from './interactive-nav';
 export default function Layout({ children }) {
   return (
     <div>
-      <InteractiveNav />  {/* Only this is client */}
+      <InteractiveNav /> {/* Only this is client */}
       {children}
     </div>
   );
@@ -1075,12 +1078,14 @@ Use this template when refactoring a page:
 ## Page: app/(dashboard)/admin/page.tsx
 
 ### Analysis
+
 - [ ] Identified static content
 - [ ] Identified interactive parts
 - [ ] Listed all useState/useEffect usage
 - [ ] Listed all event handlers
 
 ### Refactoring
+
 - [ ] Created admin-client.tsx for interactive parts
 - [ ] Moved data fetching to server
 - [ ] Removed 'use client' from page.tsx
@@ -1088,6 +1093,7 @@ Use this template when refactoring a page:
 - [ ] Passed data via props
 
 ### Testing
+
 - [ ] Build succeeds
 - [ ] Page loads correctly
 - [ ] All features work
@@ -1095,8 +1101,9 @@ Use this template when refactoring a page:
 - [ ] Bundle size reduced
 
 ### Before/After
-- JS Bundle: ___KB → ___KB
-- Time to Interactive: ___s → ___s
+
+- JS Bundle: **_KB → _**KB
+- Time to Interactive: **_s → _**s
 ```
 
 ---
@@ -1113,14 +1120,14 @@ Use this template when refactoring a page:
 
 ### Expected Results After Full Refactoring
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Client Component Pages | 47 | ~10 | -80% |
-| Average Page JS | 150KB | 30KB | -80% |
-| Time to Interactive | 2-3s | 0.5-1s | 3x faster |
+| Metric                 | Before | After  | Improvement |
+| ---------------------- | ------ | ------ | ----------- |
+| Client Component Pages | 47     | ~10    | -80%        |
+| Average Page JS        | 150KB  | 30KB   | -80%        |
+| Time to Interactive    | 2-3s   | 0.5-1s | 3x faster   |
 
 ---
 
-*Document created: 2026-01-01*
-*For: Trading Alerts SaaS Public*
-*Next review: After implementing Priority 1 refactoring*
+_Document created: 2026-01-01_
+_For: Trading Alerts SaaS Public_
+_Next review: After implementing Priority 1 refactoring_
