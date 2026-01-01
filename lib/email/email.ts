@@ -41,10 +41,11 @@ function getResendClient(): Resend | null {
 
 /**
  * Email configuration
+ * Uses RESEND_FROM_EMAIL env var if set, otherwise defaults to Resend's test address
  */
 const EMAIL_CONFIG = {
-  from: 'Trading Alerts <noreply@tradingalerts.com>',
-  replyTo: 'support@tradingalerts.com',
+  from: process.env['RESEND_FROM_EMAIL'] || 'Trading Alerts <onboarding@resend.dev>',
+  replyTo: process.env['RESEND_REPLY_TO'] || undefined,
 } as const;
 
 /**
