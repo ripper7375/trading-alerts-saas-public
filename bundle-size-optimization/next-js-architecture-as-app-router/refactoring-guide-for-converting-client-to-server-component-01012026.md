@@ -14,9 +14,10 @@
 4. [Step-by-Step Refactoring Process](#step-by-step-refactoring-process)
 5. [Real Examples from This Codebase](#real-examples-from-this-codebase)
 6. [Refactoring Candidates](#refactoring-candidates)
-7. [Common Pitfalls](#common-pitfalls)
-8. [Testing After Refactoring](#testing-after-refactoring)
-9. [Code Review Checklist](#code-review-checklist)
+7. [Refactoring Roadmap (Gradual Approach)](#refactoring-roadmap-gradual-approach)
+8. [Common Pitfalls](#common-pitfalls)
+9. [Testing After Refactoring](#testing-after-refactoring)
+10. [Code Review Checklist](#code-review-checklist)
 
 ---
 
@@ -463,6 +464,418 @@ export function LoginForm() {
 | `disbursement/page.tsx` | Client | High | Medium |
 | `disbursement/accounts/page.tsx` | Client | Medium | Medium |
 | `disbursement/batches/page.tsx` | Client | Medium | Medium |
+
+---
+
+## Refactoring Roadmap (Gradual Approach)
+
+Since refactoring 47 pages is a significant undertaking, this roadmap provides a phased approach to implement changes gradually without disrupting ongoing development.
+
+### Overview Timeline
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    REFACTORING ROADMAP OVERVIEW                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Phase 0: Foundation (Immediate)                                            │
+│  ├── Apply to ALL new development                                           │
+│  └── Duration: Ongoing                                                       │
+│                                                                              │
+│  Phase 1: Quick Wins (Sprint 1-2)                                           │
+│  ├── Simple pages with minimal interactivity                                │
+│  └── 5-8 pages | Effort: Low | Impact: Medium                               │
+│                                                                              │
+│  Phase 2: High-Impact Pages (Sprint 3-4)                                    │
+│  ├── Admin dashboard and high-traffic pages                                 │
+│  └── 8-10 pages | Effort: Medium | Impact: High                             │
+│                                                                              │
+│  Phase 3: Auth & Forms (Sprint 5-6)                                         │
+│  ├── Login, register, and form-heavy pages                                  │
+│  └── 7 pages | Effort: Medium | Impact: High                                │
+│                                                                              │
+│  Phase 4: Complex Pages (Sprint 7-10)                                       │
+│  ├── Disbursement, affiliate, and data-heavy pages                          │
+│  └── 15-20 pages | Effort: High | Impact: Medium                            │
+│                                                                              │
+│  Phase 5: Remaining & Cleanup (Ongoing)                                     │
+│  ├── Convert remaining pages as touched                                     │
+│  └── ~10 pages | Effort: Variable | Impact: Low                             │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Phase 0: Foundation (Immediate - Ongoing)
+
+**Goal:** Prevent new technical debt while preparing for refactoring.
+
+#### Actions
+
+| Action | Description | Status |
+|--------|-------------|--------|
+| New pages follow Server Component pattern | All NEW pages must be Server Components by default | 🔄 Start Now |
+| Update coding guidelines | Document the Server Component pattern in team guidelines | ⬜ To Do |
+| Add to PR checklist | "Is 'use client' at page level? If yes, justify." | ⬜ To Do |
+| Team knowledge sharing | Share this guide with all developers | ⬜ To Do |
+
+#### New Page Template
+
+```tsx
+// Template for ALL new pages
+import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth/session';
+import { prisma } from '@/lib/db/prisma';
+import { PageNameClient } from './page-name-client';
+
+export const dynamic = 'force-dynamic';
+
+export default async function NewPage() {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  // Fetch data on server
+  const data = await prisma.model.findMany({
+    where: { userId: session.user.id },
+  });
+
+  return (
+    <div>
+      {/* Static content rendered on server */}
+      <h1>Page Title</h1>
+
+      {/* Interactive parts only */}
+      <PageNameClient initialData={data} />
+    </div>
+  );
+}
+```
+
+---
+
+### Phase 1: Quick Wins (Sprint 1-2)
+
+**Goal:** Build momentum with easy conversions and establish patterns.
+
+#### Target Pages
+
+| Page | Complexity | Estimated Time | Notes |
+|------|------------|----------------|-------|
+| `settings/profile/page.tsx` | Low | 2-3 hours | Mostly display, form can be extracted |
+| `settings/notifications/page.tsx` | Low | 2-3 hours | Toggle switches → client component |
+| `settings/appearance/page.tsx` | Low | 1-2 hours | Theme selector → client component |
+| `admin/errors/page.tsx` | Low | 2-3 hours | Error list display |
+| `admin/api-usage/page.tsx` | Low | 3-4 hours | Stats display with filter |
+| `verify-email/pending/page.tsx` | Low | 1 hour | Almost entirely static |
+
+#### Success Criteria
+
+- [ ] 5+ pages converted
+- [ ] No regressions in functionality
+- [ ] Team comfortable with pattern
+- [ ] Bundle size reduced by 10-15%
+
+#### Phase 1 Checklist
+
+```markdown
+## Phase 1 Progress Tracker
+
+### Completed
+- [ ] settings/profile/page.tsx
+- [ ] settings/notifications/page.tsx
+- [ ] settings/appearance/page.tsx
+- [ ] admin/errors/page.tsx
+- [ ] admin/api-usage/page.tsx
+- [ ] verify-email/pending/page.tsx
+
+### Metrics
+- Pages Converted: ___ / 6
+- Bundle Size Before: ___KB
+- Bundle Size After: ___KB
+- Reduction: ___%
+```
+
+---
+
+### Phase 2: High-Impact Pages (Sprint 3-4)
+
+**Goal:** Convert high-traffic pages for maximum user impact.
+
+#### Target Pages
+
+| Page | Complexity | Estimated Time | Notes |
+|------|------------|----------------|-------|
+| `admin/page.tsx` | Medium | 4-6 hours | Main admin dashboard |
+| `admin/users/page.tsx` | Medium | 4-6 hours | User list with search/filter |
+| `admin/users/[id]/page.tsx` | Medium | 3-4 hours | User detail view |
+| `settings/billing/page.tsx` | Medium | 4-6 hours | Subscription info display |
+| `settings/security/page.tsx` | Medium | 4-6 hours | 2FA settings |
+| `affiliate/dashboard/page.tsx` | Medium | 4-6 hours | Affiliate stats |
+| `affiliate/analytics/page.tsx` | Medium | 4-6 hours | Charts and metrics |
+
+#### Refactoring Pattern for Admin Dashboard
+
+```tsx
+// BEFORE: admin/page.tsx (Client Component)
+'use client';
+export default function AdminPage() {
+  const [metrics, setMetrics] = useState(null);
+  useEffect(() => { fetch('/api/admin/analytics')... }, []);
+  // ... 300 lines of client-side code
+}
+
+// AFTER: admin/page.tsx (Server Component)
+export default async function AdminPage() {
+  const metrics = await getAdminMetrics(); // Direct DB query
+  return (
+    <div>
+      <AdminHeader />           {/* Server */}
+      <MetricCards data={metrics} />  {/* Server */}
+      <AdminDashboardClient     {/* Client - only interactive parts */}
+        initialMetrics={metrics}
+      />
+    </div>
+  );
+}
+
+// AFTER: admin-dashboard-client.tsx (Client Component)
+'use client';
+export function AdminDashboardClient({ initialMetrics }) {
+  // Only: refresh button, filters, real-time updates
+}
+```
+
+#### Success Criteria
+
+- [ ] Admin dashboard loads 2-3x faster
+- [ ] High-traffic pages optimized
+- [ ] User-facing performance improvement measurable
+- [ ] Bundle size reduced by additional 15-20%
+
+---
+
+### Phase 3: Auth & Forms (Sprint 5-6)
+
+**Goal:** Optimize authentication pages while maintaining form functionality.
+
+#### Target Pages
+
+| Page | Complexity | Estimated Time | Notes |
+|------|------------|----------------|-------|
+| `login/page.tsx` | Medium | 3-4 hours | Extract LoginForm to client |
+| `register/page.tsx` | Medium | 3-4 hours | Extract RegisterForm to client |
+| `forgot-password/page.tsx` | Medium | 2-3 hours | Extract form to client |
+| `reset-password/page.tsx` | Medium | 2-3 hours | Extract form to client |
+| `verify-email/page.tsx` | Low | 1-2 hours | Mostly static + small client |
+| `verify-2fa/page.tsx` | Medium | 3-4 hours | Extract 2FA form to client |
+
+#### Auth Page Pattern
+
+```tsx
+// page.tsx (Server Component)
+import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth/session';
+import { LoginForm } from './login-form';
+
+export default async function LoginPage() {
+  const session = await getSession();
+
+  // Redirect if already logged in
+  if (session) {
+    redirect('/dashboard');
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      {/* Static content - rendered on server */}
+      <div className="max-w-md w-full">
+        <h1 className="text-2xl font-bold">Welcome Back</h1>
+        <p className="text-gray-400">Sign in to your account</p>
+
+        {/* Form - client component */}
+        <LoginForm />
+
+        {/* Static links - rendered on server */}
+        <p className="mt-4 text-center">
+          Don't have an account? <a href="/register">Sign up</a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// login-form.tsx (Client Component)
+'use client';
+import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+
+export function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await signIn('credentials', { email, password });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields */}
+    </form>
+  );
+}
+```
+
+#### Success Criteria
+
+- [ ] Auth pages load faster
+- [ ] Form functionality preserved
+- [ ] Error handling works correctly
+- [ ] OAuth providers still function
+
+---
+
+### Phase 4: Complex Pages (Sprint 7-10)
+
+**Goal:** Tackle complex, data-heavy pages with careful refactoring.
+
+#### Target Pages
+
+| Page | Complexity | Estimated Time | Notes |
+|------|------------|----------------|-------|
+| `disbursement/page.tsx` | High | 6-8 hours | Complex dashboard |
+| `disbursement/accounts/page.tsx` | High | 4-6 hours | Account management |
+| `disbursement/batches/page.tsx` | High | 4-6 hours | Batch processing |
+| `disbursement/transactions/page.tsx` | High | 4-6 hours | Transaction list |
+| `disbursement/affiliates/page.tsx` | High | 4-6 hours | Affiliate management |
+| `admin/fraud-alerts/page.tsx` | Medium | 4-6 hours | Alert list |
+| `admin/fraud-alerts/[id]/page.tsx` | Medium | 3-4 hours | Alert detail |
+| Plus ~8 more disbursement/admin pages | Variable | 3-6 hours each | |
+
+#### Strategy for Complex Pages
+
+1. **Analyze data flow** - Map all useState/useEffect usage
+2. **Identify server-fetchable data** - What can be queried directly?
+3. **Identify truly interactive parts** - What MUST be client-side?
+4. **Create data fetching layer** - Server functions for DB queries
+5. **Extract minimal client component** - Only interactive pieces
+6. **Test thoroughly** - Complex pages need careful testing
+
+#### Example: Disbursement Dashboard
+
+```tsx
+// lib/disbursement/queries.ts (Server-side data fetching)
+export async function getDisbursementMetrics(userId: string) {
+  const [pending, completed, failed] = await Promise.all([
+    prisma.disbursement.count({ where: { status: 'PENDING' } }),
+    prisma.disbursement.count({ where: { status: 'COMPLETED' } }),
+    prisma.disbursement.count({ where: { status: 'FAILED' } }),
+  ]);
+
+  return { pending, completed, failed };
+}
+
+// page.tsx (Server Component)
+import { getDisbursementMetrics } from '@/lib/disbursement/queries';
+import { DisbursementClient } from './disbursement-client';
+
+export default async function DisbursementPage() {
+  const metrics = await getDisbursementMetrics();
+  const recentBatches = await getRecentBatches();
+
+  return (
+    <div>
+      <h1>Disbursement Dashboard</h1>
+      <MetricCards metrics={metrics} />      {/* Server */}
+      <RecentBatchesTable data={recentBatches} />  {/* Server */}
+      <DisbursementClient                     {/* Client */}
+        initialMetrics={metrics}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+### Phase 5: Remaining & Cleanup (Ongoing)
+
+**Goal:** Convert remaining pages opportunistically and maintain standards.
+
+#### Strategy
+
+| Approach | When to Apply |
+|----------|---------------|
+| **Opportunistic** | Convert pages when touching them for bug fixes |
+| **Feature-driven** | Convert when adding new features to a page |
+| **Batch cleanup** | Dedicate 1-2 days per quarter for remaining pages |
+
+#### Remaining Pages (Lower Priority)
+
+```
+app/(dashboard)/settings/api-keys/page.tsx
+app/(dashboard)/settings/connected-accounts/page.tsx
+app/(dashboard)/affiliate/codes/page.tsx
+app/(dashboard)/affiliate/payouts/page.tsx
+... and others as identified
+```
+
+#### Maintenance Checklist
+
+- [ ] Run quarterly audit of Client Component pages
+- [ ] Track bundle size trends in CI/CD
+- [ ] Update this guide with lessons learned
+- [ ] Share wins with team to maintain momentum
+
+---
+
+### Progress Tracking Template
+
+Use this template to track overall refactoring progress:
+
+```markdown
+# Server Component Refactoring Progress
+
+## Overview
+| Phase | Status | Pages | Progress |
+|-------|--------|-------|----------|
+| Phase 0: Foundation | 🔄 In Progress | N/A | Ongoing |
+| Phase 1: Quick Wins | ⬜ Not Started | 6 | 0/6 |
+| Phase 2: High-Impact | ⬜ Not Started | 7 | 0/7 |
+| Phase 3: Auth & Forms | ⬜ Not Started | 6 | 0/6 |
+| Phase 4: Complex | ⬜ Not Started | 15 | 0/15 |
+| Phase 5: Remaining | ⬜ Not Started | ~13 | 0/13 |
+
+## Metrics
+| Metric | Baseline | Current | Target |
+|--------|----------|---------|--------|
+| Client Component Pages | 47 | 47 | <10 |
+| Average Page JS Size | 150KB | 150KB | 30KB |
+| Time to Interactive | 2-3s | 2-3s | <1s |
+
+## Recent Conversions
+| Date | Page | Before | After | Notes |
+|------|------|--------|-------|-------|
+| | | | | |
+
+## Blockers & Issues
+| Issue | Page | Status | Resolution |
+|-------|------|--------|------------|
+| | | | |
+```
+
+---
+
+### Key Success Factors
+
+1. **Start with Phase 0** - Prevent new debt immediately
+2. **Celebrate quick wins** - Phase 1 builds momentum
+3. **Measure impact** - Track bundle size and load times
+4. **Don't rush complex pages** - Phase 4 needs careful planning
+5. **Make it part of workflow** - Not a separate "refactoring sprint"
 
 ---
 
