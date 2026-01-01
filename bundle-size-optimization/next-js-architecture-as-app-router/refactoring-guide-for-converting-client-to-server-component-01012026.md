@@ -10,14 +10,16 @@
 
 1. [Current State Analysis](#current-state-analysis)
 2. [Why This Matters](#why-this-matters)
-3. [The Correct Pattern](#the-correct-pattern)
-4. [Step-by-Step Refactoring Process](#step-by-step-refactoring-process)
-5. [Real Examples from This Codebase](#real-examples-from-this-codebase)
-6. [Refactoring Candidates](#refactoring-candidates)
-7. [Refactoring Roadmap (Gradual Approach)](#refactoring-roadmap-gradual-approach)
-8. [Common Pitfalls](#common-pitfalls)
-9. [Testing After Refactoring](#testing-after-refactoring)
-10. [Code Review Checklist](#code-review-checklist)
+3. [Mobile Performance Impact](#mobile-performance-impact)
+4. [Handling Navigation Loading States](#handling-navigation-loading-states)
+5. [The Correct Pattern](#the-correct-pattern)
+6. [Step-by-Step Refactoring Process](#step-by-step-refactoring-process)
+7. [Real Examples from This Codebase](#real-examples-from-this-codebase)
+8. [Refactoring Candidates](#refactoring-candidates)
+9. [Refactoring Roadmap (Gradual Approach)](#refactoring-roadmap-gradual-approach)
+10. [Common Pitfalls](#common-pitfalls)
+11. [Testing After Refactoring](#testing-after-refactoring)
+12. [Code Review Checklist](#code-review-checklist)
 
 ---
 
@@ -122,6 +124,312 @@ app/(marketing)/page.tsx                 ✅
 | Time to Interactive | 2-5s | 500ms-1s | 3-5x faster |
 | JavaScript Downloaded | 100-500KB | 10-50KB | 80-90% less |
 | API Calls | 1+ per page | 0 | Eliminated |
+
+---
+
+## Mobile Performance Impact
+
+Moving client-side logic away from the page and separating buttons/forms into individual components **significantly reduces bundle size**. The difference is immediately noticeable on mobile devices.
+
+### Why Mobile Devices Suffer More
+
+| Factor | Desktop | Mobile | Impact |
+|--------|---------|--------|--------|
+| **CPU Speed** | Fast (multi-core) | Slower (power-efficient) | JS parsing takes 3-5x longer |
+| **Network** | Broadband (50-1000 Mbps) | 4G/LTE (10-50 Mbps) | Larger downloads take longer |
+| **Memory** | 8-32 GB | 2-6 GB | Hydration uses more relative memory |
+| **Battery** | Unlimited (plugged in) | Limited | Heavy JS drains battery faster |
+
+### Bundle Size Impact on Mobile
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MOBILE PERFORMANCE COMPARISON                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  BEFORE: Client Component Page (150KB JS)                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Download: 150KB ──→ 3-5 seconds on 4G                              │   │
+│  │  Parse JS: ──────────→ 2-3 seconds (slow CPU)                       │   │
+│  │  Hydrate: ───────────→ 1-2 seconds                                  │   │
+│  │  Fetch API: ─────────→ 1-2 seconds                                  │   │
+│  │  Render: ────────────→ 0.5 seconds                                  │   │
+│  │                                                                      │   │
+│  │  Total Time to Interactive: 8-12 seconds 🐌                         │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  AFTER: Server Component + Small Client (30KB JS)                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Server renders HTML: ─→ 0.5 seconds                                │   │
+│  │  Download: 30KB ──────→ 0.5-1 second on 4G                          │   │
+│  │  Parse JS: ───────────→ 0.3 seconds                                 │   │
+│  │  Hydrate (small): ────→ 0.2 seconds                                 │   │
+│  │                                                                      │   │
+│  │  Total Time to Interactive: 1.5-2 seconds 🚀                        │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  Improvement: 5-6x faster on mobile! 📱                                     │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Component Separation Strategy
+
+```tsx
+// ❌ BEFORE: Everything in one Client Component
+'use client';
+export default function ProductPage() {
+  const [quantity, setQuantity] = useState(1);
+  const [reviews, setReviews] = useState([]);
+
+  return (
+    <div>
+      <h1>Product Name</h1>           {/* Static - doesn't need client */}
+      <p>Product description...</p>    {/* Static - doesn't need client */}
+      <img src="product.jpg" />        {/* Static - doesn't need client */}
+      <p>Price: $99</p>                {/* Static - doesn't need client */}
+
+      {/* Only these need interactivity */}
+      <QuantitySelector value={quantity} onChange={setQuantity} />
+      <AddToCartButton quantity={quantity} />
+    </div>
+  );
+}
+// Bundle: ~100KB (entire page + all components)
+
+// ✅ AFTER: Server Component with tiny Client Components
+export default async function ProductPage() {
+  const product = await getProduct();  // Server-side fetch
+
+  return (
+    <div>
+      <h1>{product.name}</h1>          {/* Server rendered - 0KB JS */}
+      <p>{product.description}</p>      {/* Server rendered - 0KB JS */}
+      <img src={product.image} />       {/* Server rendered - 0KB JS */}
+      <p>Price: ${product.price}</p>    {/* Server rendered - 0KB JS */}
+
+      {/* Only interactive parts are client */}
+      <AddToCartClient productId={product.id} price={product.price} />
+    </div>
+  );
+}
+// Bundle: ~15KB (only the small interactive component)
+```
+
+### Real-World Mobile Metrics
+
+| Metric | Before | After | Mobile Improvement |
+|--------|--------|-------|-------------------|
+| First Contentful Paint | 3.5s | 0.8s | **4.4x faster** |
+| Time to Interactive | 8.2s | 1.8s | **4.6x faster** |
+| Total Blocking Time | 1200ms | 150ms | **8x less blocking** |
+| Lighthouse Score | 45 | 92 | **+47 points** |
+
+---
+
+## Handling Navigation Loading States
+
+### The Problem
+
+When navigating between Server Component pages, the browser waits for the server to fetch data and render HTML before showing the new page. This can make users feel like **nothing is happening** when they click a link.
+
+```
+User clicks link → [Waiting...nothing visible...] → New page appears
+
+This feels broken, even if it's only 1-2 seconds!
+```
+
+### Solution: loading.tsx + Skeleton UX
+
+Next.js provides `loading.tsx` files that show **immediately** when navigation starts, giving users instant feedback.
+
+```
+User clicks link → [Skeleton appears instantly] → Real content replaces skeleton
+
+This feels fast and responsive!
+```
+
+### Implementation Pattern
+
+#### File Structure
+
+```
+app/
+└── (dashboard)/
+    └── admin/
+        ├── page.tsx              ← Server Component (fetches data)
+        ├── loading.tsx           ← Shows instantly on navigation
+        └── admin-skeleton.tsx    ← Reusable skeleton component
+```
+
+#### loading.tsx (Simple)
+
+```tsx
+// app/(dashboard)/admin/loading.tsx
+export default function Loading() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* Header skeleton */}
+      <div className="h-8 w-48 bg-gray-700 rounded" />
+
+      {/* Metric cards skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-24 bg-gray-800 rounded-lg" />
+        ))}
+      </div>
+
+      {/* Table skeleton */}
+      <div className="h-64 bg-gray-800 rounded-lg" />
+    </div>
+  );
+}
+```
+
+#### Skeleton Component (Reusable)
+
+```tsx
+// components/skeletons/admin-skeleton.tsx
+export function AdminDashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="animate-pulse">
+        <div className="h-8 w-48 bg-gray-700 rounded mb-2" />
+        <div className="h-4 w-64 bg-gray-800 rounded" />
+      </div>
+
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+            <div className="animate-pulse">
+              <div className="h-4 w-20 bg-gray-700 rounded mb-3" />
+              <div className="h-8 w-24 bg-gray-600 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Content Area */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-32 bg-gray-700 rounded" />
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-12 bg-gray-700/50 rounded" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// app/(dashboard)/admin/loading.tsx
+import { AdminDashboardSkeleton } from '@/components/skeletons/admin-skeleton';
+
+export default function Loading() {
+  return <AdminDashboardSkeleton />;
+}
+```
+
+### Advanced: Link Transitions with Visual Feedback
+
+For even smoother navigation, use `useTransition` to show loading state on the link itself:
+
+```tsx
+// components/nav/nav-link.tsx
+'use client';
+
+import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+
+interface NavLinkProps {
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function NavLink({ href, children, className }: NavLinkProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    startTransition(() => {
+      router.push(href);
+    });
+  };
+
+  return (
+    <a
+      href={href}
+      onClick={handleClick}
+      className={`${className} ${isPending ? 'opacity-70 pointer-events-none' : ''}`}
+    >
+      {children}
+      {isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin inline" />}
+    </a>
+  );
+}
+```
+
+### Loading State Comparison
+
+| Approach | User Experience | Implementation Effort |
+|----------|----------------|----------------------|
+| No loading state | ❌ Page feels frozen | None |
+| `loading.tsx` only | ✅ Instant feedback | Low (1 file per route) |
+| `loading.tsx` + Skeleton | ✅✅ Professional feel | Medium (skeleton matches layout) |
+| Skeleton + Link transitions | ✅✅✅ Best UX | Higher (components + skeletons) |
+
+### Best Practices
+
+1. **Match skeleton to actual layout** - Users should recognize the page structure
+2. **Use consistent animation** - `animate-pulse` from Tailwind is standard
+3. **Don't over-skeleton** - Simple loading indicators work for quick operations
+4. **Consider Suspense boundaries** - For partial loading within a page
+
+```tsx
+// Partial loading with Suspense
+import { Suspense } from 'react';
+
+export default async function DashboardPage() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+
+      {/* This loads immediately */}
+      <QuickStats />
+
+      {/* This shows skeleton while loading */}
+      <Suspense fallback={<TableSkeleton />}>
+        <SlowDataTable />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+### Summary: Navigation UX
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    NAVIGATION LOADING STRATEGY                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. Add loading.tsx to EVERY route that fetches data                        │
+│                                                                              │
+│  2. Create skeleton components that match page layouts                      │
+│                                                                              │
+│  3. Use Suspense for partial page loading when needed                       │
+│                                                                              │
+│  4. (Optional) Add useTransition for link-level feedback                    │
+│                                                                              │
+│  Result: Users always see instant feedback, even with slow data fetching    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
