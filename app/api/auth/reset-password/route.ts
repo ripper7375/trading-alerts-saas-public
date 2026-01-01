@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db/prisma';
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -36,7 +36,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(validated.newPassword, 10);
+    const hashedPassword = await bcrypt.hash(validated.password, 10);
 
     // Update user: set new password and clear reset token fields
     await prisma.user.update({

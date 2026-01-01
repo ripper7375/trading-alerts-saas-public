@@ -11,16 +11,28 @@ import { Resend } from 'resend';
 let resendClient: Resend | null = null;
 
 /**
+ * Check if email service is configured
+ */
+export function isEmailServiceConfigured(): boolean {
+  return !!process.env['RESEND_API_KEY'];
+}
+
+/**
  * Get Resend client instance (lazy initialization)
  */
-function getResendClient(): Resend {
+function getResendClient(): Resend | null {
   if (resendClient) {
     return resendClient;
   }
 
   const apiKey = process.env['RESEND_API_KEY'];
   if (!apiKey) {
-    throw new Error('RESEND_API_KEY environment variable is not set');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '[Email] RESEND_API_KEY not configured - emails will be simulated in development'
+      );
+    }
+    return null;
   }
 
   resendClient = new Resend(apiKey);
@@ -29,10 +41,11 @@ function getResendClient(): Resend {
 
 /**
  * Email configuration
+ * Uses RESEND_FROM_EMAIL env var if set, otherwise defaults to Resend's test address
  */
 const EMAIL_CONFIG = {
-  from: 'Trading Alerts <noreply@tradingalerts.com>',
-  replyTo: 'support@tradingalerts.com',
+  from: process.env['RESEND_FROM_EMAIL'] || 'Trading Alerts <onboarding@resend.dev>',
+  replyTo: process.env['RESEND_REPLY_TO'] || undefined,
 } as const;
 
 /**
@@ -47,9 +60,21 @@ export async function sendEmail(
   to: string,
   subject: string,
   html: string
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
+): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
   try {
     const resend = getResendClient();
+
+    // In development without email service, simulate success
+    if (!resend) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Email] Simulated email sent:');
+        console.log(`  To: ${to}`);
+        console.log(`  Subject: ${subject}`);
+        console.log('  (Configure RESEND_API_KEY to send real emails)');
+        return { success: true, messageId: 'simulated', simulated: true };
+      }
+      return { success: false, error: 'Email service not configured' };
+    }
 
     const result = await resend.emails.send({
       from: EMAIL_CONFIG.from,

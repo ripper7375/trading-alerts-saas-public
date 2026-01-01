@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, Suspense } from 'react';
@@ -15,7 +15,11 @@ const resetPasswordSchema = z
       .min(8, 'Password must be at least 8 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
+      .regex(/[0-9]/, 'Password must contain at least one number')
+      .regex(
+        /[!@#$%^&*(),.?":{}|<>]/,
+        'Password must contain at least one special character'
+      ),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -38,10 +42,23 @@ function ResetPasswordForm(): JSX.Element {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ResetPasswordData>({
     resolver: zodResolver(resetPasswordSchema),
+    mode: 'onChange',
   });
+
+  const password = watch('password');
+
+  // Password validation checks
+  const passwordValidation = {
+    minLength: (password?.length || 0) >= 8,
+    hasUppercase: /[A-Z]/.test(password || ''),
+    hasLowercase: /[a-z]/.test(password || ''),
+    hasNumber: /[0-9]/.test(password || ''),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password || ''),
+  };
 
   const onSubmit = async (data: ResetPasswordData): Promise<void> => {
     if (!token) {
@@ -150,10 +167,90 @@ function ResetPasswordForm(): JSX.Element {
                   )}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.password.message}
-                </p>
+              {/* Password Requirements */}
+              {password && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    {passwordValidation.minLength ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span
+                      className={
+                        passwordValidation.minLength
+                          ? 'text-green-600'
+                          : 'text-gray-500'
+                      }
+                    >
+                      At least 8 characters
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {passwordValidation.hasUppercase ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span
+                      className={
+                        passwordValidation.hasUppercase
+                          ? 'text-green-600'
+                          : 'text-gray-500'
+                      }
+                    >
+                      One uppercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {passwordValidation.hasLowercase ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span
+                      className={
+                        passwordValidation.hasLowercase
+                          ? 'text-green-600'
+                          : 'text-gray-500'
+                      }
+                    >
+                      One lowercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {passwordValidation.hasNumber ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span
+                      className={
+                        passwordValidation.hasNumber
+                          ? 'text-green-600'
+                          : 'text-gray-500'
+                      }
+                    >
+                      One number
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {passwordValidation.hasSpecial ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <X className="w-4 h-4 text-gray-400" />
+                    )}
+                    <span
+                      className={
+                        passwordValidation.hasSpecial
+                          ? 'text-green-600'
+                          : 'text-gray-500'
+                      }
+                    >
+                      One special character (!@#$%^&*)
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
 

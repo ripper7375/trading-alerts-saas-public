@@ -12,6 +12,26 @@ import TwitterProvider from 'next-auth/providers/twitter';
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
 
+// Helper to check if OAuth provider credentials are configured
+const isGoogleConfigured = !!(
+  process.env['GOOGLE_CLIENT_ID'] && process.env['GOOGLE_CLIENT_SECRET']
+);
+const isTwitterConfigured = !!(
+  process.env['TWITTER_CLIENT_ID'] && process.env['TWITTER_CLIENT_SECRET']
+);
+const isLinkedInConfigured = !!(
+  process.env['LINKEDIN_CLIENT_ID'] && process.env['LINKEDIN_CLIENT_SECRET']
+);
+
+// Log which providers are configured (helpful for debugging)
+if (process.env.NODE_ENV === 'development') {
+  console.log('[Auth] OAuth providers configured:', {
+    google: isGoogleConfigured,
+    twitter: isTwitterConfigured,
+    linkedin: isLinkedInConfigured,
+  });
+}
+
 // Type for user with 2FA fields (until Prisma client is regenerated)
 interface PrismaUserWith2FA {
   id: string;
@@ -102,43 +122,54 @@ export const authOptions: NextAuthOptions = {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   providers: [
-    // Google OAuth Provider
-    GoogleProvider({
-      clientId: process.env['GOOGLE_CLIENT_ID']!,
-      clientSecret: process.env['GOOGLE_CLIENT_SECRET']!,
-      authorization: {
-        params: {
-          prompt: 'consent',
-          access_type: 'offline',
-          response_type: 'code',
-        },
-      },
-    }),
+    // OAuth providers are conditionally included based on environment variables
+    // This prevents errors when OAuth credentials are not configured
+    ...(isGoogleConfigured
+      ? [
+          GoogleProvider({
+            clientId: process.env['GOOGLE_CLIENT_ID']!,
+            clientSecret: process.env['GOOGLE_CLIENT_SECRET']!,
+            authorization: {
+              params: {
+                prompt: 'consent',
+                access_type: 'offline',
+                response_type: 'code',
+              },
+            },
+          }),
+        ]
+      : []),
 
-    // Twitter (X) OAuth Provider
-    TwitterProvider({
-      clientId: process.env['TWITTER_CLIENT_ID']!,
-      clientSecret: process.env['TWITTER_CLIENT_SECRET']!,
-      version: '2.0',
-      authorization: {
-        params: {
-          scope: 'tweet.read users.read offline.access',
-        },
-      },
-    }),
+    ...(isTwitterConfigured
+      ? [
+          TwitterProvider({
+            clientId: process.env['TWITTER_CLIENT_ID']!,
+            clientSecret: process.env['TWITTER_CLIENT_SECRET']!,
+            version: '2.0',
+            authorization: {
+              params: {
+                scope: 'tweet.read users.read offline.access',
+              },
+            },
+          }),
+        ]
+      : []),
 
-    // LinkedIn OAuth Provider
-    LinkedInProvider({
-      clientId: process.env['LINKEDIN_CLIENT_ID']!,
-      clientSecret: process.env['LINKEDIN_CLIENT_SECRET']!,
-      authorization: {
-        params: {
-          scope: 'openid profile email',
-        },
-      },
-    }),
+    ...(isLinkedInConfigured
+      ? [
+          LinkedInProvider({
+            clientId: process.env['LINKEDIN_CLIENT_ID']!,
+            clientSecret: process.env['LINKEDIN_CLIENT_SECRET']!,
+            authorization: {
+              params: {
+                scope: 'openid profile email',
+              },
+            },
+          }),
+        ]
+      : []),
 
-    // Credentials Provider (Email/Password)
+    // Credentials Provider (Email/Password) - Always available
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -316,6 +347,13 @@ export const authOptions: NextAuthOptions = {
 
         // Only apply security check to OAuth providers (not credentials)
         if (account?.provider && account.provider !== 'credentials') {
+          // Twitter doesn't provide email - generate a placeholder email using Twitter ID
+          if (!user.email && account.provider === 'twitter') {
+            const twitterId = account.providerAccountId;
+            user.email = `twitter_${twitterId}@twitter.placeholder`;
+            console.log('[SignIn] Twitter user without email, using placeholder:', user.email);
+          }
+
           if (!user.email) {
             console.error('[SignIn] OAuth user has no email');
             return false;
