@@ -1,7 +1,7 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { type NextAuthOptions, type Provider } from 'next-auth';
+import { type NextAuthOptions } from 'next-auth';
 import type { Account, User } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
