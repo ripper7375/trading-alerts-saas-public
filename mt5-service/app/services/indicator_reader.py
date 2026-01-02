@@ -89,8 +89,11 @@ def fetch_indicator_data(
             # Calculate fractals from OHLC data
             fractals = _calculate_fractals(rates)
 
+            # Get latest candle time for extending horizontal lines
+            latest_time = int(rates[-1]['time']) if len(rates) > 0 else None
+
             # Calculate horizontal lines (support/resistance from fractals)
-            horizontal_lines = _calculate_horizontal_lines(fractals)
+            horizontal_lines = _calculate_horizontal_lines(fractals, latest_time)
 
             # Calculate diagonal lines (trend lines from fractals)
             diagonal_lines = _calculate_diagonal_lines(fractals)
@@ -198,16 +201,18 @@ def _calculate_fractals(rates: Any) -> Dict[str, List[Dict[str, Any]]]:
 
 
 def _calculate_horizontal_lines(
-    fractals: Dict[str, List[Dict[str, Any]]]
+    fractals: Dict[str, List[Dict[str, Any]]],
+    latest_time: Optional[int] = None
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Calculate horizontal support/resistance lines from fractal points.
 
     Takes the most recent fractal peaks (resistance) and bottoms (support)
-    and creates horizontal price levels.
+    and creates horizontal price levels extending to current time.
 
     Args:
         fractals: Dictionary with 'peaks' and 'bottoms' lists
+        latest_time: Optional timestamp for line end (current time)
 
     Returns:
         dict: Horizontal lines with peak_1/2/3 and bottom_1/2/3
@@ -215,6 +220,15 @@ def _calculate_horizontal_lines(
     try:
         peaks = fractals.get('peaks', [])
         bottoms = fractals.get('bottoms', [])
+
+        # Determine the end time for horizontal lines
+        all_times = [p['time'] for p in peaks] + [b['time'] for b in bottoms]
+        if latest_time:
+            end_time = latest_time
+        elif all_times:
+            end_time = max(all_times) + 3600  # Extend 1 hour beyond last point
+        else:
+            end_time = int(pd.Timestamp.now().timestamp())
 
         # Get the last 3 peaks (most recent first) for resistance levels
         recent_peaks = sorted(peaks, key=lambda x: x['time'], reverse=True)[:3]
@@ -233,22 +247,23 @@ def _calculate_horizontal_lines(
         }
 
         # Create horizontal lines from peaks (resistance)
+        # Each line needs 2 points: start (at fractal) and end (at current time)
         for i, peak in enumerate(recent_peaks):
             key = f'peak_{i + 1}'
             if key in result:
-                result[key] = [{
-                    'time': peak['time'],
-                    'value': peak['value']
-                }]
+                result[key] = [
+                    {'time': peak['time'], 'value': peak['value']},
+                    {'time': end_time, 'value': peak['value']}
+                ]
 
         # Create horizontal lines from bottoms (support)
         for i, bottom in enumerate(recent_bottoms):
             key = f'bottom_{i + 1}'
             if key in result:
-                result[key] = [{
-                    'time': bottom['time'],
-                    'value': bottom['value']
-                }]
+                result[key] = [
+                    {'time': bottom['time'], 'value': bottom['value']},
+                    {'time': end_time, 'value': bottom['value']}
+                ]
 
         line_count = sum(1 for v in result.values() if v)
         logger.info(f"Calculated {line_count} horizontal lines")
