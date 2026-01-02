@@ -156,66 +156,17 @@ def _fetch_horizontal_lines(
     Returns:
         dict: Horizontal lines data
     """
+    # Note: iCustom is not available in MetaTrader5 Python API
+    # Horizontal lines require custom MQL5 indicators which cannot be
+    # accessed from Python. Return empty for now.
+    # Future: Could calculate support/resistance from fractal peaks/bottoms
     if not MT5_AVAILABLE or mt5 is None:
         return _empty_horizontal_lines()
 
-    try:
-        # Get indicator handle
-        indicator_name = "Fractal Horizontal Line_V5"
-        handle = mt5.iCustom(symbol, timeframe, indicator_name)
-
-        if handle == mt5.INVALID_HANDLE:
-            error = mt5.last_error()
-            logger.warning(
-                f"Failed to get indicator handle for {indicator_name}. "
-                f"Symbol: {symbol}, Timeframe: {timeframe}, "
-                f"MT5 Error: {error}. "
-                "Ensure the indicator .ex5 file exists in MT5 Indicators folder."
-            )
-            return _empty_horizontal_lines()
-
-        logger.info(f"Got indicator handle {handle} for {indicator_name} on {symbol}")
-
-        # Fetch buffers 4-9 (horizontal lines)
-        peak_1 = mt5.copy_buffer(handle, 4, 0, bars)
-        peak_2 = mt5.copy_buffer(handle, 5, 0, bars)
-        peak_3 = mt5.copy_buffer(handle, 6, 0, bars)
-        bottom_1 = mt5.copy_buffer(handle, 7, 0, bars)
-        bottom_2 = mt5.copy_buffer(handle, 8, 0, bars)
-        bottom_3 = mt5.copy_buffer(handle, 9, 0, bars)
-
-        # Debug: log buffer status
-        buffers_status = {
-            'peak_1': (
-                peak_1 is not None and len(peak_1) > 0
-            ),
-            'peak_2': (
-                peak_2 is not None and len(peak_2) > 0
-            ),
-            'bottom_1': (
-                bottom_1 is not None and len(bottom_1) > 0
-            ),
-        }
-        logger.info(f"Horizontal buffer status for {symbol}: {buffers_status}")
-
-        result = {
-            'peak_1': _buffer_to_line_points(peak_1),
-            'peak_2': _buffer_to_line_points(peak_2),
-            'peak_3': _buffer_to_line_points(peak_3),
-            'bottom_1': _buffer_to_line_points(bottom_1),
-            'bottom_2': _buffer_to_line_points(bottom_2),
-            'bottom_3': _buffer_to_line_points(bottom_3),
-        }
-
-        # Log how many points were found
-        points_count = sum(len(v) for v in result.values())
-        logger.info(f"Found {points_count} horizontal line points for {symbol}")
-
-        return result
-
-    except Exception as e:
-        logger.error(f"Error fetching horizontal lines: {e}")
-        return _empty_horizontal_lines()
+    logger.debug(
+        f"Horizontal lines not available - iCustom not supported in Python API"
+    )
+    return _empty_horizontal_lines()
 
 
 def _fetch_diagonal_lines(
@@ -242,46 +193,17 @@ def _fetch_diagonal_lines(
     Returns:
         dict: Diagonal lines data
     """
+    # Note: iCustom is not available in MetaTrader5 Python API
+    # Diagonal trend lines require custom MQL5 indicators which cannot be
+    # accessed from Python. Return empty for now.
+    # Future: Could calculate trend lines from fractal peaks/bottoms
     if not MT5_AVAILABLE or mt5 is None:
         return _empty_diagonal_lines()
 
-    try:
-        # Get indicator handle
-        indicator_name = "Fractal Diagonal Line_V4"
-        handle = mt5.iCustom(symbol, timeframe, indicator_name)
-
-        if handle == mt5.INVALID_HANDLE:
-            error = mt5.last_error()
-            logger.warning(
-                f"Failed to get indicator handle for {indicator_name}. "
-                f"Symbol: {symbol}, Timeframe: {timeframe}, "
-                f"MT5 Error: {error}. "
-                "Ensure the indicator .ex5 file exists in MT5 Indicators folder."
-            )
-            return _empty_diagonal_lines()
-
-        logger.info(f"Got indicator handle {handle} for {indicator_name} on {symbol}")
-
-        # Fetch buffers 0-5 (diagonal lines)
-        ascending_1 = mt5.copy_buffer(handle, 0, 0, bars)
-        ascending_2 = mt5.copy_buffer(handle, 1, 0, bars)
-        ascending_3 = mt5.copy_buffer(handle, 2, 0, bars)
-        descending_1 = mt5.copy_buffer(handle, 3, 0, bars)
-        descending_2 = mt5.copy_buffer(handle, 4, 0, bars)
-        descending_3 = mt5.copy_buffer(handle, 5, 0, bars)
-
-        return {
-            'ascending_1': _buffer_to_line_points(ascending_1),
-            'ascending_2': _buffer_to_line_points(ascending_2),
-            'ascending_3': _buffer_to_line_points(ascending_3),
-            'descending_1': _buffer_to_line_points(descending_1),
-            'descending_2': _buffer_to_line_points(descending_2),
-            'descending_3': _buffer_to_line_points(descending_3),
-        }
-
-    except Exception as e:
-        logger.error(f"Error fetching diagonal lines: {e}")
-        return _empty_diagonal_lines()
+    logger.debug(
+        f"Diagonal lines not available - iCustom not supported in Python API"
+    )
+    return _empty_diagonal_lines()
 
 
 def _fetch_fractals(
@@ -290,11 +212,14 @@ def _fetch_fractals(
     bars: int
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Fetch fractal markers from indicator buffers.
+    Calculate fractal markers from OHLC data.
 
-    Reads from Fractal Horizontal Line_V5.mq5 indicator:
-    - Buffer 0: peaks (upper fractals)
-    - Buffer 1: bottoms (lower fractals)
+    A fractal is identified when:
+    - Peak (Up fractal): High is higher than 2 bars on each side
+    - Bottom (Down fractal): Low is lower than 2 bars on each side
+
+    Note: iCustom is not available in MetaTrader5 Python API,
+    so we calculate fractals directly from price data.
 
     Args:
         symbol: Trading symbol
@@ -302,27 +227,61 @@ def _fetch_fractals(
         bars: Number of bars
 
     Returns:
-        dict: Fractal markers
+        dict: Fractal markers with peaks and bottoms
     """
     if not MT5_AVAILABLE or mt5 is None:
         return _empty_fractals()
 
     try:
-        # Get indicator handle
-        handle = mt5.iCustom(symbol, timeframe, "Fractal Horizontal Line_V5")
-
-        if handle == mt5.INVALID_HANDLE:
-            return _empty_fractals()
-
-        # Fetch buffers 0-1 (fractals)
-        peaks_buffer = mt5.copy_buffer(handle, 0, 0, bars)
-        bottoms_buffer = mt5.copy_buffer(handle, 1, 0, bars)
-
-        # Get rates to get timestamps
+        # Get OHLC rates
         rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
 
-        peaks = _buffer_to_fractal_points(peaks_buffer, rates)
-        bottoms = _buffer_to_fractal_points(bottoms_buffer, rates)
+        if rates is None or len(rates) < 5:
+            logger.warning(f"Not enough data to calculate fractals for {symbol}")
+            return _empty_fractals()
+
+        peaks = []
+        bottoms = []
+
+        # Calculate fractals (need 2 bars on each side)
+        for i in range(2, len(rates) - 2):
+            current = rates[i]
+            time_val = int(current['time'])
+
+            # Check for peak (up fractal)
+            # High must be higher than 2 bars on each side
+            is_peak = (
+                current['high'] > rates[i - 2]['high'] and
+                current['high'] > rates[i - 1]['high'] and
+                current['high'] > rates[i + 1]['high'] and
+                current['high'] > rates[i + 2]['high']
+            )
+
+            if is_peak:
+                peaks.append({
+                    'time': time_val,
+                    'value': float(current['high'])
+                })
+
+            # Check for bottom (down fractal)
+            # Low must be lower than 2 bars on each side
+            is_bottom = (
+                current['low'] < rates[i - 2]['low'] and
+                current['low'] < rates[i - 1]['low'] and
+                current['low'] < rates[i + 1]['low'] and
+                current['low'] < rates[i + 2]['low']
+            )
+
+            if is_bottom:
+                bottoms.append({
+                    'time': time_val,
+                    'value': float(current['low'])
+                })
+
+        logger.info(
+            f"Calculated {len(peaks)} peaks and {len(bottoms)} bottoms "
+            f"for {symbol}"
+        )
 
         return {
             'peaks': peaks,
@@ -330,7 +289,7 @@ def _fetch_fractals(
         }
 
     except Exception as e:
-        logger.error(f"Error fetching fractals: {e}")
+        logger.error(f"Error calculating fractals: {e}")
         return _empty_fractals()
 
 
