@@ -264,7 +264,7 @@ def _calculate_horizontal_lines(
         else:
             end_time = int(pd.Timestamp.now().timestamp())
 
-        result = {
+        result: Dict[str, List[Dict[str, Any]]] = {
             'peak_1': [],
             'peak_2': [],
             'peak_3': [],
@@ -409,7 +409,7 @@ def _calculate_diagonal_lines(
         peaks = fractals.get('peaks', [])
         bottoms = fractals.get('bottoms', [])
 
-        result = {
+        result: Dict[str, List[Dict[str, Any]]] = {
             'ascending_1': [],
             'ascending_2': [],
             'ascending_3': [],
