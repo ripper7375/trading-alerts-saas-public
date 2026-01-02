@@ -23,6 +23,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   tier: 'FREE' | 'PRO';
   description?: string;
+  testId: string;
 }
 
 // Navigation items configuration
@@ -34,6 +35,7 @@ const navigationItems: NavItem[] = [
     icon: LayoutDashboard,
     tier: 'FREE',
     description: 'Overview and stats',
+    testId: 'nav-dashboard',
   },
   {
     name: 'Charts',
@@ -41,6 +43,7 @@ const navigationItems: NavItem[] = [
     icon: LineChart,
     tier: 'FREE',
     description: 'Live price charts',
+    testId: 'nav-charts',
   },
   {
     name: 'Alerts',
@@ -48,6 +51,7 @@ const navigationItems: NavItem[] = [
     icon: Bell,
     tier: 'FREE',
     description: 'Manage your alerts',
+    testId: 'nav-alerts',
   },
   {
     name: 'Watchlist',
@@ -55,6 +59,7 @@ const navigationItems: NavItem[] = [
     icon: Eye,
     tier: 'FREE',
     description: 'Track your symbols',
+    testId: 'nav-watchlist',
   },
   {
     name: 'Analytics',
@@ -62,6 +67,7 @@ const navigationItems: NavItem[] = [
     icon: BarChart3,
     tier: 'PRO',
     description: 'Advanced analytics',
+    testId: 'nav-analytics',
   },
   {
     name: 'Custom Indicators',
@@ -69,6 +75,7 @@ const navigationItems: NavItem[] = [
     icon: Zap,
     tier: 'PRO',
     description: 'Custom indicators',
+    testId: 'nav-indicators',
   },
 ];
 
@@ -78,12 +85,14 @@ const bottomNavItems: NavItem[] = [
     href: '/settings',
     icon: Settings,
     tier: 'FREE',
+    testId: 'nav-settings',
   },
   {
     name: 'Help',
     href: '/settings/help',
     icon: HelpCircle,
     tier: 'FREE',
+    testId: 'nav-help',
   },
 ];
 
@@ -135,6 +144,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
             <Link
               key={item.href}
               href={accessible ? item.href : '/settings/billing'}
+              data-testid={item.testId}
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active
@@ -196,6 +206,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
             <Link
               key={item.href}
               href={item.href}
+              data-testid={item.testId}
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active

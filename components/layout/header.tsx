@@ -82,6 +82,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
               className="lg:hidden"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open menu"
+              data-testid="mobile-menu-button"
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -102,6 +103,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
             {/* Tier Badge */}
             <Badge
               variant={user.tier === 'PRO' ? 'default' : 'secondary'}
+              data-testid="tier-badge"
               className={
                 user.tier === 'PRO'
                   ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
@@ -119,13 +121,14 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                   size="icon"
                   className="relative"
                   aria-label="Notifications"
+                  data-testid="notification-bell"
                 >
                   <Bell className="h-5 w-5" />
                   {/* Notification dot - show when there are unread notifications */}
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuContent align="end" className="w-80" data-testid="notification-dropdown">
                 <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="p-4 text-center text-sm text-muted-foreground">
@@ -147,6 +150,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                 <Button
                   variant="ghost"
                   className="flex items-center gap-2 pl-2 pr-1"
+                  data-testid="user-menu-button"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
@@ -163,11 +167,11 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56" data-testid="user-menu-dropdown">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm font-medium" data-testid="user-name">{user.name}</p>
+                    <p className="text-xs text-muted-foreground" data-testid="user-email">
                       {user.email}
                     </p>
                   </div>
@@ -175,7 +179,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer">
+                    <Link href="/settings" className="cursor-pointer" data-testid="menu-profile">
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
@@ -184,13 +188,14 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                     <Link
                       href="/settings/billing"
                       className="cursor-pointer"
+                      data-testid="menu-billing"
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       Billing
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer">
+                    <Link href="/settings" className="cursor-pointer" data-testid="menu-settings">
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
@@ -200,6 +205,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-600 cursor-pointer"
                   onClick={handleLogout}
+                  data-testid="logout-button"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out

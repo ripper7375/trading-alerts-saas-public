@@ -74,7 +74,7 @@ export function RecentAlerts({
   const displayAlerts = alerts.slice(0, maxAlerts);
 
   return (
-    <Card className="bg-white dark:bg-gray-800">
+    <Card className="bg-white dark:bg-gray-800" data-testid="recent-alerts-card">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
           <Bell className="h-5 w-5 text-gray-400" />
@@ -86,6 +86,7 @@ export function RecentAlerts({
               variant="ghost"
               size="sm"
               className="text-blue-600 hover:text-blue-700"
+              data-testid="view-all-alerts"
             >
               View All
               <ArrowRight className="ml-1 h-4 w-4" />
@@ -105,6 +106,7 @@ export function RecentAlerts({
               return (
                 <div
                   key={alert.id}
+                  data-testid={`alert-item-${alert.id}`}
                   className={cn(
                     'rounded-lg border-l-4 p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700',
                     config.borderColor,
@@ -147,7 +149,7 @@ export function RecentAlerts({
           </div>
         ) : (
           /* Empty State */
-          <div className="text-center py-8">
+          <div className="text-center py-8" data-testid="recent-alerts-empty">
             <div className="mx-auto mb-4 text-5xl opacity-50">🔔</div>
             <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
               No alerts yet
@@ -156,7 +158,7 @@ export function RecentAlerts({
               Set up alerts to get notified of price movements
             </p>
             <Link href="/alerts/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="create-first-alert">
                 Create Your First Alert
               </Button>
             </Link>
