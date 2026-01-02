@@ -8,6 +8,7 @@ Reference: docs/flask-multi-mt5-implementation.md Section 4
 """
 
 import logging
+import math
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -133,62 +134,89 @@ def _convert_ohlc_to_list(df: pd.DataFrame) -> List[Dict[str, Any]]:
     return ohlc_data
 
 
-def _calculate_fractals(rates: Any) -> Dict[str, List[Dict[str, Any]]]:
+def _calculate_fractals(
+    rates: Any,
+    side_bars: int = 5
+) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Calculate fractal markers from OHLC data.
+    Calculate fractal markers from OHLC data using MQL5 algorithm.
 
-    A fractal is identified when:
-    - Peak (Up fractal): High is higher than 2 bars on each side
-    - Bottom (Down fractal): Low is lower than 2 bars on each side
+    MQL5 Fractal Detection Logic:
+    - IsUpperFractal: center high > all left bars, center high >= all right bars
+    - IsLowerFractal: center low < all left bars, center low <= all right bars
 
     Args:
         rates: OHLC rates from MT5 (numpy structured array)
+        side_bars: Number of bars on each side to check (default 5)
 
     Returns:
         dict: Fractal markers with peaks and bottoms
     """
-    if rates is None or len(rates) < 5:
-        logger.warning("Not enough data to calculate fractals")
+    min_bars = side_bars * 2 + 1
+    if rates is None or len(rates) < min_bars:
+        logger.warning(
+            f"Not enough data to calculate fractals. "
+            f"Need {min_bars}, got {len(rates) if rates is not None else 0}"
+        )
         return _empty_fractals()
 
     try:
         peaks = []
         bottoms = []
 
-        # Calculate fractals (need 2 bars on each side)
-        for i in range(2, len(rates) - 2):
+        # Calculate fractals using MQL5-style algorithm
+        for i in range(side_bars, len(rates) - side_bars):
             current = rates[i]
             time_val = int(current['time'])
+            center_high = float(current['high'])
+            center_low = float(current['low'])
 
-            # Check for peak (up fractal)
-            is_peak = (
-                current['high'] > rates[i - 2]['high'] and
-                current['high'] > rates[i - 1]['high'] and
-                current['high'] > rates[i + 1]['high'] and
-                current['high'] > rates[i + 2]['high']
-            )
+            # Check for peak (upper fractal) - MQL5 style
+            # Left side: center must be strictly greater
+            # Right side: center must be greater or equal
+            is_peak = True
+            for j in range(1, side_bars + 1):
+                if center_high <= float(rates[i - j]['high']):
+                    is_peak = False
+                    break
+            if is_peak:
+                for j in range(1, side_bars + 1):
+                    if center_high < float(rates[i + j]['high']):
+                        is_peak = False
+                        break
 
             if is_peak:
                 peaks.append({
                     'time': time_val,
-                    'value': float(current['high'])
+                    'value': center_high,
+                    'bar_index': i
                 })
 
-            # Check for bottom (down fractal)
-            is_bottom = (
-                current['low'] < rates[i - 2]['low'] and
-                current['low'] < rates[i - 1]['low'] and
-                current['low'] < rates[i + 1]['low'] and
-                current['low'] < rates[i + 2]['low']
-            )
+            # Check for bottom (lower fractal) - MQL5 style
+            # Left side: center must be strictly less
+            # Right side: center must be less or equal
+            is_bottom = True
+            for j in range(1, side_bars + 1):
+                if center_low >= float(rates[i - j]['low']):
+                    is_bottom = False
+                    break
+            if is_bottom:
+                for j in range(1, side_bars + 1):
+                    if center_low > float(rates[i + j]['low']):
+                        is_bottom = False
+                        break
 
             if is_bottom:
                 bottoms.append({
                     'time': time_val,
-                    'value': float(current['low'])
+                    'value': center_low,
+                    'bar_index': i
                 })
 
-        logger.info(f"Calculated {len(peaks)} peaks and {len(bottoms)} bottoms")
+        logger.info(
+            f"Calculated {len(peaks)} peaks and {len(bottoms)} bottoms "
+            f"(side_bars={side_bars})"
+        )
 
         return {
             'peaks': peaks,
@@ -202,17 +230,23 @@ def _calculate_fractals(rates: Any) -> Dict[str, List[Dict[str, Any]]]:
 
 def _calculate_horizontal_lines(
     fractals: Dict[str, List[Dict[str, Any]]],
-    latest_time: Optional[int] = None
+    latest_time: Optional[int] = None,
+    tolerance_percent: float = 1.5,
+    min_touches: int = 2
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Calculate horizontal support/resistance lines from fractal points.
 
-    Takes the most recent fractal peaks (resistance) and bottoms (support)
-    and creates horizontal price levels extending to current time.
+    MQL5 Multi-Point Trendline Algorithm:
+    - Finds price levels where multiple fractals cluster within tolerance
+    - Scores lines by: touch count, proximity to current price, recency
+    - Returns the top 3 resistance (peak) and 3 support (bottom) lines
 
     Args:
         fractals: Dictionary with 'peaks' and 'bottoms' lists
         latest_time: Optional timestamp for line end (current time)
+        tolerance_percent: Price tolerance for clustering (default 1.5%)
+        min_touches: Minimum fractals required to form a line (default 2)
 
     Returns:
         dict: Horizontal lines with peak_1/2/3 and bottom_1/2/3
@@ -226,16 +260,9 @@ def _calculate_horizontal_lines(
         if latest_time:
             end_time = latest_time
         elif all_times:
-            end_time = max(all_times) + 3600  # Extend 1 hour beyond last point
+            end_time = max(all_times) + 3600
         else:
             end_time = int(pd.Timestamp.now().timestamp())
-
-        # Get the last 3 peaks (most recent first) for resistance levels
-        recent_peaks = sorted(peaks, key=lambda x: x['time'], reverse=True)[:3]
-        # Get the last 3 bottoms (most recent first) for support levels
-        recent_bottoms = sorted(
-            bottoms, key=lambda x: x['time'], reverse=True
-        )[:3]
 
         result = {
             'peak_1': [],
@@ -246,24 +273,19 @@ def _calculate_horizontal_lines(
             'bottom_3': [],
         }
 
-        # Create horizontal lines from peaks (resistance)
-        # Each line needs 2 points: start (at fractal) and end (at current time)
-        for i, peak in enumerate(recent_peaks):
-            key = f'peak_{i + 1}'
-            if key in result:
-                result[key] = [
-                    {'time': peak['time'], 'value': peak['value']},
-                    {'time': end_time, 'value': peak['value']}
-                ]
+        # Find multi-point horizontal lines for peaks (resistance)
+        peak_lines = _find_horizontal_clusters(
+            peaks, tolerance_percent, min_touches, end_time
+        )
+        for i, line in enumerate(peak_lines[:3]):
+            result[f'peak_{i + 1}'] = line
 
-        # Create horizontal lines from bottoms (support)
-        for i, bottom in enumerate(recent_bottoms):
-            key = f'bottom_{i + 1}'
-            if key in result:
-                result[key] = [
-                    {'time': bottom['time'], 'value': bottom['value']},
-                    {'time': end_time, 'value': bottom['value']}
-                ]
+        # Find multi-point horizontal lines for bottoms (support)
+        bottom_lines = _find_horizontal_clusters(
+            bottoms, tolerance_percent, min_touches, end_time
+        )
+        for i, line in enumerate(bottom_lines[:3]):
+            result[f'bottom_{i + 1}'] = line
 
         line_count = sum(1 for v in result.values() if v)
         logger.info(f"Calculated {line_count} horizontal lines")
@@ -275,17 +297,110 @@ def _calculate_horizontal_lines(
         return _empty_horizontal_lines()
 
 
+def _find_horizontal_clusters(
+    points: List[Dict[str, Any]],
+    tolerance_percent: float,
+    min_touches: int,
+    end_time: int
+) -> List[List[Dict[str, Any]]]:
+    """
+    Find horizontal price levels where multiple fractals cluster.
+
+    MQL5 Algorithm:
+    - For each fractal, check how many other fractals are within tolerance
+    - Calculate cluster score based on touch count and recency
+    - Return lines sorted by score
+
+    Args:
+        points: List of fractal points
+        tolerance_percent: Price tolerance percentage
+        min_touches: Minimum touches required
+        end_time: End timestamp for the lines
+
+    Returns:
+        List of horizontal line point pairs, sorted by score
+    """
+    if len(points) < min_touches:
+        return []
+
+    clusters = []
+    used_indices = set()
+
+    # Sort by time (most recent first) for recency scoring
+    sorted_points = sorted(points, key=lambda x: x['time'], reverse=True)
+
+    for i, anchor in enumerate(sorted_points):
+        if i in used_indices:
+            continue
+
+        anchor_price = anchor['value']
+        tolerance = anchor_price * (tolerance_percent / 100.0)
+
+        # Find all points within tolerance of this price level
+        touches = [anchor]
+        touch_indices = [i]
+
+        for j, point in enumerate(sorted_points):
+            if j == i or j in used_indices:
+                continue
+            if abs(point['value'] - anchor_price) <= tolerance:
+                touches.append(point)
+                touch_indices.append(j)
+
+        if len(touches) >= min_touches:
+            # Calculate average price level
+            avg_price = sum(t['value'] for t in touches) / len(touches)
+            # Find earliest touch time for line start
+            start_time = min(t['time'] for t in touches)
+
+            # Score: touch count * 25 + recency (inverse of age in hours)
+            max_time = max(t['time'] for t in touches)
+            age_hours = (end_time - max_time) / 3600.0 if end_time > max_time else 0
+            recency_score = max(0, 100 - age_hours)
+            score = len(touches) * 25 + recency_score
+
+            clusters.append({
+                'line': [
+                    {'time': start_time, 'value': avg_price},
+                    {'time': end_time, 'value': avg_price}
+                ],
+                'score': score,
+                'touches': len(touches)
+            })
+
+            # Mark indices as used
+            for idx in touch_indices:
+                used_indices.add(idx)
+
+    # Sort by score (highest first)
+    clusters.sort(key=lambda x: x['score'], reverse=True)
+
+    return [c['line'] for c in clusters]
+
+
 def _calculate_diagonal_lines(
-    fractals: Dict[str, List[Dict[str, Any]]]
+    fractals: Dict[str, List[Dict[str, Any]]],
+    tolerance_percent: float = 1.5,
+    min_angle: float = 2.0,
+    max_angle: float = 45.0,
+    min_touches: int = 3
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Calculate diagonal trend lines from fractal points.
+    Calculate diagonal trend lines from fractal points using MQL5 algorithm.
 
-    - Ascending lines: Connect consecutive higher bottoms (uptrend)
-    - Descending lines: Connect consecutive lower peaks (downtrend)
+    MQL5 Diagonal Line Rules:
+    - Lines can touch both peaks and bottoms (mixed touches)
+    - Ascending: positive slope (support line connecting lows)
+    - Descending: negative slope (resistance line connecting highs)
+    - Angle constraints: min 2°, max 45°
+    - Scoring: touch count, slope, length, recency
 
     Args:
         fractals: Dictionary with 'peaks' and 'bottoms' lists
+        tolerance_percent: Price tolerance for touch detection
+        min_angle: Minimum line angle in degrees
+        max_angle: Maximum line angle in degrees
+        min_touches: Minimum fractals to form a valid line
 
     Returns:
         dict: Diagonal lines with ascending_1/2/3 and descending_1/2/3
@@ -303,19 +418,101 @@ def _calculate_diagonal_lines(
             'descending_3': [],
         }
 
-        # Find ascending trend lines (connecting higher bottoms)
-        if len(bottoms) >= 2:
-            sorted_bottoms = sorted(bottoms, key=lambda x: x['time'])
-            ascending_lines = _find_trend_lines(sorted_bottoms, ascending=True)
-            for i, line in enumerate(ascending_lines[:3]):
-                result[f'ascending_{i + 1}'] = line
+        # Combine all fractals with type indicator
+        all_fractals = []
+        for p in peaks:
+            all_fractals.append({**p, 'is_peak': True})
+        for b in bottoms:
+            all_fractals.append({**b, 'is_peak': False})
 
-        # Find descending trend lines (connecting lower peaks)
-        if len(peaks) >= 2:
-            sorted_peaks = sorted(peaks, key=lambda x: x['time'])
-            descending_lines = _find_trend_lines(sorted_peaks, ascending=False)
-            for i, line in enumerate(descending_lines[:3]):
-                result[f'descending_{i + 1}'] = line
+        if len(all_fractals) < 2:
+            return result
+
+        # Sort by time
+        all_fractals.sort(key=lambda x: x['time'])
+
+        ascending_lines = []
+        descending_lines = []
+
+        # Find diagonal lines by testing pairs of fractals
+        recent_fractals = all_fractals[-50:] if len(all_fractals) > 50 else all_fractals
+
+        for i in range(len(recent_fractals) - 1):
+            for j in range(i + 1, len(recent_fractals)):
+                p1 = recent_fractals[i]
+                p2 = recent_fractals[j]
+
+                # Calculate line properties
+                time_diff = p2['time'] - p1['time']
+                if time_diff <= 0:
+                    continue
+
+                price_diff = p2['value'] - p1['value']
+                slope = price_diff / time_diff
+
+                # Calculate angle (normalized by price scale)
+                avg_price = (p1['value'] + p2['value']) / 2
+                normalized_slope = (price_diff / avg_price) / (time_diff / 3600)
+                angle_rad = math.atan(normalized_slope * 10)
+                angle_deg = abs(math.degrees(angle_rad))
+
+                # Check angle constraints
+                if angle_deg < min_angle or angle_deg > max_angle:
+                    continue
+
+                # Count touches along this line
+                y_intercept = p1['value'] - slope * p1['time']
+                touches = []
+                peak_touches = 0
+                bottom_touches = 0
+
+                for k, frac in enumerate(recent_fractals):
+                    expected_price = slope * frac['time'] + y_intercept
+                    tolerance = frac['value'] * (tolerance_percent / 100.0)
+
+                    if abs(frac['value'] - expected_price) <= tolerance:
+                        touches.append(k)
+                        if frac['is_peak']:
+                            peak_touches += 1
+                        else:
+                            bottom_touches += 1
+
+                # Require minimum touches
+                if len(touches) < min_touches:
+                    continue
+
+                # Calculate score
+                touch_score = len(touches) * 25
+                length_bars = (p2['time'] - p1['time']) / 3600
+                length_score = min(length_bars, 100) * 0.1
+                recency_score = 50 if j >= len(recent_fractals) - 5 else 0
+                total_score = touch_score + length_score + recency_score
+
+                line_data = {
+                    'line': [
+                        {'time': p1['time'], 'value': p1['value']},
+                        {'time': p2['time'], 'value': p2['value']}
+                    ],
+                    'score': total_score,
+                    'touches': len(touches),
+                    'angle': angle_deg,
+                    'slope': slope
+                }
+
+                if price_diff > 0:
+                    ascending_lines.append(line_data)
+                else:
+                    descending_lines.append(line_data)
+
+        # Sort by score and take top 3
+        ascending_lines.sort(key=lambda x: x['score'], reverse=True)
+        descending_lines.sort(key=lambda x: x['score'], reverse=True)
+
+        for i, line in enumerate(ascending_lines[:3]):
+            result[f'ascending_{i + 1}'] = line['line']
+
+        for i, line in enumerate(descending_lines[:3]):
+            result[f'descending_{i + 1}'] = line['line']
 
         line_count = sum(1 for v in result.values() if v)
         logger.info(f"Calculated {line_count} diagonal trend lines")
@@ -325,55 +522,6 @@ def _calculate_diagonal_lines(
     except Exception as e:
         logger.error(f"Error calculating diagonal lines: {e}")
         return _empty_diagonal_lines()
-
-
-def _find_trend_lines(
-    points: List[Dict[str, Any]],
-    ascending: bool = True
-) -> List[List[Dict[str, Any]]]:
-    """
-    Find trend lines by connecting fractal points.
-
-    Args:
-        points: List of fractal points sorted by time
-        ascending: True for uptrend (higher lows), False for downtrend
-
-    Returns:
-        List of trend lines, each containing start and end points
-    """
-    if len(points) < 2:
-        return []
-
-    trend_lines = []
-
-    # Use recent points to find valid trend lines
-    recent_points = points[-20:] if len(points) > 20 else points
-
-    for i in range(len(recent_points) - 1):
-        for j in range(i + 1, min(i + 5, len(recent_points))):
-            p1 = recent_points[i]
-            p2 = recent_points[j]
-
-            # Check if this forms a valid trend
-            if ascending:
-                # For uptrend, second point should be higher
-                if p2['value'] > p1['value']:
-                    trend_lines.append([
-                        {'time': p1['time'], 'value': p1['value']},
-                        {'time': p2['time'], 'value': p2['value']}
-                    ])
-            else:
-                # For downtrend, second point should be lower
-                if p2['value'] < p1['value']:
-                    trend_lines.append([
-                        {'time': p1['time'], 'value': p1['value']},
-                        {'time': p2['time'], 'value': p2['value']}
-                    ])
-
-    # Sort by recency (most recent first) and return top lines
-    trend_lines.sort(key=lambda x: x[1]['time'], reverse=True)
-
-    return trend_lines[:3]
 
 
 def _empty_horizontal_lines() -> Dict[str, List]:
