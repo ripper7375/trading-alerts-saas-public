@@ -72,12 +72,25 @@ export class LoginPage {
    * Login with email and password
    */
   async login(email: string, password: string): Promise<void> {
+    // Clear and fill to ensure change events fire
+    await this.emailInput.clear();
     await this.emailInput.fill(email);
-    await this.emailInput.press('Tab');
+    await this.emailInput.blur();
+
+    await this.passwordInput.clear();
     await this.passwordInput.fill(password);
-    await this.passwordInput.press('Tab');
-    // Wait for validation
-    await this.page.waitForTimeout(200);
+    await this.passwordInput.blur();
+
+    // Wait for react-hook-form validation to complete and button to be enabled
+    await this.submitButton.waitFor({ state: 'visible' });
+    await this.page.waitForFunction(
+      () => {
+        const btn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        return btn && !btn.disabled;
+      },
+      { timeout: 5000 }
+    );
+
     await this.submitButton.click();
   }
 

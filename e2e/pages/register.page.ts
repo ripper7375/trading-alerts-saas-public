@@ -81,21 +81,22 @@ export class RegisterPage {
     password: string,
     confirmPassword?: string
   ): Promise<void> {
-    // Fill each field and press Tab to trigger blur/validation
+    // Clear and fill each field, using blur to trigger validation
+    await this.nameInput.clear();
     await this.nameInput.fill(name);
-    await this.nameInput.press('Tab');
+    await this.nameInput.blur();
 
+    await this.emailInput.clear();
     await this.emailInput.fill(email);
-    await this.emailInput.press('Tab');
+    await this.emailInput.blur();
 
+    await this.passwordInput.clear();
     await this.passwordInput.fill(password);
-    await this.passwordInput.press('Tab');
+    await this.passwordInput.blur();
 
+    await this.confirmPasswordInput.clear();
     await this.confirmPasswordInput.fill(confirmPassword || password);
-    await this.confirmPasswordInput.press('Tab');
-
-    // Wait a moment for validation to complete
-    await this.page.waitForTimeout(200);
+    await this.confirmPasswordInput.blur();
   }
 
   /**
@@ -109,6 +110,15 @@ export class RegisterPage {
    * Submit registration form
    */
   async submit(): Promise<void> {
+    // Wait for button to be enabled (form valid)
+    await this.submitButton.waitFor({ state: 'visible' });
+    await this.page.waitForFunction(
+      () => {
+        const btn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        return btn && !btn.disabled;
+      },
+      { timeout: 5000 }
+    );
     await this.submitButton.click();
   }
 
