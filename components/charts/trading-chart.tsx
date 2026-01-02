@@ -143,9 +143,14 @@ export function TradingChart({
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    // Get container width, fallback to parent width or default
+    const containerWidth = chartContainerRef.current.clientWidth ||
+      chartContainerRef.current.parentElement?.clientWidth ||
+      800;
+
     // Create chart with dark TradingView theme
     const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
+      width: containerWidth,
       height: 600,
       layout: {
         background: { type: ColorType.Solid, color: '#1e222d' },
@@ -252,8 +257,17 @@ export function TradingChart({
    * Update chart data when data changes
    */
   useEffect(() => {
-    if (!data?.ohlc || !candleSeriesRef.current || !chartRef.current) return;
+    if (!data?.ohlc || !candleSeriesRef.current || !chartRef.current) {
+      console.log('Chart update skipped:', {
+        hasData: !!data?.ohlc,
+        ohlcLength: data?.ohlc?.length,
+        hasCandleSeries: !!candleSeriesRef.current,
+        hasChart: !!chartRef.current,
+      });
+      return;
+    }
 
+    console.log('Setting chart data:', data.ohlc.length, 'candles');
     // Set candlestick data
     candleSeriesRef.current.setData(data.ohlc);
 
@@ -386,7 +400,7 @@ export function TradingChart({
       {/* Chart container */}
       <div
         ref={chartContainerRef}
-        className="rounded-lg overflow-hidden border border-gray-700"
+        className="rounded-lg overflow-hidden border border-gray-700 w-full min-h-[600px]"
       />
 
       {/* Indicator overlay component for price lines */}
