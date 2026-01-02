@@ -233,25 +233,25 @@ export const RATE_LIMITS = {
 /**
  * Cache TTL (Time-to-Live) by timeframe in seconds
  *
- * Cache duration matches timeframe granularity
- * Shorter timeframes = shorter cache, longer timeframes = longer cache
+ * Short TTL allows real-time price updates while reducing MT5 service load.
+ * Auto-refresh intervals: FREE=60s, PRO=30s. Cache TTL should be shorter.
  */
 export const CACHE_TTL: Record<Timeframe, number> = {
-  M5: 300, // 5 minutes
-  M15: 900, // 15 minutes
-  M30: 1800, // 30 minutes
-  H1: 3600, // 1 hour
-  H2: 7200, // 2 hours
-  H4: 14400, // 4 hours
-  H8: 28800, // 8 hours
-  H12: 43200, // 12 hours
-  D1: 86400, // 24 hours (1 day)
+  M5: 15, // 15 seconds - allows real-time updates
+  M15: 15, // 15 seconds
+  M30: 15, // 15 seconds
+  H1: 15, // 15 seconds
+  H2: 15, // 15 seconds
+  H4: 15, // 15 seconds
+  H8: 15, // 15 seconds
+  H12: 15, // 15 seconds
+  D1: 15, // 15 seconds
 } as const;
 
 /**
  * Default cache TTL for unknown timeframes
  */
-export const DEFAULT_CACHE_TTL = 3600; // 1 hour
+export const DEFAULT_CACHE_TTL = 15; // 15 seconds for real-time updates
 
 // ============================================================================
 // HTTP STATUS CODES
