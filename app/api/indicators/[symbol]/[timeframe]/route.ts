@@ -418,6 +418,33 @@ export async function GET(
       );
     }
 
+    // Handle network/connection errors (MT5 service unreachable)
+    if (error instanceof Error) {
+      const isNetworkError =
+        error.message === 'fetch failed' ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('ETIMEDOUT') ||
+        error.message.includes('NetworkError') ||
+        error.message.includes('Failed to fetch');
+
+      if (isNetworkError) {
+        console.error('MT5 Service Connection Error:', {
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Service unavailable',
+            message:
+              'Unable to connect to the trading data service. The service may be temporarily unavailable. Please try again in a few moments.',
+          } as ErrorResponse,
+          { status: 503 }
+        );
+      }
+    }
+
     // Handle unknown errors
     console.error('GET /api/indicators/[symbol]/[timeframe] error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
