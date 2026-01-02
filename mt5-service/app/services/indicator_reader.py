@@ -86,16 +86,14 @@ def fetch_indicator_data(
             # Convert to list of OHLC bars
             ohlc_data = _convert_ohlc_to_list(df)
 
-            # Fetch indicator data (horizontal lines)
-            horizontal_lines = _fetch_horizontal_lines(
-                symbol, mt5_timeframe, bars
-            )
+            # Calculate fractals from OHLC data
+            fractals = _calculate_fractals(rates)
 
-            # Fetch indicator data (diagonal lines)
-            diagonal_lines = _fetch_diagonal_lines(symbol, mt5_timeframe, bars)
+            # Calculate horizontal lines (support/resistance from fractals)
+            horizontal_lines = _calculate_horizontal_lines(fractals)
 
-            # Fetch fractals
-            fractals = _fetch_fractals(symbol, mt5_timeframe, bars)
+            # Calculate diagonal lines (trend lines from fractals)
+            diagonal_lines = _calculate_diagonal_lines(fractals)
 
             return {
                 'ohlc': ohlc_data,
@@ -132,85 +130,7 @@ def _convert_ohlc_to_list(df: pd.DataFrame) -> List[Dict[str, Any]]:
     return ohlc_data
 
 
-def _fetch_horizontal_lines(
-    symbol: str,
-    timeframe: int,
-    bars: int
-) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Fetch horizontal fractal lines from indicator buffers.
-
-    Reads from Fractal Horizontal Line_V5.mq5 indicator:
-    - Buffer 4: peak_1
-    - Buffer 5: peak_2
-    - Buffer 6: peak_3
-    - Buffer 7: bottom_1
-    - Buffer 8: bottom_2
-    - Buffer 9: bottom_3
-
-    Args:
-        symbol: Trading symbol
-        timeframe: MT5 timeframe constant
-        bars: Number of bars
-
-    Returns:
-        dict: Horizontal lines data
-    """
-    # Note: iCustom is not available in MetaTrader5 Python API
-    # Horizontal lines require custom MQL5 indicators which cannot be
-    # accessed from Python. Return empty for now.
-    # Future: Could calculate support/resistance from fractal peaks/bottoms
-    if not MT5_AVAILABLE or mt5 is None:
-        return _empty_horizontal_lines()
-
-    logger.debug(
-        f"Horizontal lines not available - iCustom not supported in Python API"
-    )
-    return _empty_horizontal_lines()
-
-
-def _fetch_diagonal_lines(
-    symbol: str,
-    timeframe: int,
-    bars: int
-) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Fetch diagonal fractal lines from indicator buffers.
-
-    Reads from Fractal Diagonal Line_V4.mq5 indicator:
-    - Buffer 0: ascending_1
-    - Buffer 1: ascending_2
-    - Buffer 2: ascending_3
-    - Buffer 3: descending_1
-    - Buffer 4: descending_2
-    - Buffer 5: descending_3
-
-    Args:
-        symbol: Trading symbol
-        timeframe: MT5 timeframe constant
-        bars: Number of bars
-
-    Returns:
-        dict: Diagonal lines data
-    """
-    # Note: iCustom is not available in MetaTrader5 Python API
-    # Diagonal trend lines require custom MQL5 indicators which cannot be
-    # accessed from Python. Return empty for now.
-    # Future: Could calculate trend lines from fractal peaks/bottoms
-    if not MT5_AVAILABLE or mt5 is None:
-        return _empty_diagonal_lines()
-
-    logger.debug(
-        f"Diagonal lines not available - iCustom not supported in Python API"
-    )
-    return _empty_diagonal_lines()
-
-
-def _fetch_fractals(
-    symbol: str,
-    timeframe: int,
-    bars: int
-) -> Dict[str, List[Dict[str, Any]]]:
+def _calculate_fractals(rates: Any) -> Dict[str, List[Dict[str, Any]]]:
     """
     Calculate fractal markers from OHLC data.
 
@@ -218,28 +138,17 @@ def _fetch_fractals(
     - Peak (Up fractal): High is higher than 2 bars on each side
     - Bottom (Down fractal): Low is lower than 2 bars on each side
 
-    Note: iCustom is not available in MetaTrader5 Python API,
-    so we calculate fractals directly from price data.
-
     Args:
-        symbol: Trading symbol
-        timeframe: MT5 timeframe constant
-        bars: Number of bars
+        rates: OHLC rates from MT5 (numpy structured array)
 
     Returns:
         dict: Fractal markers with peaks and bottoms
     """
-    if not MT5_AVAILABLE or mt5 is None:
+    if rates is None or len(rates) < 5:
+        logger.warning("Not enough data to calculate fractals")
         return _empty_fractals()
 
     try:
-        # Get OHLC rates
-        rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
-
-        if rates is None or len(rates) < 5:
-            logger.warning(f"Not enough data to calculate fractals for {symbol}")
-            return _empty_fractals()
-
         peaks = []
         bottoms = []
 
@@ -249,7 +158,6 @@ def _fetch_fractals(
             time_val = int(current['time'])
 
             # Check for peak (up fractal)
-            # High must be higher than 2 bars on each side
             is_peak = (
                 current['high'] > rates[i - 2]['high'] and
                 current['high'] > rates[i - 1]['high'] and
@@ -264,7 +172,6 @@ def _fetch_fractals(
                 })
 
             # Check for bottom (down fractal)
-            # Low must be lower than 2 bars on each side
             is_bottom = (
                 current['low'] < rates[i - 2]['low'] and
                 current['low'] < rates[i - 1]['low'] and
@@ -278,10 +185,7 @@ def _fetch_fractals(
                     'value': float(current['low'])
                 })
 
-        logger.info(
-            f"Calculated {len(peaks)} peaks and {len(bottoms)} bottoms "
-            f"for {symbol}"
-        )
+        logger.info(f"Calculated {len(peaks)} peaks and {len(bottoms)} bottoms")
 
         return {
             'peaks': peaks,
@@ -293,59 +197,168 @@ def _fetch_fractals(
         return _empty_fractals()
 
 
-def _buffer_to_line_points(
-    buffer: Optional[Any]
-) -> List[Dict[str, Any]]:
+def _calculate_horizontal_lines(
+    fractals: Dict[str, List[Dict[str, Any]]]
+) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Convert indicator buffer to line points (filter EMPTY_VALUE).
+    Calculate horizontal support/resistance lines from fractal points.
+
+    Takes the most recent fractal peaks (resistance) and bottoms (support)
+    and creates horizontal price levels.
 
     Args:
-        buffer: MT5 indicator buffer (numpy array or None)
+        fractals: Dictionary with 'peaks' and 'bottoms' lists
 
     Returns:
-        List of line point dictionaries with index and value
+        dict: Horizontal lines with peak_1/2/3 and bottom_1/2/3
     """
-    if buffer is None:
-        return []
+    try:
+        peaks = fractals.get('peaks', [])
+        bottoms = fractals.get('bottoms', [])
 
-    points = []
-    for i, value in enumerate(buffer):
-        if value != EMPTY_VALUE and value != 0 and value > 0:
-            points.append({
-                'index': i,
-                'value': float(value)
-            })
+        # Get the last 3 peaks (most recent first) for resistance levels
+        recent_peaks = sorted(peaks, key=lambda x: x['time'], reverse=True)[:3]
+        # Get the last 3 bottoms (most recent first) for support levels
+        recent_bottoms = sorted(
+            bottoms, key=lambda x: x['time'], reverse=True
+        )[:3]
 
-    return points
+        result = {
+            'peak_1': [],
+            'peak_2': [],
+            'peak_3': [],
+            'bottom_1': [],
+            'bottom_2': [],
+            'bottom_3': [],
+        }
+
+        # Create horizontal lines from peaks (resistance)
+        for i, peak in enumerate(recent_peaks):
+            key = f'peak_{i + 1}'
+            if key in result:
+                result[key] = [{
+                    'time': peak['time'],
+                    'value': peak['value']
+                }]
+
+        # Create horizontal lines from bottoms (support)
+        for i, bottom in enumerate(recent_bottoms):
+            key = f'bottom_{i + 1}'
+            if key in result:
+                result[key] = [{
+                    'time': bottom['time'],
+                    'value': bottom['value']
+                }]
+
+        line_count = sum(1 for v in result.values() if v)
+        logger.info(f"Calculated {line_count} horizontal lines")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error calculating horizontal lines: {e}")
+        return _empty_horizontal_lines()
 
 
-def _buffer_to_fractal_points(
-    buffer: Optional[Any],
-    rates: Optional[Any]
-) -> List[Dict[str, Any]]:
+def _calculate_diagonal_lines(
+    fractals: Dict[str, List[Dict[str, Any]]]
+) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Convert fractal buffer to fractal points with timestamps.
+    Calculate diagonal trend lines from fractal points.
+
+    - Ascending lines: Connect consecutive higher bottoms (uptrend)
+    - Descending lines: Connect consecutive lower peaks (downtrend)
 
     Args:
-        buffer: MT5 indicator buffer
-        rates: MT5 rates array with timestamps
+        fractals: Dictionary with 'peaks' and 'bottoms' lists
 
     Returns:
-        List of fractal point dictionaries with time and price
+        dict: Diagonal lines with ascending_1/2/3 and descending_1/2/3
     """
-    if buffer is None or rates is None:
+    try:
+        peaks = fractals.get('peaks', [])
+        bottoms = fractals.get('bottoms', [])
+
+        result = {
+            'ascending_1': [],
+            'ascending_2': [],
+            'ascending_3': [],
+            'descending_1': [],
+            'descending_2': [],
+            'descending_3': [],
+        }
+
+        # Find ascending trend lines (connecting higher bottoms)
+        if len(bottoms) >= 2:
+            sorted_bottoms = sorted(bottoms, key=lambda x: x['time'])
+            ascending_lines = _find_trend_lines(sorted_bottoms, ascending=True)
+            for i, line in enumerate(ascending_lines[:3]):
+                result[f'ascending_{i + 1}'] = line
+
+        # Find descending trend lines (connecting lower peaks)
+        if len(peaks) >= 2:
+            sorted_peaks = sorted(peaks, key=lambda x: x['time'])
+            descending_lines = _find_trend_lines(sorted_peaks, ascending=False)
+            for i, line in enumerate(descending_lines[:3]):
+                result[f'descending_{i + 1}'] = line
+
+        line_count = sum(1 for v in result.values() if v)
+        logger.info(f"Calculated {line_count} diagonal trend lines")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error calculating diagonal lines: {e}")
+        return _empty_diagonal_lines()
+
+
+def _find_trend_lines(
+    points: List[Dict[str, Any]],
+    ascending: bool = True
+) -> List[List[Dict[str, Any]]]:
+    """
+    Find trend lines by connecting fractal points.
+
+    Args:
+        points: List of fractal points sorted by time
+        ascending: True for uptrend (higher lows), False for downtrend
+
+    Returns:
+        List of trend lines, each containing start and end points
+    """
+    if len(points) < 2:
         return []
 
-    points = []
-    for i, value in enumerate(buffer):
-        if value != EMPTY_VALUE and value != 0 and value > 0:
-            if i < len(rates):
-                points.append({
-                    'time': int(rates[i]['time']),
-                    'price': float(value)
-                })
+    trend_lines = []
 
-    return points
+    # Use recent points to find valid trend lines
+    recent_points = points[-20:] if len(points) > 20 else points
+
+    for i in range(len(recent_points) - 1):
+        for j in range(i + 1, min(i + 5, len(recent_points))):
+            p1 = recent_points[i]
+            p2 = recent_points[j]
+
+            # Check if this forms a valid trend
+            if ascending:
+                # For uptrend, second point should be higher
+                if p2['value'] > p1['value']:
+                    trend_lines.append([
+                        {'time': p1['time'], 'value': p1['value']},
+                        {'time': p2['time'], 'value': p2['value']}
+                    ])
+            else:
+                # For downtrend, second point should be lower
+                if p2['value'] < p1['value']:
+                    trend_lines.append([
+                        {'time': p1['time'], 'value': p1['value']},
+                        {'time': p2['time'], 'value': p2['value']}
+                    ])
+
+    # Sort by recency (most recent first) and return top lines
+    trend_lines.sort(key=lambda x: x[1]['time'], reverse=True)
+
+    return trend_lines[:3]
 
 
 def _empty_horizontal_lines() -> Dict[str, List]:
