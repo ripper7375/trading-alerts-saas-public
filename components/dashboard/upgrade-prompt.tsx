@@ -47,7 +47,7 @@ export function UpgradePrompt(): React.ReactElement {
               </li>
             </ul>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <Link href="/dashboard/settings/billing">
+              <Link href="/settings/billing">
                 <Button className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-6">
                   Upgrade Now - ${regularPrice}/month
                 </Button>

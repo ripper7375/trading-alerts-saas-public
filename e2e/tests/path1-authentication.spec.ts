@@ -185,7 +185,7 @@ test.describe('Path 1: Authentication', () => {
       page,
     }) => {
       // Try to access protected route without auth
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
 
       // Should redirect to login with redirect param
       await expect(page).toHaveURL(/login.*redirect/);
@@ -195,7 +195,7 @@ test.describe('Path 1: Authentication', () => {
       await loginPage.login(TEST_USERS.free.email, TEST_USERS.free.password);
 
       // Should redirect to original destination
-      await expect(page).toHaveURL(/dashboard\/alerts/);
+      await expect(page).toHaveURL(/alerts/);
     });
   });
 
@@ -403,14 +403,14 @@ test.describe('Path 1: Authentication', () => {
     test('AUTH-021: Unauthenticated access to alerts redirects to login', async ({
       page,
     }) => {
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
       await expect(page).toHaveURL(/login/);
     });
 
     test('AUTH-022: Unauthenticated access to settings redirects to login', async ({
       page,
     }) => {
-      await page.goto('/dashboard/settings');
+      await page.goto('/settings');
       await expect(page).toHaveURL(/login/);
     });
 

@@ -235,7 +235,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
       );
 
       // Navigate to alerts
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
 
       // Should be able to create up to 20 alerts
       const content = await page.content();
@@ -370,7 +370,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
       );
 
       // Navigate to alerts
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
 
       // Check for FREE tier limits
       const content = await page.content();
@@ -393,10 +393,10 @@ test.describe('Path 3: Subscription Cancellation', () => {
       );
 
       // Navigate to charts
-      await page.goto('/dashboard/charts');
+      await page.goto('/charts');
 
       // Try to access a PRO-only symbol via URL param
-      await page.goto('/dashboard/charts?symbol=GBPUSD');
+      await page.goto('/charts?symbol=GBPUSD');
 
       // Should show upgrade prompt or error
       await page.waitForTimeout(1000);

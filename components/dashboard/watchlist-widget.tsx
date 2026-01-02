@@ -51,14 +51,14 @@ export function WatchlistWidget({
           Watchlist
         </CardTitle>
         <div className="flex items-center gap-2">
-          <Link href="/dashboard/watchlist/add">
+          <Link href="/watchlist/add">
             <Button variant="outline" size="sm">
               <Plus className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only sm:ml-1">Add</span>
             </Button>
           </Link>
           {items.length > 0 && (
-            <Link href="/dashboard/watchlist">
+            <Link href="/watchlist">
               <Button
                 variant="ghost"
                 size="sm"
@@ -81,7 +81,7 @@ export function WatchlistWidget({
               return (
                 <Link
                   key={item.id}
-                  href={`/dashboard/charts?symbol=${item.symbol}&timeframe=${item.timeframe}`}
+                  href={`/charts?symbol=${item.symbol}&timeframe=${item.timeframe}`}
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group"
                 >
                   {/* Left: Symbol and Timeframe */}
@@ -138,7 +138,7 @@ export function WatchlistWidget({
             <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
               Add symbols to track their price movements
             </p>
-            <Link href="/dashboard/watchlist/add">
+            <Link href="/watchlist/add">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Symbol

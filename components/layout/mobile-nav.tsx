@@ -40,31 +40,31 @@ const navigationItems: NavItem[] = [
   },
   {
     name: 'Charts',
-    href: '/dashboard/charts',
+    href: '/charts',
     icon: LineChart,
     tier: 'FREE',
   },
   {
     name: 'Alerts',
-    href: '/dashboard/alerts',
+    href: '/alerts',
     icon: Bell,
     tier: 'FREE',
   },
   {
     name: 'Watchlist',
-    href: '/dashboard/watchlist',
+    href: '/watchlist',
     icon: Eye,
     tier: 'FREE',
   },
   {
     name: 'Analytics',
-    href: '/dashboard/analytics',
+    href: '/analytics',
     icon: BarChart3,
     tier: 'PRO',
   },
   {
     name: 'Custom Indicators',
-    href: '/dashboard/indicators',
+    href: '/indicators',
     icon: Zap,
     tier: 'PRO',
   },
@@ -73,13 +73,13 @@ const navigationItems: NavItem[] = [
 const bottomNavItems: NavItem[] = [
   {
     name: 'Settings',
-    href: '/dashboard/settings',
+    href: '/settings',
     icon: Settings,
     tier: 'FREE',
   },
   {
     name: 'Help',
-    href: '/dashboard/help',
+    href: '/settings/help',
     icon: HelpCircle,
     tier: 'FREE',
   },
@@ -152,7 +152,7 @@ export function MobileNav({
               return (
                 <Link
                   key={item.href}
-                  href={accessible ? item.href : '/dashboard/settings/billing'}
+                  href={accessible ? item.href : '/settings/billing'}
                   onClick={handleNavClick}
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -197,7 +197,7 @@ export function MobileNav({
                 Get 15 symbols, 9 timeframes, and 20 alerts
               </p>
               <Link
-                href="/dashboard/settings/billing"
+                href="/settings/billing"
                 onClick={handleNavClick}
                 className="block w-full rounded-md bg-white/20 hover:bg-white/30 transition-colors text-center py-1.5 text-xs font-medium"
               >

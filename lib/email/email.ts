@@ -268,7 +268,7 @@ export function getAlertTriggeredEmail(
             </tr>
           </table>
         </div>
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/dashboard/charts/${symbol}/${timeframe}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/charts/${symbol}/${timeframe}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
           View Chart
         </a>
       </div>
