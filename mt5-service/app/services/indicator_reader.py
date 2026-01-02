@@ -161,14 +161,20 @@ def _fetch_horizontal_lines(
 
     try:
         # Get indicator handle
-        handle = mt5.iCustom(symbol, timeframe, "Fractal Horizontal Line_V5")
+        indicator_name = "Fractal Horizontal Line_V5"
+        handle = mt5.iCustom(symbol, timeframe, indicator_name)
 
         if handle == mt5.INVALID_HANDLE:
+            error = mt5.last_error()
             logger.warning(
-                "Failed to get indicator handle for Fractal Horizontal Line_V5. "
-                "Is the indicator attached to the chart in MT5?"
+                f"Failed to get indicator handle for {indicator_name}. "
+                f"Symbol: {symbol}, Timeframe: {timeframe}, "
+                f"MT5 Error: {error}. "
+                "Ensure the indicator .ex5 file exists in MT5 Indicators folder."
             )
             return _empty_horizontal_lines()
+
+        logger.info(f"Got indicator handle {handle} for {indicator_name} on {symbol}")
 
         # Fetch buffers 4-9 (horizontal lines)
         peak_1 = mt5.copy_buffer(handle, 4, 0, bars)
@@ -178,7 +184,21 @@ def _fetch_horizontal_lines(
         bottom_2 = mt5.copy_buffer(handle, 8, 0, bars)
         bottom_3 = mt5.copy_buffer(handle, 9, 0, bars)
 
-        return {
+        # Debug: log buffer status
+        buffers_status = {
+            'peak_1': (
+                peak_1 is not None and len(peak_1) > 0
+            ),
+            'peak_2': (
+                peak_2 is not None and len(peak_2) > 0
+            ),
+            'bottom_1': (
+                bottom_1 is not None and len(bottom_1) > 0
+            ),
+        }
+        logger.info(f"Horizontal buffer status for {symbol}: {buffers_status}")
+
+        result = {
             'peak_1': _buffer_to_line_points(peak_1),
             'peak_2': _buffer_to_line_points(peak_2),
             'peak_3': _buffer_to_line_points(peak_3),
@@ -186,6 +206,12 @@ def _fetch_horizontal_lines(
             'bottom_2': _buffer_to_line_points(bottom_2),
             'bottom_3': _buffer_to_line_points(bottom_3),
         }
+
+        # Log how many points were found
+        points_count = sum(len(v) for v in result.values())
+        logger.info(f"Found {points_count} horizontal line points for {symbol}")
+
+        return result
 
     except Exception as e:
         logger.error(f"Error fetching horizontal lines: {e}")
@@ -221,14 +247,20 @@ def _fetch_diagonal_lines(
 
     try:
         # Get indicator handle
-        handle = mt5.iCustom(symbol, timeframe, "Fractal Diagonal Line_V4")
+        indicator_name = "Fractal Diagonal Line_V4"
+        handle = mt5.iCustom(symbol, timeframe, indicator_name)
 
         if handle == mt5.INVALID_HANDLE:
+            error = mt5.last_error()
             logger.warning(
-                "Failed to get indicator handle for Fractal Diagonal Line_V4. "
-                "Is the indicator attached to the chart in MT5?"
+                f"Failed to get indicator handle for {indicator_name}. "
+                f"Symbol: {symbol}, Timeframe: {timeframe}, "
+                f"MT5 Error: {error}. "
+                "Ensure the indicator .ex5 file exists in MT5 Indicators folder."
             )
             return _empty_diagonal_lines()
+
+        logger.info(f"Got indicator handle {handle} for {indicator_name} on {symbol}")
 
         # Fetch buffers 0-5 (diagonal lines)
         ascending_1 = mt5.copy_buffer(handle, 0, 0, bars)

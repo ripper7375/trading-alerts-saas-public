@@ -82,6 +82,7 @@ export function TradingChart({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const isFirstLoadRef = useRef(true);
 
   const [data, setData] = useState<IndicatorData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -322,8 +323,20 @@ export function TradingChart({
       candleSeriesRef.current.setMarkers(markers);
     }
 
-    // Fit content to view
-    chartRef.current.timeScale().fitContent();
+    // Only fit content on first load to avoid disrupting user's view
+    if (isFirstLoadRef.current) {
+      chartRef.current.timeScale().fitContent();
+      isFirstLoadRef.current = false;
+    }
+
+    // Log last candle price for debugging
+    const lastCandle = data.ohlc[data.ohlc.length - 1];
+    if (lastCandle) {
+      console.log('Latest candle:', {
+        time: new Date(lastCandle.time * 1000).toLocaleString(),
+        close: lastCandle.close,
+      });
+    }
   }, [data]);
 
   /**
