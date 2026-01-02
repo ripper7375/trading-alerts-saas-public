@@ -119,8 +119,17 @@ export function TradingChart({
       setData(successResult.data);
       setLastUpdated(new Date());
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch chart data';
+      let errorMessage = 'Failed to fetch chart data';
+
+      if (err instanceof Error) {
+        // Handle network errors specifically
+        if (err.message === 'fetch failed' || err.message.includes('NetworkError') || err.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to the data service. Please check your connection and try again.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
       setError(errorMessage);
       console.error('Chart data fetch error:', err);
     } finally {
