@@ -138,15 +138,21 @@ export function TradingChart({
   }, [symbol, timeframe]);
 
   /**
-   * Initialize chart on mount
+   * Initialize chart when container is available and not loading
    */
   useEffect(() => {
+    // Don't initialize if still loading or no container
+    if (isLoading && !data) return;
     if (!chartContainerRef.current) return;
+    // Don't re-create if already exists
+    if (chartRef.current) return;
 
     // Get container width, fallback to parent width or default
     const containerWidth = chartContainerRef.current.clientWidth ||
       chartContainerRef.current.parentElement?.clientWidth ||
       800;
+
+    console.log('Initializing chart with width:', containerWidth);
 
     // Create chart with dark TradingView theme
     const chart = createChart(chartContainerRef.current, {
@@ -230,7 +236,7 @@ export function TradingChart({
       chartRef.current = null;
       candleSeriesRef.current = null;
     };
-  }, []);
+  }, [isLoading, data]);
 
   /**
    * Fetch data on mount and symbol/timeframe change
