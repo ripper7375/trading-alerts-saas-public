@@ -89,7 +89,7 @@ export class ChartsPage {
    * Navigate to charts page
    */
   async goto(): Promise<void> {
-    await this.page.goto('/dashboard/charts');
+    await this.page.goto('/charts');
     await this.waitForPageLoad();
   }
 

@@ -123,7 +123,7 @@ export class SettingsPage {
    * Navigate to settings page
    */
   async goto(): Promise<void> {
-    await this.page.goto('/dashboard/settings');
+    await this.page.goto('/settings');
     await this.waitForPageLoad();
   }
 

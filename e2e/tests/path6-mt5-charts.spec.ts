@@ -442,7 +442,7 @@ test.describe('Path 6: MT5 Data and Charts', () => {
       );
 
       // Try to access invalid symbol via URL
-      await page.goto('/dashboard/charts?symbol=INVALIDXYZ');
+      await page.goto('/charts?symbol=INVALIDXYZ');
 
       await page.waitForTimeout(2000);
 
@@ -469,7 +469,7 @@ test.describe('Path 6: MT5 Data and Charts', () => {
       );
 
       // Try to access PRO symbol via URL
-      await page.goto('/dashboard/charts?symbol=GBPUSD');
+      await page.goto('/charts?symbol=GBPUSD');
 
       await page.waitForTimeout(2000);
 
@@ -512,7 +512,7 @@ test.describe('Path 6: MT5 Data and Charts', () => {
         TEST_USERS.free.password
       );
 
-      await page.goto('/dashboard/charts');
+      await page.goto('/charts');
 
       // Check for active state on charts nav item
       const chartsNav = page.locator('[data-testid="nav-charts"]');

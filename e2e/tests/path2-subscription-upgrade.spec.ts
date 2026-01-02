@@ -434,7 +434,7 @@ test.describe('Path 2: Subscription Upgrade', () => {
       );
 
       // Navigate to settings
-      await page.goto('/dashboard/settings');
+      await page.goto('/settings');
 
       // Click subscription tab
       await page.click('[data-testid="settings-subscription-tab"]').catch(() => {
@@ -490,7 +490,7 @@ test.describe('Path 2: Subscription Upgrade', () => {
       );
 
       // Navigate to charts and check timeframes
-      await page.goto('/dashboard/charts');
+      await page.goto('/charts');
 
       // Click timeframe selector
       await page.click('[data-testid="timeframe-selector"]').catch(() => { });
@@ -512,7 +512,7 @@ test.describe('Path 2: Subscription Upgrade', () => {
       );
 
       // Navigate to alerts
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
 
       // Check alert limit info if displayed
       const content = await page.content();
