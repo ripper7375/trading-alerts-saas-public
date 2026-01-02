@@ -16,7 +16,7 @@
     },
     {
       "id": "MT5_03",
-      "symbol": "EURUSD",
+      "symbol": "EURUSD.i",
       "server": "${MT5_SERVER}",
       "login": "${MT5_LOGIN_01}",
       "password": "${MT5_PASSWORD_01}"
