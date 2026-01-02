@@ -138,15 +138,19 @@ export function TradingChart({
   }, [symbol, timeframe]);
 
   /**
-   * Initialize chart on mount
+   * Initialize chart when container is available
    */
   useEffect(() => {
     if (!chartContainerRef.current) return;
+    // Don't re-create if already exists
+    if (chartRef.current) return;
 
     // Get container width, fallback to parent width or default
     const containerWidth = chartContainerRef.current.clientWidth ||
       chartContainerRef.current.parentElement?.clientWidth ||
       800;
+
+    console.log('Initializing chart with width:', containerWidth);
 
     // Create chart with dark TradingView theme
     const chart = createChart(chartContainerRef.current, {
@@ -328,25 +332,21 @@ export function TradingChart({
     return `${hours}h ago`;
   };
 
-  // Loading state
-  if (isLoading && !data) {
-    return (
-      <div className="relative">
-        <div className="flex items-center justify-center h-[600px] bg-[#1e222d] rounded-lg">
+  return (
+    <div className="relative">
+      {/* Loading overlay */}
+      {isLoading && !data && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center h-[600px] bg-[#1e222d] rounded-lg">
           <div className="text-center">
             <div className="inline-block w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mb-3"></div>
             <p className="text-[#d1d4dc]">Loading chart data...</p>
           </div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Error state
-  if (error && !data) {
-    return (
-      <div className="relative">
-        <div className="flex items-center justify-center h-[600px] bg-[#1e222d] rounded-lg">
+      {/* Error overlay */}
+      {error && !data && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center h-[600px] bg-[#1e222d] rounded-lg">
           <div className="text-center max-w-md px-6">
             <div className="text-4xl mb-3">⚠️</div>
             <p className="text-red-400 font-semibold mb-2">
@@ -361,12 +361,7 @@ export function TradingChart({
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative">
+      )}
       {/* Status bar */}
       <div className="flex items-center justify-between mb-2 px-2">
         <div className="flex items-center gap-4">
