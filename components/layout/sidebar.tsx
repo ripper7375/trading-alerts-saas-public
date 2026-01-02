@@ -37,35 +37,35 @@ const navigationItems: NavItem[] = [
   },
   {
     name: 'Charts',
-    href: '/dashboard/charts',
+    href: '/charts',
     icon: LineChart,
     tier: 'FREE',
     description: 'Live price charts',
   },
   {
     name: 'Alerts',
-    href: '/dashboard/alerts',
+    href: '/alerts',
     icon: Bell,
     tier: 'FREE',
     description: 'Manage your alerts',
   },
   {
     name: 'Watchlist',
-    href: '/dashboard/watchlist',
+    href: '/watchlist',
     icon: Eye,
     tier: 'FREE',
     description: 'Track your symbols',
   },
   {
     name: 'Analytics',
-    href: '/dashboard/analytics',
+    href: '/analytics',
     icon: BarChart3,
     tier: 'PRO',
     description: 'Advanced analytics',
   },
   {
     name: 'Custom Indicators',
-    href: '/dashboard/indicators',
+    href: '/indicators',
     icon: Zap,
     tier: 'PRO',
     description: 'Custom indicators',
@@ -75,13 +75,13 @@ const navigationItems: NavItem[] = [
 const bottomNavItems: NavItem[] = [
   {
     name: 'Settings',
-    href: '/dashboard/settings',
+    href: '/settings',
     icon: Settings,
     tier: 'FREE',
   },
   {
     name: 'Help',
-    href: '/dashboard/help',
+    href: '/settings/help',
     icon: HelpCircle,
     tier: 'FREE',
   },
@@ -134,7 +134,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
           return (
             <Link
               key={item.href}
-              href={accessible ? item.href : '/dashboard/settings/billing'}
+              href={accessible ? item.href : '/settings/billing'}
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active
@@ -178,7 +178,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
             Get 15 symbols, 9 timeframes, and 20 alerts
           </p>
           <Link
-            href="/dashboard/settings/billing"
+            href="/settings/billing"
             className="block w-full rounded-md bg-white/20 hover:bg-white/30 transition-colors text-center py-1.5 text-xs font-medium"
           >
             Upgrade Now

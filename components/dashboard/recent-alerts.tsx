@@ -81,7 +81,7 @@ export function RecentAlerts({
           Recent Alerts
         </CardTitle>
         {alerts.length > 0 && (
-          <Link href="/dashboard/alerts">
+          <Link href="/alerts">
             <Button
               variant="ghost"
               size="sm"
@@ -155,7 +155,7 @@ export function RecentAlerts({
             <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
               Set up alerts to get notified of price movements
             </p>
-            <Link href="/dashboard/alerts/new">
+            <Link href="/alerts/new">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 Create Your First Alert
               </Button>
