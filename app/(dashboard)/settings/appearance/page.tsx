@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTheme } from '@/components/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { Sun, Moon, Monitor, Check } from 'lucide-react';
 
 import { Label } from '@/components/ui/label';
