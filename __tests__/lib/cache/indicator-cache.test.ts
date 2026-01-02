@@ -528,15 +528,17 @@ describe('Indicator Cache Utility', () => {
   describe('Integration with Part 0 Constants', () => {
     it('should respect CACHE_TTL values from Part 0', () => {
       // Verify CACHE_TTL is imported and has expected values
-      expect(CACHE_TTL.M5).toBe(300); // 5 minutes
-      expect(CACHE_TTL.M15).toBe(900); // 15 minutes
-      expect(CACHE_TTL.M30).toBe(1800); // 30 minutes
-      expect(CACHE_TTL.H1).toBe(3600); // 1 hour
-      expect(CACHE_TTL.H2).toBe(7200); // 2 hours
-      expect(CACHE_TTL.H4).toBe(14400); // 4 hours
-      expect(CACHE_TTL.H8).toBe(28800); // 8 hours
-      expect(CACHE_TTL.H12).toBe(43200); // 12 hours
-      expect(CACHE_TTL.D1).toBe(86400); // 24 hours
+      // Short TTL (15s) allows real-time price updates on charts
+      // Auto-refresh intervals: FREE=60s, PRO=30s
+      expect(CACHE_TTL.M5).toBe(15); // 15 seconds for real-time updates
+      expect(CACHE_TTL.M15).toBe(15);
+      expect(CACHE_TTL.M30).toBe(15);
+      expect(CACHE_TTL.H1).toBe(15);
+      expect(CACHE_TTL.H2).toBe(15);
+      expect(CACHE_TTL.H4).toBe(15);
+      expect(CACHE_TTL.H8).toBe(15);
+      expect(CACHE_TTL.H12).toBe(15);
+      expect(CACHE_TTL.D1).toBe(15);
     });
   });
 });

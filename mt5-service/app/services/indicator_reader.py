@@ -186,9 +186,15 @@ def _fetch_horizontal_lines(
 
         # Debug: log buffer status
         buffers_status = {
-            'peak_1': peak_1 is not None and len(peak_1) > 0 if peak_1 is not None else False,
-            'peak_2': peak_2 is not None and len(peak_2) > 0 if peak_2 is not None else False,
-            'bottom_1': bottom_1 is not None and len(bottom_1) > 0 if bottom_1 is not None else False,
+            'peak_1': (
+                peak_1 is not None and len(peak_1) > 0
+            ),
+            'peak_2': (
+                peak_2 is not None and len(peak_2) > 0
+            ),
+            'bottom_1': (
+                bottom_1 is not None and len(bottom_1) > 0
+            ),
         }
         logger.info(f"Horizontal buffer status for {symbol}: {buffers_status}")
 
