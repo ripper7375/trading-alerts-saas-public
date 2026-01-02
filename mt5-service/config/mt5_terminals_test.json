@@ -1,0 +1,25 @@
+{
+  "terminals": [
+    {
+      "id": "MT5_01",
+      "symbol": "BTCUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_01}",
+      "password": "${MT5_PASSWORD_01}"
+    },
+    {
+      "id": "MT5_02",
+      "symbol": "XAUUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_01}",
+      "password": "${MT5_PASSWORD_01}"
+    },
+    {
+      "id": "MT5_03",
+      "symbol": "EURUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_01}",
+      "password": "${MT5_PASSWORD_01}"
+    }
+  ]
+}
