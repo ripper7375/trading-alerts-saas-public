@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTheme } from '@/components/providers/theme-provider';
+import { useTheme } from 'next-themes';
 import { Sun, Moon, Monitor, Check } from 'lucide-react';
 
 import { Label } from '@/components/ui/label';
@@ -135,10 +135,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
   if (!mounted) {
     return (
       <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-6" />
+        <div className="mb-6 h-8 w-48 rounded bg-gray-200 dark:bg-gray-700" />
         <div className="space-y-4">
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-32 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-32 rounded bg-gray-200 dark:bg-gray-700" />
         </div>
       </div>
     );
@@ -146,19 +146,19 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
   return (
     <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Appearance Settings
       </h2>
 
       {/* Theme Selection */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Theme
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
           Select your preferred theme. Changes apply immediately.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {themeOptions.map((option) => {
             const Icon = option.icon;
             const isSelected = theme === option.value;
@@ -169,29 +169,29 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                 type="button"
                 onClick={() => handleThemeChange(option.value)}
                 className={cn(
-                  'cursor-pointer border-2 rounded-lg p-4 transition-all',
+                  'cursor-pointer rounded-lg border-2 p-4 transition-all',
                   isSelected
                     ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
                 )}
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Icon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                    <Icon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                     <span className="font-semibold text-gray-900 dark:text-white">
                       {option.label}
                     </span>
                   </div>
-                  {isSelected && <Check className="w-5 h-5 text-blue-600" />}
+                  {isSelected && <Check className="h-5 w-5 text-blue-600" />}
                 </div>
                 <div
-                  className={cn('rounded-lg p-4 space-y-2', option.preview.bg)}
+                  className={cn('space-y-2 rounded-lg p-4', option.preview.bg)}
                 >
                   <div
-                    className={cn('h-2 rounded w-3/4', option.preview.content)}
+                    className={cn('h-2 w-3/4 rounded', option.preview.content)}
                   />
                   <div
-                    className={cn('h-2 rounded w-1/2', option.preview.content)}
+                    className={cn('h-2 w-1/2 rounded', option.preview.content)}
                   />
                 </div>
               </button>
@@ -204,10 +204,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
       {/* Color Scheme Selection */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Color Scheme
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
           Choose your accent color for buttons and highlights.
         </p>
         <div className="flex gap-3">
@@ -217,7 +217,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
               type="button"
               onClick={() => handleColorSchemeChange(scheme.name)}
               className={cn(
-                'w-12 h-12 rounded-full transition-transform hover:scale-110',
+                'h-12 w-12 rounded-full transition-transform hover:scale-110',
                 scheme.color,
                 colorScheme === scheme.name &&
                   'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-gray-800',
@@ -226,7 +226,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
               title={scheme.name.charAt(0).toUpperCase() + scheme.name.slice(1)}
             >
               {colorScheme === scheme.name && (
-                <Check className="w-5 h-5 text-white mx-auto" />
+                <Check className="mx-auto h-5 w-5 text-white" />
               )}
             </button>
           ))}
@@ -237,13 +237,13 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
       {/* Chart Preferences */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Chart Preferences
         </h3>
 
         {/* Candlestick Colors */}
         <div className="mb-6">
-          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
+          <Label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Candlestick Colors
           </Label>
           <div className="flex gap-6">
@@ -252,7 +252,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                 type="color"
                 value={chartUpColor}
                 onChange={(e) => handleChartColorChange('up', e.target.value)}
-                className="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700"
+                className="h-10 w-10 cursor-pointer rounded border border-gray-200 dark:border-gray-700"
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Up (Bullish)
@@ -263,7 +263,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                 type="color"
                 value={chartDownColor}
                 onChange={(e) => handleChartColorChange('down', e.target.value)}
-                className="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700"
+                className="h-10 w-10 cursor-pointer rounded border border-gray-200 dark:border-gray-700"
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Down (Bearish)
@@ -274,7 +274,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
         {/* Grid Opacity */}
         <div>
-          <div className="flex justify-between mb-2">
+          <div className="mb-2 flex justify-between">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Grid Line Opacity
             </Label>
@@ -290,9 +290,9 @@ export default function AppearanceSettingsPage(): React.ReactElement {
             onChange={(e) =>
               handleGridOpacityChange(parseInt(e.target.value, 10))
             }
-            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-blue-600 dark:bg-gray-700"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="mt-1 flex justify-between text-xs text-gray-500">
             <span>Hidden</span>
             <span>Visible</span>
           </div>
@@ -300,7 +300,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
       </section>
 
       {/* Info Note */}
-      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/30">
         <p className="text-sm text-blue-700 dark:text-blue-300">
           All changes are saved automatically and apply immediately across all
           your sessions.
