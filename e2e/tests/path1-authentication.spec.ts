@@ -65,9 +65,9 @@ test.describe('Path 1: Authentication', () => {
       // Should redirect to verification pending page
       await expect(page).toHaveURL(/verify-email\/pending/, { timeout: 10000 });
 
-      // Verify pending message is displayed
+      // Verify pending message is displayed (use heading to avoid matching list item)
       await expect(
-        page.locator('text=Check your email')
+        page.getByRole('heading', { name: 'Check your email' })
       ).toBeVisible();
     });
 

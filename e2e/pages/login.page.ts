@@ -49,7 +49,8 @@ export class LoginPage {
     this.registerLink = page.locator('a[href*="register"]');
 
     // Messages - login form shows errors in an alert div with border-l-4 class
-    this.errorMessage = page.locator('.border-l-4 p').first();
+    // Use more specific selector: the error container has border-l-4 and the p has font-medium
+    this.errorMessage = page.locator('div.border-l-4 p.font-medium').first();
     this.successMessage = page.locator('text=Welcome back');
   }
 
@@ -113,8 +114,32 @@ export class LoginPage {
     password: string,
     expectedError?: string
   ): Promise<void> {
-    await this.login(email, password);
-    await this.errorMessage.waitFor({ state: 'visible', timeout: 5000 });
+    // Fill form
+    await this.emailInput.clear();
+    await this.emailInput.fill(email);
+    await this.passwordInput.clear();
+    await this.passwordInput.fill(password);
+
+    // Wait for button to be enabled and click
+    await this.submitButton.waitFor({ state: 'visible' });
+    await this.page.waitForFunction(
+      () => {
+        const btn = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        return btn && !btn.disabled;
+      },
+      { timeout: 5000 }
+    );
+
+    // Click and wait for API response
+    const responsePromise = this.page.waitForResponse(
+      (response) => response.url().includes('/api/auth/callback/credentials'),
+      { timeout: 15000 }
+    );
+    await this.submitButton.click();
+    await responsePromise;
+
+    // Wait for error message to appear (longer timeout for API processing)
+    await this.errorMessage.waitFor({ state: 'visible', timeout: 10000 });
 
     if (expectedError) {
       await expect(this.errorMessage).toContainText(expectedError);
