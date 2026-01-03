@@ -136,7 +136,7 @@ def _convert_ohlc_to_list(df: pd.DataFrame) -> List[Dict[str, Any]]:
 
 def _calculate_fractals(
     rates: Any,
-    side_bars: int = 5
+    side_bars: int = 35
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Calculate fractal markers from OHLC data using MQL5 algorithm.
@@ -147,7 +147,7 @@ def _calculate_fractals(
 
     Args:
         rates: OHLC rates from MT5 (numpy structured array)
-        side_bars: Number of bars on each side to check (default 5)
+        side_bars: Number of bars on each side to check (default 35, matching MT5)
 
     Returns:
         dict: Fractal markers with peaks and bottoms
@@ -381,9 +381,9 @@ def _find_horizontal_clusters(
 def _calculate_diagonal_lines(
     fractals: Dict[str, List[Dict[str, Any]]],
     tolerance_percent: float = 1.5,
-    min_angle: float = 2.0,
-    max_angle: float = 45.0,
-    min_touches: int = 3
+    min_angle: float = 0.5,
+    max_angle: float = 60.0,
+    min_touches: int = 2
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Calculate diagonal trend lines from fractal points using MQL5 algorithm.
@@ -392,7 +392,7 @@ def _calculate_diagonal_lines(
     - Lines can touch both peaks and bottoms (mixed touches)
     - Ascending: positive slope (support line connecting lows)
     - Descending: negative slope (resistance line connecting highs)
-    - Angle constraints: min 2°, max 45°
+    - Angle constraints: min 0.5°, max 60° (relaxed for visibility)
     - Scoring: touch count, slope, length, recency
 
     Args:
@@ -400,7 +400,7 @@ def _calculate_diagonal_lines(
         tolerance_percent: Price tolerance for touch detection
         min_angle: Minimum line angle in degrees
         max_angle: Maximum line angle in degrees
-        min_touches: Minimum fractals to form a valid line
+        min_touches: Minimum fractals to form a valid line (2 matching MT5)
 
     Returns:
         dict: Diagonal lines with ascending_1/2/3 and descending_1/2/3
