@@ -53,10 +53,12 @@ export class CheckoutPage {
   constructor(page: Page) {
     this.page = page;
 
-    // Pricing page elements - using text and CSS based selectors from pricing page
-    this.pricingTitle = page.locator('h1:has-text("Choose Your Plan")');
-    this.freePlanCard = page.locator('.inline-flex:has-text("FREE TIER")').locator('xpath=ancestor::div[contains(@class, "rounded-lg")]');
-    this.proPlanCard = page.locator('.inline-flex:has-text("PRO TIER")').locator('xpath=ancestor::div[contains(@class, "rounded-lg")]');
+    // Pricing page elements - Badge has bg-blue-600 for PRO, bg-green-500 for FREE
+    // Cards use Card component with border classes
+    this.pricingTitle = page.getByRole('heading', { name: 'Choose Your Plan' });
+    // FREE card doesn't have extra border, PRO card has border-4 border-blue-600
+    this.freePlanCard = page.locator('div:has(> div > span:has-text("FREE TIER"))').first();
+    this.proPlanCard = page.locator('div.border-blue-600:has(span:has-text("PRO TIER"))').first();
     this.proUpgradeButton = page.locator('button:has-text("Start 7-Day Trial"), button:has-text("Start PRO Trial")');
     this.currentPlanBadge = page.locator('button:has-text("Current Plan")');
 
@@ -105,8 +107,12 @@ export class CheckoutPage {
    * Wait for page to fully load
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
-    await this.proPlanCard.waitFor({ state: 'visible', timeout: 10000 });
+    // Wait for DOM to be ready, then wait for specific elements
+    // Avoid 'networkidle' as it times out with persistent connections
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.pricingTitle.waitFor({ state: 'visible', timeout: 10000 });
+    // Wait for at least one pricing card to be visible
+    await this.page.locator('span:has-text("PRO TIER"), span:has-text("FREE TIER")').first().waitFor({ state: 'visible', timeout: 10000 });
   }
 
   /**
