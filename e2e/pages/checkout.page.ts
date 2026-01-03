@@ -62,15 +62,17 @@ export class CheckoutPage {
     this.proUpgradeButton = page.locator('button:has-text("Start 7-Day Trial"), button:has-text("Start PRO Trial")');
     this.currentPlanBadge = page.locator('button:has-text("Current Plan")');
 
-    // Plan details - use text selectors
-    this.proPriceDisplay = page.locator('.text-6xl').filter({ hasText: '$' });
+    // Plan details - use text selectors, scoped to PRO card
+    // PRO card has border-blue-600, price is in .text-6xl
+    this.proPriceDisplay = page.locator('.border-blue-600 .text-6xl').first();
     this.proFeaturesList = page.locator('ul:has(.text-blue-600)');
 
-    // Discount code elements - using text/placeholder based selectors
-    this.discountCodeInput = page.locator('input[placeholder*="code"], input[name="code"]');
+    // Discount code elements - on /checkout page (dLocal flow)
+    this.discountCodeInput = page.locator('#discount-code, input[placeholder="Enter code"]');
     this.applyDiscountButton = page.locator('button:has-text("Apply")');
-    this.discountAppliedBadge = page.locator('text=Discount Applied, text=discount active').first();
-    this.discountError = page.locator('.text-red-600, .text-red-500').filter({ hasText: /invalid|expired/i });
+    // Discount validation messages - component shows "X% discount will be applied!" or error message
+    this.discountAppliedBadge = page.locator('.text-green-600:has-text("discount")');
+    this.discountError = page.locator('#discount-code-status.text-red-600, p.text-red-600');
     this.originalPrice = page.locator('.line-through');
     this.discountedPrice = page.locator('.text-green-600').filter({ hasText: '$' });
     this.discountAmount = page.locator('text=/Save \\$/');
@@ -116,6 +118,16 @@ export class CheckoutPage {
   }
 
   /**
+   * Navigate to dLocal checkout page (for discount code tests)
+   */
+  async gotoDLocalCheckout(country: string = 'IN'): Promise<void> {
+    await this.page.goto(`/checkout?country=${country}&plan=MONTHLY`);
+    await this.page.waitForLoadState('domcontentloaded');
+    // Wait for checkout form to load
+    await this.page.locator('text=Complete Your Purchase').waitFor({ state: 'visible', timeout: 10000 });
+  }
+
+  /**
    * Click PRO upgrade button
    */
   async clickUpgradeToPro(): Promise<void> {
@@ -123,20 +135,25 @@ export class CheckoutPage {
   }
 
   /**
-   * Get PRO plan price
+   * Get PRO plan price from pricing page
    */
   async getProPrice(): Promise<string> {
+    // Wait for price to be rendered (hook data may load async)
+    await this.proPriceDisplay.waitFor({ state: 'visible', timeout: 5000 });
     return (await this.proPriceDisplay.textContent()) || '';
   }
 
   /**
-   * Enter and apply discount code
+   * Enter and apply discount code on /checkout page
+   * Note: Discount codes are validated on blur/enter, not via Apply button
    */
   async applyDiscountCode(code: string): Promise<void> {
+    await this.discountCodeInput.waitFor({ state: 'visible', timeout: 5000 });
     await this.discountCodeInput.fill(code);
-    await this.applyDiscountButton.click();
+    // Trigger validation by pressing Enter or clicking away
+    await this.discountCodeInput.press('Enter');
     // Wait for validation response
-    await this.page.waitForTimeout(1000);
+    await this.page.waitForTimeout(1500);
   }
 
   /**

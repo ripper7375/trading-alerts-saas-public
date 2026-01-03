@@ -94,6 +94,8 @@ export class DashboardPage {
    * Get current user tier
    */
   async getTier(): Promise<string> {
+    // Wait for tier badge to be visible in header
+    await this.tierBadge.waitFor({ state: 'visible', timeout: 5000 });
     return (await this.tierBadge.textContent()) || 'FREE';
   }
 
