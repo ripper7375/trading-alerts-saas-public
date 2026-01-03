@@ -157,8 +157,17 @@ export class RegisterPage {
 
   /**
    * Get all validation error messages
+   * Waits for errors to appear first (for validation tests)
    */
   async getValidationErrors(): Promise<string[]> {
+    // Wait a moment for react-hook-form validation to complete
+    await this.page.waitForTimeout(500);
+    // Try to wait for at least one error, but don't fail if none
+    try {
+      await this.validationErrors.first().waitFor({ state: 'visible', timeout: 3000 });
+    } catch {
+      // No validation errors visible - return empty array
+    }
     const errors = await this.validationErrors.allTextContents();
     return errors;
   }
