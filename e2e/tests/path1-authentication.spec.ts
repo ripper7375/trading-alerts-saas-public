@@ -36,14 +36,38 @@ test.describe('Path 1: Authentication', () => {
       // Fill registration form
       await registerPage.fillForm('Test User', testEmail, testPassword);
       await registerPage.acceptTerms();
-      await registerPage.submit();
+
+      // Wait for form to be valid before submitting
+      await expect(registerPage.submitButton).toBeEnabled({ timeout: 5000 });
+
+      // Listen for API response to help debug if test fails
+      const responsePromise = page.waitForResponse(
+        (response) => response.url().includes('/api/auth/register'),
+        { timeout: 15000 }
+      );
+
+      await registerPage.submitButton.click();
+
+      // Wait for API response
+      const response = await responsePromise;
+      const status = response.status();
+
+      // If API failed, check for error message on page
+      if (status !== 201) {
+        const errorVisible = await registerPage.errorMessage.isVisible().catch(() => false);
+        if (errorVisible) {
+          const errorText = await registerPage.errorMessage.textContent();
+          throw new Error(`Registration API returned ${status}. Error shown: ${errorText}`);
+        }
+        throw new Error(`Registration API returned ${status}`);
+      }
 
       // Should redirect to verification pending page
-      await expect(page).toHaveURL(/verify-email\/pending/);
+      await expect(page).toHaveURL(/verify-email\/pending/, { timeout: 10000 });
 
       // Verify pending message is displayed
       await expect(
-        page.locator('text=sent a verification link')
+        page.locator('text=Check your email')
       ).toBeVisible();
     });
 
@@ -69,17 +93,19 @@ test.describe('Path 1: Authentication', () => {
       await registerPage.goto();
       await registerPage.fillForm('Test User', testEmail, '123');
       // Don't call submit() - with weak password (< 8 chars), button stays disabled
-      // Validation errors appear on blur due to mode: 'onChange'
+      // Password validation shows as a checklist UI, not red error messages
 
-      // Should show password validation error
-      const errors = await registerPage.getValidationErrors();
-      expect(
-        errors.some(
-          (e) =>
-            e.toLowerCase().includes('password') ||
-            e.toLowerCase().includes('characters')
-        )
-      ).toBeTruthy();
+      // Should show password requirements checklist with unmet requirements (gray/muted text)
+      // The "At least 8 characters" requirement should be visible but not green (unmet)
+      const requirementText = page.locator('text=At least 8 characters');
+      await expect(requirementText).toBeVisible();
+
+      // Verify the requirement is NOT met (doesn't have green text class)
+      const requirementSpan = page.locator('span:has-text("At least 8 characters")');
+      await expect(requirementSpan).not.toHaveClass(/text-green/);
+
+      // Submit button should be disabled
+      await expect(registerPage.submitButton).toBeDisabled();
     });
 
     test('AUTH-004: Registration fails with mismatched passwords', async ({
