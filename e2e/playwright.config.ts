@@ -147,6 +147,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     env: {
+      ...process.env,
       NODE_ENV: 'test',
     },
   },
