@@ -146,10 +146,8 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-    },
+    // Don't set env - let Next.js load .env.local automatically
+    cwd: path.join(__dirname, '..'),
   },
 
   // Global setup
