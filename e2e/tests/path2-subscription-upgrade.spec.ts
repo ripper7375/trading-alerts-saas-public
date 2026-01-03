@@ -308,16 +308,27 @@ test.describe('Path 2: Subscription Upgrade', () => {
       );
     });
 
-    // SKIP: PRODUCTION CODE MISSING FEATURE
-    // Per docs/policies/07-dlocal-integration-rules.md line 109:
-    //   "When user selects Stripe plan: Always show discount code input"
-    // The pricing page currently redirects directly to Stripe without a discount input.
-    // Discount input only exists on /checkout page (dLocal flow).
-    // Options to fix:
-    //   1. Add discount input to pricing page before Stripe redirect
-    //   2. Route pricing page through /checkout for Stripe too
-    // Current workaround: Users must use URL param (?ref=CODE) for discounts
-    test.skip('SUB-009: Valid discount code reduces price', async ({ page }) => {
+    /**
+     * PRODUCTION CODE FIX REQUIRED
+     * ============================
+     * Per docs/policies/07-dlocal-integration-rules.md line 109:
+     *   "When user selects Stripe plan: Always show discount code input"
+     *
+     * CURRENT BUG: Pricing page redirects directly to Stripe without showing
+     * a discount code input. Users cannot manually enter discount codes.
+     *
+     * RECOMMENDED FIX (choose one):
+     *   1. Add DiscountCodeInput component to pricing page before Stripe redirect
+     *   2. Route Stripe checkout through /checkout page (which has the input)
+     *   3. Add an intermediate checkout step with discount code field
+     *
+     * AFFECTED FILES:
+     *   - app/(marketing)/pricing/page.tsx - handleUpgrade() function
+     *   - Potentially add: app/(marketing)/pricing/checkout-modal.tsx
+     *
+     * WORKAROUND (not ideal): Users must use URL param (?ref=CODE) for discounts
+     */
+    test('SUB-009: Valid discount code reduces price', async ({ page }) => {
       const checkoutPage = new CheckoutPage(page);
 
       await checkoutPage.goto();
@@ -325,23 +336,30 @@ test.describe('Path 2: Subscription Upgrade', () => {
 
       await page.waitForTimeout(2000);
 
-      if (await checkoutPage.discountCodeInput.isVisible()) {
-        await checkoutPage.applyDiscountCode(TEST_CODES.valid10.code);
+      // This assertion will FAIL until production code is fixed
+      // The discount code input should be visible after clicking upgrade
+      await expect(
+        checkoutPage.discountCodeInput,
+        'PRODUCTION BUG: Discount code input missing from Stripe checkout flow. ' +
+        'See docs/policies/07-dlocal-integration-rules.md line 109: ' +
+        '"When user selects Stripe plan: Always show discount code input"'
+      ).toBeVisible({ timeout: 5000 });
 
-        const isApplied = await checkoutPage.isDiscountApplied();
-        if (isApplied) {
-          const discounted = await checkoutPage.getDiscountedPrice();
-          const { finalPrice } = calculateDiscount(
-            PRICING.PRO_MONTHLY,
-            TEST_CODES.valid10.discountPercent
-          );
-          expect(discounted).toContain(finalPrice.toString().slice(0, 4));
-        }
-      }
+      await checkoutPage.applyDiscountCode(TEST_CODES.valid10.code);
+
+      const isApplied = await checkoutPage.isDiscountApplied();
+      expect(isApplied).toBe(true);
+
+      const discounted = await checkoutPage.getDiscountedPrice();
+      const { finalPrice } = calculateDiscount(
+        PRICING.PRO_MONTHLY,
+        TEST_CODES.valid10.discountPercent
+      );
+      expect(discounted).toContain(finalPrice.toString().slice(0, 4));
     });
 
-    // SKIP: See SUB-009 - discount code input missing from Stripe checkout flow
-    test.skip('SUB-010: 20% discount code applies correctly', async ({ page }) => {
+    // PRODUCTION BUG: See SUB-009 comment for details
+    test('SUB-010: 20% discount code applies correctly', async ({ page }) => {
       const checkoutPage = new CheckoutPage(page);
 
       await checkoutPage.goto();
@@ -349,19 +367,24 @@ test.describe('Path 2: Subscription Upgrade', () => {
 
       await page.waitForTimeout(2000);
 
-      if (await checkoutPage.discountCodeInput.isVisible()) {
-        await checkoutPage.applyDiscountCode(TEST_CODES.valid20.code);
+      // This assertion will FAIL until production code is fixed
+      await expect(
+        checkoutPage.discountCodeInput,
+        'PRODUCTION BUG: Discount code input missing. Fix pricing page to show input before Stripe redirect.'
+      ).toBeVisible({ timeout: 5000 });
 
-        const isApplied = await checkoutPage.isDiscountApplied();
-        if (isApplied) {
-          const discounted = await checkoutPage.getDiscountedPrice();
-          expect(discounted).toContain('23.2');
-        }
-      }
+      await checkoutPage.applyDiscountCode(TEST_CODES.valid20.code);
+
+      const isApplied = await checkoutPage.isDiscountApplied();
+      expect(isApplied).toBe(true);
+
+      // 20% off $29 = $23.20
+      const discounted = await checkoutPage.getDiscountedPrice();
+      expect(discounted).toContain('23.2');
     });
 
-    // SKIP: See SUB-009 - discount code input missing from Stripe checkout flow
-    test.skip('SUB-011: Invalid discount code shows error', async ({ page }) => {
+    // PRODUCTION BUG: See SUB-009 comment for details
+    test('SUB-011: Invalid discount code shows error', async ({ page }) => {
       const checkoutPage = new CheckoutPage(page);
 
       await checkoutPage.goto();
@@ -369,16 +392,20 @@ test.describe('Path 2: Subscription Upgrade', () => {
 
       await page.waitForTimeout(2000);
 
-      if (await checkoutPage.discountCodeInput.isVisible()) {
-        await checkoutPage.applyDiscountCode('INVALIDCODE123');
+      // This assertion will FAIL until production code is fixed
+      await expect(
+        checkoutPage.discountCodeInput,
+        'PRODUCTION BUG: Discount code input missing. Fix pricing page to show input before Stripe redirect.'
+      ).toBeVisible({ timeout: 5000 });
 
-        const error = await checkoutPage.getDiscountError();
-        expect(error).toBeTruthy();
-      }
+      await checkoutPage.applyDiscountCode('INVALIDCODE123');
+
+      const error = await checkoutPage.getDiscountError();
+      expect(error).toBeTruthy();
     });
 
-    // SKIP: See SUB-009 - discount code input missing from Stripe checkout flow
-    test.skip('SUB-012: Expired discount code is rejected', async ({ page }) => {
+    // PRODUCTION BUG: See SUB-009 comment for details
+    test('SUB-012: Expired discount code is rejected', async ({ page }) => {
       const checkoutPage = new CheckoutPage(page);
 
       await checkoutPage.goto();
@@ -386,15 +413,17 @@ test.describe('Path 2: Subscription Upgrade', () => {
 
       await page.waitForTimeout(2000);
 
-      if (await checkoutPage.discountCodeInput.isVisible()) {
-        await checkoutPage.applyDiscountCode(TEST_CODES.expired.code);
+      // This assertion will FAIL until production code is fixed
+      await expect(
+        checkoutPage.discountCodeInput,
+        'PRODUCTION BUG: Discount code input missing. Fix pricing page to show input before Stripe redirect.'
+      ).toBeVisible({ timeout: 5000 });
 
-        const error = await checkoutPage.getDiscountError();
-        expect(error).toBeTruthy();
-        if (error) {
-          expect(error.toLowerCase()).toContain('expired');
-        }
-      }
+      await checkoutPage.applyDiscountCode(TEST_CODES.expired.code);
+
+      const error = await checkoutPage.getDiscountError();
+      expect(error).toBeTruthy();
+      expect(error?.toLowerCase()).toContain('expired');
     });
   });
 
