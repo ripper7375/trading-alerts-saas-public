@@ -1,40 +1,24 @@
-# Part 20: Phase 0 - Pre-Implementation Migration Analysis
+# Part 20 - Phase 00: Pre-Implementation Migration Analysis
 
-**Purpose:** Run this BEFORE starting Part 20 Phase 1 to identify all Part 6 dependencies.
-
-**Note:** Phase 9 (Migration & Cutover) has been merged into `part-20-phase-prompts.md`. This file only contains Phase 0.
+**Purpose:** Run this BEFORE starting Phase 01 to identify all Part 6 dependencies.
 
 ---
 
-## Complete Implementation Sequence
+## Usage Instructions
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    IMPLEMENTATION ORDER                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ① Phase 0: Migration Analysis      ← THIS FILE (run first)    │
-│     └─ Identify all Part 6 dependencies                        │
-│     └─ Creates: docs/migration/part6-to-part20-analysis.md     │
-│                                                                 │
-│  ② Phases 1-8: Build Part 20        ← part-20-phase-prompts.md │
-│     └─ Part 6 continues running during development             │
-│                                                                 │
-│  ③ Phase 9: Migration & Cutover     ← part-20-phase-prompts.md │
-│     └─ Update all Part 6 references to Part 20                 │
-│     └─ Deploy and verify                                       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+1. Start a fresh Claude Code (web) chat
+2. Attach these 3 documents:
+   - `docs/build-orders/part-20-architecture-design.md`
+   - `docs/build-orders/part-20-implementation-plan.md`
+   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+3. Copy and paste the prompt below
 
 ---
 
-## Phase 0 Prompt: Pre-Implementation Migration Analysis
-
-**When to Run:** BEFORE starting Part 20 Phase 1
+## Phase 00 Prompt
 
 ```
-# Part 20 - Phase 0: Migration Analysis (Part 6 → Part 20)
+# Part 20 - Phase 00: Migration Analysis (Part 6 → Part 20)
 
 ## Context
 Before implementing Part 20 (SQLite + Sync to PostgreSQL), I need to analyze the current Part 6 (Flask MT5 Service) dependencies to understand what will need to change during migration.
@@ -211,37 +195,18 @@ docs: add Part 6 to Part 20 migration analysis
 
 ---
 
-## What Happens After Phase 0
+## What Happens After Phase 00
 
-After completing Phase 0, you will have `docs/migration/part6-to-part20-analysis.md` which:
+After completing Phase 00, you will have `docs/migration/part6-to-part20-analysis.md` which:
 1. Lists ALL files that reference Part 6
 2. Maps ALL environment variables
 3. Documents ALL integration points
 4. Provides migration risk assessment
 
-This document is used during **Phase 9 (Migration & Cutover)** to ensure nothing is missed.
+This document is used during **Phase 09 (Migration & Cutover)** to ensure nothing is missed.
 
 ---
 
-## Next Steps
+## Next Step
 
-After Phase 0:
-1. Go to `docs/build-orders/part-20-phase-prompts.md`
-2. Run Phases 1-8 in order
-3. Run Phase 9 (Migration & Cutover)
-
----
-
-## Risk Mitigation
-
-### Why Phase 0 First?
-- Identifies hidden dependencies before you start building
-- Prevents surprises during migration
-- Allows accurate effort estimation
-- Creates documentation for Phase 9
-
-### What If Phase 0 Finds Problems?
-- Document blockers in the analysis file
-- Discuss with team before proceeding
-- May need to adjust Part 20 architecture
-- Better to know now than during cutover
+After Phase 00, proceed to `part-20-phase01-prompts.md` (Database Schema Setup).
