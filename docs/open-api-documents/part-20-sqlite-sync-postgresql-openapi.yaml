@@ -1048,6 +1048,65 @@ components:
           format: date-time
         pro_indicators_enabled:
           type: boolean
+        # Market Status Fields (for timezone/trading hours handling)
+        market_status:
+          type: string
+          enum: [OPEN, CLOSED]
+          description: Current market status for this symbol
+        trading_hours:
+          $ref: '#/components/schemas/TradingHours'
+        next_market_open:
+          type: string
+          format: date-time
+          nullable: true
+          description: Next market open time in ISO 8601 UTC (null if market is open)
+        dst_active:
+          type: boolean
+          description: Is daylight saving time active on MT5 server
+        server_utc_offset:
+          type: integer
+          enum: [2, 3]
+          description: Current MT5 server UTC offset (2=standard GMT+2, 3=DST GMT+3)
+      required:
+        - symbol
+        - timeframe
+        - tier
+        - bars_returned
+        - data_source
+        - last_sync
+        - market_status
+        - trading_hours
+        - dst_active
+        - server_utc_offset
+
+    TradingHours:
+      type: object
+      description: Trading hours configuration for a symbol
+      properties:
+        open:
+          type: string
+          example: "00:04:00"
+          description: Market open time in MT5 server time (HH:MM:SS)
+        close:
+          type: string
+          example: "23:58:00"
+          description: Market close time in MT5 server time (HH:MM:SS)
+        timezone:
+          type: string
+          example: "GMT+2"
+          description: Current MT5 server timezone (GMT+2 or GMT+3)
+        days:
+          type: array
+          items:
+            type: string
+            enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+          example: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+          description: Days when market is open
+      required:
+        - open
+        - close
+        - timezone
+        - days
 
     # ============================================
     # CONFLUENCE SCHEMAS

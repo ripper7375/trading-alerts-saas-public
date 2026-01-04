@@ -77,7 +77,44 @@ Create tier validation:
 - `getAccessibleSymbols(tier)`: Returns symbol array
 - `getAccessibleTimeframes(tier)`: Returns timeframe array
 
-### 5. `app/api/indicators/[symbol]/[timeframe]/route.ts`
+### 5. `lib/market-hours/trading-sessions.ts`
+Create market hours configuration for all 15 symbols:
+```typescript
+export const SYMBOL_TRADING_HOURS = {
+  // 24/7 Crypto
+  BTCUSD: { type: '24/7', days: ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'], open: '00:00:00', close: '23:59:59' },
+  ETHUSD: { type: '24/7', days: ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'], open: '00:00:00', close: '23:59:59' },
+
+  // Forex (Mon-Fri)
+  EURUSD: { type: 'forex', days: ['monday','tuesday','wednesday','thursday','friday'], open: '00:04:00', close: '23:58:00' },
+  USDJPY: { type: 'forex', days: ['monday','tuesday','wednesday','thursday','friday'], open: '00:04:00', close: '23:58:00' },
+  // ... (all forex pairs with same hours)
+
+  // Indices
+  US30: { type: 'index', days: ['monday','tuesday','wednesday','thursday','friday'], open: '01:00:00', close: '24:00:00' },
+  NDX100: { type: 'index', days: ['monday','tuesday','wednesday','thursday','friday'], open: '01:00:00', close: '24:00:00' },
+
+  // Metals
+  XAUUSD: { type: 'metal', days: ['monday','tuesday','wednesday','thursday','friday'], open: '01:01:00', close: '23:59:00' },
+  XAGUSD: { type: 'metal', days: ['monday','tuesday','wednesday','thursday','friday'], open: '01:01:00', close: '23:59:00' },
+};
+
+// DST configuration
+export function isDSTActive(): boolean;
+export function getServerUTCOffset(): 2 | 3;
+export function getCurrentMT5ServerTime(): Date;
+```
+
+### 6. `lib/market-hours/validator.ts`
+Create market hours validation utilities:
+```typescript
+export function isMarketOpen(symbol: string, timestamp?: Date): boolean;
+export function getNextMarketOpen(symbol: string): Date | null;
+export function getTradingHoursForSymbol(symbol: string): TradingHours;
+export function getMarketStatus(symbol: string): 'OPEN' | 'CLOSED';
+```
+
+### 7. `app/api/indicators/[symbol]/[timeframe]/route.ts`
 Create main indicators endpoint:
 - GET handler with params { symbol, timeframe }
 - Validate symbol and timeframe against allowed values
@@ -85,22 +122,23 @@ Create main indicators endpoint:
 - Call validateTierAccess, return 403 if denied
 - Parse `limit` query param (default 1000, max 10000)
 - Call getIndicatorData
+- **Include market status metadata in response** (use market-hours utilities)
 - Return response matching OpenAPI schema
 - Handle errors with 500 response
 
-### 6. `app/api/indicators/health/route.ts`
+### 8. `app/api/indicators/health/route.ts`
 Create health endpoint:
 - GET handler (no auth required)
 - Check PostgreSQL connection
 - Return status, version, table count
 
-### 7. `app/api/symbols/route.ts`
+### 9. `app/api/symbols/route.ts`
 Create symbols endpoint:
 - GET handler
 - Get user tier from session
 - Return filtered symbols based on tier
 
-### 8. `app/api/timeframes/route.ts`
+### 10. `app/api/timeframes/route.ts`
 Create timeframes endpoint:
 - GET handler
 - Get user tier from session
@@ -111,6 +149,8 @@ Create timeframes endpoint:
 - Use existing NextAuth.js session handling
 - All responses must match OpenAPI specification
 - Include proper TypeScript types throughout
+- **All timestamps are stored as Unix timestamps (UTC-based)** - convert for display as needed
+- **Include market status metadata** in indicator responses (OPEN/CLOSED, trading hours, DST info)
 
 ## Success Criteria
 - [ ] All TypeScript files compile without errors
@@ -119,6 +159,8 @@ Create timeframes endpoint:
 - [ ] Response format matches Part 6 API
 - [ ] Health endpoint returns correct status
 - [ ] Symbols/timeframes endpoints work
+- [ ] Market status metadata included in responses (market_status, trading_hours, dst_active)
+- [ ] isMarketOpen() correctly identifies open/closed state for each symbol type
 
 ## Testing Commands
 ```bash
@@ -140,6 +182,8 @@ feat(api): add Next.js API routes for indicator data
 - Replace Flask endpoints with Next.js API routes
 - Add PostgreSQL query layer
 - Implement tier-based access control
+- Add market hours utilities with DST handling
+- Include market status metadata in responses
 - Match Part 6 API response format
 - Add TypeScript types for indicators
 ```
