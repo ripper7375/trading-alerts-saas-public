@@ -8,9 +8,9 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
@@ -86,13 +86,16 @@ Create test seed data:
 ## Commit Instructions
 After creating all files, commit with message:
 ```
+
 feat(db): add Part 20 database schemas for SQLite and PostgreSQL
 
 - Add SQLite schema for 15 symbol tables (local MT5 data)
 - Add PostgreSQL schema for 135 timeframe tables (cloud)
 - Configure TimescaleDB hypertables and retention policies
 - Add seed data for development testing
+
 ```
+
 ```
 
 ---

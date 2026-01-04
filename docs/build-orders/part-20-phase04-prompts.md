@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 04 Prompt
 
-```
+````
 # Part 20 - Phase 04: Next.js API Routes
 
 ## Context
@@ -103,10 +103,12 @@ export const SYMBOL_TRADING_HOURS = {
 export function isDSTActive(): boolean;
 export function getServerUTCOffset(): 2 | 3;
 export function getCurrentMT5ServerTime(): Date;
-```
+````
 
 ### 6. `lib/market-hours/validator.ts`
+
 Create market hours validation utilities:
+
 ```typescript
 export function isMarketOpen(symbol: string, timestamp?: Date): boolean;
 export function getNextMarketOpen(symbol: string): Date | null;
@@ -115,7 +117,9 @@ export function getMarketStatus(symbol: string): 'OPEN' | 'CLOSED';
 ```
 
 ### 7. `app/api/indicators/[symbol]/[timeframe]/route.ts`
+
 Create main indicators endpoint:
+
 - GET handler with params { symbol, timeframe }
 - Validate symbol and timeframe against allowed values
 - Get session and user tier (default FREE)
@@ -127,24 +131,31 @@ Create main indicators endpoint:
 - Handle errors with 500 response
 
 ### 8. `app/api/indicators/health/route.ts`
+
 Create health endpoint:
+
 - GET handler (no auth required)
 - Check PostgreSQL connection
 - Return status, version, table count
 
 ### 9. `app/api/symbols/route.ts`
+
 Create symbols endpoint:
+
 - GET handler
 - Get user tier from session
 - Return filtered symbols based on tier
 
 ### 10. `app/api/timeframes/route.ts`
+
 Create timeframes endpoint:
+
 - GET handler
 - Get user tier from session
 - Return filtered timeframes based on tier
 
 ## Important Notes
+
 - Match Part 6 API response format for frontend compatibility
 - Use existing NextAuth.js session handling
 - All responses must match OpenAPI specification
@@ -153,6 +164,7 @@ Create timeframes endpoint:
 - **Include market status metadata** in indicator responses (OPEN/CLOSED, trading hours, DST info)
 
 ## Success Criteria
+
 - [ ] All TypeScript files compile without errors
 - [ ] GET /api/indicators/EURUSD/H1 returns data
 - [ ] Tier validation blocks unauthorized access
@@ -163,6 +175,7 @@ Create timeframes endpoint:
 - [ ] isMarketOpen() correctly identifies open/closed state for each symbol type
 
 ## Testing Commands
+
 ```bash
 # Start dev server
 npm run dev
@@ -175,7 +188,9 @@ curl http://localhost:3000/api/indicators/EURUSD/H1
 ```
 
 ## Commit Instructions
+
 After creating all files, commit with message:
+
 ```
 feat(api): add Next.js API routes for indicator data
 
@@ -187,6 +202,7 @@ feat(api): add Next.js API routes for indicator data
 - Match Part 6 API response format
 - Add TypeScript types for indicators
 ```
+
 ```
 
 ---
@@ -194,3 +210,4 @@ feat(api): add Next.js API routes for indicator data
 ## Next Step
 
 After Phase 04, proceed to `part-20-phase05-prompts.md` (Redis Caching Layer).
+```
