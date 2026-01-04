@@ -1,0 +1,1283 @@
+openapi: 3.0.3
+info:
+  title: Part 20 - SQLite + Sync to PostgreSQL API
+  version: 1.0.0
+  description: |
+    Trading Alerts SaaS - Part 20 API Specification
+
+    **Supersedes:** Part 6 (Flask MT5 Service + Python MT5 API)
+
+    ## Architecture Overview
+
+    This API provides access to indicator data collected from MT5 terminals via MQL5 Services,
+    stored locally in SQLite, and synced to PostgreSQL with TimescaleDB.
+
+    **Data Flow:**
+    ```
+    MT5 Terminal → MQL5 Service → SQLite → Sync Script → PostgreSQL → API → Frontend
+    ```
+
+    **Key Improvements over Part 6:**
+    - 100% accurate indicator values (read directly from MT5 via CopyBuffer)
+    - 135 timeframe-specific tables (15 symbols × 9 timeframes)
+    - Redis caching for sub-millisecond access
+    - TimescaleDB for efficient time-series queries
+    - Confluence score calculation (117 indicators across 9 timeframes)
+
+    ## Supported Symbols (15)
+    AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD
+
+    ## Supported Timeframes (9)
+    M5, M15, M30, H1, H2, H4, H8, H12, D1
+
+    ## Tier-Based Access
+    - **FREE tier:** 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) × 3 timeframes (H1, H4, D1)
+    - **PRO tier:** 15 symbols × 9 timeframes + Confluence Score feature
+
+    ## Indicators (13)
+    1. OHLC (open, high, low, close)
+    2. Fractals (peaks and bottoms)
+    3. Horizontal Trendlines (support/resistance)
+    4. Diagonal Trendlines (ascending/descending)
+    5. Momentum Candles (body size analysis)
+    6. Keltner Channels (10-band volatility)
+    7. TEMA (Triple Exponential Moving Average)
+    8. HRMA (Hull-like Responsive Moving Average)
+    9. SMMA (Smoothed Moving Average)
+    10. ZigZag (market structure)
+
+  contact:
+    name: Trading Alerts SaaS Support
+    email: support@tradingalerts.com
+  license:
+    name: Proprietary
+    url: https://tradingalerts.com/license
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+  - url: https://tradingalerts.com/api
+    description: Production
+
+tags:
+  - name: System
+    description: Health checks and system status
+  - name: Indicators
+    description: Indicator data retrieval (tier-gated)
+  - name: Confluence
+    description: Multi-timeframe confluence analysis (PRO only)
+  - name: Metadata
+    description: Symbols and timeframes information
+  - name: Admin
+    description: Administrative endpoints (admin-only)
+
+security:
+  - SessionAuth: []
+
+paths:
+  # ============================================
+  # SYSTEM ENDPOINTS
+  # ============================================
+  /health:
+    get:
+      tags:
+        - System
+      summary: Overall system health check
+      description: |
+        Check if the trading data system is operational.
+        Returns status of PostgreSQL, Redis, and data freshness.
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                version: '20.0.0'
+                components:
+                  postgresql:
+                    connected: true
+                    tables: 135
+                    latency_ms: 5
+                  redis:
+                    connected: true
+                    hit_rate: 0.85
+                    latency_ms: 1
+                  data_freshness:
+                    last_sync: '2026-01-03T12:00:30Z'
+                    sync_interval_seconds: 30
+                    symbols_updated: 15
+        '503':
+          description: System unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health/postgresql:
+    get:
+      tags:
+        - System
+      summary: PostgreSQL database health
+      description: Check PostgreSQL connection and table status.
+      security: []
+      responses:
+        '200':
+          description: PostgreSQL is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostgresHealthResponse'
+
+  /health/redis:
+    get:
+      tags:
+        - System
+      summary: Redis cache health
+      description: Check Redis connection and cache statistics.
+      security: []
+      responses:
+        '200':
+          description: Redis is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedisHealthResponse'
+
+  /health/sync:
+    get:
+      tags:
+        - System
+      summary: Sync script status
+      description: Check when data was last synced from SQLite to PostgreSQL.
+      security: []
+      responses:
+        '200':
+          description: Sync status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncHealthResponse'
+
+  # ============================================
+  # METADATA ENDPOINTS
+  # ============================================
+  /symbols:
+    get:
+      tags:
+        - Metadata
+      summary: Get accessible symbols by tier
+      description: Returns list of symbols accessible by the requesting user's tier.
+      responses:
+        '200':
+          description: List of accessible symbols
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymbolsResponse'
+              examples:
+                free_tier:
+                  summary: FREE tier response
+                  value:
+                    success: true
+                    tier: FREE
+                    symbols:
+                      - BTCUSD
+                      - EURUSD
+                      - USDJPY
+                      - US30
+                      - XAUUSD
+                    total_count: 5
+                pro_tier:
+                  summary: PRO tier response
+                  value:
+                    success: true
+                    tier: PRO
+                    symbols:
+                      - AUDJPY
+                      - AUDUSD
+                      - BTCUSD
+                      - ETHUSD
+                      - EURUSD
+                      - GBPJPY
+                      - GBPUSD
+                      - NDX100
+                      - NZDUSD
+                      - US30
+                      - USDCAD
+                      - USDCHF
+                      - USDJPY
+                      - XAGUSD
+                      - XAUUSD
+                    total_count: 15
+
+  /timeframes:
+    get:
+      tags:
+        - Metadata
+      summary: Get accessible timeframes by tier
+      description: Returns list of timeframes accessible by the requesting user's tier.
+      responses:
+        '200':
+          description: List of accessible timeframes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeframesResponse'
+              examples:
+                free_tier:
+                  summary: FREE tier timeframes
+                  value:
+                    success: true
+                    tier: FREE
+                    timeframes:
+                      - H1
+                      - H4
+                      - D1
+                    total_count: 3
+                pro_tier:
+                  summary: PRO tier timeframes
+                  value:
+                    success: true
+                    tier: PRO
+                    timeframes:
+                      - M5
+                      - M15
+                      - M30
+                      - H1
+                      - H2
+                      - H4
+                      - H8
+                      - H12
+                      - D1
+                    total_count: 9
+
+  # ============================================
+  # INDICATORS ENDPOINTS
+  # ============================================
+  /indicators/{symbol}/{timeframe}:
+    get:
+      tags:
+        - Indicators
+      summary: Get indicator data for symbol and timeframe
+      description: |
+        Retrieves all indicator data from PostgreSQL for the specified symbol and timeframe.
+
+        **Data Storage Rules:**
+        - OHLC and most indicators: Full 10,000 entry history
+        - Fractals, horizontal_trendlines, diagonal_trendlines: Only latest MT5 values
+          (older timestamps return null for these dynamic indicators)
+
+        **Caching:**
+        - Results cached in Redis with 30-second TTL (matching sync interval)
+        - Cache key: `indicators:{symbol}:{timeframe}:latest`
+
+        **Access Control:**
+        - Validates tier access to BOTH symbol AND timeframe
+        - Returns 403 if user tier cannot access requested combination
+      parameters:
+        - $ref: '#/components/parameters/SymbolPath'
+        - $ref: '#/components/parameters/TimeframePath'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Indicator data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndicatorDataResponse'
+        '400':
+          description: Invalid symbol or timeframe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Tier access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TierAccessDeniedResponse'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================
+  # CONFLUENCE ENDPOINTS (PRO ONLY)
+  # ============================================
+  /confluence/{symbol}:
+    get:
+      tags:
+        - Confluence
+      summary: Calculate multi-timeframe confluence score
+      description: |
+        **PRO tier only feature.**
+
+        Calculates confluence score by analyzing 117 indicators (13 indicators × 9 timeframes)
+        at a specific point in time.
+
+        **How Confluence Works:**
+        1. Fetches all 13 indicators for each of 9 timeframes
+        2. Detects bullish/bearish/neutral signals per timeframe
+        3. Calculates alignment score (how many timeframes agree)
+        4. Calculates strength score (how strong the signals are)
+        5. Returns overall confluence score (0-10 scale)
+
+        **Use Case:**
+        Compare confluence scores at different timestamps to find high-probability
+        trading opportunities when multiple timeframes align.
+
+        **Caching:**
+        - Results cached with 30-second TTL
+        - Historical confluences are cached indefinitely
+      parameters:
+        - $ref: '#/components/parameters/SymbolPath'
+        - name: timestamp
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            Timestamp to calculate confluence for.
+            Defaults to current time if not specified.
+          example: '2026-01-03T17:00:00Z'
+      responses:
+        '200':
+          description: Confluence score calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceResponse'
+        '403':
+          description: PRO tier required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: PRO tier required for confluence analysis
+                upgrade_required: true
+        '500':
+          description: Calculation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /confluence/{symbol}/compare:
+    get:
+      tags:
+        - Confluence
+      summary: Compare confluence scores across time periods
+      description: |
+        **PRO tier only feature.**
+
+        Compares confluence scores between two timestamps to identify
+        trend changes and potential entry/exit points.
+      parameters:
+        - $ref: '#/components/parameters/SymbolPath'
+        - name: timestamp1
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: First timestamp for comparison
+        - name: timestamp2
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Second timestamp for comparison
+      responses:
+        '200':
+          description: Comparison completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceCompareResponse'
+        '403':
+          description: PRO tier required
+
+  # ============================================
+  # ADMIN ENDPOINTS
+  # ============================================
+  /admin/sync/status:
+    get:
+      tags:
+        - Admin
+      summary: Get detailed sync status (Admin only)
+      description: |
+        Returns detailed information about the SQLite to PostgreSQL sync process.
+        Includes per-symbol sync timestamps and error logs.
+      security:
+        - AdminApiKey: []
+      responses:
+        '200':
+          description: Sync status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSyncStatusResponse'
+        '403':
+          description: Admin access required
+
+  /admin/sync/trigger:
+    post:
+      tags:
+        - Admin
+      summary: Manually trigger sync (Admin only)
+      description: |
+        Force an immediate sync from SQLite to PostgreSQL.
+        Use sparingly as it may impact performance.
+      security:
+        - AdminApiKey: []
+      responses:
+        '200':
+          description: Sync triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  sync_id:
+                    type: string
+        '403':
+          description: Admin access required
+
+  /admin/cache/clear:
+    post:
+      tags:
+        - Admin
+      summary: Clear Redis cache (Admin only)
+      description: |
+        Clear all cached indicator data from Redis.
+        Next requests will fetch fresh data from PostgreSQL.
+      security:
+        - AdminApiKey: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pattern:
+                  type: string
+                  description: Optional pattern to clear specific keys (e.g., "indicators:EURUSD:*")
+      responses:
+        '200':
+          description: Cache cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  keys_cleared:
+                    type: integer
+
+  /admin/tables/stats:
+    get:
+      tags:
+        - Admin
+      summary: Get table statistics (Admin only)
+      description: Returns row counts and size for all 135 PostgreSQL tables.
+      security:
+        - AdminApiKey: []
+      responses:
+        '200':
+          description: Table stats retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTableStatsResponse'
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js session cookie
+
+    AdminApiKey:
+      type: apiKey
+      in: header
+      name: X-Admin-API-Key
+      description: Admin API key for administrative operations
+
+  parameters:
+    SymbolPath:
+      name: symbol
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Symbol'
+      description: Trading symbol (case-insensitive, suffix-agnostic)
+      example: EURUSD
+
+    TimeframePath:
+      name: timeframe
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Timeframe'
+      description: Chart timeframe
+      example: H1
+
+    LimitQuery:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 10000
+        default: 1000
+      description: Number of data points to retrieve (max 10,000)
+
+  schemas:
+    # ============================================
+    # ENUMS
+    # ============================================
+    Symbol:
+      type: string
+      enum:
+        - AUDJPY
+        - AUDUSD
+        - BTCUSD
+        - ETHUSD
+        - EURUSD
+        - GBPJPY
+        - GBPUSD
+        - NDX100
+        - NZDUSD
+        - US30
+        - USDCAD
+        - USDCHF
+        - USDJPY
+        - XAGUSD
+        - XAUUSD
+      description: |
+        15 supported trading symbols.
+        - FREE tier: BTCUSD, EURUSD, USDJPY, US30, XAUUSD (5 symbols)
+        - PRO tier: All 15 symbols
+
+    Timeframe:
+      type: string
+      enum:
+        - M5
+        - M15
+        - M30
+        - H1
+        - H2
+        - H4
+        - H8
+        - H12
+        - D1
+      description: |
+        9 supported timeframes.
+        - FREE tier: H1, H4, D1 (3 timeframes)
+        - PRO tier: All 9 timeframes
+
+    UserTier:
+      type: string
+      enum:
+        - FREE
+        - PRO
+      description: User subscription tier
+
+    # ============================================
+    # HEALTH RESPONSES
+    # ============================================
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, error]
+        version:
+          type: string
+          example: '20.0.0'
+        components:
+          type: object
+          properties:
+            postgresql:
+              type: object
+              properties:
+                connected:
+                  type: boolean
+                tables:
+                  type: integer
+                latency_ms:
+                  type: number
+            redis:
+              type: object
+              properties:
+                connected:
+                  type: boolean
+                hit_rate:
+                  type: number
+                latency_ms:
+                  type: number
+            data_freshness:
+              type: object
+              properties:
+                last_sync:
+                  type: string
+                  format: date-time
+                sync_interval_seconds:
+                  type: integer
+                symbols_updated:
+                  type: integer
+      required:
+        - status
+        - version
+        - components
+
+    PostgresHealthResponse:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        tables:
+          type: integer
+          description: Number of tables (should be 135)
+        latency_ms:
+          type: number
+        version:
+          type: string
+        timescaledb_version:
+          type: string
+
+    RedisHealthResponse:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        hit_rate:
+          type: number
+          description: Cache hit rate (0-1)
+        memory_used_mb:
+          type: number
+        keys_count:
+          type: integer
+        latency_ms:
+          type: number
+
+    SyncHealthResponse:
+      type: object
+      properties:
+        last_sync:
+          type: string
+          format: date-time
+        sync_interval_seconds:
+          type: integer
+        next_sync:
+          type: string
+          format: date-time
+        symbols_status:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              last_updated:
+                type: string
+                format: date-time
+              rows_synced:
+                type: integer
+
+    # ============================================
+    # METADATA RESPONSES
+    # ============================================
+    SymbolsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        symbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/Symbol'
+        total_count:
+          type: integer
+      required:
+        - success
+        - tier
+        - symbols
+        - total_count
+
+    TimeframesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        timeframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timeframe'
+        total_count:
+          type: integer
+      required:
+        - success
+        - tier
+        - timeframes
+        - total_count
+
+    # ============================================
+    # INDICATOR DATA SCHEMAS
+    # ============================================
+    IndicatorDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/IndicatorData'
+      required:
+        - success
+        - data
+
+    IndicatorData:
+      type: object
+      properties:
+        ohlc:
+          type: array
+          items:
+            $ref: '#/components/schemas/OHLCBar'
+        fractals:
+          $ref: '#/components/schemas/Fractals'
+        horizontal_trendlines:
+          $ref: '#/components/schemas/HorizontalTrendlines'
+        diagonal_trendlines:
+          $ref: '#/components/schemas/DiagonalTrendlines'
+        momentum_candles:
+          type: array
+          items:
+            $ref: '#/components/schemas/MomentumCandle'
+        keltner_channels:
+          $ref: '#/components/schemas/KeltnerChannels'
+        tema:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        hrma:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        smma:
+          type: array
+          items:
+            type: number
+            format: double
+            nullable: true
+        zigzag:
+          $ref: '#/components/schemas/ZigZag'
+        metadata:
+          $ref: '#/components/schemas/IndicatorMetadata'
+      required:
+        - ohlc
+        - fractals
+        - horizontal_trendlines
+        - diagonal_trendlines
+        - momentum_candles
+        - keltner_channels
+        - tema
+        - hrma
+        - smma
+        - zigzag
+        - metadata
+
+    OHLCBar:
+      type: object
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp
+        open:
+          type: number
+          format: double
+        high:
+          type: number
+          format: double
+        low:
+          type: number
+          format: double
+        close:
+          type: number
+          format: double
+        volume:
+          type: integer
+      required:
+        - time
+        - open
+        - high
+        - low
+        - close
+
+    Fractals:
+      type: object
+      description: |
+        Fractal markers. Only contains latest MT5 values.
+        Older timestamps not calculated by MT5 will have null fractals.
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/FractalPoint'
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/FractalPoint'
+
+    FractalPoint:
+      type: object
+      properties:
+        index:
+          type: integer
+        time:
+          type: integer
+        price:
+          type: number
+          format: double
+
+    HorizontalTrendlines:
+      type: object
+      description: |
+        Horizontal support/resistance lines.
+        Only contains latest MT5 values (dynamic indicator).
+      properties:
+        peak_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        peak_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        peak_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        bottom_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        bottom_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        bottom_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+
+    DiagonalTrendlines:
+      type: object
+      description: |
+        Diagonal trend lines.
+        Only contains latest MT5 values (dynamic indicator).
+      properties:
+        ascending_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        ascending_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        ascending_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        descending_1:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        descending_2:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+        descending_3:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinePoint'
+
+    LinePoint:
+      type: object
+      properties:
+        index:
+          type: integer
+        value:
+          type: number
+          format: double
+
+    MomentumCandle:
+      type: object
+      properties:
+        index:
+          type: integer
+        type:
+          type: integer
+          enum: [1, 2, 4, 5]
+          description: |
+            1: UP_LARGE, 2: UP_EXTREME, 4: DOWN_LARGE, 5: DOWN_EXTREME
+        zscore:
+          type: number
+          format: double
+
+    KeltnerChannels:
+      type: object
+      properties:
+        ultra_extreme_upper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        extreme_upper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upper_most:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upper_middle:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lower_middle:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lower:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lower_most:
+          type: array
+          items:
+            type: number
+            nullable: true
+        extreme_lower:
+          type: array
+          items:
+            type: number
+            nullable: true
+        ultra_extreme_lower:
+          type: array
+          items:
+            type: number
+            nullable: true
+
+    ZigZag:
+      type: object
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+
+    ZigZagPoint:
+      type: object
+      properties:
+        index:
+          type: integer
+        price:
+          type: number
+          format: double
+        time:
+          type: integer
+
+    IndicatorMetadata:
+      type: object
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        bars_returned:
+          type: integer
+        data_source:
+          type: string
+          enum: [postgresql, cache]
+          description: Where data was retrieved from
+        last_sync:
+          type: string
+          format: date-time
+        pro_indicators_enabled:
+          type: boolean
+
+    # ============================================
+    # CONFLUENCE SCHEMAS
+    # ============================================
+    ConfluenceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timestamp:
+          type: string
+          format: date-time
+        confluence_score:
+          type: number
+          format: double
+          description: Score from 0-10
+          example: 7.5
+        max_score:
+          type: integer
+          example: 10
+        signals:
+          type: object
+          properties:
+            bullish:
+              type: integer
+              description: Number of bullish timeframes
+            bearish:
+              type: integer
+              description: Number of bearish timeframes
+            neutral:
+              type: integer
+              description: Number of neutral timeframes
+        breakdown:
+          type: object
+          description: Per-timeframe signal breakdown
+          additionalProperties:
+            $ref: '#/components/schemas/TimeframeSignal'
+        all_117_indicators:
+          type: object
+          description: |
+            All 117 indicator values (13 indicators × 9 timeframes).
+            Keyed by timeframe (M5, M15, M30, H1, H2, H4, H8, H12, D1).
+          additionalProperties:
+            type: object
+
+    TimeframeSignal:
+      type: object
+      properties:
+        trend:
+          type: string
+          enum: [bullish, bearish, neutral]
+        strength:
+          type: number
+          format: double
+          description: Signal strength (0-1)
+        signals:
+          type: array
+          items:
+            type: object
+            properties:
+              indicator:
+                type: string
+              direction:
+                type: string
+              weight:
+                type: number
+
+    ConfluenceCompareResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        comparison:
+          type: object
+          properties:
+            timestamp1:
+              type: string
+              format: date-time
+            timestamp2:
+              type: string
+              format: date-time
+            score1:
+              type: number
+            score2:
+              type: number
+            score_change:
+              type: number
+            trend_change:
+              type: string
+              enum:
+                [
+                  stronger_bullish,
+                  weaker_bullish,
+                  stronger_bearish,
+                  weaker_bearish,
+                  no_change,
+                ]
+        analysis:
+          type: string
+          description: Human-readable analysis of the comparison
+
+    # ============================================
+    # ERROR SCHEMAS
+    # ============================================
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+      required:
+        - success
+        - error
+
+    TierAccessDeniedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        accessible_symbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/Symbol'
+        accessible_timeframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timeframe'
+        upgrade_required:
+          type: boolean
+          example: true
+
+    # ============================================
+    # ADMIN SCHEMAS
+    # ============================================
+    AdminSyncStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        sync_process:
+          type: object
+          properties:
+            running:
+              type: boolean
+            pid:
+              type: integer
+            started_at:
+              type: string
+              format: date-time
+            last_run:
+              type: string
+              format: date-time
+            next_run:
+              type: string
+              format: date-time
+        symbols:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              last_sync:
+                type: string
+                format: date-time
+              rows_pending:
+                type: integer
+              last_error:
+                type: string
+                nullable: true
+        errors_24h:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              symbol:
+                type: string
+              error:
+                type: string
+
+    AdminTableStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        total_tables:
+          type: integer
+          example: 135
+        total_rows:
+          type: integer
+        total_size_mb:
+          type: number
+        tables:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: eurusd_h1
+              rows:
+                type: integer
+              size_mb:
+                type: number
+              oldest_timestamp:
+                type: string
+                format: date-time
+              newest_timestamp:
+                type: string
+                format: date-time
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: Authentication required
