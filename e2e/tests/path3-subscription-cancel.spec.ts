@@ -303,6 +303,27 @@ test.describe('Path 3: Subscription Cancellation', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   test.describe('Resubscription After Cancellation', () => {
+    /**
+     * PRODUCTION CODE FIX REQUIRED
+     * ============================
+     * The billing page (app/(dashboard)/settings/billing/page.tsx) does NOT
+     * handle cancelled subscription state differently from active subscriptions.
+     *
+     * CURRENT BUG:
+     *   - Cancelled PRO users see same UI as active PRO users
+     *   - No "Resubscribe" or "Renew" button exists for cancelled users
+     *   - "Manage Subscription" button shown but doesn't handle resubscription
+     *
+     * EXPECTED BEHAVIOR:
+     *   - Cancelled users should see "Resubscribe" or "Renew Subscription" button
+     *   - UI should indicate subscription is cancelled with expiry date
+     *   - Clear path to re-enable subscription
+     *
+     * RECOMMENDED FIX:
+     *   1. Check subscription.cancelledAt in the billing page
+     *   2. Show different UI for cancelled vs active subscriptions
+     *   3. Add "Resubscribe" button that redirects to checkout/pricing
+     */
     test('CAN-012: Resubscribe option available after cancellation', async ({
       page,
     }) => {
@@ -319,11 +340,13 @@ test.describe('Path 3: Subscription Cancellation', () => {
       await settingsPage.goToSubscriptionTab();
 
       // Look for resubscribe or upgrade button after cancellation
+      // PRODUCTION BUG: Billing page doesn't show resubscribe option
       const content = await page.content();
       expect(
         content.toLowerCase().includes('resubscribe') ||
-          content.toLowerCase().includes('upgrade') ||
-          content.toLowerCase().includes('renew')
+          content.toLowerCase().includes('renew'),
+        'PRODUCTION BUG: No resubscribe/renew option shown for cancelled users. ' +
+        'Billing page needs to handle cancelled subscription state with a resubscribe button.'
       ).toBeTruthy();
     });
   });
