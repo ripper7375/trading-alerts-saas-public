@@ -30,33 +30,34 @@
 
 ### 1.1 Total Scope
 
-| Metric | Count |
-|--------|-------|
-| Total Phases | 9 |
-| Total Files | ~45 files |
-| MQL5 Files | 3 files |
-| Python Files | 8 files |
-| TypeScript Files | 25 files |
-| SQL Files | 4 files |
-| Config Files | 5 files |
+| Metric           | Count     |
+| ---------------- | --------- |
+| Total Phases     | 9         |
+| Total Files      | ~45 files |
+| MQL5 Files       | 3 files   |
+| Python Files     | 8 files   |
+| TypeScript Files | 25 files  |
+| SQL Files        | 4 files   |
+| Config Files     | 5 files   |
 
 ### 1.2 Phase Summary
 
-| Phase | Description | Files | Dependencies |
-|-------|-------------|-------|--------------|
-| 1 | Database Schema Setup | 4 | None |
-| 2 | MQL5 Service Development | 3 | Phase 1 |
-| 3 | Sync Script Development | 5 | Phases 1, 2 |
-| 4 | Next.js API Routes | 8 | Phase 3 |
-| 5 | Redis Caching Layer | 4 | Phase 4 |
-| 6 | Confluence Score System | 6 | Phases 4, 5 |
-| 7 | Testing Framework | 10 | Phases 1-6 |
-| 8 | E2E Testing Migration | 3 | Phase 7 |
-| 9 | Deployment & Cutover | 2 | All previous |
+| Phase | Description              | Files | Dependencies |
+| ----- | ------------------------ | ----- | ------------ |
+| 1     | Database Schema Setup    | 4     | None         |
+| 2     | MQL5 Service Development | 3     | Phase 1      |
+| 3     | Sync Script Development  | 5     | Phases 1, 2  |
+| 4     | Next.js API Routes       | 8     | Phase 3      |
+| 5     | Redis Caching Layer      | 4     | Phase 4      |
+| 6     | Confluence Score System  | 6     | Phases 4, 5  |
+| 7     | Testing Framework        | 10    | Phases 1-6   |
+| 8     | E2E Testing Migration    | 3     | Phase 7      |
+| 9     | Deployment & Cutover     | 2     | All previous |
 
 ### 1.3 Context Window Management
 
 Each phase is designed to stay within AI context limits:
+
 - **Max files per phase:** 10
 - **Max code per phase:** ~15,000 tokens
 - **Clear phase boundaries:** Each phase produces testable output
@@ -111,12 +112,12 @@ Create database schemas for SQLite (local) and PostgreSQL (cloud) with proper in
 
 ### 3.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `sql/sqlite_schema.sql` | SQLite schema for 15 symbol tables |
-| 2 | `sql/postgresql_schema.sql` | PostgreSQL schema for 135 tables |
-| 3 | `sql/timescaledb_setup.sql` | TimescaleDB hypertables and policies |
-| 4 | `sql/seed_data.sql` | Test data for development |
+| #   | File Path                   | Description                          |
+| --- | --------------------------- | ------------------------------------ |
+| 1   | `sql/sqlite_schema.sql`     | SQLite schema for 15 symbol tables   |
+| 2   | `sql/postgresql_schema.sql` | PostgreSQL schema for 135 tables     |
+| 3   | `sql/timescaledb_setup.sql` | TimescaleDB hypertables and policies |
+| 4   | `sql/seed_data.sql`         | Test data for development            |
 
 ### 3.3 File 1: SQLite Schema
 
@@ -266,11 +267,11 @@ Create MQL5 Service that runs inside MT5 terminals, reads indicator buffers, and
 
 ### 4.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `mql5/Services/DataCollector.mq5` | Main MQL5 Service |
-| 2 | `mql5/Include/IndicatorBuffers.mqh` | Indicator buffer reading functions |
-| 3 | `mql5/Include/SymbolUtils.mqh` | Symbol suffix handling utilities |
+| #   | File Path                           | Description                        |
+| --- | ----------------------------------- | ---------------------------------- |
+| 1   | `mql5/Services/DataCollector.mq5`   | Main MQL5 Service                  |
+| 2   | `mql5/Include/IndicatorBuffers.mqh` | Indicator buffer reading functions |
+| 3   | `mql5/Include/SymbolUtils.mqh`      | Symbol suffix handling utilities   |
 
 ### 4.3 File 1: MQL5 Service
 
@@ -570,13 +571,13 @@ Create Python sync script that transfers data from SQLite to PostgreSQL, filteri
 
 ### 5.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `sync/sync_to_postgresql.py` | Main sync script |
-| 2 | `sync/timeframe_filter.py` | Timeframe filtering logic |
-| 3 | `sync/db_connections.py` | Database connection management |
-| 4 | `sync/config.py` | Configuration settings |
-| 5 | `sync/requirements.txt` | Python dependencies |
+| #   | File Path                    | Description                    |
+| --- | ---------------------------- | ------------------------------ |
+| 1   | `sync/sync_to_postgresql.py` | Main sync script               |
+| 2   | `sync/timeframe_filter.py`   | Timeframe filtering logic      |
+| 3   | `sync/db_connections.py`     | Database connection management |
+| 4   | `sync/config.py`             | Configuration settings         |
+| 5   | `sync/requirements.txt`      | Python dependencies            |
 
 ### 5.3 File 1: Main Sync Script
 
@@ -868,16 +869,16 @@ Create Next.js API routes to serve indicator data from PostgreSQL, replacing Fla
 
 ### 6.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `app/api/indicators/[symbol]/[timeframe]/route.ts` | Main indicators endpoint |
-| 2 | `app/api/indicators/health/route.ts` | Health check endpoint |
-| 3 | `app/api/symbols/route.ts` | Available symbols endpoint |
-| 4 | `app/api/timeframes/route.ts` | Available timeframes endpoint |
-| 5 | `lib/db/postgresql.ts` | PostgreSQL client |
-| 6 | `lib/db/queries.ts` | Database query functions |
-| 7 | `lib/indicators/types.ts` | TypeScript types |
-| 8 | `lib/tier/validation.ts` | Tier access validation |
+| #   | File Path                                          | Description                   |
+| --- | -------------------------------------------------- | ----------------------------- |
+| 1   | `app/api/indicators/[symbol]/[timeframe]/route.ts` | Main indicators endpoint      |
+| 2   | `app/api/indicators/health/route.ts`               | Health check endpoint         |
+| 3   | `app/api/symbols/route.ts`                         | Available symbols endpoint    |
+| 4   | `app/api/timeframes/route.ts`                      | Available timeframes endpoint |
+| 5   | `lib/db/postgresql.ts`                             | PostgreSQL client             |
+| 6   | `lib/db/queries.ts`                                | Database query functions      |
+| 7   | `lib/indicators/types.ts`                          | TypeScript types              |
+| 8   | `lib/tier/validation.ts`                           | Tier access validation        |
 
 ### 6.3 File 1: Indicators Route
 
@@ -924,14 +925,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const userTier = session?.user?.tier || 'FREE';
 
     // Validate tier access
-    const accessResult = validateTierAccess(upperSymbol, upperTimeframe, userTier);
+    const accessResult = validateTierAccess(
+      upperSymbol,
+      upperTimeframe,
+      userTier
+    );
     if (!accessResult.allowed) {
       return NextResponse.json(
         {
           success: false,
           error: accessResult.message,
           tier: userTier,
-          upgrade_required: true
+          upgrade_required: true,
         },
         { status: 403 }
       );
@@ -962,11 +967,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           timeframe: upperTimeframe,
           tier: userTier,
           bars_returned: data.ohlc.length,
-          pro_indicators_enabled: userTier === 'PRO'
-        }
-      }
+          pro_indicators_enabled: userTier === 'PRO',
+        },
+      },
     });
-
   } catch (error) {
     console.error('Error fetching indicator data:', error);
     return NextResponse.json(
@@ -1022,7 +1026,8 @@ export async function getIndicatorData(
 ): Promise<IndicatorData> {
   const tableName = `${symbol.toLowerCase()}_${timeframe.toLowerCase()}`;
 
-  const rows = await query<any>(`
+  const rows = await query<any>(
+    `
     SELECT
       timestamp,
       open,
@@ -1041,16 +1046,18 @@ export async function getIndicatorData(
     FROM ${tableName}
     ORDER BY timestamp DESC
     LIMIT $1
-  `, [limit]);
+  `,
+    [limit]
+  );
 
   // Transform rows to response format
-  const ohlc: OHLCBar[] = rows.map(row => ({
+  const ohlc: OHLCBar[] = rows.map((row) => ({
     time: new Date(row.timestamp).getTime() / 1000,
     open: row.open,
     high: row.high,
     low: row.low,
     close: row.close,
-    volume: 0
+    volume: 0,
   }));
 
   return {
@@ -1058,12 +1065,15 @@ export async function getIndicatorData(
     fractals: rows[0]?.fractals || { peaks: [], bottoms: [] },
     horizontal_trendlines: rows[0]?.horizontal_trendlines || {},
     diagonal_trendlines: rows[0]?.diagonal_trendlines || {},
-    momentum_candles: rows.map(r => r.momentum_candles).filter(Boolean).flat(),
+    momentum_candles: rows
+      .map((r) => r.momentum_candles)
+      .filter(Boolean)
+      .flat(),
     keltner_channels: rows[0]?.keltner_channels || {},
-    tema: rows.map(r => r.tema),
-    hrma: rows.map(r => r.hrma),
-    smma: rows.map(r => r.smma),
-    zigzag: rows[0]?.zigzag || { peaks: [], bottoms: [] }
+    tema: rows.map((r) => r.tema),
+    hrma: rows.map((r) => r.hrma),
+    smma: rows.map((r) => r.smma),
+    zigzag: rows[0]?.zigzag || { peaks: [], bottoms: [] },
   };
 }
 ```
@@ -1099,12 +1109,12 @@ Add Redis caching for rapid data retrieval, reducing PostgreSQL load.
 
 ### 7.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `lib/cache/redis.ts` | Redis client configuration |
-| 2 | `lib/cache/indicator-cache.ts` | Indicator caching functions |
-| 3 | `lib/cache/cache-invalidation.ts` | Cache invalidation logic |
-| 4 | `lib/db/queries.ts` | Update with cache integration |
+| #   | File Path                         | Description                   |
+| --- | --------------------------------- | ----------------------------- |
+| 1   | `lib/cache/redis.ts`              | Redis client configuration    |
+| 2   | `lib/cache/indicator-cache.ts`    | Indicator caching functions   |
+| 3   | `lib/cache/cache-invalidation.ts` | Cache invalidation logic      |
+| 4   | `lib/db/queries.ts`               | Update with cache integration |
 
 ### 7.3 File 1: Redis Client
 
@@ -1125,7 +1135,11 @@ export async function get<T>(key: string): Promise<T | null> {
   return null;
 }
 
-export async function set(key: string, value: any, ttl: number = CACHE_TTL): Promise<void> {
+export async function set(
+  key: string,
+  value: any,
+  ttl: number = CACHE_TTL
+): Promise<void> {
   await redis.set(key, JSON.stringify(value), 'EX', ttl);
 }
 
@@ -1178,7 +1192,10 @@ export async function getIndicatorData(
   return data;
 }
 
-export async function invalidateIndicatorCache(symbol: string, timeframe?: string): Promise<void> {
+export async function invalidateIndicatorCache(
+  symbol: string,
+  timeframe?: string
+): Promise<void> {
   if (timeframe) {
     await del(getCacheKey(symbol, timeframe));
   } else {
@@ -1217,14 +1234,14 @@ Implement multi-timeframe confluence score calculation.
 
 ### 8.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `app/api/confluence/[symbol]/route.ts` | Confluence score endpoint |
-| 2 | `lib/confluence/calculator.ts` | Score calculation logic |
-| 3 | `lib/confluence/signals.ts` | Signal detection functions |
-| 4 | `lib/confluence/types.ts` | TypeScript types |
-| 5 | `lib/db/multi-timeframe-query.ts` | Query 117 indicators |
-| 6 | `lib/cache/confluence-cache.ts` | Confluence caching |
+| #   | File Path                              | Description                |
+| --- | -------------------------------------- | -------------------------- |
+| 1   | `app/api/confluence/[symbol]/route.ts` | Confluence score endpoint  |
+| 2   | `lib/confluence/calculator.ts`         | Score calculation logic    |
+| 3   | `lib/confluence/signals.ts`            | Signal detection functions |
+| 4   | `lib/confluence/types.ts`              | TypeScript types           |
+| 5   | `lib/db/multi-timeframe-query.ts`      | Query 117 indicators       |
+| 6   | `lib/cache/confluence-cache.ts`        | Confluence caching         |
 
 ### 8.3 File 1: Confluence API Route
 
@@ -1236,7 +1253,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { calculateConfluenceScore } from '@/lib/confluence/calculator';
 import { getMultiTimeframeData } from '@/lib/db/multi-timeframe-query';
-import { getCachedConfluence, cacheConfluence } from '@/lib/cache/confluence-cache';
+import {
+  getCachedConfluence,
+  cacheConfluence,
+} from '@/lib/cache/confluence-cache';
 
 interface RouteParams {
   params: { symbol: string };
@@ -1278,9 +1298,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       success: true,
       symbol: upperSymbol,
       timestamp,
-      ...confluenceResult
+      ...confluenceResult,
     });
-
   } catch (error) {
     console.error('Error calculating confluence:', error);
     return NextResponse.json(
@@ -1300,7 +1319,9 @@ import { MultiTimeframeData, ConfluenceResult, TimeframeSignal } from './types';
 import { detectSignals, getTrendDirection, getSignalStrength } from './signals';
 import { TIMEFRAMES } from '@/lib/constants';
 
-export function calculateConfluenceScore(data: MultiTimeframeData): ConfluenceResult {
+export function calculateConfluenceScore(
+  data: MultiTimeframeData
+): ConfluenceResult {
   const breakdown: Record<string, TimeframeSignal> = {};
   let bullishCount = 0;
   let bearishCount = 0;
@@ -1318,7 +1339,7 @@ export function calculateConfluenceScore(data: MultiTimeframeData): ConfluenceRe
     breakdown[timeframe] = {
       trend,
       strength,
-      signals
+      signals,
     };
 
     if (trend === 'bullish') bullishCount++;
@@ -1339,10 +1360,10 @@ export function calculateConfluenceScore(data: MultiTimeframeData): ConfluenceRe
     signals: {
       bullish: bullishCount,
       bearish: bearishCount,
-      neutral: neutralCount
+      neutral: neutralCount,
     },
     breakdown,
-    all_117_indicators: data
+    all_117_indicators: data,
   };
 }
 ```
@@ -1376,18 +1397,18 @@ Implement comprehensive testing framework with unit, integration, and API tests.
 
 ### 9.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `__tests__/unit/timeframe-filter.test.ts` | Timeframe filter tests |
-| 2 | `__tests__/unit/confluence-calculator.test.ts` | Confluence calc tests |
-| 3 | `__tests__/unit/symbol-utils.test.ts` | Symbol normalization tests |
-| 4 | `__tests__/integration/sync-pipeline.test.ts` | Sync integration tests |
-| 5 | `__tests__/integration/cache-integration.test.ts` | Cache integration tests |
-| 6 | `__tests__/api/indicators.test.ts` | Indicators API tests |
-| 7 | `__tests__/api/confluence.test.ts` | Confluence API tests |
-| 8 | `__tests__/api/health.test.ts` | Health endpoint tests |
-| 9 | `jest.config.js` | Jest configuration |
-| 10 | `__tests__/setup.ts` | Test setup file |
+| #   | File Path                                         | Description                |
+| --- | ------------------------------------------------- | -------------------------- |
+| 1   | `__tests__/unit/timeframe-filter.test.ts`         | Timeframe filter tests     |
+| 2   | `__tests__/unit/confluence-calculator.test.ts`    | Confluence calc tests      |
+| 3   | `__tests__/unit/symbol-utils.test.ts`             | Symbol normalization tests |
+| 4   | `__tests__/integration/sync-pipeline.test.ts`     | Sync integration tests     |
+| 5   | `__tests__/integration/cache-integration.test.ts` | Cache integration tests    |
+| 6   | `__tests__/api/indicators.test.ts`                | Indicators API tests       |
+| 7   | `__tests__/api/confluence.test.ts`                | Confluence API tests       |
+| 8   | `__tests__/api/health.test.ts`                    | Health endpoint tests      |
+| 9   | `jest.config.js`                                  | Jest configuration         |
+| 10  | `__tests__/setup.ts`                              | Test setup file            |
 
 ### 9.3 File 1: Timeframe Filter Tests
 
@@ -1441,7 +1462,7 @@ describe('Indicators API', () => {
     });
 
     const response = await GET(req as any, {
-      params: { symbol: 'EURUSD', timeframe: 'H1' }
+      params: { symbol: 'EURUSD', timeframe: 'H1' },
     });
 
     expect(response.status).toBe(200);
@@ -1455,7 +1476,7 @@ describe('Indicators API', () => {
     const { req } = createMocks({ method: 'GET' });
 
     const response = await GET(req as any, {
-      params: { symbol: 'INVALID', timeframe: 'H1' }
+      params: { symbol: 'INVALID', timeframe: 'H1' },
     });
 
     expect(response.status).toBe(400);
@@ -1466,7 +1487,7 @@ describe('Indicators API', () => {
     const { req } = createMocks({ method: 'GET' });
 
     const response = await GET(req as any, {
-      params: { symbol: 'AUDJPY', timeframe: 'H1' }
+      params: { symbol: 'AUDJPY', timeframe: 'H1' },
     });
 
     expect(response.status).toBe(403);
@@ -1506,11 +1527,11 @@ Migrate Part 6 E2E tests to Part 20 architecture.
 
 ### 10.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `e2e/critical-path.spec.ts` | Critical path E2E tests |
-| 2 | `e2e/chart-rendering.spec.ts` | Chart rendering tests |
-| 3 | `playwright.config.ts` | Playwright configuration |
+| #   | File Path                     | Description              |
+| --- | ----------------------------- | ------------------------ |
+| 1   | `e2e/critical-path.spec.ts`   | Critical path E2E tests  |
+| 2   | `e2e/chart-rendering.spec.ts` | Chart rendering tests    |
+| 3   | `playwright.config.ts`        | Playwright configuration |
 
 ### 10.3 Critical Path Test
 
@@ -1541,7 +1562,9 @@ test.describe('Part 20 Critical Path', () => {
     // Step 4: Chart renders
     await page.goto('/dashboard/chart/EURUSD/H1');
     await expect(page.locator('[data-testid="trading-chart"]')).toBeVisible();
-    await expect(page.locator('[data-testid="candlestick"]')).toHaveCount({ minimum: 100 });
+    await expect(page.locator('[data-testid="candlestick"]')).toHaveCount({
+      minimum: 100,
+    });
 
     // Step 5: Indicators display
     await expect(page.locator('[data-testid="fractal-marker"]')).toBeVisible();
@@ -1568,7 +1591,9 @@ test.describe('Part 20 Critical Path', () => {
     expect(Object.keys(confluenceResponse.all_117_indicators)).toHaveLength(9);
 
     // Verify score displayed
-    await expect(page.locator('[data-testid="confluence-score"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="confluence-score"]')
+    ).toBeVisible();
   });
 });
 ```
@@ -1602,10 +1627,10 @@ Deploy Part 20 and cutover from Part 6.
 
 ### 11.2 Files to Create
 
-| # | File Path | Description |
-|---|-----------|-------------|
-| 1 | `scripts/deploy-part20.sh` | Deployment script |
-| 2 | `scripts/rollback-to-part6.sh` | Rollback script |
+| #   | File Path                      | Description       |
+| --- | ------------------------------ | ----------------- |
+| 1   | `scripts/deploy-part20.sh`     | Deployment script |
+| 2   | `scripts/rollback-to-part6.sh` | Rollback script   |
 
 ### 11.3 Deployment Checklist
 
@@ -1677,52 +1702,52 @@ chore(deploy): Part 20 production deployment
 
 ### Complete File List (45 files)
 
-| Phase | File Path | Type |
-|-------|-----------|------|
-| 1 | `sql/sqlite_schema.sql` | SQL |
-| 1 | `sql/postgresql_schema.sql` | SQL |
-| 1 | `sql/timescaledb_setup.sql` | SQL |
-| 1 | `sql/seed_data.sql` | SQL |
-| 2 | `mql5/Services/DataCollector.mq5` | MQL5 |
-| 2 | `mql5/Include/IndicatorBuffers.mqh` | MQL5 |
-| 2 | `mql5/Include/SymbolUtils.mqh` | MQL5 |
-| 3 | `sync/sync_to_postgresql.py` | Python |
-| 3 | `sync/timeframe_filter.py` | Python |
-| 3 | `sync/db_connections.py` | Python |
-| 3 | `sync/config.py` | Python |
-| 3 | `sync/requirements.txt` | Config |
-| 4 | `app/api/indicators/[symbol]/[timeframe]/route.ts` | TypeScript |
-| 4 | `app/api/indicators/health/route.ts` | TypeScript |
-| 4 | `app/api/symbols/route.ts` | TypeScript |
-| 4 | `app/api/timeframes/route.ts` | TypeScript |
-| 4 | `lib/db/postgresql.ts` | TypeScript |
-| 4 | `lib/db/queries.ts` | TypeScript |
-| 4 | `lib/indicators/types.ts` | TypeScript |
-| 4 | `lib/tier/validation.ts` | TypeScript |
-| 5 | `lib/cache/redis.ts` | TypeScript |
-| 5 | `lib/cache/indicator-cache.ts` | TypeScript |
-| 5 | `lib/cache/cache-invalidation.ts` | TypeScript |
-| 6 | `app/api/confluence/[symbol]/route.ts` | TypeScript |
-| 6 | `lib/confluence/calculator.ts` | TypeScript |
-| 6 | `lib/confluence/signals.ts` | TypeScript |
-| 6 | `lib/confluence/types.ts` | TypeScript |
-| 6 | `lib/db/multi-timeframe-query.ts` | TypeScript |
-| 6 | `lib/cache/confluence-cache.ts` | TypeScript |
-| 7 | `__tests__/unit/timeframe-filter.test.ts` | TypeScript |
-| 7 | `__tests__/unit/confluence-calculator.test.ts` | TypeScript |
-| 7 | `__tests__/unit/symbol-utils.test.ts` | TypeScript |
-| 7 | `__tests__/integration/sync-pipeline.test.ts` | TypeScript |
-| 7 | `__tests__/integration/cache-integration.test.ts` | TypeScript |
-| 7 | `__tests__/api/indicators.test.ts` | TypeScript |
-| 7 | `__tests__/api/confluence.test.ts` | TypeScript |
-| 7 | `__tests__/api/health.test.ts` | TypeScript |
-| 7 | `jest.config.js` | Config |
-| 7 | `__tests__/setup.ts` | TypeScript |
-| 8 | `e2e/critical-path.spec.ts` | TypeScript |
-| 8 | `e2e/chart-rendering.spec.ts` | TypeScript |
-| 8 | `playwright.config.ts` | TypeScript |
-| 9 | `scripts/deploy-part20.sh` | Shell |
-| 9 | `scripts/rollback-to-part6.sh` | Shell |
+| Phase | File Path                                          | Type       |
+| ----- | -------------------------------------------------- | ---------- |
+| 1     | `sql/sqlite_schema.sql`                            | SQL        |
+| 1     | `sql/postgresql_schema.sql`                        | SQL        |
+| 1     | `sql/timescaledb_setup.sql`                        | SQL        |
+| 1     | `sql/seed_data.sql`                                | SQL        |
+| 2     | `mql5/Services/DataCollector.mq5`                  | MQL5       |
+| 2     | `mql5/Include/IndicatorBuffers.mqh`                | MQL5       |
+| 2     | `mql5/Include/SymbolUtils.mqh`                     | MQL5       |
+| 3     | `sync/sync_to_postgresql.py`                       | Python     |
+| 3     | `sync/timeframe_filter.py`                         | Python     |
+| 3     | `sync/db_connections.py`                           | Python     |
+| 3     | `sync/config.py`                                   | Python     |
+| 3     | `sync/requirements.txt`                            | Config     |
+| 4     | `app/api/indicators/[symbol]/[timeframe]/route.ts` | TypeScript |
+| 4     | `app/api/indicators/health/route.ts`               | TypeScript |
+| 4     | `app/api/symbols/route.ts`                         | TypeScript |
+| 4     | `app/api/timeframes/route.ts`                      | TypeScript |
+| 4     | `lib/db/postgresql.ts`                             | TypeScript |
+| 4     | `lib/db/queries.ts`                                | TypeScript |
+| 4     | `lib/indicators/types.ts`                          | TypeScript |
+| 4     | `lib/tier/validation.ts`                           | TypeScript |
+| 5     | `lib/cache/redis.ts`                               | TypeScript |
+| 5     | `lib/cache/indicator-cache.ts`                     | TypeScript |
+| 5     | `lib/cache/cache-invalidation.ts`                  | TypeScript |
+| 6     | `app/api/confluence/[symbol]/route.ts`             | TypeScript |
+| 6     | `lib/confluence/calculator.ts`                     | TypeScript |
+| 6     | `lib/confluence/signals.ts`                        | TypeScript |
+| 6     | `lib/confluence/types.ts`                          | TypeScript |
+| 6     | `lib/db/multi-timeframe-query.ts`                  | TypeScript |
+| 6     | `lib/cache/confluence-cache.ts`                    | TypeScript |
+| 7     | `__tests__/unit/timeframe-filter.test.ts`          | TypeScript |
+| 7     | `__tests__/unit/confluence-calculator.test.ts`     | TypeScript |
+| 7     | `__tests__/unit/symbol-utils.test.ts`              | TypeScript |
+| 7     | `__tests__/integration/sync-pipeline.test.ts`      | TypeScript |
+| 7     | `__tests__/integration/cache-integration.test.ts`  | TypeScript |
+| 7     | `__tests__/api/indicators.test.ts`                 | TypeScript |
+| 7     | `__tests__/api/confluence.test.ts`                 | TypeScript |
+| 7     | `__tests__/api/health.test.ts`                     | TypeScript |
+| 7     | `jest.config.js`                                   | Config     |
+| 7     | `__tests__/setup.ts`                               | TypeScript |
+| 8     | `e2e/critical-path.spec.ts`                        | TypeScript |
+| 8     | `e2e/chart-rendering.spec.ts`                      | TypeScript |
+| 8     | `playwright.config.ts`                             | TypeScript |
+| 9     | `scripts/deploy-part20.sh`                         | Shell      |
+| 9     | `scripts/rollback-to-part6.sh`                     | Shell      |
 
 ---
 
@@ -1731,6 +1756,7 @@ chore(deploy): Part 20 production deployment
 ### 13.1 Rollback Triggers
 
 Initiate rollback if:
+
 - Error rate > 5% for 10 minutes
 - Data sync fails for 5 minutes
 - Chart accuracy issues reported

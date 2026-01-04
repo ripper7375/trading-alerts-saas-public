@@ -73,13 +73,13 @@ def _calculate_fractals(df, side_bars=35):
 
 **Problems with this approach:**
 
-| Issue | Impact |
-|-------|--------|
-| Algorithm differences | MQL5 and Python implementations can never be identical |
-| Floating-point precision | Different languages handle floats differently |
-| Edge case handling | MT5 has internal optimizations not documented |
-| Maintenance burden | Every indicator change requires dual updates |
-| **Result: Inconsistent indicator values** | Charts don't match MT5 terminal |
+| Issue                                     | Impact                                                 |
+| ----------------------------------------- | ------------------------------------------------------ |
+| Algorithm differences                     | MQL5 and Python implementations can never be identical |
+| Floating-point precision                  | Different languages handle floats differently          |
+| Edge case handling                        | MT5 has internal optimizations not documented          |
+| Maintenance burden                        | Every indicator change requires dual updates           |
+| **Result: Inconsistent indicator values** | Charts don't match MT5 terminal                        |
 
 ### 2.3 The Only Solution: Native MQL5 Data Extraction
 
@@ -237,28 +237,30 @@ CopyBuffer(handle, 0, 0, 1000, buffer);  // Direct access to indicator buffer
 
 **Rationale:** Raw 30-second data must be filtered into discrete timeframes for chart display.
 
-| Timeframe | Filter Criteria | Example Timestamps |
-|-----------|-----------------|-------------------|
-| M5 | Minutes divisible by 5 | 07:00, 07:05, 07:10 |
-| M15 | Minutes divisible by 15 | 07:00, 07:15, 07:30 |
-| M30 | Minutes divisible by 30 | 07:00, 07:30, 08:00 |
-| H1 | On the hour | 07:00, 08:00, 09:00 |
-| H2 | Even hours | 08:00, 10:00, 12:00 |
-| H4 | Hours divisible by 4 | 00:00, 04:00, 08:00 |
-| H8 | Hours divisible by 8 | 00:00, 08:00, 16:00 |
-| H12 | Hours divisible by 12 | 00:00, 12:00 |
-| D1 | Midnight | 00:00:00 daily |
+| Timeframe | Filter Criteria         | Example Timestamps  |
+| --------- | ----------------------- | ------------------- |
+| M5        | Minutes divisible by 5  | 07:00, 07:05, 07:10 |
+| M15       | Minutes divisible by 15 | 07:00, 07:15, 07:30 |
+| M30       | Minutes divisible by 30 | 07:00, 07:30, 08:00 |
+| H1        | On the hour             | 07:00, 08:00, 09:00 |
+| H2        | Even hours              | 08:00, 10:00, 12:00 |
+| H4        | Hours divisible by 4    | 00:00, 04:00, 08:00 |
+| H8        | Hours divisible by 8    | 00:00, 08:00, 16:00 |
+| H12       | Hours divisible by 12   | 00:00, 12:00        |
+| D1        | Midnight                | 00:00:00 daily      |
 
 ### 4.4 Principle 4: Indicator-Specific Storage Rules
 
 **Rationale:** Different indicators have different persistence requirements.
 
 **Standard Indicators (10 columns):** Store all 10,000 entries
+
 - `open`, `high`, `low`, `close`
 - `momentum_candles`, `keltner_channels`
 - `tema`, `hrma`, `smma`, `zigzag`
 
 **Dynamic Indicators (3 columns):** Store only latest MT5 values
+
 - `fractals` - MT5 recalculates; old values may change
 - `horizontal_trendlines` - Lines extend/modify as price moves
 - `diagonal_trendlines` - Lines recalculated with new fractals
@@ -400,6 +402,7 @@ void OnStart()
 ```
 
 **Key MQL5 Service Properties:**
+
 - Runs 24/7 independently without chart window
 - Has access to all MT5 functions including `CopyBuffer()`
 - Native SQLite support via `DatabaseOpen()`, `DatabaseExecute()`
@@ -547,39 +550,40 @@ SELECT add_retention_policy('eurusd_m5', INTERVAL '10000 rows');
 
 ### 6.3 Data Storage Rules
 
-| Indicator | Storage Rule | Reason |
-|-----------|--------------|--------|
-| `open`, `high`, `low`, `close` | All 10,000 entries | Core OHLC data, immutable |
-| `momentum_candles` | All 10,000 entries | Calculated once, doesn't change |
-| `keltner_channels` | All 10,000 entries | Calculated once, doesn't change |
-| `tema`, `hrma`, `smma` | All 10,000 entries | Moving averages, stable |
-| `zigzag` | All 10,000 entries | Swing points, stable once formed |
-| `fractals` | Latest MT5 values only | MT5 recalculates continuously |
-| `horizontal_trendlines` | Latest MT5 values only | Lines extend as price moves |
-| `diagonal_trendlines` | Latest MT5 values only | Lines recalculated with new fractals |
+| Indicator                      | Storage Rule           | Reason                               |
+| ------------------------------ | ---------------------- | ------------------------------------ |
+| `open`, `high`, `low`, `close` | All 10,000 entries     | Core OHLC data, immutable            |
+| `momentum_candles`             | All 10,000 entries     | Calculated once, doesn't change      |
+| `keltner_channels`             | All 10,000 entries     | Calculated once, doesn't change      |
+| `tema`, `hrma`, `smma`         | All 10,000 entries     | Moving averages, stable              |
+| `zigzag`                       | All 10,000 entries     | Swing points, stable once formed     |
+| `fractals`                     | Latest MT5 values only | MT5 recalculates continuously        |
+| `horizontal_trendlines`        | Latest MT5 values only | Lines extend as price moves          |
+| `diagonal_trendlines`          | Latest MT5 values only | Lines recalculated with new fractals |
 
 **For fractals, horizontal_trendlines, diagonal_trendlines:**
+
 - Only store values that MT5 currently provides
 - Older timestamps where MT5 no longer calculates = `NULL`
 
 ### 6.4 Column Details
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `timestamp` | INTEGER/TIMESTAMPTZ | Unix timestamp (SQLite) or PostgreSQL timestamp |
-| `open` | REAL/DOUBLE | Opening price |
-| `high` | REAL/DOUBLE | Highest price |
-| `low` | REAL/DOUBLE | Lowest price |
-| `close` | REAL/DOUBLE | Closing price |
-| `fractals` | TEXT/JSONB | `{"peaks": [{"time": 123, "price": 1.23}], "bottoms": [...]}` |
-| `horizontal_trendlines` | TEXT/JSONB | `{"peak_1": [...], "peak_2": [...], "bottom_1": [...]}` |
-| `diagonal_trendlines` | TEXT/JSONB | `{"ascending_1": [...], "descending_1": [...]}` |
-| `momentum_candles` | TEXT/JSONB | `[{"index": 0, "type": 2, "zscore": 2.5}]` |
-| `keltner_channels` | TEXT/JSONB | `{"ultra_extreme_upper": [...], "lower": [...]}` |
-| `tema` | REAL/DOUBLE | Triple EMA value |
-| `hrma` | REAL/DOUBLE | Hull-like Responsive MA value |
-| `smma` | REAL/DOUBLE | Smoothed MA value |
-| `zigzag` | TEXT/JSONB | `{"peaks": [...], "bottoms": [...]}` |
+| Column                  | Type                | Description                                                   |
+| ----------------------- | ------------------- | ------------------------------------------------------------- |
+| `timestamp`             | INTEGER/TIMESTAMPTZ | Unix timestamp (SQLite) or PostgreSQL timestamp               |
+| `open`                  | REAL/DOUBLE         | Opening price                                                 |
+| `high`                  | REAL/DOUBLE         | Highest price                                                 |
+| `low`                   | REAL/DOUBLE         | Lowest price                                                  |
+| `close`                 | REAL/DOUBLE         | Closing price                                                 |
+| `fractals`              | TEXT/JSONB          | `{"peaks": [{"time": 123, "price": 1.23}], "bottoms": [...]}` |
+| `horizontal_trendlines` | TEXT/JSONB          | `{"peak_1": [...], "peak_2": [...], "bottom_1": [...]}`       |
+| `diagonal_trendlines`   | TEXT/JSONB          | `{"ascending_1": [...], "descending_1": [...]}`               |
+| `momentum_candles`      | TEXT/JSONB          | `[{"index": 0, "type": 2, "zscore": 2.5}]`                    |
+| `keltner_channels`      | TEXT/JSONB          | `{"ultra_extreme_upper": [...], "lower": [...]}`              |
+| `tema`                  | REAL/DOUBLE         | Triple EMA value                                              |
+| `hrma`                  | REAL/DOUBLE         | Hull-like Responsive MA value                                 |
+| `smma`                  | REAL/DOUBLE         | Smoothed MA value                                             |
+| `zigzag`                | TEXT/JSONB          | `{"peaks": [...], "bottoms": [...]}`                          |
 
 ---
 
@@ -587,16 +591,16 @@ SELECT add_retention_policy('eurusd_m5', INTERVAL '10000 rows');
 
 ### 7.1 Complete Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Data Collection** | MQL5 Service | Native indicator buffer reading |
-| **Local Storage** | SQLite | High-frequency local data store |
-| **Sync** | Python + psycopg2 | SQLite → PostgreSQL transfer |
-| **Cloud Database** | PostgreSQL 15 | Primary data storage |
-| **Time-Series** | TimescaleDB 2.x | Optimized time-series queries |
-| **Caching** | Redis 7.x | Sub-millisecond data access |
-| **API** | Next.js API Routes | RESTful endpoints |
-| **Frontend** | Next.js + React | Trading chart display |
+| Layer               | Technology         | Purpose                         |
+| ------------------- | ------------------ | ------------------------------- |
+| **Data Collection** | MQL5 Service       | Native indicator buffer reading |
+| **Local Storage**   | SQLite             | High-frequency local data store |
+| **Sync**            | Python + psycopg2  | SQLite → PostgreSQL transfer    |
+| **Cloud Database**  | PostgreSQL 15      | Primary data storage            |
+| **Time-Series**     | TimescaleDB 2.x    | Optimized time-series queries   |
+| **Caching**         | Redis 7.x          | Sub-millisecond data access     |
+| **API**             | Next.js API Routes | RESTful endpoints               |
+| **Frontend**        | Next.js + React    | Trading chart display           |
 
 ### 7.2 TimescaleDB Features Used
 
@@ -661,12 +665,12 @@ const cacheKey = `indicators:${symbol}:${timeframe}:latest`;
 
 Different MT5 brokers use different symbol suffixes:
 
-| Broker | EURUSD Symbol | XAUUSD Symbol |
-|--------|---------------|---------------|
-| Broker A | EURUSD | XAUUSD |
-| Broker B | EURUSD.i | XAUUSD.i |
-| Broker C | EURUSDm | XAUUSDm |
-| Broker D | EURUSD.pro | XAUUSD.pro |
+| Broker   | EURUSD Symbol | XAUUSD Symbol |
+| -------- | ------------- | ------------- |
+| Broker A | EURUSD        | XAUUSD        |
+| Broker B | EURUSD.i      | XAUUSD.i      |
+| Broker C | EURUSDm       | XAUUSDm       |
+| Broker D | EURUSD.pro    | XAUUSD.pro    |
 
 ### 8.2 Solution: Symbol Suffix Stripping
 
@@ -701,17 +705,23 @@ string db_symbol = NormalizeSymbol(_Symbol);  // EURUSD.i → EURUSD
 // config/symbol_mapping.json
 {
   "supported_symbols": [
-    "AUDJPY", "AUDUSD", "BTCUSD", "ETHUSD", "EURUSD",
-    "GBPJPY", "GBPUSD", "NDX100", "NZDUSD", "US30",
-    "USDCAD", "USDCHF", "USDJPY", "XAGUSD", "XAUUSD"
+    "AUDJPY",
+    "AUDUSD",
+    "BTCUSD",
+    "ETHUSD",
+    "EURUSD",
+    "GBPJPY",
+    "GBPUSD",
+    "NDX100",
+    "NZDUSD",
+    "US30",
+    "USDCAD",
+    "USDCHF",
+    "USDJPY",
+    "XAGUSD",
+    "XAUUSD"
   ],
-  "suffix_patterns": [
-    "\\.i$",
-    "\\.pro$",
-    "m$",
-    "\\.raw$",
-    "\\.std$"
-  ]
+  "suffix_patterns": ["\\.i$", "\\.pro$", "m$", "\\.raw$", "\\.std$"]
 }
 ```
 
@@ -726,6 +736,7 @@ Confluence Score measures the alignment of multiple indicators across multiple t
 ### 9.2 Calculation Requirements
 
 At any given timestamp (e.g., 17:00:00), we need:
+
 - **13 indicators** × **9 timeframes** = **117 data points**
 
 ```
@@ -948,13 +959,13 @@ The E2E test must verify the complete data flow:
 
 ### 10.3 Migration from Part 6 E2E Tests
 
-| Part 6 Test | Part 20 Replacement |
-|-------------|---------------------|
-| Flask health check | PostgreSQL connection check |
-| Flask /api/indicators | Next.js /api/indicators |
-| MT5 terminal connection | SQLite data freshness check |
+| Part 6 Test                  | Part 20 Replacement              |
+| ---------------------------- | -------------------------------- |
+| Flask health check           | PostgreSQL connection check      |
+| Flask /api/indicators        | Next.js /api/indicators          |
+| MT5 terminal connection      | SQLite data freshness check      |
 | Python indicator calculation | Verify SQLite has correct values |
-| Connection pool test | Database connection pool test |
+| Connection pool test         | Database connection pool test    |
 
 ---
 
@@ -1000,14 +1011,14 @@ The E2E test must verify the complete data flow:
 
 ### 11.4 Performance Considerations
 
-| Metric | Current Scale | Maximum Tested |
-|--------|---------------|----------------|
-| Symbols | 15 | 50 |
-| Timeframes | 9 | 15 |
-| Tables in PostgreSQL | 135 | 750 |
-| Rows per table | 10,000 | 100,000 |
-| Sync frequency | 30s | 5s |
-| Concurrent API requests | 100/s | 1000/s |
+| Metric                  | Current Scale | Maximum Tested |
+| ----------------------- | ------------- | -------------- |
+| Symbols                 | 15            | 50             |
+| Timeframes              | 9             | 15             |
+| Tables in PostgreSQL    | 135           | 750            |
+| Rows per table          | 10,000        | 100,000        |
+| Sync frequency          | 30s           | 5s             |
+| Concurrent API requests | 100/s         | 1000/s         |
 
 ---
 
