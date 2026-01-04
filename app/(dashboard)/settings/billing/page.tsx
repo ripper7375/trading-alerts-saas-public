@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   CreditCard,
   Download,
@@ -10,6 +11,7 @@ import {
   AlertCircle,
   Loader2,
   ArrowUpRight,
+  RefreshCw,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
@@ -45,6 +58,27 @@ interface UsageStats {
   alerts: { current: number; max: number };
   watchlist: { current: number; max: number };
   apiCalls: { current: number; max: number };
+}
+
+interface SubscriptionData {
+  tier: 'FREE' | 'PRO';
+  status: string;
+  subscription: {
+    id: string;
+    status: string;
+    provider: 'STRIPE' | 'DLOCAL' | null;
+    planType: string | null;
+    currentPeriodEnd: string | null;
+    expiresAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    trialEnd: string | null;
+    paymentMethod: {
+      brand: string;
+      last4: string;
+      expiryMonth: number;
+      expiryYear: number;
+    } | null;
+  } | null;
 }
 
 // Mock invoice data
@@ -76,13 +110,29 @@ const mockInvoices: InvoiceRecord[] = [
 ];
 
 export default function BillingSettingsPage(): React.ReactElement {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
+  const [subscriptionData, setSubscriptionData] =
+    useState<SubscriptionData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
   const { regularPrice } = useAffiliateConfig();
+
+  // Determine if subscription is cancelled but not yet expired
+  const isCancelled =
+    subscriptionData?.subscription?.cancelAtPeriodEnd ||
+    subscriptionData?.subscription?.status === 'CANCELED' ||
+    subscriptionData?.subscription?.status === 'canceled';
+
+  // Get expiration date
+  const expiresAt =
+    subscriptionData?.subscription?.expiresAt ||
+    subscriptionData?.subscription?.currentPeriodEnd;
 
   // Mock usage data - in real app, fetch from API
   const [usageStats] = useState<UsageStats>({
@@ -91,11 +141,71 @@ export default function BillingSettingsPage(): React.ReactElement {
     apiCalls: { current: 42, max: 60 },
   });
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+  // Fetch subscription data
+  const fetchSubscription = useCallback(async () => {
+    try {
+      const response = await fetch('/api/subscription');
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptionData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription:', err);
+    }
   }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchSubscription();
+      setIsLoading(false);
+    };
+    loadData();
+  }, [fetchSubscription]);
+
+  // Handle subscription cancellation
+  const handleCancel = async () => {
+    setIsCancelling(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to cancel subscription');
+      }
+
+      // Refresh subscription data and session
+      await fetchSubscription();
+      await updateSession();
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to cancel subscription'
+      );
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  // Handle resubscription - redirects to pricing page
+  const handleResubscribe = () => {
+    router.push('/pricing');
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
 
   if (isLoading) {
     return (
@@ -130,8 +240,39 @@ export default function BillingSettingsPage(): React.ReactElement {
             >
               {userTier === 'PRO' ? 'PRO TIER' : 'FREE TIER'}
             </Badge>
-            <Badge className="bg-green-100 text-green-800">Active</Badge>
+            {isCancelled ? (
+              <Badge
+                variant="destructive"
+                className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                data-testid="subscription-cancelled-badge"
+              >
+                Cancelled
+              </Badge>
+            ) : (
+              <Badge className="bg-green-100 text-green-800">Active</Badge>
+            )}
           </div>
+
+          {/* Show cancellation notice with expiration date */}
+          {isCancelled && expiresAt && (
+            <div
+              className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
+              data-testid="cancellation-notice"
+            >
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Your subscription has been cancelled. You will retain access to
+                PRO features until{' '}
+                <strong>{formatDate(expiresAt)}</strong>.
+              </p>
+            </div>
+          )}
+
+          {/* Show error message if any */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          )}
 
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             {userTier === 'PRO' ? 'Pro Plan' : 'Free Plan'}
@@ -173,21 +314,73 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <ArrowUpRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
+          ) : isCancelled ? (
+            /* Resubscribe option for cancelled users */
+            <div className="flex gap-3">
+              <Button
+                onClick={handleResubscribe}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="resubscribe-button"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Resubscribe
+              </Button>
+            </div>
           ) : (
+            /* Cancel option for active PRO users with confirmation modal */
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
-              <Button
-                variant="ghost"
-                className="text-red-600 hover:text-red-700"
-              >
-                Cancel Plan
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    data-testid="cancel-plan-button"
+                  >
+                    Cancel Plan
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent data-testid="cancel-confirmation-modal">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You will lose access to PRO features at the end of your
+                      billing period. This includes unlimited alerts, all
+                      symbols, and priority support. This action cannot be
+                      undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="keep-plan-button">
+                      Keep My Plan
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCancel}
+                      disabled={isCancelling}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      data-testid="confirm-cancel-button"
+                    >
+                      {isCancelling ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Cancelling...
+                        </>
+                      ) : (
+                        'Yes, Cancel'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
 
-          {userTier === 'PRO' && (
+          {userTier === 'PRO' && !isCancelled && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
-              Next billing date: January 15, 2025
+              Next billing date:{' '}
+              {subscriptionData?.subscription?.currentPeriodEnd
+                ? formatDate(subscriptionData.subscription.currentPeriodEnd)
+                : 'January 15, 2025'}
             </p>
           )}
         </CardContent>
