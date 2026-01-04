@@ -75,8 +75,8 @@ export class SettingsPage {
     this.currentPlanDisplay = page.locator('[data-slot="badge"]').first();
     this.subscriptionStatus = page.locator('[data-slot="badge"]:has-text("Active"), [data-slot="badge"]:has-text("Cancelled"), [data-slot="badge"]:has-text("Trialing")').first();
     this.renewalDate = page.locator('text=/Next billing date:/');
-    // Cancel button may say "Cancel Subscription" or "Cancel Plan" - use role for reliability
-    this.cancelSubscriptionButton = page.getByRole('button', { name: /Cancel (Subscription|Plan)/i });
+    // Cancel button - use text locator for cross-browser compatibility (getByRole regex fails on chromium)
+    this.cancelSubscriptionButton = page.locator('button:has-text("Cancel Subscription"), button:has-text("Cancel Plan")');
     // Upgrade button - use text locator for cross-browser compatibility (icon affects getByRole in chromium)
     this.upgradeButton = page.locator('button:has-text("Upgrade to PRO"), a:has-text("Upgrade to PRO") button');
     this.paymentMethod = page.locator('text=/ending in \\*\\*\\*\\*/');
