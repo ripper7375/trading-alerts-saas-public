@@ -13,6 +13,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { MT5ServiceError } from '@/lib/api/mt5-client';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
   getCachedIndicatorData,
@@ -300,6 +301,18 @@ export async function GET(
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
     });
+
+    // Handle MT5ServiceError
+    if (error instanceof MT5ServiceError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'MT5 service error',
+          message: error.message || 'Failed to fetch data from MT5 service',
+        } as ErrorResponse,
+        { status: 500 }
+      );
+    }
 
     // Check for database connection errors
     if (error instanceof Error) {
