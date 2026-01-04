@@ -8,15 +8,15 @@
 
 ## Executive Summary
 
-| Path | Tests | Passed | Failed | Production Bugs |
-|------|-------|--------|--------|-----------------|
-| Path 1: Authentication | 20 | 20 | 0 | None |
-| Path 2: Subscription Upgrade | 110 | 95 | 15 | 1 (discount code input) |
-| Path 3: Subscription Cancel | 95 | 63 | 32 | 2 (modal + resubscribe) |
-| Path 4: Discount Redemption | 125 | 30 | 95 | 1 + test data missing |
-| Path 5: Affiliate Commissions | 110 | 105 | 0 | None (5 skipped) |
-| Path 6: Watchlist | - | - | - | Skipped (discontinued) |
-| Path 7: Alert Notifications | 170 | 103 | 67 | 1 (missing data-testid) |
+| Path                          | Tests | Passed | Failed | Production Bugs         |
+| ----------------------------- | ----- | ------ | ------ | ----------------------- |
+| Path 1: Authentication        | 20    | 20     | 0      | None                    |
+| Path 2: Subscription Upgrade  | 110   | 95     | 15     | 1 (discount code input) |
+| Path 3: Subscription Cancel   | 95    | 63     | 32     | 2 (modal + resubscribe) |
+| Path 4: Discount Redemption   | 125   | 30     | 95     | 1 + test data missing   |
+| Path 5: Affiliate Commissions | 110   | 105    | 0      | None (5 skipped)        |
+| Path 6: Watchlist             | -     | -      | -      | Skipped (discontinued)  |
+| Path 7: Alert Notifications   | 170   | 103    | 67     | 1 (missing data-testid) |
 
 **Total Production Bugs to Fix:** 5 bugs across 8 files
 
@@ -29,15 +29,18 @@
 **Tests Affected:** CAN-003, CAN-004, CAN-005, CAN-006, CAN-007 (5 tests × 5 browsers = 25 failures)
 
 ### Location
+
 ```
 File: app/(dashboard)/settings/billing/page.tsx
 Lines: 179-184 (Cancel Plan button section)
 ```
 
 ### Current Behavior
+
 The "Cancel Plan" button directly triggers cancellation without any confirmation dialog.
 
 ### Expected Behavior (per docs/mvp-manual-testing-checklist.md line 194)
+
 1. Click "Cancel Plan" button
 2. Confirmation modal appears with:
    - Warning message about losing PRO features
@@ -47,13 +50,16 @@ The "Cancel Plan" button directly triggers cancellation without any confirmation
 3. After confirmation, subscription is cancelled
 
 ### Fix Required
+
 Add an AlertDialog component that:
+
 - Shows confirmation message
 - Optional: includes cancellation reason dropdown
 - Has "Keep My Plan" and "Yes, Cancel" buttons
 - Only proceeds with cancellation after user confirms
 
 ### Code Pattern
+
 ```tsx
 import {
   AlertDialog,
@@ -82,12 +88,10 @@ import {
     </AlertDialogHeader>
     <AlertDialogFooter>
       <AlertDialogCancel>Keep My Plan</AlertDialogCancel>
-      <AlertDialogAction onClick={handleCancel}>
-        Yes, Cancel
-      </AlertDialogAction>
+      <AlertDialogAction onClick={handleCancel}>Yes, Cancel</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
-</AlertDialog>
+</AlertDialog>;
 ```
 
 ---
@@ -99,32 +103,42 @@ import {
 **Tests Affected:** CAN-012 (1 test × 5 browsers = 5 failures)
 
 ### Location
+
 ```
 File: app/(dashboard)/settings/billing/page.tsx
 ```
 
 ### Current Behavior
+
 Users with cancelled subscriptions (status: cancelled, cancelledAt: not null) see the same UI as active PRO users - no way to resubscribe.
 
 ### Expected Behavior
+
 When subscription is cancelled but not yet expired:
+
 1. Show "Subscription Cancelled" status badge
 2. Display expiration date
 3. Show "Resubscribe" button instead of "Cancel Plan"
 4. Clicking "Resubscribe" should reactivate the subscription
 
 ### Fix Required
+
 Add conditional rendering based on `subscription.cancelledAt`:
+
 ```tsx
-{subscription.cancelledAt ? (
-  <>
-    <Badge variant="destructive">Cancelled</Badge>
-    <p>Access until: {formatDate(subscription.expiresAt)}</p>
-    <Button onClick={handleResubscribe}>Resubscribe</Button>
-  </>
-) : (
-  <Button variant="destructive" onClick={handleCancel}>Cancel Plan</Button>
-)}
+{
+  subscription.cancelledAt ? (
+    <>
+      <Badge variant="destructive">Cancelled</Badge>
+      <p>Access until: {formatDate(subscription.expiresAt)}</p>
+      <Button onClick={handleResubscribe}>Resubscribe</Button>
+    </>
+  ) : (
+    <Button variant="destructive" onClick={handleCancel}>
+      Cancel Plan
+    </Button>
+  );
+}
 ```
 
 ---
@@ -136,6 +150,7 @@ Add conditional rendering based on `subscription.cancelledAt`:
 **Tests Affected:** SUB-009 to SUB-012, DSC-012 to DSC-015 (8 tests × 5 browsers = 40 failures)
 
 ### Location
+
 ```
 Files:
   - app/(dashboard)/pricing/page.tsx (or pricing component)
@@ -143,9 +158,11 @@ Files:
 ```
 
 ### Current Behavior
+
 Users are redirected directly to Stripe checkout without the ability to enter a discount code.
 
 ### Expected Behavior (per docs/policies/07-dlocal-integration-rules.md line 109)
+
 1. User clicks "Upgrade to PRO"
 2. Pre-checkout modal or page appears with:
    - Plan summary (PRO Monthly/Yearly)
@@ -156,7 +173,9 @@ Users are redirected directly to Stripe checkout without the ability to enter a 
 4. "Proceed to Checkout" redirects to Stripe with discount applied
 
 ### Fix Required
+
 Add a checkout preview component before Stripe redirect:
+
 ```tsx
 // New component: components/checkout/checkout-preview.tsx
 interface CheckoutPreviewProps {
@@ -187,7 +206,10 @@ export function CheckoutPreview({ plan, onProceed }: CheckoutPreviewProps) {
         Apply
       </Button>
       {discount && <p>Discount: {discount}% off</p>}
-      <Button data-testid="proceed-checkout-button" onClick={() => onProceed(discountCode)}>
+      <Button
+        data-testid="proceed-checkout-button"
+        onClick={() => onProceed(discountCode)}
+      >
         Proceed to Checkout
       </Button>
     </Card>
@@ -204,14 +226,17 @@ export function CheckoutPreview({ plan, onProceed }: CheckoutPreviewProps) {
 **Tests Affected:** All API validation tests (DSC-001 to DSC-011)
 
 ### Location
+
 ```
 File: prisma/seed.ts
 ```
 
 ### Current State
+
 No discount codes are seeded in the test database.
 
 ### Required Seed Data
+
 ```typescript
 // Add to prisma/seed.ts
 
@@ -280,19 +305,19 @@ for (const code of discountCodes) {
 
 #### File 1: `app/(dashboard)/alerts/alerts-client.tsx`
 
-| Line | Element | Required data-testid |
-|------|---------|---------------------|
-| 454 | "Create New Alert" Button | `data-testid="create-alert-button"` |
-| 333 | Alert Card container | `data-testid="alert-item"` |
-| 353 | Symbol Badge | `data-testid="alert-symbol"` |
-| 354 | Timeframe span | `data-testid="alert-timeframe"` |
-| 406 | Pause Button | `data-testid="alert-toggle"` |
-| 416 | Resume Button | `data-testid="alert-toggle"` |
-| 425 | Delete Button | `data-testid="alert-delete-button"` |
-| 517 | Status filter buttons | `data-testid="status-filter"` |
-| 535 | Symbol filter Select | `data-testid="symbol-filter"` |
-| 582 | Empty state Card | `data-testid="alerts-empty-state"` |
-| 473 | Alert limit warning | `data-testid="alert-limit-warning"` |
+| Line | Element                   | Required data-testid                |
+| ---- | ------------------------- | ----------------------------------- |
+| 454  | "Create New Alert" Button | `data-testid="create-alert-button"` |
+| 333  | Alert Card container      | `data-testid="alert-item"`          |
+| 353  | Symbol Badge              | `data-testid="alert-symbol"`        |
+| 354  | Timeframe span            | `data-testid="alert-timeframe"`     |
+| 406  | Pause Button              | `data-testid="alert-toggle"`        |
+| 416  | Resume Button             | `data-testid="alert-toggle"`        |
+| 425  | Delete Button             | `data-testid="alert-delete-button"` |
+| 517  | Status filter buttons     | `data-testid="status-filter"`       |
+| 535  | Symbol filter Select      | `data-testid="symbol-filter"`       |
+| 582  | Empty state Card          | `data-testid="alerts-empty-state"`  |
+| 473  | Alert limit warning       | `data-testid="alert-limit-warning"` |
 
 #### File 2: `app/(dashboard)/alerts/new/create-alert-client.tsx`
 
@@ -300,20 +325,20 @@ Check if this file uses AlertForm component. If it renders the form directly, ad
 
 #### File 3: `components/alerts/alert-form.tsx`
 
-| Line | Element | Required data-testid |
-|------|---------|---------------------|
-| 171 | Form element | `data-testid="alert-form"` |
-| 184 | Symbol Select | `data-testid="symbol-select"` |
-| 194 | Symbol SelectItem | `data-testid="symbol-option"` |
-| 210 | Timeframe Select | `data-testid="timeframe-select"` |
-| 220 | Timeframe SelectItem | `data-testid="timeframe-option"` |
-| 234 | Condition selector | `data-testid="condition-select"` |
-| 272 | Price Input | `data-testid="price-input"` |
-| 294 | Alert name Input | `data-testid="alert-name-input"` |
-| 309 | Cancel Button | `data-testid="cancel-button"` |
-| 318 | Submit Button | `data-testid="submit-alert-button"` |
-| 174 | Error message div | `data-testid="error-message"` |
-| (new) | Success message | `data-testid="success-message"` |
+| Line  | Element              | Required data-testid                |
+| ----- | -------------------- | ----------------------------------- |
+| 171   | Form element         | `data-testid="alert-form"`          |
+| 184   | Symbol Select        | `data-testid="symbol-select"`       |
+| 194   | Symbol SelectItem    | `data-testid="symbol-option"`       |
+| 210   | Timeframe Select     | `data-testid="timeframe-select"`    |
+| 220   | Timeframe SelectItem | `data-testid="timeframe-option"`    |
+| 234   | Condition selector   | `data-testid="condition-select"`    |
+| 272   | Price Input          | `data-testid="price-input"`         |
+| 294   | Alert name Input     | `data-testid="alert-name-input"`    |
+| 309   | Cancel Button        | `data-testid="cancel-button"`       |
+| 318   | Submit Button        | `data-testid="submit-alert-button"` |
+| 174   | Error message div    | `data-testid="error-message"`       |
+| (new) | Success message      | `data-testid="success-message"`     |
 
 #### File 4: `components/alerts/alert-card.tsx`
 
@@ -324,6 +349,7 @@ Add `data-testid` attributes to match the alert-item structure expected by tests
 Ensure list container has appropriate test IDs if used.
 
 ### Example Fix Pattern
+
 ```tsx
 // Before
 <Button onClick={handleCreate}>+ Create New Alert</Button>
@@ -346,15 +372,15 @@ Ensure list container has appropriate test IDs if used.
 
 ## Summary of Files to Modify
 
-| Priority | File | Bugs |
-|----------|------|------|
-| 1 | `app/(dashboard)/settings/billing/page.tsx` | #1, #2 |
-| 2 | `prisma/seed.ts` | #4 |
-| 3 | `app/(dashboard)/alerts/alerts-client.tsx` | #5 |
-| 4 | `components/alerts/alert-form.tsx` | #5 |
-| 5 | `components/alerts/alert-card.tsx` | #5 |
-| 6 | `components/alerts/alert-list.tsx` | #5 |
-| 7 | Pricing/Checkout flow | #3 |
+| Priority | File                                        | Bugs   |
+| -------- | ------------------------------------------- | ------ |
+| 1        | `app/(dashboard)/settings/billing/page.tsx` | #1, #2 |
+| 2        | `prisma/seed.ts`                            | #4     |
+| 3        | `app/(dashboard)/alerts/alerts-client.tsx`  | #5     |
+| 4        | `components/alerts/alert-form.tsx`          | #5     |
+| 5        | `components/alerts/alert-card.tsx`          | #5     |
+| 6        | `components/alerts/alert-list.tsx`          | #5     |
+| 7        | Pricing/Checkout flow                       | #3     |
 
 ---
 
@@ -377,10 +403,10 @@ npx playwright test e2e/tests/path7-alert-notifications.spec.ts
 
 ## Expected Results After Fixes
 
-| Path | Current | Expected |
-|------|---------|----------|
-| Path 3 | 63 passed, 32 failed | 95 passed, 0 failed |
-| Path 4 | 30 passed, 95 failed | 125 passed, 0 failed |
+| Path   | Current               | Expected             |
+| ------ | --------------------- | -------------------- |
+| Path 3 | 63 passed, 32 failed  | 95 passed, 0 failed  |
+| Path 4 | 30 passed, 95 failed  | 125 passed, 0 failed |
 | Path 7 | 103 passed, 67 failed | 170 passed, 0 failed |
 
 **Total improvement:** +294 tests passing
