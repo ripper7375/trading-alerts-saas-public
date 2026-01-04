@@ -20,7 +20,7 @@ import { Pool, PoolConfig } from 'pg';
  * - connectionTimeoutMillis: 2s - fail fast on connection issues
  */
 const poolConfig: PoolConfig = {
-  connectionString: process.env.POSTGRESQL_URI || process.env.DATABASE_URL,
+  connectionString: process.env['POSTGRESQL_URI'] || process.env['DATABASE_URL'],
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -46,7 +46,7 @@ export function getPool(): Pool {
     pool = new Pool(poolConfig);
 
     // Log pool events in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
       pool.on('connect', () => {
         console.log('[PostgreSQL] New client connected to pool');
       });
