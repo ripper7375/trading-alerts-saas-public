@@ -9,6 +9,57 @@
  * - Real-time notifications
  *
  * @module e2e/tests/path7-alert-notifications
+ *
+ * ============================================================================
+ * PRODUCTION BUGS IDENTIFIED (require code fixes before tests can pass)
+ * ============================================================================
+ *
+ * BUG #1: Missing data-testid Attributes on Alerts Page
+ * -----------------------------------------------------
+ * Files to fix:
+ *   - app/(dashboard)/alerts/alerts-client.tsx
+ *   - app/(dashboard)/alerts/new/create-alert-client.tsx
+ *   - components/alerts/alert-form.tsx
+ *   - components/alerts/alert-card.tsx
+ *   - components/alerts/alert-list.tsx
+ *
+ * The production code is missing all data-testid attributes required for E2E testing.
+ * Tests expect these attributes but they don't exist:
+ *
+ * Alerts Page (alerts-client.tsx):
+ *   - data-testid="create-alert-button" on "Create New Alert" button (line 454)
+ *   - data-testid="alert-item" on each alert Card (line 333)
+ *   - data-testid="alert-toggle" on pause/resume buttons (lines 406, 416)
+ *   - data-testid="alert-delete-button" on delete button (line 425)
+ *   - data-testid="alert-symbol" on symbol badge (line 353)
+ *   - data-testid="alert-timeframe" on timeframe span (line 354)
+ *   - data-testid="status-filter" on status tabs (line 517)
+ *   - data-testid="symbol-filter" on symbol Select (line 535)
+ *   - data-testid="alerts-empty-state" on empty state Card (line 582)
+ *   - data-testid="alert-limit-warning" when at limit (line 473)
+ *
+ * Create Alert Form (alert-form.tsx):
+ *   - data-testid="alert-form" on form element (line 171)
+ *   - data-testid="symbol-select" on symbol Select (line 184)
+ *   - data-testid="symbol-option" on each SelectItem (line 194)
+ *   - data-testid="timeframe-select" on timeframe Select (line 210)
+ *   - data-testid="timeframe-option" on each SelectItem (line 220)
+ *   - data-testid="condition-select" on condition selector (line 234)
+ *   - data-testid="price-input" on target price Input (line 272)
+ *   - data-testid="alert-name-input" on alert name Input (line 294)
+ *   - data-testid="submit-alert-button" on submit Button (line 318)
+ *   - data-testid="cancel-button" on cancel Button (line 309)
+ *   - data-testid="error-message" on error div (line 174)
+ *   - data-testid="success-message" on success message (needs to be added)
+ *
+ * Fix Recommendation:
+ *   Add data-testid attributes to all interactive elements and containers
+ *   to enable reliable E2E testing across browsers.
+ *
+ * Expected Tests to FAIL until fixed: ALT-002 to ALT-014, ALT-025 to ALT-034
+ * Expected Tests to PASS (API tests): ALT-015 to ALT-024
+ *
+ * ============================================================================
  */
 
 import { test, expect } from '@playwright/test';
