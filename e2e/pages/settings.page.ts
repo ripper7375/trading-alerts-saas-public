@@ -77,7 +77,8 @@ export class SettingsPage {
     this.renewalDate = page.locator('text=/Next billing date:/');
     // Cancel button may say "Cancel Subscription" or "Cancel Plan" - use role for reliability
     this.cancelSubscriptionButton = page.getByRole('button', { name: /Cancel (Subscription|Plan)/i });
-    this.upgradeButton = page.getByRole('button', { name: /Upgrade to PRO/i });
+    // Upgrade button - use text locator for cross-browser compatibility (icon affects getByRole in chromium)
+    this.upgradeButton = page.locator('button:has-text("Upgrade to PRO"), a:has-text("Upgrade to PRO") button');
     this.paymentMethod = page.locator('text=/ending in \\*\\*\\*\\*/');
 
     // Cancel modal - using text and class based selectors
