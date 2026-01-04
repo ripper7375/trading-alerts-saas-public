@@ -38,11 +38,12 @@ import { TIER_CONFIG, type Tier } from '@/types/tier';
  *
  * Features:
  * - Current subscription card (FREE/PRO)
- * - Upgrade/Cancel buttons
+ * - Upgrade/Cancel buttons with confirmation modal
  * - Payment method display
  * - Invoice history table
  * - Usage statistics (alerts, watchlist, API calls)
  * - Affiliate discount display
+ * - Resubscribe option for cancelled subscriptions
  */
 
 interface InvoiceRecord {
@@ -81,6 +82,17 @@ interface SubscriptionData {
   } | null;
 }
 
+// Cancellation reason options
+const CANCELLATION_REASONS = [
+  { value: '', label: 'Select a reason (optional)' },
+  { value: 'too_expensive', label: 'Too expensive' },
+  { value: 'not_using', label: 'Not using the service enough' },
+  { value: 'missing_features', label: 'Missing features I need' },
+  { value: 'found_alternative', label: 'Found a better alternative' },
+  { value: 'technical_issues', label: 'Technical issues' },
+  { value: 'other', label: 'Other reason' },
+];
+
 // Mock invoice data
 const mockInvoices: InvoiceRecord[] = [
   {
@@ -114,9 +126,11 @@ export default function BillingSettingsPage(): React.ReactElement {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
   const [subscriptionData, setSubscriptionData] =
     useState<SubscriptionData | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
@@ -127,7 +141,9 @@ export default function BillingSettingsPage(): React.ReactElement {
   const isCancelled =
     subscriptionData?.subscription?.cancelAtPeriodEnd ||
     subscriptionData?.subscription?.status === 'CANCELED' ||
-    subscriptionData?.subscription?.status === 'canceled';
+    subscriptionData?.subscription?.status === 'canceled' ||
+    subscriptionData?.subscription?.status === 'CANCELLED' ||
+    subscriptionData?.subscription?.status === 'cancelled';
 
   // Get expiration date
   const expiresAt =
@@ -166,11 +182,13 @@ export default function BillingSettingsPage(): React.ReactElement {
   const handleCancel = async () => {
     setIsCancelling(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancellationReason }),
       });
 
       const data = await response.json();
@@ -178,6 +196,9 @@ export default function BillingSettingsPage(): React.ReactElement {
       if (!response.ok) {
         throw new Error(data.message || 'Failed to cancel subscription');
       }
+
+      // Show success message
+      setSuccessMessage('Subscription cancelled successfully');
 
       // Refresh subscription data and session
       await fetchSubscription();
@@ -189,6 +210,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       );
     } finally {
       setIsCancelling(false);
+      setCancellationReason('');
     }
   };
 
@@ -220,6 +242,22 @@ export default function BillingSettingsPage(): React.ReactElement {
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
         Billing & Subscription
       </h2>
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-sm text-green-800 dark:text-green-200">
+            {successMessage}
+          </p>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
 
       {/* Current Plan Card */}
       <Card
@@ -264,13 +302,6 @@ export default function BillingSettingsPage(): React.ReactElement {
                 PRO features until{' '}
                 <strong>{formatDate(expiresAt)}</strong>.
               </p>
-            </div>
-          )}
-
-          {/* Show error message if any */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
@@ -350,6 +381,29 @@ export default function BillingSettingsPage(): React.ReactElement {
                       undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+
+                  {/* Cancellation Reason Dropdown */}
+                  <div className="py-4">
+                    <label
+                      htmlFor="cancellation-reason"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Why are you cancelling? (Optional)
+                    </label>
+                    <select
+                      id="cancellation-reason"
+                      value={cancellationReason}
+                      onChange={(e) => setCancellationReason(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {CANCELLATION_REASONS.map((reason) => (
+                        <option key={reason.value} value={reason.value}>
+                          {reason.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <AlertDialogFooter>
                     <AlertDialogCancel data-testid="keep-plan-button">
                       Keep My Plan
