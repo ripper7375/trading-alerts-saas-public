@@ -75,10 +75,10 @@ export class SettingsPage {
     this.currentPlanDisplay = page.locator('[data-slot="badge"]:has-text("TIER")');
     this.subscriptionStatus = page.locator('[data-slot="badge"]:has-text("Active"), [data-slot="badge"]:has-text("Cancelled"), [data-slot="badge"]:has-text("Trialing")').first();
     this.renewalDate = page.locator('text=/Next billing date:/');
-    // Cancel button - simplified selector to match any button with "Cancel"
-    this.cancelSubscriptionButton = page.locator('button:has-text("Cancel")');
-    // Upgrade button - simplified selector
-    this.upgradeButton = page.locator('button:has-text("Upgrade")');
+    // Cancel button - use data-slot for reliability
+    this.cancelSubscriptionButton = page.locator('[data-slot="button"]:has-text("Cancel")');
+    // Upgrade button - use data-slot for reliability
+    this.upgradeButton = page.locator('[data-slot="button"]:has-text("Upgrade")');
     this.paymentMethod = page.locator('text=/ending in \\*\\*\\*\\*/');
 
     // Cancel modal - using text and class based selectors
