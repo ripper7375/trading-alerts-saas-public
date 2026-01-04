@@ -8,6 +8,27 @@
  * - Downgrade after expiry
  * - Alert/watchlist reduction on downgrade
  *
+ * ============================================================
+ * PRODUCTION BUGS IDENTIFIED (require code fixes)
+ * ============================================================
+ *
+ * BUG #1: Cancel Confirmation Modal Missing
+ * -----------------------------------------
+ * File: app/(dashboard)/settings/billing/page.tsx (lines 179-184)
+ * Issue: "Cancel Plan" button is a plain button, no modal dialog
+ * Reference: docs/mvp-manual-testing-checklist.md line 194
+ * Tests affected: CAN-003, CAN-004, CAN-005, CAN-006, CAN-007
+ * Fix: Add AlertDialog with cancellation reason dropdown
+ *
+ * BUG #2: No Resubscribe Option for Cancelled Users
+ * -------------------------------------------------
+ * File: app/(dashboard)/settings/billing/page.tsx
+ * Issue: Cancelled PRO users see same UI as active PRO users
+ * Tests affected: CAN-012
+ * Fix: Check subscription.cancelledAt and show "Resubscribe" button
+ *
+ * ============================================================
+ *
  * @module e2e/tests/path3-subscription-cancel
  */
 
@@ -391,16 +412,23 @@ test.describe('Path 3: Subscription Cancellation', () => {
         TEST_USERS.pro.password
       );
 
-      // First cancellation
-      await cancelSubscription(request, 'testing');
+      // First cancellation (may already be cancelled from CAN-013)
+      const firstResult = await cancelSubscription(request, 'testing');
 
       // Try to cancel again
-      const result = await cancelSubscription(request, 'testing again');
+      const secondResult = await cancelSubscription(request, 'testing again');
 
-      // Should fail or indicate already cancelled
-      if (!result.success) {
-        expect(result.error).toBeTruthy();
-      }
+      // Either the first or second call should indicate already cancelled
+      // This handles test isolation - if CAN-013 ran first, first call here fails
+      const alreadyCancelled =
+        !firstResult.success ||
+        !secondResult.success ||
+        secondResult.error?.toLowerCase().includes('cancel');
+
+      expect(
+        alreadyCancelled,
+        'API should reject cancelling an already cancelled subscription'
+      ).toBeTruthy();
     });
   });
 
