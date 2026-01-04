@@ -30,29 +30,29 @@
 
 ### 1.1 Total Scope
 
-| Metric           | Count     |
-| ---------------- | --------- |
-| Total Phases     | 9         |
-| Total Files      | ~45 files |
-| MQL5 Files       | 3 files   |
-| Python Files     | 8 files   |
-| TypeScript Files | 25 files  |
-| SQL Files        | 4 files   |
-| Config Files     | 5 files   |
+| Metric | Count |
+|--------|-------|
+| Total Phases | 9 |
+| Total Files | ~47 files |
+| MQL5 Files | 3 files |
+| Python Files | 8 files |
+| TypeScript Files | 27 files |
+| SQL Files | 4 files |
+| Config Files | 5 files |
 
 ### 1.2 Phase Summary
 
-| Phase | Description              | Files | Dependencies |
-| ----- | ------------------------ | ----- | ------------ |
-| 1     | Database Schema Setup    | 4     | None         |
-| 2     | MQL5 Service Development | 3     | Phase 1      |
-| 3     | Sync Script Development  | 5     | Phases 1, 2  |
-| 4     | Next.js API Routes       | 8     | Phase 3      |
-| 5     | Redis Caching Layer      | 4     | Phase 4      |
-| 6     | Confluence Score System  | 6     | Phases 4, 5  |
-| 7     | Testing Framework        | 10    | Phases 1-6   |
-| 8     | E2E Testing Migration    | 3     | Phase 7      |
-| 9     | Deployment & Cutover     | 2     | All previous |
+| Phase | Description | Files | Dependencies |
+|-------|-------------|-------|--------------|
+| 1 | Database Schema Setup | 4 | None |
+| 2 | MQL5 Service Development | 3 | Phase 1 |
+| 3 | Sync Script Development | 5 | Phases 1, 2 |
+| 4 | Next.js API Routes | 10 | Phase 3 |
+| 5 | Redis Caching Layer | 4 | Phase 4 |
+| 6 | Confluence Score System | 6 | Phases 4, 5 |
+| 7 | Testing Framework | 10 | Phases 1-6 |
+| 8 | E2E Testing Migration | 3 | Phase 7 |
+| 9 | Deployment & Cutover | 2 | All previous |
 
 ### 1.3 Context Window Management
 
@@ -101,6 +101,85 @@ Each phase is designed to stay within AI context limits:
 3. **Contabo VPS:** Windows VPS with 15 MT5 terminals running
 4. **TimescaleDB Extension:** Installed on PostgreSQL
 5. **MT5 Indicators:** All custom indicators compiled and attached to charts
+
+---
+
+## 2.1 Timezone & Market Hours Handling
+
+### 2.1.1 MT5 Server Time Configuration
+
+MT5 server time changes between standard and daylight saving time:
+
+| Period | MT5 Server Time | Transition |
+|--------|-----------------|------------|
+| Standard Time | GMT+2 | 1st Sunday of November at 02:00 AM US local |
+| Daylight Saving | GMT+3 | 2nd Sunday of March at 02:00 AM US local |
+
+### 2.1.2 Timestamp Storage Strategy
+
+**CRITICAL:** All timestamps must be stored as **Unix timestamps (UTC-based)** to avoid timezone confusion.
+
+```
+MQL5 DataCollector:
+├── Use TimeGMT() to get UTC time (NOT TimeCurrent())
+├── Convert to Unix timestamp: (long)TimeGMT()
+└── Store as INTEGER in SQLite
+
+Sync Script:
+├── Read Unix timestamp from SQLite
+├── Convert to PostgreSQL TIMESTAMPTZ
+└── PostgreSQL stores as UTC internally
+
+API Response:
+├── Return timestamps in ISO 8601 UTC format
+├── Frontend converts to user's local timezone
+└── Chart library (Lightweight Charts) uses Unix timestamps
+```
+
+### 2.1.3 Trading Hours by Symbol
+
+Different symbols have different trading hours (all times in MT5 server time):
+
+| Symbol Type | Symbols | Trading Hours | Days |
+|-------------|---------|---------------|------|
+| **Crypto** | BTCUSD, ETHUSD | 00:00 - 23:59 | Mon-Sun (24/7) |
+| **Forex** | EURUSD, USDJPY, AUDJPY, AUDUSD, GBPJPY, GBPUSD, NZDUSD, USDCAD, USDCHF | 00:04 - 23:58 | Mon-Fri |
+| **Indices** | US30, NDX100 | 01:00 - 24:00 | Mon-Fri |
+| **Metals** | XAUUSD, XAGUSD | 01:01 - 23:59 | Mon-Fri |
+
+### 2.1.4 Implementation Requirements
+
+**Phase 02 (MQL5 Service):**
+- Use `TimeGMT()` instead of `TimeCurrent()` for timestamps
+- Store as Unix timestamp (INTEGER) in SQLite
+
+**Phase 04 (API Routes):**
+- Create `lib/market-hours/trading-sessions.ts` with symbol schedules
+- Create `lib/market-hours/validator.ts` with `isMarketOpen()` function
+- Add market status metadata to API responses
+- Handle "market closed" queries gracefully (return last available data)
+
+**API Response Metadata (new fields):**
+```typescript
+metadata: {
+  // Existing fields
+  symbol: string;
+  timeframe: string;
+  // ...
+
+  // NEW: Market status fields
+  market_status: 'OPEN' | 'CLOSED';
+  trading_hours: {
+    open: string;      // "00:04:00"
+    close: string;     // "23:58:00"
+    timezone: string;  // "GMT+2" or "GMT+3"
+    days: string[];    // ["monday", "tuesday", ...]
+  };
+  next_market_open: string | null;  // ISO 8601 if closed
+  dst_active: boolean;              // Is DST active on MT5 server
+  server_utc_offset: 2 | 3;         // Current MT5 server offset
+}
+```
 
 ---
 
@@ -1700,54 +1779,56 @@ chore(deploy): Part 20 production deployment
 
 ## 12. File Inventory
 
-### Complete File List (45 files)
+### Complete File List (47 files)
 
-| Phase | File Path                                          | Type       |
-| ----- | -------------------------------------------------- | ---------- |
-| 1     | `sql/sqlite_schema.sql`                            | SQL        |
-| 1     | `sql/postgresql_schema.sql`                        | SQL        |
-| 1     | `sql/timescaledb_setup.sql`                        | SQL        |
-| 1     | `sql/seed_data.sql`                                | SQL        |
-| 2     | `mql5/Services/DataCollector.mq5`                  | MQL5       |
-| 2     | `mql5/Include/IndicatorBuffers.mqh`                | MQL5       |
-| 2     | `mql5/Include/SymbolUtils.mqh`                     | MQL5       |
-| 3     | `sync/sync_to_postgresql.py`                       | Python     |
-| 3     | `sync/timeframe_filter.py`                         | Python     |
-| 3     | `sync/db_connections.py`                           | Python     |
-| 3     | `sync/config.py`                                   | Python     |
-| 3     | `sync/requirements.txt`                            | Config     |
-| 4     | `app/api/indicators/[symbol]/[timeframe]/route.ts` | TypeScript |
-| 4     | `app/api/indicators/health/route.ts`               | TypeScript |
-| 4     | `app/api/symbols/route.ts`                         | TypeScript |
-| 4     | `app/api/timeframes/route.ts`                      | TypeScript |
-| 4     | `lib/db/postgresql.ts`                             | TypeScript |
-| 4     | `lib/db/queries.ts`                                | TypeScript |
-| 4     | `lib/indicators/types.ts`                          | TypeScript |
-| 4     | `lib/tier/validation.ts`                           | TypeScript |
-| 5     | `lib/cache/redis.ts`                               | TypeScript |
-| 5     | `lib/cache/indicator-cache.ts`                     | TypeScript |
-| 5     | `lib/cache/cache-invalidation.ts`                  | TypeScript |
-| 6     | `app/api/confluence/[symbol]/route.ts`             | TypeScript |
-| 6     | `lib/confluence/calculator.ts`                     | TypeScript |
-| 6     | `lib/confluence/signals.ts`                        | TypeScript |
-| 6     | `lib/confluence/types.ts`                          | TypeScript |
-| 6     | `lib/db/multi-timeframe-query.ts`                  | TypeScript |
-| 6     | `lib/cache/confluence-cache.ts`                    | TypeScript |
-| 7     | `__tests__/unit/timeframe-filter.test.ts`          | TypeScript |
-| 7     | `__tests__/unit/confluence-calculator.test.ts`     | TypeScript |
-| 7     | `__tests__/unit/symbol-utils.test.ts`              | TypeScript |
-| 7     | `__tests__/integration/sync-pipeline.test.ts`      | TypeScript |
-| 7     | `__tests__/integration/cache-integration.test.ts`  | TypeScript |
-| 7     | `__tests__/api/indicators.test.ts`                 | TypeScript |
-| 7     | `__tests__/api/confluence.test.ts`                 | TypeScript |
-| 7     | `__tests__/api/health.test.ts`                     | TypeScript |
-| 7     | `jest.config.js`                                   | Config     |
-| 7     | `__tests__/setup.ts`                               | TypeScript |
-| 8     | `e2e/critical-path.spec.ts`                        | TypeScript |
-| 8     | `e2e/chart-rendering.spec.ts`                      | TypeScript |
-| 8     | `playwright.config.ts`                             | TypeScript |
-| 9     | `scripts/deploy-part20.sh`                         | Shell      |
-| 9     | `scripts/rollback-to-part6.sh`                     | Shell      |
+| Phase | File Path | Type |
+|-------|-----------|------|
+| 1 | `sql/sqlite_schema.sql` | SQL |
+| 1 | `sql/postgresql_schema.sql` | SQL |
+| 1 | `sql/timescaledb_setup.sql` | SQL |
+| 1 | `sql/seed_data.sql` | SQL |
+| 2 | `mql5/Services/DataCollector.mq5` | MQL5 |
+| 2 | `mql5/Include/IndicatorBuffers.mqh` | MQL5 |
+| 2 | `mql5/Include/SymbolUtils.mqh` | MQL5 |
+| 3 | `sync/sync_to_postgresql.py` | Python |
+| 3 | `sync/timeframe_filter.py` | Python |
+| 3 | `sync/db_connections.py` | Python |
+| 3 | `sync/config.py` | Python |
+| 3 | `sync/requirements.txt` | Config |
+| 4 | `app/api/indicators/[symbol]/[timeframe]/route.ts` | TypeScript |
+| 4 | `app/api/indicators/health/route.ts` | TypeScript |
+| 4 | `app/api/symbols/route.ts` | TypeScript |
+| 4 | `app/api/timeframes/route.ts` | TypeScript |
+| 4 | `lib/db/postgresql.ts` | TypeScript |
+| 4 | `lib/db/queries.ts` | TypeScript |
+| 4 | `lib/indicators/types.ts` | TypeScript |
+| 4 | `lib/tier/validation.ts` | TypeScript |
+| 4 | `lib/market-hours/trading-sessions.ts` | TypeScript |
+| 4 | `lib/market-hours/validator.ts` | TypeScript |
+| 5 | `lib/cache/redis.ts` | TypeScript |
+| 5 | `lib/cache/indicator-cache.ts` | TypeScript |
+| 5 | `lib/cache/cache-invalidation.ts` | TypeScript |
+| 6 | `app/api/confluence/[symbol]/route.ts` | TypeScript |
+| 6 | `lib/confluence/calculator.ts` | TypeScript |
+| 6 | `lib/confluence/signals.ts` | TypeScript |
+| 6 | `lib/confluence/types.ts` | TypeScript |
+| 6 | `lib/db/multi-timeframe-query.ts` | TypeScript |
+| 6 | `lib/cache/confluence-cache.ts` | TypeScript |
+| 7 | `__tests__/unit/timeframe-filter.test.ts` | TypeScript |
+| 7 | `__tests__/unit/confluence-calculator.test.ts` | TypeScript |
+| 7 | `__tests__/unit/symbol-utils.test.ts` | TypeScript |
+| 7 | `__tests__/integration/sync-pipeline.test.ts` | TypeScript |
+| 7 | `__tests__/integration/cache-integration.test.ts` | TypeScript |
+| 7 | `__tests__/api/indicators.test.ts` | TypeScript |
+| 7 | `__tests__/api/confluence.test.ts` | TypeScript |
+| 7 | `__tests__/api/health.test.ts` | TypeScript |
+| 7 | `jest.config.js` | Config |
+| 7 | `__tests__/setup.ts` | TypeScript |
+| 8 | `e2e/critical-path.spec.ts` | TypeScript |
+| 8 | `e2e/chart-rendering.spec.ts` | TypeScript |
+| 8 | `playwright.config.ts` | TypeScript |
+| 9 | `scripts/deploy-part20.sh` | Shell |
+| 9 | `scripts/rollback-to-part6.sh` | Shell |
 
 ---
 

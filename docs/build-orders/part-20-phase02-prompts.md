@@ -96,6 +96,32 @@ Create include file with functions:
 - Handle database errors gracefully with Print() logging
 - Buffer indices must match the actual indicator implementations
 
+## CRITICAL: Timestamp Handling
+**Store all timestamps as Unix timestamps (UTC-based) to avoid timezone confusion:**
+
+```mql5
+// ❌ WRONG - Do NOT use server time (affected by DST)
+datetime serverTime = TimeCurrent();
+string timeStr = TimeToString(serverTime);
+
+// ✅ CORRECT - Use UTC time and convert to Unix timestamp
+datetime utcTime = TimeGMT();
+long unixTimestamp = (long)utcTime;  // Seconds since 1970-01-01 00:00:00 UTC
+
+// Store as INTEGER in SQLite
+string sql = StringFormat(
+    "INSERT OR REPLACE INTO %s (timestamp, open, high, low, close, ...) "
+    "VALUES (%d, %.5f, %.5f, %.5f, %.5f, ...)",
+    symbol, unixTimestamp, open, high, low, close
+);
+```
+
+**Why UTC?**
+- MT5 server time changes between GMT+2 (standard) and GMT+3 (daylight saving)
+- Unix timestamps are universal and avoid DST transition issues
+- PostgreSQL TIMESTAMPTZ will correctly interpret UTC timestamps
+- Frontend charts (Lightweight Charts) expect Unix timestamps
+
 ## Success Criteria
 - [ ] All MQL5 files compile without errors in MetaEditor
 - [ ] Service starts from Tools → Services in MT5
@@ -104,6 +130,7 @@ Create include file with functions:
 - [ ] Data written every 30 seconds
 - [ ] All 13 indicator values captured in correct JSON format
 - [ ] Symbol suffix correctly stripped (EURUSD.i → EURUSD)
+- [ ] Timestamps stored as Unix timestamps (UTC-based INTEGER)
 
 ## Commit Instructions
 After creating all files, commit with message:
