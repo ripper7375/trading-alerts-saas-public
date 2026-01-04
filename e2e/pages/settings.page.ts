@@ -71,13 +71,13 @@ export class SettingsPage {
     this.avatarUpload = page.locator('[data-testid="avatar-upload"]');
 
     // Subscription section - selectors for /settings/billing page
-    // Plan badge shows "PRO TIER" or "FREE TIER"
-    this.currentPlanDisplay = page.locator('span:has-text("PRO TIER"), span:has-text("FREE TIER")').first();
-    this.subscriptionStatus = page.locator('span:has-text("Active"), span:has-text("Cancelled"), span:has-text("Trialing")').first();
+    // Plan badge shows "PRO TIER" or "FREE TIER" - use data-slot attribute for reliability
+    this.currentPlanDisplay = page.locator('[data-slot="badge"]').first();
+    this.subscriptionStatus = page.locator('[data-slot="badge"]:has-text("Active"), [data-slot="badge"]:has-text("Cancelled"), [data-slot="badge"]:has-text("Trialing")').first();
     this.renewalDate = page.locator('text=/Next billing date:/');
-    // Cancel button may say "Cancel Subscription" or "Cancel Plan"
-    this.cancelSubscriptionButton = page.locator('button:has-text("Cancel Subscription"), button:has-text("Cancel Plan")');
-    this.upgradeButton = page.locator('button:has-text("Upgrade to PRO")');
+    // Cancel button may say "Cancel Subscription" or "Cancel Plan" - use role for reliability
+    this.cancelSubscriptionButton = page.getByRole('button', { name: /Cancel (Subscription|Plan)/i });
+    this.upgradeButton = page.getByRole('button', { name: /Upgrade to PRO/i });
     this.paymentMethod = page.locator('text=/ending in \\*\\*\\*\\*/');
 
     // Cancel modal - using text and class based selectors
