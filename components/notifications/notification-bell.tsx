@@ -429,11 +429,11 @@ export function NotificationBell(): React.JSX.Element {
         {/* Footer */}
         <div className="border-t-2 border-gray-200 bg-gray-50 p-4 text-center rounded-b-xl">
           <a
-            href="/dashboard/notifications"
+            href="/notifications"
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
               e.preventDefault();
               setOpen(false);
-              router.push('/dashboard/notifications');
+              router.push('/notifications');
             }}
             className="text-blue-600 hover:underline font-semibold block"
           >
@@ -443,7 +443,7 @@ export function NotificationBell(): React.JSX.Element {
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.preventDefault();
               setOpen(false);
-              router.push('/dashboard/settings/notifications');
+              router.push('/settings/notifications');
             }}
             className="text-gray-600 hover:text-blue-600 text-sm mt-2 block w-full"
           >

@@ -83,7 +83,7 @@ export class AlertsPage {
    * Navigate to alerts page
    */
   async goto(): Promise<void> {
-    await this.page.goto('/dashboard/alerts');
+    await this.page.goto('/alerts');
     await this.waitForPageLoad();
   }
 

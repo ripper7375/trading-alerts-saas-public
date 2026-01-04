@@ -93,7 +93,7 @@ describe('WatchlistWidget Component', () => {
       render(<WatchlistWidget items={sampleItems} />);
 
       const addLink = screen.getByText('Add').closest('a');
-      expect(addLink).toHaveAttribute('href', '/dashboard/watchlist/add');
+      expect(addLink).toHaveAttribute('href', '/watchlist/add');
     });
 
     it('should render View All button when items exist', () => {
@@ -106,7 +106,7 @@ describe('WatchlistWidget Component', () => {
       render(<WatchlistWidget items={sampleItems} />);
 
       const viewAllLink = screen.getByText('View All').closest('a');
-      expect(viewAllLink).toHaveAttribute('href', '/dashboard/watchlist');
+      expect(viewAllLink).toHaveAttribute('href', '/watchlist');
     });
   });
 
@@ -182,7 +182,7 @@ describe('WatchlistWidget Component', () => {
       const itemLink = screen.getByText('XAUUSD').closest('a');
       expect(itemLink).toHaveAttribute(
         'href',
-        '/dashboard/charts?symbol=XAUUSD&timeframe=H1'
+        '/charts?symbol=XAUUSD&timeframe=H1'
       );
     });
   });
@@ -215,7 +215,7 @@ describe('WatchlistWidget Component', () => {
       render(<WatchlistWidget items={[]} />);
 
       const addButton = screen.getByText('Add Symbol').closest('a');
-      expect(addButton).toHaveAttribute('href', '/dashboard/watchlist/add');
+      expect(addButton).toHaveAttribute('href', '/watchlist/add');
     });
 
     it('should not show View All in empty state', () => {

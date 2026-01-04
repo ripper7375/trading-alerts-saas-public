@@ -124,8 +124,13 @@ export function TradingChart({
 
       if (err instanceof Error) {
         // Handle network errors specifically
-        if (err.message === 'fetch failed' || err.message.includes('NetworkError') || err.message.includes('Failed to fetch')) {
-          errorMessage = 'Unable to connect to the data service. Please check your connection and try again.';
+        if (
+          err.message === 'fetch failed' ||
+          err.message.includes('NetworkError') ||
+          err.message.includes('Failed to fetch')
+        ) {
+          errorMessage =
+            'Unable to connect to the data service. Please check your connection and try again.';
         } else {
           errorMessage = err.message;
         }
@@ -147,7 +152,8 @@ export function TradingChart({
     if (chartRef.current) return;
 
     // Get container width, fallback to parent width or default
-    const containerWidth = chartContainerRef.current.clientWidth ||
+    const containerWidth =
+      chartContainerRef.current.clientWidth ||
       chartContainerRef.current.parentElement?.clientWidth ||
       800;
 
@@ -349,9 +355,9 @@ export function TradingChart({
     <div className="relative">
       {/* Loading overlay */}
       {isLoading && !data && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center h-[600px] bg-[#1e222d] rounded-lg">
+        <div className="absolute inset-0 z-10 flex h-[600px] items-center justify-center rounded-lg bg-[#1e222d]">
           <div className="text-center">
-            <div className="inline-block w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mb-3"></div>
+            <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
             <p className="text-[#d1d4dc]">Loading chart data...</p>
           </div>
         </div>
@@ -359,16 +365,16 @@ export function TradingChart({
 
       {/* Error overlay */}
       {error && !data && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center h-[600px] bg-[#1e222d] rounded-lg">
-          <div className="text-center max-w-md px-6">
-            <div className="text-4xl mb-3">⚠️</div>
-            <p className="text-red-400 font-semibold mb-2">
+        <div className="absolute inset-0 z-10 flex h-[600px] items-center justify-center rounded-lg bg-[#1e222d]">
+          <div className="max-w-md px-6 text-center">
+            <div className="mb-3 text-4xl">⚠️</div>
+            <p className="mb-2 font-semibold text-red-400">
               Failed to load chart
             </p>
-            <p className="text-gray-400 text-sm mb-4">{error}</p>
+            <p className="mb-4 text-sm text-gray-400">{error}</p>
             <button
               onClick={fetchData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
             >
               Try Again
             </button>
@@ -376,7 +382,7 @@ export function TradingChart({
         </div>
       )}
       {/* Status bar */}
-      <div className="flex items-center justify-between mb-2 px-2">
+      <div className="mb-2 flex items-center justify-between px-2">
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">
             {symbol}/{timeframe}
@@ -387,7 +393,7 @@ export function TradingChart({
               const lastCandle = data.ohlc[data.ohlc.length - 1];
               if (!lastCandle) return null;
               return (
-                <span className="text-sm font-mono text-gray-800">
+                <span className="font-mono text-sm text-gray-800">
                   {lastCandle.close.toFixed(symbol.includes('JPY') ? 3 : 5)}
                 </span>
               );
@@ -398,7 +404,7 @@ export function TradingChart({
           <span>Auto-refresh: {tier === 'PRO' ? '30s' : '60s'}</span>
           {isLoading && (
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></span>
               Updating...
             </span>
           )}
@@ -408,7 +414,7 @@ export function TradingChart({
       {/* Chart container */}
       <div
         ref={chartContainerRef}
-        className="rounded-lg overflow-hidden border border-gray-700 w-full min-h-[600px]"
+        className="min-h-[600px] w-full overflow-hidden rounded-lg border border-gray-700"
       />
 
       {/* Indicator overlay component for price lines */}
@@ -422,21 +428,21 @@ export function TradingChart({
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mt-4 px-2 text-xs">
+      <div className="mt-4 flex flex-wrap gap-4 px-2 text-xs">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#f23645]"></span>
+          <span className="h-3 w-3 rounded-full bg-[#f23645]"></span>
           <span className="text-gray-600">Resistance (P-P1)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#00c853]"></span>
+          <span className="h-3 w-3 rounded-full bg-[#00c853]"></span>
           <span className="text-gray-600">Support (B-B1)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#1e88e5]"></span>
+          <span className="h-3 w-3 rounded-full bg-[#1e88e5]"></span>
           <span className="text-gray-600">Ascending Trend</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#ff6b35]"></span>
+          <span className="h-3 w-3 rounded-full bg-[#ff6b35]"></span>
           <span className="text-gray-600">Descending Trend</span>
         </div>
       </div>

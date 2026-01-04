@@ -87,7 +87,7 @@ describe('RecentAlerts Component', () => {
       render(<RecentAlerts alerts={sampleAlerts} />);
 
       const viewAllLink = screen.getByText('View All').closest('a');
-      expect(viewAllLink).toHaveAttribute('href', '/dashboard/alerts');
+      expect(viewAllLink).toHaveAttribute('href', '/alerts');
     });
   });
 
@@ -200,7 +200,7 @@ describe('RecentAlerts Component', () => {
       const createButton = screen
         .getByText('Create Your First Alert')
         .closest('a');
-      expect(createButton).toHaveAttribute('href', '/dashboard/alerts/new');
+      expect(createButton).toHaveAttribute('href', '/alerts/new');
     });
 
     it('should not show View All in empty state', () => {

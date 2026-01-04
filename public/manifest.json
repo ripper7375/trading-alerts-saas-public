@@ -92,7 +92,7 @@
       "name": "Create Alert",
       "short_name": "New Alert",
       "description": "Create a new trading alert",
-      "url": "/dashboard/alerts/new",
+      "url": "/alerts/new",
       "icons": [
         {
           "src": "/icons/shortcut-alert.png",
@@ -104,7 +104,7 @@
       "name": "Watchlist",
       "short_name": "Watchlist",
       "description": "View your watchlist",
-      "url": "/dashboard/watchlist",
+      "url": "/watchlist",
       "icons": [
         {
           "src": "/icons/shortcut-watchlist.png",

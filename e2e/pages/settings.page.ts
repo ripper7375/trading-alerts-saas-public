@@ -70,13 +70,16 @@ export class SettingsPage {
     this.saveProfileButton = page.locator('[data-testid="save-profile-button"]');
     this.avatarUpload = page.locator('[data-testid="avatar-upload"]');
 
-    // Subscription section - using text-based selectors from subscription-card component
-    this.currentPlanDisplay = page.locator('.inline-flex').filter({ hasText: /FREE|PRO/ });
-    this.subscriptionStatus = page.locator('text=Active, text=Cancelled, text=Trialing').first();
-    this.renewalDate = page.locator('text=/Next billing:/').locator('xpath=following-sibling::*');
-    this.cancelSubscriptionButton = page.locator('button:has-text("Cancel Subscription")');
-    this.upgradeButton = page.locator('button:has-text("Upgrade to PRO")');
-    this.paymentMethod = page.locator('text=/ending in/');
+    // Subscription section - selectors for /settings/billing page
+    // Plan badge shows "PRO TIER" or "FREE TIER" - target specifically the TIER badge
+    this.currentPlanDisplay = page.locator('[data-slot="badge"]:has-text("TIER")');
+    this.subscriptionStatus = page.locator('[data-slot="badge"]:has-text("Active"), [data-slot="badge"]:has-text("Cancelled"), [data-slot="badge"]:has-text("Trialing")').first();
+    this.renewalDate = page.locator('text=/Next billing date:/');
+    // Cancel button - use data-slot for reliability
+    this.cancelSubscriptionButton = page.locator('[data-slot="button"]:has-text("Cancel")');
+    // Upgrade button - use data-slot for reliability
+    this.upgradeButton = page.locator('[data-slot="button"]:has-text("Upgrade")');
+    this.paymentMethod = page.locator('text=/ending in \\*\\*\\*\\*/');
 
     // Cancel modal - using text and class based selectors
     this.cancelModal = page.locator('[role="dialog"], .fixed.inset-0').filter({ hasText: /cancel/i });
@@ -123,7 +126,7 @@ export class SettingsPage {
    * Navigate to settings page
    */
   async goto(): Promise<void> {
-    await this.page.goto('/dashboard/settings');
+    await this.page.goto('/settings');
     await this.waitForPageLoad();
   }
 
@@ -131,16 +134,24 @@ export class SettingsPage {
    * Wait for page to fully load
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
-    await this.profileTab.waitFor({ state: 'visible', timeout: 10000 });
+    // Avoid 'networkidle' as it times out with persistent connections
+    await this.page.waitForLoadState('domcontentloaded');
+    // Wait for settings content to be visible
+    await this.page.locator('h2:has-text("Your Plan"), h2:has-text("Billing")').first().waitFor({ state: 'visible', timeout: 10000 });
   }
 
   /**
-   * Go to subscription tab
+   * Go to subscription/billing page (production uses separate pages, not tabs)
    */
   async goToSubscriptionTab(): Promise<void> {
-    await this.subscriptionTab.click();
-    await this.currentPlanDisplay.waitFor({ state: 'visible' });
+    // Navigate directly to billing page
+    await this.page.goto('/settings/billing');
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.locator('h2:has-text("Billing")').waitFor({ state: 'visible', timeout: 10000 });
+    // Wait for loading spinner to disappear (component has 500ms loading state)
+    await this.page.waitForTimeout(600);
+    // Wait for tier badge to be visible (indicates data loaded)
+    await this.currentPlanDisplay.waitFor({ state: 'visible', timeout: 5000 });
   }
 
   /**

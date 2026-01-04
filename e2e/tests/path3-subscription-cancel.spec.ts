@@ -8,6 +8,27 @@
  * - Downgrade after expiry
  * - Alert/watchlist reduction on downgrade
  *
+ * ============================================================
+ * PRODUCTION BUGS IDENTIFIED (require code fixes)
+ * ============================================================
+ *
+ * BUG #1: Cancel Confirmation Modal Missing
+ * -----------------------------------------
+ * File: app/(dashboard)/settings/billing/page.tsx (lines 179-184)
+ * Issue: "Cancel Plan" button is a plain button, no modal dialog
+ * Reference: docs/mvp-manual-testing-checklist.md line 194
+ * Tests affected: CAN-003, CAN-004, CAN-005, CAN-006, CAN-007
+ * Fix: Add AlertDialog with cancellation reason dropdown
+ *
+ * BUG #2: No Resubscribe Option for Cancelled Users
+ * -------------------------------------------------
+ * File: app/(dashboard)/settings/billing/page.tsx
+ * Issue: Cancelled PRO users see same UI as active PRO users
+ * Tests affected: CAN-012
+ * Fix: Check subscription.cancelledAt and show "Resubscribe" button
+ *
+ * ============================================================
+ *
  * @module e2e/tests/path3-subscription-cancel
  */
 
@@ -59,6 +80,24 @@ test.describe('Path 3: Subscription Cancellation', () => {
       expect(isCancelVisible).toBe(true);
     });
 
+    /**
+     * PRODUCTION CODE FIX REQUIRED
+     * ============================
+     * Per docs/mvp-manual-testing-checklist.md line 194:
+     *   "Can click cancel (confirmation modal)"
+     *
+     * CURRENT BUG: Clicking "Cancel Plan" button does NOT open a confirmation modal.
+     * The button is a plain button without any modal/dialog functionality.
+     *
+     * RECOMMENDED FIX:
+     *   1. Add AlertDialog component for cancel confirmation
+     *   2. Include cancellation reason dropdown in the dialog
+     *   3. Wire up the Cancel Plan button to open the dialog
+     *
+     * AFFECTED FILES:
+     *   - app/(dashboard)/settings/billing/page.tsx
+     *   - Consider using components/billing/subscription-card.tsx (has cancel logic)
+     */
     test('CAN-003: Clicking cancel opens confirmation modal', async ({
       page,
     }) => {
@@ -66,12 +105,21 @@ test.describe('Path 3: Subscription Cancellation', () => {
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
 
-      // Modal should be visible
-      await expect(settingsPage.cancelModal).toBeVisible();
+      // Find and click cancel button
+      await expect(settingsPage.cancelSubscriptionButton).toBeVisible();
+      await settingsPage.cancelSubscriptionButton.click();
+
+      // This will FAIL until production code adds confirmation modal
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel confirmation modal missing. ' +
+        'See docs/mvp-manual-testing-checklist.md line 194: ' +
+        '"Can click cancel (confirmation modal)"'
+      ).toBeVisible({ timeout: 5000 });
     });
 
+    // PRODUCTION BUG: See CAN-003 - cancel modal missing
     test('CAN-004: Dismissing modal keeps subscription active', async ({
       page,
     }) => {
@@ -79,26 +127,35 @@ test.describe('Path 3: Subscription Cancellation', () => {
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
-      await settingsPage.dismissCancellation();
+      await settingsPage.cancelSubscriptionButton.click();
 
-      // Modal should be hidden
+      // This will FAIL - modal doesn't exist
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel confirmation modal missing.'
+      ).toBeVisible({ timeout: 5000 });
+
+      await settingsPage.dismissCancellation();
       await expect(settingsPage.cancelModal).toBeHidden();
 
-      // Subscription status should still be active
       const status = await settingsPage.getSubscriptionStatus();
       expect(status.toLowerCase()).toContain('active');
     });
 
+    // PRODUCTION BUG: See CAN-003 - cancel modal with reason dropdown missing
     test('CAN-005: Cancellation modal has reason dropdown', async ({ page }) => {
       const settingsPage = new SettingsPage(page);
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
+      await settingsPage.cancelSubscriptionButton.click();
 
-      // Reason dropdown should exist
-      await expect(settingsPage.cancellationReason).toBeVisible();
+      // This will FAIL - modal with reason dropdown doesn't exist
+      await expect(
+        settingsPage.cancellationReason,
+        'PRODUCTION BUG: Cancellation reason dropdown missing. ' +
+        'Database has cancellationReason field but UI lacks input.'
+      ).toBeVisible({ timeout: 5000 });
     });
   });
 
@@ -107,6 +164,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   test.describe('Cancellation Confirmation', () => {
+    // PRODUCTION BUG: See CAN-003 - cancel modal required for proper cancellation flow
     test('CAN-006: Confirming cancellation updates subscription status', async ({
       page,
     }) => {
@@ -126,8 +184,15 @@ test.describe('Path 3: Subscription Cancellation', () => {
       const initialStatus = await settingsPage.getSubscriptionStatus();
       expect(initialStatus.toLowerCase()).toContain('active');
 
-      // Cancel subscription
-      await settingsPage.clickCancelSubscription();
+      // Try to cancel - this requires modal which doesn't exist
+      await settingsPage.cancelSubscriptionButton.click();
+
+      // This will FAIL - modal confirmation flow doesn't exist
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel flow requires confirmation modal.'
+      ).toBeVisible({ timeout: 5000 });
+
       await settingsPage.selectCancellationReason('too_expensive');
       await settingsPage.confirmCancellation();
 
@@ -140,6 +205,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
       ).toBeTruthy();
     });
 
+    // PRODUCTION BUG: See CAN-003 - cancel modal required
     test('CAN-007: Cancellation success message is shown', async ({ page }) => {
       const loginPage = new LoginPage(page);
       await loginPage.goto();
@@ -152,7 +218,14 @@ test.describe('Path 3: Subscription Cancellation', () => {
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
+      await settingsPage.cancelSubscriptionButton.click();
+
+      // This will FAIL - modal doesn't exist
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel confirmation modal missing.'
+      ).toBeVisible({ timeout: 5000 });
+
       await settingsPage.confirmCancellation();
 
       // Success message should appear
@@ -235,7 +308,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
       );
 
       // Navigate to alerts
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
 
       // Should be able to create up to 20 alerts
       const content = await page.content();
@@ -251,6 +324,27 @@ test.describe('Path 3: Subscription Cancellation', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   test.describe('Resubscription After Cancellation', () => {
+    /**
+     * PRODUCTION CODE FIX REQUIRED
+     * ============================
+     * The billing page (app/(dashboard)/settings/billing/page.tsx) does NOT
+     * handle cancelled subscription state differently from active subscriptions.
+     *
+     * CURRENT BUG:
+     *   - Cancelled PRO users see same UI as active PRO users
+     *   - No "Resubscribe" or "Renew" button exists for cancelled users
+     *   - "Manage Subscription" button shown but doesn't handle resubscription
+     *
+     * EXPECTED BEHAVIOR:
+     *   - Cancelled users should see "Resubscribe" or "Renew Subscription" button
+     *   - UI should indicate subscription is cancelled with expiry date
+     *   - Clear path to re-enable subscription
+     *
+     * RECOMMENDED FIX:
+     *   1. Check subscription.cancelledAt in the billing page
+     *   2. Show different UI for cancelled vs active subscriptions
+     *   3. Add "Resubscribe" button that redirects to checkout/pricing
+     */
     test('CAN-012: Resubscribe option available after cancellation', async ({
       page,
     }) => {
@@ -267,11 +361,13 @@ test.describe('Path 3: Subscription Cancellation', () => {
       await settingsPage.goToSubscriptionTab();
 
       // Look for resubscribe or upgrade button after cancellation
+      // PRODUCTION BUG: Billing page doesn't show resubscribe option
       const content = await page.content();
       expect(
         content.toLowerCase().includes('resubscribe') ||
-          content.toLowerCase().includes('upgrade') ||
-          content.toLowerCase().includes('renew')
+          content.toLowerCase().includes('renew'),
+        'PRODUCTION BUG: No resubscribe/renew option shown for cancelled users. ' +
+        'Billing page needs to handle cancelled subscription state with a resubscribe button.'
       ).toBeTruthy();
     });
   });
@@ -316,16 +412,23 @@ test.describe('Path 3: Subscription Cancellation', () => {
         TEST_USERS.pro.password
       );
 
-      // First cancellation
-      await cancelSubscription(request, 'testing');
+      // First cancellation (may already be cancelled from CAN-013)
+      const firstResult = await cancelSubscription(request, 'testing');
 
       // Try to cancel again
-      const result = await cancelSubscription(request, 'testing again');
+      const secondResult = await cancelSubscription(request, 'testing again');
 
-      // Should fail or indicate already cancelled
-      if (!result.success) {
-        expect(result.error).toBeTruthy();
-      }
+      // Either the first or second call should indicate already cancelled
+      // This handles test isolation - if CAN-013 ran first, first call here fails
+      const alreadyCancelled =
+        !firstResult.success ||
+        !secondResult.success ||
+        secondResult.error?.toLowerCase().includes('cancel');
+
+      expect(
+        alreadyCancelled,
+        'API should reject cancelling an already cancelled subscription'
+      ).toBeTruthy();
     });
   });
 
@@ -370,7 +473,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
       );
 
       // Navigate to alerts
-      await page.goto('/dashboard/alerts');
+      await page.goto('/alerts');
 
       // Check for FREE tier limits
       const content = await page.content();
@@ -393,10 +496,10 @@ test.describe('Path 3: Subscription Cancellation', () => {
       );
 
       // Navigate to charts
-      await page.goto('/dashboard/charts');
+      await page.goto('/charts');
 
       // Try to access a PRO-only symbol via URL param
-      await page.goto('/dashboard/charts?symbol=GBPUSD');
+      await page.goto('/charts?symbol=GBPUSD');
 
       // Should show upgrade prompt or error
       await page.waitForTimeout(1000);

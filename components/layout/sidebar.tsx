@@ -23,6 +23,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   tier: 'FREE' | 'PRO';
   description?: string;
+  testId: string;
 }
 
 // Navigation items configuration
@@ -34,56 +35,64 @@ const navigationItems: NavItem[] = [
     icon: LayoutDashboard,
     tier: 'FREE',
     description: 'Overview and stats',
+    testId: 'nav-dashboard',
   },
   {
     name: 'Charts',
-    href: '/dashboard/charts',
+    href: '/charts',
     icon: LineChart,
     tier: 'FREE',
     description: 'Live price charts',
+    testId: 'nav-charts',
   },
   {
     name: 'Alerts',
-    href: '/dashboard/alerts',
+    href: '/alerts',
     icon: Bell,
     tier: 'FREE',
     description: 'Manage your alerts',
+    testId: 'nav-alerts',
   },
   {
     name: 'Watchlist',
-    href: '/dashboard/watchlist',
+    href: '/watchlist',
     icon: Eye,
     tier: 'FREE',
     description: 'Track your symbols',
+    testId: 'nav-watchlist',
   },
   {
     name: 'Analytics',
-    href: '/dashboard/analytics',
+    href: '/analytics',
     icon: BarChart3,
     tier: 'PRO',
     description: 'Advanced analytics',
+    testId: 'nav-analytics',
   },
   {
     name: 'Custom Indicators',
-    href: '/dashboard/indicators',
+    href: '/indicators',
     icon: Zap,
     tier: 'PRO',
     description: 'Custom indicators',
+    testId: 'nav-indicators',
   },
 ];
 
 const bottomNavItems: NavItem[] = [
   {
     name: 'Settings',
-    href: '/dashboard/settings',
+    href: '/settings',
     icon: Settings,
     tier: 'FREE',
+    testId: 'nav-settings',
   },
   {
     name: 'Help',
-    href: '/dashboard/help',
+    href: '/settings/help',
     icon: HelpCircle,
     tier: 'FREE',
+    testId: 'nav-help',
   },
 ];
 
@@ -134,7 +143,8 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
           return (
             <Link
               key={item.href}
-              href={accessible ? item.href : '/dashboard/settings/billing'}
+              href={accessible ? item.href : '/settings/billing'}
+              data-testid={item.testId}
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active
@@ -178,7 +188,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
             Get 15 symbols, 9 timeframes, and 20 alerts
           </p>
           <Link
-            href="/dashboard/settings/billing"
+            href="/settings/billing"
             className="block w-full rounded-md bg-white/20 hover:bg-white/30 transition-colors text-center py-1.5 text-xs font-medium"
           >
             Upgrade Now
@@ -196,6 +206,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
             <Link
               key={item.href}
               href={item.href}
+              data-testid={item.testId}
               className={cn(
                 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 active

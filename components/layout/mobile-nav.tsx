@@ -28,6 +28,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   tier: 'FREE' | 'PRO';
+  testId: string;
 }
 
 // Navigation items configuration (same as sidebar)
@@ -37,51 +38,59 @@ const navigationItems: NavItem[] = [
     href: '/dashboard',
     icon: LayoutDashboard,
     tier: 'FREE',
+    testId: 'mobile-nav-dashboard',
   },
   {
     name: 'Charts',
-    href: '/dashboard/charts',
+    href: '/charts',
     icon: LineChart,
     tier: 'FREE',
+    testId: 'mobile-nav-charts',
   },
   {
     name: 'Alerts',
-    href: '/dashboard/alerts',
+    href: '/alerts',
     icon: Bell,
     tier: 'FREE',
+    testId: 'mobile-nav-alerts',
   },
   {
     name: 'Watchlist',
-    href: '/dashboard/watchlist',
+    href: '/watchlist',
     icon: Eye,
     tier: 'FREE',
+    testId: 'mobile-nav-watchlist',
   },
   {
     name: 'Analytics',
-    href: '/dashboard/analytics',
+    href: '/analytics',
     icon: BarChart3,
     tier: 'PRO',
+    testId: 'mobile-nav-analytics',
   },
   {
     name: 'Custom Indicators',
-    href: '/dashboard/indicators',
+    href: '/indicators',
     icon: Zap,
     tier: 'PRO',
+    testId: 'mobile-nav-indicators',
   },
 ];
 
 const bottomNavItems: NavItem[] = [
   {
     name: 'Settings',
-    href: '/dashboard/settings',
+    href: '/settings',
     icon: Settings,
     tier: 'FREE',
+    testId: 'mobile-nav-settings',
   },
   {
     name: 'Help',
-    href: '/dashboard/help',
+    href: '/settings/help',
     icon: HelpCircle,
     tier: 'FREE',
+    testId: 'mobile-nav-help',
   },
 ];
 
@@ -152,8 +161,9 @@ export function MobileNav({
               return (
                 <Link
                   key={item.href}
-                  href={accessible ? item.href : '/dashboard/settings/billing'}
+                  href={accessible ? item.href : '/settings/billing'}
                   onClick={handleNavClick}
+                  data-testid={item.testId}
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     active
@@ -197,7 +207,7 @@ export function MobileNav({
                 Get 15 symbols, 9 timeframes, and 20 alerts
               </p>
               <Link
-                href="/dashboard/settings/billing"
+                href="/settings/billing"
                 onClick={handleNavClick}
                 className="block w-full rounded-md bg-white/20 hover:bg-white/30 transition-colors text-center py-1.5 text-xs font-medium"
               >
@@ -217,6 +227,7 @@ export function MobileNav({
                   key={item.href}
                   href={item.href}
                   onClick={handleNavClick}
+                  data-testid={item.testId}
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     active
