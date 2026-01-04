@@ -8,6 +8,37 @@
  * - Commission creation
  * - Code status updates
  *
+ * ============================================================
+ * TEST DATA REQUIREMENTS
+ * ============================================================
+ *
+ * These tests require discount codes to exist in the database.
+ * The following codes must be seeded:
+ *   - TESTCODE10: 10% discount, ACTIVE status
+ *   - TESTCODE20: 20% discount, ACTIVE status
+ *   - EXPIREDCODE: EXPIRED status
+ *   - USEDCODE: USED status
+ *   - SUSPENDEDAFF: ACTIVE code from SUSPENDED affiliate
+ *
+ * SETUP REQUIRED:
+ *   File: prisma/seed.ts
+ *   Add discount code seeding for test codes (see TEST_CODES in test-data.ts)
+ *
+ * ============================================================
+ * PRODUCTION BUGS IDENTIFIED
+ * ============================================================
+ *
+ * BUG #1: Discount Code Input Missing from Checkout
+ * --------------------------------------------------
+ * File: Pricing page / Checkout flow
+ * Issue: Users are redirected directly to Stripe without discount input
+ * Reference: docs/policies/07-dlocal-integration-rules.md line 109
+ * Tests affected: DSC-012, DSC-013, DSC-014, DSC-015
+ * Fix: Add discount code input before Stripe redirect
+ * Note: This is the same bug as Path 2 SUB-009-012
+ *
+ * ============================================================
+ *
  * @module e2e/tests/path4-discount-redemption
  */
 
