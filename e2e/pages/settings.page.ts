@@ -147,6 +147,10 @@ export class SettingsPage {
     await this.page.goto('/settings/billing');
     await this.page.waitForLoadState('domcontentloaded');
     await this.page.locator('h2:has-text("Billing")').waitFor({ state: 'visible', timeout: 10000 });
+    // Wait for loading spinner to disappear (component has 500ms loading state)
+    await this.page.waitForTimeout(600);
+    // Wait for tier badge to be visible (indicates data loaded)
+    await this.currentPlanDisplay.waitFor({ state: 'visible', timeout: 5000 });
   }
 
   /**
