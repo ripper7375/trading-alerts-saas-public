@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 03 Prompt
 
-```
+````
 # Part 20 - Phase 03: Sync Script Development
 
 ## Context
@@ -55,10 +55,12 @@ TIMEFRAMES = ["M5", "M15", "M30", "H1", "H2", "H4", "H8", "H12", "D1"]
 
 SYNC_INTERVAL_SECONDS = 30
 MAX_ROWS_PER_TABLE = 10000
-```
+````
 
 ### 2. `sync/timeframe_filter.py`
+
 Create timeframe filtering logic:
+
 - `TIMEFRAME_DIVISORS` dict mapping timeframe to minutes
 - `filter_by_timeframe(rows, timeframe)` function:
   - M5: minutes divisible by 5 (00, 05, 10, ...)
@@ -73,7 +75,9 @@ Create timeframe filtering logic:
 - `get_latest_timeframe_timestamp(timeframe)` - get most recent valid timestamp
 
 ### 3. `sync/db_connections.py`
+
 Create database connection management:
+
 - `get_sqlite_connection()` - returns sqlite3.Connection
 - `get_postgresql_connection()` - returns connection from psycopg2 pool
 - `return_postgresql_connection(conn)` - returns connection to pool
@@ -81,7 +85,9 @@ Create database connection management:
 - Handle connection errors gracefully
 
 ### 4. `sync/sync_to_postgresql.py`
+
 Create main sync script with DataSyncer class:
+
 - `__init__`: Initialize last_sync_timestamps dict, load from sync_state.json
 - `load_sync_state()`: Load timestamps from JSON file
 - `save_sync_state()`: Save timestamps to JSON file
@@ -99,12 +105,14 @@ Create main sync script with DataSyncer class:
 - Add `if __name__ == "__main__"` block
 
 ### 5. `sync/requirements.txt`
+
 ```
 psycopg2-binary>=2.9.9
 python-dotenv>=1.0.0
 ```
 
 ## Important Notes
+
 - Sync script runs via cron every 30 seconds on Contabo VPS
 - Handle network failures gracefully (retry logic)
 - Log all sync operations for debugging
@@ -112,6 +120,7 @@ python-dotenv>=1.0.0
 - Use batch inserts for performance
 
 ## Success Criteria
+
 - [ ] All Python files pass syntax check
 - [ ] Sync script connects to both SQLite and PostgreSQL
 - [ ] Timeframe filtering correctly categorizes data
@@ -121,6 +130,7 @@ python-dotenv>=1.0.0
 - [ ] Errors logged but don't crash the script
 
 ## Testing Commands
+
 ```bash
 # Test sync script manually
 cd sync
@@ -134,7 +144,9 @@ psql $POSTGRESQL_URI -c "SELECT COUNT(*) FROM eurusd_h1;"
 ```
 
 ## Commit Instructions
+
 After creating all files, commit with message:
+
 ```
 feat(sync): add SQLite to PostgreSQL sync script
 
@@ -144,6 +156,7 @@ feat(sync): add SQLite to PostgreSQL sync script
 - Persist sync state between runs
 - Handle errors gracefully with logging
 ```
+
 ```
 
 ---
@@ -151,3 +164,4 @@ feat(sync): add SQLite to PostgreSQL sync script
 ## Next Step
 
 After Phase 03, proceed to `part-20-phase04-prompts.md` (Next.js API Routes).
+```

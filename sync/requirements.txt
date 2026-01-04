@@ -1,0 +1,8 @@
+# SQLite to PostgreSQL Sync Script Dependencies
+# Part 20 - Trading Alerts SaaS
+
+# PostgreSQL database adapter with connection pooling
+psycopg2-binary>=2.9.9
+
+# Environment variable management
+python-dotenv>=1.0.0

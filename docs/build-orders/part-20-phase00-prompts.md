@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 00 Prompt
 
-```
+````
 # Part 20 - Phase 00: Migration Analysis (Part 6 → Part 20)
 
 ## Context
@@ -174,15 +174,17 @@ Create a file `docs/migration/part6-to-part20-analysis.md` with:
 1. [First thing to migrate]
 2. [Second thing to migrate]
 ...
-```
+````
 
 ## Success Criteria
+
 - [ ] All Part 6 references found and documented
 - [ ] Migration analysis file created
 - [ ] No hidden dependencies missed
 - [ ] Clear migration path identified
 
 ## Commit Instructions
+
 ```
 docs: add Part 6 to Part 20 migration analysis
 
@@ -191,6 +193,7 @@ docs: add Part 6 to Part 20 migration analysis
 - Document integration points and risks
 - Create migration checklist
 ```
+
 ```
 
 ---
@@ -210,3 +213,4 @@ This document is used during **Phase 09 (Migration & Cutover)** to ensure nothin
 ## Next Step
 
 After Phase 00, proceed to `part-20-phase01-prompts.md` (Database Schema Setup).
+```

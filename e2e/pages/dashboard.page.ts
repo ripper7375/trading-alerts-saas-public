@@ -83,9 +83,11 @@ export class DashboardPage {
 
   /**
    * Wait for page to fully load
+   * NOTE: Uses domcontentloaded instead of networkidle to avoid timeouts
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForTimeout(500);
     // Wait for user-specific content to load
     await this.userMenu.waitFor({ state: 'visible', timeout: 10000 });
   }

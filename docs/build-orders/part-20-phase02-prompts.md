@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 02 Prompt
 
-```
+````
 # Part 20 - Phase 02: MQL5 Service Development
 
 ## Context
@@ -114,15 +114,17 @@ string sql = StringFormat(
     "VALUES (%d, %.5f, %.5f, %.5f, %.5f, ...)",
     symbol, unixTimestamp, open, high, low, close
 );
-```
+````
 
 **Why UTC?**
+
 - MT5 server time changes between GMT+2 (standard) and GMT+3 (daylight saving)
 - Unix timestamps are universal and avoid DST transition issues
 - PostgreSQL TIMESTAMPTZ will correctly interpret UTC timestamps
 - Frontend charts (Lightweight Charts) expect Unix timestamps
 
 ## Success Criteria
+
 - [ ] All MQL5 files compile without errors in MetaEditor
 - [ ] Service starts from Tools → Services in MT5
 - [ ] SQLite database created at specified path
@@ -133,7 +135,9 @@ string sql = StringFormat(
 - [ ] Timestamps stored as Unix timestamps (UTC-based INTEGER)
 
 ## Commit Instructions
+
 After creating all files, commit with message:
+
 ```
 feat(mql5): add DataCollector service for MT5 indicator data
 
@@ -143,6 +147,7 @@ feat(mql5): add DataCollector service for MT5 indicator data
 - Handle symbol suffix normalization
 - Support all 13 indicators
 ```
+
 ```
 
 ---
@@ -150,3 +155,4 @@ feat(mql5): add DataCollector service for MT5 indicator data
 ## Next Step
 
 After Phase 02, proceed to `part-20-phase03-prompts.md` (Sync Script Development).
+```
