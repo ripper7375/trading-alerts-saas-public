@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   CreditCard,
   Download,
@@ -11,7 +10,6 @@ import {
   AlertCircle,
   Loader2,
   ArrowUpRight,
-  RefreshCw,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -19,17 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
@@ -38,12 +25,11 @@ import { TIER_CONFIG, type Tier } from '@/types/tier';
  *
  * Features:
  * - Current subscription card (FREE/PRO)
- * - Upgrade/Cancel buttons with confirmation modal
+ * - Upgrade/Cancel buttons
  * - Payment method display
  * - Invoice history table
  * - Usage statistics (alerts, watchlist, API calls)
  * - Affiliate discount display
- * - Resubscribe option for cancelled subscriptions
  */
 
 interface InvoiceRecord {
@@ -60,17 +46,6 @@ interface UsageStats {
   watchlist: { current: number; max: number };
   apiCalls: { current: number; max: number };
 }
-
-// Cancellation reason options
-const CANCELLATION_REASONS = [
-  { value: '', label: 'Select a reason (optional)' },
-  { value: 'too_expensive', label: 'Too expensive' },
-  { value: 'not_using', label: 'Not using the service enough' },
-  { value: 'missing_features', label: 'Missing features I need' },
-  { value: 'found_alternative', label: 'Found a better alternative' },
-  { value: 'technical_issues', label: 'Technical issues' },
-  { value: 'other', label: 'Other reason' },
-];
 
 // Mock invoice data
 const mockInvoices: InvoiceRecord[] = [
@@ -102,13 +77,8 @@ const mockInvoices: InvoiceRecord[] = [
 
 export default function BillingSettingsPage(): React.ReactElement {
   const { data: session } = useSession();
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [cancellationReason, setCancellationReason] = useState('');
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
-  const [isCancelled, setIsCancelled] = useState(false);
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
@@ -122,68 +92,10 @@ export default function BillingSettingsPage(): React.ReactElement {
   });
 
   useEffect(() => {
-    // Simulate loading - keep original 500ms behavior for test compatibility
+    // Simulate loading
     const timer = setTimeout(() => setIsLoading(false), 500);
-
-    // Fetch subscription status in background (non-blocking)
-    fetch('/api/subscription')
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data?.subscription) {
-          const cancelled =
-            data.subscription.cancelAtPeriodEnd ||
-            data.subscription.status === 'CANCELED' ||
-            data.subscription.status === 'canceled' ||
-            data.subscription.status === 'CANCELLED' ||
-            data.subscription.status === 'cancelled';
-          setIsCancelled(cancelled);
-          setExpiresAt(data.subscription.expiresAt || data.subscription.currentPeriodEnd);
-        }
-      })
-      .catch(() => {
-        // Silently fail - UI will show default state
-      });
-
     return () => clearTimeout(timer);
   }, []);
-
-  // Handle subscription cancellation
-  const handleCancel = async () => {
-    setIsCancelling(true);
-
-    try {
-      const response = await fetch('/api/subscription/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: cancellationReason }),
-      });
-
-      if (response.ok) {
-        setIsCancelled(true);
-        router.refresh();
-      }
-    } catch {
-      // Handle error silently
-    } finally {
-      setIsCancelling(false);
-      setCancellationReason('');
-    }
-  };
-
-  // Handle resubscription - redirects to pricing page
-  const handleResubscribe = () => {
-    router.push('/pricing');
-  };
-
-  // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
   if (isLoading) {
     return (
@@ -218,32 +130,8 @@ export default function BillingSettingsPage(): React.ReactElement {
             >
               {userTier === 'PRO' ? 'PRO TIER' : 'FREE TIER'}
             </Badge>
-            {isCancelled ? (
-              <Badge
-                variant="destructive"
-                className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                data-testid="subscription-cancelled-badge"
-              >
-                Cancelled
-              </Badge>
-            ) : (
-              <Badge className="bg-green-100 text-green-800">Active</Badge>
-            )}
+            <Badge className="bg-green-100 text-green-800">Active</Badge>
           </div>
-
-          {/* Show cancellation notice with expiration date */}
-          {isCancelled && expiresAt && (
-            <div
-              className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
-              data-testid="cancellation-notice"
-            >
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Your subscription has been cancelled. You will retain access to
-                PRO features until{' '}
-                <strong>{formatDate(expiresAt)}</strong>.
-              </p>
-            </div>
-          )}
 
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             {userTier === 'PRO' ? 'Pro Plan' : 'Free Plan'}
@@ -285,91 +173,19 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <ArrowUpRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
-          ) : isCancelled ? (
-            /* Resubscribe option for cancelled users */
-            <div className="flex gap-3">
-              <Button
-                onClick={handleResubscribe}
-                className="bg-blue-600 hover:bg-blue-700"
-                data-testid="resubscribe-button"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Resubscribe
-              </Button>
-            </div>
           ) : (
-            /* Cancel option for active PRO users with confirmation modal */
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    data-testid="cancel-plan-button"
-                  >
-                    Cancel Plan
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent data-testid="cancel-confirmation-modal">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      You will lose access to PRO features at the end of your
-                      billing period. This includes unlimited alerts, all
-                      symbols, and priority support. This action cannot be
-                      undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-
-                  {/* Cancellation Reason Dropdown */}
-                  <div className="py-4">
-                    <label
-                      htmlFor="cancellation-reason"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                    >
-                      Why are you cancelling? (Optional)
-                    </label>
-                    <select
-                      id="cancellation-reason"
-                      value={cancellationReason}
-                      onChange={(e) => setCancellationReason(e.target.value)}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {CANCELLATION_REASONS.map((reason) => (
-                        <option key={reason.value} value={reason.value}>
-                          {reason.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="keep-plan-button">
-                      Keep My Plan
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleCancel}
-                      disabled={isCancelling}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                      data-testid="confirm-cancel-button"
-                    >
-                      {isCancelling ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Cancelling...
-                        </>
-                      ) : (
-                        'Yes, Cancel'
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:text-red-700"
+              >
+                Cancel Plan
+              </Button>
             </div>
           )}
 
-          {userTier === 'PRO' && !isCancelled && (
+          {userTier === 'PRO' && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
               Next billing date: January 15, 2025
             </p>
