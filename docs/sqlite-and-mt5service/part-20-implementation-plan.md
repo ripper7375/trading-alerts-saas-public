@@ -47,9 +47,10 @@
 | 1 | Database Schema Setup | 4 | None |
 | 2 | MQL5 Service Development | 3 | Phase 1 |
 | 3 | Sync Script Development | 5 | Phases 1, 2 |
-| 4 | Next.js API Routes | 10 | Phase 3 |
-| 5 | Redis Caching Layer | 4 | Phase 4 |
-| 6 | Confluence Score System | 6 | Phases 4, 5 |
+| 4a | Library & Foundation Files | 6 | Phase 3 |
+| 4b | Next.js API Routes | 4 | Phase 4a |
+| 5 | Redis Caching Layer | 4 | Phase 4b |
+| 6 | Confluence Score System | 6 | Phases 4b, 5 |
 | 7 | Testing Framework | 10 | Phases 1-6 |
 | 8 | E2E Testing Migration | 3 | Phase 7 |
 | 9 | Deployment & Cutover | 2 | All previous |
