@@ -13,7 +13,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-import { MT5ServiceError } from '@/lib/api/mt5-client';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
   getCachedIndicatorData,
@@ -302,8 +301,11 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
 
-    // Handle MT5ServiceError
-    if (error instanceof MT5ServiceError) {
+    // Handle MT5ServiceError - check by constructor name for Jest compatibility
+    if (
+      error instanceof Error &&
+      error.constructor.name === 'MT5ServiceError'
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -311,6 +313,22 @@ export async function GET(
           message: error.message || 'Failed to fetch data from MT5 service',
         } as ErrorResponse,
         { status: 500 }
+      );
+    }
+
+    // Handle MT5AccessDeniedError - check by constructor name for Jest compatibility
+    if (
+      error instanceof Error &&
+      error.constructor.name === 'MT5AccessDeniedError'
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Access denied',
+          message: error.message || 'Access denied to this resource',
+          upgradeRequired: true,
+        } as ErrorResponse,
+        { status: 403 }
       );
     }
 
