@@ -59,6 +59,24 @@ test.describe('Path 3: Subscription Cancellation', () => {
       expect(isCancelVisible).toBe(true);
     });
 
+    /**
+     * PRODUCTION CODE FIX REQUIRED
+     * ============================
+     * Per docs/mvp-manual-testing-checklist.md line 194:
+     *   "Can click cancel (confirmation modal)"
+     *
+     * CURRENT BUG: Clicking "Cancel Plan" button does NOT open a confirmation modal.
+     * The button is a plain button without any modal/dialog functionality.
+     *
+     * RECOMMENDED FIX:
+     *   1. Add AlertDialog component for cancel confirmation
+     *   2. Include cancellation reason dropdown in the dialog
+     *   3. Wire up the Cancel Plan button to open the dialog
+     *
+     * AFFECTED FILES:
+     *   - app/(dashboard)/settings/billing/page.tsx
+     *   - Consider using components/billing/subscription-card.tsx (has cancel logic)
+     */
     test('CAN-003: Clicking cancel opens confirmation modal', async ({
       page,
     }) => {
@@ -66,12 +84,21 @@ test.describe('Path 3: Subscription Cancellation', () => {
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
 
-      // Modal should be visible
-      await expect(settingsPage.cancelModal).toBeVisible();
+      // Find and click cancel button
+      await expect(settingsPage.cancelSubscriptionButton).toBeVisible();
+      await settingsPage.cancelSubscriptionButton.click();
+
+      // This will FAIL until production code adds confirmation modal
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel confirmation modal missing. ' +
+        'See docs/mvp-manual-testing-checklist.md line 194: ' +
+        '"Can click cancel (confirmation modal)"'
+      ).toBeVisible({ timeout: 5000 });
     });
 
+    // PRODUCTION BUG: See CAN-003 - cancel modal missing
     test('CAN-004: Dismissing modal keeps subscription active', async ({
       page,
     }) => {
@@ -79,26 +106,35 @@ test.describe('Path 3: Subscription Cancellation', () => {
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
-      await settingsPage.dismissCancellation();
+      await settingsPage.cancelSubscriptionButton.click();
 
-      // Modal should be hidden
+      // This will FAIL - modal doesn't exist
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel confirmation modal missing.'
+      ).toBeVisible({ timeout: 5000 });
+
+      await settingsPage.dismissCancellation();
       await expect(settingsPage.cancelModal).toBeHidden();
 
-      // Subscription status should still be active
       const status = await settingsPage.getSubscriptionStatus();
       expect(status.toLowerCase()).toContain('active');
     });
 
+    // PRODUCTION BUG: See CAN-003 - cancel modal with reason dropdown missing
     test('CAN-005: Cancellation modal has reason dropdown', async ({ page }) => {
       const settingsPage = new SettingsPage(page);
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
+      await settingsPage.cancelSubscriptionButton.click();
 
-      // Reason dropdown should exist
-      await expect(settingsPage.cancellationReason).toBeVisible();
+      // This will FAIL - modal with reason dropdown doesn't exist
+      await expect(
+        settingsPage.cancellationReason,
+        'PRODUCTION BUG: Cancellation reason dropdown missing. ' +
+        'Database has cancellationReason field but UI lacks input.'
+      ).toBeVisible({ timeout: 5000 });
     });
   });
 
@@ -107,6 +143,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   test.describe('Cancellation Confirmation', () => {
+    // PRODUCTION BUG: See CAN-003 - cancel modal required for proper cancellation flow
     test('CAN-006: Confirming cancellation updates subscription status', async ({
       page,
     }) => {
@@ -126,8 +163,15 @@ test.describe('Path 3: Subscription Cancellation', () => {
       const initialStatus = await settingsPage.getSubscriptionStatus();
       expect(initialStatus.toLowerCase()).toContain('active');
 
-      // Cancel subscription
-      await settingsPage.clickCancelSubscription();
+      // Try to cancel - this requires modal which doesn't exist
+      await settingsPage.cancelSubscriptionButton.click();
+
+      // This will FAIL - modal confirmation flow doesn't exist
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel flow requires confirmation modal.'
+      ).toBeVisible({ timeout: 5000 });
+
       await settingsPage.selectCancellationReason('too_expensive');
       await settingsPage.confirmCancellation();
 
@@ -140,6 +184,7 @@ test.describe('Path 3: Subscription Cancellation', () => {
       ).toBeTruthy();
     });
 
+    // PRODUCTION BUG: See CAN-003 - cancel modal required
     test('CAN-007: Cancellation success message is shown', async ({ page }) => {
       const loginPage = new LoginPage(page);
       await loginPage.goto();
@@ -152,7 +197,14 @@ test.describe('Path 3: Subscription Cancellation', () => {
 
       await settingsPage.goto();
       await settingsPage.goToSubscriptionTab();
-      await settingsPage.clickCancelSubscription();
+      await settingsPage.cancelSubscriptionButton.click();
+
+      // This will FAIL - modal doesn't exist
+      await expect(
+        settingsPage.cancelModal,
+        'PRODUCTION BUG: Cancel confirmation modal missing.'
+      ).toBeVisible({ timeout: 5000 });
+
       await settingsPage.confirmCancellation();
 
       // Success message should appear
