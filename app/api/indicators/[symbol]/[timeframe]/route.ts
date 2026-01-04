@@ -301,35 +301,35 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
 
-    // Handle MT5ServiceError - check by constructor name for Jest compatibility
-    if (
-      error instanceof Error &&
-      error.constructor.name === 'MT5ServiceError'
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'MT5 service error',
-          message: error.message || 'Failed to fetch data from MT5 service',
-        } as ErrorResponse,
-        { status: 500 }
-      );
-    }
+    // Handle MT5 errors using errorType discriminator for Jest compatibility
+    if (error && typeof error === 'object' && 'errorType' in error) {
+      const errorWithType = error as { errorType: string; message?: string };
 
-    // Handle MT5AccessDeniedError - check by constructor name for Jest compatibility
-    if (
-      error instanceof Error &&
-      error.constructor.name === 'MT5AccessDeniedError'
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Access denied',
-          message: error.message || 'Access denied to this resource',
-          upgradeRequired: true,
-        } as ErrorResponse,
-        { status: 403 }
-      );
+      // Handle MT5ServiceError
+      if (errorWithType.errorType === 'MT5ServiceError') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'MT5 service error',
+            message:
+              errorWithType.message || 'Failed to fetch data from MT5 service',
+          } as ErrorResponse,
+          { status: 500 }
+        );
+      }
+
+      // Handle MT5AccessDeniedError
+      if (errorWithType.errorType === 'MT5AccessDeniedError') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Access denied',
+            message: errorWithType.message || 'Access denied to this resource',
+            upgradeRequired: true,
+          } as ErrorResponse,
+          { status: 403 }
+        );
+      }
     }
 
     // Check for database connection errors

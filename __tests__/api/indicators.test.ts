@@ -61,6 +61,14 @@ jest.mock('@/lib/auth/auth-options', () => ({
   authOptions: {},
 }));
 
+// Mock database queries
+const mockGetIndicatorData = jest.fn();
+
+jest.mock('@/lib/db/queries', () => ({
+  __esModule: true,
+  getIndicatorData: (...args: unknown[]) => mockGetIndicatorData(...args),
+}));
+
 // Mock MT5 client
 const mockFetchIndicatorData = jest.fn();
 
@@ -68,6 +76,7 @@ jest.mock('@/lib/api/mt5-client', () => ({
   __esModule: true,
   fetchIndicatorData: (...args: unknown[]) => mockFetchIndicatorData(...args),
   MT5AccessDeniedError: class extends Error {
+    readonly errorType = 'MT5AccessDeniedError' as const;
     tier: string;
     accessibleSymbols: readonly string[];
     accessibleTimeframes: readonly string[];
@@ -84,6 +93,7 @@ jest.mock('@/lib/api/mt5-client', () => ({
     }
   },
   MT5ServiceError: class extends Error {
+    readonly errorType = 'MT5ServiceError' as const;
     statusCode: number;
     responseBody?: unknown;
     constructor(message: string, statusCode: number, responseBody?: unknown) {
@@ -444,7 +454,7 @@ describe('Indicators API Routes', () => {
       });
 
       const { MT5ServiceError } = await import('@/lib/api/mt5-client');
-      mockFetchIndicatorData.mockRejectedValue(
+      mockGetIndicatorData.mockRejectedValue(
         new MT5ServiceError('Service unavailable', 503)
       );
 
@@ -470,7 +480,7 @@ describe('Indicators API Routes', () => {
       });
 
       const { MT5AccessDeniedError } = await import('@/lib/api/mt5-client');
-      mockFetchIndicatorData.mockRejectedValue(
+      mockGetIndicatorData.mockRejectedValue(
         new MT5AccessDeniedError('Access denied', 'FREE', ['XAUUSD'], ['H1'])
       );
 
@@ -494,7 +504,7 @@ describe('Indicators API Routes', () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
-      mockFetchIndicatorData.mockRejectedValue(new Error('Unknown error'));
+      mockGetIndicatorData.mockRejectedValue(new Error('Unknown error'));
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'

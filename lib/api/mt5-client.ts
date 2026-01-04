@@ -209,6 +209,8 @@ export interface MT5TimeframesResponse {
  * Error thrown when MT5 service request fails
  */
 export class MT5ServiceError extends Error {
+  readonly errorType = 'MT5ServiceError' as const;
+
   constructor(
     message: string,
     public statusCode: number,
@@ -223,6 +225,8 @@ export class MT5ServiceError extends Error {
  * Error thrown when tier access is denied
  */
 export class MT5AccessDeniedError extends Error {
+  readonly errorType = 'MT5AccessDeniedError' as const;
+
   constructor(
     message: string,
     public tier: Tier,
