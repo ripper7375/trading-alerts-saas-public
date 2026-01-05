@@ -263,7 +263,7 @@ export async function invalidateIndicatorCache(
 export async function getCachedIndicatorData(
   symbol: string,
   timeframe: string,
-  bars?: number
+  _bars?: number
 ): Promise<unknown> {
   const cacheKey = getCacheKey(symbol, timeframe);
   return redis.get(cacheKey);
@@ -278,7 +278,7 @@ export async function setCachedIndicatorData(
   symbol: string,
   timeframe: string,
   data: unknown,
-  bars?: number
+  _bars?: number
 ): Promise<void> {
   const cacheKey = getCacheKey(symbol, timeframe);
   await redis.set(cacheKey, data, INDICATOR_CACHE_TTL);
