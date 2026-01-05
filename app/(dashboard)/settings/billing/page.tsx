@@ -17,17 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
@@ -91,6 +80,16 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
+  const handleCancelSubscription = (): void => {
+    fetch('/api/subscription/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: cancellationReason }),
+    });
+    setShowCancelModal(false);
+  };
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
@@ -188,53 +187,73 @@ export default function BillingSettingsPage(): React.ReactElement {
           ) : (
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700"
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:text-red-700"
+                onClick={() => setShowCancelModal(true)}
+              >
+                Cancel Plan
+              </Button>
+            </div>
+          )}
+
+          {/* Simple Cancel Modal */}
+          {showCancelModal && (
+            <div
+              role="dialog"
+              className="fixed inset-0 z-50 flex items-center justify-center"
+            >
+              <div
+                className="fixed inset-0 bg-black/50"
+                onClick={() => setShowCancelModal(false)}
+              />
+              <div className="relative z-50 w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Cancel Subscription
+                </h3>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Are you sure you want to cancel your PRO subscription? You
+                  will lose access to premium features at the end of your
+                  billing period.
+                </p>
+                <div className="mt-4">
+                  <label
+                    htmlFor="cancellation-reason"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
-                    Cancel Plan
+                    Reason for cancellation (optional)
+                  </label>
+                  <select
+                    id="cancellation-reason"
+                    value={cancellationReason}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setCancellationReason(e.target.value)
+                    }
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                  >
+                    <option value="">Select a reason...</option>
+                    <option value="too_expensive">Too expensive</option>
+                    <option value="not_using">Not using enough</option>
+                    <option value="missing_features">Missing features</option>
+                    <option value="switching">Switching to competitor</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCancelModal(false)}
+                  >
+                    Keep Subscription
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to cancel your PRO subscription? You
-                      will lose access to premium features at the end of your
-                      billing period.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="py-4">
-                    <label
-                      htmlFor="cancellation-reason"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                    >
-                      Reason for cancellation (optional)
-                    </label>
-                    <select
-                      id="cancellation-reason"
-                      value={cancellationReason}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCancellationReason(e.target.value)}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-                    >
-                      <option value="">Select a reason...</option>
-                      <option value="too_expensive">Too expensive</option>
-                      <option value="not_using">Not using enough</option>
-                      <option value="missing_features">Missing features</option>
-                      <option value="switching">Switching to competitor</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                    <AlertDialogAction className="bg-red-600 hover:bg-red-700">
-                      Confirm Cancellation
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                  <Button
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={handleCancelSubscription}
+                  >
+                    Confirm Cancellation
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
