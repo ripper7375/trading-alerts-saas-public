@@ -294,6 +294,8 @@ export async function getCachedIndicatorData(
   const data = await redis.get(cacheKey);
   if (data) {
     statsCounters.hits++;
+  } else {
+    statsCounters.misses++;
   }
   return data;
 }
@@ -310,9 +312,17 @@ export async function setCachedIndicatorData(
   bars?: number
 ): Promise<void> {
   const cacheKey = getCacheKey(symbol, timeframe, bars);
+
+  // Check if key already exists (for accurate size tracking)
+  const exists = (await redis.get(cacheKey)) !== null;
+
   await redis.set(cacheKey, data, INDICATOR_CACHE_TTL);
   statsCounters.sets++;
-  cacheSize++;
+
+  // Only increment size if this is a new entry, not an overwrite
+  if (!exists) {
+    cacheSize++;
+  }
 }
 
 /**
@@ -335,9 +345,20 @@ export async function hasCachedData(
  */
 export async function invalidateCachedData(
   symbol: string,
-  timeframe: string
+  timeframe: string,
+  bars?: number
 ): Promise<void> {
-  await invalidateIndicatorCache(symbol, timeframe);
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
+
+  // Check if key exists before deleting (for accurate size tracking)
+  const exists = (await redis.get(cacheKey)) !== null;
+
+  await redis.del(cacheKey);
+  statsCounters.deletes++;
+
+  if (exists) {
+    cacheSize = Math.max(0, cacheSize - 1);
+  }
 }
 
 /**
