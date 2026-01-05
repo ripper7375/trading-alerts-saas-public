@@ -229,16 +229,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={() => {
-                        fetch('/api/subscription/cancel', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ reason: cancellationReason }),
-                        });
-                      }}
-                    >
+                    <AlertDialogAction className="bg-red-600 hover:bg-red-700">
                       Confirm Cancellation
                     </AlertDialogAction>
                   </AlertDialogFooter>
