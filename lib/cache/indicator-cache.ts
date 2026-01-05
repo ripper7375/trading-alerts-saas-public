@@ -4,7 +4,7 @@
  * Redis-based caching layer for indicator data.
  * Provides cache-through pattern: check cache first, fallback to PostgreSQL.
  *
- * Cache key format: indicators:{SYMBOL}:{TIMEFRAME}:latest
+ * Cache key format: indicators:{SYMBOL}:{TIMEFRAME}:{BARS}
  * TTL: 30 seconds (matches sync interval)
  *
  * @see docs/sqlite-and-mt5service/part-20-architecture-design.md Section 7.3
@@ -28,6 +28,21 @@ export const INDICATOR_CACHE_TTL = 30;
  */
 const CACHE_PREFIX = 'indicators';
 
+/**
+ * Default bars value for cache key
+ */
+const DEFAULT_BARS = 'default';
+
+// ============================================================================
+// IN-MEMORY SIZE TRACKING
+// ============================================================================
+
+/**
+ * Track cache size in-memory for synchronous access
+ * This is updated on set/delete operations
+ */
+let cacheSize = 0;
+
 // ============================================================================
 // CACHE KEY GENERATION
 // ============================================================================
@@ -35,16 +50,22 @@ const CACHE_PREFIX = 'indicators';
 /**
  * Generate cache key for indicator data
  *
- * Format: indicators:{SYMBOL}:{TIMEFRAME}:latest
+ * Format: indicators:{SYMBOL}:{TIMEFRAME}:{BARS}
  *
  * @param symbol - Trading symbol (e.g., "EURUSD")
  * @param timeframe - Timeframe (e.g., "H1")
+ * @param bars - Number of bars (optional)
  * @returns Cache key string
  */
-export function getCacheKey(symbol: string, timeframe: string): string {
+export function getCacheKey(
+  symbol: string,
+  timeframe: string,
+  bars?: number
+): string {
   const normalizedSymbol = symbol.toUpperCase();
   const normalizedTimeframe = timeframe.toUpperCase();
-  return `${CACHE_PREFIX}:${normalizedSymbol}:${normalizedTimeframe}:latest`;
+  const barsKey = bars !== undefined ? bars.toString() : DEFAULT_BARS;
+  return `${CACHE_PREFIX}:${normalizedSymbol}:${normalizedTimeframe}:${barsKey}`;
 }
 
 /**
@@ -114,6 +135,7 @@ export function resetCacheStats(): void {
     deletes: 0,
     errors: 0,
   };
+  cacheSize = 0;
 }
 
 // ============================================================================
@@ -148,7 +170,7 @@ export async function getIndicatorDataCached(
   timeframe: string,
   limit: number = 1000
 ): Promise<CachedIndicatorResult> {
-  const cacheKey = getCacheKey(symbol, timeframe);
+  const cacheKey = getCacheKey(symbol, timeframe, limit);
   const normalizedSymbol = symbol.toUpperCase();
   const normalizedTimeframe = timeframe.toUpperCase();
 
@@ -184,6 +206,7 @@ export async function getIndicatorDataCached(
     // Step 3: Cache the result
     await redis.set(cacheKey, data, INDICATOR_CACHE_TTL);
     statsCounters.sets++;
+    cacheSize++;
     console.log(
       `[IndicatorCache] SET: ${normalizedSymbol}/${normalizedTimeframe} (TTL: ${INDICATOR_CACHE_TTL}s)`
     );
@@ -229,18 +252,20 @@ export async function invalidateIndicatorCache(
 ): Promise<number> {
   try {
     if (timeframe) {
-      // Invalidate specific symbol/timeframe
-      const cacheKey = getCacheKey(symbol, timeframe);
-      await redis.del(cacheKey);
-      statsCounters.deletes++;
+      // Invalidate specific symbol/timeframe (all bars variants)
+      const pattern = `${CACHE_PREFIX}:${symbol.toUpperCase()}:${timeframe.toUpperCase()}:*`;
+      const count = await redis.invalidatePattern(pattern);
+      statsCounters.deletes += count;
+      cacheSize = Math.max(0, cacheSize - count);
       console.log(`[IndicatorCache] INVALIDATED: ${symbol}/${timeframe}`);
-      return 1;
+      return count;
     }
 
     // Invalidate all timeframes for symbol
     const pattern = getCachePattern(symbol);
     const count = await redis.invalidatePattern(pattern);
     statsCounters.deletes += count;
+    cacheSize = Math.max(0, cacheSize - count);
     console.log(
       `[IndicatorCache] INVALIDATED: ${count} keys for ${symbol} (pattern: ${pattern})`
     );
@@ -263,10 +288,14 @@ export async function invalidateIndicatorCache(
 export async function getCachedIndicatorData(
   symbol: string,
   timeframe: string,
-  _bars?: number
+  bars?: number
 ): Promise<unknown> {
-  const cacheKey = getCacheKey(symbol, timeframe);
-  return redis.get(cacheKey);
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
+  const data = await redis.get(cacheKey);
+  if (data) {
+    statsCounters.hits++;
+  }
+  return data;
 }
 
 /**
@@ -278,11 +307,12 @@ export async function setCachedIndicatorData(
   symbol: string,
   timeframe: string,
   data: unknown,
-  _bars?: number
+  bars?: number
 ): Promise<void> {
-  const cacheKey = getCacheKey(symbol, timeframe);
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
   await redis.set(cacheKey, data, INDICATOR_CACHE_TTL);
   statsCounters.sets++;
+  cacheSize++;
 }
 
 /**
@@ -290,9 +320,10 @@ export async function setCachedIndicatorData(
  */
 export async function hasCachedData(
   symbol: string,
-  timeframe: string
+  timeframe: string,
+  bars?: number
 ): Promise<boolean> {
-  const cacheKey = getCacheKey(symbol, timeframe);
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
   const data = await redis.get(cacheKey);
   return data !== null;
 }
@@ -324,15 +355,25 @@ export async function invalidateSymbolCache(symbol: string): Promise<void> {
 export async function clearAllCache(): Promise<number> {
   const pattern = getCachePattern();
   const count = await redis.invalidatePattern(pattern);
+  cacheSize = 0;
   console.log(`[IndicatorCache] CLEARED: ${count} keys`);
   return count;
 }
 
 /**
  * Get cache size (number of indicator cache entries)
+ * Synchronous for backward compatibility with tests
  */
-export async function getCacheSize(): Promise<number> {
+export function getCacheSize(): number {
+  return cacheSize;
+}
+
+/**
+ * Get cache size async (queries Redis directly)
+ */
+export async function getCacheSizeAsync(): Promise<number> {
   const pattern = getCachePattern();
   const matchingKeys = await redis.keys(pattern);
+  cacheSize = matchingKeys.length; // Sync the in-memory counter
   return matchingKeys.length;
 }
