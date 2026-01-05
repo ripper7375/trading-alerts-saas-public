@@ -96,7 +96,7 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
               example:
                 status: ok
-                version: "20.0.0"
+                version: '20.0.0'
                 components:
                   postgresql:
                     connected: true
@@ -107,7 +107,7 @@ paths:
                     hit_rate: 0.85
                     latency_ms: 1
                   data_freshness:
-                    last_sync: "2026-01-03T12:00:30Z"
+                    last_sync: '2026-01-03T12:00:30Z'
                     sync_interval_seconds: 30
                     symbols_updated: 15
         '503':
@@ -349,7 +349,7 @@ paths:
           description: |
             Timestamp to calculate confluence for.
             Defaults to current time if not specified.
-          example: "2026-01-03T17:00:00Z"
+          example: '2026-01-03T17:00:00Z'
       responses:
         '200':
           description: Confluence score calculated successfully
@@ -615,7 +615,7 @@ components:
           enum: [ok, degraded, error]
         version:
           type: string
-          example: "20.0.0"
+          example: '20.0.0'
         components:
           type: object
           properties:
@@ -1085,22 +1085,23 @@ components:
       properties:
         open:
           type: string
-          example: "00:04:00"
+          example: '00:04:00'
           description: Market open time in MT5 server time (HH:MM:SS)
         close:
           type: string
-          example: "23:58:00"
+          example: '23:58:00'
           description: Market close time in MT5 server time (HH:MM:SS)
         timezone:
           type: string
-          example: "GMT+2"
+          example: 'GMT+2'
           description: Current MT5 server timezone (GMT+2 or GMT+3)
         days:
           type: array
           items:
             type: string
-            enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
-          example: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+            enum:
+              [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+          example: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
           description: Days when market is open
       required:
         - open
@@ -1200,7 +1201,14 @@ components:
               type: number
             trend_change:
               type: string
-              enum: [stronger_bullish, weaker_bullish, stronger_bearish, weaker_bearish, no_change]
+              enum:
+                [
+                  stronger_bullish,
+                  weaker_bullish,
+                  stronger_bearish,
+                  weaker_bearish,
+                  no_change,
+                ]
         analysis:
           type: string
           description: Human-readable analysis of the comparison

@@ -46,14 +46,14 @@ Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (T
 ## Usage Instructions
 
 1. Start a fresh Claude Code (web) chat
-2. Attach: `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+2. Attach: `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 04a Prompt
 
-```
+````
 # Part 20 - Phase 04a: TypeScript Types
 
 ## Context
@@ -205,14 +205,16 @@ export interface IndicatorResponse {
 
 // Tier type (exported for use in other modules)
 export type Tier = 'FREE' | 'PRO';
-```
+````
 
 ## Success Criteria
+
 - [ ] File created at `lib/indicators/types.ts`
 - [ ] File compiles without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
+
 ```
 feat(types): add TypeScript types for indicator data (Phase 04a)
 
@@ -221,6 +223,7 @@ feat(types): add TypeScript types for indicator data (Phase 04a)
 - Add API response and metadata types
 - Add Tier type export
 ```
+
 ```
 
 ---
@@ -239,3 +242,4 @@ These types are required by:
 ## Next Step
 
 After Phase 04a compiles successfully, proceed to `part-20-phase04b-prompts.md` (Database Layer).
+```

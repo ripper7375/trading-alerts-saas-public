@@ -46,14 +46,14 @@ Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (T
 ## Usage Instructions
 
 1. Start a fresh Claude Code (web) chat
-2. Attach: `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+2. Attach: `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 04b Prompt
 
-```
+````
 # Part 20 - Phase 04b: Database Layer
 
 ## Context
@@ -124,7 +124,7 @@ export async function checkConnection(): Promise<boolean> {
 }
 
 export { getPool };
-```
+````
 
 ### 2. `lib/db/queries.ts`
 
@@ -166,29 +166,62 @@ export async function getIndicatorData(
     [limit]
   );
 
-  const ohlc: OHLCBar[] = rows.map(row => ({
-    time: Math.floor(new Date(row.timestamp).getTime() / 1000),
-    open: row.open,
-    high: row.high,
-    low: row.low,
-    close: row.close,
-  })).reverse();
+  const ohlc: OHLCBar[] = rows
+    .map((row) => ({
+      time: Math.floor(new Date(row.timestamp).getTime() / 1000),
+      open: row.open,
+      high: row.high,
+      low: row.low,
+      close: row.close,
+    }))
+    .reverse();
 
   return {
     ohlc,
-    fractals: (rows[0]?.fractals as IndicatorData['fractals']) || { peaks: [], bottoms: [] },
-    horizontal_trendlines: (rows[0]?.horizontal_trendlines as IndicatorData['horizontal_trendlines']) || { support: [], resistance: [] },
-    diagonal_trendlines: (rows[0]?.diagonal_trendlines as IndicatorData['diagonal_trendlines']) || { support: [], resistance: [] },
-    momentum_candles: rows.flatMap(r => (r.momentum_candles as IndicatorData['momentum_candles']) || []),
-    keltner_channels: (rows[0]?.keltner_channels as IndicatorData['keltner_channels']) || { upper: [], middle: [], lower: [], timestamps: [] },
-    tema: rows.map(r => r.tema).filter((v): v is number => v !== null).reverse(),
-    hrma: rows.map(r => r.hrma).filter((v): v is number => v !== null).reverse(),
-    smma: rows.map(r => r.smma).filter((v): v is number => v !== null).reverse(),
+    fractals: (rows[0]?.fractals as IndicatorData['fractals']) || {
+      peaks: [],
+      bottoms: [],
+    },
+    horizontal_trendlines: (rows[0]
+      ?.horizontal_trendlines as IndicatorData['horizontal_trendlines']) || {
+      support: [],
+      resistance: [],
+    },
+    diagonal_trendlines: (rows[0]
+      ?.diagonal_trendlines as IndicatorData['diagonal_trendlines']) || {
+      support: [],
+      resistance: [],
+    },
+    momentum_candles: rows.flatMap(
+      (r) => (r.momentum_candles as IndicatorData['momentum_candles']) || []
+    ),
+    keltner_channels: (rows[0]
+      ?.keltner_channels as IndicatorData['keltner_channels']) || {
+      upper: [],
+      middle: [],
+      lower: [],
+      timestamps: [],
+    },
+    tema: rows
+      .map((r) => r.tema)
+      .filter((v): v is number => v !== null)
+      .reverse(),
+    hrma: rows
+      .map((r) => r.hrma)
+      .filter((v): v is number => v !== null)
+      .reverse(),
+    smma: rows
+      .map((r) => r.smma)
+      .filter((v): v is number => v !== null)
+      .reverse(),
     zigzag: (rows[0]?.zigzag as IndicatorData['zigzag']) || { points: [] },
   };
 }
 
-export async function getDataFreshness(symbol: string, timeframe: string): Promise<Date | null> {
+export async function getDataFreshness(
+  symbol: string,
+  timeframe: string
+): Promise<Date | null> {
   const tableName = `${symbol.toLowerCase()}_${timeframe.toLowerCase()}`;
   const rows = await query<{ timestamp: Date }>(
     `SELECT timestamp FROM ${tableName} ORDER BY timestamp DESC LIMIT 1`
@@ -206,12 +239,14 @@ export async function getTableCount(): Promise<number> {
 ```
 
 ## Success Criteria
+
 - [ ] `lib/db/postgresql.ts` created
 - [ ] `lib/db/queries.ts` created
 - [ ] Both files compile without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
+
 ```
 feat(db): add PostgreSQL client and query functions (Phase 04b)
 
@@ -219,6 +254,7 @@ feat(db): add PostgreSQL client and query functions (Phase 04b)
 - Add getIndicatorData query function
 - Add getDataFreshness and getTableCount utilities
 ```
+
 ```
 
 ---
@@ -238,3 +274,4 @@ These are required by:
 ## Next Step
 
 After Phase 04b compiles successfully, proceed to `part-20-phase04c-prompts.md` (Tier Validation).
+```
