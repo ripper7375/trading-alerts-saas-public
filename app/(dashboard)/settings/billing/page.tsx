@@ -251,7 +251,12 @@ export default function BillingSettingsPage(): React.ReactElement {
                     <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-red-600 hover:bg-red-700"
-                      onClick={() => {
+                      onClick={async () => {
+                        await fetch('/api/subscription/cancel', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ reason: cancellationReason }),
+                        });
                         setIsCancelled(true);
                         setShowSuccessMessage(true);
                       }}
