@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 05 Prompt
 
-```
+````
 # Part 20 - Phase 05: Redis Caching Layer
 
 ## Context
@@ -53,10 +53,12 @@ export async function set(key: string, value: any, ttl?: number): Promise<void>;
 export async function del(key: string): Promise<void>;
 export async function invalidatePattern(pattern: string): Promise<void>;
 export default redis;
-```
+````
 
 ### 2. `lib/cache/indicator-cache.ts`
+
 Create indicator-specific caching:
+
 - `getCacheKey(symbol, timeframe)`: Returns `indicators:{symbol}:{timeframe}:latest`
 - `getIndicatorDataCached(symbol, timeframe, limit)`:
   - Check Redis cache first
@@ -68,7 +70,9 @@ Create indicator-specific caching:
   - Delete specific key or pattern
 
 ### 3. `lib/cache/cache-invalidation.ts`
+
 Create cache invalidation utilities:
+
 - `invalidateOnSync(symbols: string[])`:
   - Called after sync script runs
   - Invalidates cache for synced symbols
@@ -78,7 +82,9 @@ Create cache invalidation utilities:
   - Return hit rate, memory usage, key count
 
 ### 4. Update `app/api/indicators/[symbol]/[timeframe]/route.ts`
+
 Modify to use caching:
+
 - Import `getIndicatorDataCached` from cache module
 - Replace direct DB call with cached version
 - Add `data_source: 'cache' | 'postgresql'` to metadata
@@ -86,23 +92,28 @@ Modify to use caching:
 ## Additional Updates
 
 ### 5. Update `lib/db/queries.ts`
+
 - Rename `getIndicatorData` to `getIndicatorDataFromDb`
 - Export for use by cache module
 
 ### 6. Create `app/api/admin/cache/clear/route.ts`
+
 Admin endpoint to clear cache:
+
 - POST handler with AdminApiKey auth
 - Accept optional `pattern` in body
 - Call appropriate invalidation function
 - Return keys_cleared count
 
 ## Important Notes
+
 - TTL = 30 seconds matches sync interval
 - Use ioredis package for Redis client
 - Handle Redis connection errors gracefully
 - Fallback to PostgreSQL if Redis unavailable
 
 ## Success Criteria
+
 - [ ] Redis client connects successfully
 - [ ] First API call fetches from PostgreSQL
 - [ ] Second API call (within 30s) returns from cache
@@ -111,6 +122,7 @@ Admin endpoint to clear cache:
 - [ ] Admin cache clear endpoint works
 
 ## Testing Commands
+
 ```bash
 # Install ioredis if not present
 npm install ioredis
@@ -127,7 +139,9 @@ curl -X POST -H "X-Admin-API-Key: $ADMIN_KEY" \
 ```
 
 ## Commit Instructions
+
 After creating all files, commit with message:
+
 ```
 feat(cache): add Redis caching layer for indicator data
 
@@ -137,6 +151,7 @@ feat(cache): add Redis caching layer for indicator data
 - Add cache invalidation utilities
 - Add admin cache clear endpoint
 ```
+
 ```
 
 ---
@@ -144,3 +159,4 @@ feat(cache): add Redis caching layer for indicator data
 ## Next Step
 
 After Phase 05, proceed to `part-20-phase06-prompts.md` (Confluence Score System).
+```

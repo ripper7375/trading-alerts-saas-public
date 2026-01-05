@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 09 Prompt
 
-```
+````
 # Part 20 - Phase 09: Migration, Integration & Cutover
 
 ## Context
@@ -59,9 +59,10 @@ MT5_API_URL=http://localhost:5001
 MT5_API_KEY=xxx
 MT5_ADMIN_API_KEY=xxx
 FLASK_PORT=5001
-```
+````
 
 **Add/verify Part 20 variables:**
+
 ```bash
 # ADD THESE:
 POSTGRESQL_URI=postgresql://user:pass@host:5432/db
@@ -77,7 +78,9 @@ ADMIN_API_KEY=your-admin-key
 
 ```typescript
 // BEFORE (Part 6 - calling Flask)
-const response = await fetch(`${process.env.MT5_API_URL}/api/indicators/${symbol}/${timeframe}`);
+const response = await fetch(
+  `${process.env.MT5_API_URL}/api/indicators/${symbol}/${timeframe}`
+);
 const data = await response.json();
 
 // AFTER (Part 20 - direct database via cache)
@@ -86,6 +89,7 @@ const data = await getIndicatorDataCached(symbol, timeframe, limit);
 ```
 
 **Files to check and update:**
+
 - `app/api/indicators/[symbol]/[timeframe]/route.ts` - Should use Part 20 implementation
 - `app/api/mt5/health/route.ts` - Update to check PostgreSQL/Redis
 - `app/api/mt5/symbols/route.ts` - Use Part 20 tier validation
@@ -94,6 +98,7 @@ const data = await getIndicatorDataCached(symbol, timeframe, limit);
 ### Step A3: Update/Remove Service Layer
 
 **Files to DELETE or mark deprecated:**
+
 ```
 lib/services/mt5-client.ts      → DELETE
 lib/services/flask-api.ts       → DELETE
@@ -101,6 +106,7 @@ lib/api/mt5-service.ts          → DELETE
 ```
 
 **Files to UPDATE (if they import from deleted files):**
+
 ```typescript
 // Update any file that imported from mt5-client.ts
 // to use Part 20 modules instead:
@@ -115,16 +121,17 @@ import { validateTierAccess } from '@/lib/tier/validation';
 ```typescript
 // BEFORE: Mock Flask
 jest.mock('@/lib/services/mt5-client', () => ({
-  fetchIndicators: jest.fn().mockResolvedValue(mockData)
+  fetchIndicators: jest.fn().mockResolvedValue(mockData),
 }));
 
 // AFTER: Mock Part 20
 jest.mock('@/lib/cache/indicator-cache', () => ({
-  getIndicatorDataCached: jest.fn().mockResolvedValue(mockData)
+  getIndicatorDataCached: jest.fn().mockResolvedValue(mockData),
 }));
 ```
 
 **Files to update:**
+
 - All test files in `__tests__/` that mock MT5/Flask
 - Update E2E tests if they reference Flask URLs
 
@@ -181,6 +188,7 @@ mv mt5-service/ archive/part6-flask-mt5/
 ```
 
 **Create `archive/part6-flask-mt5/README.md`:**
+
 ```markdown
 # Part 6 - Flask MT5 Service (ARCHIVED)
 
@@ -190,16 +198,19 @@ mv mt5-service/ archive/part6-flask-mt5/
 This code is kept for rollback capability only. Do not use in production.
 
 ## Why Archived
+
 Python MT5 API cannot access custom indicator buffers (iCustom not available).
 Part 20 uses MQL5 Services to read indicators directly from MT5.
 
 ## Rollback Instructions
+
 See: docs/migration/rollback-to-part6.md
 ```
 
 ### Step A7: Update Documentation
 
 **Add deprecation notice to `docs/build-orders/part-06-flask-mt5.md`:**
+
 ```markdown
 > ⚠️ **DEPRECATED**: Part 6 has been superseded by Part 20.
 > See `docs/build-orders/part-20-architecture-design.md` for current architecture.
@@ -304,27 +315,33 @@ echo "========================================="
 
 ### File 3: `docs/migration/rollback-to-part6.md`
 
-```markdown
+````markdown
 # Rollback to Part 6 (Emergency Only)
 
 ## When to Use
+
 Only if Part 20 has critical issues that cannot be fixed quickly:
+
 - Error rate > 5% for 10+ minutes
 - Data sync failing for 5+ minutes
 - Chart accuracy issues
 - Database connection failures
 
 ## Prerequisites
+
 - Part 6 code exists in `archive/part6-flask-mt5/`
 - MT5 terminals still running with indicators
 - Flask dependencies still in requirements
 
 ## Quick Rollback (15 minutes)
+
 ```bash
 ./scripts/rollback-to-part6.sh
 ```
+````
 
 ## Manual Rollback Steps
+
 1. Enable maintenance mode
 2. Stop sync script on Contabo VPS
 3. Restore Part 6 code: `cp -r archive/part6-flask-mt5/mt5-service ./`
@@ -334,10 +351,12 @@ Only if Part 20 has critical issues that cannot be fixed quickly:
 7. Disable maintenance mode
 
 ## Post-Rollback
+
 - Investigate Part 20 issues
 - Create fix plan
 - Schedule re-migration attempt
-```
+
+````
 
 ### File 4: `docs/DEPLOYMENT-CHECKLIST.md`
 
@@ -399,13 +418,14 @@ Only if Part 20 has critical issues that cannot be fixed quickly:
 - [ ] Delete archive/part6-flask-mt5/
 - [ ] Remove Part 6 references from docs
 - [ ] Close migration tracking issues
-```
+````
 
 ---
 
 ## PART C: Verification
 
 ### API Endpoint Verification
+
 ```bash
 # Health check
 curl https://your-app.com/api/health
@@ -424,6 +444,7 @@ curl https://your-app.com/api/confluence/EURUSD
 ```
 
 ### Data Accuracy Verification
+
 - [ ] Open MT5 terminal with EURUSD H1 chart
 - [ ] Open web app with same chart
 - [ ] Compare: OHLC values match
@@ -431,6 +452,7 @@ curl https://your-app.com/api/confluence/EURUSD
 - [ ] Compare: Trendlines match
 
 ### Performance Verification
+
 - [ ] API response time < 200ms (cached)
 - [ ] API response time < 500ms (uncached)
 - [ ] Redis cache hit rate > 80%
@@ -438,6 +460,7 @@ curl https://your-app.com/api/confluence/EURUSD
 ---
 
 ## Success Criteria
+
 - [ ] All Part 6 references removed from active code
 - [ ] Part 6 code archived (not deleted)
 - [ ] All API endpoints working
@@ -447,6 +470,7 @@ curl https://your-app.com/api/confluence/EURUSD
 - [ ] Documentation updated
 
 ## Commit Instructions
+
 After completing all migration steps:
 
 ```
@@ -465,6 +489,7 @@ Migration includes:
 
 Part 6 archived to: archive/part6-flask-mt5/
 ```
+
 ```
 
 ---
@@ -485,3 +510,4 @@ Part 6 archived to: archive/part6-flask-mt5/
 | 09 | Migration & Cutover | 4 scripts + code changes | 3-4 hours |
 
 **Total: ~45 files + code migration, 22-31 hours of implementation**
+```

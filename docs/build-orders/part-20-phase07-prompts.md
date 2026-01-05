@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 07 Prompt
 
-```
+````
 # Part 20 - Phase 07: Testing Framework
 
 ## Context
@@ -143,10 +143,12 @@ npm test -- __tests__/unit/timeframe-filter.test.ts
 
 # Run in watch mode
 npm test -- --watch
-```
+````
 
 ## Commit Instructions
+
 After creating all files, commit with message:
+
 ```
 test(part20): add comprehensive testing framework
 
@@ -157,6 +159,7 @@ test(part20): add comprehensive testing framework
 - Add API tests for all endpoints
 - Configure Jest with TypeScript
 ```
+
 ```
 
 ---
@@ -164,3 +167,4 @@ test(part20): add comprehensive testing framework
 ## Next Step
 
 After Phase 07, proceed to `part-20-phase08-prompts.md` (E2E Testing Migration).
+```

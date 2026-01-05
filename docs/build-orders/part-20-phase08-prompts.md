@@ -8,16 +8,16 @@
 
 1. Start a fresh Claude Code (web) chat
 2. Attach these 3 documents:
-   - `docs/build-orders/part-20-architecture-design.md`
-   - `docs/build-orders/part-20-implementation-plan.md`
-   - `docs/open-api-documents/part-20-sqlite-sync-postgresql-openapi.yaml`
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
 
 ---
 
 ## Phase 08 Prompt
 
-```
+````
 # Part 20 - Phase 08: E2E Testing Migration
 
 ## Context
@@ -90,9 +90,10 @@ test.describe('Part 20 Critical Path', () => {
     // Assert all 9 timeframes shown
   });
 });
-```
+````
 
 ### 3. `e2e/chart-rendering.spec.ts`
+
 Create chart rendering tests:
 
 ```typescript
@@ -127,21 +128,23 @@ test.describe('Chart Rendering', () => {
 
 ## Part 6 Test Migration Mapping
 
-| Part 6 Test | Part 20 Replacement |
-|-------------|---------------------|
-| Flask health check | PostgreSQL/Redis health check |
-| Flask /api/indicators | Next.js /api/indicators |
-| MT5 connection test | SQLite data freshness check |
+| Part 6 Test           | Part 20 Replacement                  |
+| --------------------- | ------------------------------------ |
+| Flask health check    | PostgreSQL/Redis health check        |
+| Flask /api/indicators | Next.js /api/indicators              |
+| MT5 connection test   | SQLite data freshness check          |
 | Python indicator calc | Verify PostgreSQL has correct values |
-| Connection pool test | Database connection pool test |
+| Connection pool test  | Database connection pool test        |
 
 ## Important Notes
+
 - E2E tests require running app and database
 - Use test data fixtures for consistent results
 - Add data-testid attributes to components if needed
 - Tests should be independent (no order dependency)
 
 ## Success Criteria
+
 - [ ] Critical path test passes
 - [ ] Chart rendering tests pass
 - [ ] Tier access tests pass
@@ -150,6 +153,7 @@ test.describe('Chart Rendering', () => {
 - [ ] All Part 6 E2E behaviors covered
 
 ## Testing Commands
+
 ```bash
 # Install Playwright browsers
 npx playwright install
@@ -168,7 +172,9 @@ npx playwright show-report
 ```
 
 ## Commit Instructions
+
 After creating all files, commit with message:
+
 ```
 test(e2e): migrate Part 6 E2E tests to Part 20 architecture
 
@@ -178,6 +184,7 @@ test(e2e): migrate Part 6 E2E tests to Part 20 architecture
 - Configure Playwright
 - Map all Part 6 test cases
 ```
+
 ```
 
 ---
@@ -185,3 +192,4 @@ test(e2e): migrate Part 6 E2E tests to Part 20 architecture
 ## Next Step
 
 After Phase 08, proceed to `part-20-phase09-prompts.md` (Migration, Integration & Cutover).
+```
