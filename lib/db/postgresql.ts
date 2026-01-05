@@ -13,7 +13,7 @@ let pool: Pool | null = null;
 function getPool(): Pool {
   if (!pool) {
     pool = new Pool({
-      connectionString: process.env.POSTGRESQL_URI,
+      connectionString: process.env['POSTGRESQL_URI'],
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
