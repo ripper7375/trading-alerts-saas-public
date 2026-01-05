@@ -1,41 +1,35 @@
 /**
- * Indicator Data API Route
+ * Part 20 - Phase 05: Indicator Data API Route
  *
  * GET /api/indicators/[symbol]/[timeframe]
- * Fetches indicator data from Flask MT5 service with tier validation.
- * Includes PRO indicators (Keltner, TEMA, HRMA, SMMA, ZigZag, Momentum)
- * transformed to type-safe TypeScript types.
+ * Fetches indicator data from PostgreSQL with Redis caching layer.
+ * Uses cache-through pattern: check cache first, fallback to database.
  *
- * @module app/api/indicators/[symbol]/[timeframe]/route
+ * @see docs/sqlite-and-mt5service/part-20-architecture-design.md Section 7.3
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-import {
-  fetchIndicatorData,
-  MT5AccessDeniedError,
-  MT5ServiceError,
-  type MT5IndicatorData,
-} from '@/lib/api/mt5-client';
-import { transformProIndicators } from '@/lib/api/mt5-transform';
 import { authOptions } from '@/lib/auth/auth-options';
+import {
+  getIndicatorDataCached,
+  type CachedIndicatorResult,
+  INDICATOR_CACHE_TTL,
+} from '@/lib/cache/indicator-cache';
 import {
   FREE_SYMBOLS,
   FREE_TIMEFRAMES,
   PRO_SYMBOLS,
   PRO_TIMEFRAMES,
 } from '@/lib/tier-config';
-import type { ProIndicatorData } from '@/types/indicator';
+import { isMarketOpen } from '@/lib/market-hours/validator';
+import type { IndicatorData } from '@/lib/indicators/types';
 import type { Tier } from '@/types/tier';
-import {
-  getCachedIndicatorData,
-  setCachedIndicatorData,
-} from '@/lib/cache/indicator-cache';
 
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ============================================================================
 // TYPES
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ============================================================================
 
 interface RouteParams {
   params: Promise<{
@@ -46,11 +40,18 @@ interface RouteParams {
 
 interface IndicatorDataResponse {
   success: boolean;
-  data: MT5IndicatorData & {
-    proIndicatorsTransformed: ProIndicatorData;
+  data: IndicatorData;
+  metadata: {
+    symbol: string;
+    timeframe: string;
+    tier: Tier;
+    data_source: 'cache' | 'postgresql';
+    cached: boolean;
+    bars_returned: number;
+    last_update: string;
+    market_status: 'OPEN' | 'CLOSED';
+    cache_ttl_seconds: number;
   };
-  tier: Tier;
-  cached: boolean;
   requestedAt: string;
 }
 
@@ -65,37 +66,21 @@ interface ErrorResponse {
   upgradeUrl?: string;
 }
 
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ============================================================================
 // VALIDATION HELPERS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ============================================================================
 
-/**
- * Valid symbols in the system
- */
 const ALL_SYMBOLS = PRO_SYMBOLS;
-
-/**
- * Valid timeframes in the system
- */
 const ALL_TIMEFRAMES = PRO_TIMEFRAMES;
 
-/**
- * Check if symbol is valid (exists in system)
- */
 function isValidSymbol(symbol: string): boolean {
   return ALL_SYMBOLS.includes(symbol as (typeof ALL_SYMBOLS)[number]);
 }
 
-/**
- * Check if timeframe is valid (exists in system)
- */
 function isValidTimeframe(timeframe: string): boolean {
   return ALL_TIMEFRAMES.includes(timeframe as (typeof ALL_TIMEFRAMES)[number]);
 }
 
-/**
- * Check if tier can access symbol
- */
 function canAccessSymbol(tier: Tier, symbol: string): boolean {
   if (tier === 'PRO') {
     return PRO_SYMBOLS.includes(symbol as (typeof PRO_SYMBOLS)[number]);
@@ -103,9 +88,6 @@ function canAccessSymbol(tier: Tier, symbol: string): boolean {
   return FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number]);
 }
 
-/**
- * Check if tier can access timeframe
- */
 function canAccessTimeframe(tier: Tier, timeframe: string): boolean {
   if (tier === 'PRO') {
     return PRO_TIMEFRAMES.includes(
@@ -117,37 +99,31 @@ function canAccessTimeframe(tier: Tier, timeframe: string): boolean {
   );
 }
 
-/**
- * Get accessible symbols for tier
- */
 function getAccessibleSymbols(tier: Tier): readonly string[] {
   return tier === 'PRO' ? PRO_SYMBOLS : FREE_SYMBOLS;
 }
 
-/**
- * Get accessible timeframes for tier
- */
 function getAccessibleTimeframes(tier: Tier): readonly string[] {
   return tier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
 }
 
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ============================================================================
 // GET HANDLER
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ============================================================================
 
 /**
  * GET /api/indicators/[symbol]/[timeframe]
  *
- * Fetches indicator data from Flask MT5 service.
- * Validates tier access before making the request.
+ * Fetches indicator data with Redis caching.
+ * First checks cache, then falls back to PostgreSQL if cache miss.
  *
- * @param request - Next.js request object
- * @param params - Route parameters containing symbol and timeframe
- * @returns 200: Indicator data (OHLC, horizontal lines, diagonal lines, fractals)
- * @returns 400: Invalid symbol or timeframe
- * @returns 401: Unauthorized (not logged in)
- * @returns 403: Tier cannot access this symbol/timeframe
- * @returns 500: Internal server error or MT5 service error
+ * Query Parameters:
+ * - bars: Number of bars to fetch (100-5000, default: 1000)
+ *
+ * Response includes:
+ * - data: OHLC, fractals, trendlines, momentum, keltner, tema, hrma, smma, zigzag
+ * - metadata.data_source: 'cache' or 'postgresql'
+ * - metadata.cached: true if served from cache
  *
  * @example Request:
  * GET /api/indicators/XAUUSD/H1?bars=500
@@ -155,26 +131,15 @@ function getAccessibleTimeframes(tier: Tier): readonly string[] {
  * @example Response (success):
  * {
  *   "success": true,
- *   "data": {
- *     "ohlc": [...],
- *     "horizontal": {...},
- *     "diagonal": {...},
- *     "fractals": {...},
- *     "metadata": {...}
- *   },
- *   "tier": "FREE",
- *   "requestedAt": "2025-12-09T12:00:00.000Z"
- * }
- *
- * @example Response (tier denied):
- * {
- *   "success": false,
- *   "error": "Tier restriction",
- *   "message": "FREE tier cannot access AUDJPY. Upgrade to PRO for access.",
- *   "tier": "FREE",
- *   "accessibleSymbols": ["BTCUSD", "EURUSD", ...],
- *   "upgradeRequired": true,
- *   "upgradeUrl": "/pricing"
+ *   "data": { "ohlc": [...], "fractals": {...}, ... },
+ *   "metadata": {
+ *     "symbol": "XAUUSD",
+ *     "timeframe": "H1",
+ *     "tier": "PRO",
+ *     "data_source": "cache",
+ *     "cached": true,
+ *     "cache_ttl_seconds": 30
+ *   }
  * }
  */
 export async function GET(
@@ -182,9 +147,9 @@ export async function GET(
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     // STEP 1: Authentication Check
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -198,56 +163,22 @@ export async function GET(
       );
     }
 
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     // STEP 2: Extract Parameters
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     const { symbol, timeframe } = await params;
     const upperSymbol = symbol.toUpperCase();
     const upperTimeframe = timeframe.toUpperCase();
 
-    // Get bars parameter from query string (default: 1000)
     const { searchParams } = new URL(request.url);
     const barsParam = searchParams.get('bars');
     const bars = barsParam
       ? Math.min(Math.max(parseInt(barsParam, 10) || 1000, 100), 5000)
       : 1000;
 
-    //───────────────────────────────────────────────────────
-    // STEP 2.5: Check Cache First (Added in Part 1.3)
-    //───────────────────────────────────────────────────────
-    const cachedData = await getCachedIndicatorData(
-      upperSymbol,
-      upperTimeframe,
-      bars
-    );
-    if (cachedData) {
-      console.log(`[API] Cache HIT: ${upperSymbol}/${upperTimeframe}`);
-      return NextResponse.json(
-        {
-          success: true,
-          data: cachedData,
-          cached: true,
-          cacheHit: true,
-          performance: {
-            cached: true,
-            estimatedSpeedup: '10x faster (no MT5 service call)',
-          },
-          requestedAt: new Date().toISOString(),
-        },
-        {
-          status: 200,
-          headers: {
-            'X-Cache': 'HIT',
-          },
-        }
-      );
-    }
-    console.log(`[API] Cache MISS: ${upperSymbol}/${upperTimeframe}`);
-    // End cache check - continue with existing logic below
-
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     // STEP 3: Validate Symbol
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     if (!isValidSymbol(upperSymbol)) {
       return NextResponse.json(
         {
@@ -259,9 +190,9 @@ export async function GET(
       );
     }
 
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     // STEP 4: Validate Timeframe
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     if (!isValidTimeframe(upperTimeframe)) {
       return NextResponse.json(
         {
@@ -273,184 +204,120 @@ export async function GET(
       );
     }
 
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     // STEP 5: Get User Tier
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     const userTier = (session.user.tier as Tier) || 'FREE';
 
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     // STEP 6: Validate Tier Access - Symbol
-    //───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     if (!canAccessSymbol(userTier, upperSymbol)) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        error: 'Tier restriction',
-        message: `FREE tier cannot access ${upperSymbol}. Upgrade to PRO for access to all 15 symbols.`,
-        tier: userTier,
-        accessibleSymbols: getAccessibleSymbols(userTier),
-        upgradeRequired: true,
-        upgradeUrl: '/pricing',
-      };
-
-      return NextResponse.json(errorResponse, { status: 403 });
-    }
-
-    //───────────────────────────────────────────────────────
-    // STEP 7: Validate Tier Access - Timeframe
-    //───────────────────────────────────────────────────────
-    if (!canAccessTimeframe(userTier, upperTimeframe)) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        error: 'Tier restriction',
-        message: `FREE tier cannot access ${upperTimeframe} timeframe. Upgrade to PRO for access to all 9 timeframes.`,
-        tier: userTier,
-        accessibleTimeframes: getAccessibleTimeframes(userTier),
-        upgradeRequired: true,
-        upgradeUrl: '/pricing',
-      };
-
-      return NextResponse.json(errorResponse, { status: 403 });
-    }
-
-    //───────────────────────────────────────────────────────
-    // STEP 8: Fetch Data from Flask MT5 Service
-    //───────────────────────────────────────────────────────
-    const data = await fetchIndicatorData(
-      upperSymbol,
-      upperTimeframe,
-      userTier,
-      bars
-    );
-
-    //───────────────────────────────────────────────────────
-    // STEP 9: Transform PRO Indicators (null -> undefined)
-    //───────────────────────────────────────────────────────
-    const proIndicatorsTransformed = transformProIndicators(
-      data.proIndicators,
-      userTier
-    );
-
-    //────────────────────────────────────────────────────────────────
-    // STEP 9.5: Cache Write (Added in Part 1.4)
-    //────────────────────────────────────────────────────────────────
-    const dataToCache = {
-      ...data,
-      proIndicatorsTransformed,
-    };
-
-    setCachedIndicatorData(
-      upperSymbol,
-      upperTimeframe,
-      dataToCache,
-      bars
-    ).catch((err) => {
-      console.error('[API] Failed to cache indicator data:', err);
-    });
-
-    //───────────────────────────────────────────────────────
-    // STEP 10: Return Response
-    //───────────────────────────────────────────────────────
-    const response: IndicatorDataResponse = {
-      success: true,
-      data: {
-        ...data,
-        proIndicatorsTransformed,
-      },
-      tier: userTier,
-      cached: false,
-      requestedAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json(
-      {
-        ...response,
-        performance: {
-          cached: false,
-          note: 'First request - data cached for subsequent requests',
-        },
-      },
-      {
-        status: 200,
-        headers: {
-          'X-Cache': 'MISS',
-          'X-Cache-Status': 'Stored',
-        },
-      }
-    );
-  } catch (error) {
-    //───────────────────────────────────────────────────────
-    // Error Handling
-    //───────────────────────────────────────────────────────
-
-    // Handle MT5 access denied errors
-    if (error instanceof MT5AccessDeniedError) {
-      const errorResponse: ErrorResponse = {
-        success: false,
-        error: 'Tier restriction',
-        message: error.message,
-        tier: error.tier,
-        accessibleSymbols: error.accessibleSymbols,
-        accessibleTimeframes: error.accessibleTimeframes,
-        upgradeRequired: true,
-        upgradeUrl: '/pricing',
-      };
-
-      return NextResponse.json(errorResponse, { status: 403 });
-    }
-
-    // Handle MT5 service errors
-    if (error instanceof MT5ServiceError) {
-      console.error('MT5 Service Error:', {
-        statusCode: error.statusCode,
-        message: error.message,
-        responseBody: error.responseBody,
-        timestamp: new Date().toISOString(),
-      });
-
       return NextResponse.json(
         {
           success: false,
-          error: 'MT5 service error',
-          message:
-            'Failed to fetch indicator data from MT5 service. Please try again later.',
+          error: 'Tier restriction',
+          message: `FREE tier cannot access ${upperSymbol}. Upgrade to PRO for access to all 15 symbols.`,
+          tier: userTier,
+          accessibleSymbols: getAccessibleSymbols(userTier),
+          upgradeRequired: true,
+          upgradeUrl: '/pricing',
         } as ErrorResponse,
-        { status: 500 }
+        { status: 403 }
       );
     }
 
-    // Handle network/connection errors (MT5 service unreachable)
-    if (error instanceof Error) {
-      const isNetworkError =
-        error.message === 'fetch failed' ||
-        error.message.includes('ECONNREFUSED') ||
-        error.message.includes('ETIMEDOUT') ||
-        error.message.includes('NetworkError') ||
-        error.message.includes('Failed to fetch');
-
-      if (isNetworkError) {
-        console.error('MT5 Service Connection Error:', {
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Service unavailable',
-            message:
-              'Unable to connect to the trading data service. The service may be temporarily unavailable. Please try again in a few moments.',
-          } as ErrorResponse,
-          { status: 503 }
-        );
-      }
+    // ─────────────────────────────────────────────────────────
+    // STEP 7: Validate Tier Access - Timeframe
+    // ─────────────────────────────────────────────────────────
+    if (!canAccessTimeframe(userTier, upperTimeframe)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Tier restriction',
+          message: `FREE tier cannot access ${upperTimeframe} timeframe. Upgrade to PRO for access to all 9 timeframes.`,
+          tier: userTier,
+          accessibleTimeframes: getAccessibleTimeframes(userTier),
+          upgradeRequired: true,
+          upgradeUrl: '/pricing',
+        } as ErrorResponse,
+        { status: 403 }
+      );
     }
 
-    // Handle unknown errors
+    // ─────────────────────────────────────────────────────────
+    // STEP 8: Fetch Data (Cache-Through Pattern)
+    // ─────────────────────────────────────────────────────────
+    const result: CachedIndicatorResult = await getIndicatorDataCached(
+      upperSymbol,
+      upperTimeframe,
+      bars
+    );
+
+    // ─────────────────────────────────────────────────────────
+    // STEP 9: Get Market Status
+    // ─────────────────────────────────────────────────────────
+    const marketOpen = isMarketOpen(upperSymbol);
+
+    // ─────────────────────────────────────────────────────────
+    // STEP 10: Build Response
+    // ─────────────────────────────────────────────────────────
+    const response: IndicatorDataResponse = {
+      success: true,
+      data: result.data,
+      metadata: {
+        symbol: upperSymbol,
+        timeframe: upperTimeframe,
+        tier: userTier,
+        data_source: result.dataSource,
+        cached: result.cached,
+        bars_returned: result.data.ohlc?.length || 0,
+        last_update: new Date().toISOString(),
+        market_status: marketOpen ? 'OPEN' : 'CLOSED',
+        cache_ttl_seconds: INDICATOR_CACHE_TTL,
+      },
+      requestedAt: new Date().toISOString(),
+    };
+
+    return NextResponse.json(response, {
+      status: 200,
+      headers: {
+        'X-Cache': result.cached ? 'HIT' : 'MISS',
+        'X-Data-Source': result.dataSource,
+        'Cache-Control': `private, max-age=${INDICATOR_CACHE_TTL}`,
+      },
+    });
+  } catch (error) {
+    // ─────────────────────────────────────────────────────────
+    // Error Handling
+    // ─────────────────────────────────────────────────────────
     console.error('GET /api/indicators/[symbol]/[timeframe] error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
     });
+
+    // Handle database connection errors
+    if (error instanceof Error) {
+      const isDbError =
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('Connection') ||
+        error.message.includes('timeout') ||
+        error.message.includes('relation') ||
+        error.message.includes('does not exist');
+
+      if (isDbError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Database unavailable',
+            message:
+              'Unable to connect to the database. Please try again in a few moments.',
+          } as ErrorResponse,
+          { status: 503 }
+        );
+      }
+    }
 
     return NextResponse.json(
       {
