@@ -91,6 +91,8 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [isCancelled, setIsCancelled] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
@@ -123,6 +125,13 @@ export default function BillingSettingsPage(): React.ReactElement {
         Billing & Subscription
       </h2>
 
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+          Success! Your subscription has been cancelled.
+        </div>
+      )}
+
       {/* Current Plan Card */}
       <Card
         className={`mb-8 ${
@@ -142,7 +151,9 @@ export default function BillingSettingsPage(): React.ReactElement {
             >
               {userTier === 'PRO' ? 'PRO TIER' : 'FREE TIER'}
             </Badge>
-            <Badge className="bg-green-100 text-green-800">Active</Badge>
+            <Badge className={isCancelled ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+              {isCancelled ? 'Cancelled' : 'Active'}
+            </Badge>
           </div>
 
           <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -185,6 +196,15 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <ArrowUpRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
+          ) : isCancelled ? (
+            <div className="flex gap-3">
+              <Link href="/pricing">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  Resubscribe
+                  <ArrowUpRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
           ) : (
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
@@ -229,7 +249,13 @@ export default function BillingSettingsPage(): React.ReactElement {
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                    <AlertDialogAction className="bg-red-600 hover:bg-red-700">
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={() => {
+                        setIsCancelled(true);
+                        setShowSuccessMessage(true);
+                      }}
+                    >
                       Confirm Cancellation
                     </AlertDialogAction>
                   </AlertDialogFooter>
