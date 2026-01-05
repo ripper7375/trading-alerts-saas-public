@@ -12,6 +12,42 @@
  * @module __tests__/lib/cache/indicator-cache.test.ts
  */
 
+// Mock Redis with in-memory store for testing
+const mockRedisStore = new Map<string, string>();
+
+jest.mock('@/lib/cache/redis', () => ({
+  get: jest.fn(async <T>(key: string): Promise<T | null> => {
+    const value = mockRedisStore.get(key);
+    if (!value) return null;
+    return JSON.parse(value) as T;
+  }),
+  set: jest.fn(async (key: string, value: unknown): Promise<void> => {
+    mockRedisStore.set(key, JSON.stringify(value));
+  }),
+  del: jest.fn(async (key: string): Promise<void> => {
+    mockRedisStore.delete(key);
+  }),
+  keys: jest.fn(async (pattern: string): Promise<string[]> => {
+    const regex = new RegExp(
+      '^' + pattern.replace(/\*/g, '.*').replace(/:/g, ':') + '$'
+    );
+    return Array.from(mockRedisStore.keys()).filter((key) => regex.test(key));
+  }),
+  invalidatePattern: jest.fn(async (pattern: string): Promise<number> => {
+    const regex = new RegExp(
+      '^' + pattern.replace(/\*/g, '.*').replace(/:/g, ':') + '$'
+    );
+    const keysToDelete = Array.from(mockRedisStore.keys()).filter((key) =>
+      regex.test(key)
+    );
+    keysToDelete.forEach((key) => mockRedisStore.delete(key));
+    return keysToDelete.length;
+  }),
+  isRedisAvailable: jest.fn(async () => true),
+  CACHE_TTL: 30,
+  CACHE_PREFIX: 'indicators',
+}));
+
 import {
   getCachedIndicatorData,
   setCachedIndicatorData,
@@ -29,12 +65,15 @@ import { CACHE_TTL } from '@/lib/constants/business-rules';
 describe('Indicator Cache Utility', () => {
   // Reset cache and stats before each test
   beforeEach(async () => {
+    // Clear the mock Redis store
+    mockRedisStore.clear();
     await clearAllCache();
     resetCacheStats();
   });
 
   // Clean up after all tests
   afterAll(async () => {
+    mockRedisStore.clear();
     await clearAllCache();
     resetCacheStats();
   });
