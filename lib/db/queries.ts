@@ -27,7 +27,7 @@ interface RawRow {
   zigzag: unknown;
 }
 
-export async function getIndicatorData(
+export async function getIndicatorDataFromDb(
   symbol: string,
   timeframe: string,
   limit: number = 1000

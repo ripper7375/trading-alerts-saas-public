@@ -61,38 +61,18 @@ jest.mock('@/lib/auth/auth-options', () => ({
   authOptions: {},
 }));
 
-// Mock MT5 client
-const mockFetchIndicatorData = jest.fn();
+// Mock indicator cache (Part 20 - Phase 05: Redis caching layer)
+const mockGetIndicatorDataCached = jest.fn();
 
-jest.mock('@/lib/api/mt5-client', () => ({
-  __esModule: true,
-  fetchIndicatorData: (...args: unknown[]) => mockFetchIndicatorData(...args),
-  MT5AccessDeniedError: class extends Error {
-    tier: string;
-    accessibleSymbols: readonly string[];
-    accessibleTimeframes: readonly string[];
-    constructor(
-      message: string,
-      tier: string,
-      symbols: readonly string[],
-      timeframes: readonly string[]
-    ) {
-      super(message);
-      this.tier = tier;
-      this.accessibleSymbols = symbols;
-      this.accessibleTimeframes = timeframes;
-    }
-  },
-  MT5ServiceError: class extends Error {
-    statusCode: number;
-    responseBody?: unknown;
-    constructor(message: string, statusCode: number, responseBody?: unknown) {
-      super(message);
-      this.statusCode = statusCode;
-      this.responseBody = responseBody;
-    }
-  },
-}));
+jest.mock('@/lib/cache/indicator-cache', () => {
+  const actual = jest.requireActual('@/lib/cache/indicator-cache');
+  return {
+    __esModule: true,
+    ...actual,
+    getIndicatorDataCached: (...args: unknown[]) =>
+      mockGetIndicatorDataCached(...args),
+  };
+});
 
 // ✅ Import cache clearing function (Added for Part 1.4)
 import { clearAllCache } from '@/lib/cache/indicator-cache';
@@ -290,7 +270,7 @@ describe('Indicators API Routes', () => {
         user: { id: 'user-1', tier: 'FREE' },
       });
 
-      const mockData = {
+      const mockIndicatorData = {
         ohlc: [
           { time: 1234567890, open: 1900, high: 1910, low: 1890, close: 1905 },
         ],
@@ -299,7 +279,12 @@ describe('Indicators API Routes', () => {
         fractals: { peaks: [], bottoms: [] },
         metadata: { symbol: 'XAUUSD', timeframe: 'H1', bars: 1000 },
       };
-      mockFetchIndicatorData.mockResolvedValue(mockData);
+      // Mock the cache-through pattern result
+      mockGetIndicatorDataCached.mockResolvedValue({
+        data: mockIndicatorData,
+        dataSource: 'postgresql',
+        cached: false,
+      });
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'
@@ -314,9 +299,10 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.data).toMatchObject(mockData);
-      expect(data.data.proIndicatorsTransformed).toBeDefined();
-      expect(data.tier).toBe('FREE');
+      expect(data.data).toMatchObject(mockIndicatorData);
+      expect(data.metadata.tier).toBe('FREE');
+      expect(data.metadata.data_source).toBe('postgresql');
+      expect(data.metadata.cached).toBe(false);
     });
 
     it('should allow PRO tier to access PRO symbols', async () => {
@@ -324,14 +310,19 @@ describe('Indicators API Routes', () => {
         user: { id: 'user-1', tier: 'PRO' },
       });
 
-      const mockData = {
+      const mockIndicatorData = {
         ohlc: [],
         horizontal: {},
         diagonal: {},
         fractals: {},
         metadata: { symbol: 'AUDJPY', timeframe: 'M5' },
       };
-      mockFetchIndicatorData.mockResolvedValue(mockData);
+      // Mock cache hit for PRO user
+      mockGetIndicatorDataCached.mockResolvedValue({
+        data: mockIndicatorData,
+        dataSource: 'cache',
+        cached: true,
+      });
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'
@@ -346,16 +337,21 @@ describe('Indicators API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.data).toMatchObject(mockData);
-      expect(data.data.proIndicatorsTransformed).toBeDefined();
-      expect(data.tier).toBe('PRO');
+      expect(data.data).toMatchObject(mockIndicatorData);
+      expect(data.metadata.tier).toBe('PRO');
+      expect(data.metadata.data_source).toBe('cache');
+      expect(data.metadata.cached).toBe(true);
     });
 
     it('should handle bars query parameter', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
-      mockFetchIndicatorData.mockResolvedValue({});
+      mockGetIndicatorDataCached.mockResolvedValue({
+        data: { ohlc: [] },
+        dataSource: 'postgresql',
+        cached: false,
+      });
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'
@@ -367,10 +363,10 @@ describe('Indicators API Routes', () => {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
 
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+      // getIndicatorDataCached(symbol, timeframe, limit)
+      expect(mockGetIndicatorDataCached).toHaveBeenCalledWith(
         'XAUUSD',
         'H1',
-        'FREE',
         500
       );
     });
@@ -379,37 +375,39 @@ describe('Indicators API Routes', () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
-      mockFetchIndicatorData.mockResolvedValue({});
+      mockGetIndicatorDataCached.mockResolvedValue({
+        data: { ohlc: [] },
+        dataSource: 'postgresql',
+        cached: false,
+      });
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'
       );
 
-      // Test minimum clamping
+      // Test minimum clamping (bars < 100 should be clamped to 100)
       const request1 = new MockRequest(
         'http://localhost/api/indicators/XAUUSD/H1?bars=10'
       );
       await GET(request1 as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+      expect(mockGetIndicatorDataCached).toHaveBeenCalledWith(
         'XAUUSD',
         'H1',
-        'FREE',
         100
       );
 
-      // Test maximum clamping
+      // Test maximum clamping (bars > 5000 should be clamped to 5000)
       const request2 = new MockRequest(
         'http://localhost/api/indicators/XAUUSD/H1?bars=10000'
       );
       await GET(request2 as unknown as Request, {
         params: Promise.resolve({ symbol: 'XAUUSD', timeframe: 'H1' }),
       });
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+      expect(mockGetIndicatorDataCached).toHaveBeenCalledWith(
         'XAUUSD',
         'H1',
-        'FREE',
         5000
       );
     });
@@ -418,7 +416,11 @@ describe('Indicators API Routes', () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
-      mockFetchIndicatorData.mockResolvedValue({});
+      mockGetIndicatorDataCached.mockResolvedValue({
+        data: { ohlc: [] },
+        dataSource: 'postgresql',
+        cached: false,
+      });
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'
@@ -430,22 +432,22 @@ describe('Indicators API Routes', () => {
         params: Promise.resolve({ symbol: 'xauusd', timeframe: 'h1' }),
       });
 
-      expect(mockFetchIndicatorData).toHaveBeenCalledWith(
+      // Symbol and timeframe should be normalized to uppercase
+      expect(mockGetIndicatorDataCached).toHaveBeenCalledWith(
         'XAUUSD',
         'H1',
-        'FREE',
         1000
       );
     });
 
-    it('should handle MT5ServiceError', async () => {
+    it('should handle database connection errors', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
 
-      const { MT5ServiceError } = await import('@/lib/api/mt5-client');
-      mockFetchIndicatorData.mockRejectedValue(
-        new MT5ServiceError('Service unavailable', 503)
+      // Simulate database connection error
+      mockGetIndicatorDataCached.mockRejectedValue(
+        new Error('connect ECONNREFUSED 127.0.0.1:5432')
       );
 
       const { GET } = await import(
@@ -459,19 +461,19 @@ describe('Indicators API Routes', () => {
       });
       const data = await response.json();
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(503);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('MT5 service error');
+      expect(data.error).toBe('Database unavailable');
     });
 
-    it('should handle MT5AccessDeniedError', async () => {
+    it('should handle database timeout errors', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
 
-      const { MT5AccessDeniedError } = await import('@/lib/api/mt5-client');
-      mockFetchIndicatorData.mockRejectedValue(
-        new MT5AccessDeniedError('Access denied', 'FREE', ['XAUUSD'], ['H1'])
+      // Simulate database timeout
+      mockGetIndicatorDataCached.mockRejectedValue(
+        new Error('Query timeout exceeded')
       );
 
       const { GET } = await import(
@@ -485,16 +487,16 @@ describe('Indicators API Routes', () => {
       });
       const data = await response.json();
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(503);
       expect(data.success).toBe(false);
-      expect(data.upgradeRequired).toBe(true);
+      expect(data.error).toBe('Database unavailable');
     });
 
     it('should handle unknown errors gracefully', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-1', tier: 'FREE' },
       });
-      mockFetchIndicatorData.mockRejectedValue(new Error('Unknown error'));
+      mockGetIndicatorDataCached.mockRejectedValue(new Error('Unknown error'));
 
       const { GET } = await import(
         '@/app/api/indicators/[symbol]/[timeframe]/route'
