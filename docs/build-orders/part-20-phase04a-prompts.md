@@ -2,6 +2,45 @@
 
 **Purpose:** Create TypeScript type definitions matching the OpenAPI specification.
 
+**Files:** 1 | **Dependencies:** Phase 3 | **Est. Size:** ~5 KB
+
+---
+
+## Dependency Validation
+
+Before starting this phase, verify Phase 3 is complete:
+
+```bash
+# Phase 3 outputs (Sync Script) should exist:
+ls -la sync/sync_to_postgresql.py
+ls -la sync/timeframe_filter.py
+ls -la sync/db_connections.py
+ls -la sync/config.py
+ls -la sync/requirements.txt
+
+# PostgreSQL should have data from sync
+# (verify via database connection or health check)
+```
+
+**If any dependencies are missing, complete Phase 3 first.**
+
+---
+
+## Phase 04 Context
+
+Phase 04 is split into 5 smaller phases for better compilation success:
+
+```
+Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (Tier)
+                    │                                    │
+                    └──► Phase 04d (Market Hours) ───────┘
+                                                         │
+                                                         ▼
+                                                 Phase 04e (API Routes)
+```
+
+**This is Phase 04a** - Creates foundational TypeScript types used by all subsequent phases.
+
 ---
 
 ## Usage Instructions
@@ -20,7 +59,14 @@
 ## Context
 I'm implementing Part 20 of Trading Alerts SaaS. Phases 1-3 are complete.
 
-This phase creates TypeScript type definitions for indicator data.
+Phase 04 is split into 5 sub-phases (04a → 04e). This is Phase 04a.
+
+## Phase 04 Overview
+- 04a: TypeScript Types (this phase)
+- 04b: Database Layer (depends on 04a)
+- 04c: Tier Validation (depends on 04b)
+- 04d: Market Hours (depends on 04a)
+- 04e: API Routes (depends on 04b, 04c, 04d)
 
 ## Prerequisites
 - Phase 3 completed (PostgreSQL has data)
@@ -156,24 +202,40 @@ export interface IndicatorResponse {
   data?: IndicatorData & { metadata: IndicatorMetadata };
   error?: string;
 }
+
+// Tier type (exported for use in other modules)
+export type Tier = 'FREE' | 'PRO';
 ```
 
 ## Success Criteria
+- [ ] File created at `lib/indicators/types.ts`
 - [ ] File compiles without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
 ```
-feat(types): add TypeScript types for indicator data
+feat(types): add TypeScript types for indicator data (Phase 04a)
 
 - Add OHLC, Fractals, Trendlines types
 - Add Momentum, Keltner, ZigZag types
 - Add API response and metadata types
+- Add Tier type export
 ```
 ```
 
 ---
 
+## What This Phase Produces
+
+After completing Phase 04a, you will have:
+- `lib/indicators/types.ts` - All TypeScript interfaces
+
+These types are required by:
+- Phase 04b (Database Layer)
+- Phase 04d (Market Hours)
+
+---
+
 ## Next Step
 
-After Phase 04a, proceed to `part-20-phase04b-prompts.md` (Database Layer).
+After Phase 04a compiles successfully, proceed to `part-20-phase04b-prompts.md` (Database Layer).

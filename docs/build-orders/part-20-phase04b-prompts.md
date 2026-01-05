@@ -2,6 +2,45 @@
 
 **Purpose:** Create PostgreSQL client and query functions.
 
+**Files:** 2 | **Dependencies:** Phase 04a | **Est. Size:** ~5 KB
+
+---
+
+## Dependency Validation
+
+Before starting this phase, verify Phase 04a is complete:
+
+```bash
+# Phase 04a output must exist:
+ls -la lib/indicators/types.ts
+
+# Verify it compiles:
+npx tsc --noEmit lib/indicators/types.ts
+
+# Required types from Phase 04a:
+# - IndicatorData
+# - OHLCBar
+```
+
+**If `lib/indicators/types.ts` doesn't exist, complete Phase 04a first.**
+
+---
+
+## Phase 04 Context
+
+Phase 04 is split into 5 smaller phases for better compilation success:
+
+```
+Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (Tier)
+        ✓          │           ◄── YOU ARE HERE
+                    └──► Phase 04d (Market Hours) ───────┘
+                                                         │
+                                                         ▼
+                                                 Phase 04e (API Routes)
+```
+
+**This is Phase 04b** - Creates database access layer using types from Phase 04a.
+
 ---
 
 ## Usage Instructions
@@ -20,12 +59,22 @@
 ## Context
 I'm implementing Part 20 of Trading Alerts SaaS. Phase 04a is complete.
 
-This phase creates the PostgreSQL database layer.
+Phase 04 is split into 5 sub-phases (04a → 04e). This is Phase 04b.
+
+## Phase 04 Overview
+- 04a: TypeScript Types ✓ COMPLETE
+- 04b: Database Layer (this phase)
+- 04c: Tier Validation (depends on 04b)
+- 04d: Market Hours (depends on 04a)
+- 04e: API Routes (depends on 04b, 04c, 04d)
+
+## Existing Files from Phase 04a
+- `lib/indicators/types.ts` - Contains IndicatorData, OHLCBar, etc.
 
 ## Prerequisites
-- Phase 04a completed (types exist in lib/indicators/types.ts)
+- Phase 04a completed (types exist)
 - PostgreSQL connection string in POSTGRESQL_URI env variable
-- `pg` package installed
+- `pg` package installed (`npm install pg @types/pg`)
 
 ## Your Task
 Create 2 database files.
@@ -157,12 +206,14 @@ export async function getTableCount(): Promise<number> {
 ```
 
 ## Success Criteria
+- [ ] `lib/db/postgresql.ts` created
+- [ ] `lib/db/queries.ts` created
 - [ ] Both files compile without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
 ```
-feat(db): add PostgreSQL client and query functions
+feat(db): add PostgreSQL client and query functions (Phase 04b)
 
 - Add connection pool with pg package
 - Add getIndicatorData query function
@@ -172,6 +223,18 @@ feat(db): add PostgreSQL client and query functions
 
 ---
 
+## What This Phase Produces
+
+After completing Phase 04b, you will have:
+- `lib/db/postgresql.ts` - PostgreSQL connection pool
+- `lib/db/queries.ts` - Database query functions
+
+These are required by:
+- Phase 04c (Tier Validation) - for symbol validation
+- Phase 04e (API Routes) - for data fetching
+
+---
+
 ## Next Step
 
-After Phase 04b, proceed to `part-20-phase04c-prompts.md` (Tier Validation).
+After Phase 04b compiles successfully, proceed to `part-20-phase04c-prompts.md` (Tier Validation).

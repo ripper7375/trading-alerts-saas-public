@@ -2,6 +2,46 @@
 
 **Purpose:** Create market hours configuration and validation utilities.
 
+**Files:** 2 | **Dependencies:** Phase 04a | **Est. Size:** ~5 KB
+
+---
+
+## Dependency Validation
+
+Before starting this phase, verify Phase 04a is complete:
+
+```bash
+# Phase 04a output must exist:
+ls -la lib/indicators/types.ts
+
+# Verify it compiles:
+npx tsc --noEmit lib/indicators/types.ts
+
+# Required type from Phase 04a:
+# - TradingHours
+```
+
+**If `lib/indicators/types.ts` doesn't exist, complete Phase 04a first.**
+
+**Note:** Phase 04d can run in parallel with Phases 04b and 04c since it only depends on 04a.
+
+---
+
+## Phase 04 Context
+
+Phase 04 is split into 5 smaller phases for better compilation success:
+
+```
+Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (Tier)
+        ✓          │           ✓                        ✓
+                    └──► Phase 04d (Market Hours) ───────┘
+                              ◄── YOU ARE HERE           │
+                                                         ▼
+                                                 Phase 04e (API Routes)
+```
+
+**This is Phase 04d** - Creates market hours utilities using TradingHours type from Phase 04a.
+
 ---
 
 ## Usage Instructions
@@ -17,12 +57,19 @@
 # Part 20 - Phase 04d: Market Hours
 
 ## Context
-I'm implementing Part 20 of Trading Alerts SaaS. Phases 04a-04c are complete.
+I'm implementing Part 20 of Trading Alerts SaaS. Phase 04a is complete.
 
-This phase creates market hours utilities for all 15 symbols.
+Phase 04 is split into 5 sub-phases (04a → 04e). This is Phase 04d.
 
-## Prerequisites
-- Phase 04a completed (TradingHours type exists)
+## Phase 04 Overview
+- 04a: TypeScript Types ✓ COMPLETE
+- 04b: Database Layer ✓ COMPLETE (or in parallel)
+- 04c: Tier Validation ✓ COMPLETE (or in parallel)
+- 04d: Market Hours (this phase)
+- 04e: API Routes (depends on 04b, 04c, 04d)
+
+## Existing Files from Phase 04a
+- `lib/indicators/types.ts` - Contains TradingHours type
 
 ## Your Task
 Create 2 files for market hours handling.
@@ -138,12 +185,14 @@ export function getMarketMetadata(symbol: string) {
 ```
 
 ## Success Criteria
+- [ ] `lib/market-hours/trading-sessions.ts` created
+- [ ] `lib/market-hours/validator.ts` created
 - [ ] Both files compile without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
 ```
-feat(market-hours): add market hours configuration
+feat(market-hours): add market hours configuration (Phase 04d)
 
 - Add trading hours for all 15 symbols
 - Add DST calculation for MT5 server time
@@ -153,6 +202,17 @@ feat(market-hours): add market hours configuration
 
 ---
 
+## What This Phase Produces
+
+After completing Phase 04d, you will have:
+- `lib/market-hours/trading-sessions.ts` - Trading hours config
+- `lib/market-hours/validator.ts` - Market status utilities
+
+These are required by:
+- Phase 04e (API Routes) - for market metadata in responses
+
+---
+
 ## Next Step
 
-After Phase 04d, proceed to `part-20-phase04e-prompts.md` (API Routes).
+After Phase 04d compiles successfully, proceed to `part-20-phase04e-prompts.md` (API Routes).
