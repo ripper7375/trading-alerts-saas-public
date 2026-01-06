@@ -63,6 +63,14 @@ jest.mock('@/lib/preferences/defaults', () => ({
   }),
 }));
 
+// Mock email module to prevent MessageChannel error from Resend/React Email
+jest.mock('@/lib/email/email', () => ({
+  __esModule: true,
+  sendPasswordResetEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendWelcomeEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendEmail: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 // Helper to create mock request
 function createMockRequest(
   method: string,
