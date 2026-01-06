@@ -112,7 +112,7 @@ describe('Confluence API', () => {
       mockSessionData = null;
 
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       expect(response.status).toBe(401);
       const json = await response.json();
@@ -126,7 +126,7 @@ describe('Confluence API', () => {
       mockSessionData = { user: { id: 'test-user', tier: 'FREE' } };
 
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       expect(response.status).toBe(403);
       const json = await response.json();
@@ -138,7 +138,7 @@ describe('Confluence API', () => {
       mockSessionData = { user: { id: 'test-user', tier: 'PRO' } };
 
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       expect(response.status).toBe(200);
     });
@@ -151,7 +151,7 @@ describe('Confluence API', () => {
 
     it('should return 400 for invalid symbol', async () => {
       const request = createRequest('INVALID');
-      const response = await GET(request, { params: { symbol: 'INVALID' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'INVALID' }) });
 
       expect(response.status).toBe(400);
       const json = await response.json();
@@ -164,7 +164,7 @@ describe('Confluence API', () => {
 
       for (const symbol of validSymbols) {
         const request = createRequest(symbol);
-        const response = await GET(request, { params: { symbol } });
+        const response = await GET(request, { params: Promise.resolve({ symbol }) });
 
         expect(response.status).toBe(200);
       }
@@ -179,7 +179,7 @@ describe('Confluence API', () => {
     it('should accept ISO 8601 timestamp', async () => {
       const timestamp = '2026-01-06T12:00:00Z';
       const request = createRequest('EURUSD', timestamp);
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       expect(response.status).toBe(200);
       const json = await response.json();
@@ -188,7 +188,7 @@ describe('Confluence API', () => {
 
     it('should return 400 for invalid timestamp format', async () => {
       const request = createRequest('EURUSD', 'invalid-date');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       expect(response.status).toBe(400);
       const json = await response.json();
@@ -197,7 +197,7 @@ describe('Confluence API', () => {
 
     it('should use current time when timestamp not provided', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       expect(response.status).toBe(200);
       const json = await response.json();
@@ -212,7 +212,7 @@ describe('Confluence API', () => {
 
     it('should return confluence score between 0-10', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       const json = await response.json();
 
@@ -223,7 +223,7 @@ describe('Confluence API', () => {
 
     it('should include signal counts', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       const json = await response.json();
 
@@ -237,7 +237,7 @@ describe('Confluence API', () => {
 
     it('should include all 117 indicators', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       const json = await response.json();
 
@@ -246,7 +246,7 @@ describe('Confluence API', () => {
 
     it('should include breakdown by timeframe', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       const json = await response.json();
 
@@ -255,7 +255,7 @@ describe('Confluence API', () => {
 
     it('should return complete response structure', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: { symbol: 'EURUSD' } });
+      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
 
       const json = await response.json();
 
@@ -284,7 +284,7 @@ describe('Confluence API', () => {
 
       for (const symbol of symbols) {
         const request = createRequest(symbol);
-        const response = await GET(request, { params: { symbol } });
+        const response = await GET(request, { params: Promise.resolve({ symbol }) });
 
         expect(response.status).toBe(200);
         const json = await response.json();

@@ -19,6 +19,7 @@ process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.POSTGRESQL_URI = 'postgresql://test:test@localhost:5432/test_trading';
 process.env.NEXTAUTH_SECRET = 'test-secret-key';
 process.env.NEXTAUTH_URL = 'http://localhost:3000';
+process.env.CRON_SECRET = 'test-cron-secret';
 
 // ============================================================================
 // REDIS MOCK
