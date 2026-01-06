@@ -17,7 +17,7 @@ import type {
   TimeframeSignal,
 } from './types';
 import { detectSignals, getTrendDirection, getSignalStrength } from './signals';
-import { VALID_TIMEFRAMES, type Timeframe } from '@/lib/constants/business-rules';
+import { VALID_TIMEFRAMES } from '@/lib/constants/business-rules';
 
 /**
  * Calculate confluence score from multi-timeframe data

@@ -99,7 +99,7 @@ export function detectSignals(tfData: TimeframeData): SignalDetail[] {
 
     if (upperBand !== null && lowerBand !== null) {
       // Strong bullish: above upper middle
-      if (upperMiddle !== null && currentPrice > upperMiddle) {
+      if (upperMiddle !== undefined && upperMiddle !== null && currentPrice > upperMiddle) {
         signals.push({
           indicator: 'keltner_channels',
           direction: 'bullish',
@@ -108,7 +108,7 @@ export function detectSignals(tfData: TimeframeData): SignalDetail[] {
         });
       }
       // Strong bearish: below lower middle
-      else if (lowerMiddle !== null && currentPrice < lowerMiddle) {
+      else if (lowerMiddle !== undefined && lowerMiddle !== null && currentPrice < lowerMiddle) {
         signals.push({
           indicator: 'keltner_channels',
           direction: 'bearish',
@@ -139,7 +139,14 @@ export function detectSignals(tfData: TimeframeData): SignalDetail[] {
     const previousBottom = zigzag.bottoms[1];
 
     // Higher highs and higher lows = strong bullish
-    if (latestPeak.price > previousPeak.price && latestBottom.price > previousBottom.price) {
+    if (
+      latestPeak &&
+      previousPeak &&
+      latestBottom &&
+      previousBottom &&
+      latestPeak.price > previousPeak.price &&
+      latestBottom.price > previousBottom.price
+    ) {
       signals.push({
         indicator: 'zigzag',
         direction: 'bullish',
@@ -148,7 +155,14 @@ export function detectSignals(tfData: TimeframeData): SignalDetail[] {
       });
     }
     // Lower highs and lower lows = strong bearish
-    else if (latestPeak.price < previousPeak.price && latestBottom.price < previousBottom.price) {
+    else if (
+      latestPeak &&
+      previousPeak &&
+      latestBottom &&
+      previousBottom &&
+      latestPeak.price < previousPeak.price &&
+      latestBottom.price < previousBottom.price
+    ) {
       signals.push({
         indicator: 'zigzag',
         direction: 'bearish',

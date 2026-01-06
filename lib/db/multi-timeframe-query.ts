@@ -121,11 +121,11 @@ function transformDBRow(row: DBRow | null): TimeframeData | null {
       low: row.low,
       close: row.close,
     },
-    fractals: (row.fractals as any) || null,
-    horizontal_trendlines: (row.horizontal_trendlines as any) || null,
-    diagonal_trendlines: (row.diagonal_trendlines as any) || null,
-    momentum_candles: (row.momentum_candles as any[]) || [],
-    keltner_channels: (row.keltner_channels as any) || {
+    fractals: row.fractals as unknown,
+    horizontal_trendlines: row.horizontal_trendlines as unknown,
+    diagonal_trendlines: row.diagonal_trendlines as unknown,
+    momentum_candles: (row.momentum_candles as unknown) || [],
+    keltner_channels: (row.keltner_channels as unknown) || {
       ultra_extreme_upper: [],
       extreme_upper: [],
       upper_most: [],
@@ -140,7 +140,7 @@ function transformDBRow(row: DBRow | null): TimeframeData | null {
     tema: row.tema,
     hrma: row.hrma,
     smma: row.smma,
-    zigzag: (row.zigzag as any) || { peaks: [], bottoms: [] },
+    zigzag: (row.zigzag as unknown) || { peaks: [], bottoms: [] },
   };
 }
 
@@ -194,7 +194,7 @@ async function queryTimeframe(
       return null;
     }
 
-    return transformDBRow(rows[0]);
+    return transformDBRow(rows[0] ?? null);
   } catch (error) {
     console.error(
       `[MultiTimeframeQuery] Error querying ${symbol} ${timeframe}:`,
@@ -235,15 +235,15 @@ export async function getMultiTimeframeData(
 
   // Build multi-timeframe data object
   const multiTfData: MultiTimeframeData = {
-    M5: results[0],
-    M15: results[1],
-    M30: results[2],
-    H1: results[3],
-    H2: results[4],
-    H4: results[5],
-    H8: results[6],
-    H12: results[7],
-    D1: results[8],
+    M5: results[0] ?? null,
+    M15: results[1] ?? null,
+    M30: results[2] ?? null,
+    H1: results[3] ?? null,
+    H2: results[4] ?? null,
+    H4: results[5] ?? null,
+    H8: results[6] ?? null,
+    H12: results[7] ?? null,
+    D1: results[8] ?? null,
   };
 
   return multiTfData;

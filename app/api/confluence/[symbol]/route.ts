@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/lib/auth/auth-options';
 import { calculateConfluenceScore } from '@/lib/confluence/calculator';
 import { getMultiTimeframeData } from '@/lib/db/multi-timeframe-query';
 import {
