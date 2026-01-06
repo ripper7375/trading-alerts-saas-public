@@ -108,8 +108,11 @@ const config = {
   // Transform Ignore Patterns
   // ============================================================================
   // By default Jest doesn't transform node_modules, but some packages like
-  // next-auth use ESM syntax that needs to be transformed.
-  transformIgnorePatterns: ['node_modules/(?!(next-auth)/)'],
+  // next-auth use ESM syntax that needs to be transformed. Include all ESM
+  // dependencies that next-auth relies on.
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-auth|@auth|@panva|uuid|nanoid|jose|preact|preact-render-to-string)/)',
+  ],
 
   // ============================================================================
   // Coverage Reporting

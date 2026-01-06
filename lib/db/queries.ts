@@ -21,8 +21,13 @@ function validateTableName(
   const normalizedSymbol = symbol.toUpperCase();
   const normalizedTimeframe = timeframe.toUpperCase();
 
-  const isValidSymbol = VALID_SYMBOLS.includes(normalizedSymbol);
-  const isValidTimeframe = VALID_TIMEFRAMES.includes(normalizedTimeframe);
+  // Cast to readonly string[] to allow includes() check with string input
+  const isValidSymbol = (VALID_SYMBOLS as readonly string[]).includes(
+    normalizedSymbol
+  );
+  const isValidTimeframe = (VALID_TIMEFRAMES as readonly string[]).includes(
+    normalizedTimeframe
+  );
 
   if (!isValidSymbol || !isValidTimeframe) {
     return { isValid: false, tableName: '' };
