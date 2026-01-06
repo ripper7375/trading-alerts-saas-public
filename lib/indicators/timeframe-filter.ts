@@ -195,7 +195,12 @@ export function getNextTimeframeBoundary(
   referenceTime?: Date
 ): number {
   const current = getLatestTimeframeTimestamp(timeframe, referenceTime);
-  const divisor = TIMEFRAME_DIVISORS[timeframe.toUpperCase()];
+  const upperTimeframe = timeframe.toUpperCase();
+  const divisor = TIMEFRAME_DIVISORS[upperTimeframe];
+
+  if (divisor === undefined) {
+    throw new Error(`Unknown timeframe: ${timeframe}`);
+  }
 
   // Add the divisor in seconds
   return current + divisor * 60;
