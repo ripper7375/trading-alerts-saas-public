@@ -24,9 +24,9 @@ import { isValidSymbol } from '@/lib/constants/business-rules';
 import type { ConfluenceResponse } from '@/lib/confluence/types';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     symbol: string;
-  };
+  }>;
 }
 
 /**
@@ -53,7 +53,20 @@ export async function GET(
   context: RouteContext
 ): Promise<NextResponse<ConfluenceResponse | { success: false; error: string }>> {
   try {
-    const { symbol } = context.params;
+    // Next.js 15: params is a Promise that must be awaited
+    const { symbol } = await context.params;
+
+    // Validate symbol exists
+    if (!symbol || typeof symbol !== 'string') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid symbol parameter',
+        },
+        { status: 400 }
+      );
+    }
+
     const upperSymbol = symbol.toUpperCase();
 
     // ========================================================================

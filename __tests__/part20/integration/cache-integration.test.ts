@@ -12,7 +12,39 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 const mockRedisStore = new Map<string, string>();
 const mockDbData = new Map<string, unknown>();
 
-// Mock Redis module
+// Mock the underlying Redis client to prevent actual connections
+jest.mock('@/lib/redis/client', () => ({
+  __esModule: true,
+  getRedisClient: jest.fn(() => ({
+    get: jest.fn(async (key: string) => {
+      const value = mockRedisStore.get(key);
+      return value || null;
+    }),
+    setex: jest.fn(async (key: string, _ttl: number, value: string) => {
+      mockRedisStore.set(key, value);
+      return 'OK';
+    }),
+    del: jest.fn(async (...keys: string[]) => {
+      let count = 0;
+      for (const key of keys) {
+        if (mockRedisStore.has(key)) {
+          mockRedisStore.delete(key);
+          count++;
+        }
+      }
+      return count;
+    }),
+    keys: jest.fn(async (pattern: string) => {
+      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+      return Array.from(mockRedisStore.keys()).filter((k) => regex.test(k));
+    }),
+    info: jest.fn(async () => 'used_memory_human:1M\nused_memory_peak_human:2M'),
+    dbsize: jest.fn(async () => mockRedisStore.size),
+  })),
+  isRedisConnected: jest.fn(async () => true),
+}));
+
+// Mock Redis cache wrapper module
 jest.mock('@/lib/cache/redis', () => ({
   __esModule: true,
   get: jest.fn(async (key: string) => {
