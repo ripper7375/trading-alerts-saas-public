@@ -17,6 +17,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
@@ -80,16 +91,6 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
   const [cancellationReason, setCancellationReason] = useState('');
-  const [showCancelModal, setShowCancelModal] = useState(false);
-
-  const handleCancelSubscription = (): void => {
-    fetch('/api/subscription/cancel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: cancellationReason }),
-    });
-    setShowCancelModal(false);
-  };
 
   const userTier = (session?.user?.tier || 'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
@@ -110,15 +111,15 @@ export default function BillingSettingsPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
     <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Billing & Subscription
       </h2>
 
@@ -131,7 +132,7 @@ export default function BillingSettingsPage(): React.ReactElement {
         }`}
       >
         <CardContent className="p-6">
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="mb-4 flex flex-wrap gap-2">
             <Badge
               className={
                 userTier === 'PRO'
@@ -144,12 +145,12 @@ export default function BillingSettingsPage(): React.ReactElement {
             <Badge className="bg-green-100 text-green-800">Active</Badge>
           </div>
 
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h3 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
             {userTier === 'PRO' ? 'Pro Plan' : 'Free Plan'}
           </h3>
 
           {/* Pricing */}
-          <div className="flex items-baseline gap-2 mb-4">
+          <div className="mb-4 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-gray-900 dark:text-white">
               ${userTier === 'PRO' ? regularPrice.toFixed(2) : '0'}
             </span>
@@ -157,21 +158,21 @@ export default function BillingSettingsPage(): React.ReactElement {
           </div>
 
           {/* Features */}
-          <ul className="space-y-2 mb-6">
+          <ul className="mb-6 space-y-2">
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-green-600" />
               {tierConfig.allowedSymbols.length} Symbols
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-green-600" />
               {tierConfig.allowedTimeframes.length} Timeframes
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-green-600" />
               {tierConfig.maxAlerts} Alerts
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-green-600" />
               {tierConfig.maxWatchlists * 10} Watchlist Items
             </li>
           </ul>
@@ -181,84 +182,66 @@ export default function BillingSettingsPage(): React.ReactElement {
             <Link href="/pricing">
               <Button className="bg-blue-600 hover:bg-blue-700">
                 Upgrade to PRO
-                <ArrowUpRight className="w-4 h-4 ml-2" />
+                <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           ) : (
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
-              <Button
-                variant="ghost"
-                className="text-red-600 hover:text-red-700"
-                onClick={() => setShowCancelModal(true)}
-              >
-                Cancel Plan
-              </Button>
-            </div>
-          )}
-
-          {/* Simple Cancel Modal */}
-          {showCancelModal && (
-            <div
-              role="dialog"
-              className="fixed inset-0 z-50 flex items-center justify-center"
-            >
-              <div
-                className="fixed inset-0 bg-black/50"
-                onClick={() => setShowCancelModal(false)}
-              />
-              <div className="relative z-50 w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-900">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Cancel Subscription
-                </h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  Are you sure you want to cancel your PRO subscription? You
-                  will lose access to premium features at the end of your
-                  billing period.
-                </p>
-                <div className="mt-4">
-                  <label
-                    htmlFor="cancellation-reason"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Reason for cancellation (optional)
-                  </label>
-                  <select
-                    id="cancellation-reason"
-                    value={cancellationReason}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setCancellationReason(e.target.value)
-                    }
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
-                  >
-                    <option value="">Select a reason...</option>
-                    <option value="too_expensive">Too expensive</option>
-                    <option value="not_using">Not using enough</option>
-                    <option value="missing_features">Missing features</option>
-                    <option value="switching">Switching to competitor</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div className="mt-6 flex justify-end gap-3">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
                   <Button
-                    variant="outline"
-                    onClick={() => setShowCancelModal(false)}
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700"
                   >
-                    Keep Subscription
+                    Cancel Plan
                   </Button>
-                  <Button
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                    onClick={handleCancelSubscription}
-                  >
-                    Confirm Cancellation
-                  </Button>
-                </div>
-              </div>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to cancel your PRO subscription? You
+                      will lose access to premium features at the end of your
+                      billing period.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="py-4">
+                    <label
+                      htmlFor="cancellation-reason"
+                      className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      Reason for cancellation (optional)
+                    </label>
+                    <select
+                      id="cancellation-reason"
+                      value={cancellationReason}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setCancellationReason(e.target.value)
+                      }
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+                    >
+                      <option value="">Select a reason...</option>
+                      <option value="too_expensive">Too expensive</option>
+                      <option value="not_using">Not using enough</option>
+                      <option value="missing_features">Missing features</option>
+                      <option value="switching">Switching to competitor</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                    <AlertDialogAction className="bg-red-600 hover:bg-red-700">
+                      Confirm Cancellation
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
 
           {userTier === 'PRO' && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
               Next billing date: January 15, 2025
             </p>
           )}
@@ -269,15 +252,15 @@ export default function BillingSettingsPage(): React.ReactElement {
       {userTier === 'PRO' && (
         <>
           <section className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+              <CreditCard className="h-5 w-5" />
               Payment Method
             </h3>
             <Card>
-              <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <CardContent className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-8 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                  <div className="flex h-8 w-12 items-center justify-center rounded bg-gray-100 dark:bg-gray-700">
+                    <CreditCard className="h-6 w-6 text-gray-600 dark:text-gray-400" />
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900 dark:text-white">
@@ -299,13 +282,13 @@ export default function BillingSettingsPage(): React.ReactElement {
 
       {/* Usage Statistics */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Usage This Month
         </h3>
         <div className="space-y-4">
           {/* Alerts */}
           <div>
-            <div className="flex justify-between mb-2">
+            <div className="mb-2 flex justify-between">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Active Alerts
               </span>
@@ -321,7 +304,7 @@ export default function BillingSettingsPage(): React.ReactElement {
 
           {/* Watchlist */}
           <div>
-            <div className="flex justify-between mb-2">
+            <div className="mb-2 flex justify-between">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Watchlist Items
               </span>
@@ -339,7 +322,7 @@ export default function BillingSettingsPage(): React.ReactElement {
 
           {/* API Calls */}
           <div>
-            <div className="flex justify-between mb-2">
+            <div className="mb-2 flex justify-between">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 API Calls (this hour)
               </span>
@@ -362,7 +345,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       {/* Invoice History */}
       {userTier === 'PRO' && (
         <section>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
             Invoice History
           </h3>
           <Card>
@@ -370,7 +353,7 @@ export default function BillingSettingsPage(): React.ReactElement {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">
                         Date
                       </th>
@@ -400,7 +383,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                         <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                           {invoice.description}
                         </td>
-                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-white">
+                        <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
                           ${invoice.amount.toFixed(2)}
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -414,10 +397,10 @@ export default function BillingSettingsPage(): React.ReactElement {
                             }
                           >
                             {invoice.status === 'paid' && (
-                              <CheckCircle className="w-3 h-3 mr-1" />
+                              <CheckCircle className="mr-1 h-3 w-3" />
                             )}
                             {invoice.status === 'failed' && (
-                              <AlertCircle className="w-3 h-3 mr-1" />
+                              <AlertCircle className="mr-1 h-3 w-3" />
                             )}
                             {invoice.status.charAt(0).toUpperCase() +
                               invoice.status.slice(1)}
@@ -425,7 +408,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <Button variant="ghost" size="sm">
-                            <Download className="w-4 h-4" />
+                            <Download className="h-4 w-4" />
                           </Button>
                         </td>
                       </tr>
@@ -440,18 +423,18 @@ export default function BillingSettingsPage(): React.ReactElement {
 
       {/* Upgrade Prompt for FREE users */}
       {userTier === 'FREE' && (
-        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 border-0 text-white">
+        <Card className="border-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
           <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="flex flex-col items-center gap-6 sm:flex-row">
               <div className="text-4xl">🚀</div>
               <div className="flex-1 text-center sm:text-left">
-                <h3 className="text-xl font-bold mb-2">Unlock More with PRO</h3>
-                <p className="text-white/90 mb-4">
+                <h3 className="mb-2 text-xl font-bold">Unlock More with PRO</h3>
+                <p className="mb-4 text-white/90">
                   Get 15 symbols, 9 timeframes, 20 alerts, and priority support
                   for just ${regularPrice}/month.
                 </p>
                 <Link href="/pricing">
-                  <Button className="bg-white text-blue-600 hover:bg-white/90 font-semibold">
+                  <Button className="bg-white font-semibold text-blue-600 hover:bg-white/90">
                     View Pricing Plans
                   </Button>
                 </Link>
