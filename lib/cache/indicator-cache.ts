@@ -1,204 +1,47 @@
 /**
- * Indicator Data Caching Utility
+ * Part 20 - Phase 05: Indicator Data Caching
  *
- * Provides caching layer for MT5 indicator data with intelligent TTL.
- * Uses in-memory cache with automatic cleanup (Redis can be added later).
+ * Redis-based caching layer for indicator data.
+ * Provides cache-through pattern: check cache first, fallback to PostgreSQL.
  *
- * Features:
- * - Automatic TTL based on timeframe from Part 0 constants
- * - Cache key generation for symbol/timeframe/bars combinations
- * - Symbol-level invalidation
- * - Cache statistics tracking
- * - Safe error handling (failures don't break requests)
+ * Cache key format: indicators:{SYMBOL}:{TIMEFRAME}:{BARS}
+ * TTL: 30 seconds (matches sync interval)
  *
- * Dependencies:
- * - Part 0: CACHE_TTL, VALID_TIMEFRAMES, isValidTimeframe
- *
- * @module lib/cache/indicator-cache
+ * @see docs/sqlite-and-mt5service/part-20-architecture-design.md Section 7.3
  */
 
-import {
-  CACHE_TTL,
-  DEFAULT_CACHE_TTL,
-  isValidTimeframe,
-  type Timeframe,
-} from '@/lib/constants/business-rules';
+import * as redis from './redis';
+import { getIndicatorDataFromDb } from '@/lib/db/queries';
+import type { IndicatorData } from '@/lib/indicators/types';
 
 // ============================================================================
-// TYPE DEFINITIONS
+// CONSTANTS
 // ============================================================================
 
 /**
- * Cache entry with expiration
+ * Cache TTL in seconds (30 seconds to match sync interval)
  */
-interface CacheEntry {
-  value: string;
-  expiresAt: number;
-}
+export const INDICATOR_CACHE_TTL = 30;
 
 /**
- * Cache statistics
+ * Cache key prefix
  */
-export interface CacheStats {
-  hits: number;
-  misses: number;
-  sets: number;
-  deletes: number;
-  hitRate: number;
-}
+const CACHE_PREFIX = 'indicators';
+
+/**
+ * Default bars value for cache key
+ */
+const DEFAULT_BARS = 'default';
 
 // ============================================================================
-// IN-MEMORY CACHE IMPLEMENTATION
+// IN-MEMORY SIZE TRACKING
 // ============================================================================
 
 /**
- * In-memory cache store
- * Uses Map with expiration timestamps
+ * Track cache size in-memory for synchronous access
+ * This is updated on set/delete operations
  */
-class MemoryCache {
-  private cache = new Map<string, CacheEntry>();
-  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-
-  /**
-   * Get value from cache
-   * Returns null if not found or expired
-   */
-  async get(key: string): Promise<string | null> {
-    const entry = this.cache.get(key);
-
-    if (!entry) {
-      return null;
-    }
-
-    // Check if expired
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.value;
-  }
-
-  /**
-   * Set value in cache with TTL
-   * @param key Cache key
-   * @param ttl Time-to-live in seconds
-   * @param value Value to cache (as JSON string)
-   */
-  async set(key: string, ttl: number, value: string): Promise<void> {
-    const expiresAt = Date.now() + ttl * 1000;
-    this.cache.set(key, { value, expiresAt });
-  }
-
-  /**
-   * Delete value from cache
-   */
-  async delete(key: string): Promise<void> {
-    this.cache.delete(key);
-  }
-
-  /**
-   * Check if key exists and is not expired
-   */
-  async exists(key: string): Promise<boolean> {
-    const entry = this.cache.get(key);
-
-    if (!entry) {
-      return false;
-    }
-
-    // Check if expired
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Get all keys matching a pattern
-   * Simple implementation: returns all keys containing the pattern
-   */
-  async keys(pattern: string): Promise<string[]> {
-    const matchedKeys: string[] = [];
-    const searchPattern = pattern.replace(/\*/g, '');
-
-    for (const key of this.cache.keys()) {
-      if (key.includes(searchPattern)) {
-        matchedKeys.push(key);
-      }
-    }
-
-    return matchedKeys;
-  }
-
-  /**
-   * Start periodic cleanup of expired entries
-   * Runs every minute by default
-   */
-  startCleanup(intervalMs = 60000): void {
-    if (this.cleanupInterval) {
-      return; // Already running
-    }
-
-    this.cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      let cleaned = 0;
-
-      for (const [key, entry] of this.cache.entries()) {
-        if (now > entry.expiresAt) {
-          this.cache.delete(key);
-          cleaned++;
-        }
-      }
-
-      if (cleaned > 0) {
-        console.log(`[Cache] Cleanup: removed ${cleaned} expired entries`);
-      }
-    }, intervalMs);
-
-    console.log('[Cache] Cleanup task started (interval: 60s)');
-  }
-
-  /**
-   * Stop periodic cleanup
-   */
-  stopCleanup(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-      console.log('[Cache] Cleanup task stopped');
-    }
-  }
-
-  /**
-   * Get cache size
-   */
-  size(): number {
-    return this.cache.size;
-  }
-
-  /**
-   * Clear all cache entries
-   */
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-// ============================================================================
-// CACHE CLIENT SINGLETON
-// ============================================================================
-
-/**
- * Global cache client instance
- * Uses in-memory cache (can be replaced with Redis later)
- */
-const cacheClient = new MemoryCache();
-
-// Start cleanup on module load
-cacheClient.startCleanup();
+let cacheSize = 0;
 
 // ============================================================================
 // CACHE KEY GENERATION
@@ -207,86 +50,38 @@ cacheClient.startCleanup();
 /**
  * Generate cache key for indicator data
  *
- * Format: indicator:{SYMBOL}:{TIMEFRAME}:{BARS}
- * Example: indicator:XAUUSD:H1:1000
+ * Format: indicators:{SYMBOL}:{TIMEFRAME}:{BARS}
  *
- * @param symbol Trading symbol (e.g., "XAUUSD")
- * @param timeframe Timeframe (e.g., "H1")
- * @param bars Number of bars (optional)
+ * @param symbol - Trading symbol (e.g., "EURUSD")
+ * @param timeframe - Timeframe (e.g., "H1")
+ * @param bars - Number of bars (optional)
  * @returns Cache key string
  */
-function generateCacheKey(
+export function getCacheKey(
   symbol: string,
   timeframe: string,
   bars?: number
 ): string {
   const normalizedSymbol = symbol.toUpperCase();
   const normalizedTimeframe = timeframe.toUpperCase();
-
-  if (bars !== undefined) {
-    return `indicator:${normalizedSymbol}:${normalizedTimeframe}:${bars}`;
-  }
-
-  return `indicator:${normalizedSymbol}:${normalizedTimeframe}`;
+  const barsKey = bars !== undefined ? bars.toString() : DEFAULT_BARS;
+  return `${CACHE_PREFIX}:${normalizedSymbol}:${normalizedTimeframe}:${barsKey}`;
 }
 
 /**
  * Generate cache key pattern for symbol invalidation
  *
- * Format: indicator:{SYMBOL}:*
- * Example: indicator:XAUUSD:*
+ * Format: indicators:{SYMBOL}:*
  *
- * @param symbol Trading symbol
+ * @param symbol - Trading symbol (optional, if not provided matches all)
  * @returns Cache key pattern
  */
-function generateSymbolPattern(symbol: string): string {
-  const normalizedSymbol = symbol.toUpperCase();
-  return `indicator:${normalizedSymbol}:*`;
-}
-
-// ============================================================================
-// TTL CALCULATION
-// ============================================================================
-
-/**
- * Get TTL for a timeframe
- * Uses CACHE_TTL from Part 0 constants
- *
- * @param timeframe Timeframe string
- * @returns TTL in seconds
- */
-function getTTL(timeframe: string): number {
-  const normalizedTimeframe = timeframe.toUpperCase();
-
-  if (isValidTimeframe(normalizedTimeframe)) {
-    const ttl = CACHE_TTL[normalizedTimeframe as Timeframe];
-    return ttl;
+export function getCachePattern(symbol?: string): string {
+  if (symbol) {
+    const normalizedSymbol = symbol.toUpperCase();
+    return `${CACHE_PREFIX}:${normalizedSymbol}:*`;
   }
-
-  console.warn(
-    `[Cache] Unknown timeframe: ${timeframe}, using default TTL (${DEFAULT_CACHE_TTL}s)`
-  );
-  return DEFAULT_CACHE_TTL;
-}
-
-/**
- * Format TTL for logging
- * Converts seconds to human-readable format
- *
- * @param ttlSeconds TTL in seconds
- * @returns Human-readable string (e.g., "5min", "4hr", "1day")
- */
-function formatTTL(ttlSeconds: number): string {
-  if (ttlSeconds < 60) {
-    return `${ttlSeconds}s`;
-  }
-  if (ttlSeconds < 3600) {
-    return `${Math.round(ttlSeconds / 60)}min`;
-  }
-  if (ttlSeconds < 86400) {
-    return `${Math.round(ttlSeconds / 3600)}hr`;
-  }
-  return `${Math.round(ttlSeconds / 86400)}day`;
+  return `${CACHE_PREFIX}:*`;
 }
 
 // ============================================================================
@@ -301,57 +96,36 @@ let statsCounters = {
   misses: 0,
   sets: 0,
   deletes: 0,
+  errors: 0,
 };
 
 /**
- * Record a cache hit
+ * Cache statistics interface
  */
-function recordHit(): void {
-  statsCounters.hits++;
-}
-
-/**
- * Record a cache miss
- */
-function recordMiss(): void {
-  statsCounters.misses++;
-}
-
-/**
- * Record a cache set
- */
-function recordSet(): void {
-  statsCounters.sets++;
-}
-
-/**
- * Record a cache delete
- */
-function recordDelete(): void {
-  statsCounters.deletes++;
+export interface CacheStats {
+  hits: number;
+  misses: number;
+  sets: number;
+  deletes: number;
+  errors: number;
+  hitRate: number;
 }
 
 /**
  * Get cache statistics
- *
- * @returns Cache statistics object
  */
 export function getCacheStats(): CacheStats {
   const total = statsCounters.hits + statsCounters.misses;
   const hitRate = total > 0 ? statsCounters.hits / total : 0;
 
   return {
-    hits: statsCounters.hits,
-    misses: statsCounters.misses,
-    sets: statsCounters.sets,
-    deletes: statsCounters.deletes,
+    ...statsCounters,
     hitRate,
   };
 }
 
 /**
  * Reset cache statistics
- * Useful for testing or periodic resets
  */
 export function resetCacheStats(): void {
   statsCounters = {
@@ -359,77 +133,177 @@ export function resetCacheStats(): void {
     misses: 0,
     sets: 0,
     deletes: 0,
+    errors: 0,
   };
-  console.log('[Cache] Statistics reset');
+  cacheSize = 0;
 }
 
 // ============================================================================
-// PUBLIC CACHE OPERATIONS
+// MAIN CACHING FUNCTIONS
 // ============================================================================
 
 /**
- * Get cached indicator data
+ * Result from cached indicator data fetch
+ */
+export interface CachedIndicatorResult {
+  data: IndicatorData;
+  dataSource: 'cache' | 'postgresql';
+  cached: boolean;
+}
+
+/**
+ * Get indicator data with caching (cache-through pattern)
  *
- * Returns parsed JSON data if cache hit, null if cache miss
- * Automatically tracks hit/miss statistics
+ * 1. Check Redis cache first
+ * 2. If cache hit, return cached data
+ * 3. If cache miss, fetch from PostgreSQL
+ * 4. Cache the result with TTL
+ * 5. Return data with source metadata
  *
- * @param symbol Trading symbol (e.g., "XAUUSD")
- * @param timeframe Timeframe (e.g., "H1")
- * @param bars Number of bars (optional)
- * @returns Parsed data object or null
+ * @param symbol - Trading symbol (e.g., "EURUSD")
+ * @param timeframe - Timeframe (e.g., "H1")
+ * @param limit - Number of bars to fetch (default: 1000)
+ * @returns Indicator data with source metadata
+ */
+export async function getIndicatorDataCached(
+  symbol: string,
+  timeframe: string,
+  limit: number = 1000
+): Promise<CachedIndicatorResult> {
+  const cacheKey = getCacheKey(symbol, timeframe, limit);
+  const normalizedSymbol = symbol.toUpperCase();
+  const normalizedTimeframe = timeframe.toUpperCase();
+
+  try {
+    // Step 1: Check Redis cache
+    const cachedData = await redis.get<IndicatorData>(cacheKey);
+
+    if (cachedData) {
+      statsCounters.hits++;
+      console.log(
+        `[IndicatorCache] HIT: ${normalizedSymbol}/${normalizedTimeframe}`
+      );
+
+      return {
+        data: cachedData,
+        dataSource: 'cache',
+        cached: true,
+      };
+    }
+
+    // Step 2: Cache miss - fetch from PostgreSQL
+    statsCounters.misses++;
+    console.log(
+      `[IndicatorCache] MISS: ${normalizedSymbol}/${normalizedTimeframe}`
+    );
+
+    const data = await getIndicatorDataFromDb(
+      normalizedSymbol,
+      normalizedTimeframe,
+      limit
+    );
+
+    // Step 3: Cache the result
+    await redis.set(cacheKey, data, INDICATOR_CACHE_TTL);
+    statsCounters.sets++;
+    cacheSize++;
+    console.log(
+      `[IndicatorCache] SET: ${normalizedSymbol}/${normalizedTimeframe} (TTL: ${INDICATOR_CACHE_TTL}s)`
+    );
+
+    return {
+      data,
+      dataSource: 'postgresql',
+      cached: false,
+    };
+  } catch (error) {
+    statsCounters.errors++;
+    console.error('[IndicatorCache] Error:', error);
+
+    // Fallback: fetch directly from PostgreSQL without caching
+    console.log(
+      `[IndicatorCache] Fallback to PostgreSQL: ${normalizedSymbol}/${normalizedTimeframe}`
+    );
+
+    const data = await getIndicatorDataFromDb(
+      normalizedSymbol,
+      normalizedTimeframe,
+      limit
+    );
+
+    return {
+      data,
+      dataSource: 'postgresql',
+      cached: false,
+    };
+  }
+}
+
+/**
+ * Invalidate cached indicator data
  *
- * @example
- * const data = await getCachedIndicatorData('XAUUSD', 'H1', 1000);
- * if (data) {
- *   console.log('Cache hit!', data);
- * } else {
- *   console.log('Cache miss - need to fetch from MT5');
- * }
+ * @param symbol - Trading symbol
+ * @param timeframe - Timeframe (optional, if not provided invalidates all timeframes for symbol)
+ * @returns Number of keys invalidated
+ */
+export async function invalidateIndicatorCache(
+  symbol: string,
+  timeframe?: string
+): Promise<number> {
+  try {
+    if (timeframe) {
+      // Invalidate specific symbol/timeframe (all bars variants)
+      const pattern = `${CACHE_PREFIX}:${symbol.toUpperCase()}:${timeframe.toUpperCase()}:*`;
+      const count = await redis.invalidatePattern(pattern);
+      statsCounters.deletes += count;
+      cacheSize = Math.max(0, cacheSize - count);
+      console.log(`[IndicatorCache] INVALIDATED: ${symbol}/${timeframe}`);
+      return count;
+    }
+
+    // Invalidate all timeframes for symbol
+    const pattern = getCachePattern(symbol);
+    const count = await redis.invalidatePattern(pattern);
+    statsCounters.deletes += count;
+    cacheSize = Math.max(0, cacheSize - count);
+    console.log(
+      `[IndicatorCache] INVALIDATED: ${count} keys for ${symbol} (pattern: ${pattern})`
+    );
+    return count;
+  } catch (error) {
+    console.error('[IndicatorCache] Invalidation error:', error);
+    return 0;
+  }
+}
+
+// ============================================================================
+// BACKWARD COMPATIBILITY
+// ============================================================================
+
+/**
+ * Get cached indicator data (backward compatible wrapper)
+ *
+ * @deprecated Use getIndicatorDataCached instead
  */
 export async function getCachedIndicatorData(
   symbol: string,
   timeframe: string,
   bars?: number
 ): Promise<unknown> {
-  const key = generateCacheKey(symbol, timeframe, bars);
-
-  try {
-    const cached = await cacheClient.get(key);
-
-    if (cached) {
-      recordHit();
-      console.log(
-        `[Cache] HIT: ${symbol}/${timeframe}${bars ? `/${bars}` : ''}`
-      );
-      return JSON.parse(cached);
-    }
-
-    recordMiss();
-    console.log(
-      `[Cache] MISS: ${symbol}/${timeframe}${bars ? `/${bars}` : ''}`
-    );
-    return null;
-  } catch (error) {
-    console.error('[Cache] Error reading from cache:', error);
-    recordMiss();
-    return null;
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
+  const data = await redis.get(cacheKey);
+  if (data) {
+    statsCounters.hits++;
+  } else {
+    statsCounters.misses++;
   }
+  return data;
 }
 
 /**
- * Set cached indicator data
+ * Set cached indicator data (backward compatible wrapper)
  *
- * Stores data with automatic TTL based on timeframe
- * TTL values from Part 0 constants (CACHE_TTL)
- *
- * @param symbol Trading symbol
- * @param timeframe Timeframe
- * @param data Data to cache (will be JSON.stringified)
- * @param bars Number of bars (optional)
- *
- * @example
- * await setCachedIndicatorData('XAUUSD', 'H1', indicatorData, 1000);
- * // Automatically uses 3600s (1 hour) TTL for H1
+ * @deprecated Use getIndicatorDataCached which handles caching automatically
  */
 export async function setCachedIndicatorData(
   symbol: string,
@@ -437,155 +311,90 @@ export async function setCachedIndicatorData(
   data: unknown,
   bars?: number
 ): Promise<void> {
-  const key = generateCacheKey(symbol, timeframe, bars);
-  const ttl = getTTL(timeframe);
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
 
-  try {
-    await cacheClient.set(key, ttl, JSON.stringify(data));
-    recordSet();
-    console.log(
-      `[Cache] SET: ${symbol}/${timeframe}${bars ? `/${bars}` : ''} ` +
-        `(TTL: ${ttl}s = ${formatTTL(ttl)})`
-    );
-  } catch (error) {
-    console.error('[Cache] Error writing to cache:', error);
-    // Don't throw - caching failures shouldn't break the request
+  // Check if key already exists (for accurate size tracking)
+  const exists = (await redis.get(cacheKey)) !== null;
+
+  await redis.set(cacheKey, data, INDICATOR_CACHE_TTL);
+  statsCounters.sets++;
+
+  // Only increment size if this is a new entry, not an overwrite
+  if (!exists) {
+    cacheSize++;
   }
 }
 
 /**
  * Check if cached data exists
- *
- * @param symbol Trading symbol
- * @param timeframe Timeframe
- * @param bars Number of bars (optional)
- * @returns True if cached data exists and is not expired
  */
 export async function hasCachedData(
   symbol: string,
   timeframe: string,
   bars?: number
 ): Promise<boolean> {
-  const key = generateCacheKey(symbol, timeframe, bars);
-
-  try {
-    return await cacheClient.exists(key);
-  } catch (error) {
-    console.error('[Cache] Error checking cache existence:', error);
-    return false;
-  }
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
+  const data = await redis.get(cacheKey);
+  return data !== null;
 }
 
 /**
- * Invalidate cached data for specific symbol/timeframe/bars
+ * Invalidate cached data (backward compatible wrapper)
  *
- * @param symbol Trading symbol
- * @param timeframe Timeframe
- * @param bars Number of bars (optional)
- *
- * @example
- * await invalidateCachedData('XAUUSD', 'H1', 1000);
+ * @deprecated Use invalidateIndicatorCache instead
  */
 export async function invalidateCachedData(
   symbol: string,
   timeframe: string,
   bars?: number
 ): Promise<void> {
-  const key = generateCacheKey(symbol, timeframe, bars);
+  const cacheKey = getCacheKey(symbol, timeframe, bars);
 
-  try {
-    await cacheClient.delete(key);
-    recordDelete();
-    console.log(
-      `[Cache] INVALIDATED: ${symbol}/${timeframe}${bars ? `/${bars}` : ''}`
-    );
-  } catch (error) {
-    console.error('[Cache] Error invalidating cache:', error);
+  // Check if key exists before deleting (for accurate size tracking)
+  const exists = (await redis.get(cacheKey)) !== null;
+
+  await redis.del(cacheKey);
+  statsCounters.deletes++;
+
+  if (exists) {
+    cacheSize = Math.max(0, cacheSize - 1);
   }
 }
 
 /**
  * Invalidate all cached data for a symbol
  *
- * Useful when symbol data needs to be refreshed across all timeframes
- *
- * @param symbol Trading symbol
- *
- * @example
- * await invalidateSymbolCache('XAUUSD');
- * // Invalidates XAUUSD data for all timeframes (M5, M15, H1, etc.)
+ * @deprecated Use invalidateIndicatorCache(symbol) instead
  */
 export async function invalidateSymbolCache(symbol: string): Promise<void> {
-  const pattern = generateSymbolPattern(symbol);
-
-  try {
-    console.log(`[Cache] INVALIDATING SYMBOL: ${symbol} (pattern: ${pattern})`);
-
-    // Find all matching keys
-    const keys = await cacheClient.keys(pattern);
-
-    if (keys.length === 0) {
-      console.log(`[Cache] No cached data found for ${symbol}`);
-      return;
-    }
-
-    // Delete all matching keys
-    await Promise.all(keys.map((key) => cacheClient.delete(key)));
-    recordDelete();
-
-    console.log(
-      `[Cache] INVALIDATED ${keys.length} cache entries for ${symbol}`
-    );
-  } catch (error) {
-    console.error('[Cache] Error invalidating symbol cache:', error);
-  }
+  await invalidateIndicatorCache(symbol);
 }
 
 /**
- * Clear all cached data
- *
- * WARNING: This clears ALL cache entries
- * Use with caution - typically only for testing or maintenance
+ * Clear all cached indicator data
  */
-export async function clearAllCache(): Promise<void> {
-  try {
-    cacheClient.clear();
-    console.log('[Cache] All cache entries cleared');
-  } catch (error) {
-    console.error('[Cache] Error clearing cache:', error);
-  }
+export async function clearAllCache(): Promise<number> {
+  const pattern = getCachePattern();
+  const count = await redis.invalidatePattern(pattern);
+  cacheSize = 0;
+  console.log(`[IndicatorCache] CLEARED: ${count} keys`);
+  return count;
 }
 
 /**
- * Get cache size (number of entries)
- *
- * @returns Number of cache entries
+ * Get cache size (number of indicator cache entries)
+ * Synchronous for backward compatibility with tests
  */
 export function getCacheSize(): number {
-  return cacheClient.size();
+  return cacheSize;
 }
 
-// ============================================================================
-// EXPORT SUMMARY
-// ============================================================================
-
 /**
- * Exported functions:
- *
- * Core Operations:
- * - getCachedIndicatorData(symbol, timeframe, bars?)
- * - setCachedIndicatorData(symbol, timeframe, data, bars?)
- * - hasCachedData(symbol, timeframe, bars?)
- *
- * Invalidation:
- * - invalidateCachedData(symbol, timeframe, bars?)
- * - invalidateSymbolCache(symbol)
- * - clearAllCache()
- *
- * Statistics:
- * - getCacheStats()
- * - resetCacheStats()
- *
- * Utilities:
- * - getCacheSize()
+ * Get cache size async (queries Redis directly)
  */
+export async function getCacheSizeAsync(): Promise<number> {
+  const pattern = getCachePattern();
+  const matchingKeys = await redis.keys(pattern);
+  cacheSize = matchingKeys.length; // Sync the in-memory counter
+  return matchingKeys.length;
+}
