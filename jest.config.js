@@ -34,6 +34,10 @@ const config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^lucide-react/dist/esm/icons/(.*)$': '<rootDir>/__mocks__/lucide-react-icon.js',
+    // Mock next-auth and related packages to prevent ESM parsing issues
+    '^next-auth$': '<rootDir>/__mocks__/next-auth.js',
+    '^next-auth/(.*)$': '<rootDir>/__mocks__/next-auth.js',
+    '^@auth/prisma-adapter$': '<rootDir>/__mocks__/@auth/prisma-adapter.js',
   },
 
   // ============================================================================

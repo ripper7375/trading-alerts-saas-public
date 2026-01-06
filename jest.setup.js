@@ -46,6 +46,31 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
 process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_mock';
 process.env.MT5_API_URL = 'http://localhost:5000';
 process.env.CRON_SECRET = 'test-cron-secret';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.POSTGRESQL_URI = 'postgresql://test:test@localhost:5432/test_trading';
+
+// ============================================================================
+// Global Mocks for ESM Modules
+// ============================================================================
+// Mock next-auth to prevent ESM parsing issues in Jest
+// These mocks are applied globally so they're available before any test imports
+
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  getServerSession: jest.fn(() => Promise.resolve(null)),
+}));
+
+jest.mock('next-auth/next', () => ({
+  __esModule: true,
+  default: jest.fn(),
+  getServerSession: jest.fn(() => Promise.resolve(null)),
+}));
+
+jest.mock('@auth/prisma-adapter', () => ({
+  __esModule: true,
+  PrismaAdapter: jest.fn(() => ({})),
+}));
 
 // Mock Next.js router (if needed in tests)
 // jest.mock('next/navigation', () => ({
