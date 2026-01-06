@@ -103,7 +103,7 @@ export function calculateConfluenceScore(
         bearish: 0,
         neutral: 0,
       },
-      breakdown: {},
+      breakdown: {} as Record<string, TimeframeSignal>,
       all_117_indicators: data,
     };
   }

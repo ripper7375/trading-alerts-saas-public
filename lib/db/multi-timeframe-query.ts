@@ -9,7 +9,16 @@
  */
 
 import { query } from './postgresql';
-import type { MultiTimeframeData, TimeframeData } from '@/lib/confluence/types';
+import type {
+  MultiTimeframeData,
+  TimeframeData,
+  Fractals,
+  HorizontalTrendlines,
+  DiagonalTrendlines,
+  MomentumCandle,
+  KeltnerChannels,
+  ZigZag,
+} from '@/lib/confluence/types';
 import { VALID_TIMEFRAMES, type Timeframe } from '@/lib/constants/business-rules';
 
 /**
@@ -121,11 +130,11 @@ function transformDBRow(row: DBRow | null): TimeframeData | null {
       low: row.low,
       close: row.close,
     },
-    fractals: row.fractals as unknown,
-    horizontal_trendlines: row.horizontal_trendlines as unknown,
-    diagonal_trendlines: row.diagonal_trendlines as unknown,
-    momentum_candles: (row.momentum_candles as unknown) || [],
-    keltner_channels: (row.keltner_channels as unknown) || {
+    fractals: (row.fractals as unknown as Fractals) || null,
+    horizontal_trendlines: (row.horizontal_trendlines as unknown as HorizontalTrendlines) || null,
+    diagonal_trendlines: (row.diagonal_trendlines as unknown as DiagonalTrendlines) || null,
+    momentum_candles: (row.momentum_candles as unknown as MomentumCandle[]) || [],
+    keltner_channels: (row.keltner_channels as unknown as KeltnerChannels) || {
       ultra_extreme_upper: [],
       extreme_upper: [],
       upper_most: [],
@@ -140,7 +149,7 @@ function transformDBRow(row: DBRow | null): TimeframeData | null {
     tema: row.tema,
     hrma: row.hrma,
     smma: row.smma,
-    zigzag: (row.zigzag as unknown) || { peaks: [], bottoms: [] },
+    zigzag: (row.zigzag as unknown as ZigZag) || { peaks: [], bottoms: [] },
   };
 }
 
