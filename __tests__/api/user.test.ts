@@ -63,6 +63,14 @@ jest.mock('@/lib/preferences/defaults', () => ({
   }),
 }));
 
+// Mock email module to prevent MessageChannel error from Resend/React Email
+jest.mock('@/lib/email/email', () => ({
+  __esModule: true,
+  sendPasswordResetEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendWelcomeEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendEmail: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 // Helper to create mock request
 function createMockRequest(
   method: string,
@@ -80,15 +88,15 @@ function createMockRequest(
 }
 
 // Import routes after mocks
-import {
-  GET as getProfile,
-  PATCH as patchProfile,
-} from '@/app/api/user/profile/route';
+import { POST as changePassword } from '@/app/api/user/password/route';
 import {
   GET as getPreferences,
   PUT as putPreferences,
 } from '@/app/api/user/preferences/route';
-import { POST as changePassword } from '@/app/api/user/password/route';
+import {
+  GET as getProfile,
+  PATCH as patchProfile,
+} from '@/app/api/user/profile/route';
 
 describe('User Settings API', () => {
   beforeEach(() => {
