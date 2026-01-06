@@ -34,6 +34,10 @@ const config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^lucide-react/dist/esm/icons/(.*)$': '<rootDir>/__mocks__/lucide-react-icon.js',
+    // Mock next-auth and related packages to prevent ESM parsing issues
+    '^next-auth$': '<rootDir>/__mocks__/next-auth.js',
+    '^next-auth/(.*)$': '<rootDir>/__mocks__/next-auth.js',
+    '^@auth/prisma-adapter$': '<rootDir>/__mocks__/@auth/prisma-adapter.js',
   },
 
   // ============================================================================
@@ -103,6 +107,24 @@ const config = {
   // ============================================================================
   // Jest tries these extensions in order when resolving imports
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+
+  // ============================================================================
+  // Transform Ignore Patterns
+  // ============================================================================
+  // By default Jest doesn't transform node_modules, but some packages like
+  // next-auth use ESM syntax that needs to be transformed. Include all ESM
+  // dependencies that next-auth relies on.
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-auth|@auth|@panva|uuid|nanoid|jose|preact|preact-render-to-string)/)',
+  ],
+
+  // ============================================================================
+  // Coverage Reporting
+  // ============================================================================
+  // Enable coverage collection and specify output format/directory
+  collectCoverage: true,
+  coverageReporters: ['lcov', 'text', 'text-summary'],
+  coverageDirectory: 'coverage',
 };
 
 // Create Jest configuration with Next.js
