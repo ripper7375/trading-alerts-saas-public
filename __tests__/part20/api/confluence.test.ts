@@ -6,59 +6,10 @@
  * @see docs/sqlite-and-mt5service/part-20-implementation-plan.md Phase 7
  */
 
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
-import { NextRequest } from 'next/server';
-
-// Mock session data
+// Mock session data - needs to be declared before jest.mock
 let mockSessionData: { user: { id: string; tier: string } } | null = null;
 
-// Mock modules
-jest.mock('next-auth', () => ({
-  __esModule: true,
-  getServerSession: jest.fn(async () => mockSessionData),
-}));
-
-jest.mock('@/lib/auth/auth-options', () => ({
-  __esModule: true,
-  authOptions: {},
-}));
-
-// Mock confluence cache
-jest.mock('@/lib/cache/confluence-cache', () => ({
-  __esModule: true,
-  getCachedConfluence: jest.fn(async () => null),
-  cacheConfluence: jest.fn(async () => {}),
-}));
-
-// Mock multi-timeframe query
-jest.mock('@/lib/db/multi-timeframe-query', () => ({
-  __esModule: true,
-  getMultiTimeframeData: jest.fn(async () => ({
-    M5: createMockTimeframeData(),
-    M15: createMockTimeframeData(),
-    M30: createMockTimeframeData(),
-    H1: createMockTimeframeData(),
-    H2: createMockTimeframeData(),
-    H4: createMockTimeframeData(),
-    H8: createMockTimeframeData(),
-    H12: createMockTimeframeData(),
-    D1: createMockTimeframeData(),
-  })),
-}));
-
-// Mock confluence calculator
-jest.mock('@/lib/confluence/calculator', () => ({
-  __esModule: true,
-  calculateConfluenceScore: jest.fn(() => ({
-    confluence_score: 7.5,
-    max_score: 10,
-    signals: { bullish: 6, bearish: 2, neutral: 1 },
-    breakdown: {},
-    all_117_indicators: {},
-  })),
-}));
-
-// Helper function for mock data
+// Helper function for mock data - must be declared before jest.mock
 function createMockTimeframeData() {
   return {
     ohlc: {
@@ -91,13 +42,79 @@ function createMockTimeframeData() {
   };
 }
 
-// Import the route handler after mocking
+// Mock modules before imports - Jest hoists these to the top
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  getServerSession: jest.fn(() => Promise.resolve(mockSessionData)),
+}));
+
+jest.mock('@/lib/auth/auth-options', () => ({
+  __esModule: true,
+  authOptions: {},
+}));
+
+// Mock confluence cache
+jest.mock('@/lib/cache/confluence-cache', () => ({
+  __esModule: true,
+  getCachedConfluence: jest.fn(() => Promise.resolve(null)),
+  cacheConfluence: jest.fn(() => Promise.resolve()),
+}));
+
+// Mock multi-timeframe query
+jest.mock('@/lib/db/multi-timeframe-query', () => ({
+  __esModule: true,
+  getMultiTimeframeData: jest.fn(() =>
+    Promise.resolve({
+      M5: createMockTimeframeData(),
+      M15: createMockTimeframeData(),
+      M30: createMockTimeframeData(),
+      H1: createMockTimeframeData(),
+      H2: createMockTimeframeData(),
+      H4: createMockTimeframeData(),
+      H8: createMockTimeframeData(),
+      H12: createMockTimeframeData(),
+      D1: createMockTimeframeData(),
+    })
+  ),
+}));
+
+// Mock confluence calculator
+jest.mock('@/lib/confluence/calculator', () => ({
+  __esModule: true,
+  calculateConfluenceScore: jest.fn(() => ({
+    confluence_score: 7.5,
+    max_score: 10,
+    signals: { bullish: 6, bearish: 2, neutral: 1 },
+    breakdown: {
+      M5: { bullish: 1, bearish: 0, neutral: 0 },
+      M15: { bullish: 1, bearish: 0, neutral: 0 },
+    },
+    all_117_indicators: {
+      M5: { tema: 'bullish', hrma: 'bullish' },
+      M15: { tema: 'bullish', hrma: 'bullish' },
+    },
+  })),
+}));
+
+// Import dependencies after mocking
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/confluence/[symbol]/route';
+
+// Get the mocked function so we can update its implementation
+import { getServerSession } from 'next-auth';
+const mockedGetServerSession = getServerSession as jest.MockedFunction<
+  typeof getServerSession
+>;
 
 describe('Confluence API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSessionData = null;
+    // Update the mock to return current mockSessionData
+    mockedGetServerSession.mockImplementation(() =>
+      Promise.resolve(mockSessionData as unknown as ReturnType<typeof getServerSession>)
+    );
   });
 
   function createRequest(symbol: string, timestamp?: string): NextRequest {
@@ -112,7 +129,9 @@ describe('Confluence API', () => {
       mockSessionData = null;
 
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       expect(response.status).toBe(401);
       const json = await response.json();
@@ -124,9 +143,12 @@ describe('Confluence API', () => {
   describe('Tier restrictions', () => {
     it('should return 403 for FREE tier (PRO required)', async () => {
       mockSessionData = { user: { id: 'test-user', tier: 'FREE' } };
+      mockedGetServerSession.mockResolvedValue(mockSessionData);
 
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       expect(response.status).toBe(403);
       const json = await response.json();
@@ -136,9 +158,12 @@ describe('Confluence API', () => {
 
     it('should return 200 for PRO tier', async () => {
       mockSessionData = { user: { id: 'test-user', tier: 'PRO' } };
+      mockedGetServerSession.mockResolvedValue(mockSessionData);
 
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       expect(response.status).toBe(200);
     });
@@ -147,11 +172,14 @@ describe('Confluence API', () => {
   describe('Symbol validation', () => {
     beforeEach(() => {
       mockSessionData = { user: { id: 'test-user', tier: 'PRO' } };
+      mockedGetServerSession.mockResolvedValue(mockSessionData);
     });
 
     it('should return 400 for invalid symbol', async () => {
       const request = createRequest('INVALID');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'INVALID' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'INVALID' }),
+      });
 
       expect(response.status).toBe(400);
       const json = await response.json();
@@ -164,7 +192,9 @@ describe('Confluence API', () => {
 
       for (const symbol of validSymbols) {
         const request = createRequest(symbol);
-        const response = await GET(request, { params: Promise.resolve({ symbol }) });
+        const response = await GET(request, {
+          params: Promise.resolve({ symbol }),
+        });
 
         expect(response.status).toBe(200);
       }
@@ -174,12 +204,15 @@ describe('Confluence API', () => {
   describe('Timestamp parameter', () => {
     beforeEach(() => {
       mockSessionData = { user: { id: 'test-user', tier: 'PRO' } };
+      mockedGetServerSession.mockResolvedValue(mockSessionData);
     });
 
     it('should accept ISO 8601 timestamp', async () => {
       const timestamp = '2026-01-06T12:00:00Z';
       const request = createRequest('EURUSD', timestamp);
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       expect(response.status).toBe(200);
       const json = await response.json();
@@ -188,7 +221,9 @@ describe('Confluence API', () => {
 
     it('should return 400 for invalid timestamp format', async () => {
       const request = createRequest('EURUSD', 'invalid-date');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       expect(response.status).toBe(400);
       const json = await response.json();
@@ -197,7 +232,9 @@ describe('Confluence API', () => {
 
     it('should use current time when timestamp not provided', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       expect(response.status).toBe(200);
       const json = await response.json();
@@ -208,11 +245,14 @@ describe('Confluence API', () => {
   describe('Response format', () => {
     beforeEach(() => {
       mockSessionData = { user: { id: 'test-user', tier: 'PRO' } };
+      mockedGetServerSession.mockResolvedValue(mockSessionData);
     });
 
     it('should return confluence score between 0-10', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       const json = await response.json();
 
@@ -223,7 +263,9 @@ describe('Confluence API', () => {
 
     it('should include signal counts', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       const json = await response.json();
 
@@ -237,7 +279,9 @@ describe('Confluence API', () => {
 
     it('should include all 117 indicators', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       const json = await response.json();
 
@@ -246,7 +290,9 @@ describe('Confluence API', () => {
 
     it('should include breakdown by timeframe', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       const json = await response.json();
 
@@ -255,7 +301,9 @@ describe('Confluence API', () => {
 
     it('should return complete response structure', async () => {
       const request = createRequest('EURUSD');
-      const response = await GET(request, { params: Promise.resolve({ symbol: 'EURUSD' }) });
+      const response = await GET(request, {
+        params: Promise.resolve({ symbol: 'EURUSD' }),
+      });
 
       const json = await response.json();
 
@@ -273,18 +321,33 @@ describe('Confluence API', () => {
   describe('All symbols', () => {
     beforeEach(() => {
       mockSessionData = { user: { id: 'test-user', tier: 'PRO' } };
+      mockedGetServerSession.mockResolvedValue(mockSessionData);
     });
 
     it('should work for all 15 supported symbols', async () => {
       const symbols = [
-        'AUDJPY', 'AUDUSD', 'BTCUSD', 'ETHUSD', 'EURUSD',
-        'GBPJPY', 'GBPUSD', 'NDX100', 'NZDUSD', 'US30',
-        'USDCAD', 'USDCHF', 'USDJPY', 'XAGUSD', 'XAUUSD',
+        'AUDJPY',
+        'AUDUSD',
+        'BTCUSD',
+        'ETHUSD',
+        'EURUSD',
+        'GBPJPY',
+        'GBPUSD',
+        'NDX100',
+        'NZDUSD',
+        'US30',
+        'USDCAD',
+        'USDCHF',
+        'USDJPY',
+        'XAGUSD',
+        'XAUUSD',
       ];
 
       for (const symbol of symbols) {
         const request = createRequest(symbol);
-        const response = await GET(request, { params: Promise.resolve({ symbol }) });
+        const response = await GET(request, {
+          params: Promise.resolve({ symbol }),
+        });
 
         expect(response.status).toBe(200);
         const json = await response.json();

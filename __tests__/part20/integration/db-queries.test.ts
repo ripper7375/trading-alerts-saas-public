@@ -7,21 +7,23 @@
  * @see docs/sqlite-and-mt5service/part-20-implementation-plan.md Phase 7
  */
 
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
-
-// Mock the postgresql module before importing
+// Create mock function before jest.mock call
 const mockQuery = jest.fn();
 
+// Mock the postgresql module - this gets hoisted to the top by Jest
 jest.mock('@/lib/db/postgresql', () => ({
   __esModule: true,
-  query: mockQuery,
+  query: (...args: unknown[]) => mockQuery(...args),
   getPool: jest.fn(() => ({
     connect: jest.fn(),
     end: jest.fn(),
   })),
+  getClient: jest.fn(),
+  checkConnection: jest.fn(() => Promise.resolve(true)),
 }));
 
-// Import after mocking
+// Imports must come after jest.mock
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import {
   getIndicatorDataFromDb,
   getDataFreshness,
@@ -31,6 +33,7 @@ import {
 describe('Database Queries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockQuery.mockReset();
   });
 
   describe('getIndicatorDataFromDb', () => {
@@ -178,7 +181,7 @@ describe('Database Queries', () => {
 
       expect(result).toEqual(latestDate);
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('"eurusd_h1"'),
+        expect.stringContaining('"eurusd_h1"')
       );
     });
 
