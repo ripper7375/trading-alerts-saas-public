@@ -92,9 +92,20 @@
   // This is acceptable in test contexts but forbidden in production code
   "overrides": [
     {
-      "files": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
+      "files": [
+        "*.test.ts",
+        "*.test.tsx",
+        "*.spec.ts",
+        "*.spec.tsx",
+        "__tests__/**/*.ts",
+        "__tests__/**/*.tsx",
+        "**/__mocks__/**/*.ts",
+        "**/__mocks__/**/*.js"
+      ],
       "rules": {
-        "@typescript-eslint/no-explicit-any": "off"
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/no-require-imports": "off"
       }
     },
     {
