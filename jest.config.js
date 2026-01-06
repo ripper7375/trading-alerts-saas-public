@@ -103,6 +103,21 @@ const config = {
   // ============================================================================
   // Jest tries these extensions in order when resolving imports
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+
+  // ============================================================================
+  // Transform Ignore Patterns
+  // ============================================================================
+  // By default Jest doesn't transform node_modules, but some packages like
+  // next-auth use ESM syntax that needs to be transformed.
+  transformIgnorePatterns: ['node_modules/(?!(next-auth)/)'],
+
+  // ============================================================================
+  // Coverage Reporting
+  // ============================================================================
+  // Enable coverage collection and specify output format/directory
+  collectCoverage: true,
+  coverageReporters: ['lcov', 'text', 'text-summary'],
+  coverageDirectory: 'coverage',
 };
 
 // Create Jest configuration with Next.js

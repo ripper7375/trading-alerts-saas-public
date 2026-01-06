@@ -9,6 +9,29 @@
 
 import { query } from './postgresql';
 import type { IndicatorData, OHLCBar } from '@/lib/indicators/types';
+import { VALID_SYMBOLS, VALID_TIMEFRAMES } from '@/lib/constants/business-rules';
+
+/**
+ * Validate and sanitize table name components to prevent SQL injection
+ */
+function validateTableName(
+  symbol: string,
+  timeframe: string
+): { isValid: boolean; tableName: string } {
+  const normalizedSymbol = symbol.toUpperCase();
+  const normalizedTimeframe = timeframe.toUpperCase();
+
+  const isValidSymbol = VALID_SYMBOLS.includes(normalizedSymbol);
+  const isValidTimeframe = VALID_TIMEFRAMES.includes(normalizedTimeframe);
+
+  if (!isValidSymbol || !isValidTimeframe) {
+    return { isValid: false, tableName: '' };
+  }
+
+  // Create safe table name (lowercase for PostgreSQL convention)
+  const tableName = `${normalizedSymbol.toLowerCase()}_${normalizedTimeframe.toLowerCase()}`;
+  return { isValid: true, tableName };
+}
 
 interface RawRow {
   timestamp: Date;
@@ -32,13 +55,18 @@ export async function getIndicatorDataFromDb(
   timeframe: string,
   limit: number = 1000
 ): Promise<IndicatorData> {
-  const tableName = `${symbol.toLowerCase()}_${timeframe.toLowerCase()}`;
+  const { isValid, tableName } = validateTableName(symbol, timeframe);
 
+  if (!isValid) {
+    throw new Error(`Invalid symbol or timeframe: ${symbol}/${timeframe}`);
+  }
+
+  // Use double-quoted identifier for table name (validated above)
   const rows = await query<RawRow>(
     `SELECT timestamp, open, high, low, close,
             fractals, horizontal_trendlines, diagonal_trendlines,
             momentum_candles, keltner_channels, tema, hrma, smma, zigzag
-     FROM ${tableName}
+     FROM "${tableName}"
      ORDER BY timestamp DESC
      LIMIT $1`,
     [limit]
@@ -100,9 +128,14 @@ export async function getDataFreshness(
   symbol: string,
   timeframe: string
 ): Promise<Date | null> {
-  const tableName = `${symbol.toLowerCase()}_${timeframe.toLowerCase()}`;
+  const { isValid, tableName } = validateTableName(symbol, timeframe);
+
+  if (!isValid) {
+    throw new Error(`Invalid symbol or timeframe: ${symbol}/${timeframe}`);
+  }
+
   const rows = await query<{ timestamp: Date }>(
-    `SELECT timestamp FROM ${tableName} ORDER BY timestamp DESC LIMIT 1`
+    `SELECT timestamp FROM "${tableName}" ORDER BY timestamp DESC LIMIT 1`
   );
   return rows[0]?.timestamp || null;
 }

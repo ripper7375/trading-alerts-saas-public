@@ -74,9 +74,9 @@ describe('Database Queries', () => {
 
       const result = await getIndicatorDataFromDb('EURUSD', 'H1', 100);
 
-      // Verify query was called with correct table name
+      // Verify query was called with correct table name (double-quoted identifier)
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('eurusd_h1'),
+        expect.stringContaining('"eurusd_h1"'),
         [100]
       );
 
@@ -109,7 +109,7 @@ describe('Database Queries', () => {
       await getIndicatorDataFromDb('XAUUSD', 'M15', 500);
 
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('xauusd_m15'),
+        expect.stringContaining('"xauusd_m15"'),
         [500]
       );
     });
@@ -178,7 +178,7 @@ describe('Database Queries', () => {
 
       expect(result).toEqual(latestDate);
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('eurusd_h1'),
+        expect.stringContaining('"eurusd_h1"'),
       );
     });
 
@@ -226,7 +226,7 @@ describe('Database Queries', () => {
         await getIndicatorDataFromDb('EURUSD', tf, 1);
 
         expect(mockQuery).toHaveBeenCalledWith(
-          expect.stringContaining(`eurusd_${tf.toLowerCase()}`),
+          expect.stringContaining(`"eurusd_${tf.toLowerCase()}"`),
           [1]
         );
       }
