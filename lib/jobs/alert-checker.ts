@@ -4,10 +4,13 @@
  * Background job to check alert conditions against current prices.
  * Runs periodically to detect triggered alerts and send notifications.
  *
+ * Part 20 Migration: Now queries PostgreSQL directly instead of Flask MT5 API.
+ *
  * @module lib/jobs/alert-checker
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { query } from '@/lib/db/postgresql';
 
 /**
  * Parsed condition from alert.condition JSON
@@ -87,8 +90,11 @@ function parseCondition(conditionJson: string): AlertCondition | null {
 /**
  * Fetch current price for a symbol/timeframe
  *
+ * Part 20: Queries PostgreSQL directly instead of Flask MT5 API.
+ * Uses the M5 timeframe table for most recent price data.
+ *
  * @param symbol - Trading symbol (e.g., XAUUSD)
- * @param timeframe - Timeframe (e.g., H1)
+ * @param _timeframe - Timeframe (unused, always queries M5 for latest price)
  * @returns Current price or 0 if fetch fails
  */
 async function fetchCurrentPrice(
@@ -96,27 +102,24 @@ async function fetchCurrentPrice(
   _timeframe: string
 ): Promise<number> {
   try {
-    // Fetch from MT5 service
-    const mt5ApiUrl = process.env['MT5_API_URL'] || 'http://localhost:5000';
-    const response = await fetch(
-      `${mt5ApiUrl}/api/mt5/price?symbol=${symbol}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        // Add timeout to prevent hanging
-        signal: AbortSignal.timeout(5000),
-      }
+    // Part 20: Query latest price from PostgreSQL
+    // Use M5 timeframe table for most recent data (synced every 30s)
+    const tableName = `${symbol.toLowerCase()}_m5`;
+
+    const result = await query<{ close: number }>(
+      `SELECT close FROM ${tableName}
+       ORDER BY timestamp DESC
+       LIMIT 1`
     );
 
-    if (!response.ok) {
+    if (!result || result.length === 0) {
       console.error(
-        `[AlertChecker] Failed to fetch price for ${symbol}: ${response.status}`
+        `[AlertChecker] No data found for symbol ${symbol} in table ${tableName}`
       );
       return 0;
     }
 
-    const data = await response.json();
-    return data.price || 0;
+    return result[0]?.close ?? 0;
   } catch (error) {
     console.error(`[AlertChecker] Error fetching price for ${symbol}:`, error);
     return 0;
