@@ -41,11 +41,22 @@ This revised version addresses **12 critical gaps** identified in the risk valid
 
 ### For Antigravity (Google AI Agent):
 1. Start a new Antigravity session in your local repository directory
-2. Ensure Antigravity has access to the repository and can read:
+2. **Branch Setup:** Use a dedicated branch for migration work:
+   ```bash
+   # If migration branch exists on GitHub:
+   git fetch origin
+   git checkout claude/implement-phase09-prompts-ZmJLD
+
+   # OR create a new migration branch from main:
+   git checkout main
+   git pull origin main
+   git checkout -b migration/part20-phase09
+   ```
+3. Ensure Antigravity has access to the repository and can read:
    - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
    - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
    - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
-3. Give Antigravity the prompt below
+4. Give Antigravity the prompt below
 
 ### For Other AI Coding Agents:
 1. Start a session with file system access to this repository
