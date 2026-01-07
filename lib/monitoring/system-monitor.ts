@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/db/prisma';
+import { query, checkConnection } from '@/lib/db/postgresql';
+import { isRedisAvailable } from '@/lib/cache/redis';
 import {
   getConnectedUsersCount,
   isUserConnected,
@@ -29,7 +31,7 @@ interface SystemHealth {
   checks: {
     database: HealthCheck;
     redis: HealthCheck;
-    mt5Service: HealthCheck;
+    dataService: HealthCheck;
     websocket: HealthCheck;
   };
   tierMetrics: {
@@ -68,17 +70,17 @@ async function checkDatabase(): Promise<HealthCheck> {
 
 /**
  * Check Redis connectivity
- * TODO: Implement actual Redis client check when Redis is integrated
+ * Part 20: Uses actual Redis client check
  */
 async function checkRedis(): Promise<HealthCheck> {
   const start = Date.now();
   try {
-    // Placeholder - implement actual Redis check when integrated
-    // For now, return healthy status
+    const isConnected = await isRedisAvailable();
     return {
-      status: 'healthy',
+      status: isConnected ? 'healthy' : 'degraded',
       responseTime: Date.now() - start,
       lastChecked: new Date(),
+      error: isConnected ? undefined : 'Redis connection not available',
     };
   } catch (error) {
     console.error('Redis health check failed:', error);
@@ -91,33 +93,53 @@ async function checkRedis(): Promise<HealthCheck> {
 }
 
 /**
- * Check MT5 service connectivity
- * TODO: Implement actual MT5 service check when integrated
+ * Check Part 20 Data Service (PostgreSQL indicator data + sync freshness)
+ * Part 20: Replaces Flask MT5 service check
  */
-async function checkMT5Service(): Promise<HealthCheck> {
+async function checkDataService(): Promise<HealthCheck> {
   const start = Date.now();
   try {
-    // Placeholder - implement actual MT5 service check when integrated
-    // Could ping the Flask MT5 service endpoint
-    const mt5ServiceUrl = process.env['MT5_SERVICE_URL'];
+    // Check PostgreSQL connection
+    const pgConnected = await checkConnection();
 
-    if (!mt5ServiceUrl) {
+    if (!pgConnected) {
+      return {
+        status: 'down',
+        responseTime: Date.now() - start,
+        lastChecked: new Date(),
+        error: 'PostgreSQL connection failed',
+      };
+    }
+
+    // Check data freshness - query latest timestamp from EURUSD M5
+    const syncStatus = await query<{ last_sync: Date }>(
+      `SELECT MAX(timestamp) as last_sync FROM eurusd_m5`
+    );
+
+    const lastSync = syncStatus[0]?.last_sync;
+    if (!lastSync) {
       return {
         status: 'degraded',
         responseTime: Date.now() - start,
         lastChecked: new Date(),
-        error: 'MT5_SERVICE_URL not configured',
+        error: 'No indicator data found in database',
       };
     }
 
-    // For now, return healthy status
+    // Check if data is stale (more than 60 seconds old)
+    const lastSyncAge = Date.now() - new Date(lastSync).getTime();
+    const isStale = lastSyncAge > 60000; // 60 seconds
+
     return {
-      status: 'healthy',
+      status: isStale ? 'degraded' : 'healthy',
       responseTime: Date.now() - start,
       lastChecked: new Date(),
+      error: isStale
+        ? `Data is ${Math.floor(lastSyncAge / 1000)}s old (threshold: 60s)`
+        : undefined,
     };
   } catch (error) {
-    console.error('MT5 service health check failed:', error);
+    console.error('Data service health check failed:', error);
     return {
       status: 'down',
       lastChecked: new Date(),
@@ -202,17 +224,17 @@ async function getTierMetrics(tier: 'FREE' | 'PRO'): Promise<TierMetrics> {
  * Performs health checks on all system components:
  * - Database (PostgreSQL via Prisma)
  * - Redis (for caching/sessions)
- * - MT5 Service (Flask trading service)
+ * - Data Service (Part 20 PostgreSQL + sync freshness)
  * - WebSocket (real-time notifications)
  *
  * Also collects tier-specific metrics for FREE and PRO users.
  */
 export async function getSystemHealth(): Promise<SystemHealth> {
   // Run all health checks in parallel
-  const [database, redis, mt5Service, websocket] = await Promise.all([
+  const [database, redis, dataService, websocket] = await Promise.all([
     checkDatabase(),
     checkRedis(),
-    checkMT5Service(),
+    checkDataService(),
     checkWebSocket(),
   ]);
 
@@ -223,7 +245,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   ]);
 
   // Determine overall system status
-  const checks = { database, redis, mt5Service, websocket };
+  const checks = { database, redis, dataService, websocket };
   const statuses = Object.values(checks).map((c) => c.status);
 
   let status: HealthStatus = 'healthy';

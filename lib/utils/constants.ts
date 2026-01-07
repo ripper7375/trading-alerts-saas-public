@@ -232,15 +232,21 @@ export const HTTP_STATUS = {
 
 /**
  * Environment variables (for reference)
+ * Part 20: Updated to reflect PostgreSQL/Redis architecture
  */
 export const ENV_VARS = {
-  required: ['DATABASE_URL', 'NEXTAUTH_URL', 'NEXTAUTH_SECRET', 'REDIS_URL'],
+  required: [
+    'DATABASE_URL',
+    'NEXTAUTH_URL',
+    'NEXTAUTH_SECRET',
+    'REDIS_URL',
+    'POSTGRESQL_URI',
+  ],
   optional: [
     'RESEND_API_KEY',
     'STRIPE_SECRET_KEY',
     'STRIPE_WEBHOOK_SECRET',
-    'MT5_API_URL',
-    'MT5_API_KEY',
+    'ADMIN_API_KEY',
     'SENTRY_DSN',
   ],
 } as const;
