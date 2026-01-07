@@ -31,12 +31,26 @@ This revised version addresses **12 critical gaps** identified in the risk valid
 
 ## Usage Instructions
 
-1. Start a fresh Claude Code (web) chat
-2. Attach these 3 documents:
+### For Claude Code (Web or CLI):
+1. Start a fresh Claude Code session
+2. Attach/provide access to these 3 documents:
    - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
    - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
    - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
 3. Copy and paste the prompt below
+
+### For Antigravity (Google AI Agent):
+1. Start a new Antigravity session in your local repository directory
+2. Ensure Antigravity has access to the repository and can read:
+   - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
+   - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
+   - `docs/sqlite-and-mt5service/part-20-sqlite-sync-postgresql-openapi.yaml`
+3. Give Antigravity the prompt below
+
+### For Other AI Coding Agents:
+1. Start a session with file system access to this repository
+2. Ensure the agent can read the 3 documents listed above
+3. Provide the prompt below
 
 ---
 
