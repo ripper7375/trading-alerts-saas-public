@@ -72,6 +72,37 @@ Please refer to the attached documents:
 - `part-20-implementation-plan.md` - Phase 9 details
 - `part-20-sqlite-sync-postgresql-openapi.yaml` - API specification
 
+## Important Instructions for AI Agents
+
+**If you are an AI coding agent (Antigravity, Claude Code, Cursor, etc.), read this first:**
+
+1. **Deployment Scripts (Part B):**
+   - YES, create ALL deployment scripts exactly as shown, including infrastructure-specific commands (Contabo VPS SSH, Railway URLs, psql commands, etc.)
+   - These are TEMPLATES meant to be adapted later for specific environments
+   - Do NOT skip or modify infrastructure-specific commands - include them as-is
+   - Scripts to create: `deploy-part20.sh`, `rollback-to-part6.sh`, and related documentation
+
+2. **CI/CD Updates (Step A9):**
+   - `.github/workflows/ci-flask.yml`: DELETE this entire file
+   - `.github/workflows/deploy.yml`: KEEP the file structure, but REMOVE Flask deployment steps and ADD Part 20 infrastructure verification steps (shown in Step A9.3)
+   - `.github/workflows/dependencies-security.yml`: KEEP the file, REMOVE Flask security scan section, ADD PostgreSQL/Redis connection checks
+   - `.github/workflows/test.yml`: UPDATE to use PostgreSQL/Redis services instead of Flask mocks
+
+3. **Architecture:**
+   - Part 20 implementation (Phases 0-8) already exists in the codebase
+   - This phase migrates FROM Flask (Part 6) TO Part 20 PostgreSQL architecture
+   - API routes may already be using Part 20 - that's expected and correct
+
+4. **File Operations:**
+   - Archive (don't delete): `mt5-service/` directory → move to `archive/part6-flask-mt5/`
+   - Delete: `lib/api/mt5-client.ts`, `lib/api/mt5-transform.ts`
+   - Update: `lib/jobs/alert-checker.ts`, `lib/monitoring/system-monitor.ts`
+
+5. **Expected Questions:**
+   - "Should I create scripts with infrastructure-specific commands?" → YES
+   - "Should I remove the entire deploy.yml?" → NO, update it (keep structure, change steps)
+   - "API routes already use Part 20?" → CORRECT, focus on alert-checker and system-monitor
+
 ## Prerequisites
 - Phases 1-8 completed with all tests passing
 - Production PostgreSQL on Railway ready
@@ -521,15 +552,16 @@ echo "✅ Flask CI workflow removed"
 
 **File:** `.github/workflows/deploy.yml`
 
-```yaml
-# REMOVE Flask deployment:
-# - name: Build and Deploy Flask MT5 Service
-#   run: |
-#     cd mt5-service
-#     docker build -t mt5-service .
-#     docker push $DOCKER_REGISTRY/mt5-service:latest
+**Instructions:**
+1. FIND any steps that deploy Flask/MT5 service (look for "mt5-service", "Flask", Docker build for backend)
+2. REMOVE those Flask deployment steps
+3. ADD the Part 20 infrastructure verification steps below
 
-# UPDATE to verify Part 20 infrastructure:
+**If no Flask deployment steps exist, just ADD the verification steps.**
+
+**Add these steps to your deploy.yml:**
+
+```yaml
 - name: Verify Part 20 Infrastructure
   env:
     POSTGRESQL_URI: ${{ secrets.POSTGRESQL_URI }}
@@ -548,6 +580,16 @@ echo "✅ Flask CI workflow removed"
     POSTGRESQL_URI: ${{ secrets.POSTGRESQL_URI }}
   run: |
     npm run db:migrate
+```
+
+**Example of what to remove (if present):**
+```yaml
+# If you see something like this, REMOVE it:
+# - name: Build and Deploy Flask MT5 Service
+#   run: |
+#     cd mt5-service
+#     docker build -t mt5-service .
+#     docker push $DOCKER_REGISTRY/mt5-service:latest
 ```
 
 #### 4. Update Test Workflow
