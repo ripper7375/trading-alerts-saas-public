@@ -38,7 +38,7 @@ Create E2E tests for Part 20 critical paths.
 
 ## Files to Create
 
-### 1. `playwright.config.ts` (update if needed)
+### 1. `e2e/playwright.config.ts` (update if needed)
 Configure Playwright:
 - Base URL for local dev
 - Test directory: e2e/
