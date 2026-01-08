@@ -3,6 +3,10 @@ Sync Script Configuration
 Part 20 - Trading Alerts SaaS
 
 Configuration settings for SQLite to PostgreSQL synchronization.
+
+IMPORTANT FIXES:
+- Symbols changed to lowercase to match DataCollector.mq5 table names
+- Timeframes changed to lowercase to match PostgreSQL table naming
 """
 
 import os
@@ -13,35 +17,38 @@ SQLITE_PATH: str = os.getenv("SQLITE_PATH", "C:\\MT5Data\\trading_data.db")
 POSTGRESQL_URI: str = os.getenv("POSTGRESQL_URI", "")
 
 # Supported trading symbols (15 total)
+# IMPORTANT: Must match table names in SQLite created by DataCollector.mq5
+# DataCollector.mq5 creates lowercase table names (e.g., "eurusd")
 SYMBOLS: List[str] = [
-    "AUDJPY",
-    "AUDUSD",
-    "BTCUSD",
-    "ETHUSD",
-    "EURUSD",
-    "GBPJPY",
-    "GBPUSD",
-    "NDX100",
-    "NZDUSD",
-    "US30",
-    "USDCAD",
-    "USDCHF",
-    "USDJPY",
-    "XAGUSD",
-    "XAUUSD",
+    "audjpy",
+    "audusd",
+    "btcusd",
+    "ethusd",
+    "eurusd",
+    "gbpjpy",
+    "gbpusd",
+    "ndx100",
+    "nzdusd",
+    "us30",
+    "usdcad",
+    "usdchf",
+    "usdjpy",
+    "xagusd",
+    "xauusd",
 ]
 
 # Supported timeframes (9 total)
+# IMPORTANT: Must match PostgreSQL table naming convention (lowercase)
 TIMEFRAMES: List[str] = [
-    "M5",
-    "M15",
-    "M30",
-    "H1",
-    "H2",
-    "H4",
-    "H8",
-    "H12",
-    "D1",
+    "m5",
+    "m15",
+    "m30",
+    "h1",
+    "h2",
+    "h4",
+    "h8",
+    "h12",
+    "d1",
 ]
 
 # Sync settings
