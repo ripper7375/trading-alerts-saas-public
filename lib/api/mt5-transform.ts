@@ -20,7 +20,7 @@ import type {
   ZigZagData,
   MomentumCandleType,
 } from '@/types/indicator';
-import type { UserTier } from '@/types/tier';
+import type { Tier } from '@/types/tier';
 
 // ============================================================================
 // Type Guards
@@ -37,12 +37,13 @@ export function isValidMomentumCandle(candle: unknown): candle is MomentumCandle
   const c = candle as Record<string, unknown>;
 
   // Check required fields exist and are numbers
-  if (typeof c.index !== 'number') return false;
-  if (typeof c.type !== 'number') return false;
-  if (typeof c.zscore !== 'number') return false;
+  if (typeof c['index'] !== 'number') return false;
+  if (typeof c['type'] !== 'number') return false;
+  if (typeof c['zscore'] !== 'number') return false;
 
   // Validate type is in valid range (0-5)
-  if (c.type < 0 || c.type > 5) return false;
+  const typeVal = c['type'] as number;
+  if (typeVal < 0 || typeVal > 5) return false;
 
   return true;
 }
@@ -58,10 +59,10 @@ export function isValidProIndicatorData(data: unknown): data is ProIndicatorData
   const d = data as Record<string, unknown>;
 
   // Check required arrays exist
-  if (!Array.isArray(d.momentumCandles)) return false;
-  if (!Array.isArray(d.tema)) return false;
-  if (!Array.isArray(d.hrma)) return false;
-  if (!Array.isArray(d.smma)) return false;
+  if (!Array.isArray(d['momentumCandles'])) return false;
+  if (!Array.isArray(d['tema'])) return false;
+  if (!Array.isArray(d['hrma'])) return false;
+  if (!Array.isArray(d['smma'])) return false;
 
   return true;
 }
@@ -180,7 +181,7 @@ function transformZigZag(
  */
 export function transformProIndicators(
   mt5Data: MT5ProIndicators | undefined,
-  tier: UserTier
+  tier: Tier
 ): ProIndicatorData {
   // FREE tier doesn't get PRO indicators
   if (tier === 'FREE') {

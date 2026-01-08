@@ -8,14 +8,14 @@
  * Part 7: Indicators API - PRO Indicators Implementation
  */
 
-import type { Timeframe, UserTier } from '@/types/tier';
+import type { Timeframe, Tier } from '@/types/tier';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const MT5_SERVICE_BASE_URL =
-  process.env.MT5_SERVICE_URL || 'http://localhost:5000';
+  process.env['MT5_SERVICE_URL'] || 'http://localhost:5000';
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const DEFAULT_BARS = 1000;
 const MAX_RETRIES = 3;
@@ -47,13 +47,13 @@ export class MT5ServiceError extends Error {
  * Error thrown when user's tier doesn't have access to requested data
  */
 export class MT5AccessDeniedError extends Error {
-  tier: UserTier;
+  tier: Tier;
   accessibleSymbols?: string[];
   accessibleTimeframes?: string[];
 
   constructor(
     message: string,
-    tier: UserTier,
+    tier: Tier,
     accessibleSymbols?: string[],
     accessibleTimeframes?: string[]
   ) {
@@ -90,13 +90,13 @@ export interface MT5HealthResponse {
 
 export interface MT5SymbolsResponse {
   success: boolean;
-  tier: UserTier;
+  tier: Tier;
   symbols: string[];
 }
 
 export interface MT5TimeframesResponse {
   success: boolean;
-  tier: UserTier;
+  tier: Tier;
   timeframes: Timeframe[];
 }
 
@@ -165,7 +165,7 @@ export interface FractalsData {
 export interface IndicatorMetadata {
   symbol: string;
   timeframe: Timeframe;
-  tier: UserTier;
+  tier: Tier;
   bars_returned: number;
 }
 
@@ -292,7 +292,7 @@ export async function checkMT5Health(): Promise<MT5HealthResponse> {
  * Get available symbols for a tier
  */
 export async function getMT5Symbols(
-  tier: UserTier
+  tier: Tier
 ): Promise<MT5SymbolsResponse> {
   const url = `${MT5_SERVICE_BASE_URL}/api/symbols`;
 
@@ -320,7 +320,7 @@ export async function getMT5Symbols(
  * Get available timeframes for a tier
  */
 export async function getMT5Timeframes(
-  tier: UserTier
+  tier: Tier
 ): Promise<MT5TimeframesResponse> {
   const url = `${MT5_SERVICE_BASE_URL}/api/timeframes`;
 
@@ -350,7 +350,7 @@ export async function getMT5Timeframes(
 export async function fetchIndicatorData(
   symbol: string,
   timeframe: Timeframe,
-  tier: UserTier,
+  tier: Tier,
   bars: number = DEFAULT_BARS
 ): Promise<MT5IndicatorData> {
   const url = `${MT5_SERVICE_BASE_URL}/api/indicators/${symbol}/${timeframe}?bars=${bars}`;
