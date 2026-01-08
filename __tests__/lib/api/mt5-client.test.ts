@@ -1,823 +1,295 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+/**
+ * PostgreSQL Client Tests (Part 20)
+ *
+ * Tests for lib/db/postgresql.ts
+ * Replaced Part 6 Flask MT5 client tests.
+ *
+ * Part 20 Migration: Direct PostgreSQL access instead of Flask MT5 API.
+ */
 
-import {
-  MT5ServiceError,
-  MT5AccessDeniedError,
-  checkMT5Health,
-  getMT5Symbols,
-  getMT5Timeframes,
-  fetchIndicatorData,
-  isMT5ServiceAvailable,
-} from '@/lib/api/mt5-client';
+// Mock pg module before importing postgresql
+const mockQuery = jest.fn();
+const mockRelease = jest.fn();
+const mockConnect = jest.fn();
+const mockEnd = jest.fn();
 
-// Store original fetch
-const originalFetch = global.fetch;
+jest.mock('pg', () => ({
+  Pool: jest.fn().mockImplementation(() => ({
+    connect: mockConnect,
+    end: mockEnd,
+  })),
+}));
 
-// Mock fetch for testing
-const mockFetch = jest.fn();
+// Reset module cache to ensure fresh import with mocks
+beforeEach(() => {
+  jest.resetModules();
+  mockConnect.mockReset();
+  mockQuery.mockReset();
+  mockRelease.mockReset();
+  mockEnd.mockReset();
 
-describe('MT5 Client - Error Classes', () => {
-  describe('MT5ServiceError', () => {
-    it('should create error with message and status code', () => {
-      const error = new MT5ServiceError('Service unavailable', 503);
-      expect(error.message).toBe('Service unavailable');
-      expect(error.statusCode).toBe(503);
-      expect(error.name).toBe('MT5ServiceError');
+  // Default mock implementation
+  mockConnect.mockResolvedValue({
+    query: mockQuery,
+    release: mockRelease,
+  });
+});
+
+describe('PostgreSQL Client - Part 20', () => {
+  describe('query function', () => {
+    it('should execute a query and return rows', async () => {
+      const mockRows = [
+        { id: 1, close: 1950.5 },
+        { id: 2, close: 1951.0 },
+      ];
+      mockQuery.mockResolvedValue({ rows: mockRows });
+
+      const { query } = await import('@/lib/db/postgresql');
+      const result = await query<{ id: number; close: number }>(
+        'SELECT * FROM xauusd_m5'
+      );
+
+      expect(result).toEqual(mockRows);
+      expect(mockConnect).toHaveBeenCalled();
+      expect(mockRelease).toHaveBeenCalled();
     });
 
-    it('should create error with response body', () => {
-      const responseBody = { detail: 'Rate limit exceeded' };
-      const error = new MT5ServiceError('Too many requests', 429, responseBody);
-      expect(error.statusCode).toBe(429);
-      expect(error.responseBody).toEqual(responseBody);
+    it('should pass parameters to query', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      const { query } = await import('@/lib/db/postgresql');
+      await query('SELECT * FROM xauusd_m5 WHERE close > $1', [1900]);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        'SELECT * FROM xauusd_m5 WHERE close > $1',
+        [1900]
+      );
     });
 
-    it('should be instance of Error', () => {
-      const error = new MT5ServiceError('Test error', 500);
-      expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(MT5ServiceError);
+    it('should release client even on error', async () => {
+      mockQuery.mockRejectedValue(new Error('Query failed'));
+
+      const { query } = await import('@/lib/db/postgresql');
+
+      await expect(query('SELECT * FROM invalid')).rejects.toThrow(
+        'Query failed'
+      );
+      expect(mockRelease).toHaveBeenCalled();
     });
 
-    it('should handle undefined response body', () => {
-      const error = new MT5ServiceError('No body', 404);
-      expect(error.responseBody).toBeUndefined();
-    });
+    it('should return empty array for no results', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
 
-    it('should preserve stack trace', () => {
-      const error = new MT5ServiceError('Stack test', 500);
-      expect(error.stack).toBeDefined();
-      expect(error.stack).toContain('MT5ServiceError');
+      const { query } = await import('@/lib/db/postgresql');
+      const result = await query('SELECT * FROM xauusd_m5 LIMIT 0');
+
+      expect(result).toEqual([]);
     });
   });
 
-  describe('MT5AccessDeniedError', () => {
-    it('should create error with tier information', () => {
-      const error = new MT5AccessDeniedError('Access denied', 'FREE');
-      expect(error.message).toBe('Access denied');
-      expect(error.tier).toBe('FREE');
-      expect(error.name).toBe('MT5AccessDeniedError');
+  describe('checkConnection function', () => {
+    it('should return true when connection is successful', async () => {
+      mockQuery.mockResolvedValue({ rows: [{ '?column?': 1 }] });
+
+      const { checkConnection } = await import('@/lib/db/postgresql');
+      const result = await checkConnection();
+
+      expect(result).toBe(true);
     });
 
-    it('should include accessible symbols and timeframes', () => {
-      const error = new MT5AccessDeniedError(
-        'Symbol not available',
-        'FREE',
-        ['BTCUSD', 'EURUSD', 'XAUUSD'],
-        ['H1', 'H4', 'D1']
+    it('should return false when connection fails', async () => {
+      mockConnect.mockRejectedValue(new Error('Connection refused'));
+
+      const { checkConnection } = await import('@/lib/db/postgresql');
+      const result = await checkConnection();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when query fails', async () => {
+      mockQuery.mockRejectedValue(new Error('Query error'));
+
+      const { checkConnection } = await import('@/lib/db/postgresql');
+      const result = await checkConnection();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getClient function', () => {
+    it('should return a pool client', async () => {
+      const mockClient = { query: mockQuery, release: mockRelease };
+      mockConnect.mockResolvedValue(mockClient);
+
+      const { getClient } = await import('@/lib/db/postgresql');
+      const client = await getClient();
+
+      expect(client).toBe(mockClient);
+      expect(mockConnect).toHaveBeenCalled();
+    });
+  });
+
+  describe('getPool function', () => {
+    it('should return the pool instance', async () => {
+      const { getPool } = await import('@/lib/db/postgresql');
+      const pool = getPool();
+
+      expect(pool).toBeDefined();
+      expect(pool.connect).toBeDefined();
+    });
+
+    it('should return same pool instance on multiple calls', async () => {
+      const { getPool } = await import('@/lib/db/postgresql');
+      const pool1 = getPool();
+      const pool2 = getPool();
+
+      expect(pool1).toBe(pool2);
+    });
+  });
+
+  describe('connection pooling', () => {
+    it('should reuse connections from pool', async () => {
+      mockQuery.mockResolvedValue({ rows: [] });
+
+      const { query } = await import('@/lib/db/postgresql');
+
+      // Multiple queries should reuse the pool
+      await query('SELECT 1');
+      await query('SELECT 2');
+      await query('SELECT 3');
+
+      // Connect should be called for each query (pool gives out connections)
+      expect(mockConnect).toHaveBeenCalledTimes(3);
+      // Each connection should be released back to pool
+      expect(mockRelease).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle connection timeout', async () => {
+      mockConnect.mockRejectedValue(new Error('Connection timeout'));
+
+      const { query } = await import('@/lib/db/postgresql');
+
+      await expect(query('SELECT 1')).rejects.toThrow('Connection timeout');
+    });
+
+    it('should handle invalid SQL syntax', async () => {
+      mockQuery.mockRejectedValue(
+        new Error('syntax error at or near "SELEC"')
       );
-      expect(error.tier).toBe('FREE');
-      expect(error.accessibleSymbols).toEqual(['BTCUSD', 'EURUSD', 'XAUUSD']);
-      expect(error.accessibleTimeframes).toEqual(['H1', 'H4', 'D1']);
+
+      const { query } = await import('@/lib/db/postgresql');
+
+      await expect(query('SELEC * FROM test')).rejects.toThrow('syntax error');
     });
 
-    it('should be instance of Error', () => {
-      const error = new MT5AccessDeniedError('Test', 'PRO');
-      expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(MT5AccessDeniedError);
-    });
-
-    it('should handle PRO tier access denied', () => {
-      const error = new MT5AccessDeniedError(
-        'Rate limit exceeded for PRO tier',
-        'PRO',
-        ['BTCUSD', 'EURUSD', 'GBPUSD'],
-        ['M5', 'M15', 'H1']
+    it('should handle table not found error', async () => {
+      mockQuery.mockRejectedValue(
+        new Error('relation "nonexistent" does not exist')
       );
-      expect(error.tier).toBe('PRO');
-      expect(error.accessibleSymbols).toHaveLength(3);
-      expect(error.accessibleTimeframes).toHaveLength(3);
-    });
 
-    it('should handle undefined accessible lists', () => {
-      const error = new MT5AccessDeniedError('Denied', 'FREE');
-      expect(error.accessibleSymbols).toBeUndefined();
-      expect(error.accessibleTimeframes).toBeUndefined();
-    });
+      const { query } = await import('@/lib/db/postgresql');
 
-    it('should handle empty accessible lists', () => {
-      const error = new MT5AccessDeniedError('Denied', 'FREE', [], []);
-      expect(error.accessibleSymbols).toEqual([]);
-      expect(error.accessibleTimeframes).toEqual([]);
+      await expect(query('SELECT * FROM nonexistent')).rejects.toThrow(
+        'does not exist'
+      );
     });
   });
 });
 
-describe('MT5 Client - API Functions', () => {
+describe('PostgreSQL Client - Integration Patterns', () => {
   beforeEach(() => {
-    global.fetch = mockFetch as unknown as typeof fetch;
-    mockFetch.mockReset();
+    mockConnect.mockResolvedValue({
+      query: mockQuery,
+      release: mockRelease,
+    });
   });
 
-  afterEach(() => {
-    global.fetch = originalFetch;
-  });
-
-  describe('checkMT5Health', () => {
-    it('should return health status when service is healthy', async () => {
-      const mockHealth = {
-        status: 'ok',
-        version: '1.0.0',
-        total_terminals: 3,
-        connected_terminals: 3,
-        terminals: {
-          terminal_1: {
-            connected: true,
-            terminal_id: '1',
-            last_check: '2025-12-15T00:00:00Z',
-          },
+  describe('OHLC data queries', () => {
+    it('should query latest price data', async () => {
+      const mockData = [
+        {
+          timestamp: new Date('2025-12-15T10:00:00Z'),
+          close: 1950.5,
         },
-      };
+      ];
+      mockQuery.mockResolvedValue({ rows: mockData });
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockHealth,
-      });
-
-      const result = await checkMT5Health();
-
-      expect(result.status).toBe('ok');
-      expect(result.version).toBe('1.0.0');
-      expect(result.total_terminals).toBe(3);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/health'),
-        expect.objectContaining({ method: 'GET' })
+      const { query } = await import('@/lib/db/postgresql');
+      const result = await query<{ timestamp: Date; close: number }>(
+        'SELECT timestamp, close FROM xauusd_m5 ORDER BY timestamp DESC LIMIT 1'
       );
+
+      expect(result[0]?.close).toBe(1950.5);
     });
 
-    it('should handle degraded status', async () => {
-      const mockHealth = {
-        status: 'degraded',
-        version: '1.0.0',
-        total_terminals: 3,
-        connected_terminals: 2,
-        terminals: {},
-      };
+    it('should query OHLC data with limit', async () => {
+      const mockData = Array.from({ length: 100 }, (_, i) => ({
+        timestamp: new Date(Date.now() - i * 300000),
+        open: 1950 + i * 0.1,
+        high: 1951 + i * 0.1,
+        low: 1949 + i * 0.1,
+        close: 1950.5 + i * 0.1,
+      }));
+      mockQuery.mockResolvedValue({ rows: mockData });
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockHealth,
-      });
+      const { query } = await import('@/lib/db/postgresql');
+      const result = await query(
+        'SELECT timestamp, open, high, low, close FROM xauusd_m5 ORDER BY timestamp DESC LIMIT $1',
+        [100]
+      );
 
-      const result = await checkMT5Health();
-
-      expect(result.status).toBe('degraded');
-      expect(result.connected_terminals).toBe(2);
+      expect(result).toHaveLength(100);
     });
   });
 
-  describe('getMT5Symbols', () => {
-    it('should return symbols for FREE tier', async () => {
-      const mockResponse = {
-        success: true,
-        tier: 'FREE',
-        symbols: ['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD'],
-      };
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await getMT5Symbols('FREE');
-
-      expect(result.success).toBe(true);
-      expect(result.tier).toBe('FREE');
-      expect(result.symbols).toHaveLength(5);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/symbols'),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-User-Tier': 'FREE',
-          }),
-        })
-      );
-    });
-
-    it('should return symbols for PRO tier', async () => {
-      const mockResponse = {
-        success: true,
-        tier: 'PRO',
-        symbols: ['BTCUSD', 'EURUSD', 'GBPUSD', 'ETHUSD', 'XAUUSD'],
-      };
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await getMT5Symbols('PRO');
-
-      expect(result.tier).toBe('PRO');
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-User-Tier': 'PRO',
-          }),
-        })
-      );
-    });
-  });
-
-  describe('getMT5Timeframes', () => {
-    it('should return timeframes for FREE tier', async () => {
-      const mockResponse = {
-        success: true,
-        tier: 'FREE',
-        timeframes: ['H1', 'H4', 'D1'],
-      };
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await getMT5Timeframes('FREE');
-
-      expect(result.success).toBe(true);
-      expect(result.tier).toBe('FREE');
-      expect(result.timeframes).toHaveLength(3);
-    });
-
-    it('should return timeframes for PRO tier', async () => {
-      const mockResponse = {
-        success: true,
-        tier: 'PRO',
-        timeframes: ['M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'H12', 'D1'],
-      };
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const result = await getMT5Timeframes('PRO');
-
-      expect(result.tier).toBe('PRO');
-      expect(result.timeframes).toHaveLength(9);
-    });
-  });
-
-  describe('fetchIndicatorData', () => {
-    const mockIndicatorData = {
-      success: true,
-      data: {
-        ohlc: [
-          {
-            time: 1702600800,
-            open: 2020.5,
-            high: 2025.0,
-            low: 2018.0,
-            close: 2023.5,
-            volume: 1000,
-          },
-        ],
-        horizontal: {
-          peak_1: [],
-          peak_2: [],
-          peak_3: [],
-          bottom_1: [],
-          bottom_2: [],
-          bottom_3: [],
+  describe('indicator data queries', () => {
+    it('should query indicator data with JSONB columns', async () => {
+      const mockData = [
+        {
+          timestamp: new Date(),
+          close: 1950.5,
+          fractals: { peaks: [{ price: 1955 }], bottoms: [{ price: 1945 }] },
+          tema: 1950.2,
         },
-        diagonal: {
-          ascending_1: [],
-          ascending_2: [],
-          ascending_3: [],
-          descending_1: [],
-          descending_2: [],
-          descending_3: [],
-        },
-        fractals: { peaks: [], bottoms: [] },
-        metadata: {
-          symbol: 'XAUUSD',
-          timeframe: 'H1',
-          tier: 'FREE',
-          bars_returned: 1,
-        },
-      },
-    };
+      ];
+      mockQuery.mockResolvedValue({ rows: mockData });
 
-    it('should fetch indicator data successfully', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockIndicatorData,
-      });
+      const { query } = await import('@/lib/db/postgresql');
+      const result = await query<{
+        timestamp: Date;
+        close: number;
+        fractals: { peaks: Array<{ price: number }>; bottoms: Array<{ price: number }> };
+        tema: number;
+      }>('SELECT timestamp, close, fractals, tema FROM xauusd_h1 LIMIT 1');
 
-      const result = await fetchIndicatorData('XAUUSD', 'H1', 'FREE', 500);
-
-      expect(result.ohlc).toHaveLength(1);
-      expect(result.metadata.symbol).toBe('XAUUSD');
-      expect(result.metadata.timeframe).toBe('H1');
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/indicators/XAUUSD/H1'),
-        expect.anything()
-      );
-    });
-
-    it('should include bars parameter in request', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockIndicatorData,
-      });
-
-      await fetchIndicatorData('EURUSD', 'H4', 'PRO', 1000);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('bars=1000'),
-        expect.anything()
-      );
-    });
-
-    it('should throw MT5AccessDeniedError for tier restrictions', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 403,
-        json: async () => ({
-          error: 'Symbol not available for FREE tier',
-          upgrade_required: true,
-          tier: 'FREE',
-          accessible_symbols: ['BTCUSD', 'EURUSD'],
-          accessible_timeframes: ['H1', 'H4', 'D1'],
-        }),
-      });
-
-      await expect(fetchIndicatorData('GBPUSD', 'H1', 'FREE')).rejects.toThrow(
-        MT5AccessDeniedError
-      );
-    });
-
-    it('should throw MT5ServiceError for server errors', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: async () => ({
-          error: 'Internal server error',
-        }),
-      });
-
-      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
-        MT5ServiceError
-      );
-    });
-
-    it('should throw when response success is false', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: false,
-          error: 'Failed to fetch data',
-        }),
-      });
-
-      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
-        MT5ServiceError
-      );
+      expect(result[0]?.fractals.peaks[0]?.price).toBe(1955);
+      expect(result[0]?.tema).toBe(1950.2);
     });
   });
 
-  describe('isMT5ServiceAvailable', () => {
-    it('should return true when service is healthy', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'ok',
-          version: '1.0.0',
-          total_terminals: 1,
-          connected_terminals: 1,
-          terminals: {},
-        }),
+  describe('concurrent queries', () => {
+    it('should handle multiple concurrent queries', async () => {
+      mockQuery.mockImplementation((sql: string) => {
+        if (sql.includes('xauusd')) {
+          return Promise.resolve({ rows: [{ close: 1950 }] });
+        }
+        if (sql.includes('eurusd')) {
+          return Promise.resolve({ rows: [{ close: 1.08 }] });
+        }
+        return Promise.resolve({ rows: [] });
       });
 
-      const result = await isMT5ServiceAvailable();
+      const { query } = await import('@/lib/db/postgresql');
 
-      expect(result).toBe(true);
-    });
+      const [gold, euro] = await Promise.all([
+        query<{ close: number }>('SELECT close FROM xauusd_m5 LIMIT 1'),
+        query<{ close: number }>('SELECT close FROM eurusd_m5 LIMIT 1'),
+      ]);
 
-    it('should return true when service is degraded', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'degraded',
-          version: '1.0.0',
-          total_terminals: 2,
-          connected_terminals: 1,
-          terminals: {},
-        }),
-      });
-
-      const result = await isMT5ServiceAvailable();
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false when service status is error', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'error',
-          version: '1.0.0',
-          total_terminals: 1,
-          connected_terminals: 0,
-          terminals: {},
-        }),
-      });
-
-      const result = await isMT5ServiceAvailable();
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false when fetch throws', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
-
-      const result = await isMT5ServiceAvailable();
-
-      expect(result).toBe(false);
-    });
-  });
-
-  // ============================================================================
-  // Edge Cases - Timeout Handling
-  // ============================================================================
-  describe('timeout handling', () => {
-    it('should handle AbortError from aborted requests', async () => {
-      const abortError = new Error('Aborted');
-      abortError.name = 'AbortError';
-      mockFetch.mockRejectedValue(abortError);
-
-      // Should fail after max retries
-      await expect(checkMT5Health()).rejects.toThrow();
-    });
-
-    it('should clear timeout on successful response', async () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'ok',
-          version: '1.0.0',
-          total_terminals: 1,
-          connected_terminals: 1,
-          terminals: {},
-        }),
-      });
-
-      await checkMT5Health();
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-      clearTimeoutSpy.mockRestore();
-    });
-  });
-
-  // ============================================================================
-  // Edge Cases - Retry Logic
-  // ============================================================================
-  describe('retry logic', () => {
-    it('should not retry for 4xx client errors', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 400,
-        json: async () => ({ error: 'Bad request' }),
-      });
-
-      await expect(getMT5Symbols('FREE')).rejects.toThrow(MT5ServiceError);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not retry for 401 unauthorized', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 401,
-        json: async () => ({ error: 'Unauthorized' }),
-      });
-
-      await expect(getMT5Timeframes('FREE')).rejects.toThrow(MT5ServiceError);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not retry for 404 not found', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 404,
-        json: async () => ({ error: 'Symbol not found' }),
-      });
-
-      await expect(fetchIndicatorData('INVALID', 'H1', 'FREE')).rejects.toThrow(
-        MT5ServiceError
-      );
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not retry for access denied errors', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 403,
-        json: async () => ({
-          error: 'Access denied',
-          upgrade_required: true,
-          tier: 'FREE',
-        }),
-      });
-
-      await expect(fetchIndicatorData('GBPJPY', 'M5', 'FREE')).rejects.toThrow(
-        MT5AccessDeniedError
-      );
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  // ============================================================================
-  // Edge Cases - Response Handling
-  // ============================================================================
-  describe('response handling edge cases', () => {
-    it('should handle empty OHLC data', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            ohlc: [],
-            horizontal: {
-              peak_1: [],
-              peak_2: [],
-              peak_3: [],
-              bottom_1: [],
-              bottom_2: [],
-              bottom_3: [],
-            },
-            diagonal: {
-              ascending_1: [],
-              ascending_2: [],
-              ascending_3: [],
-              descending_1: [],
-              descending_2: [],
-              descending_3: [],
-            },
-            fractals: { peaks: [], bottoms: [] },
-            metadata: {
-              symbol: 'XAUUSD',
-              timeframe: 'H1',
-              tier: 'FREE',
-              bars_returned: 0,
-            },
-          },
-        }),
-      });
-
-      const result = await fetchIndicatorData('XAUUSD', 'H1', 'FREE');
-      expect(result.ohlc).toEqual([]);
-      expect(result.metadata.bars_returned).toBe(0);
-    });
-
-    it('should handle missing data in success response', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          // data is undefined
-        }),
-      });
-
-      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
-        MT5ServiceError
-      );
-    });
-
-    it('should handle null response data', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: null,
-        }),
-      });
-
-      await expect(fetchIndicatorData('XAUUSD', 'H1', 'FREE')).rejects.toThrow(
-        MT5ServiceError
-      );
-    });
-
-    it('should use default error message when none provided', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        json: async () => ({}), // No error field
-      });
-
-      try {
-        await getMT5Symbols('FREE');
-      } catch (error) {
-        expect(error).toBeInstanceOf(MT5ServiceError);
-        expect((error as MT5ServiceError).message).toContain('500');
-      }
-    });
-
-    it('should handle missing error in success false response', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: false,
-          // No error field
-        }),
-      });
-
-      try {
-        await fetchIndicatorData('XAUUSD', 'H1', 'FREE');
-      } catch (error) {
-        expect(error).toBeInstanceOf(MT5ServiceError);
-        expect((error as MT5ServiceError).message).toContain('Failed to fetch');
-      }
-    });
-  });
-
-  // ============================================================================
-  // Edge Cases - Headers and Authentication
-  // ============================================================================
-  describe('headers and authentication', () => {
-    it('should include Content-Type header', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          tier: 'FREE',
-          symbols: [],
-        }),
-      });
-
-      await getMT5Symbols('FREE');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-        })
-      );
-    });
-
-    it('should set X-User-Tier header for PRO', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          tier: 'PRO',
-          timeframes: ['M5', 'M15'],
-        }),
-      });
-
-      await getMT5Timeframes('PRO');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-User-Tier': 'PRO',
-          }),
-        })
-      );
-    });
-  });
-
-  // ============================================================================
-  // Edge Cases - URL Construction
-  // ============================================================================
-  describe('URL construction', () => {
-    it('should construct correct indicator URL with all params', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            ohlc: [],
-            horizontal: {
-              peak_1: [],
-              peak_2: [],
-              peak_3: [],
-              bottom_1: [],
-              bottom_2: [],
-              bottom_3: [],
-            },
-            diagonal: {
-              ascending_1: [],
-              ascending_2: [],
-              ascending_3: [],
-              descending_1: [],
-              descending_2: [],
-              descending_3: [],
-            },
-            fractals: { peaks: [], bottoms: [] },
-            metadata: {
-              symbol: 'BTCUSD',
-              timeframe: 'M15',
-              tier: 'PRO',
-              bars_returned: 100,
-            },
-          },
-        }),
-      });
-
-      await fetchIndicatorData('BTCUSD', 'M15', 'PRO', 100);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/indicators/BTCUSD/M15?bars=100'),
-        expect.anything()
-      );
-    });
-
-    it('should use default bars count when not specified', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            ohlc: [],
-            horizontal: {
-              peak_1: [],
-              peak_2: [],
-              peak_3: [],
-              bottom_1: [],
-              bottom_2: [],
-              bottom_3: [],
-            },
-            diagonal: {
-              ascending_1: [],
-              ascending_2: [],
-              ascending_3: [],
-              descending_1: [],
-              descending_2: [],
-              descending_3: [],
-            },
-            fractals: { peaks: [], bottoms: [] },
-            metadata: {
-              symbol: 'EURUSD',
-              timeframe: 'H4',
-              tier: 'FREE',
-              bars_returned: 1000,
-            },
-          },
-        }),
-      });
-
-      await fetchIndicatorData('EURUSD', 'H4', 'FREE');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('bars=1000'),
-        expect.anything()
-      );
-    });
-  });
-
-  // ============================================================================
-  // Edge Cases - Health Check Scenarios
-  // ============================================================================
-  describe('health check scenarios', () => {
-    it('should handle health check with no terminals', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'error',
-          version: '1.0.0',
-          total_terminals: 0,
-          connected_terminals: 0,
-          terminals: {},
-        }),
-      });
-
-      const result = await checkMT5Health();
-      expect(result.total_terminals).toBe(0);
-      expect(result.status).toBe('error');
-    });
-
-    it('should handle health check with terminal errors', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 'degraded',
-          version: '1.0.0',
-          total_terminals: 2,
-          connected_terminals: 1,
-          terminals: {
-            terminal_1: {
-              connected: true,
-              terminal_id: '1',
-              last_check: '2025-12-15T00:00:00Z',
-            },
-            terminal_2: {
-              connected: false,
-              terminal_id: '2',
-              last_check: '2025-12-15T00:00:00Z',
-              error: 'Connection timeout',
-            },
-          },
-        }),
-      });
-
-      const result = await checkMT5Health();
-      expect(result.terminals['terminal_2'].error).toBe('Connection timeout');
-      expect(result.terminals['terminal_2'].connected).toBe(false);
+      expect(gold[0]?.close).toBe(1950);
+      expect(euro[0]?.close).toBe(1.08);
     });
   });
 });

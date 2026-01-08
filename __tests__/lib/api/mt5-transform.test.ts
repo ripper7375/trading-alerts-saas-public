@@ -1,344 +1,491 @@
 /**
- * MT5 Transform Layer Tests
+ * Database Query Functions Tests (Part 20)
  *
- * Tests for lib/api/mt5-transform.ts
- * Transformation layer converting Flask JSON → TypeScript types
+ * Tests for lib/db/queries.ts
+ * Replaced Part 6 Flask MT5 transform tests.
  *
- * Part 7: Indicators API - PRO Indicators Implementation
+ * Part 20 Migration: Direct PostgreSQL queries instead of Flask response transformation.
  */
 
-import { describe, it, expect } from '@jest/globals';
+// Mock the postgresql module before imports
+const mockQuery = jest.fn();
 
+jest.mock('@/lib/db/postgresql', () => ({
+  __esModule: true,
+  query: (...args: unknown[]) => mockQuery(...args),
+}));
+
+// Import after mocking
 import {
-  transformProIndicators,
-  createEmptyProIndicatorData,
-  isValidProIndicatorData,
-  isValidMomentumCandle,
-  filterValidMomentumCandles,
-} from '@/lib/api/mt5-transform';
-import type { MT5ProIndicators, MomentumCandleData } from '@/types/indicator';
+  getIndicatorDataFromDb,
+  getDataFreshness,
+  getTableCount,
+} from '@/lib/db/queries';
 
-describe('MT5 Transform Layer', () => {
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // transformProIndicators
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+describe('Database Query Functions - Part 20', () => {
+  beforeEach(() => {
+    mockQuery.mockReset();
+  });
 
-  describe('transformProIndicators', () => {
-    it('should return empty data for FREE tier', () => {
-      const mt5Data: MT5ProIndicators = {
-        momentum_candles: [{ index: 0, type: 1, zscore: 1.5 }],
-        tema: [1.0, 2.0],
-      };
+  describe('getIndicatorDataFromDb', () => {
+    it('should fetch and transform indicator data', async () => {
+      const mockRows = [
+        {
+          timestamp: new Date('2025-12-15T10:00:00Z'),
+          open: 1950.0,
+          high: 1955.0,
+          low: 1948.0,
+          close: 1952.0,
+          fractals: { peaks: [{ price: 1955 }], bottoms: [{ price: 1948 }] },
+          horizontal_trendlines: { support: [], resistance: [] },
+          diagonal_trendlines: { support: [], resistance: [] },
+          momentum_candles: [{ index: 0, type: 1, zscore: 1.5 }],
+          keltner_channels: { upper: [1960], middle: [1950], lower: [1940], timestamps: [] },
+          tema: 1951.5,
+          hrma: 1950.8,
+          smma: 1949.2,
+          zigzag: { points: [] },
+        },
+        {
+          timestamp: new Date('2025-12-15T09:55:00Z'),
+          open: 1948.0,
+          high: 1952.0,
+          low: 1946.0,
+          close: 1950.0,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: 1949.5,
+          hrma: null,
+          smma: 1948.2,
+          zigzag: null,
+        },
+      ];
+      mockQuery.mockResolvedValue(mockRows);
 
-      const result = transformProIndicators(mt5Data, 'FREE');
+      const result = await getIndicatorDataFromDb('XAUUSD', 'H1', 500);
 
-      expect(result.momentumCandles).toEqual([]);
-      expect(result.tema).toEqual([]);
-      expect(result.hrma).toEqual([]);
-      expect(result.smma).toEqual([]);
-      expect(result.keltnerChannels).toBeUndefined();
-      expect(result.zigzag).toBeUndefined();
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT timestamp, open, high, low, close'),
+        [500]
+      );
+      expect(result.ohlc).toHaveLength(2);
+      // Data should be reversed (oldest first)
+      expect(result.ohlc[0]?.close).toBe(1950.0);
+      expect(result.ohlc[1]?.close).toBe(1952.0);
     });
 
-    it('should return empty data when mt5Data is undefined', () => {
-      const result = transformProIndicators(undefined, 'PRO');
+    it('should convert timestamps to Unix time', async () => {
+      const mockRows = [
+        {
+          timestamp: new Date('2025-12-15T10:00:00Z'),
+          open: 1950.0,
+          high: 1955.0,
+          low: 1948.0,
+          close: 1952.0,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: null,
+          hrma: null,
+          smma: null,
+          zigzag: null,
+        },
+      ];
+      mockQuery.mockResolvedValue(mockRows);
 
-      expect(result.momentumCandles).toEqual([]);
-      expect(result.tema).toEqual([]);
-      expect(result.keltnerChannels).toBeUndefined();
+      const result = await getIndicatorDataFromDb('XAUUSD', 'M5');
+
+      const expectedTime = Math.floor(
+        new Date('2025-12-15T10:00:00Z').getTime() / 1000
+      );
+      expect(result.ohlc[0]?.time).toBe(expectedTime);
     });
 
-    it('should transform momentum candles for PRO tier', () => {
-      const mt5Data: MT5ProIndicators = {
-        momentum_candles: [
-          { index: 0, type: 1, zscore: 1.5 },
-          { index: 5, type: 4, zscore: -2.1 },
-        ],
-      };
+    it('should use default limit of 1000', async () => {
+      mockQuery.mockResolvedValue([]);
 
-      const result = transformProIndicators(mt5Data, 'PRO');
+      await getIndicatorDataFromDb('EURUSD', 'H4');
 
-      expect(result.momentumCandles).toHaveLength(2);
-      expect(result.momentumCandles[0]).toEqual({
-        index: 0,
-        type: 1,
-        zscore: 1.5,
+      expect(mockQuery).toHaveBeenCalledWith(expect.any(String), [1000]);
+    });
+
+    it('should throw for invalid symbol', async () => {
+      await expect(getIndicatorDataFromDb('INVALID', 'H1')).rejects.toThrow(
+        'Invalid symbol or timeframe'
+      );
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('should throw for invalid timeframe', async () => {
+      await expect(getIndicatorDataFromDb('XAUUSD', 'W1')).rejects.toThrow(
+        'Invalid symbol or timeframe'
+      );
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('should handle empty result set', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      const result = await getIndicatorDataFromDb('XAUUSD', 'H1');
+
+      expect(result.ohlc).toEqual([]);
+      expect(result.fractals).toEqual({ peaks: [], bottoms: [] });
+      expect(result.tema).toEqual([]);
+    });
+
+    it('should filter null values from moving averages', async () => {
+      const mockRows = [
+        {
+          timestamp: new Date(),
+          open: 1950,
+          high: 1955,
+          low: 1948,
+          close: 1952,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: null,
+          hrma: 1950.5,
+          smma: null,
+          zigzag: null,
+        },
+        {
+          timestamp: new Date(),
+          open: 1948,
+          high: 1952,
+          low: 1946,
+          close: 1950,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: 1949.5,
+          hrma: null,
+          smma: 1948.2,
+          zigzag: null,
+        },
+      ];
+      mockQuery.mockResolvedValue(mockRows);
+
+      const result = await getIndicatorDataFromDb('XAUUSD', 'H1');
+
+      expect(result.tema).toEqual([1949.5]); // Only non-null values
+      expect(result.hrma).toEqual([1950.5]);
+      expect(result.smma).toEqual([1948.2]);
+    });
+
+    it('should flatten momentum candles from all rows', async () => {
+      const mockRows = [
+        {
+          timestamp: new Date(),
+          open: 1950,
+          high: 1955,
+          low: 1948,
+          close: 1952,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: [{ index: 0, type: 1, zscore: 1.5 }],
+          keltner_channels: null,
+          tema: null,
+          hrma: null,
+          smma: null,
+          zigzag: null,
+        },
+        {
+          timestamp: new Date(),
+          open: 1948,
+          high: 1952,
+          low: 1946,
+          close: 1950,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: [{ index: 1, type: 2, zscore: -0.5 }],
+          keltner_channels: null,
+          tema: null,
+          hrma: null,
+          smma: null,
+          zigzag: null,
+        },
+      ];
+      mockQuery.mockResolvedValue(mockRows);
+
+      const result = await getIndicatorDataFromDb('XAUUSD', 'H1');
+
+      expect(result.momentum_candles).toHaveLength(2);
+    });
+
+    it('should use correct table name format', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      await getIndicatorDataFromDb('BTCUSD', 'M15');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('"btcusd_m15"'),
+        expect.any(Array)
+      );
+    });
+
+    it('should handle case-insensitive symbol and timeframe', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      await getIndicatorDataFromDb('xauusd', 'h1');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('"xauusd_h1"'),
+        expect.any(Array)
+      );
+    });
+  });
+
+  describe('getDataFreshness', () => {
+    it('should return latest timestamp', async () => {
+      const latestTimestamp = new Date('2025-12-15T10:00:00Z');
+      mockQuery.mockResolvedValue([{ timestamp: latestTimestamp }]);
+
+      const result = await getDataFreshness('XAUUSD', 'H1');
+
+      expect(result).toEqual(latestTimestamp);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('ORDER BY timestamp DESC LIMIT 1')
+      );
+    });
+
+    it('should return null for empty table', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      const result = await getDataFreshness('XAUUSD', 'H1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw for invalid symbol', async () => {
+      await expect(getDataFreshness('INVALID', 'H1')).rejects.toThrow(
+        'Invalid symbol or timeframe'
+      );
+    });
+
+    it('should throw for invalid timeframe', async () => {
+      await expect(getDataFreshness('XAUUSD', 'M1')).rejects.toThrow(
+        'Invalid symbol or timeframe'
+      );
+    });
+  });
+
+  describe('getTableCount', () => {
+    it('should return count of tables', async () => {
+      mockQuery.mockResolvedValue([{ count: '135' }]);
+
+      const result = await getTableCount();
+
+      expect(result).toBe(135);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('information_schema.tables')
+      );
+    });
+
+    it('should return 0 for no tables', async () => {
+      mockQuery.mockResolvedValue([{ count: '0' }]);
+
+      const result = await getTableCount();
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle empty result', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      const result = await getTableCount();
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('Table Name Validation (SQL Injection Prevention)', () => {
+    it('should reject symbols with SQL injection attempts', async () => {
+      await expect(
+        getIndicatorDataFromDb('XAUUSD; DROP TABLE--', 'H1')
+      ).rejects.toThrow('Invalid symbol or timeframe');
+    });
+
+    it('should reject timeframes with special characters', async () => {
+      await expect(
+        getIndicatorDataFromDb('XAUUSD', 'H1; DROP TABLE--')
+      ).rejects.toThrow('Invalid symbol or timeframe');
+    });
+
+    it('should only allow whitelisted symbols', async () => {
+      // Valid symbols should work
+      mockQuery.mockResolvedValue([]);
+
+      await expect(getIndicatorDataFromDb('XAUUSD', 'H1')).resolves.toBeDefined();
+      await expect(getIndicatorDataFromDb('BTCUSD', 'M5')).resolves.toBeDefined();
+      await expect(getIndicatorDataFromDb('EURUSD', 'D1')).resolves.toBeDefined();
+
+      // Invalid symbols should be rejected
+      await expect(getIndicatorDataFromDb('FAKEUSD', 'H1')).rejects.toThrow();
+    });
+
+    it('should only allow whitelisted timeframes', async () => {
+      mockQuery.mockResolvedValue([]);
+
+      // Valid timeframes
+      await expect(getIndicatorDataFromDb('XAUUSD', 'M5')).resolves.toBeDefined();
+      await expect(getIndicatorDataFromDb('XAUUSD', 'H4')).resolves.toBeDefined();
+      await expect(getIndicatorDataFromDb('XAUUSD', 'D1')).resolves.toBeDefined();
+
+      // Invalid timeframes
+      await expect(getIndicatorDataFromDb('XAUUSD', 'M1')).rejects.toThrow(); // Not supported
+      await expect(getIndicatorDataFromDb('XAUUSD', 'W1')).rejects.toThrow(); // Not supported
+    });
+  });
+
+  describe('Data Transformation', () => {
+    it('should provide default empty structures for missing data', async () => {
+      mockQuery.mockResolvedValue([
+        {
+          timestamp: new Date(),
+          open: 1950,
+          high: 1955,
+          low: 1948,
+          close: 1952,
+          fractals: null,
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: null,
+          hrma: null,
+          smma: null,
+          zigzag: null,
+        },
+      ]);
+
+      const result = await getIndicatorDataFromDb('XAUUSD', 'H1');
+
+      expect(result.fractals).toEqual({ peaks: [], bottoms: [] });
+      expect(result.horizontal_trendlines).toEqual({
+        support: [],
+        resistance: [],
       });
-      expect(result.momentumCandles[1]).toEqual({
-        index: 5,
-        type: 4,
-        zscore: -2.1,
+      expect(result.diagonal_trendlines).toEqual({
+        support: [],
+        resistance: [],
       });
+      expect(result.keltner_channels).toEqual({
+        upper: [],
+        middle: [],
+        lower: [],
+        timestamps: [],
+      });
+      expect(result.zigzag).toEqual({ points: [] });
+      expect(result.momentum_candles).toEqual([]);
     });
 
-    it('should convert null to undefined in Keltner channels', () => {
-      const mt5Data: MT5ProIndicators = {
-        keltner_channels: {
-          ultra_extreme_upper: [100, null, 102],
-          extreme_upper: [null, 90, null],
-          upper_most: [80, 81, 82],
-          upper: [70, null, 72],
-          upper_middle: [60, 61, null],
-          lower_middle: [50, null, 52],
-          lower: [40, 41, null],
-          lower_most: [30, null, 32],
-          extreme_lower: [20, 21, null],
-          ultra_extreme_lower: [null, 11, 12],
+    it('should use first row for JSONB indicator data', async () => {
+      const mockRows = [
+        {
+          timestamp: new Date('2025-12-15T10:00:00Z'),
+          open: 1950,
+          high: 1955,
+          low: 1948,
+          close: 1952,
+          fractals: { peaks: [{ price: 1955, index: 5 }], bottoms: [] },
+          horizontal_trendlines: { support: [1940], resistance: [1960] },
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: null,
+          hrma: null,
+          smma: null,
+          zigzag: null,
         },
-      };
-
-      const result = transformProIndicators(mt5Data, 'PRO');
-
-      expect(result.keltnerChannels).toBeDefined();
-      expect(result.keltnerChannels?.ultraExtremeUpper).toEqual([
-        100,
-        undefined,
-        102,
-      ]);
-      expect(result.keltnerChannels?.extremeUpper).toEqual([
-        undefined,
-        90,
-        undefined,
-      ]);
-      expect(result.keltnerChannels?.ultraExtremeLower).toEqual([
-        undefined,
-        11,
-        12,
-      ]);
-    });
-
-    it('should convert null to undefined in moving averages', () => {
-      const mt5Data: MT5ProIndicators = {
-        tema: [1.0, null, 3.0],
-        hrma: [null, 2.0, 3.0],
-        smma: [1.0, 2.0, null],
-      };
-
-      const result = transformProIndicators(mt5Data, 'PRO');
-
-      expect(result.tema).toEqual([1.0, undefined, 3.0]);
-      expect(result.hrma).toEqual([undefined, 2.0, 3.0]);
-      expect(result.smma).toEqual([1.0, 2.0, undefined]);
-    });
-
-    it('should transform ZigZag data correctly', () => {
-      const mt5Data: MT5ProIndicators = {
-        zigzag: {
-          peaks: [
-            { index: 10, price: 2050.5 },
-            { index: 30, price: 2100.0 },
-          ],
-          bottoms: [
-            { index: 20, price: 2000.0 },
-            { index: 40, price: 1980.5 },
-          ],
+        {
+          timestamp: new Date('2025-12-15T09:55:00Z'),
+          open: 1948,
+          high: 1952,
+          low: 1946,
+          close: 1950,
+          fractals: { peaks: [], bottoms: [{ price: 1946, index: 10 }] },
+          horizontal_trendlines: null,
+          diagonal_trendlines: null,
+          momentum_candles: null,
+          keltner_channels: null,
+          tema: null,
+          hrma: null,
+          smma: null,
+          zigzag: null,
         },
-      };
+      ];
+      mockQuery.mockResolvedValue(mockRows);
 
-      const result = transformProIndicators(mt5Data, 'PRO');
+      const result = await getIndicatorDataFromDb('XAUUSD', 'H1');
 
-      expect(result.zigzag).toBeDefined();
-      expect(result.zigzag?.peaks).toHaveLength(2);
-      expect(result.zigzag?.bottoms).toHaveLength(2);
-      expect(result.zigzag?.peaks[0]).toEqual({ index: 10, price: 2050.5 });
-    });
-
-    it('should handle empty arrays in mt5Data', () => {
-      const mt5Data: MT5ProIndicators = {
-        momentum_candles: [],
-        tema: [],
-        hrma: [],
-        smma: [],
-        zigzag: {
-          peaks: [],
-          bottoms: [],
-        },
-      };
-
-      const result = transformProIndicators(mt5Data, 'PRO');
-
-      expect(result.momentumCandles).toEqual([]);
-      expect(result.tema).toEqual([]);
-      expect(result.zigzag?.peaks).toEqual([]);
-    });
-
-    it('should handle invalid momentum candle objects', () => {
-      const mt5Data: MT5ProIndicators = {
-        momentum_candles: [
-          null,
-          undefined,
-          'invalid',
-          { index: 0, type: 1, zscore: 1.0 },
-        ] as unknown as unknown[],
-      };
-
-      const result = transformProIndicators(mt5Data, 'PRO');
-
-      // Only the valid object should be transformed
-      expect(result.momentumCandles).toHaveLength(1);
-      expect(result.momentumCandles[0].index).toBe(0);
-    });
-
-    it('should handle undefined keltner_channels', () => {
-      const mt5Data: MT5ProIndicators = {
-        tema: [1.0, 2.0],
-      };
-
-      const result = transformProIndicators(mt5Data, 'PRO');
-
-      expect(result.keltnerChannels).toBeUndefined();
-    });
-
-    it('should handle undefined zigzag', () => {
-      const mt5Data: MT5ProIndicators = {
-        tema: [1.0, 2.0],
-      };
-
-      const result = transformProIndicators(mt5Data, 'PRO');
-
-      expect(result.zigzag).toBeUndefined();
+      // Should use first row's fractals (latest data)
+      expect(result.fractals.peaks).toHaveLength(1);
+      expect(result.fractals.peaks[0]?.price).toBe(1955);
     });
   });
 
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // createEmptyProIndicatorData
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  describe('All Valid Symbols', () => {
+    const validSymbols = [
+      'XAUUSD',
+      'BTCUSD',
+      'EURUSD',
+      'USDJPY',
+      'US30',
+      'AUDJPY',
+      'AUDUSD',
+      'ETHUSD',
+      'GBPJPY',
+      'GBPUSD',
+      'NDX100',
+      'NZDUSD',
+      'USDCAD',
+      'USDCHF',
+      'XAGUSD',
+    ];
 
-  describe('createEmptyProIndicatorData', () => {
-    it('should return structure with empty arrays', () => {
-      const result = createEmptyProIndicatorData();
+    it.each(validSymbols)('should accept valid symbol: %s', async (symbol) => {
+      mockQuery.mockResolvedValue([]);
 
-      expect(result.momentumCandles).toEqual([]);
-      expect(result.tema).toEqual([]);
-      expect(result.hrma).toEqual([]);
-      expect(result.smma).toEqual([]);
-      expect(result.keltnerChannels).toBeUndefined();
-      expect(result.zigzag).toBeUndefined();
-    });
-
-    it('should return a new object each time', () => {
-      const result1 = createEmptyProIndicatorData();
-      const result2 = createEmptyProIndicatorData();
-
-      expect(result1).not.toBe(result2);
-      expect(result1.momentumCandles).not.toBe(result2.momentumCandles);
-    });
-  });
-
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // isValidProIndicatorData
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  describe('isValidProIndicatorData', () => {
-    it('should return true for valid structure', () => {
-      const data = {
-        momentumCandles: [],
-        tema: [],
-        hrma: [],
-        smma: [],
-      };
-
-      expect(isValidProIndicatorData(data)).toBe(true);
-    });
-
-    it('should return false for null', () => {
-      expect(isValidProIndicatorData(null)).toBe(false);
-    });
-
-    it('should return false for undefined', () => {
-      expect(isValidProIndicatorData(undefined)).toBe(false);
-    });
-
-    it('should return false for non-object', () => {
-      expect(isValidProIndicatorData('string')).toBe(false);
-      expect(isValidProIndicatorData(123)).toBe(false);
-    });
-
-    it('should return false for missing required arrays', () => {
-      expect(isValidProIndicatorData({ momentumCandles: [] })).toBe(false);
-      expect(
-        isValidProIndicatorData({ momentumCandles: [], tema: [], hrma: [] })
-      ).toBe(false);
+      await expect(
+        getIndicatorDataFromDb(symbol, 'H1')
+      ).resolves.toBeDefined();
     });
   });
 
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // isValidMomentumCandle
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  describe('All Valid Timeframes', () => {
+    const validTimeframes = [
+      'M5',
+      'M15',
+      'M30',
+      'H1',
+      'H2',
+      'H4',
+      'H8',
+      'H12',
+      'D1',
+    ];
 
-  describe('isValidMomentumCandle', () => {
-    it('should return true for valid candle', () => {
-      const candle = { index: 0, type: 1, zscore: 1.5 };
-      expect(isValidMomentumCandle(candle)).toBe(true);
-    });
+    it.each(validTimeframes)(
+      'should accept valid timeframe: %s',
+      async (timeframe) => {
+        mockQuery.mockResolvedValue([]);
 
-    it('should return true for all valid candle types 0-5', () => {
-      for (let type = 0; type <= 5; type++) {
-        const candle = { index: 0, type, zscore: 0 };
-        expect(isValidMomentumCandle(candle)).toBe(true);
+        await expect(
+          getIndicatorDataFromDb('XAUUSD', timeframe)
+        ).resolves.toBeDefined();
       }
-    });
-
-    it('should return false for invalid candle type > 5', () => {
-      const candle = { index: 0, type: 6, zscore: 0 };
-      expect(isValidMomentumCandle(candle)).toBe(false);
-    });
-
-    it('should return false for negative candle type', () => {
-      const candle = { index: 0, type: -1, zscore: 0 };
-      expect(isValidMomentumCandle(candle)).toBe(false);
-    });
-
-    it('should return false for null', () => {
-      expect(isValidMomentumCandle(null)).toBe(false);
-    });
-
-    it('should return false for missing fields', () => {
-      expect(isValidMomentumCandle({ index: 0 })).toBe(false);
-      expect(isValidMomentumCandle({ type: 1 })).toBe(false);
-    });
-  });
-
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // filterValidMomentumCandles
-  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  describe('filterValidMomentumCandles', () => {
-    it('should filter out invalid candles', () => {
-      const candles: MomentumCandleData[] = [
-        { index: 0, type: 1, zscore: 1.0 },
-        { index: 1, type: 6, zscore: 0 }, // Invalid type
-        { index: 2, type: 2, zscore: 2.0 },
-      ];
-
-      const result = filterValidMomentumCandles(candles);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].index).toBe(0);
-      expect(result[1].index).toBe(2);
-    });
-
-    it('should return empty array for all invalid candles', () => {
-      const candles = [
-        { index: 0, type: 10, zscore: 0 },
-        { index: 1, type: -1, zscore: 0 },
-      ] as MomentumCandleData[];
-
-      const result = filterValidMomentumCandles(candles);
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should return all candles when all valid', () => {
-      const candles: MomentumCandleData[] = [
-        { index: 0, type: 0, zscore: 0 },
-        { index: 1, type: 3, zscore: -1.0 },
-        { index: 2, type: 5, zscore: 3.0 },
-      ];
-
-      const result = filterValidMomentumCandles(candles);
-
-      expect(result).toHaveLength(3);
-    });
+    );
   });
 });
