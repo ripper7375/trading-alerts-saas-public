@@ -29,18 +29,17 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-// Mock fetch for price fetching
-const originalFetch = global.fetch;
-const mockFetch = jest.fn();
+// Mock PostgreSQL query for price fetching (Part 20 migration)
+const mockQuery = jest.fn();
+
+jest.mock('@/lib/db/postgresql', () => ({
+  __esModule: true,
+  query: (...args: unknown[]) => mockQuery(...args),
+}));
 
 describe('Alert Checker Job', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = mockFetch as unknown as typeof fetch;
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
   });
 
   describe('checkAlertCondition', () => {
@@ -149,7 +148,7 @@ describe('Alert Checker Job', () => {
     beforeEach(() => {
       mockAlertFindMany.mockReset();
       mockAlertUpdate.mockReset();
-      mockFetch.mockReset();
+      mockQuery.mockReset();
     });
 
     it('should handle no active alerts gracefully', async () => {
@@ -170,10 +169,10 @@ describe('Alert Checker Job', () => {
           },
         },
       });
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockQuery).not.toHaveBeenCalled();
     });
 
-    it('should fetch price for each unique symbol', async () => {
+    it('should query price for each unique symbol', async () => {
       const alerts = [
         {
           id: 'alert-1',
@@ -189,7 +188,7 @@ describe('Alert Checker Job', () => {
         {
           id: 'alert-2',
           userId: 'user-1',
-          symbol: 'XAUUSD', // Same symbol - should only fetch once
+          symbol: 'XAUUSD', // Same symbol - should only query once
           timeframe: 'H4',
           condition: JSON.stringify({ type: 'price_below', targetValue: 2000 }),
           isActive: true,
@@ -211,17 +210,15 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: 1950 }),
-      });
+      // Mock PostgreSQL query to return price data
+      mockQuery.mockResolvedValue([{ close: 1950 }]);
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
       await checkAlerts();
 
-      // Should have made 2 fetch calls (one for each unique symbol)
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      // Should have made 2 queries (one for each unique symbol)
+      expect(mockQuery).toHaveBeenCalledTimes(2);
     });
 
     it('should trigger alert when condition is met', async () => {
@@ -240,10 +237,8 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: 1950 }), // Above target
-      });
+      // Mock PostgreSQL query to return price above target
+      mockQuery.mockResolvedValue([{ close: 1950 }]);
       mockAlertUpdate.mockResolvedValue({});
 
       jest.resetModules();
@@ -276,10 +271,8 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: 1950 }), // Below target
-      });
+      // Mock PostgreSQL query to return price below target
+      mockQuery.mockResolvedValue([{ close: 1950 }]);
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -288,7 +281,7 @@ describe('Alert Checker Job', () => {
       expect(mockAlertUpdate).not.toHaveBeenCalled();
     });
 
-    it('should skip symbols when price fetch fails', async () => {
+    it('should skip symbols when price query returns no data', async () => {
       const alerts = [
         {
           id: 'alert-1',
@@ -304,10 +297,8 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-      });
+      // Mock PostgreSQL query to return empty result
+      mockQuery.mockResolvedValue([]);
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -332,10 +323,8 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ price: 1950 }),
-      });
+      // Mock PostgreSQL query to return price data
+      mockQuery.mockResolvedValue([{ close: 1950 }]);
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -344,7 +333,7 @@ describe('Alert Checker Job', () => {
       expect(mockAlertUpdate).not.toHaveBeenCalled();
     });
 
-    it('should handle fetch network errors gracefully', async () => {
+    it('should handle PostgreSQL query errors gracefully', async () => {
       const alerts = [
         {
           id: 'alert-1',
@@ -360,7 +349,8 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      // Mock PostgreSQL query to throw error
+      mockQuery.mockRejectedValue(new Error('Connection error'));
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
