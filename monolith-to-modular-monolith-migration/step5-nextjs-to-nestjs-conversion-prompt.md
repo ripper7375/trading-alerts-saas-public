@@ -4,6 +4,12 @@
 
 This prompt guides Claude Code (web) through **Step 5** of the Modular Monolith Migration: Converting the Next.js backend logic to Nest.js with CORS enabled, then dockerizing as a single application.
 
+**Key migrations included:**
+- **Code**: Next.js API routes → Nest.js modules
+- **Database**: Railway PostgreSQL → Timescale Cloud (PostgreSQL + TimescaleDB)
+- **Cache**: Railway Redis → Upstash Redis
+- **Deployment**: Vercel serverless → Railway Docker container
+
 ---
 
 ## Context for Claude Code
@@ -11,10 +17,14 @@ This prompt guides Claude Code (web) through **Step 5** of the Modular Monolith 
 ### Project Background
 
 We are migrating a Trading Alerts SaaS application from a **Monolithic Architecture** (Next.js full-stack on Vercel) to a **Modular Monolith Architecture**:
-- **Frontend**: Next.js on Vercel (UI only)
-- **Backend**: Nest.js on Railway (API + business logic, dockerized)
-- **Database**: PostgreSQL + TimescaleDB (Timescale Cloud)
-- **Cache**: Redis (Upstash)
+
+| Component | Monolith (Current) | Modular Monolith (Target) |
+|-----------|-------------------|---------------------------|
+| Frontend | Next.js on Vercel | Next.js on Vercel (UI only) |
+| Backend | Next.js API routes on Vercel | Nest.js on Railway (Dockerized) |
+| Database | Railway PostgreSQL | Timescale Cloud (PostgreSQL + TimescaleDB) |
+| Cache | Railway Redis | Upstash Redis |
+| Cost | ~$35-90/month | ~$75-155/month |
 
 ### Current State (Next.js Backend)
 
@@ -29,6 +39,7 @@ Convert to Nest.js modular structure:
 - Organized into **domain modules** (Auth, Users, Billing, Indicators, etc.)
 - CORS enabled for cross-origin requests from Vercel frontend
 - Dockerized as a single container for Railway deployment
+- Connected to Timescale Cloud and Upstash Redis
 
 ---
 
@@ -230,6 +241,162 @@ Our Next.js backend has 196 files organized as:
 **Utilities:**
 - lib/utils.ts, lib/logger.ts, lib/errors/*, lib/validations/*
 
+## Infrastructure Migrations
+
+### Database Migration: Railway PostgreSQL → Timescale Cloud
+
+**Current (Monolith):**
+- Provider: Railway PostgreSQL
+- Type: Standard PostgreSQL 15
+- Connection: Direct connection string
+- Cost: ~$5-20/month
+
+**Target (Modular Monolith):**
+- Provider: Timescale Cloud
+- Type: PostgreSQL 15 + TimescaleDB extension
+- Features: Hypertables for time-series data
+- Cost: ~$25-50/month
+
+**Migration Tasks:**
+1. Create Timescale Cloud account and service
+2. Export data from Railway PostgreSQL using pg_dump
+3. Import data to Timescale Cloud
+4. Enable TimescaleDB extension
+5. Convert time-series tables to hypertables:
+   - market_data → hypertable (chunk: 1 day)
+   - indicator_fractals → hypertable (chunk: 1 day)
+   - indicator_lines → hypertable (chunk: 1 day)
+   - indicator_pro → hypertable (chunk: 1 day)
+   - user_activity_logs → hypertable (chunk: 7 days)
+6. Add compression policies for old data
+7. Add retention policies for log data
+8. Create continuous aggregates for analytics
+9. Update DATABASE_URL in environment variables
+
+**Timescale Cloud Connection String Format:**
+```
+postgresql://[user]:[password]@[host].tsdb.cloud.timescale.com:[port]/[database]?sslmode=require
+```
+
+**SQL for Hypertable Conversion:**
+```sql
+-- Enable TimescaleDB
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+
+-- Convert market_data to hypertable
+SELECT create_hypertable('market_data', 'timestamp',
+  chunk_time_interval => INTERVAL '1 day',
+  if_not_exists => TRUE
+);
+
+-- Add compression policy (compress data older than 7 days)
+SELECT add_compression_policy('market_data', INTERVAL '7 days');
+
+-- Add retention policy (delete data older than 90 days for logs)
+SELECT add_retention_policy('user_activity_logs', INTERVAL '90 days');
+
+-- Create continuous aggregate for hourly market data
+CREATE MATERIALIZED VIEW market_data_hourly
+WITH (timescaledb.continuous) AS
+SELECT
+  time_bucket('1 hour', timestamp) AS hour,
+  symbol,
+  timeframe,
+  first(open, timestamp) AS open,
+  max(high) AS high,
+  min(low) AS low,
+  last(close, timestamp) AS close,
+  sum(volume) AS volume
+FROM market_data
+GROUP BY hour, symbol, timeframe;
+```
+
+### Cache Migration: Railway Redis → Upstash Redis
+
+**Current (Monolith):**
+- Provider: Railway Redis
+- Type: Self-managed Redis instance
+- Connection: Standard Redis URL
+- Cost: ~$5-10/month
+
+**Target (Modular Monolith):**
+- Provider: Upstash Redis
+- Type: Serverless Redis
+- Features: REST API, Global replication, Pay-per-request
+- Cost: ~$5-10/month (pay-per-use)
+
+**Migration Tasks:**
+1. Create Upstash account and Redis database
+2. Choose region (closest to Railway deployment)
+3. Enable TLS for secure connections
+4. Export existing cache keys from Railway (if needed)
+5. Update REDIS_URL in environment variables
+6. Update Redis client configuration for TLS
+
+**Upstash Connection String Format:**
+```
+redis://default:[password]@[endpoint].upstash.io:[port]
+```
+
+**Or with TLS:**
+```
+rediss://default:[password]@[endpoint].upstash.io:[port]
+```
+
+**Upstash-specific Configuration:**
+```typescript
+// backend/src/redis/redis.module.ts
+import { Module, Global } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
+import { ConfigService } from '@nestjs/config';
+
+@Global()
+@Module({
+  imports: [
+    CacheModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        store: await redisStore({
+          url: config.get('REDIS_URL'),
+          // Upstash requires TLS
+          tls: config.get('REDIS_URL')?.startsWith('rediss://')
+            ? {}
+            : undefined,
+          // Connection settings optimized for Upstash
+          maxRetriesPerRequest: 3,
+          retryDelayOnFailover: 100,
+          enableReadyCheck: false,
+          connectTimeout: 10000,
+        }),
+        ttl: 300, // Default 5 minutes
+      }),
+    }),
+  ],
+  exports: [CacheModule],
+})
+export class RedisModule {}
+```
+
+**Bull Queue Configuration for Upstash:**
+```typescript
+// backend/src/app.module.ts
+BullModule.forRootAsync({
+  inject: [ConfigService],
+  useFactory: (config: ConfigService) => {
+    const redisUrl = new URL(config.get('REDIS_URL'));
+    return {
+      redis: {
+        host: redisUrl.hostname,
+        port: parseInt(redisUrl.port),
+        password: redisUrl.password,
+        tls: redisUrl.protocol === 'rediss:' ? {} : undefined,
+      },
+    };
+  },
+}),
+```
+
 ## Target Nest.js Architecture
 
 Create this module structure:
@@ -248,10 +415,10 @@ backend/
 │   │   └── utils/
 │   ├── config/                     # Configuration
 │   │   └── config.module.ts
-│   ├── prisma/                     # Database
+│   ├── prisma/                     # Database (Timescale Cloud)
 │   │   ├── prisma.module.ts
 │   │   └── prisma.service.ts
-│   ├── redis/                      # Caching
+│   ├── redis/                      # Caching (Upstash)
 │   │   ├── redis.module.ts
 │   │   └── redis.service.ts
 │   ├── modules/
@@ -286,10 +453,14 @@ backend/
 │   │   ├── notifications/          # Notifications (3 endpoints)
 │   │   └── cron/                   # Background jobs (8 jobs)
 ├── prisma/
-│   └── schema.prisma
+│   ├── schema.prisma
+│   └── migrations/
+│       └── YYYYMMDD_create_hypertables/
+│           └── migration.sql       # TimescaleDB hypertables
 ├── test/                           # Tests (93 files to convert)
 ├── Dockerfile
 ├── docker-compose.yml
+├── railway.toml                    # Railway deployment config
 └── package.json
 ```
 
@@ -325,42 +496,179 @@ Replace NextAuth.js with:
 - Guards for protected routes
 - 2FA support
 
-### 4. Database Layer
+### 4. Database Layer (Timescale Cloud)
 
-- Prisma for ORM
-- TimescaleDB hypertables for time-series data
-- Connection pooling
+- Prisma for ORM with TimescaleDB
+- Connection pooling with PgBouncer
+- Hypertables for time-series data
+- Continuous aggregates for analytics
 
-### 5. Caching Layer
+### 5. Caching Layer (Upstash Redis)
 
 - Redis with @nestjs/cache-manager
+- TLS connection for Upstash
 - Cache indicators and confluence scores
 - Rate limiting with Redis
+- Bull Queue for background jobs
 
 ### 6. Background Jobs
 
-- Bull Queue for async jobs
+- Bull Queue for async jobs (uses Upstash Redis)
 - Scheduled tasks with @nestjs/schedule
 
 ### 7. Docker Configuration
 
 ```dockerfile
+# backend/Dockerfile
 FROM node:18-alpine AS builder
+
 WORKDIR /app
-COPY package*.json prisma ./
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies
 RUN npm ci
+
+# Copy source code
 COPY . .
+
+# Generate Prisma Client
 RUN npx prisma generate
+
+# Build application
 RUN npm run build
 
+# Production stage
 FROM node:18-alpine
+
 WORKDIR /app
+
+# Copy package files
 COPY package*.json ./
+
+# Install production dependencies only
 RUN npm ci --only=production
+
+# Copy built application
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/prisma ./prisma
+
+# Expose port
 EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/health || exit 1
+
+# Start application
 CMD ["node", "dist/main"]
+```
+
+### 8. Railway Deployment Configuration
+
+```toml
+# backend/railway.toml
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node dist/main"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[environments]
+  [environments.production]
+    PORT = "5000"
+```
+
+**Railway Environment Variables:**
+```bash
+# Database (Timescale Cloud)
+DATABASE_URL=postgresql://user:password@host.tsdb.cloud.timescale.com:port/db?sslmode=require
+
+# Cache (Upstash Redis)
+REDIS_URL=rediss://default:password@endpoint.upstash.io:port
+
+# Authentication
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+JWT_EXPIRES_IN=7d
+
+# External Services
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+SENDGRID_API_KEY=SG...
+DLOCAL_API_KEY=...
+DLOCAL_SECRET_KEY=...
+RISEWORKS_API_KEY=...
+
+# CORS
+FRONTEND_URL=https://yourdomain.com
+VERCEL_PREVIEW_URL=https://*.vercel.app
+
+# Server
+PORT=5000
+NODE_ENV=production
+```
+
+### 9. Docker Compose for Local Development
+
+```yaml
+# backend/docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - '5000:5000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/trading_alerts?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=local-dev-secret-key-min-32-characters
+      - JWT_EXPIRES_IN=7d
+      - NODE_ENV=development
+      - PORT=5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./src:/app/src:ro
+    command: npm run start:dev
+
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=trading_alerts
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
 ```
 
 ## Deliverables
@@ -369,24 +677,41 @@ Please provide a step-by-step guide that covers:
 
 1. **Phase 1: Project Setup**
    - Initialize Nest.js project
-   - Install dependencies
+   - Install dependencies (including Timescale/Upstash clients)
    - Configure TypeScript
    - Set up folder structure
 
-2. **Phase 2: Core Infrastructure**
-   - Prisma module setup
-   - Redis module setup
+2. **Phase 2: Database Migration (Railway → Timescale Cloud)**
+   - Create Timescale Cloud service
+   - Export data from Railway PostgreSQL
+   - Import data to Timescale Cloud
+   - Enable TimescaleDB extension
+   - Convert tables to hypertables
+   - Set up compression and retention policies
+   - Create continuous aggregates
+   - Update Prisma schema for TimescaleDB
+
+3. **Phase 3: Cache Migration (Railway Redis → Upstash)**
+   - Create Upstash Redis database
+   - Configure TLS connection
+   - Update Redis client for Upstash
+   - Configure Bull Queue for Upstash
+   - Test connection and performance
+
+4. **Phase 4: Core Infrastructure**
+   - Prisma module setup (Timescale Cloud)
+   - Redis module setup (Upstash)
    - Configuration module
    - Common utilities (guards, interceptors, filters)
 
-3. **Phase 3: Authentication Module**
+5. **Phase 5: Authentication Module**
    - JWT strategy
    - Local strategy
    - Auth guards
    - Session management
    - 2FA support
 
-4. **Phase 4: Domain Modules**
+6. **Phase 6: Domain Modules**
    For each module, specify:
    - File mapping (Next.js → Nest.js)
    - Controller structure
@@ -394,21 +719,23 @@ Please provide a step-by-step guide that covers:
    - DTOs
    - Dependencies
 
-5. **Phase 5: Background Jobs**
-   - Bull Queue setup
+7. **Phase 7: Background Jobs**
+   - Bull Queue setup (with Upstash Redis)
    - Scheduled tasks
    - Cron job migration
 
-6. **Phase 6: Testing**
+8. **Phase 8: Testing**
    - Test file migration strategy
    - Jest configuration for Nest.js
    - E2E test setup
 
-7. **Phase 7: Docker & Deployment**
-   - Dockerfile
+9. **Phase 9: Docker & Railway Deployment**
+   - Dockerfile (multi-stage build)
    - docker-compose.yml for local dev
-   - Environment variables
-   - Railway deployment configuration
+   - railway.toml configuration
+   - Environment variables setup
+   - Health check endpoints
+   - Deployment checklist
 
 ## Conversion Pattern
 
@@ -453,15 +780,46 @@ For each test file in __tests__/**, specify:
 - Required mocking changes
 - Dependency updates
 
+## Railway Deployment Checklist
+
+Before deploying to Railway:
+
+1. **Pre-deployment:**
+   - [ ] Timescale Cloud database created and configured
+   - [ ] Upstash Redis database created
+   - [ ] All environment variables documented
+   - [ ] Dockerfile tested locally
+   - [ ] Health check endpoint working
+
+2. **Railway Setup:**
+   - [ ] Create new Railway project
+   - [ ] Connect GitHub repository
+   - [ ] Configure build settings (Dockerfile)
+   - [ ] Add all environment variables
+   - [ ] Configure custom domain (optional)
+   - [ ] Set up deployment triggers
+
+3. **Post-deployment:**
+   - [ ] Verify health check passes
+   - [ ] Test CORS with frontend (localhost:3000)
+   - [ ] Verify database connectivity
+   - [ ] Verify Redis connectivity
+   - [ ] Test all API endpoints
+   - [ ] Monitor logs for errors
+
 ## Success Criteria
 
 - [ ] All 100 API routes converted to Nest.js controllers
 - [ ] All 96 library files converted to Nest.js services
+- [ ] Database migrated to Timescale Cloud with hypertables
+- [ ] Cache migrated to Upstash Redis with TLS
 - [ ] CORS working between localhost:3000 and localhost:5000
 - [ ] Docker image builds successfully
+- [ ] Railway deployment successful
 - [ ] All tests passing
 - [ ] Redis caching functional
 - [ ] Background jobs running
+- [ ] Health check endpoint responding
 
 Please start with Phase 1 and proceed through each phase systematically. For each phase, provide:
 1. Exact commands to run
@@ -485,11 +843,13 @@ Please start with Phase 1 and proceed through each phase systematically. For eac
 Claude Code should generate:
 
 1. **Complete project structure** with all directories and files
-2. **Detailed conversion guide** for each module
-3. **Code examples** for controllers, services, DTOs
-4. **Docker configuration** for containerization
-5. **Test migration strategy** for the 93 backend tests
-6. **Deployment instructions** for Railway
+2. **Database migration guide** (Railway PostgreSQL → Timescale Cloud)
+3. **Cache migration guide** (Railway Redis → Upstash)
+4. **Detailed conversion guide** for each module
+5. **Code examples** for controllers, services, DTOs
+6. **Docker configuration** for containerization
+7. **Railway deployment configuration** and checklist
+8. **Test migration strategy** for the 93 backend tests
 
 ## Additional Context Files
 
@@ -500,6 +860,17 @@ Reference these files for complete backend file lists:
 
 ---
 
+## Quick Reference: Infrastructure URLs
+
+| Service | Monolith | Modular Monolith |
+|---------|----------|------------------|
+| Database Console | Railway Dashboard | https://console.cloud.timescale.com |
+| Redis Console | Railway Dashboard | https://console.upstash.com |
+| Backend Deploy | Vercel | https://railway.app |
+| Frontend Deploy | Vercel | Vercel (unchanged) |
+
+---
+
 *Generated: 2026-01-09*
 *Migration Step: 5 of 8*
-*Target: Next.js → Nest.js Backend Conversion*
+*Target: Next.js → Nest.js Backend Conversion + Infrastructure Migration*
