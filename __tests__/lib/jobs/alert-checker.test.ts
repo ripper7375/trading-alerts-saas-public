@@ -2,6 +2,8 @@
  * Alert Checker Job Tests
  *
  * Tests for the background job that checks alert conditions.
+ *
+ * Part 20 Migration: Now mocks PostgreSQL query instead of fetch.
  */
 
 import { checkAlertCondition } from '@/lib/jobs/alert-checker';
@@ -29,12 +31,12 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-// Mock PostgreSQL query for price fetching (Part 20 migration)
-const mockQuery = jest.fn();
+// Mock PostgreSQL query (Part 20)
+const mockPostgresQuery = jest.fn();
 
 jest.mock('@/lib/db/postgresql', () => ({
   __esModule: true,
-  query: (...args: unknown[]) => mockQuery(...args),
+  query: (...args: unknown[]) => mockPostgresQuery(...args),
 }));
 
 describe('Alert Checker Job', () => {
@@ -148,7 +150,7 @@ describe('Alert Checker Job', () => {
     beforeEach(() => {
       mockAlertFindMany.mockReset();
       mockAlertUpdate.mockReset();
-      mockQuery.mockReset();
+      mockPostgresQuery.mockReset();
     });
 
     it('should handle no active alerts gracefully', async () => {
@@ -169,10 +171,10 @@ describe('Alert Checker Job', () => {
           },
         },
       });
-      expect(mockQuery).not.toHaveBeenCalled();
+      expect(mockPostgresQuery).not.toHaveBeenCalled();
     });
 
-    it('should query price for each unique symbol', async () => {
+    it('should query PostgreSQL for each unique symbol', async () => {
       const alerts = [
         {
           id: 'alert-1',
@@ -210,15 +212,21 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      // Mock PostgreSQL query to return price data
-      mockQuery.mockResolvedValue([{ close: 1950 }]);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]);
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
       await checkAlerts();
 
-      // Should have made 2 queries (one for each unique symbol)
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      // Should have made 2 PostgreSQL queries (one for each unique symbol)
+      expect(mockPostgresQuery).toHaveBeenCalledTimes(2);
+      // Verify the queries are for the correct tables
+      expect(mockPostgresQuery).toHaveBeenCalledWith(
+        expect.stringContaining('xauusd_m5')
+      );
+      expect(mockPostgresQuery).toHaveBeenCalledWith(
+        expect.stringContaining('eurusd_m5')
+      );
     });
 
     it('should trigger alert when condition is met', async () => {
@@ -237,8 +245,7 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      // Mock PostgreSQL query to return price above target
-      mockQuery.mockResolvedValue([{ close: 1950 }]);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]); // Above target
       mockAlertUpdate.mockResolvedValue({});
 
       jest.resetModules();
@@ -271,8 +278,7 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      // Mock PostgreSQL query to return price below target
-      mockQuery.mockResolvedValue([{ close: 1950 }]);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]); // Below target
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -281,7 +287,7 @@ describe('Alert Checker Job', () => {
       expect(mockAlertUpdate).not.toHaveBeenCalled();
     });
 
-    it('should skip symbols when price query returns no data', async () => {
+    it('should skip symbols when PostgreSQL query returns no data', async () => {
       const alerts = [
         {
           id: 'alert-1',
@@ -297,8 +303,7 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      // Mock PostgreSQL query to return empty result
-      mockQuery.mockResolvedValue([]);
+      mockPostgresQuery.mockResolvedValue([]); // No data
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -323,8 +328,7 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      // Mock PostgreSQL query to return price data
-      mockQuery.mockResolvedValue([{ close: 1950 }]);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]);
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -349,8 +353,7 @@ describe('Alert Checker Job', () => {
       ];
 
       mockAlertFindMany.mockResolvedValue(alerts);
-      // Mock PostgreSQL query to throw error
-      mockQuery.mockRejectedValue(new Error('Connection error'));
+      mockPostgresQuery.mockRejectedValue(new Error('Database error'));
 
       jest.resetModules();
       const { checkAlerts } = await import('@/lib/jobs/alert-checker');
@@ -370,6 +373,103 @@ describe('Alert Checker Job', () => {
 
       // Should not throw
       await expect(checkAlerts()).resolves.not.toThrow();
+    });
+
+    it('should handle price_below condition correctly', async () => {
+      const alerts = [
+        {
+          id: 'alert-1',
+          userId: 'user-1',
+          symbol: 'XAUUSD',
+          timeframe: 'H1',
+          condition: JSON.stringify({ type: 'price_below', targetValue: 2000 }),
+          isActive: true,
+          lastTriggered: null,
+          triggerCount: 0,
+          user: { email: 'test@example.com', name: 'Test' },
+        },
+      ];
+
+      mockAlertFindMany.mockResolvedValue(alerts);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]); // Below 2000
+      mockAlertUpdate.mockResolvedValue({});
+
+      jest.resetModules();
+      const { checkAlerts } = await import('@/lib/jobs/alert-checker');
+      await checkAlerts();
+
+      expect(mockAlertUpdate).toHaveBeenCalledWith({
+        where: { id: 'alert-1' },
+        data: {
+          isActive: false,
+          lastTriggered: expect.any(Date),
+          triggerCount: { increment: 1 },
+        },
+      });
+    });
+
+    it('should handle price_equals condition correctly', async () => {
+      const alerts = [
+        {
+          id: 'alert-1',
+          userId: 'user-1',
+          symbol: 'XAUUSD',
+          timeframe: 'H1',
+          condition: JSON.stringify({ type: 'price_equals', targetValue: 1950 }),
+          isActive: true,
+          lastTriggered: null,
+          triggerCount: 0,
+          user: { email: 'test@example.com', name: 'Test' },
+        },
+      ];
+
+      mockAlertFindMany.mockResolvedValue(alerts);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]); // Equals target
+      mockAlertUpdate.mockResolvedValue({});
+
+      jest.resetModules();
+      const { checkAlerts } = await import('@/lib/jobs/alert-checker');
+      await checkAlerts();
+
+      expect(mockAlertUpdate).toHaveBeenCalled();
+    });
+
+    it('should process multiple alerts for same symbol', async () => {
+      const alerts = [
+        {
+          id: 'alert-1',
+          userId: 'user-1',
+          symbol: 'XAUUSD',
+          timeframe: 'H1',
+          condition: JSON.stringify({ type: 'price_above', targetValue: 1900 }),
+          isActive: true,
+          lastTriggered: null,
+          triggerCount: 0,
+          user: { email: 'test@example.com', name: 'Test' },
+        },
+        {
+          id: 'alert-2',
+          userId: 'user-2',
+          symbol: 'XAUUSD',
+          timeframe: 'H4',
+          condition: JSON.stringify({ type: 'price_above', targetValue: 1800 }),
+          isActive: true,
+          lastTriggered: null,
+          triggerCount: 0,
+          user: { email: 'test2@example.com', name: 'Test 2' },
+        },
+      ];
+
+      mockAlertFindMany.mockResolvedValue(alerts);
+      mockPostgresQuery.mockResolvedValue([{ close: 1950 }]);
+      mockAlertUpdate.mockResolvedValue({});
+
+      jest.resetModules();
+      const { checkAlerts } = await import('@/lib/jobs/alert-checker');
+      await checkAlerts();
+
+      // Both alerts should be triggered (price is above both targets)
+      expect(mockAlertUpdate).toHaveBeenCalledTimes(2);
     });
   });
 
