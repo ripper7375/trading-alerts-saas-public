@@ -34,6 +34,96 @@ Frontend (Vercel)
 
 ---
 
+## IMPORTANT: Fresh Vercel Deployment
+
+**This deployment MUST be a NEW/FRESH Vercel project, separate from the existing monolith deployment.**
+
+### Deployment Strategy
+```
+EXISTING (Keep Intact - DO NOT MODIFY)
+├── Vercel Project: trading-alerts-saas (monolith)
+│   ├── Domain: trading-alerts.vercel.app (or custom domain)
+│   ├── Contains: Full Next.js monolith (frontend + backend)
+│   └── Status: Production - Keep running
+│
+NEW (Create Fresh)
+├── Vercel Project: trading-alerts-frontend (modular)
+│   ├── Domain: trading-alerts-v2.vercel.app (or staging subdomain)
+│   ├── Contains: Frontend only (optimized Server Components)
+│   ├── Backend: Connects to Railway NestJS backend via API
+│   └── Status: Staging → Production (after validation)
+```
+
+### Why Fresh Deployment?
+1. **Zero Risk**: Old monolith remains functional during migration
+2. **A/B Testing**: Can compare performance between old and new
+3. **Rollback Ready**: If issues arise, old deployment is still live
+4. **Gradual Migration**: Switch DNS/traffic only when ready
+
+### Fresh Deployment Steps (Do This First)
+
+#### Step A: Create New Vercel Project
+
+```bash
+# Option 1: Via Vercel CLI
+vercel login
+vercel link --yes  # Creates new project, don't link to existing
+
+# Option 2: Via Vercel Dashboard
+# 1. Go to https://vercel.com/new
+# 2. Import the same GitHub repo
+# 3. Name it: trading-alerts-frontend (different from existing)
+# 4. Set root directory if using monorepo structure
+```
+
+#### Step B: Configure Environment Variables
+
+In the NEW Vercel project, set these environment variables:
+
+```bash
+# Database (same as monolith during transition)
+DATABASE_URL=<postgresql-connection-string>
+
+# Auth (same secrets for session compatibility)
+NEXTAUTH_SECRET=<same-as-monolith>
+NEXTAUTH_URL=https://trading-alerts-v2.vercel.app
+
+# Backend API (Railway NestJS - Step 5)
+NEXT_PUBLIC_API_URL=https://api.trading-alerts.railway.app
+# or localhost:5000 for local development
+
+# Feature Flags (for gradual rollout)
+NEXT_PUBLIC_USE_MODULAR_BACKEND=false  # Enable after Step 5
+```
+
+#### Step C: Set Up Preview Deployments
+
+```bash
+# In vercel.json (create if not exists)
+{
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "claude/*": true
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_DEPLOYMENT_TYPE": "modular-frontend"
+  }
+}
+```
+
+#### Step D: Verify Fresh Deployment
+
+After initial deploy, verify:
+- [ ] New Vercel project created (separate from monolith)
+- [ ] Deployment URL is different from existing monolith
+- [ ] Old monolith deployment still working at original URL
+- [ ] Environment variables configured correctly
+- [ ] Preview deployments enabled for feature branches
+
+---
+
 ## Reference Documentation
 
 Read these files before starting:
