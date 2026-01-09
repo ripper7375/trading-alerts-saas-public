@@ -124,6 +124,192 @@ After initial deploy, verify:
 
 ---
 
+## CRITICAL: Directory Structure - Keep Existing Files Intact
+
+**DO NOT modify existing frontend files directly.** Create a new `frontend/` directory and copy files there for refactoring.
+
+### Repository Structure (After Step 4)
+
+```
+trading-alerts-saas-public/
+│
+├── app/                              # EXISTING - DO NOT MODIFY
+│   ├── (auth)/                       # Keep intact for monolith
+│   ├── (dashboard)/                  # Keep intact for monolith
+│   ├── (marketing)/                  # Keep intact for monolith
+│   └── api/                          # Keep intact for monolith
+│
+├── components/                       # EXISTING - DO NOT MODIFY
+│   ├── ui/                           # Keep intact
+│   ├── charts/                       # Keep intact
+│   └── ...                           # Keep intact
+│
+├── lib/                              # EXISTING - DO NOT MODIFY
+│   ├── auth/                         # Keep intact
+│   ├── db/                           # Keep intact
+│   └── ...                           # Keep intact
+│
+├── frontend/                         # NEW DIRECTORY - Create this
+│   ├── app/                          # Copied + refactored pages
+│   │   ├── (auth)/                   # Server Components + Client islands
+│   │   ├── (dashboard)/              # Server Components + Client islands
+│   │   ├── (marketing)/              # Static/SSG pages
+│   │   └── layout.tsx                # Root layout
+│   │
+│   ├── components/                   # Copied + optimized components
+│   │   ├── ui/                       # Shared UI (can symlink)
+│   │   ├── readable/                 # Server Components only
+│   │   └── interactive/              # Client Components only
+│   │
+│   ├── lib/                          # Shared utilities
+│   │   └── ...                       # Can symlink to root lib/
+│   │
+│   ├── next.config.js                # Separate Next.js config
+│   ├── package.json                  # Frontend-specific dependencies
+│   ├── tsconfig.json                 # TypeScript config
+│   └── vercel.json                   # Vercel deployment config
+│
+└── backend/                          # Future - Step 5 (NestJS)
+```
+
+### Step E: Create Frontend Directory Structure
+
+```bash
+# Create the new frontend directory
+mkdir -p frontend/{app,components,lib}
+
+# Copy existing app structure (DO NOT delete originals)
+cp -r app/* frontend/app/
+
+# Copy components
+cp -r components/* frontend/components/
+
+# Copy lib utilities
+cp -r lib/* frontend/lib/
+
+# Copy config files
+cp next.config.js frontend/
+cp tsconfig.json frontend/
+cp tailwind.config.ts frontend/
+cp postcss.config.js frontend/
+
+# Create frontend-specific package.json (subset of dependencies)
+cp package.json frontend/
+```
+
+### Step F: Create Frontend-Specific Configuration
+
+**frontend/next.config.js:**
+```javascript
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Optimize for modular frontend
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+  },
+
+  // Modularize imports for tree-shaking
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+  },
+
+  // Environment indicator
+  env: {
+    DEPLOYMENT_TYPE: 'modular-frontend',
+  },
+};
+
+module.exports = withBundleAnalyzer(nextConfig);
+```
+
+**frontend/vercel.json:**
+```json
+{
+  "framework": "nextjs",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_DEPLOYMENT_TYPE": "modular-frontend"
+  }
+}
+```
+
+### Step G: Configure Vercel Root Directory
+
+In the NEW Vercel project settings:
+
+1. Go to **Settings** → **General** → **Root Directory**
+2. Set Root Directory to: `frontend`
+3. Save changes
+
+```
+Vercel Project Settings:
+┌─────────────────────────────────────────────────┐
+│ Root Directory: frontend                        │
+│ Framework Preset: Next.js                       │
+│ Build Command: (default)                        │
+│ Output Directory: (default)                     │
+│ Install Command: pnpm install                   │
+└─────────────────────────────────────────────────┘
+```
+
+### Step H: Organize Components by Type
+
+After copying, reorganize components in `frontend/components/`:
+
+```bash
+# Create subdirectories for separation
+mkdir -p frontend/components/{readable,interactive}
+
+# Move pure display components to readable/
+# (No useState, useEffect, onClick, etc.)
+mv frontend/components/dashboard/stats-card.tsx frontend/components/readable/
+mv frontend/components/admin/metric-card.tsx frontend/components/readable/
+
+# Move interactive components to interactive/
+# (Has hooks, event handlers, browser APIs)
+mv frontend/components/charts/trading-chart.tsx frontend/components/interactive/
+mv frontend/components/forms/login-form.tsx frontend/components/interactive/
+```
+
+**Component Classification Rule:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ READABLE (Server Components)         │ INTERACTIVE (Client)    │
+├─────────────────────────────────────────────────────────────────┤
+│ ✓ Display data only                  │ ✓ useState, useEffect   │
+│ ✓ No event handlers                  │ ✓ onClick, onChange     │
+│ ✓ No browser APIs                    │ ✓ window, localStorage  │
+│ ✓ Can fetch data directly            │ ✓ Real-time updates     │
+│ ✓ Static content                     │ ✓ Form inputs           │
+│                                      │ ✓ Animations            │
+│ → 0 KB JavaScript sent to client     │ → JS bundle required    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Step I: Verification Checklist
+
+Before proceeding to refactoring:
+
+- [ ] `frontend/` directory created
+- [ ] All files copied (not moved) from root
+- [ ] Original `app/`, `components/`, `lib/` unchanged
+- [ ] `frontend/next.config.js` configured
+- [ ] `frontend/vercel.json` created
+- [ ] Vercel project root directory set to `frontend`
+- [ ] `pnpm install` works in `frontend/` directory
+- [ ] `pnpm run build` succeeds in `frontend/` directory
+- [ ] Original monolith still builds: `pnpm run build` (from root)
+
+---
+
 ## Reference Documentation
 
 Read these files before starting:
