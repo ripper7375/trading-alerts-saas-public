@@ -9,6 +9,7 @@ This prompt guides Claude Code (web) through **Step 5** of the Modular Monolith 
 - **Database**: Railway PostgreSQL → Timescale Cloud (PostgreSQL + TimescaleDB)
 - **Cache**: Railway Redis → Upstash Redis
 - **Deployment**: Vercel serverless → Railway Docker container
+- **Archive**: Old Next.js backend files → `archive/` folder for reference
 
 ---
 
@@ -397,6 +398,197 @@ BullModule.forRootAsync({
 }),
 ```
 
+### Archiving Old Next.js Backend Files
+
+Before converting to Nest.js, archive all old Next.js backend files for reference and rollback capability.
+
+**Repository Structure Context (After Step 4):**
+```
+trading-alerts-saas-public/
+├── app/                    # EXISTING - DO NOT MODIFY (monolith)
+│   ├── api/                # ← BACKEND LOGIC (to be archived & converted)
+│   ├── (auth)/             # Frontend pages (stays in monolith until cleanup)
+│   ├── (dashboard)/        # Frontend pages
+│   └── ...
+├── components/             # EXISTING - DO NOT MODIFY (monolith)
+├── lib/                    # EXISTING - DO NOT MODIFY (monolith)
+│   ├── auth/               # ← BACKEND LOGIC (to be archived & converted)
+│   ├── db/                 # ← BACKEND LOGIC
+│   ├── cache/              # ← BACKEND LOGIC
+│   ├── stripe/             # ← BACKEND LOGIC
+│   ├── dlocal/             # ← BACKEND LOGIC
+│   ├── affiliate/          # ← BACKEND LOGIC
+│   ├── disbursement/       # ← BACKEND LOGIC
+│   ├── utils.ts            # Shared (may be used by both)
+│   └── ...
+├── __tests__/              # Test files
+│   ├── api/                # ← BACKEND TESTS (to be archived)
+│   ├── lib/                # ← BACKEND TESTS (to be archived)
+│   ├── integration/        # ← BACKEND TESTS (to be archived)
+│   └── components/         # Frontend tests (stay)
+│
+├── frontend/               # NEW (Step 4) - Fresh Vercel deployment
+│   ├── app/                # Copied + refactored Server Components
+│   ├── components/
+│   │   ├── readable/       # Server Components (0 KB JS)
+│   │   └── interactive/    # Client Components (minimal JS)
+│   ├── lib/                # Frontend-only utilities
+│   ├── next.config.js      # Frontend-specific config
+│   └── vercel.json         # Vercel deployment config
+│
+├── backend/                # NEW (Step 5) - Nest.js on Railway
+│   └── (to be created)
+│
+└── archive/                # Archive folder for old files
+    └── step5-nextjs-backend/   # ← OLD BACKEND LOGIC GOES HERE
+```
+
+**Archive Folder Structure:**
+```
+archive/
+├── step5-nextjs-backend/           # Archived on: YYYY-MM-DD
+│   ├── README.md                   # Archive metadata and reason
+│   ├── app/
+│   │   └── api/                    # All 100 API route files
+│   │       ├── auth/
+│   │       ├── user/
+│   │       ├── indicators/
+│   │       ├── watchlist/
+│   │       ├── alerts/
+│   │       ├── checkout/
+│   │       ├── payments/
+│   │       ├── affiliate/
+│   │       ├── admin/
+│   │       ├── disbursement/
+│   │       ├── webhooks/
+│   │       ├── cron/
+│   │       ├── notifications/
+│   │       └── cache/
+│   ├── lib/                        # All 96 backend library files
+│   │   ├── auth/
+│   │   ├── db/
+│   │   ├── cache/
+│   │   ├── stripe/
+│   │   ├── dlocal/
+│   │   ├── affiliate/
+│   │   ├── disbursement/
+│   │   ├── tier/
+│   │   ├── email/
+│   │   ├── jobs/
+│   │   ├── cron/
+│   │   └── ...
+│   └── __tests__/                  # All 93 backend test files
+│       ├── api/
+│       ├── lib/
+│       └── integration/
+```
+
+**Archive README Template:**
+```markdown
+# Archive: Next.js Backend Files
+
+**Archived Date:** YYYY-MM-DD
+**Archived By:** [Developer Name]
+**Migration Step:** Step 5 - Next.js to Nest.js Conversion
+
+## Reason for Archive
+
+These files were archived as part of the Modular Monolith migration.
+The Next.js backend (API routes + library files) has been converted to
+a Nest.js backend deployed on Railway.
+
+## Repository Structure After Step 5
+
+After this migration, the repository structure will be:
+
+```
+trading-alerts-saas-public/
+├── frontend/               # Vercel (Next.js UI only)
+├── backend/                # Railway (Nest.js API + business logic)
+├── archive/
+│   └── step5-nextjs-backend/   # This archive
+└── (old monolith files to be cleaned up in Step 11)
+```
+
+## Contents
+
+- `app/api/` - 100 Next.js API route files
+- `lib/` - 96 library/service files (backend-specific)
+- `__tests__/` - 93 backend test files
+
+## Restoration
+
+If rollback is needed:
+
+1. Copy files back to their original locations
+2. Update package.json dependencies
+3. Revert environment variables
+4. Redeploy to Vercel
+
+## Related Documentation
+
+- Migration Plan: `monolith-to-modular-monolith-migration/`
+- New Frontend: `frontend/` (Next.js on Vercel)
+- New Backend: `backend/` (Nest.js on Railway)
+- Step 5 Prompt: `step5-nextjs-to-nestjs-conversion-prompt.md`
+```
+
+**Archive Commands:**
+```bash
+# Create archive directory structure
+mkdir -p archive/step5-nextjs-backend/app
+mkdir -p archive/step5-nextjs-backend/__tests__
+
+# Archive API routes (preserve directory structure)
+cp -r app/api archive/step5-nextjs-backend/app/
+
+# Archive backend library files (all of lib/ contains backend logic)
+cp -r lib archive/step5-nextjs-backend/
+
+# Archive backend tests only (not component tests)
+cp -r __tests__/api archive/step5-nextjs-backend/__tests__/
+cp -r __tests__/lib archive/step5-nextjs-backend/__tests__/
+cp -r __tests__/integration archive/step5-nextjs-backend/__tests__/
+
+# Create archive README
+cat > archive/step5-nextjs-backend/README.md << 'EOF'
+# Archive: Next.js Backend Files
+... (content from template above)
+EOF
+
+# Commit archive
+git add archive/step5-nextjs-backend/
+git commit -m "archive: preserve Next.js backend files before Nest.js migration"
+```
+
+**Files to Archive (Summary):**
+
+| Category | File Count | Source Path | Archive Path |
+|----------|------------|-------------|--------------|
+| API Routes | 100 | `app/api/**/*.ts` | `archive/step5-nextjs-backend/app/api/` |
+| Library Files | 96 | `lib/**/*.ts` | `archive/step5-nextjs-backend/lib/` |
+| Backend Tests | 93 | `__tests__/{api,lib,integration}/**` | `archive/step5-nextjs-backend/__tests__/` |
+| **Total** | **289** | | |
+
+**What Gets Archived vs What Stays:**
+
+| Location | Content | Action |
+|----------|---------|--------|
+| `app/api/**` | API routes | Archive → Convert to `backend/` |
+| `app/(pages)/**` | Frontend pages | Stay in monolith → Already in `frontend/` |
+| `lib/**` | Backend services | Archive → Convert to `backend/` |
+| `components/**` | UI components | Stay in monolith → Already in `frontend/` |
+| `__tests__/api/**` | API tests | Archive → Convert to `backend/test/` |
+| `__tests__/lib/**` | Library tests | Archive → Convert to `backend/test/` |
+| `__tests__/components/**` | Component tests | Stay → Already in `frontend/` |
+
+**Important Notes:**
+- Archive BEFORE deleting any files from the main codebase
+- Keep archive for at least 6 months after migration completion
+- Archive is for reference only - do not modify archived files
+- Archive can be used for rollback if migration fails
+- The `frontend/` folder (Step 4) is separate and NOT archived here
+
 ## Target Nest.js Architecture
 
 Create this module structure:
@@ -681,7 +873,16 @@ Please provide a step-by-step guide that covers:
    - Configure TypeScript
    - Set up folder structure
 
-2. **Phase 2: Database Migration (Railway → Timescale Cloud)**
+2. **Phase 2: Archive Old Next.js Files**
+   - Create archive directory structure
+   - Archive all 100 API route files (`app/api/**`)
+   - Archive all 96 library files (`lib/**`)
+   - Archive all 93 backend test files (`__tests__/{api,lib,integration}/**`)
+   - Create archive README with metadata
+   - Commit archive to repository
+   - Verify archive completeness (289 files total)
+
+3. **Phase 3: Database Migration (Railway → Timescale Cloud)**
    - Create Timescale Cloud service
    - Export data from Railway PostgreSQL
    - Import data to Timescale Cloud
@@ -691,27 +892,27 @@ Please provide a step-by-step guide that covers:
    - Create continuous aggregates
    - Update Prisma schema for TimescaleDB
 
-3. **Phase 3: Cache Migration (Railway Redis → Upstash)**
+4. **Phase 4: Cache Migration (Railway Redis → Upstash)**
    - Create Upstash Redis database
    - Configure TLS connection
    - Update Redis client for Upstash
    - Configure Bull Queue for Upstash
    - Test connection and performance
 
-4. **Phase 4: Core Infrastructure**
+5. **Phase 5: Core Infrastructure**
    - Prisma module setup (Timescale Cloud)
    - Redis module setup (Upstash)
    - Configuration module
    - Common utilities (guards, interceptors, filters)
 
-5. **Phase 5: Authentication Module**
+6. **Phase 6: Authentication Module**
    - JWT strategy
    - Local strategy
    - Auth guards
    - Session management
    - 2FA support
 
-6. **Phase 6: Domain Modules**
+7. **Phase 7: Domain Modules**
    For each module, specify:
    - File mapping (Next.js → Nest.js)
    - Controller structure
@@ -719,23 +920,29 @@ Please provide a step-by-step guide that covers:
    - DTOs
    - Dependencies
 
-7. **Phase 7: Background Jobs**
+8. **Phase 8: Background Jobs**
    - Bull Queue setup (with Upstash Redis)
    - Scheduled tasks
    - Cron job migration
 
-8. **Phase 8: Testing**
+9. **Phase 9: Testing**
    - Test file migration strategy
    - Jest configuration for Nest.js
    - E2E test setup
 
-9. **Phase 9: Docker & Railway Deployment**
-   - Dockerfile (multi-stage build)
-   - docker-compose.yml for local dev
-   - railway.toml configuration
-   - Environment variables setup
-   - Health check endpoints
-   - Deployment checklist
+10. **Phase 10: Docker & Railway Deployment**
+    - Dockerfile (multi-stage build)
+    - docker-compose.yml for local dev
+    - railway.toml configuration
+    - Environment variables setup
+    - Health check endpoints
+    - Deployment checklist
+
+11. **Phase 11: Cleanup & Verification**
+    - Remove old Next.js backend files from main codebase
+    - Update package.json (remove unused dependencies)
+    - Verify archive is intact
+    - Final testing against archive reference
 
 ## Conversion Pattern
 
@@ -809,17 +1016,34 @@ Before deploying to Railway:
 
 ## Success Criteria
 
+**Archive:**
+- [ ] All 289 Next.js backend files archived to `archive/step5-nextjs-backend/`
+- [ ] Archive README created with metadata
+- [ ] Archive committed to repository
+
+**Code Conversion:**
 - [ ] All 100 API routes converted to Nest.js controllers
 - [ ] All 96 library files converted to Nest.js services
+- [ ] All 93 backend tests migrated to Nest.js test structure
+
+**Infrastructure Migration:**
 - [ ] Database migrated to Timescale Cloud with hypertables
 - [ ] Cache migrated to Upstash Redis with TLS
+- [ ] TimescaleDB compression policies configured
+- [ ] Continuous aggregates created for analytics
+
+**Deployment:**
 - [ ] CORS working between localhost:3000 and localhost:5000
 - [ ] Docker image builds successfully
 - [ ] Railway deployment successful
+- [ ] Health check endpoint responding
+
+**Verification:**
 - [ ] All tests passing
 - [ ] Redis caching functional
 - [ ] Background jobs running
-- [ ] Health check endpoint responding
+- [ ] Old Next.js backend files removed from main codebase
+- [ ] Archive intact and accessible for rollback
 
 Please start with Phase 1 and proceed through each phase systematically. For each phase, provide:
 1. Exact commands to run
@@ -842,14 +1066,16 @@ Please start with Phase 1 and proceed through each phase systematically. For eac
 
 Claude Code should generate:
 
-1. **Complete project structure** with all directories and files
-2. **Database migration guide** (Railway PostgreSQL → Timescale Cloud)
-3. **Cache migration guide** (Railway Redis → Upstash)
-4. **Detailed conversion guide** for each module
-5. **Code examples** for controllers, services, DTOs
-6. **Docker configuration** for containerization
-7. **Railway deployment configuration** and checklist
-8. **Test migration strategy** for the 93 backend tests
+1. **Archive setup guide** for old Next.js backend files (289 files)
+2. **Complete project structure** with all directories and files
+3. **Database migration guide** (Railway PostgreSQL → Timescale Cloud)
+4. **Cache migration guide** (Railway Redis → Upstash)
+5. **Detailed conversion guide** for each module
+6. **Code examples** for controllers, services, DTOs
+7. **Docker configuration** for containerization
+8. **Railway deployment configuration** and checklist
+9. **Test migration strategy** for the 93 backend tests
+10. **Cleanup guide** for removing old files after migration
 
 ## Additional Context Files
 
