@@ -402,6 +402,47 @@ BullModule.forRootAsync({
 
 Before converting to Nest.js, archive all old Next.js backend files for reference and rollback capability.
 
+**Repository Structure Context (After Step 4):**
+```
+trading-alerts-saas-public/
+├── app/                    # EXISTING - DO NOT MODIFY (monolith)
+│   ├── api/                # ← BACKEND LOGIC (to be archived & converted)
+│   ├── (auth)/             # Frontend pages (stays in monolith until cleanup)
+│   ├── (dashboard)/        # Frontend pages
+│   └── ...
+├── components/             # EXISTING - DO NOT MODIFY (monolith)
+├── lib/                    # EXISTING - DO NOT MODIFY (monolith)
+│   ├── auth/               # ← BACKEND LOGIC (to be archived & converted)
+│   ├── db/                 # ← BACKEND LOGIC
+│   ├── cache/              # ← BACKEND LOGIC
+│   ├── stripe/             # ← BACKEND LOGIC
+│   ├── dlocal/             # ← BACKEND LOGIC
+│   ├── affiliate/          # ← BACKEND LOGIC
+│   ├── disbursement/       # ← BACKEND LOGIC
+│   ├── utils.ts            # Shared (may be used by both)
+│   └── ...
+├── __tests__/              # Test files
+│   ├── api/                # ← BACKEND TESTS (to be archived)
+│   ├── lib/                # ← BACKEND TESTS (to be archived)
+│   ├── integration/        # ← BACKEND TESTS (to be archived)
+│   └── components/         # Frontend tests (stay)
+│
+├── frontend/               # NEW (Step 4) - Fresh Vercel deployment
+│   ├── app/                # Copied + refactored Server Components
+│   ├── components/
+│   │   ├── readable/       # Server Components (0 KB JS)
+│   │   └── interactive/    # Client Components (minimal JS)
+│   ├── lib/                # Frontend-only utilities
+│   ├── next.config.js      # Frontend-specific config
+│   └── vercel.json         # Vercel deployment config
+│
+├── backend/                # NEW (Step 5) - Nest.js on Railway
+│   └── (to be created)
+│
+└── archive/                # Archive folder for old files
+    └── step5-nextjs-backend/   # ← OLD BACKEND LOGIC GOES HERE
+```
+
 **Archive Folder Structure:**
 ```
 archive/
@@ -423,7 +464,7 @@ archive/
 │   │       ├── cron/
 │   │       ├── notifications/
 │   │       └── cache/
-│   ├── lib/                        # All 96 library files
+│   ├── lib/                        # All 96 backend library files
 │   │   ├── auth/
 │   │   ├── db/
 │   │   ├── cache/
@@ -456,10 +497,23 @@ These files were archived as part of the Modular Monolith migration.
 The Next.js backend (API routes + library files) has been converted to
 a Nest.js backend deployed on Railway.
 
+## Repository Structure After Step 5
+
+After this migration, the repository structure will be:
+
+```
+trading-alerts-saas-public/
+├── frontend/               # Vercel (Next.js UI only)
+├── backend/                # Railway (Nest.js API + business logic)
+├── archive/
+│   └── step5-nextjs-backend/   # This archive
+└── (old monolith files to be cleaned up in Step 11)
+```
+
 ## Contents
 
 - `app/api/` - 100 Next.js API route files
-- `lib/` - 96 library/service files
+- `lib/` - 96 library/service files (backend-specific)
 - `__tests__/` - 93 backend test files
 
 ## Restoration
@@ -474,23 +528,24 @@ If rollback is needed:
 ## Related Documentation
 
 - Migration Plan: `monolith-to-modular-monolith-migration/`
-- New Backend: `backend/` (Nest.js)
+- New Frontend: `frontend/` (Next.js on Vercel)
+- New Backend: `backend/` (Nest.js on Railway)
 - Step 5 Prompt: `step5-nextjs-to-nestjs-conversion-prompt.md`
 ```
 
 **Archive Commands:**
 ```bash
-# Create archive directory
-mkdir -p archive/step5-nextjs-backend
+# Create archive directory structure
+mkdir -p archive/step5-nextjs-backend/app
+mkdir -p archive/step5-nextjs-backend/__tests__
 
 # Archive API routes (preserve directory structure)
 cp -r app/api archive/step5-nextjs-backend/app/
 
-# Archive library files
+# Archive backend library files (all of lib/ contains backend logic)
 cp -r lib archive/step5-nextjs-backend/
 
-# Archive backend tests
-mkdir -p archive/step5-nextjs-backend/__tests__
+# Archive backend tests only (not component tests)
 cp -r __tests__/api archive/step5-nextjs-backend/__tests__/
 cp -r __tests__/lib archive/step5-nextjs-backend/__tests__/
 cp -r __tests__/integration archive/step5-nextjs-backend/__tests__/
@@ -500,9 +555,6 @@ cat > archive/step5-nextjs-backend/README.md << 'EOF'
 # Archive: Next.js Backend Files
 ... (content from template above)
 EOF
-
-# Add to .gitignore (optional - to exclude from main branch)
-# echo "archive/step5-nextjs-backend/" >> .gitignore
 
 # Commit archive
 git add archive/step5-nextjs-backend/
@@ -518,11 +570,24 @@ git commit -m "archive: preserve Next.js backend files before Nest.js migration"
 | Backend Tests | 93 | `__tests__/{api,lib,integration}/**` | `archive/step5-nextjs-backend/__tests__/` |
 | **Total** | **289** | | |
 
+**What Gets Archived vs What Stays:**
+
+| Location | Content | Action |
+|----------|---------|--------|
+| `app/api/**` | API routes | Archive → Convert to `backend/` |
+| `app/(pages)/**` | Frontend pages | Stay in monolith → Already in `frontend/` |
+| `lib/**` | Backend services | Archive → Convert to `backend/` |
+| `components/**` | UI components | Stay in monolith → Already in `frontend/` |
+| `__tests__/api/**` | API tests | Archive → Convert to `backend/test/` |
+| `__tests__/lib/**` | Library tests | Archive → Convert to `backend/test/` |
+| `__tests__/components/**` | Component tests | Stay → Already in `frontend/` |
+
 **Important Notes:**
 - Archive BEFORE deleting any files from the main codebase
 - Keep archive for at least 6 months after migration completion
 - Archive is for reference only - do not modify archived files
 - Archive can be used for rollback if migration fails
+- The `frontend/` folder (Step 4) is separate and NOT archived here
 
 ## Target Nest.js Architecture
 
