@@ -26,15 +26,9 @@ interface Candle {
   c: number;  // close
 }
 
-interface QueryParams {
-  symbol: string;
-  limit: number;
-  timeframe?: string;
-}
-
 // Environment configuration
-const REDIS_URL = process.env.REDIS_URL || "";
-const POSTGRESQL_URI = process.env.POSTGRESQL_URI || "";
+const REDIS_URL = process.env["REDIS_URL"] || "";
+const POSTGRESQL_URI = process.env["POSTGRESQL_URI"] || "";
 const REALTIME_CANDLE_LIMIT = 250;
 const MAX_CANDLE_LIMIT = 10000;
 
@@ -159,7 +153,7 @@ async function getFromRedis(symbol: string, limit: number): Promise<Candle[]> {
     const results = await redisClient.zRange(redisKey, -limit, -1);
 
     // Parse JSON candle data
-    const candles: Candle[] = results.map((item) => JSON.parse(item));
+    const candles: Candle[] = results.map((item: string) => JSON.parse(item));
 
     console.log(`Retrieved ${candles.length} candles from Redis for ${symbol}`);
 

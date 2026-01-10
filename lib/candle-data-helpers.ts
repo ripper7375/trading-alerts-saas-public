@@ -26,8 +26,8 @@ export interface CandleQueryOptions {
 }
 
 // Configuration
-const REDIS_URL = process.env.REDIS_URL || "";
-const POSTGRESQL_URI = process.env.POSTGRESQL_URI || "";
+const REDIS_URL = process.env["REDIS_URL"] || "";
+const POSTGRESQL_URI = process.env["POSTGRESQL_URI"] || "";
 export const REALTIME_CANDLE_LIMIT = 250;
 export const MAX_CANDLE_LIMIT = 10000;
 
@@ -120,7 +120,7 @@ export async function getFromRedis(symbol: string, limit: number): Promise<Candl
     redisClient = createClient({
       url: REDIS_URL,
       socket: {
-        reconnectStrategy: (retries) => {
+        reconnectStrategy: (retries: number) => {
           if (retries > 3) {
             return new Error("Redis reconnect limit exceeded");
           }
@@ -137,7 +137,7 @@ export async function getFromRedis(symbol: string, limit: number): Promise<Candl
     const results = await redisClient.zRange(redisKey, -limit, -1);
 
     // Parse JSON candle data
-    const candles: Candle[] = results.map((item) => JSON.parse(item));
+    const candles: Candle[] = results.map((item: string) => JSON.parse(item));
 
     console.log(`Retrieved ${candles.length} candles from Redis for ${symbol}`);
 
