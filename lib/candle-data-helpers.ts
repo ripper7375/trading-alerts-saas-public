@@ -218,7 +218,7 @@ export async function getFromPostgreSQL(
  */
 export async function getLatestCandle(symbol: string): Promise<Candle | null> {
   const candles = await getFromRedis(symbol, 1);
-  return candles.length > 0 ? candles[0] : null;
+  return candles[0] ?? null;
 }
 
 /**
