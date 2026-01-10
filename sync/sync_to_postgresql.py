@@ -32,12 +32,17 @@ from config import (
     LOG_FORMAT,
     MAX_RETRIES,
     RETRY_DELAY_SECONDS,
+    REALTIME_CANDLE_LIMIT,
+    REDIS_REALTIME_TTL,
+    ENABLE_REDIS_SYNC,
 )
 from timeframe_filter import filter_by_timeframe
 from db_connections import (
     sqlite_connection,
     postgresql_connection,
+    redis_connection,
     close_postgresql_pool,
+    close_redis_pool,
 )
 
 # Configure logging
@@ -174,6 +179,9 @@ class DataSyncer:
                 self.last_sync_timestamps[symbol] = rows[-1][0]  # timestamp column
                 self.stats["rows_synced"] += rows_synced
 
+            # Sync to Redis (HOT tier) - raw 30-second data
+            self.sync_realtime_to_redis(symbol, rows)
+
             logger.info(f"Synced {symbol}: {len(rows)} rows processed")
             return True
 
@@ -269,6 +277,92 @@ class DataSyncer:
             conn.commit()
             logger.debug(f"Deleted {excess} rows from {table_name}")
 
+    def sync_realtime_to_redis(self, symbol: str, rows: List[Tuple]) -> bool:
+        """
+        Sync last N candles to Redis for real-time chart updates (HOT tier).
+
+        Stores raw 30-second OHLC data in Redis Sorted Set for fast access.
+        Used by frontend for real-time candle chart rendering.
+
+        Args:
+            symbol: Trading symbol (e.g., "EURUSD.i", "BTCUSD")
+            rows: List of row tuples with (timestamp, open, high, low, close, ...)
+
+        Returns:
+            True if sync was successful, False otherwise
+        """
+        if not ENABLE_REDIS_SYNC:
+            logger.debug("Redis sync disabled, skipping Redis sync")
+            return True
+
+        if not rows:
+            logger.debug(f"No rows to sync to Redis for {symbol}")
+            return True
+
+        try:
+            with redis_connection() as r:
+                if r is None:
+                    logger.debug("Redis connection not available, skipping")
+                    return True
+
+                # Normalize symbol name (remove .i suffix, lowercase)
+                normalized_symbol = symbol.replace(".i", "").lower()
+                redis_key = f"{normalized_symbol}:realtime"
+
+                # Sort rows by timestamp (ascending)
+                sorted_rows = sorted(rows, key=lambda x: x[0])
+
+                # Only keep the last REALTIME_CANDLE_LIMIT candles
+                candles_to_store = sorted_rows[-REALTIME_CANDLE_LIMIT:]
+
+                # Build data for Redis Sorted Set
+                # Score = timestamp (for automatic sorting)
+                # Value = JSON with OHLC data
+                pipeline = r.pipeline()
+
+                for row in candles_to_store:
+                    timestamp = row[0]
+                    candle_data = {
+                        "t": timestamp,
+                        "o": float(row[1]),  # open
+                        "h": float(row[2]),  # high
+                        "l": float(row[3]),  # low
+                        "c": float(row[4]),  # close
+                    }
+
+                    # Add to sorted set (ZADD)
+                    # Score is timestamp for automatic time-based sorting
+                    import json
+                    pipeline.zadd(
+                        redis_key,
+                        {json.dumps(candle_data): timestamp}
+                    )
+
+                # Keep only the last REALTIME_CANDLE_LIMIT candles
+                # ZREMRANGEBYRANK removes all except top N scores
+                pipeline.zremrangebyrank(
+                    redis_key,
+                    0,
+                    -(REALTIME_CANDLE_LIMIT + 1)
+                )
+
+                # Set TTL as safety mechanism (7 days)
+                pipeline.expire(redis_key, REDIS_REALTIME_TTL)
+
+                # Execute all commands
+                pipeline.execute()
+
+                logger.debug(
+                    f"Synced {len(candles_to_store)} candles to Redis for {normalized_symbol}"
+                )
+
+                return True
+
+        except Exception as e:
+            logger.error(f"Error syncing to Redis for {symbol}: {e}")
+            # Don't fail the entire sync if Redis fails
+            return False
+
     def run(self) -> Dict[str, Any]:
         """
         Run sync for all symbols.
@@ -344,8 +438,9 @@ def main():
         sys.exit(1)
 
     finally:
-        # Clean up connection pool
+        # Clean up connection pools
         close_postgresql_pool()
+        close_redis_pool()
 
 
 if __name__ == "__main__":

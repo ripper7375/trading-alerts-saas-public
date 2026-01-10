@@ -30,13 +30,52 @@ The sync script synchronizes data from local SQLite (written by DataCollector.mq
 
 ```
 SQLite (MT5 Files folder: trading_data.db)
-    ↓ (Python sync script reads)
-Filter by timeframe (9 timeframes)
-    ↓ (UPSERT to PostgreSQL)
-Railway PostgreSQL (135 tables)
-    → eurusd_m5, eurusd_m15, ... eurusd_d1
-    → btcusd_m5, btcusd_m15, ... btcusd_d1
-    → ... (15 symbols × 9 timeframes = 135 tables)
+    ↓ (Python sync script reads every 30 seconds)
+    ├──────────────────────┬────────────────────────┐
+    ↓                      ↓                        ↓
+HOT TIER              WARM TIER              Raw Data Storage
+(Redis)               (PostgreSQL)           (PostgreSQL)
+    ↓                      ↓                        ↓
+Last 250 candles      9 timeframe tables     Full historical data
+30-second granularity M5, M15, M30, H1...    Filtered by timeframe
+Fast access (<1ms)    Slower (10-50ms)       Max 10,000 rows/table
+    ↓                      ↓                        ↓
+Real-time charts      Historical charts      Deep history queries
+Trading dashboard     Analysis tools         Backtesting
+```
+
+**Architecture Details:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    DATA TIER ARCHITECTURE                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  HOT TIER (Redis)                                          │
+│  ├─ Storage: Redis Sorted Sets                            │
+│  ├─ Key format: {symbol}:realtime                         │
+│  ├─ Data: Last 250 candles per symbol                     │
+│  ├─ Granularity: 30-second raw OHLC                       │
+│  ├─ Access time: <1ms                                      │
+│  ├─ Use case: Real-time chart updates (95% of queries)    │
+│  └─ TTL: 7 days (safety mechanism)                        │
+│                                                             │
+│  WARM TIER (PostgreSQL)                                    │
+│  ├─ Storage: 135 timeframe tables                         │
+│  ├─ Table format: {symbol}_{timeframe}                    │
+│  ├─ Data: Candles 251 to 10,000                          │
+│  ├─ Granularity: Filtered (M5, M15, M30, H1...)          │
+│  ├─ Access time: 10-50ms                                   │
+│  ├─ Use case: Deep history, analysis (5% of queries)      │
+│  └─ Max rows: 10,000 per table                            │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+Query Strategy:
+─────────────────────────────────────────────────────────────
+If limit ≤ 250:        Redis only (HOT path)
+If limit > 250:        Redis + PostgreSQL (WARM path)
+If Redis unavailable: PostgreSQL fallback (degraded mode)
 ```
 
 ---
@@ -45,16 +84,16 @@ Railway PostgreSQL (135 tables)
 
 ### Component Files
 
-| File                     | Purpose                                              |
-| ------------------------ | ---------------------------------------------------- |
-| `config.py`              | Configuration settings (symbols, timeframes, paths)  |
-| `db_connections.py`      | Database connection management (SQLite + PostgreSQL) |
-| `sync_to_postgresql.py`  | Main sync logic                                      |
-| `timeframe_filter.py`    | Filters data by timeframe                            |
-| `requirements.txt`       | Python dependencies                                  |
-| `run_sync.ps1`           | PowerShell wrapper for Task Scheduler                |
-| `run_sync.bat`           | Batch file alternative                               |
-| `setup-sync-package.ps1` | Automated setup script                               |
+| File                     | Purpose                                                        |
+| ------------------------ | -------------------------------------------------------------- |
+| `config.py`              | Configuration settings (symbols, timeframes, paths, Redis)     |
+| `db_connections.py`      | Database connection management (SQLite, PostgreSQL, Redis)     |
+| `sync_to_postgresql.py`  | Main sync logic (PostgreSQL + Redis sync)                      |
+| `timeframe_filter.py`    | Filters data by timeframe                                      |
+| `requirements.txt`       | Python dependencies (psycopg2, redis, python-dotenv)           |
+| `run_sync.ps1`           | PowerShell wrapper for Task Scheduler                          |
+| `run_sync.bat`           | Batch file alternative                                         |
+| `setup-sync-package.ps1` | Automated setup script                                         |
 
 ### Sync Process Flow
 
@@ -62,13 +101,38 @@ Railway PostgreSQL (135 tables)
 1. Load last sync state (sync_state.json)
 2. For each symbol (15 total):
    a. Query SQLite for rows since last sync
-   b. For each timeframe (9 total):
-      - Filter rows matching timeframe
-      - UPSERT to PostgreSQL table
-      - Enforce max row limit (10,000)
-   c. Update last sync timestamp
+   b. WARM TIER SYNC (PostgreSQL):
+      - For each timeframe (9 total):
+        * Filter rows matching timeframe
+        * UPSERT to PostgreSQL table
+        * Enforce max row limit (10,000)
+   c. HOT TIER SYNC (Redis):
+      - Normalize symbol name (remove .i, lowercase)
+      - Take last 250 candles from raw data
+      - Store in Redis Sorted Set ({symbol}:realtime)
+      - Set 7-day TTL as safety mechanism
+   d. Update last sync timestamp
 3. Save sync state
 4. Log completion statistics
+5. Close database connections (PostgreSQL + Redis)
+```
+
+**Redis Sync Details:**
+
+```python
+# Pseudocode for Redis sync
+normalized_symbol = symbol.replace(".i", "").lower()
+redis_key = f"{normalized_symbol}:realtime"
+
+for candle in last_250_candles:
+    candle_data = {"t": timestamp, "o": open, "h": high, "l": low, "c": close}
+    redis.zadd(redis_key, {json.dumps(candle_data): timestamp})
+
+# Keep only last 250 candles
+redis.zremrangebyrank(redis_key, 0, -(REALTIME_CANDLE_LIMIT + 1))
+
+# Set expiration (7 days)
+redis.expire(redis_key, 604800)
 ```
 
 ### Timeframe Filtering Logic
@@ -84,6 +148,220 @@ Railway PostgreSQL (135 tables)
 | H8        | minute == 0 AND hour % 8 == 0  | 00:00, 08:00, 16:00    |
 | H12       | minute == 0 AND hour % 12 == 0 | 00:00, 12:00           |
 | D1        | hour == 0 AND minute == 0      | 00:00 (midnight)       |
+
+---
+
+## Redis Hot Tier Architecture
+
+### Overview
+
+The Redis hot tier provides sub-millisecond access to the most recent 250 candles for each symbol. This enables real-time chart updates and reduces load on PostgreSQL.
+
+### Data Structure
+
+**Redis Key Pattern:**
+
+```
+{symbol}:realtime
+```
+
+Examples:
+- `eurusd:realtime`
+- `btcusd:realtime`
+- `xauusd:realtime`
+
+**Storage Format:**
+
+- Data structure: **Sorted Set (ZSET)**
+- Score: Unix timestamp (seconds)
+- Value: JSON string with OHLC data
+
+```json
+{
+  "t": 1736505000,  // Unix timestamp
+  "o": 1.0850,      // Open price
+  "h": 1.0855,      // High price
+  "l": 1.0848,      // Low price
+  "c": 1.0852       // Close price
+}
+```
+
+### Why Sorted Sets?
+
+1. **Automatic Time-Based Sorting**: Timestamps as scores ensure chronological order
+2. **Range Queries**: Fast retrieval of last N candles
+3. **Efficient Trimming**: Easy to remove oldest entries
+4. **Atomic Operations**: Thread-safe updates
+
+### Configuration
+
+| Setting                | Value | Purpose                              |
+| ---------------------- | ----- | ------------------------------------ |
+| `REALTIME_CANDLE_LIMIT` | 250   | Number of candles to keep per symbol |
+| `REDIS_REALTIME_TTL`    | 604800 | 7-day expiration (safety mechanism)  |
+| `ENABLE_REDIS_SYNC`     | true  | Enable/disable Redis sync            |
+
+### Query Patterns
+
+#### Frontend Query Strategy
+
+```typescript
+// Query last 100 candles (HOT path - Redis only)
+GET /api/candles/eurusd?limit=100
+
+// Query last 500 candles (WARM path - Redis + PostgreSQL)
+GET /api/candles/eurusd?limit=500&timeframe=m5
+```
+
+**Implementation:**
+
+```typescript
+if (limit <= 250) {
+  // Fast path: Query only Redis
+  candles = await getFromRedis(symbol, limit);
+
+  // Fallback to PostgreSQL if Redis unavailable
+  if (candles.length === 0) {
+    candles = await getFromPostgreSQL(symbol, timeframe, limit);
+  }
+} else {
+  // Deep history: Combine both sources
+  const [redisCandles, pgCandles] = await Promise.all([
+    getFromRedis(symbol, 250),
+    getFromPostgreSQL(symbol, timeframe, limit - 250),
+  ]);
+
+  candles = [...pgCandles, ...redisCandles].sort((a, b) => a.t - b.t);
+}
+```
+
+### Performance Characteristics
+
+| Query Type          | Data Source   | Latency | Cache Hit Rate |
+| ------------------- | ------------- | ------- | -------------- |
+| Last 100 candles    | Redis only    | <1ms    | 95%            |
+| Last 250 candles    | Redis only    | <2ms    | 95%            |
+| Last 500 candles    | Redis + PG    | 15-30ms | Varies         |
+| Last 1000+ candles  | Redis + PG    | 30-60ms | Low            |
+
+### Symbol Normalization
+
+**Critical:** Symbol names are normalized before storing in Redis.
+
+```python
+# Input: "EURUSD.i" (from SQLite table name)
+# Output: "eurusd" (Redis key)
+
+normalized = symbol.replace(".i", "").lower()
+redis_key = f"{normalized}:realtime"
+```
+
+**Examples:**
+
+| SQLite Table | Redis Key         |
+| ------------ | ----------------- |
+| EURUSD.i     | eurusd:realtime   |
+| AUDJPY.i     | audjpy:realtime   |
+| BTCUSD       | btcusd:realtime   |
+| XAUUSD       | xauusd:realtime   |
+
+### Data Retention
+
+- **Active retention**: Last 250 candles (automatically trimmed)
+- **Safety TTL**: 7 days (prevents stale data if sync stops)
+- **Storage per symbol**: ~30KB (250 candles × ~120 bytes each)
+- **Total Redis storage**: ~450KB for 15 symbols
+
+### Monitoring
+
+**Check Redis candle counts:**
+
+```bash
+# Connect to Redis
+redis-cli -u $REDIS_URL
+
+# Check candle count for EURUSD
+ZCARD eurusd:realtime
+# Expected: 250
+
+# View latest 5 candles
+ZRANGE eurusd:realtime -5 -1
+
+# Check TTL
+TTL eurusd:realtime
+# Expected: ~604800 seconds (resets after each sync)
+```
+
+**Health Check Script:**
+
+```bash
+#!/bin/bash
+# check-redis-health.sh
+
+SYMBOLS=("eurusd" "btcusd" "xauusd" "gbpusd" "usdjpy")
+
+for symbol in "${SYMBOLS[@]}"; do
+  count=$(redis-cli -u $REDIS_URL ZCARD "${symbol}:realtime")
+  echo "${symbol}: ${count} candles"
+
+  if [ "$count" -lt 200 ]; then
+    echo "⚠️  WARNING: ${symbol} has only ${count} candles (expected ~250)"
+  fi
+done
+```
+
+### Graceful Degradation
+
+**If Redis is unavailable:**
+
+1. Frontend automatically falls back to PostgreSQL
+2. Sync script continues syncing to PostgreSQL only
+3. No data loss (PostgreSQL has all data)
+4. Slightly higher latency for queries (<50ms vs <1ms)
+
+**Recovery:**
+
+1. Redis comes back online
+2. Next sync run repopulates last 250 candles
+3. System returns to normal operation
+
+### Failover Strategy
+
+```python
+# In sync script (sync_to_postgresql.py)
+def sync_realtime_to_redis(symbol, rows):
+    try:
+        # Sync to Redis
+        with redis_connection() as r:
+            # ... Redis sync logic
+        return True
+    except Exception as e:
+        logger.error(f"Redis sync failed for {symbol}: {e}")
+        # Don't fail the entire sync - PostgreSQL still gets updated
+        return False
+
+# In frontend (candle-data-helpers.ts)
+export async function queryCandles(options) {
+  if (limit <= 250) {
+    candles = await getFromRedis(symbol, limit);
+
+    // Automatic fallback
+    if (candles.length === 0) {
+      console.warn(`Redis unavailable, using PostgreSQL`);
+      candles = await getFromPostgreSQL(symbol, timeframe, limit);
+    }
+  }
+  return candles;
+}
+```
+
+### Best Practices
+
+1. **Always set TTL**: Prevents orphaned keys if sync script stops
+2. **Use pipelines**: Batch Redis commands for better performance
+3. **Monitor candle counts**: Alert if counts drop below threshold
+4. **Test fallback path**: Ensure PostgreSQL queries work when Redis is down
+5. **Log Redis errors**: But don't fail the entire sync operation
 
 ---
 
@@ -1001,8 +1279,11 @@ MT5_TERMINAL_ID=$terminalId
 # Railway PostgreSQL connection string
 POSTGRESQL_URI=postgresql://postgres:YOUR_PASSWORD@turntable.proxy.rlwy.net:55082/railway
 
-# Railway Redis connection string (optional)
+# Railway Redis connection string (required for real-time data)
 REDIS_URL=redis://default:YOUR_PASSWORD@switchyard.proxy.rlwy.net:47725
+
+# Redis Real-Time Configuration
+ENABLE_REDIS_SYNC=true  # Set to false to disable Redis sync
 
 # Logging
 LOG_LEVEL=INFO
@@ -1309,6 +1590,308 @@ if (Test-Path $dbPath) {
 
 ---
 
+## Testing Redis Integration
+
+### Test 1: Redis Connection
+
+**Verify Redis is reachable:**
+
+```bash
+# From Windows VPS
+redis-cli -u $env:REDIS_URL ping
+# Expected: PONG
+```
+
+```powershell
+# From PowerShell
+cd C:\Scripts\sync_package
+
+# Test connections (includes Redis)
+python -c "from db_connections import test_connections; import json; print(json.dumps(test_connections(), indent=2))"
+```
+
+**Expected output:**
+
+```json
+{
+  "sqlite": {
+    "connected": true,
+    "error": null
+  },
+  "postgresql": {
+    "connected": true,
+    "error": null
+  },
+  "redis": {
+    "connected": true,
+    "error": null,
+    "enabled": true
+  }
+}
+```
+
+### Test 2: Redis Sync Verification
+
+**Run sync and check Redis:**
+
+```powershell
+# Run sync manually
+cd C:\Scripts\sync_package
+python sync_to_postgresql.py
+
+# Check Redis data
+redis-cli -u $env:REDIS_URL
+
+# In Redis CLI:
+> ZCARD eurusd:realtime
+250  # Should be exactly 250 (or less if just started)
+
+> ZRANGE eurusd:realtime -5 -1
+# Should show last 5 candles as JSON strings
+
+> ZREVRANGE eurusd:realtime 0 0 WITHSCORES
+# Should show the most recent candle with timestamp
+```
+
+### Test 3: Data Format Verification
+
+**Inspect candle data structure:**
+
+```bash
+# Get one candle
+redis-cli -u $REDIS_URL ZRANGE eurusd:realtime -1 -1
+
+# Expected format:
+{"t":1736505000,"o":1.0850,"h":1.0855,"l":1.0848,"c":1.0852}
+```
+
+**Verify fields:**
+
+- `t`: Unix timestamp (10 digits, e.g., 1736505000)
+- `o`: Open price (decimal)
+- `h`: High price (decimal)
+- `l`: Low price (decimal)
+- `c`: Close price (decimal)
+
+### Test 4: Candle Count Accuracy
+
+**Check all symbols:**
+
+```bash
+#!/bin/bash
+# test-redis-candles.sh
+
+SYMBOLS=(
+  "audjpy" "audusd" "btcusd" "ethusd" "eurusd"
+  "gbpjpy" "gbpusd" "ndx100" "nzdusd" "us30"
+  "usdcad" "usdchf" "usdjpy" "xagusd" "xauusd"
+)
+
+echo "Symbol Candle Counts:"
+echo "===================="
+
+for symbol in "${SYMBOLS[@]}"; do
+  count=$(redis-cli -u $REDIS_URL ZCARD "${symbol}:realtime")
+  printf "%-10s: %3d candles\n" "$symbol" "$count"
+done
+```
+
+**Expected output:**
+
+```
+Symbol Candle Counts:
+====================
+audjpy    : 250 candles
+audusd    : 250 candles
+btcusd    : 250 candles
+ethusd    : 250 candles
+eurusd    : 250 candles
+...
+```
+
+### Test 5: TTL Verification
+
+**Check expiration times:**
+
+```bash
+# Check TTL for all symbols
+for symbol in eurusd btcusd xauusd; do
+  ttl=$(redis-cli -u $REDIS_URL TTL "${symbol}:realtime")
+  echo "${symbol}: ${ttl} seconds remaining"
+done
+```
+
+**Expected:** TTL should be close to 604800 seconds (7 days) after each sync.
+
+### Test 6: Oldest Candle Removal
+
+**Verify automatic trimming:**
+
+```powershell
+# Get initial count
+$before = redis-cli -u $env:REDIS_URL ZCARD eurusd:realtime
+
+# Run sync (adds new candles)
+python sync_to_postgresql.py
+
+# Get new count
+$after = redis-cli -u $env:REDIS_URL ZCARD eurusd:realtime
+
+# Should still be 250 (oldest candles removed)
+Write-Host "Before: $before candles"
+Write-Host "After: $after candles"
+Write-Host "Expected: 250 candles (limit enforced)"
+```
+
+### Test 7: Query Performance
+
+**Benchmark Redis vs PostgreSQL:**
+
+```typescript
+// test-query-performance.ts
+import { queryCandles } from "@/lib/candle-data-helpers";
+
+async function benchmarkQueries() {
+  // Test 1: Redis only (100 candles)
+  const start1 = Date.now();
+  const candles1 = await queryCandles({
+    symbol: "eurusd",
+    limit: 100,
+  });
+  const time1 = Date.now() - start1;
+
+  console.log(`Redis query (100 candles): ${time1}ms`);
+  // Expected: <5ms
+
+  // Test 2: Redis + PostgreSQL (500 candles)
+  const start2 = Date.now();
+  const candles2 = await queryCandles({
+    symbol: "eurusd",
+    limit: 500,
+    timeframe: "m5",
+  });
+  const time2 = Date.now() - start2;
+
+  console.log(`Redis + PG query (500 candles): ${time2}ms`);
+  // Expected: 15-50ms
+}
+
+benchmarkQueries();
+```
+
+### Test 8: Graceful Degradation
+
+**Test PostgreSQL fallback when Redis is down:**
+
+```powershell
+# Stop Redis temporarily (on Railway dashboard)
+# or set ENABLE_REDIS_SYNC=false in .env
+
+# Run sync
+python sync_to_postgresql.py
+
+# Expected: Sync completes successfully, only PostgreSQL updated
+# Log should show: "Redis sync disabled, skipping Redis sync"
+
+# Frontend should still work (querying from PostgreSQL)
+```
+
+### Test 9: Data Consistency
+
+**Verify Redis and PostgreSQL have matching latest candles:**
+
+```python
+# test_data_consistency.py
+import redis
+import psycopg2
+import json
+import os
+
+# Connect to Redis
+r = redis.from_url(os.getenv("REDIS_URL"))
+
+# Connect to PostgreSQL
+pg = psycopg2.connect(os.getenv("POSTGRESQL_URI"))
+
+# Get latest candle from Redis
+redis_candle = r.zrange("eurusd:realtime", -1, -1)[0]
+redis_data = json.loads(redis_candle)
+
+# Get latest candle from PostgreSQL
+cursor = pg.cursor()
+cursor.execute("""
+  SELECT
+    EXTRACT(EPOCH FROM timestamp)::bigint AS t,
+    open AS o,
+    high AS h,
+    low AS l,
+    close AS c
+  FROM eurusd_m5
+  ORDER BY timestamp DESC
+  LIMIT 1
+""")
+pg_data = cursor.fetchone()
+
+# Compare
+print("Redis latest:", redis_data)
+print("PostgreSQL latest:", dict(zip(['t', 'o', 'h', 'l', 'c'], pg_data)))
+
+# Timestamps should be close (within 5 minutes for M5 timeframe)
+time_diff = abs(redis_data['t'] - pg_data[0])
+assert time_diff < 300, f"Timestamps differ by {time_diff} seconds"
+
+print("✅ Data consistency check passed")
+```
+
+### Test 10: End-to-End API Test
+
+**Test the Next.js API route:**
+
+```bash
+# Test HOT path (Redis only)
+curl "http://localhost:3000/api/candles/eurusd?limit=100"
+
+# Expected response:
+{
+  "symbol": "eurusd",
+  "timeframe": "m5",
+  "limit": 100,
+  "count": 100,
+  "candles": [
+    {"t": 1736505000, "o": 1.0850, "h": 1.0855, "l": 1.0848, "c": 1.0852},
+    ...
+  ],
+  "source": "redis"
+}
+
+# Test WARM path (Redis + PostgreSQL)
+curl "http://localhost:3000/api/candles/eurusd?limit=500&timeframe=m5"
+
+# Expected response:
+{
+  "source": "redis+postgresql",
+  "count": 500,
+  ...
+}
+```
+
+### Test Summary Checklist
+
+Before deploying to production:
+
+- [ ] Redis connection test passes
+- [ ] All 15 symbols have 250 candles in Redis
+- [ ] Candle data format is correct (JSON with t, o, h, l, c)
+- [ ] TTL is set (7 days)
+- [ ] Oldest candles are automatically removed
+- [ ] Query performance is acceptable (<5ms for Redis, <50ms for PG)
+- [ ] Graceful degradation works (PostgreSQL fallback)
+- [ ] Data consistency between Redis and PostgreSQL
+- [ ] Next.js API routes return correct data
+- [ ] Sync script logs show no Redis errors
+
+---
+
 ## Troubleshooting
 
 ### Issue 1: Database Not Found
@@ -1432,6 +2015,236 @@ pip install -r requirements.txt
 python -c "import sys; print(sys.executable)"
 ```
 
+### Issue 7: Redis Connection Refused
+
+**Symptoms:**
+
+```
+redis.exceptions.ConnectionError: Error connecting to Redis
+```
+
+**Solutions:**
+
+1. **Check Railway Redis is running:**
+   - Go to railway.app dashboard
+   - Verify Redis service is active
+
+2. **Verify REDIS_URL in .env:**
+
+```powershell
+# Check .env file
+Get-Content C:\Scripts\sync_package\.env | Select-String "REDIS_URL"
+
+# Test connection manually
+redis-cli -u $env:REDIS_URL ping
+```
+
+3. **Check network connectivity:**
+
+```powershell
+# Extract host and port from REDIS_URL
+# Format: redis://default:PASSWORD@switchyard.proxy.rlwy.net:47725
+
+Test-NetConnection -ComputerName switchyard.proxy.rlwy.net -Port 47725
+```
+
+4. **Disable Redis sync temporarily:**
+
+```
+# In .env file
+ENABLE_REDIS_SYNC=false
+```
+
+### Issue 8: Redis Candle Count Below 250
+
+**Symptoms:**
+
+```bash
+redis-cli -u $REDIS_URL ZCARD eurusd:realtime
+# Returns: 50 (expected: 250)
+```
+
+**Solutions:**
+
+1. **Check if sync script has run enough times:**
+   - Each sync adds ~1-4 candles (30-second intervals)
+   - Need ~60 sync runs to reach 250 candles
+
+2. **Check sync logs for errors:**
+
+```powershell
+Get-Content C:\Scripts\sync_package\logs\sync.log | Select-String "Redis"
+```
+
+3. **Manually verify data exists in SQLite:**
+
+```bash
+sqlite3 trading_data.db "SELECT COUNT(*) FROM eurusd"
+# Should have >250 rows
+```
+
+4. **Reset and resync:**
+
+```bash
+# Delete Redis key
+redis-cli -u $REDIS_URL DEL eurusd:realtime
+
+# Run sync again
+python sync_to_postgresql.py
+```
+
+### Issue 9: Redis TTL Expired (No Data)
+
+**Symptoms:**
+
+```bash
+redis-cli -u $REDIS_URL ZCARD eurusd:realtime
+# Returns: 0
+```
+
+**Solutions:**
+
+1. **Check if sync script is running:**
+
+```powershell
+Get-ScheduledTask -TaskName "TradingAlertsSyncTask" | Select-Object State
+```
+
+2. **Check last sync time:**
+
+```powershell
+$stateFile = Get-Item "C:\Scripts\sync_package\sync_state.json"
+$age = (Get-Date) - $stateFile.LastWriteTime
+Write-Host "Last sync: $age ago"
+
+# If >7 days, TTL expired
+```
+
+3. **Restart sync task:**
+
+```powershell
+Start-ScheduledTask -TaskName "TradingAlertsSyncTask"
+
+# Monitor logs
+Get-Content "C:\Scripts\sync_package\logs\sync.log" -Tail 20 -Wait
+```
+
+### Issue 10: Redis Out of Memory
+
+**Symptoms:**
+
+```
+redis.exceptions.ResponseError: OOM command not allowed when used memory > 'maxmemory'
+```
+
+**Solutions:**
+
+1. **Check Redis memory usage:**
+
+```bash
+redis-cli -u $REDIS_URL INFO memory
+```
+
+2. **Calculate expected usage:**
+   - 15 symbols × 250 candles × ~120 bytes = ~450 KB
+   - Should be well within Railway Redis free tier (25 MB)
+
+3. **Check for unexpected keys:**
+
+```bash
+redis-cli -u $REDIS_URL KEYS "*"
+# Should only show {symbol}:realtime keys
+```
+
+4. **Clear stale data:**
+
+```bash
+# If there are old keys, delete them
+redis-cli -u $REDIS_URL DEL old_key_name
+```
+
+5. **Upgrade Redis plan:**
+   - If legitimate memory usage exceeds limit
+   - Upgrade on Railway dashboard
+
+### Issue 11: Data Format Error (JSON Parse)
+
+**Symptoms:**
+
+```
+JSON parse error: Unexpected token in JSON
+```
+
+**Solutions:**
+
+1. **Inspect Redis data:**
+
+```bash
+redis-cli -u $REDIS_URL ZRANGE eurusd:realtime -1 -1
+# Should be valid JSON: {"t":123,"o":1.0,"h":1.0,"l":1.0,"c":1.0}
+```
+
+2. **Check for corrupted data:**
+
+```python
+import redis
+import json
+
+r = redis.from_url(os.getenv("REDIS_URL"))
+candles = r.zrange("eurusd:realtime", 0, -1)
+
+for i, candle in enumerate(candles):
+    try:
+        json.loads(candle)
+    except json.JSONDecodeError:
+        print(f"Invalid JSON at index {i}: {candle}")
+```
+
+3. **Clear and resync:**
+
+```bash
+# Delete corrupted key
+redis-cli -u $REDIS_URL DEL eurusd:realtime
+
+# Run sync to repopulate
+python sync_to_postgresql.py
+```
+
+### Issue 12: Symbol Name Mismatch
+
+**Symptoms:**
+
+```
+Frontend requests "EURUSD" but Redis has "eurusd:realtime"
+```
+
+**Solutions:**
+
+1. **Ensure frontend normalizes symbols:**
+
+```typescript
+// In API route or helper
+const normalizedSymbol = symbol.toLowerCase().replace(".i", "");
+const redisKey = `${normalizedSymbol}:realtime`;
+```
+
+2. **Check Redis keys:**
+
+```bash
+redis-cli -u $REDIS_URL KEYS "*:realtime"
+# All should be lowercase
+```
+
+3. **Update frontend to match:**
+
+```typescript
+// Bad
+const symbol = "EURUSD";
+
+// Good
+const symbol = "eurusd";
+```
+
 ---
 
 ## Quick Reference
@@ -1476,7 +2289,7 @@ railway.app → PostgreSQL service
 cd C:\Scripts\sync_package
 python sync_to_postgresql.py
 
-# Test connections
+# Test connections (includes Redis)
 python db_connections.py
 
 # Test configuration
@@ -1496,24 +2309,143 @@ Get-Content "C:\Scripts\sync_package\logs\sync.log" -Tail 20 -Wait
 Remove-Item "C:\Scripts\sync_package\sync_state.json"
 ```
 
+### Redis Commands
+
+```bash
+# Connect to Redis
+redis-cli -u $env:REDIS_URL
+
+# Check candle count for a symbol
+redis-cli -u $REDIS_URL ZCARD eurusd:realtime
+
+# View latest 10 candles
+redis-cli -u $REDIS_URL ZRANGE eurusd:realtime -10 -1
+
+# View most recent candle with timestamp
+redis-cli -u $REDIS_URL ZREVRANGE eurusd:realtime 0 0 WITHSCORES
+
+# Check TTL
+redis-cli -u $REDIS_URL TTL eurusd:realtime
+
+# List all realtime keys
+redis-cli -u $REDIS_URL KEYS "*:realtime"
+
+# Check Redis memory usage
+redis-cli -u $REDIS_URL INFO memory
+
+# Delete a specific symbol (for testing)
+redis-cli -u $REDIS_URL DEL eurusd:realtime
+
+# Flush all data (CAUTION: deletes everything)
+redis-cli -u $REDIS_URL FLUSHALL
+```
+
+### PostgreSQL + Redis Health Check
+
+```powershell
+# All-in-one health check script
+$script = @"
+import json
+from db_connections import test_connections
+
+status = test_connections()
+print(json.dumps(status, indent=2))
+
+# Summary
+all_connected = all(s['connected'] for s in status.values())
+if all_connected:
+    print('\n✅ All systems operational')
+else:
+    print('\n❌ Some connections failed')
+    exit(1)
+"@
+
+python -c $script
+```
+
 ---
 
-## Checklist
+## Deployment Checklist
 
-Before proceeding to testing:
+### Phase 1: Basic Setup
 
-- [ ] All Python files deployed
+- [ ] All Python files deployed to `C:\Scripts\sync_package`
 - [ ] .env file created with correct Terminal ID
 - [ ] PostgreSQL credentials added to .env
+- [ ] Redis credentials added to .env
+- [ ] ENABLE_REDIS_SYNC=true in .env
+
+### Phase 2: Dependency Installation
+
 - [ ] Dependencies installed (`pip install -r requirements.txt`)
+- [ ] psycopg2-binary installed (PostgreSQL)
+- [ ] python-dotenv installed (environment variables)
+- [ ] redis installed (Redis client)
+
+### Phase 3: Configuration Validation
+
 - [ ] Configuration validated (`python config.py`)
-- [ ] Connections tested (`python db_connections.py`)
-- [ ] Manual sync run successful
-- [ ] Data appearing in PostgreSQL
+- [ ] SQLite database path correct
+- [ ] PostgreSQL URI valid
+- [ ] Redis URL valid
+- [ ] All 15 symbols configured
+- [ ] All 9 timeframes configured
+
+### Phase 4: Connection Testing
+
+- [ ] SQLite connection successful
+- [ ] PostgreSQL connection successful
+- [ ] Redis connection successful
+- [ ] All connections tested (`python db_connections.py`)
+
+### Phase 5: Initial Sync Run
+
+- [ ] Manual sync run successful (`python sync_to_postgresql.py`)
+- [ ] Data appearing in PostgreSQL tables
+- [ ] Data appearing in Redis (check `ZCARD {symbol}:realtime`)
+- [ ] No errors in sync.log
+- [ ] sync_state.json created and updating
+
+### Phase 6: Redis Verification
+
+- [ ] All 15 symbols have data in Redis
+- [ ] Candle counts are 250 (or growing toward 250)
+- [ ] Candle data format is correct (JSON with t, o, h, l, c)
+- [ ] TTL is set (~7 days)
+- [ ] Symbol names are normalized (lowercase, no .i suffix)
+
+### Phase 7: Task Scheduler Setup
+
 - [ ] Task Scheduler configured
-- [ ] Task running automatically
-- [ ] Logs being written
-- [ ] sync_state.json updating
+- [ ] Task running automatically every 1 minute
+- [ ] run_sync.ps1 executes twice per run (30-second intervals)
+- [ ] Logs being written continuously
+- [ ] sync_state.json updating every minute
+
+### Phase 8: Monitoring
+
+- [ ] Log file rotating correctly
+- [ ] No PostgreSQL errors in logs
+- [ ] No Redis errors in logs
+- [ ] Health check script runs successfully
+- [ ] Redis memory usage acceptable (<1 MB)
+
+### Phase 9: API Integration Testing
+
+- [ ] Next.js candle API routes deployed
+- [ ] Test query for 100 candles (Redis only)
+- [ ] Test query for 500 candles (Redis + PostgreSQL)
+- [ ] Verify query performance (<5ms Redis, <50ms combined)
+- [ ] Test graceful degradation (disable Redis, verify fallback)
+
+### Phase 10: Production Readiness
+
+- [ ] All tests passing
+- [ ] No data consistency issues
+- [ ] Backup sync_state.json
+- [ ] Document Redis credentials securely
+- [ ] Monitor Redis memory usage for 24 hours
+- [ ] Verify TTL resets after each sync
 
 ---
 

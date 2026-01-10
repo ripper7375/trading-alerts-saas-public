@@ -14,20 +14,26 @@ from contextlib import contextmanager
 
 import psycopg2
 from psycopg2 import pool, OperationalError
+import redis
 
 from config import (
     SQLITE_PATH,
     POSTGRESQL_URI,
+    REDIS_URL,
     PG_POOL_MIN_CONNECTIONS,
     PG_POOL_MAX_CONNECTIONS,
     MAX_RETRIES,
     RETRY_DELAY_SECONDS,
+    ENABLE_REDIS_SYNC,
 )
 
 logger = logging.getLogger(__name__)
 
 # Global connection pool for PostgreSQL
 _pg_pool: Optional[pool.SimpleConnectionPool] = None
+
+# Global Redis connection pool
+_redis_pool: Optional[redis.ConnectionPool] = None
 
 
 def get_sqlite_connection() -> sqlite3.Connection:
@@ -209,9 +215,128 @@ def sqlite_connection():
             conn.close()
 
 
+def _init_redis_pool() -> redis.ConnectionPool:
+    """
+    Initialize the Redis connection pool.
+
+    Returns:
+        redis.ConnectionPool: Initialized connection pool
+
+    Raises:
+        redis.ConnectionError: If pool creation fails
+    """
+    global _redis_pool
+
+    if not REDIS_URL:
+        raise ValueError("REDIS_URL environment variable not set")
+
+    try:
+        _redis_pool = redis.ConnectionPool.from_url(
+            REDIS_URL,
+            decode_responses=True,  # Auto-decode responses to strings
+            max_connections=10,
+        )
+        logger.info("Redis connection pool initialized")
+        return _redis_pool
+    except redis.ConnectionError as e:
+        logger.error(f"Failed to create Redis connection pool: {e}")
+        raise
+
+
+def get_redis_connection() -> redis.Redis:
+    """
+    Get a Redis connection from the pool.
+
+    Initializes the pool on first call. Retries on connection failure.
+
+    Returns:
+        redis.Redis: Active Redis client instance
+
+    Raises:
+        redis.ConnectionError: If connection fails after all retries
+    """
+    global _redis_pool
+
+    if not ENABLE_REDIS_SYNC:
+        raise RuntimeError("Redis sync is disabled. Set ENABLE_REDIS_SYNC=true to enable.")
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            if _redis_pool is None:
+                _init_redis_pool()
+
+            client = redis.Redis(connection_pool=_redis_pool)
+
+            # Test the connection
+            client.ping()
+
+            return client
+
+        except redis.ConnectionError as e:
+            logger.warning(
+                f"Redis connection attempt {attempt + 1}/{MAX_RETRIES} failed: {e}"
+            )
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY_SECONDS)
+                # Reset pool on error
+                if _redis_pool is not None:
+                    try:
+                        _redis_pool.disconnect()
+                    except Exception:
+                        pass
+                    _redis_pool = None
+            else:
+                logger.error(f"Failed to connect to Redis after {MAX_RETRIES} attempts")
+                raise
+
+
+def close_redis_pool() -> None:
+    """
+    Close all Redis connections in the pool.
+
+    Should be called when shutting down the sync script.
+    """
+    global _redis_pool
+
+    if _redis_pool is not None:
+        try:
+            _redis_pool.disconnect()
+            logger.info("Redis connection pool closed")
+        except Exception as e:
+            logger.warning(f"Error closing Redis pool: {e}")
+        finally:
+            _redis_pool = None
+
+
+@contextmanager
+def redis_connection():
+    """
+    Context manager for Redis connections.
+
+    Usage:
+        with redis_connection() as r:
+            r.set("key", "value")
+
+    Yields:
+        redis.Redis: Active Redis client instance
+    """
+    if not ENABLE_REDIS_SYNC:
+        logger.debug("Redis sync disabled, skipping Redis connection")
+        yield None
+        return
+
+    client = None
+    try:
+        client = get_redis_connection()
+        yield client
+    finally:
+        # Connection pooling handles cleanup automatically
+        pass
+
+
 def test_connections() -> dict:
     """
-    Test both database connections.
+    Test all database connections (SQLite, PostgreSQL, Redis).
 
     Returns:
         dict: Status of each connection
@@ -219,6 +344,7 @@ def test_connections() -> dict:
     status = {
         "sqlite": {"connected": False, "error": None},
         "postgresql": {"connected": False, "error": None},
+        "redis": {"connected": False, "error": None, "enabled": ENABLE_REDIS_SYNC},
     }
 
     # Test SQLite
@@ -238,5 +364,17 @@ def test_connections() -> dict:
             status["postgresql"]["connected"] = True
     except Exception as e:
         status["postgresql"]["error"] = str(e)
+
+    # Test Redis (only if enabled)
+    if ENABLE_REDIS_SYNC:
+        try:
+            with redis_connection() as r:
+                if r is not None:
+                    r.ping()
+                    status["redis"]["connected"] = True
+        except Exception as e:
+            status["redis"]["error"] = str(e)
+    else:
+        status["redis"]["error"] = "Redis sync is disabled"
 
     return status
