@@ -41,7 +41,6 @@ Bundle: 150-200KB                    └─────────────�
 ## ✅ COMPLETED - Step 4: Option 1 (Deploy Now)
 
 ### What Was Done
-
 - ✅ Created `frontend/` directory with all UI code
 - ✅ Fixed dependency issues (@react-email/components, etc.)
 - ✅ Added package-lock.json (npm as package manager)
@@ -50,14 +49,12 @@ Bundle: 150-200KB                    └─────────────�
 - ✅ Deployed to Vercel (fresh project)
 
 ### Current Deployment Status
-
 - **Branch**: `main`
 - **Vercel Project**: Trading Alerts Frontend (fresh deployment)
 - **Build**: Using npm, all dependencies installed
 - **Status**: ✅ Deployed and running
 
 ### Files Modified
-
 1. `frontend/package.json` - Added missing dependencies
 2. `frontend/vercel.json` - Changed from pnpm to npm
 3. `frontend/package-lock.json` - Added for dependency consistency
@@ -74,12 +71,12 @@ Bundle: 150-200KB                    └─────────────�
 
 **Convert Pages from Client Components to Server Components:**
 
-| Category        | Files    | Current State       | Target                              |
-| --------------- | -------- | ------------------- | ----------------------------------- |
-| **Admin Pages** | 12 files | Client Components   | Server Components + Client Islands  |
-| **Auth Pages**  | 7 files  | Client Components   | Server Components + Separated Forms |
-| **Dashboard**   | 8 files  | Client Components   | Server Components + Dynamic Imports |
-| **Charts**      | 5 files  | Heavy Client Bundle | Lazy-loaded Client Components       |
+| Category | Files | Current State | Target |
+|----------|-------|---------------|--------|
+| **Admin Pages** | 12 files | Client Components | Server Components + Client Islands |
+| **Auth Pages** | 7 files | Client Components | Server Components + Separated Forms |
+| **Dashboard** | 8 files | Client Components | Server Components + Dynamic Imports |
+| **Charts** | 5 files | Heavy Client Bundle | Lazy-loaded Client Components |
 
 **Implementation Steps:**
 
@@ -93,7 +90,6 @@ Bundle: 150-200KB                    └─────────────�
    - [ ] `/admin/disbursement/**` - Payment disbursement pages (6 files)
 
    **Pattern**:
-
    ```tsx
    // Before: Client Component (all JS sent to client)
    'use client';
@@ -121,7 +117,6 @@ Bundle: 150-200KB                    └─────────────�
    - [ ] `/verify-2fa/page.tsx` - 2FA verification
 
    **Pattern**: Separate form logic into client components
-
    ```tsx
    // page.tsx (Server Component)
    export default function LoginPage() {
@@ -140,13 +135,12 @@ Bundle: 150-200KB                    └─────────────�
    - [ ] `/settings/**` - Settings pages (7 files)
 
    **Pattern**: Dynamic imports for heavy components
-
    ```tsx
    import dynamic from 'next/dynamic';
 
    const HeavyChart = dynamic(() => import('./chart'), {
      loading: () => <ChartSkeleton />,
-     ssr: false,
+     ssr: false
    });
    ```
 
@@ -155,7 +149,6 @@ Bundle: 150-200KB                    └─────────────�
    - [ ] `/charts/[symbol]/[timeframe]/page.tsx` - Trading chart
 
    **Pattern**: Lazy-load chart library (lightweight-charts ~100KB)
-
    ```tsx
    const TradingChart = dynamic(
      () => import('./trading-chart'),
@@ -169,11 +162,11 @@ Bundle: 150-200KB                    └─────────────�
 
 - [ ] Create tier detection hook: `useTierFeatures()`
 - [ ] Implement conditional imports:
-
   ```tsx
   // Only load PRO features for PRO users
-  const ProIndicators =
-    tier === 'PRO' ? dynamic(() => import('./pro-indicators')) : null;
+  const ProIndicators = tier === 'PRO'
+    ? dynamic(() => import('./pro-indicators'))
+    : null;
   ```
 
 - [ ] Optimize bundle splitting:
@@ -181,7 +174,6 @@ Bundle: 150-200KB                    └─────────────�
   - PRO tier bundle: ~50KB (advanced features loaded on-demand)
 
 **Files to Modify:**
-
 - [ ] `components/charts/indicator-toggles.tsx`
 - [ ] `components/charts/pro-indicator-overlay.tsx`
 - [ ] `lib/tier-config.ts` - Add feature flags
@@ -199,7 +191,6 @@ Bundle: 150-200KB                    └─────────────�
 - [ ] Enable compression in `next.config.js`
 
 **Tools:**
-
 ```bash
 # Install bundle analyzer
 npm install --save-dev @next/bundle-analyzer
@@ -232,18 +223,18 @@ ANALYZE=true npm run build
 
 #### Overview
 
-| Component              | Files         | Effort | Status         |
-| ---------------------- | ------------- | ------ | -------------- |
+| Component | Files | Effort | Status |
+|-----------|-------|--------|--------|
 | Authentication & Users | 20 API routes | 5 days | ⏳ Not Started |
-| Indicators & Trading   | 5 API routes  | 2 days | ⏳ Not Started |
-| Watchlist & Alerts     | 5 API routes  | 2 days | ⏳ Not Started |
-| Payments & Billing     | 11 API routes | 4 days | ⏳ Not Started |
-| Affiliate System       | 9 API routes  | 3 days | ⏳ Not Started |
-| Admin Dashboard        | 20 API routes | 4 days | ⏳ Not Started |
-| Disbursement System    | 16 API routes | 4 days | ⏳ Not Started |
-| Webhooks               | 4 API routes  | 2 days | ⏳ Not Started |
-| Cron Jobs              | 8 jobs        | 2 days | ⏳ Not Started |
-| Testing & Deployment   | -             | 5 days | ⏳ Not Started |
+| Indicators & Trading | 5 API routes | 2 days | ⏳ Not Started |
+| Watchlist & Alerts | 5 API routes | 2 days | ⏳ Not Started |
+| Payments & Billing | 11 API routes | 4 days | ⏳ Not Started |
+| Affiliate System | 9 API routes | 3 days | ⏳ Not Started |
+| Admin Dashboard | 20 API routes | 4 days | ⏳ Not Started |
+| Disbursement System | 16 API routes | 4 days | ⏳ Not Started |
+| Webhooks | 4 API routes | 2 days | ⏳ Not Started |
+| Cron Jobs | 8 jobs | 2 days | ⏳ Not Started |
+| Testing & Deployment | - | 5 days | ⏳ Not Started |
 
 **Total Estimated Time**: 6-8 weeks
 
@@ -258,7 +249,6 @@ ANALYZE=true npm run build
 - [ ] Set up Railway deployment pipeline
 
 **Structure:**
-
 ```
 backend/
 ├── src/
@@ -283,35 +273,30 @@ backend/
 Convert API routes module by module:
 
 **Week 2: Authentication & Users**
-
 - [ ] Auth module (register, login, 2FA)
 - [ ] User management (profile, preferences)
 - [ ] Session management
 - [ ] Password reset flow
 
 **Week 3: Trading Features**
-
 - [ ] Indicators API
 - [ ] Watchlist CRUD
 - [ ] Alerts system
 - [ ] Real-time WebSocket connections
 
 **Week 4: Billing & Payments**
-
 - [ ] Stripe integration
 - [ ] dLocal integration
 - [ ] Subscription management
 - [ ] Invoice generation
 
 **Week 5: Affiliate System**
-
 - [ ] Affiliate registration
 - [ ] Code management
 - [ ] Commission tracking
 - [ ] Payment processing (Riseworks)
 
 **Week 6: Admin & Disbursement**
-
 - [ ] Admin dashboard APIs
 - [ ] User management
 - [ ] Fraud detection
@@ -321,7 +306,6 @@ Convert API routes module by module:
 #### Phase 5.3: Migration & Cutover (Weeks 7-8)
 
 **Week 7: Testing & Validation**
-
 - [ ] Unit tests (80%+ coverage)
 - [ ] Integration tests
 - [ ] E2E tests with frontend
@@ -329,7 +313,6 @@ Convert API routes module by module:
 - [ ] Security audit
 
 **Week 8: Deployment & Migration**
-
 - [ ] Deploy Nest.js to Railway
 - [ ] Configure environment variables
 - [ ] Set up monitoring (Sentry, DataDog)
@@ -345,7 +328,6 @@ Convert API routes module by module:
 ### Option A: Complete UI Optimizations (Step 4 - Option 2) FIRST
 
 **Pros:**
-
 - ✅ Immediate performance gains for users
 - ✅ 80% bundle size reduction
 - ✅ Better SEO and user experience
@@ -353,7 +335,6 @@ Convert API routes module by module:
 - ✅ Easier to test (frontend-only changes)
 
 **Cons:**
-
 - ⏱️ Additional 1-2 weeks before backend migration
 - 🔄 Some work will be redone when connecting to Nest.js backend
 
@@ -366,14 +347,12 @@ Convert API routes module by module:
 ### Option B: Start Backend Migration (Step 5) NOW
 
 **Pros:**
-
 - ✅ Full architecture modernization
 - ✅ Better long-term maintainability
 - ✅ Modular, scalable backend
 - ✅ Easier to add new features
 
 **Cons:**
-
 - ⏱️ 6-8 weeks of development time
 - 💰 Higher infrastructure costs (~$40/month more)
 - 🔧 Complex migration with potential downtime risk
@@ -388,7 +367,6 @@ Convert API routes module by module:
 ## 🎯 RECOMMENDED PATH: Hybrid Approach
 
 ### Phase 1: Quick Wins (1 week)
-
 1. ✅ Deploy current frontend (DONE)
 2. Implement tier-based loading (FREE vs PRO)
 3. Add dynamic imports for charts
@@ -397,7 +375,6 @@ Convert API routes module by module:
 **Outcome**: 50-60% bundle size reduction with minimal effort
 
 ### Phase 2: Backend Preparation (1 week)
-
 1. Set up Nest.js project structure
 2. Migrate 1-2 simple modules (indicators, watchlist)
 3. Test API integration with frontend
@@ -406,7 +383,6 @@ Convert API routes module by module:
 **Outcome**: Proof of concept for backend migration
 
 ### Phase 3: Full Migration (4-6 weeks)
-
 1. Complete remaining module conversions
 2. Full testing suite
 3. Gradual deployment and cutover
@@ -417,14 +393,14 @@ Convert API routes module by module:
 
 ## 📊 Success Metrics
 
-| Metric            | Current   | Target (Step 4) | Target (Step 5) |
-| ----------------- | --------- | --------------- | --------------- |
-| Bundle Size       | 150-200KB | 30-50KB         | 30-50KB         |
-| Page Load Time    | 2-3s      | 1-1.5s          | 0.8-1.2s        |
-| API Response Time | 200-500ms | 200-500ms       | 50-150ms        |
-| Monthly Cost      | $35-90    | $35-90          | $75-155         |
-| Lighthouse Score  | 70        | 90+             | 95+             |
-| Build Time        | 3-5 min   | 2-3 min         | N/A (backend)   |
+| Metric | Current | Target (Step 4) | Target (Step 5) |
+|--------|---------|-----------------|-----------------|
+| Bundle Size | 150-200KB | 30-50KB | 30-50KB |
+| Page Load Time | 2-3s | 1-1.5s | 0.8-1.2s |
+| API Response Time | 200-500ms | 200-500ms | 50-150ms |
+| Monthly Cost | $35-90 | $35-90 | $75-155 |
+| Lighthouse Score | 70 | 90+ | 95+ |
+| Build Time | 3-5 min | 2-3 min | N/A (backend) |
 
 ---
 
@@ -433,7 +409,6 @@ Convert API routes module by module:
 **Choose One:**
 
 ### 1️⃣ Option A: Complete UI Optimizations First
-
 ```bash
 # Start with tier-based loading and dynamic imports
 # Timeline: 1-2 weeks
@@ -441,7 +416,6 @@ Convert API routes module by module:
 ```
 
 ### 2️⃣ Option B: Start Backend Migration Now
-
 ```bash
 # Set up Nest.js and begin module conversions
 # Timeline: 6-8 weeks
@@ -449,7 +423,6 @@ Convert API routes module by module:
 ```
 
 ### 3️⃣ Option C: Hybrid Approach (Recommended)
-
 ```bash
 # Week 1-2: Quick UI optimizations
 # Week 3-4: Backend proof of concept
