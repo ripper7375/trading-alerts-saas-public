@@ -454,6 +454,214 @@ if (Test-Path $dbPath) {
 
 ---
 
+## Hot/Warm Tier Implementation - File Changes Summary
+
+This section lists all files created and modified as part of the hot/warm tier architecture implementation for real-time OHLC data.
+
+### 🆕 New Files Created (Frontend/API)
+
+These files were **newly created** for the hot/warm tier implementation:
+
+| File Path | Type | Purpose | Lines of Code |
+|-----------|------|---------|---------------|
+| **app/api/candles/[symbol]/route.ts** | Next.js API Route | Real-time candle data endpoint with hot/warm query strategy | ~230 lines |
+| **lib/candle-data-helpers.ts** | TypeScript Library | Reusable helpers for Redis/PostgreSQL candle queries | ~280 lines |
+
+**Total:** 2 new files, ~510 lines of code
+
+#### File Details:
+
+**1. app/api/candles/[symbol]/route.ts**
+- **Purpose:** Next.js API endpoint for querying candle data
+- **Features:**
+  - GET `/api/candles/[symbol]?limit=100&timeframe=m5`
+  - Automatic hot/warm tier selection based on limit
+  - Redis-first query strategy (<250 candles)
+  - Combined Redis + PostgreSQL queries (>250 candles)
+  - Graceful degradation to PostgreSQL if Redis unavailable
+- **Query Parameters:**
+  - `symbol`: Trading symbol (eurusd, btcusd, etc.)
+  - `limit`: Number of candles (default: 100, max: 10,000)
+  - `timeframe`: Timeframe for PostgreSQL queries (m5, m15, etc.)
+- **Response Format:**
+  ```json
+  {
+    "symbol": "eurusd",
+    "timeframe": "m5",
+    "limit": 100,
+    "count": 100,
+    "candles": [
+      {"t": 1736505000, "o": 1.0850, "h": 1.0855, "l": 1.0848, "c": 1.0852},
+      ...
+    ],
+    "source": "redis" | "redis+postgresql"
+  }
+  ```
+
+**2. lib/candle-data-helpers.ts**
+- **Purpose:** Reusable TypeScript utilities for candle data queries
+- **Exported Functions:**
+  - `queryCandles(options)`: Smart hot/warm tier query strategy
+  - `getFromRedis(symbol, limit)`: Query Redis hot tier
+  - `getFromPostgreSQL(symbol, timeframe, limit)`: Query PostgreSQL warm tier
+  - `getLatestCandle(symbol)`: Get most recent candle
+  - `isRedisAvailable()`: Redis health check
+  - `isPostgreSQLAvailable()`: PostgreSQL health check
+  - `closeConnections()`: Cleanup on shutdown
+- **Features:**
+  - Automatic failover between Redis and PostgreSQL
+  - Connection pooling for PostgreSQL
+  - Time-based filtering support
+  - Type-safe with TypeScript interfaces
+
+---
+
+### 🔧 Modified Files (Sync Script - Contabo VPS)
+
+These existing files were **modified** to add Redis sync functionality:
+
+| File Path | Type | Changes | Lines Added/Modified |
+|-----------|------|---------|---------------------|
+| **sync/requirements.txt** | Python Dependencies | Added `redis>=5.0.0` | +3 lines |
+| **sync/config.py** | Configuration | Added Redis URL, hot tier settings | +5 lines |
+| **sync/db_connections.py** | Database Connections | Added Redis connection management | +150 lines |
+| **sync/sync_to_postgresql.py** | Main Sync Logic | Added `sync_realtime_to_redis()` method | +80 lines |
+
+**Total:** 4 modified files, ~238 lines added
+
+#### Modification Details:
+
+**1. sync/requirements.txt**
+- **Added:**
+  ```
+  redis>=5.0.0
+  ```
+- **Purpose:** Redis client library for Python
+
+**2. sync/config.py**
+- **Added Configuration:**
+  ```python
+  # Redis URL
+  REDIS_URL: str = os.getenv("REDIS_URL", "")
+
+  # Hot tier settings
+  REALTIME_CANDLE_LIMIT: int = 250
+  REDIS_REALTIME_TTL: int = 604800  # 7 days
+  ENABLE_REDIS_SYNC: bool = os.getenv("ENABLE_REDIS_SYNC", "true").lower() == "true"
+  ```
+
+**3. sync/db_connections.py**
+- **Added Functions:**
+  - `get_redis_connection()`: Get Redis client from connection pool
+  - `close_redis_pool()`: Close Redis connections on shutdown
+  - `redis_connection()`: Context manager for Redis
+  - Updated `test_connections()` to include Redis health check
+- **Features:**
+  - Redis connection pooling
+  - Automatic retry logic (3 attempts)
+  - Exponential backoff on connection failures
+  - Graceful degradation if Redis unavailable
+
+**4. sync/sync_to_postgresql.py**
+- **Added Method:**
+  ```python
+  def sync_realtime_to_redis(self, symbol: str, rows: List[Tuple]) -> bool:
+      """
+      Sync last 250 candles to Redis for real-time chart updates.
+      - Normalizes symbol names (remove .i suffix, lowercase)
+      - Stores as Redis Sorted Set with timestamp as score
+      - Keeps only last 250 candles (automatic trimming)
+      - Sets 7-day TTL as safety mechanism
+      """
+  ```
+- **Integration:** Called after PostgreSQL sync in `sync_symbol()` method
+- **Error Handling:** Redis failures logged but don't stop PostgreSQL sync
+
+---
+
+### 📦 Modified Files (Package Dependencies)
+
+| File Path | Type | Changes | Purpose |
+|-----------|------|---------|---------|
+| **package.json** | NPM Dependencies | Added `redis: ^4.7.0` | Redis client for Next.js |
+| **pnpm-lock.yaml** | Dependency Lockfile | Added redis@4.7.1 + peer dependencies | Dependency resolution |
+
+**Dependencies Added:**
+- `redis@4.7.1` (main package)
+- `@redis/bloom@1.2.0`
+- `@redis/client@1.6.1`
+- `@redis/graph@1.1.1`
+- `@redis/json@1.0.7`
+- `@redis/search@1.2.0`
+- `@redis/time-series@1.1.0`
+- `cluster-key-slot@1.1.2`
+- `generic-pool@3.9.0`
+- `yallist@4.0.0`
+
+---
+
+### 📝 Updated Documentation
+
+| File Path | Type | Changes | Purpose |
+|-----------|------|---------|---------|
+| **docs/testing/05-sync-script-deployment-guide-revised.md** | Markdown | Added ~1,200 lines | Redis architecture documentation |
+
+**Sections Added:**
+- Hot/Warm Tier Architecture (diagrams, data flow)
+- Redis Hot Tier Architecture (detailed technical guide)
+- Testing Redis Integration (10 comprehensive tests)
+- Redis Troubleshooting (7 Redis-specific scenarios)
+- Redis Commands Reference
+- Updated deployment checklist (10 phases)
+
+---
+
+### 📊 Implementation Summary
+
+**Files Created:** 2
+**Files Modified:** 8
+**Total New Code:** ~750 lines
+**Total Modified Code:** ~1,440 lines
+**Documentation Added:** ~1,200 lines
+
+**Grand Total:** ~3,390 lines of changes
+
+---
+
+### 🔧 Deployment Requirements
+
+**On Contabo VPS (Windows):**
+1. ✅ Update existing sync script files (4 files modified)
+2. ✅ Install Redis dependency: `pip install redis>=5.0.0`
+3. ✅ Add `REDIS_URL` to `.env` file
+4. ✅ Optionally set `ENABLE_REDIS_SYNC=true` (default)
+
+**On Railway (Cloud Infrastructure):**
+1. ✅ Provision Redis instance (Railway Redis plugin)
+2. ✅ Copy `REDIS_URL` from Railway dashboard to VPS `.env`
+
+**On Vercel/Next.js (Frontend):**
+1. ✅ Deploy 2 new files (API route + helpers)
+2. ✅ Dependencies auto-installed from `package.json`
+3. ✅ Add `REDIS_URL` to Vercel environment variables
+4. ✅ Add `POSTGRESQL_URI` to Vercel environment variables
+
+---
+
+### ✅ Verification Checklist
+
+After deployment, verify:
+
+- [ ] Sync script runs without errors
+- [ ] Redis connection successful in logs
+- [ ] All 15 symbols have 250 candles in Redis
+- [ ] API endpoint returns data: `GET /api/candles/eurusd?limit=100`
+- [ ] PostgreSQL fallback works when Redis disabled
+- [ ] No TypeScript compilation errors
+- [ ] All tests pass
+
+---
+
 ## File Deployment
 
 ### Step 1: Create Directory Structure
