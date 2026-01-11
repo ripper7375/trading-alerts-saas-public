@@ -32,8 +32,8 @@ class SyncDeploymentVerifier {
   }
 
   async initialize(): Promise<void> {
-    if (process.env.REDIS_URL) {
-      this.redisClient = createClient({ url: process.env.REDIS_URL });
+    if (process.env['REDIS_URL']) {
+      this.redisClient = createClient({ url: process.env['REDIS_URL'] });
       await this.redisClient.connect();
     }
   }
@@ -151,7 +151,7 @@ class SyncDeploymentVerifier {
     // Test PostgreSQL
     try {
       const result: Array<{ version: string }> = await this.prisma.$queryRaw`SELECT version()`;
-      const version = result[0].version;
+      const version = result && result[0] ? result[0].version : 'Unknown';
 
       this.addCheck(
         'Database Connections',
@@ -240,8 +240,8 @@ class SyncDeploymentVerifier {
       this.addCheck(
         'Database Schema',
         'market_data table',
-        marketDataCheck[0].exists,
-        marketDataCheck[0].exists ? 'Table exists' : 'Table missing',
+        marketDataCheck && marketDataCheck[0] ? marketDataCheck[0].exists : false,
+        marketDataCheck && marketDataCheck[0] && marketDataCheck[0].exists ? 'Table exists' : 'Table missing',
         false
       );
 

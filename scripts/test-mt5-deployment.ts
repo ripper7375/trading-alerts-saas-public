@@ -28,8 +28,8 @@ class DeploymentTester {
 
   async initialize(): Promise<void> {
     // Initialize Redis connection
-    if (process.env.REDIS_URL) {
-      this.redisClient = createClient({ url: process.env.REDIS_URL });
+    if (process.env['REDIS_URL']) {
+      this.redisClient = createClient({ url: process.env['REDIS_URL'] });
       await this.redisClient.connect();
     }
   }
@@ -180,10 +180,10 @@ class DeploymentTester {
       for (const tf of timeframes) {
         const tableName = `eurusd_${tf}`;
         try {
-          const result: Array<{ count: bigint }> = await this.prisma.$queryRaw`
-            SELECT COUNT(*) as count FROM ${Prisma.raw(tableName)}
-          `;
-          const count = Number(result[0].count);
+          const result: Array<{ count: bigint }> = await this.prisma.$queryRawUnsafe(
+            `SELECT COUNT(*) as count FROM ${tableName}`
+          );
+          const count = result && result[0] ? Number(result[0].count) : 0;
           timeframeData[tf] = count;
 
           // Verify row count is reasonable (should decrease with larger timeframes)
@@ -209,7 +209,7 @@ class DeploymentTester {
           FROM eurusd_m5
           WHERE open IS NULL OR high IS NULL OR low IS NULL OR close IS NULL
         `;
-        const nullCount = Number(nullCheck[0].count);
+        const nullCount = nullCheck && nullCheck[0] ? Number(nullCheck[0].count) : 0;
 
         this.addResult(
           'Data Integrity (NULL check)',
@@ -224,7 +224,7 @@ class DeploymentTester {
           FROM eurusd_m5
           WHERE high < low OR open < 0 OR close < 0
         `;
-        const anomalyCount = Number(anomalyCheck[0].count);
+        const anomalyCount = anomalyCheck && anomalyCheck[0] ? Number(anomalyCheck[0].count) : 0;
 
         this.addResult(
           'Data Integrity (Anomaly check)',
@@ -305,7 +305,7 @@ class DeploymentTester {
       const result: Array<{ count: bigint }> = await this.prisma.$queryRaw`
         SELECT COUNT(*) as count FROM eurusd_m5
       `;
-      pgRows = Number(result[0].count);
+      pgRows = result && result[0] ? Number(result[0].count) : 0;
     } catch (error) {
       // Table might not exist
     }

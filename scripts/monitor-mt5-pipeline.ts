@@ -38,8 +38,8 @@ class PipelineHealthMonitor {
   }
 
   async initialize(): Promise<void> {
-    if (process.env.REDIS_URL) {
-      this.redisClient = createClient({ url: process.env.REDIS_URL });
+    if (process.env['REDIS_URL']) {
+      this.redisClient = createClient({ url: process.env['REDIS_URL'] });
       await this.redisClient.connect();
     }
   }
@@ -157,7 +157,7 @@ class PipelineHealthMonitor {
       const eurusdCount: Array<{ count: bigint }> = await this.prisma.$queryRaw`
         SELECT COUNT(*) as count FROM eurusd_m5
       `;
-      const rowCount = Number(eurusdCount[0].count);
+      const rowCount = eurusdCount && eurusdCount[0] ? Number(eurusdCount[0].count) : 0;
 
       // Determine status
       let status: 'healthy' | 'warning' | 'critical';
@@ -261,7 +261,7 @@ class PipelineHealthMonitor {
         FROM eurusd_m5
         WHERE open IS NULL OR high IS NULL OR low IS NULL OR close IS NULL
       `;
-      const nullCount = Number(nullCheck[0].count);
+      const nullCount = nullCheck && nullCheck[0] ? Number(nullCheck[0].count) : 0;
 
       // Check for anomalies
       const anomalyCheck: Array<{ count: bigint }> = await this.prisma.$queryRaw`
@@ -269,7 +269,7 @@ class PipelineHealthMonitor {
         FROM eurusd_m5
         WHERE high < low OR open < 0 OR close < 0
       `;
-      const anomalyCount = Number(anomalyCheck[0].count);
+      const anomalyCount = anomalyCheck && anomalyCheck[0] ? Number(anomalyCheck[0].count) : 0;
 
       let status: 'healthy' | 'warning' | 'critical';
       let message: string;
