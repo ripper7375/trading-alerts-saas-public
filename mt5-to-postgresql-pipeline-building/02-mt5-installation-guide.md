@@ -39,6 +39,7 @@ This guide covers installing and configuring 15 MT5 terminal instances on Contab
 | USDJPY | | | |
 
 **Timeframes to Collect (9 total):**
+
 - M5, M15, M30, H1, H2, H4, H8, H12, D1
 
 ---
@@ -68,6 +69,7 @@ Most brokers provide their branded MT5 installer:
 3. Download MT5 for Windows (64-bit)
 
 **Common Broker Download Pages:**
+
 - IC Markets: Client Portal → Downloads
 - Pepperstone: Client Portal → Platforms
 - Exness: Personal Area → Platforms
@@ -220,6 +222,7 @@ For each MT5 instance:
 ### Step 3: Verify Connection
 
 Check bottom right of MT5 window:
+
 - **Green bar:** Connected, data flowing
 - **Red bar:** Disconnected, check credentials/network
 
@@ -258,6 +261,7 @@ Write-Host "All terminals started." -ForegroundColor Cyan
 ### Step 1: Open Market Watch
 
 In each MT5 instance:
+
 1. **View** → **Market Watch** (or press `Ctrl+M`)
 
 ### Step 2: Add Required Symbol
@@ -274,15 +278,16 @@ In each MT5 instance:
 
 **⚠️ Important:** Symbol names vary by broker!
 
-| Standard | Possible Broker Names |
-|----------|----------------------|
-| EURUSD | EURUSD, EURUSDm, EURUSD., EURUSD+ |
-| BTCUSD | BTCUSD, BTCUSDm, BITCOIN, BTC/USD |
-| XAUUSD | XAUUSD, GOLD, GOLDm, XAU/USD |
-| NDX100 | NDX100, NAS100, USTEC, NASDAQ |
-| US30 | US30, DJ30, DOWJONES, US30Cash |
+| Standard | Possible Broker Names             |
+| -------- | --------------------------------- |
+| EURUSD   | EURUSD, EURUSDm, EURUSD., EURUSD+ |
+| BTCUSD   | BTCUSD, BTCUSDm, BITCOIN, BTC/USD |
+| XAUUSD   | XAUUSD, GOLD, GOLDm, XAU/USD      |
+| NDX100   | NDX100, NAS100, USTEC, NASDAQ     |
+| US30     | US30, DJ30, DOWJONES, US30Cash    |
 
 **Find your broker's symbol names:**
+
 ```
 In Market Watch → Right-click → Symbols → Browse all available
 ```
@@ -295,23 +300,23 @@ In Market Watch → Right-click → Symbols → Browse all available
 
 ### Per-Instance Symbol Assignment
 
-| Instance | Symbol | Broker Symbol (verify) |
-|----------|--------|------------------------|
-| MT5_AUDJPY | AUDJPY | [Your broker's name] |
-| MT5_AUDUSD | AUDUSD | [Your broker's name] |
-| MT5_BTCUSD | BTCUSD | [Your broker's name] |
-| MT5_ETHUSD | ETHUSD | [Your broker's name] |
-| MT5_EURUSD | EURUSD | [Your broker's name] |
-| MT5_GBPJPY | GBPJPY | [Your broker's name] |
-| MT5_GBPUSD | GBPUSD | [Your broker's name] |
-| MT5_NDX100 | NDX100 | [Your broker's name] |
-| MT5_NZDUSD | NZDUSD | [Your broker's name] |
-| MT5_US30 | US30 | [Your broker's name] |
-| MT5_USDCAD | USDCAD | [Your broker's name] |
-| MT5_USDCHF | USDCHF | [Your broker's name] |
-| MT5_USDJPY | USDJPY | [Your broker's name] |
-| MT5_XAGUSD | XAGUSD | [Your broker's name] |
-| MT5_XAUUSD | XAUUSD | [Your broker's name] |
+| Instance   | Symbol | Broker Symbol (verify) |
+| ---------- | ------ | ---------------------- |
+| MT5_AUDJPY | AUDJPY | [Your broker's name]   |
+| MT5_AUDUSD | AUDUSD | [Your broker's name]   |
+| MT5_BTCUSD | BTCUSD | [Your broker's name]   |
+| MT5_ETHUSD | ETHUSD | [Your broker's name]   |
+| MT5_EURUSD | EURUSD | [Your broker's name]   |
+| MT5_GBPJPY | GBPJPY | [Your broker's name]   |
+| MT5_GBPUSD | GBPUSD | [Your broker's name]   |
+| MT5_NDX100 | NDX100 | [Your broker's name]   |
+| MT5_NZDUSD | NZDUSD | [Your broker's name]   |
+| MT5_US30   | US30   | [Your broker's name]   |
+| MT5_USDCAD | USDCAD | [Your broker's name]   |
+| MT5_USDCHF | USDCHF | [Your broker's name]   |
+| MT5_USDJPY | USDJPY | [Your broker's name]   |
+| MT5_XAGUSD | XAGUSD | [Your broker's name]   |
+| MT5_XAUUSD | XAUUSD | [Your broker's name]   |
 
 ---
 
@@ -321,17 +326,17 @@ In Market Watch → Right-click → Symbols → Browse all available
 
 DataCollector.mq5 will collect data for these timeframes:
 
-| Timeframe | MT5 Constant | Period |
-|-----------|--------------|--------|
-| M5 | PERIOD_M5 | 5 minutes |
-| M15 | PERIOD_M15 | 15 minutes |
-| M30 | PERIOD_M30 | 30 minutes |
-| H1 | PERIOD_H1 | 1 hour |
-| H2 | PERIOD_H2 | 2 hours |
-| H4 | PERIOD_H4 | 4 hours |
-| H8 | PERIOD_H8 | 8 hours |
-| H12 | PERIOD_H12 | 12 hours |
-| D1 | PERIOD_D1 | 1 day |
+| Timeframe | MT5 Constant | Period     |
+| --------- | ------------ | ---------- |
+| M5        | PERIOD_M5    | 5 minutes  |
+| M15       | PERIOD_M15   | 15 minutes |
+| M30       | PERIOD_M30   | 30 minutes |
+| H1        | PERIOD_H1    | 1 hour     |
+| H2        | PERIOD_H2    | 2 hours    |
+| H4        | PERIOD_H4    | 4 hours    |
+| H8        | PERIOD_H8    | 8 hours    |
+| H12       | PERIOD_H12   | 12 hours   |
+| D1        | PERIOD_D1    | 1 day      |
 
 ### Load Historical Data
 
@@ -346,6 +351,7 @@ For each symbol, download historical data:
    - Wait for download to complete
 
 **Alternative Method - Direct Download:**
+
 1. Open chart
 2. Scroll back in time (drag left)
 3. MT5 will automatically download historical data
@@ -492,6 +498,7 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 **Symptoms:** Red bar in bottom right, "No connection"
 
 **Solutions:**
+
 1. Verify internet connection:
    ```powershell
    Test-NetConnection -ComputerName google.com -Port 443
@@ -509,6 +516,7 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 **Symptoms:** Symbol not in Market Watch or grayed out
 
 **Solutions:**
+
 1. Check if broker provides this symbol
 2. Symbol might have different name:
    - BTCUSD might be BTCUSDm or BITCOIN
@@ -522,6 +530,7 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 **Symptoms:** Chart shows limited history
 
 **Solutions:**
+
 1. **Tools** → **History Center** → Download manually
 2. Check **Tools** → **Options** → **Charts** → **Max bars in history**
 3. Verify broker provides historical data for this symbol
@@ -532,6 +541,7 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 **Symptoms:** VPS slows down, MT5 crashes
 
 **Solutions:**
+
 1. Reduce max bars in chart (Tools → Options → Charts)
 2. Close unused charts/windows
 3. Disable news (Tools → Options → Server)
@@ -543,6 +553,7 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 **Symptoms:** Terminal closes immediately after launch
 
 **Solutions:**
+
 1. Delete configuration folder:
    ```powershell
    # For portable mode
@@ -557,6 +568,7 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 **Symptoms:** DataCollector fails with DLL error
 
 **Solutions:**
+
 1. Verify "Allow DLL imports" is enabled
 2. Check SQLite DLL is in correct location
 3. Run MT5 as Administrator (first time)
@@ -568,15 +580,15 @@ $mt5Processes | Format-Table ProcessName, Id, @{Label="Memory(MB)";Expression={[
 
 ### MT5 Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+L` | Login to account |
-| `Ctrl+M` | Market Watch |
-| `Ctrl+N` | New Chart |
-| `Ctrl+O` | Options |
-| `Ctrl+U` | Symbols |
-| `F2` | History Center |
-| `F7` | Expert Advisor settings |
+| Shortcut | Action                  |
+| -------- | ----------------------- |
+| `Ctrl+L` | Login to account        |
+| `Ctrl+M` | Market Watch            |
+| `Ctrl+N` | New Chart               |
+| `Ctrl+O` | Options                 |
+| `Ctrl+U` | Symbols                 |
+| `F2`     | History Center          |
+| `F7`     | Expert Advisor settings |
 
 ### MT5 Instance Paths
 
@@ -590,10 +602,10 @@ C:\MT5Terminals\MT5_BTCUSD\terminal64.exe
 ### Expected Resource Usage
 
 | Resource | Per Instance | Total (15 instances) |
-|----------|--------------|---------------------|
-| RAM | ~500MB - 1GB | ~7.5GB - 15GB |
-| CPU | ~2-5% | ~30-75% (peak) |
-| Disk | ~200MB | ~3GB |
+| -------- | ------------ | -------------------- |
+| RAM      | ~500MB - 1GB | ~7.5GB - 15GB        |
+| CPU      | ~2-5%        | ~30-75% (peak)       |
+| Disk     | ~200MB       | ~3GB                 |
 
 ---
 

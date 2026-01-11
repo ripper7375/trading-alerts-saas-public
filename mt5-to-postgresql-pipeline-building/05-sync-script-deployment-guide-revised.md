@@ -84,16 +84,16 @@ If Redis unavailable: PostgreSQL fallback (degraded mode)
 
 ### Component Files
 
-| File                     | Purpose                                                        |
-| ------------------------ | -------------------------------------------------------------- |
-| `config.py`              | Configuration settings (symbols, timeframes, paths, Redis)     |
-| `db_connections.py`      | Database connection management (SQLite, PostgreSQL, Redis)     |
-| `sync_to_postgresql.py`  | Main sync logic (PostgreSQL + Redis sync)                      |
-| `timeframe_filter.py`    | Filters data by timeframe                                      |
-| `requirements.txt`       | Python dependencies (psycopg2, redis, python-dotenv)           |
-| `run_sync.ps1`           | PowerShell wrapper for Task Scheduler                          |
-| `run_sync.bat`           | Batch file alternative                                         |
-| `setup-sync-package.ps1` | Automated setup script                                         |
+| File                     | Purpose                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| `config.py`              | Configuration settings (symbols, timeframes, paths, Redis) |
+| `db_connections.py`      | Database connection management (SQLite, PostgreSQL, Redis) |
+| `sync_to_postgresql.py`  | Main sync logic (PostgreSQL + Redis sync)                  |
+| `timeframe_filter.py`    | Filters data by timeframe                                  |
+| `requirements.txt`       | Python dependencies (psycopg2, redis, python-dotenv)       |
+| `run_sync.ps1`           | PowerShell wrapper for Task Scheduler                      |
+| `run_sync.bat`           | Batch file alternative                                     |
+| `setup-sync-package.ps1` | Automated setup script                                     |
 
 ### Sync Process Flow
 
@@ -166,6 +166,7 @@ The Redis hot tier provides sub-millisecond access to the most recent 250 candle
 ```
 
 Examples:
+
 - `eurusd:realtime`
 - `btcusd:realtime`
 - `xauusd:realtime`
@@ -178,11 +179,11 @@ Examples:
 
 ```json
 {
-  "t": 1736505000,  // Unix timestamp
-  "o": 1.0850,      // Open price
-  "h": 1.0855,      // High price
-  "l": 1.0848,      // Low price
-  "c": 1.0852       // Close price
+  "t": 1736505000, // Unix timestamp
+  "o": 1.085, // Open price
+  "h": 1.0855, // High price
+  "l": 1.0848, // Low price
+  "c": 1.0852 // Close price
 }
 ```
 
@@ -195,11 +196,11 @@ Examples:
 
 ### Configuration
 
-| Setting                | Value | Purpose                              |
-| ---------------------- | ----- | ------------------------------------ |
-| `REALTIME_CANDLE_LIMIT` | 250   | Number of candles to keep per symbol |
+| Setting                 | Value  | Purpose                              |
+| ----------------------- | ------ | ------------------------------------ |
+| `REALTIME_CANDLE_LIMIT` | 250    | Number of candles to keep per symbol |
 | `REDIS_REALTIME_TTL`    | 604800 | 7-day expiration (safety mechanism)  |
-| `ENABLE_REDIS_SYNC`     | true  | Enable/disable Redis sync            |
+| `ENABLE_REDIS_SYNC`     | true   | Enable/disable Redis sync            |
 
 ### Query Patterns
 
@@ -237,12 +238,12 @@ if (limit <= 250) {
 
 ### Performance Characteristics
 
-| Query Type          | Data Source   | Latency | Cache Hit Rate |
-| ------------------- | ------------- | ------- | -------------- |
-| Last 100 candles    | Redis only    | <1ms    | 95%            |
-| Last 250 candles    | Redis only    | <2ms    | 95%            |
-| Last 500 candles    | Redis + PG    | 15-30ms | Varies         |
-| Last 1000+ candles  | Redis + PG    | 30-60ms | Low            |
+| Query Type         | Data Source | Latency | Cache Hit Rate |
+| ------------------ | ----------- | ------- | -------------- |
+| Last 100 candles   | Redis only  | <1ms    | 95%            |
+| Last 250 candles   | Redis only  | <2ms    | 95%            |
+| Last 500 candles   | Redis + PG  | 15-30ms | Varies         |
+| Last 1000+ candles | Redis + PG  | 30-60ms | Low            |
 
 ### Symbol Normalization
 
@@ -258,12 +259,12 @@ redis_key = f"{normalized}:realtime"
 
 **Examples:**
 
-| SQLite Table | Redis Key         |
-| ------------ | ----------------- |
-| EURUSD.i     | eurusd:realtime   |
-| AUDJPY.i     | audjpy:realtime   |
-| BTCUSD       | btcusd:realtime   |
-| XAUUSD       | xauusd:realtime   |
+| SQLite Table | Redis Key       |
+| ------------ | --------------- |
+| EURUSD.i     | eurusd:realtime |
+| AUDJPY.i     | audjpy:realtime |
+| BTCUSD       | btcusd:realtime |
+| XAUUSD       | xauusd:realtime |
 
 ### Data Retention
 
@@ -462,16 +463,17 @@ This section lists all files created and modified as part of the hot/warm tier a
 
 These files were **newly created** for the hot/warm tier implementation:
 
-| File Path | Type | Purpose | Lines of Code |
-|-----------|------|---------|---------------|
-| **app/api/candles/[symbol]/route.ts** | Next.js API Route | Real-time candle data endpoint with hot/warm query strategy | ~230 lines |
-| **lib/candle-data-helpers.ts** | TypeScript Library | Reusable helpers for Redis/PostgreSQL candle queries | ~280 lines |
+| File Path                             | Type               | Purpose                                                     | Lines of Code |
+| ------------------------------------- | ------------------ | ----------------------------------------------------------- | ------------- |
+| **app/api/candles/[symbol]/route.ts** | Next.js API Route  | Real-time candle data endpoint with hot/warm query strategy | ~230 lines    |
+| **lib/candle-data-helpers.ts**        | TypeScript Library | Reusable helpers for Redis/PostgreSQL candle queries        | ~280 lines    |
 
 **Total:** 2 new files, ~510 lines of code
 
 #### File Details:
 
 **1. app/api/candles/[symbol]/route.ts**
+
 - **Purpose:** Next.js API endpoint for querying candle data
 - **Features:**
   - GET `/api/candles/[symbol]?limit=100&timeframe=m5`
@@ -499,6 +501,7 @@ These files were **newly created** for the hot/warm tier implementation:
   ```
 
 **2. lib/candle-data-helpers.ts**
+
 - **Purpose:** Reusable TypeScript utilities for candle data queries
 - **Exported Functions:**
   - `queryCandles(options)`: Smart hot/warm tier query strategy
@@ -520,18 +523,19 @@ These files were **newly created** for the hot/warm tier implementation:
 
 These existing files were **modified** to add Redis sync functionality:
 
-| File Path | Type | Changes | Lines Added/Modified |
-|-----------|------|---------|---------------------|
-| **sync/requirements.txt** | Python Dependencies | Added `redis>=5.0.0` | +3 lines |
-| **sync/config.py** | Configuration | Added Redis URL, hot tier settings | +5 lines |
-| **sync/db_connections.py** | Database Connections | Added Redis connection management | +150 lines |
-| **sync/sync_to_postgresql.py** | Main Sync Logic | Added `sync_realtime_to_redis()` method | +80 lines |
+| File Path                      | Type                 | Changes                                 | Lines Added/Modified |
+| ------------------------------ | -------------------- | --------------------------------------- | -------------------- |
+| **sync/requirements.txt**      | Python Dependencies  | Added `redis>=5.0.0`                    | +3 lines             |
+| **sync/config.py**             | Configuration        | Added Redis URL, hot tier settings      | +5 lines             |
+| **sync/db_connections.py**     | Database Connections | Added Redis connection management       | +150 lines           |
+| **sync/sync_to_postgresql.py** | Main Sync Logic      | Added `sync_realtime_to_redis()` method | +80 lines            |
 
 **Total:** 4 modified files, ~238 lines added
 
 #### Modification Details:
 
 **1. sync/requirements.txt**
+
 - **Added:**
   ```
   redis>=5.0.0
@@ -539,7 +543,9 @@ These existing files were **modified** to add Redis sync functionality:
 - **Purpose:** Redis client library for Python
 
 **2. sync/config.py**
+
 - **Added Configuration:**
+
   ```python
   # Redis URL
   REDIS_URL: str = os.getenv("REDIS_URL", "")
@@ -551,6 +557,7 @@ These existing files were **modified** to add Redis sync functionality:
   ```
 
 **3. sync/db_connections.py**
+
 - **Added Functions:**
   - `get_redis_connection()`: Get Redis client from connection pool
   - `close_redis_pool()`: Close Redis connections on shutdown
@@ -563,6 +570,7 @@ These existing files were **modified** to add Redis sync functionality:
   - Graceful degradation if Redis unavailable
 
 **4. sync/sync_to_postgresql.py**
+
 - **Added Method:**
   ```python
   def sync_realtime_to_redis(self, symbol: str, rows: List[Tuple]) -> bool:
@@ -581,12 +589,13 @@ These existing files were **modified** to add Redis sync functionality:
 
 ### 📦 Modified Files (Package Dependencies)
 
-| File Path | Type | Changes | Purpose |
-|-----------|------|---------|---------|
-| **package.json** | NPM Dependencies | Added `redis: ^4.7.0` | Redis client for Next.js |
-| **pnpm-lock.yaml** | Dependency Lockfile | Added redis@4.7.1 + peer dependencies | Dependency resolution |
+| File Path          | Type                | Changes                               | Purpose                  |
+| ------------------ | ------------------- | ------------------------------------- | ------------------------ |
+| **package.json**   | NPM Dependencies    | Added `redis: ^4.7.0`                 | Redis client for Next.js |
+| **pnpm-lock.yaml** | Dependency Lockfile | Added redis@4.7.1 + peer dependencies | Dependency resolution    |
 
 **Dependencies Added:**
+
 - `redis@4.7.1` (main package)
 - `@redis/bloom@1.2.0`
 - `@redis/client@1.6.1`
@@ -602,11 +611,12 @@ These existing files were **modified** to add Redis sync functionality:
 
 ### 📝 Updated Documentation
 
-| File Path | Type | Changes | Purpose |
-|-----------|------|---------|---------|
+| File Path                                                   | Type     | Changes            | Purpose                          |
+| ----------------------------------------------------------- | -------- | ------------------ | -------------------------------- |
 | **docs/testing/05-sync-script-deployment-guide-revised.md** | Markdown | Added ~1,200 lines | Redis architecture documentation |
 
 **Sections Added:**
+
 - Hot/Warm Tier Architecture (diagrams, data flow)
 - Redis Hot Tier Architecture (detailed technical guide)
 - Testing Redis Integration (10 comprehensive tests)
@@ -631,16 +641,19 @@ These existing files were **modified** to add Redis sync functionality:
 ### 🔧 Deployment Requirements
 
 **On Contabo VPS (Windows):**
+
 1. ✅ Update existing sync script files (4 files modified)
 2. ✅ Install Redis dependency: `pip install redis>=5.0.0`
 3. ✅ Add `REDIS_URL` to `.env` file
 4. ✅ Optionally set `ENABLE_REDIS_SYNC=true` (default)
 
 **On Railway (Cloud Infrastructure):**
+
 1. ✅ Provision Redis instance (Railway Redis plugin)
 2. ✅ Copy `REDIS_URL` from Railway dashboard to VPS `.env`
 
 **On Vercel/Next.js (Frontend):**
+
 1. ✅ Deploy 2 new files (API route + helpers)
 2. ✅ Dependencies auto-installed from `package.json`
 3. ✅ Add `REDIS_URL` to Vercel environment variables
@@ -1957,13 +1970,13 @@ Write-Host "Expected: 250 candles (limit enforced)"
 
 ```typescript
 // test-query-performance.ts
-import { queryCandles } from "@/lib/candle-data-helpers";
+import { queryCandles } from '@/lib/candle-data-helpers';
 
 async function benchmarkQueries() {
   // Test 1: Redis only (100 candles)
   const start1 = Date.now();
   const candles1 = await queryCandles({
-    symbol: "eurusd",
+    symbol: 'eurusd',
     limit: 100,
   });
   const time1 = Date.now() - start1;
@@ -1974,9 +1987,9 @@ async function benchmarkQueries() {
   // Test 2: Redis + PostgreSQL (500 candles)
   const start2 = Date.now();
   const candles2 = await queryCandles({
-    symbol: "eurusd",
+    symbol: 'eurusd',
     limit: 500,
-    timeframe: "m5",
+    timeframe: 'm5',
   });
   const time2 = Date.now() - start2;
 
@@ -2432,7 +2445,7 @@ Frontend requests "EURUSD" but Redis has "eurusd:realtime"
 
 ```typescript
 // In API route or helper
-const normalizedSymbol = symbol.toLowerCase().replace(".i", "");
+const normalizedSymbol = symbol.toLowerCase().replace('.i', '');
 const redisKey = `${normalizedSymbol}:realtime`;
 ```
 
@@ -2447,10 +2460,10 @@ redis-cli -u $REDIS_URL KEYS "*:realtime"
 
 ```typescript
 // Bad
-const symbol = "EURUSD";
+const symbol = 'EURUSD';
 
 // Good
-const symbol = "eurusd";
+const symbol = 'eurusd';
 ```
 
 ---

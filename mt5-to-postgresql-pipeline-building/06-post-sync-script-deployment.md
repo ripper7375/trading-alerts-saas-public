@@ -29,6 +29,7 @@
 This document consolidates all post-deployment activities after the sync script is deployed, including testing, monitoring, and operational procedures for the hot/warm tier architecture.
 
 **What This Document Covers:**
+
 ```
 After sync script deployment (Part 20):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -196,6 +197,7 @@ else:
 ```
 
 **Expected Output:**
+
 ```json
 {
   "sqlite": {
@@ -225,6 +227,7 @@ python sync_to_postgresql.py
 ```
 
 **Expected Output:**
+
 ```
 ============================================================
 SQLite to PostgreSQL Sync Script - Part 20
@@ -279,6 +282,7 @@ print(f'Total Keys: {r.dbsize()}')
 ```
 
 **Expected Output:**
+
 ```
 PING: True
 
@@ -323,6 +327,7 @@ print('=' * 40)
 ```
 
 **Expected Output:**
+
 ```
 Symbol Candle Counts:
 ========================================
@@ -380,6 +385,7 @@ else:
 ```
 
 **Expected Output:**
+
 ```
 Latest EURUSD Candle:
 {
@@ -432,6 +438,7 @@ else:
 ```
 
 **Expected Output:**
+
 ```
 Redis Read Performance (100 iterations):
   Mean:   2.345 ms
@@ -540,6 +547,7 @@ conn.close()
 ```
 
 **Expected Pattern:**
+
 ```
 EURUSD Timeframe Row Counts:
 Timeframe    Rows
@@ -1055,15 +1063,18 @@ Signature: ___________
 #### Issue 1: Redis Empty or Low Candle Count
 
 **Symptoms:**
+
 - Redis has <200 candles per symbol
 - Hot path queries failing
 
 **Diagnosis:**
+
 ```powershell
 python -c "import redis, os; r = redis.from_url(os.environ['REDIS_URL']); print(r.zcard('eurusd:realtime'))"
 ```
 
 **Solution:**
+
 ```powershell
 # 1. Check if sync script is running
 Get-ScheduledTask -TaskName "TradingAlertsSyncTask"
@@ -1085,10 +1096,12 @@ python sync_to_postgresql.py
 #### Issue 2: Slow Query Performance
 
 **Symptoms:**
+
 - API response times >500ms
 - Users reporting slow charts
 
 **Diagnosis:**
+
 ```powershell
 # Test query performance
 Measure-Command {
@@ -1097,6 +1110,7 @@ Measure-Command {
 ```
 
 **Solution:**
+
 ```powershell
 # 1. Check Redis memory
 python -c "import redis, os; r = redis.from_url(os.environ['REDIS_URL']); print(r.info()['used_memory_human'])"
@@ -1122,10 +1136,12 @@ foreach ($s in $symbols) {
 #### Issue 3: Data Freshness Alert
 
 **Symptoms:**
+
 - Latest candle >2 minutes old
 - Data not updating
 
 **Solution:**
+
 ```powershell
 # 1. Check complete pipeline
 $sqliteAge = (Get-Date) - (Get-Item "C:\MT5Data\trading_data.db").LastWriteTime
@@ -1659,16 +1675,16 @@ Performance:
 
 ### Minimum Performance Requirements
 
-| Metric | Requirement | Actual | Status |
-|--------|-------------|--------|--------|
-| Data delay (MT5 → User) | < 60 seconds | _____ sec | [ ] PASS |
-| Sync success rate | > 99% | _____% | [ ] PASS |
-| Redis query time | < 5ms | _____ ms | [ ] PASS |
-| PostgreSQL query time | < 50ms | _____ ms | [ ] PASS |
-| API response (hot path) | < 100ms | _____ ms | [ ] PASS |
-| API response (warm path) | < 300ms | _____ ms | [ ] PASS |
-| Error rate | < 1% | _____% | [ ] PASS |
-| Uptime (24h test) | 100% | _____% | [ ] PASS |
+| Metric                   | Requirement  | Actual     | Status   |
+| ------------------------ | ------------ | ---------- | -------- |
+| Data delay (MT5 → User)  | < 60 seconds | **\_** sec | [ ] PASS |
+| Sync success rate        | > 99%        | **\_**%    | [ ] PASS |
+| Redis query time         | < 5ms        | **\_** ms  | [ ] PASS |
+| PostgreSQL query time    | < 50ms       | **\_** ms  | [ ] PASS |
+| API response (hot path)  | < 100ms      | **\_** ms  | [ ] PASS |
+| API response (warm path) | < 300ms      | **\_** ms  | [ ] PASS |
+| Error rate               | < 1%         | **\_**%    | [ ] PASS |
+| Uptime (24h test)        | 100%         | **\_**%    | [ ] PASS |
 
 ### Infrastructure Readiness
 
@@ -2084,14 +2100,14 @@ Decision:
 
 ### Key Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Sync time | <10s | ___s | [ ] |
-| Redis query | <5ms | ___ms | [ ] |
-| PostgreSQL query | <50ms | ___ms | [ ] |
-| Redis candles/symbol | 250 | ___ | [ ] |
-| Data freshness | <2min | ___s | [ ] |
-| Sync frequency | 30s | ___s | [ ] |
+| Metric               | Target | Actual   | Status |
+| -------------------- | ------ | -------- | ------ |
+| Sync time            | <10s   | \_\_\_s  | [ ]    |
+| Redis query          | <5ms   | \_\_\_ms | [ ]    |
+| PostgreSQL query     | <50ms  | \_\_\_ms | [ ]    |
+| Redis candles/symbol | 250    | \_\_\_   | [ ]    |
+| Data freshness       | <2min  | \_\_\_s  | [ ]    |
+| Sync frequency       | 30s    | \_\_\_s  | [ ]    |
 
 ### Next Steps
 

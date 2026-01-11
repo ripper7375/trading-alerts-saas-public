@@ -23,11 +23,13 @@
 ## Overview
 
 This guide covers setting up a Contabo Windows VPS to run:
+
 - 15 MT5 terminal instances (one per trading symbol)
 - DataCollector.mq5 service (MQL5 data collector)
 - SQLite to PostgreSQL sync script
 
 **Architecture Position:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CONTABO VPS (This Guide)                  │
@@ -60,11 +62,13 @@ This guide covers setting up a Contabo Windows VPS to run:
 ### Step 3: Payment Setup
 
 **Accepted Payment Methods:**
+
 - Credit/Debit Card (Visa, Mastercard)
 - PayPal
 - Bank Transfer (SEPA for EU)
 
 **Billing Options:**
+
 - Monthly billing
 - Annual billing (discount available)
 
@@ -74,11 +78,11 @@ This guide covers setting up a Contabo Windows VPS to run:
 
 ### Recommended Plans
 
-| Plan | vCPU | RAM | SSD | Price/Month | Recommendation |
-|------|------|-----|-----|-------------|----------------|
-| VPS S | 4 | 8 GB | 50 GB | ~€5.99 | Minimum viable |
+| Plan      | vCPU  | RAM       | SSD        | Price/Month | Recommendation  |
+| --------- | ----- | --------- | ---------- | ----------- | --------------- |
+| VPS S     | 4     | 8 GB      | 50 GB      | ~€5.99      | Minimum viable  |
 | **VPS M** | **6** | **16 GB** | **100 GB** | **~€10.99** | **Recommended** |
-| VPS L | 8 | 30 GB | 200 GB | ~€16.99 | For scaling |
+| VPS L     | 8     | 30 GB     | 200 GB     | ~€16.99     | For scaling     |
 
 ### Why VPS M is Recommended
 
@@ -106,11 +110,11 @@ When ordering, select:
 
 ### Total Expected Monthly Cost
 
-| Component | Cost |
-|-----------|------|
-| VPS M (base) | ~€10.99 |
-| Windows Server License | ~€7.00 |
-| **Total** | **~€17.99/month** |
+| Component              | Cost              |
+| ---------------------- | ----------------- |
+| VPS M (base)           | ~€10.99           |
+| Windows Server License | ~€7.00            |
+| **Total**              | **~€17.99/month** |
 
 ---
 
@@ -119,6 +123,7 @@ When ordering, select:
 ### Step 1: Receive Credentials
 
 After ordering, you'll receive (usually within 24 hours):
+
 - **IP Address:** e.g., `173.212.xxx.xxx`
 - **Username:** `Administrator`
 - **Password:** (temporary, change immediately)
@@ -138,6 +143,7 @@ After ordering, you'll receive (usually within 24 hours):
 6. Accept certificate warning (first connection only)
 
 **Connection Settings (Recommended):**
+
 ```
 Display:       1920×1080 or higher
 Local Resources:
@@ -158,6 +164,7 @@ Experience:    LAN (for best performance)
 ### Step 4: First Login Tasks
 
 1. **Change Administrator Password:**
+
    ```
    Press Ctrl+Alt+End (not Ctrl+Alt+Del in RDP)
    Select "Change a password"
@@ -243,6 +250,7 @@ Set-MpPreference -DisableRealtimeMonitoring $true
 ### Step 1: Python 3.8+ Installation
 
 **Download:**
+
 1. Go to https://www.python.org/downloads/windows/
 2. Download Python 3.11.x (64-bit installer)
 3. **Important:** Check "Add Python to PATH" during installation
@@ -250,6 +258,7 @@ Set-MpPreference -DisableRealtimeMonitoring $true
 5. Install for all users
 
 **Verify Installation:**
+
 ```powershell
 python --version
 # Expected: Python 3.11.x
@@ -261,11 +270,13 @@ pip --version
 ### Step 2: Git Installation (Optional but Recommended)
 
 **Download:**
+
 1. Go to https://git-scm.com/download/win
 2. Download 64-bit Git for Windows
 3. Install with default settings
 
 **Verify:**
+
 ```powershell
 git --version
 # Expected: git version 2.x.x
@@ -274,10 +285,12 @@ git --version
 ### Step 3: Text Editor
 
 **Option A: Notepad++ (Recommended)**
+
 1. Download from https://notepad-plus-plus.org/downloads/
 2. Install with default settings
 
 **Option B: VS Code**
+
 1. Download from https://code.visualstudio.com/
 2. Install with default settings
 3. Recommended extensions: Python, SQLite Viewer
@@ -285,6 +298,7 @@ git --version
 ### Step 4: Database Tools
 
 **SQLite CLI:**
+
 1. Download from https://sqlite.org/download.html
 2. Download "sqlite-tools-win32-x86-xxxx.zip"
 3. Extract to `C:\Tools\sqlite`
@@ -294,6 +308,7 @@ git --version
    ```
 
 **DB Browser for SQLite (GUI, Optional):**
+
 1. Download from https://sqlitebrowser.org/dl/
 2. Install with default settings
 
@@ -384,11 +399,11 @@ icacls "C:\Logs" /grant "Everyone:(OI)(CI)F"
 
 The VPS needs to connect to:
 
-| Destination | Port | Protocol | Purpose |
-|-------------|------|----------|---------|
-| Railway PostgreSQL | 55082 | TCP | Database sync |
-| Railway Redis | 47725 | TCP | Caching (optional) |
-| MT5 Broker Server | 443/1950 | TCP | MT5 data feed |
+| Destination        | Port     | Protocol | Purpose            |
+| ------------------ | -------- | -------- | ------------------ |
+| Railway PostgreSQL | 55082    | TCP      | Database sync      |
+| Railway Redis      | 47725    | TCP      | Caching (optional) |
+| MT5 Broker Server  | 443/1950 | TCP      | MT5 data feed      |
 
 ### Configure Windows Firewall
 
@@ -496,6 +511,7 @@ auditpol /set /category:"Account Logon" /success:enable /failure:enable
 **Symptoms:** Connection refused or timeout
 
 **Solutions:**
+
 1. Verify VPS is running in Contabo control panel
 2. Check IP address is correct
 3. Verify firewall allows RDP:
@@ -511,6 +527,7 @@ auditpol /set /category:"Account Logon" /success:enable /failure:enable
 **Symptoms:** `'python' is not recognized as an internal or external command`
 
 **Solution:**
+
 ```powershell
 # Add Python to PATH manually
 $pythonPath = "C:\Users\Administrator\AppData\Local\Programs\Python\Python311"
@@ -525,6 +542,7 @@ $scriptsPath = "$pythonPath\Scripts"
 **Symptoms:** Connection timeout or refused
 
 **Solutions:**
+
 1. Verify Railway service is running
 2. Check firewall allows outbound on port 55082:
    ```powershell
@@ -538,6 +556,7 @@ $scriptsPath = "$pythonPath\Scripts"
 **Symptoms:** Sync script fails, MT5 crashes
 
 **Solutions:**
+
 1. Check disk space:
    ```powershell
    Get-PSDrive C
@@ -555,6 +574,7 @@ $scriptsPath = "$pythonPath\Scripts"
 **Symptoms:** Slow response, high CPU/memory usage
 
 **Solutions:**
+
 1. Check resource usage:
    ```powershell
    Get-Process | Sort-Object CPU -Descending | Select-Object -First 10

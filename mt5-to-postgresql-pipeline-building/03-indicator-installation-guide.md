@@ -23,6 +23,7 @@
 This guide covers installing 6 custom indicators (.ex5 files) into all 15 MT5 instances. These indicators provide data for DataCollector.mq5.
 
 **Data Flow:**
+
 ```
 MT5 Terminal
     ↓
@@ -39,14 +40,14 @@ SQLite Database (stores data)
 
 You need these 6 compiled indicator files (.ex5):
 
-| # | Indicator File | Purpose | Buffer Data |
-|---|----------------|---------|-------------|
-| 1 | `Fractal Horizontal Line_V5.ex5` | Support/resistance levels | Horizontal trendlines JSON |
-| 2 | `Fractal Diagonal Line_V4.ex5` | Trend lines | Diagonal trendlines JSON |
-| 3 | `Body Size Momentum Candle_V2.ex5` | Momentum analysis | Momentum candles JSON |
-| 4 | `Keltner Channel_ATF_10 Bands.ex5` | Volatility bands | Keltner channels JSON |
-| 5 | `TEMA_HRMA_SMA-SMMA_Modified Buffers.ex5` | Moving averages | TEMA, HRMA, SMMA values |
-| 6 | `ZigZagColor & MarketStructure_JSON Export_V27_TXT Input.ex5` | Market structure | Fractals, ZigZag JSON |
+| #   | Indicator File                                                | Purpose                   | Buffer Data                |
+| --- | ------------------------------------------------------------- | ------------------------- | -------------------------- |
+| 1   | `Fractal Horizontal Line_V5.ex5`                              | Support/resistance levels | Horizontal trendlines JSON |
+| 2   | `Fractal Diagonal Line_V4.ex5`                                | Trend lines               | Diagonal trendlines JSON   |
+| 3   | `Body Size Momentum Candle_V2.ex5`                            | Momentum analysis         | Momentum candles JSON      |
+| 4   | `Keltner Channel_ATF_10 Bands.ex5`                            | Volatility bands          | Keltner channels JSON      |
+| 5   | `TEMA_HRMA_SMA-SMMA_Modified Buffers.ex5`                     | Moving averages           | TEMA, HRMA, SMMA values    |
+| 6   | `ZigZagColor & MarketStructure_JSON Export_V27_TXT Input.ex5` | Market structure          | Fractals, ZigZag JSON      |
 
 ### Indicator Requirements
 
@@ -83,6 +84,7 @@ foreach ($folder in $mt5Folders) {
 ```
 
 **Typical path:**
+
 ```
 C:\Users\Administrator\AppData\Roaming\MetaQuotes\Terminal\[HASH]\MQL5\Indicators\
 ```
@@ -96,6 +98,7 @@ Each MT5 installation has a unique hash folder:
 3. Note the path - the hash is the folder name
 
 **Example:**
+
 ```
 C:\Users\Administrator\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\MQL5\Indicators\
 ```
@@ -121,6 +124,7 @@ Get-ChildItem "C:\MT5Indicators\*.ex5" | Format-Table Name, Length, LastWriteTim
 ```
 
 **Expected output:**
+
 ```
 Name                                                              Length LastWriteTime
 ----                                                              ------ -------------
@@ -202,6 +206,7 @@ Each indicator may have input parameters. Configure them for optimal data collec
 **Purpose:** Identifies support/resistance levels from fractal points
 
 **Typical Parameters:**
+
 ```
 FractalPeriod: 5 (default)
 ShowLabels: false
@@ -213,6 +218,7 @@ LinesColor: clrNone
 **Purpose:** Draws trend lines connecting fractal points
 
 **Typical Parameters:**
+
 ```
 FractalPeriod: 5 (default)
 TrendLineColor: clrNone
@@ -224,6 +230,7 @@ ShowLabels: false
 **Purpose:** Identifies momentum candles based on body size
 
 **Typical Parameters:**
+
 ```
 MomentumThreshold: 1.5
 BodyRatio: 0.6
@@ -235,6 +242,7 @@ HighlightCandles: false
 **Purpose:** Multi-band Keltner Channel for volatility
 
 **Typical Parameters:**
+
 ```
 EMA_Period: 20
 ATR_Period: 10
@@ -247,6 +255,7 @@ BandCount: 10
 **Purpose:** Multiple moving average calculations
 
 **Typical Parameters:**
+
 ```
 TEMA_Period: 20
 HRMA_Period: 20
@@ -259,6 +268,7 @@ SMMA_Period: 50
 **Purpose:** ZigZag pattern and market structure analysis
 
 **Typical Parameters:**
+
 ```
 Depth: 12
 Deviation: 5
@@ -296,6 +306,7 @@ Create a chart template with all indicators attached:
 5. Save
 
 **Apply template to other instances:**
+
 1. Open chart
 2. **Right-click** → **Templates** → **Load Template**
 3. Select `DataCollector_Template`
@@ -425,6 +436,7 @@ if ($allPassed) {
 **Symptoms:** Indicator file copied but doesn't appear in Navigator
 
 **Solutions:**
+
 1. **Refresh Navigator:**
    - Right-click "Indicators" → "Refresh"
 2. **Check file location:**
@@ -439,6 +451,7 @@ if ($allPassed) {
 **Symptoms:** Error when attaching indicator to chart
 
 **Solutions:**
+
 1. **Check MT5 version:**
    - Indicator must be compiled for MT5 (not MT4)
 2. **Check 32/64-bit:**
@@ -455,6 +468,7 @@ if ($allPassed) {
 **Symptoms:** Indicator shows but values seem incorrect
 
 **Solutions:**
+
 1. **Load historical data:**
    - Indicator needs history to calculate
    - Tools → History Center → Download
@@ -470,6 +484,7 @@ if ($allPassed) {
 **Symptoms:** MT5 crashes when attaching indicator
 
 **Solutions:**
+
 1. **Update MT5:**
    - Help → Check Desktop Updates
 2. **Remove and reinstall indicator:**
@@ -487,6 +502,7 @@ if ($allPassed) {
 **Symptoms:** Error about missing DLL or access denied
 
 **Solutions:**
+
 1. **Enable DLL imports:**
    ```
    Tools → Options → Expert Advisors → Allow DLL imports
@@ -507,20 +523,20 @@ For DataCollector.mq5 to read indicator data, know the buffer indices:
 
 ### TEMA_HRMA_SMA-SMMA_Modified Buffers
 
-| Buffer Index | Data |
-|--------------|------|
-| 0 | TEMA value |
-| 1 | HRMA value |
-| 2 | SMA value |
-| 3 | SMMA value |
+| Buffer Index | Data       |
+| ------------ | ---------- |
+| 0            | TEMA value |
+| 1            | HRMA value |
+| 2            | SMA value  |
+| 3            | SMMA value |
 
 ### Keltner Channel_ATF_10 Bands
 
-| Buffer Index | Data |
-|--------------|------|
-| 0 | Middle line (EMA) |
-| 1-10 | Upper bands |
-| 11-20 | Lower bands |
+| Buffer Index | Data              |
+| ------------ | ----------------- |
+| 0            | Middle line (EMA) |
+| 1-10         | Upper bands       |
+| 11-20        | Lower bands       |
 
 ### Other Indicators
 
@@ -533,11 +549,13 @@ Refer to indicator documentation or source code for buffer indices.
 ### Indicator Folder Paths
 
 **Portable Mode:**
+
 ```
 C:\MT5Terminals\MT5_[SYMBOL]\MQL5\Indicators\
 ```
 
 **Standard Mode:**
+
 ```
 C:\Users\Administrator\AppData\Roaming\MetaQuotes\Terminal\[HASH]\MQL5\Indicators\
 ```
