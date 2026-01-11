@@ -11,7 +11,7 @@ Backend logic includes:
 - Payment processing
 - Email services
 
-**Total Backend Files:** 177 files
+**Total Backend Files:** 198 files
 
 **Note:** Part 6 files (Flask MT5 Service) are excluded as they have been archived and superseded by Part 20.
 
@@ -85,7 +85,7 @@ Backend logic includes:
 
 ## API Routes - Indicators & Trading Data
 
-**Total:** 4 files
+**Total:** 5 files
 
 | #   | File Path                                          | Description                              | Source              |
 | --- | -------------------------------------------------- | ---------------------------------------- | ------------------- |
@@ -93,6 +93,7 @@ Backend logic includes:
 | 22  | `app/api/indicators/[symbol]/[timeframe]/route.ts` | Get indicator data for symbol+timeframe  | Part 20 (Phase 04e) |
 | 23  | `app/api/indicators/health/route.ts`               | Indicator service health check           | Part 20 (Phase 04e) |
 | 24  | `app/api/timeframes/route.ts`                      | Get available timeframes (tier-filtered) | Part 20 (Phase 04e) |
+| 25  | `app/api/candles/[symbol]/route.ts`                | Real-time candle data endpoint (hot/warm tier) | Part 20 (Hot/Warm Tier) |
 
 ---
 
@@ -102,11 +103,11 @@ Backend logic includes:
 
 | #   | File Path                            | Description                      | Source  |
 | --- | ------------------------------------ | -------------------------------- | ------- |
-| 25  | `app/api/watchlist/route.ts`         | CRUD operations for watchlists   | Part 10 |
-| 26  | `app/api/watchlist/[id]/route.ts`    | Single watchlist operations      | Part 10 |
-| 27  | `app/api/watchlist/reorder/route.ts` | Reorder watchlist items          | Part 10 |
-| 28  | `app/api/alerts/route.ts`            | CRUD operations for price alerts | Part 11 |
-| 29  | `app/api/alerts/[id]/route.ts`       | Single alert operations          | Part 11 |
+| 26  | `app/api/watchlist/route.ts`         | CRUD operations for watchlists   | Part 10 |
+| 27  | `app/api/watchlist/[id]/route.ts`    | Single watchlist operations      | Part 10 |
+| 28  | `app/api/watchlist/reorder/route.ts` | Reorder watchlist items          | Part 10 |
+| 29  | `app/api/alerts/route.ts`            | CRUD operations for price alerts | Part 11 |
+| 30  | `app/api/alerts/[id]/route.ts`       | Single alert operations          | Part 11 |
 
 ---
 
@@ -116,16 +117,16 @@ Backend logic includes:
 
 | #   | File Path                                                      | Description                            | Source   |
 | --- | -------------------------------------------------------------- | -------------------------------------- | -------- |
-| 30  | `app/api/checkout/route.ts`                                    | Unified checkout (Stripe + dLocal)     | Part 18C |
-| 31  | `app/api/checkout/validate-code/route.ts`                      | Validate affiliate/discount code       | Part 18C |
-| 32  | `app/api/payments/dlocal/methods/route.ts`                     | Get available dLocal payment methods   | Part 18C |
-| 33  | `app/api/payments/dlocal/create/route.ts`                      | Create dLocal payment                  | Part 18C |
-| 34  | `app/api/payments/dlocal/[paymentId]/route.ts`                 | Get dLocal payment status              | Part 18C |
-| 35  | `app/api/payments/dlocal/exchange-rate/route.ts`               | Get USD → Local currency exchange rate | Part 18C |
-| 36  | `app/api/payments/dlocal/convert/route.ts`                     | Convert USD to local currency          | Part 18C |
-| 37  | `app/api/payments/dlocal/validate-discount/route.ts`           | Validate discount code                 | Part 18C |
-| 38  | `app/api/payments/dlocal/check-three-day-eligibility/route.ts` | Check 3-day trial eligibility          | Part 18C |
-| 39  | `app/api/invoices/route.ts`                                    | Get user invoices                      | Part 12  |
+| 31  | `app/api/checkout/route.ts`                                    | Unified checkout (Stripe + dLocal)     | Part 18C |
+| 32  | `app/api/checkout/validate-code/route.ts`                      | Validate affiliate/discount code       | Part 18C |
+| 33  | `app/api/payments/dlocal/methods/route.ts`                     | Get available dLocal payment methods   | Part 18C |
+| 34  | `app/api/payments/dlocal/create/route.ts`                      | Create dLocal payment                  | Part 18C |
+| 35  | `app/api/payments/dlocal/[paymentId]/route.ts`                 | Get dLocal payment status              | Part 18C |
+| 36  | `app/api/payments/dlocal/exchange-rate/route.ts`               | Get USD → Local currency exchange rate | Part 18C |
+| 37  | `app/api/payments/dlocal/convert/route.ts`                     | Convert USD to local currency          | Part 18C |
+| 38  | `app/api/payments/dlocal/validate-discount/route.ts`           | Validate discount code                 | Part 18C |
+| 39  | `app/api/payments/dlocal/check-three-day-eligibility/route.ts` | Check 3-day trial eligibility          | Part 18C |
+| 40  | `app/api/invoices/route.ts`                                    | Get user invoices                      | Part 12  |
 
 ---
 
@@ -135,43 +136,43 @@ Backend logic includes:
 
 | #   | File Path                                                | Description                            | Source     |
 | --- | -------------------------------------------------------- | -------------------------------------- | ---------- |
-| 40  | `app/api/config/affiliate/route.ts`                      | Get affiliate configuration            | Part 17A-1 |
-| 41  | `app/api/affiliate/auth/register/route.ts`               | Affiliate registration                 | Part 17A-2 |
-| 42  | `app/api/affiliate/auth/verify-email/route.ts`           | Verify affiliate email                 | Part 17A-2 |
-| 43  | `app/api/affiliate/dashboard/stats/route.ts`             | Affiliate dashboard statistics         | Part 17A-2 |
-| 44  | `app/api/affiliate/dashboard/codes/route.ts`             | Affiliate codes list                   | Part 17A-2 |
-| 45  | `app/api/affiliate/dashboard/code-inventory/route.ts`    | Affiliate code inventory               | Part 17A-2 |
-| 46  | `app/api/affiliate/dashboard/commission-report/route.ts` | Affiliate commission report            | Part 17A-2 |
-| 47  | `app/api/affiliate/profile/route.ts`                     | Affiliate profile management           | Part 17A-2 |
-| 48  | `app/api/affiliate/profile/payment/route.ts`             | Affiliate payment settings (RiseWorks) | Part 17A-2 |
+| 41  | `app/api/config/affiliate/route.ts`                      | Get affiliate configuration            | Part 17A-1 |
+| 42  | `app/api/affiliate/auth/register/route.ts`               | Affiliate registration                 | Part 17A-2 |
+| 43  | `app/api/affiliate/auth/verify-email/route.ts`           | Verify affiliate email                 | Part 17A-2 |
+| 44  | `app/api/affiliate/dashboard/stats/route.ts`             | Affiliate dashboard statistics         | Part 17A-2 |
+| 45  | `app/api/affiliate/dashboard/codes/route.ts`             | Affiliate codes list                   | Part 17A-2 |
+| 46  | `app/api/affiliate/dashboard/code-inventory/route.ts`    | Affiliate code inventory               | Part 17A-2 |
+| 47  | `app/api/affiliate/dashboard/commission-report/route.ts` | Affiliate commission report            | Part 17A-2 |
+| 48  | `app/api/affiliate/profile/route.ts`                     | Affiliate profile management           | Part 17A-2 |
+| 49  | `app/api/affiliate/profile/payment/route.ts`             | Affiliate payment settings (RiseWorks) | Part 17A-2 |
 
 ---
 
 ## API Routes - Admin
 
-**Total:** 20 files
+**Total:** 19 files
 
 | #   | File Path                                                     | Description                            | Source             |
 | --- | ------------------------------------------------------------- | -------------------------------------- | ------------------ |
-| 49  | `app/api/admin/users/route.ts`                                | User management (list, update, delete) | Part 14            |
-| 50  | `app/api/admin/api-usage/route.ts`                            | API usage monitoring                   | Part 14            |
-| 51  | `app/api/admin/error-logs/route.ts`                           | Error logs retrieval                   | Part 14            |
-| 52  | `app/api/admin/analytics/route.ts`                            | Admin analytics dashboard              | Part 14            |
-| 53  | `app/api/admin/cache/clear/route.ts`                          | Clear Redis cache                      | Part 20 (Phase 05) |
-| 54  | `app/api/admin/settings/affiliate/route.ts`                   | Affiliate system settings              | Part 17A-1         |
-| 55  | `app/api/admin/fraud-alerts/route.ts`                         | Fraud alerts list                      | Part 18C           |
-| 56  | `app/api/admin/fraud-alerts/[id]/route.ts`                    | Fraud alert details                    | Part 18C           |
-| 57  | `app/api/admin/affiliates/route.ts`                           | Affiliate management                   | Part 17B-1         |
-| 58  | `app/api/admin/affiliates/[id]/route.ts`                      | Single affiliate operations            | Part 17B-1         |
-| 59  | `app/api/admin/affiliates/[id]/suspend/route.ts`              | Suspend affiliate                      | Part 17B-1         |
-| 60  | `app/api/admin/affiliates/[id]/reactivate/route.ts`           | Reactivate affiliate                   | Part 17B-1         |
-| 61  | `app/api/admin/affiliates/[id]/distribute-codes/route.ts`     | Distribute codes to affiliate          | Part 17B-1         |
-| 62  | `app/api/admin/affiliates/reports/sales-performance/route.ts` | Sales performance report               | Part 17B-1         |
-| 63  | `app/api/admin/affiliates/reports/profit-loss/route.ts`       | Profit & loss report                   | Part 17B-1         |
-| 64  | `app/api/admin/affiliates/reports/commission-owings/route.ts` | Commission owings report               | Part 17B-1         |
-| 65  | `app/api/admin/affiliates/reports/code-inventory/route.ts`    | Code inventory report                  | Part 17B-1         |
-| 66  | `app/api/admin/codes/[code]/cancel/route.ts`                  | Cancel affiliate code                  | Part 17B-1         |
-| 67  | `app/api/admin/commissions/pay/route.ts`                      | Mark commission as paid                | Part 17B-1         |
+| 50  | `app/api/admin/users/route.ts`                                | User management (list, update, delete) | Part 14            |
+| 51  | `app/api/admin/api-usage/route.ts`                            | API usage monitoring                   | Part 14            |
+| 52  | `app/api/admin/error-logs/route.ts`                           | Error logs retrieval                   | Part 14            |
+| 53  | `app/api/admin/analytics/route.ts`                            | Admin analytics dashboard              | Part 14            |
+| 54  | `app/api/admin/cache/clear/route.ts`                          | Clear Redis cache                      | Part 20 (Phase 05) |
+| 55  | `app/api/admin/settings/affiliate/route.ts`                   | Affiliate system settings              | Part 17A-1         |
+| 56  | `app/api/admin/fraud-alerts/route.ts`                         | Fraud alerts list                      | Part 18C           |
+| 57  | `app/api/admin/fraud-alerts/[id]/route.ts`                    | Fraud alert details                    | Part 18C           |
+| 58  | `app/api/admin/affiliates/route.ts`                           | Affiliate management                   | Part 17B-1         |
+| 59  | `app/api/admin/affiliates/[id]/route.ts`                      | Single affiliate operations            | Part 17B-1         |
+| 60  | `app/api/admin/affiliates/[id]/suspend/route.ts`              | Suspend affiliate                      | Part 17B-1         |
+| 61  | `app/api/admin/affiliates/[id]/reactivate/route.ts`           | Reactivate affiliate                   | Part 17B-1         |
+| 62  | `app/api/admin/affiliates/[id]/distribute-codes/route.ts`     | Distribute codes to affiliate          | Part 17B-1         |
+| 63  | `app/api/admin/affiliates/reports/sales-performance/route.ts` | Sales performance report               | Part 17B-1         |
+| 64  | `app/api/admin/affiliates/reports/profit-loss/route.ts`       | Profit & loss report                   | Part 17B-1         |
+| 65  | `app/api/admin/affiliates/reports/commission-owings/route.ts` | Commission owings report               | Part 17B-1         |
+| 66  | `app/api/admin/affiliates/reports/code-inventory/route.ts`    | Code inventory report                  | Part 17B-1         |
+| 67  | `app/api/admin/codes/[code]/cancel/route.ts`                  | Cancel affiliate code                  | Part 17B-1         |
+| 68  | `app/api/admin/commissions/pay/route.ts`                      | Mark commission as paid                | Part 17B-1         |
 
 ---
 
@@ -181,22 +182,22 @@ Backend logic includes:
 
 | #   | File Path                                                            | Description                         | Source   |
 | --- | -------------------------------------------------------------------- | ----------------------------------- | -------- |
-| 68  | `app/api/disbursement/affiliates/payable/route.ts`                   | Get affiliates eligible for payment | Part 19D |
-| 69  | `app/api/disbursement/affiliates/[affiliateId]/route.ts`             | Get affiliate disbursement details  | Part 19D |
-| 70  | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` | Get affiliate commission history    | Part 19D |
-| 71  | `app/api/disbursement/batches/route.ts`                              | List payment batches                | Part 19D |
-| 72  | `app/api/disbursement/batches/preview/route.ts`                      | Preview batch before creation       | Part 19D |
-| 73  | `app/api/disbursement/batches/[batchId]/route.ts`                    | Get batch details                   | Part 19D |
-| 74  | `app/api/disbursement/batches/[batchId]/execute/route.ts`            | Execute payment batch               | Part 19D |
-| 75  | `app/api/disbursement/transactions/route.ts`                         | List disbursement transactions      | Part 19D |
-| 76  | `app/api/disbursement/pay/route.ts`                                  | Initiate manual payment             | Part 19D |
-| 77  | `app/api/disbursement/audit-logs/route.ts`                           | Disbursement audit logs             | Part 19D |
-| 78  | `app/api/disbursement/config/route.ts`                               | Disbursement configuration          | Part 19D |
-| 79  | `app/api/disbursement/health/route.ts`                               | Disbursement system health          | Part 19D |
-| 80  | `app/api/disbursement/reports/summary/route.ts`                      | Disbursement summary report         | Part 19D |
-| 81  | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts`      | Affiliate-specific report           | Part 19D |
-| 82  | `app/api/disbursement/riseworks/accounts/route.ts`                   | RiseWorks accounts management       | Part 19D |
-| 83  | `app/api/disbursement/riseworks/sync/route.ts`                       | Sync RiseWorks accounts             | Part 19D |
+| 69  | `app/api/disbursement/affiliates/payable/route.ts`                   | Get affiliates eligible for payment | Part 19D |
+| 70  | `app/api/disbursement/affiliates/[affiliateId]/route.ts`             | Get affiliate disbursement details  | Part 19D |
+| 71  | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` | Get affiliate commission history    | Part 19D |
+| 72  | `app/api/disbursement/batches/route.ts`                              | List payment batches                | Part 19D |
+| 73  | `app/api/disbursement/batches/preview/route.ts`                      | Preview batch before creation       | Part 19D |
+| 74  | `app/api/disbursement/batches/[batchId]/route.ts`                    | Get batch details                   | Part 19D |
+| 75  | `app/api/disbursement/batches/[batchId]/execute/route.ts`            | Execute payment batch               | Part 19D |
+| 76  | `app/api/disbursement/transactions/route.ts`                         | List disbursement transactions      | Part 19D |
+| 77  | `app/api/disbursement/pay/route.ts`                                  | Initiate manual payment             | Part 19D |
+| 78  | `app/api/disbursement/audit-logs/route.ts`                           | Disbursement audit logs             | Part 19D |
+| 79  | `app/api/disbursement/config/route.ts`                               | Disbursement configuration          | Part 19D |
+| 80  | `app/api/disbursement/health/route.ts`                               | Disbursement system health          | Part 19D |
+| 81  | `app/api/disbursement/reports/summary/route.ts`                      | Disbursement summary report         | Part 19D |
+| 82  | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts`      | Affiliate-specific report           | Part 19D |
+| 83  | `app/api/disbursement/riseworks/accounts/route.ts`                   | RiseWorks accounts management       | Part 19D |
+| 84  | `app/api/disbursement/riseworks/sync/route.ts`                       | Sync RiseWorks accounts             | Part 19D |
 
 ---
 
@@ -206,9 +207,9 @@ Backend logic includes:
 
 | #   | File Path                             | Description               | Source   |
 | --- | ------------------------------------- | ------------------------- | -------- |
-| 84  | `app/api/webhooks/stripe/route.ts`    | Stripe webhook handler    | Part 12  |
-| 85  | `app/api/webhooks/dlocal/route.ts`    | dLocal webhook handler    | Part 18C |
-| 86  | `app/api/webhooks/riseworks/route.ts` | RiseWorks webhook handler | Part 19D |
+| 85  | `app/api/webhooks/stripe/route.ts`    | Stripe webhook handler    | Part 12  |
+| 86  | `app/api/webhooks/dlocal/route.ts`    | dLocal webhook handler    | Part 18C |
+| 87  | `app/api/webhooks/riseworks/route.ts` | RiseWorks webhook handler | Part 19D |
 
 ---
 
@@ -218,14 +219,14 @@ Backend logic includes:
 
 | #   | File Path                                               | Description                             | Source     |
 | --- | ------------------------------------------------------- | --------------------------------------- | ---------- |
-| 87  | `app/api/cron/check-expiring-subscriptions/route.ts`    | Check and alert expiring subscriptions  | Part 12    |
-| 88  | `app/api/cron/downgrade-expired-subscriptions/route.ts` | Downgrade expired PRO users to FREE     | Part 12    |
-| 89  | `app/api/cron/daily-maintenance/route.ts`               | Daily maintenance tasks                 | Part 14    |
-| 90  | `app/api/cron/distribute-codes/route.ts`                | Monthly code distribution to affiliates | Part 17B-2 |
-| 91  | `app/api/cron/expire-codes/route.ts`                    | Expire old affiliate codes              | Part 17B-2 |
-| 92  | `app/api/cron/send-monthly-reports/route.ts`            | Send monthly reports to affiliates      | Part 17B-2 |
-| 93  | `app/api/cron/process-pending-disbursements/route.ts`   | Process pending disbursements           | Part 19D   |
-| 94  | `app/api/cron/sync-riseworks-accounts/route.ts`         | Sync RiseWorks account balances         | Part 19D   |
+| 88  | `app/api/cron/check-expiring-subscriptions/route.ts`    | Check and alert expiring subscriptions  | Part 12    |
+| 89  | `app/api/cron/downgrade-expired-subscriptions/route.ts` | Downgrade expired PRO users to FREE     | Part 12    |
+| 90  | `app/api/cron/daily-maintenance/route.ts`               | Daily maintenance tasks                 | Part 14    |
+| 91  | `app/api/cron/distribute-codes/route.ts`                | Monthly code distribution to affiliates | Part 17B-2 |
+| 92  | `app/api/cron/expire-codes/route.ts`                    | Expire old affiliate codes              | Part 17B-2 |
+| 93  | `app/api/cron/send-monthly-reports/route.ts`            | Send monthly reports to affiliates      | Part 17B-2 |
+| 94  | `app/api/cron/process-pending-disbursements/route.ts`   | Process pending disbursements           | Part 19D   |
+| 95  | `app/api/cron/sync-riseworks-accounts/route.ts`         | Sync RiseWorks account balances         | Part 19D   |
 
 ---
 
@@ -235,9 +236,9 @@ Backend logic includes:
 
 | #   | File Path                                  | Description                    | Source  |
 | --- | ------------------------------------------ | ------------------------------ | ------- |
-| 95  | `app/api/notifications/route.ts`           | Get user notifications         | Part 15 |
-| 96  | `app/api/notifications/[id]/route.ts`      | Single notification operations | Part 15 |
-| 97  | `app/api/notifications/[id]/read/route.ts` | Mark notification as read      | Part 15 |
+| 96  | `app/api/notifications/route.ts`           | Get user notifications         | Part 15 |
+| 97  | `app/api/notifications/[id]/route.ts`      | Single notification operations | Part 15 |
+| 98  | `app/api/notifications/[id]/read/route.ts` | Mark notification as read      | Part 15 |
 
 ---
 
@@ -247,7 +248,7 @@ Backend logic includes:
 
 | #   | File Path                              | Description                                 | Source             |
 | --- | -------------------------------------- | ------------------------------------------- | ------------------ |
-| 98  | `app/api/confluence/[symbol]/route.ts` | Multi-timeframe confluence score (PRO only) | Part 20 (Phase 06) |
+| 99  | `app/api/confluence/[symbol]/route.ts` | Multi-timeframe confluence score (PRO only) | Part 20 (Phase 06) |
 
 ---
 
@@ -257,7 +258,7 @@ Backend logic includes:
 
 | #   | File Path                      | Description            | Source             |
 | --- | ------------------------------ | ---------------------- | ------------------ |
-| 99  | `app/api/cache/stats/route.ts` | Redis cache statistics | Part 20 (Phase 05) |
+| 100  | `app/api/cache/stats/route.ts` | Redis cache statistics | Part 20 (Phase 05) |
 
 ---
 
@@ -382,14 +383,15 @@ Backend logic includes:
 
 ## Library - Indicators & Market Data
 
-**Total:** 4 files
+**Total:** 5 files
 
 | #   | File Path                              | Description                 | Source              |
 | --- | -------------------------------------- | --------------------------- | ------------------- |
-| 156 | `lib/indicators/types.ts`              | Indicator type definitions  | Part 20 (Phase 04a) |
-| 157 | `lib/indicators/timeframe-filter.ts`   | Timeframe filtering logic   | Part 20 (Phase 03)  |
-| 158 | `lib/market-hours/trading-sessions.ts` | Trading hours configuration | Part 20 (Phase 04d) |
-| 159 | `lib/market-hours/validator.ts`        | Market hours validation     | Part 20 (Phase 04d) |
+| 157 | `lib/indicators/types.ts`              | Indicator type definitions  | Part 20 (Phase 04a) |
+| 158 | `lib/indicators/timeframe-filter.ts`   | Timeframe filtering logic   | Part 20 (Phase 03)  |
+| 159 | `lib/candle-data-helpers.ts`           | Redis/PostgreSQL candle query helpers | Part 20 (Hot/Warm Tier) |
+| 160 | `lib/market-hours/trading-sessions.ts` | Trading hours configuration | Part 20 (Phase 04d) |
+| 161 | `lib/market-hours/validator.ts`        | Market hours validation     | Part 20 (Phase 04d) |
 
 **Note:** Part 6 files (`lib/api/mt5-client.ts`, `lib/api/mt5-transform.ts`) are excluded as they are being replaced by Part 20.
 
@@ -401,9 +403,9 @@ Backend logic includes:
 
 | #   | File Path                      | Description                  | Source             |
 | --- | ------------------------------ | ---------------------------- | ------------------ |
-| 160 | `lib/confluence/types.ts`      | Confluence type definitions  | Part 20 (Phase 06) |
-| 161 | `lib/confluence/signals.ts`    | Signal detection functions   | Part 20 (Phase 06) |
-| 162 | `lib/confluence/calculator.ts` | Confluence score calculation | Part 20 (Phase 06) |
+| 162 | `lib/confluence/types.ts`      | Confluence type definitions  | Part 20 (Phase 06) |
+| 163 | `lib/confluence/signals.ts`    | Signal detection functions   | Part 20 (Phase 06) |
+| 164 | `lib/confluence/calculator.ts` | Confluence score calculation | Part 20 (Phase 06) |
 
 ---
 
@@ -413,12 +415,12 @@ Backend logic includes:
 
 | #   | File Path                         | Description                  | Source             |
 | --- | --------------------------------- | ---------------------------- | ------------------ |
-| 163 | `lib/redis/client.ts`             | Redis client (legacy)        | Part 15            |
-| 164 | `lib/cache/redis.ts`              | Redis client (Part 20)       | Part 20 (Phase 05) |
-| 165 | `lib/cache/indicator-cache.ts`    | Indicator data caching       | Part 20 (Phase 05) |
-| 166 | `lib/cache/confluence-cache.ts`   | Confluence score caching     | Part 20 (Phase 06) |
-| 167 | `lib/cache/cache-invalidation.ts` | Cache invalidation utilities | Part 20 (Phase 05) |
-| 168 | `lib/cache/cache-manager.ts`      | Cache management utilities   | Part 20 (Phase 05) |
+| 165 | `lib/redis/client.ts`             | Redis client (legacy)        | Part 15            |
+| 166 | `lib/cache/redis.ts`              | Redis client (Part 20)       | Part 20 (Phase 05) |
+| 167 | `lib/cache/indicator-cache.ts`    | Indicator data caching       | Part 20 (Phase 05) |
+| 168 | `lib/cache/confluence-cache.ts`   | Confluence score caching     | Part 20 (Phase 06) |
+| 169 | `lib/cache/cache-invalidation.ts` | Cache invalidation utilities | Part 20 (Phase 05) |
+| 170 | `lib/cache/cache-manager.ts`      | Cache management utilities   | Part 20 (Phase 05) |
 
 ---
 
@@ -428,8 +430,8 @@ Backend logic includes:
 
 | #   | File Path                          | Description                        | Source  |
 | --- | ---------------------------------- | ---------------------------------- | ------- |
-| 169 | `lib/email/email.ts`               | Email sending utilities (SendGrid) | Part 5  |
-| 170 | `lib/email/subscription-emails.ts` | Subscription-related emails        | Part 12 |
+| 171 | `lib/email/email.ts`               | Email sending utilities (SendGrid) | Part 5  |
+| 172 | `lib/email/subscription-emails.ts` | Subscription-related emails        | Part 12 |
 
 ---
 
@@ -439,11 +441,11 @@ Backend logic includes:
 
 | #   | File Path                                     | Description                  | Source     |
 | --- | --------------------------------------------- | ---------------------------- | ---------- |
-| 171 | `lib/jobs/queue.ts`                           | Job queue management         | Part 15    |
-| 172 | `lib/jobs/alert-checker.ts`                   | Price alert checking job     | Part 11    |
-| 173 | `lib/cron/check-expiring-subscriptions.ts`    | Check expiring subscriptions | Part 12    |
-| 174 | `lib/cron/downgrade-expired-subscriptions.ts` | Downgrade expired users      | Part 12    |
-| 175 | `lib/cron/monthly-distribution.ts`            | Monthly code distribution    | Part 17B-2 |
+| 173 | `lib/jobs/queue.ts`                           | Job queue management         | Part 15    |
+| 174 | `lib/jobs/alert-checker.ts`                   | Price alert checking job     | Part 11    |
+| 175 | `lib/cron/check-expiring-subscriptions.ts`    | Check expiring subscriptions | Part 12    |
+| 176 | `lib/cron/downgrade-expired-subscriptions.ts` | Downgrade expired users      | Part 12    |
+| 177 | `lib/cron/monthly-distribution.ts`            | Monthly code distribution    | Part 17B-2 |
 
 ---
 
@@ -453,17 +455,17 @@ Backend logic includes:
 
 | #   | File Path                          | Description               | Source  |
 | --- | ---------------------------------- | ------------------------- | ------- |
-| 176 | `lib/utils.ts`                     | General utility functions | Part 1  |
-| 177 | `lib/utils/helpers.ts`             | Helper functions          | Part 1  |
-| 178 | `lib/utils/formatters.ts`          | Data formatting utilities | Part 1  |
-| 179 | `lib/utils/constants.ts`           | General constants         | Part 1  |
-| 180 | `lib/logger.ts`                    | Logging utilities         | Part 1  |
-| 181 | `lib/errors/api-error.ts`          | API error classes         | Part 14 |
-| 182 | `lib/errors/error-handler.ts`      | Error handling middleware | Part 14 |
-| 183 | `lib/errors/error-logger.ts`       | Error logging utilities   | Part 14 |
-| 184 | `lib/monitoring/system-monitor.ts` | System health monitoring  | Part 14 |
-| 185 | `lib/constants/business-rules.ts`  | Business rule constants   | Part 1  |
-| 186 | `lib/preferences/defaults.ts`      | User preference defaults  | Part 13 |
+| 178 | `lib/utils.ts`                     | General utility functions | Part 1  |
+| 179 | `lib/utils/helpers.ts`             | Helper functions          | Part 1  |
+| 180 | `lib/utils/formatters.ts`          | Data formatting utilities | Part 1  |
+| 181 | `lib/utils/constants.ts`           | General constants         | Part 1  |
+| 182 | `lib/logger.ts`                    | Logging utilities         | Part 1  |
+| 183 | `lib/errors/api-error.ts`          | API error classes         | Part 14 |
+| 184 | `lib/errors/error-handler.ts`      | Error handling middleware | Part 14 |
+| 185 | `lib/errors/error-logger.ts`       | Error logging utilities   | Part 14 |
+| 186 | `lib/monitoring/system-monitor.ts` | System health monitoring  | Part 14 |
+| 187 | `lib/constants/business-rules.ts`  | Business rule constants   | Part 1  |
+| 188 | `lib/preferences/defaults.ts`      | User preference defaults  | Part 13 |
 
 ---
 
@@ -473,9 +475,9 @@ Backend logic includes:
 
 | #   | File Path                           | Description                    | Source     |
 | --- | ----------------------------------- | ------------------------------ | ---------- |
-| 187 | `lib/admin/affiliate-management.ts` | Affiliate management utilities | Part 17B-1 |
-| 188 | `lib/admin/code-distribution.ts`    | Code distribution logic        | Part 17B-2 |
-| 189 | `lib/admin/pnl-calculator.ts`       | Profit & loss calculation      | Part 17B-1 |
+| 189 | `lib/admin/affiliate-management.ts` | Affiliate management utilities | Part 17B-1 |
+| 190 | `lib/admin/code-distribution.ts`    | Code distribution logic        | Part 17B-2 |
+| 191 | `lib/admin/pnl-calculator.ts`       | Profit & loss calculation      | Part 17B-1 |
 
 ---
 
@@ -485,11 +487,11 @@ Backend logic includes:
 
 | #   | File Path                       | Description                       | Source  |
 | --- | ------------------------------- | --------------------------------- | ------- |
-| 190 | `lib/validations/auth.ts`       | Authentication validation schemas | Part 5  |
-| 191 | `lib/validations/user.ts`       | User validation schemas           | Part 13 |
-| 192 | `lib/validations/alert.ts`      | Alert validation schemas          | Part 11 |
-| 193 | `lib/validations/watchlist.ts`  | Watchlist validation schemas      | Part 10 |
-| 194 | `lib/validations/indicators.ts` | Indicator validation schemas      | Part 7  |
+| 192 | `lib/validations/auth.ts`       | Authentication validation schemas | Part 5  |
+| 193 | `lib/validations/user.ts`       | User validation schemas           | Part 13 |
+| 194 | `lib/validations/alert.ts`      | Alert validation schemas          | Part 11 |
+| 195 | `lib/validations/watchlist.ts`  | Watchlist validation schemas      | Part 10 |
+| 196 | `lib/validations/indicators.ts` | Indicator validation schemas      | Part 7  |
 
 ---
 
@@ -499,8 +501,8 @@ Backend logic includes:
 
 | #   | File Path                         | Description                            | Source     |
 | --- | --------------------------------- | -------------------------------------- | ---------- |
-| 195 | `lib/websocket/server.ts`         | WebSocket server for real-time updates | Part 15    |
-| 196 | `lib/hooks/useAffiliateConfig.ts` | Affiliate config hook (server-side)    | Part 17A-1 |
+| 197 | `lib/websocket/server.ts`         | WebSocket server for real-time updates | Part 15    |
+| 198 | `lib/hooks/useAffiliateConfig.ts` | Affiliate config hook (server-side)    | Part 17A-1 |
 
 ---
 
@@ -508,9 +510,9 @@ Backend logic includes:
 
 | Category                                | File Count | Percentage |
 | --------------------------------------- | ---------- | ---------- |
-| **API Routes**                          | 100        | 51%        |
-| **Library - Services & Business Logic** | 96         | 49%        |
-| **Total Backend Files**                 | 196        | 100%       |
+| **API Routes**                          | 101        | 51%        |
+| **Library - Services & Business Logic** | 97         | 49%        |
+| **Total Backend Files**                 | 198        | 100%       |
 
 ---
 
@@ -533,10 +535,10 @@ Backend logic includes:
 | Part 17B    | Admin Affiliate Management         | 16            |
 | Part 18C    | dLocal & Fraud Detection           | 16            |
 | Part 19D    | Disbursement System                | 24            |
-| Part 20     | SQLite + Sync to PostgreSQL        | 28            |
+| Part 20     | SQLite + Sync to PostgreSQL        | 30            |
 | 2FA Feature | Two-Factor Authentication          | 6             |
 | Testing     | Test utilities                     | 1             |
-| **Total**   |                                    | **196**       |
+| **Total**   |                                    | **198**       |
 
 ---
 
@@ -587,6 +589,7 @@ This backend logic represents the **Backend Stack** in the Modular Monolith arch
 
 ---
 
-_Last Updated: 2026-01-09_
+_Last Updated: 2026-01-11_
 _Generated from: app/api/** and lib/** directories_
 _Architecture: Modular Monolith Migration_
+_Recent Updates: Added hot/warm tier files (candles API route + candle-data-helpers library)_
