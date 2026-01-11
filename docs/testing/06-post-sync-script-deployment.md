@@ -19,6 +19,8 @@
 9. [Operational Procedures](#operational-procedures)
 10. [Cost Management](#cost-management)
 11. [Troubleshooting Guide](#troubleshooting-guide)
+12. [Testing Artifacts & Scripts](#testing-artifacts--scripts)
+13. [Production Readiness Checklist](#production-readiness-checklist)
 
 ---
 
@@ -1426,6 +1428,647 @@ Sign-off: _______________ Date: ___________
 
 ---
 
+## Testing Artifacts & Scripts
+
+This section lists all testing documentation and scripts created as part of the Part 20 deployment and testing process.
+
+### Testing Documentation
+
+```
+TESTING DOCUMENTATION FILES
+═══════════════════════════════════════════════════════════════
+
+Setup & Deployment Guides:
+├─ 01-contabo-vps-setup-guide.md
+│  └─ VPS provisioning and initial configuration
+├─ 02-mt5-installation-guide.md
+│  └─ MT5 terminal installation (15 instances)
+├─ 03-indicator-installation-guide.md
+│  └─ Custom indicator deployment
+├─ 04-datacollector-deployment-guide.md
+│  └─ MQL5 DataCollector service setup
+├─ 04-datacollector-deployment-guide-revised.md
+│  └─ Updated deployment guide
+├─ 05-sync-script-deployment-guide.md
+│  └─ Python sync script configuration
+└─ 05-sync-script-deployment-guide-revised.md
+   └─ Updated for hot/warm tier architecture
+
+Testing Plans:
+├─ 06-e2e-testing-plan.md
+│  └─ End-to-end data flow testing
+├─ 07-redis-caching-testing-plan.md
+│  └─ Redis hot tier testing procedures
+└─ 08-performance-testing-plan.md
+   └─ Load testing and benchmarking
+
+Operations & Monitoring:
+├─ 09-monitoring-setup-guide.md
+│  └─ Health checks and alerting
+├─ 10-operational-runbooks.md
+│  └─ Daily operations and troubleshooting
+└─ 11-infrastructure-costs.md
+   └─ Cost breakdown and optimization
+
+Final Verification:
+├─ 12-post-testing-checklist.md
+│  └─ Production readiness checklist
+└─ 06-post-sync-script-deployment.md (this document)
+   └─ Consolidated post-deployment guide
+```
+
+### Monitoring & Health Check Scripts
+
+```powershell
+POWERSHELL MONITORING SCRIPTS
+═══════════════════════════════════════════════════════════════
+
+Primary Health Checks:
+├─ C:\Scripts\monitoring\master_check.ps1
+│  └─ Complete system health check (all components)
+├─ C:\Scripts\monitoring\health_check.ps1
+│  └─ Standard health check routine
+└─ C:\Scripts\health_check.ps1
+   └─ Legacy health check script
+
+Component-Specific Checks:
+├─ C:\Scripts\monitoring\check_mt5.ps1
+│  └─ Verify all 15 MT5 instances running
+├─ C:\Scripts\monitoring\check_datacollector.ps1
+│  └─ Check DataCollector services active
+├─ C:\Scripts\monitoring\check_sqlite.ps1
+│  └─ Verify SQLite database updating
+├─ C:\Scripts\monitoring\check_sync.ps1
+│  └─ Monitor sync script execution
+├─ C:\Scripts\monitoring\check_redis.ps1
+│  └─ Test Redis hot tier connectivity
+├─ C:\Scripts\monitoring\check_postgresql.ps1
+│  └─ Test PostgreSQL warm tier connectivity
+├─ C:\Scripts\monitoring\check_task.ps1
+│  └─ Verify Task Scheduler status
+└─ C:\Scripts\monitoring\check_api.ps1
+   └─ Test API endpoint responses
+
+Data Quality Checks:
+├─ C:\Scripts\monitoring\check_data_freshness.ps1
+│  └─ Verify data is current (<2 min old)
+└─ C:\Scripts\monitoring\check_network.ps1
+   └─ Test network connectivity to Railway
+
+Resource Monitoring:
+├─ C:\Scripts\monitor_resources.ps1
+│  └─ Monitor CPU, memory, disk usage
+├─ C:\Scripts\monitoring\check_memory.ps1
+│  └─ Memory usage monitoring
+├─ C:\Scripts\monitoring\check_disk.ps1
+│  └─ Disk space monitoring
+└─ C:\Scripts\monitor_datacollector.ps1
+   └─ DataCollector resource usage
+
+Alerting & Reporting:
+├─ C:\Scripts\monitoring\check_alerts.ps1
+│  └─ Generate alerts for critical issues
+├─ C:\Scripts\monitoring\alert_config.ps1
+│  └─ Alert configuration and rules
+├─ C:\Scripts\monitoring\generate_dashboard.ps1
+│  └─ Create monitoring dashboard
+└─ C:\Scripts\monitoring\check_costs.ps1
+   └─ Monthly cost review and optimization
+```
+
+### Maintenance & Operations Scripts
+
+```powershell
+MAINTENANCE SCRIPTS
+═══════════════════════════════════════════════════════════════
+
+Routine Maintenance:
+├─ C:\Scripts\maintenance\weekly_maintenance.ps1
+│  └─ Weekly maintenance tasks (SQLite VACUUM, backups)
+├─ C:\Scripts\monitoring\rotate_logs.ps1
+│  └─ Log rotation and archival
+└─ C:\Scripts\rotate_logs.ps1
+   └─ Legacy log rotation script
+
+Service Management:
+├─ C:\Scripts\start_all_mt5.ps1
+│  └─ Start all 15 MT5 terminal instances
+├─ C:\Scripts\start_datacollector.ps1
+│  └─ Start DataCollector services
+└─ C:\Scripts\run_sync.ps1
+   └─ Manual sync script execution
+
+Troubleshooting:
+├─ C:\Scripts\troubleshooting\diagnose.ps1
+│  └─ Complete system diagnostic
+└─ C:\Scripts\troubleshooting\emergency_restart.ps1
+   └─ Emergency recovery procedure
+```
+
+### Verification & Testing Scripts
+
+```powershell
+VERIFICATION SCRIPTS
+═══════════════════════════════════════════════════════════════
+
+Pre-Deployment Verification:
+├─ C:\Scripts\verify_mt5.ps1
+│  └─ Verify MT5 installation and configuration
+└─ C:\Scripts\verify_indicators.ps1
+   └─ Verify custom indicators installed
+```
+
+### Python Test Scripts
+
+```python
+PYTHON TESTING SCRIPTS
+═══════════════════════════════════════════════════════════════
+
+Sync Package Tests:
+└─ C:\Scripts\sync_package\
+   ├─ test_connections.py (embedded in db_connections.py)
+   │  └─ Test SQLite, PostgreSQL, Redis connections
+   ├─ test_timeframe_filter.py (embedded in timeframe_filter.py)
+   │  └─ Test timeframe filtering logic
+   └─ sync_to_postgresql.py
+      └─ Main sync script with built-in validation
+```
+
+### Testing Artifacts Summary
+
+```
+ARTIFACT SUMMARY
+═══════════════════════════════════════════════════════════════
+
+Documentation:           16 files
+PowerShell Scripts:      32 files
+Python Scripts:          5 files
+Test Procedures:         50+ test cases
+Monitoring Checks:       15 automated checks
+Maintenance Scripts:     5 scheduled tasks
+
+Total Testing Artifacts: 100+ files and procedures
+```
+
+---
+
+## Production Readiness Checklist
+
+This comprehensive checklist ensures all aspects of the system are ready for production deployment.
+
+### Testing Completion Criteria
+
+```
+TESTING COMPLETION CRITERIA
+═══════════════════════════════════════════════════════════════
+
+E2E Testing:
+[ ] Test 1: Single Symbol E2E - PASSED
+[ ] Test 2: Multiple Symbols - PASSED
+[ ] Test 3: Automatic Sync - PASSED
+[ ] Test 4: Failure Recovery - PASSED
+[ ] Test 5: Data Integrity - PASSED
+
+Redis Hot Tier Testing:
+[ ] Connection testing - PASSED
+[ ] Data structure validation - PASSED
+[ ] Candle count accuracy (250 per symbol) - PASSED
+[ ] Query performance (<5ms) - PASSED
+[ ] TTL enforcement (7 days) - PASSED
+[ ] Failover testing - PASSED
+
+PostgreSQL Warm Tier Testing:
+[ ] Table creation (135 tables) - PASSED
+[ ] Timeframe filtering - PASSED
+[ ] Data integrity (no NULLs, no anomalies) - PASSED
+[ ] Row limit enforcement (10,000) - PASSED
+[ ] Query performance (<50ms) - PASSED
+
+Performance:
+[ ] Sync time <10 seconds - PASSED
+[ ] Redis throughput >1000 ops/sec - PASSED
+[ ] Hot path faster than warm path - PASSED
+[ ] Load testing - PASSED
+
+24-Hour Stability Test:
+[ ] System ran for 24 hours without intervention
+[ ] No data gaps detected
+[ ] No errors in logs
+[ ] All monitoring green
+```
+
+### Minimum Performance Requirements
+
+| Metric | Requirement | Actual | Status |
+|--------|-------------|--------|--------|
+| Data delay (MT5 → User) | < 60 seconds | _____ sec | [ ] PASS |
+| Sync success rate | > 99% | _____% | [ ] PASS |
+| Redis query time | < 5ms | _____ ms | [ ] PASS |
+| PostgreSQL query time | < 50ms | _____ ms | [ ] PASS |
+| API response (hot path) | < 100ms | _____ ms | [ ] PASS |
+| API response (warm path) | < 300ms | _____ ms | [ ] PASS |
+| Error rate | < 1% | _____% | [ ] PASS |
+| Uptime (24h test) | 100% | _____% | [ ] PASS |
+
+### Infrastructure Readiness
+
+```
+INFRASTRUCTURE READINESS
+═══════════════════════════════════════════════════════════════
+
+Contabo VPS:
+[ ] VPS provisioned (VPS M or higher recommended)
+[ ] Windows Server updated and secured
+[ ] 16GB RAM, 6 vCPU, 100GB+ SSD verified
+[ ] RDP access documented
+[ ] Firewall configured correctly
+[ ] Backup configured (€1/mo recommended)
+[ ] Monitoring scripts deployed
+
+MT5 Terminals:
+[ ] All 15 instances installed and configured
+[ ] Account credentials secured
+[ ] Auto-start configured (optional)
+[ ] DataCollector deployed to all instances
+[ ] Services verified active in all Experts tabs
+
+Sync Script:
+[ ] All files deployed to C:\Scripts\sync_package\
+[ ] .env file configured with credentials
+[ ] POSTGRESQL_URI verified
+[ ] REDIS_URL verified
+[ ] ENABLE_REDIS_SYNC=true set
+[ ] Task Scheduler configured (30-second interval)
+[ ] Logging enabled and working
+[ ] Error handling tested
+
+Railway (Database Services):
+[ ] PostgreSQL online and accessible
+[ ] Redis online and accessible
+[ ] Pro plan active ($20/mo recommended)
+[ ] Connection strings documented securely
+[ ] Backups enabled (automatic with Pro plan)
+[ ] Monitoring dashboard reviewed
+
+Vercel (Frontend - if applicable):
+[ ] Application deployed
+[ ] Environment variables configured
+[ ] REDIS_URL and POSTGRESQL_URI set
+[ ] Domain configured (if applicable)
+[ ] SSL enabled
+[ ] Analytics enabled
+```
+
+### Security Checklist
+
+```
+SECURITY CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Authentication & Access:
+[ ] VPS password strong and unique (20+ characters)
+[ ] RDP port changed from default 3389 (optional but recommended)
+[ ] MT5 account credentials secured (not in code)
+[ ] Railway credentials secured
+[ ] Vercel credentials secured
+[ ] No credentials in version control (.env in .gitignore)
+
+Network Security:
+[ ] Windows Firewall enabled and configured
+[ ] Only required ports open (RDP, Railway connections)
+[ ] SSL/TLS used for all database connections
+[ ] Railway SSL mode enforced
+
+Secrets Management:
+[ ] .env files not in version control (verified)
+[ ] Environment variables used for all secrets
+[ ] Credentials documented in secure location (password manager)
+[ ] Access limited to required personnel only
+[ ] Backup credentials stored securely
+
+Audit & Logging:
+[ ] Security event logging enabled
+[ ] Failed login attempts monitored
+[ ] Database access logged (Railway dashboard)
+[ ] Sync errors logged
+[ ] Alert rules configured for security events
+```
+
+### Reliability Checklist
+
+```
+RELIABILITY CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+High Availability:
+[ ] MT5 terminals auto-restart on failure (service mode)
+[ ] Task Scheduler configured to retry sync on failure
+[ ] Connection retry logic implemented in sync script
+[ ] Graceful degradation (PostgreSQL fallback if Redis fails)
+[ ] Health checks running every 5 minutes
+
+Backup & Recovery:
+[ ] SQLite backup scheduled (weekly recommended)
+[ ] PostgreSQL backups enabled (Railway automatic)
+[ ] Backup restoration tested successfully
+[ ] Backup retention: 7 days SQLite, 30 days PostgreSQL
+[ ] Recovery procedures documented and tested
+
+Monitoring & Alerting:
+[ ] All monitoring scripts deployed
+[ ] master_check.ps1 scheduled every 5 minutes
+[ ] Alert thresholds configured:
+    - Data freshness: Alert if >2 minutes old
+    - Sync failures: Alert after 2 consecutive failures
+    - Disk space: Alert if <20GB free
+    - Memory: Alert if >90% used
+[ ] Alert notification method configured (email/SMS/Slack)
+[ ] Escalation procedures documented
+[ ] On-call rotation defined (if applicable)
+
+Disaster Recovery:
+[ ] Complete system recovery plan documented
+[ ] RTO (Recovery Time Objective): 4 hours defined
+[ ] RPO (Recovery Point Objective): 1 hour defined
+[ ] Recovery procedures tested in non-production
+[ ] Contacts for support documented:
+    - Contabo: support@contabo.com
+    - Railway: support@railway.app
+    - Vercel: support@vercel.com
+```
+
+### Documentation Checklist
+
+```
+DOCUMENTATION CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Setup Documentation:
+[✓] 01-contabo-vps-setup-guide.md
+[✓] 02-mt5-installation-guide.md
+[✓] 03-indicator-installation-guide.md
+[✓] 04-datacollector-deployment-guide.md
+[✓] 04-datacollector-deployment-guide-revised.md
+[✓] 05-sync-script-deployment-guide.md
+[✓] 05-sync-script-deployment-guide-revised.md
+
+Testing Documentation:
+[✓] 06-e2e-testing-plan.md
+[✓] 07-redis-caching-testing-plan.md
+[✓] 08-performance-testing-plan.md
+[✓] 06-post-sync-script-deployment.md (consolidated)
+
+Operations Documentation:
+[✓] 09-monitoring-setup-guide.md
+[✓] 10-operational-runbooks.md
+[✓] 11-infrastructure-costs.md
+[✓] 12-post-testing-checklist.md
+
+Code Documentation:
+[ ] config.py - Configuration constants documented
+[ ] db_connections.py - Connection functions documented
+[ ] sync_to_postgresql.py - Main sync logic documented
+[ ] timeframe_filter.py - Filtering logic documented
+[ ] DataCollector.mq5 - MQL5 service documented
+
+Architecture Documentation:
+[ ] Data flow diagrams created
+[ ] Hot/warm tier architecture documented
+[ ] Query strategy documented
+[ ] Failover scenarios documented
+```
+
+### Knowledge Transfer & Handover
+
+```
+HANDOVER CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Documentation Provided:
+[ ] All 16 testing/setup documents shared
+[ ] Architecture diagrams provided
+[ ] Data flow diagrams shared
+[ ] Credential access provided (secure method)
+
+Training Completed:
+[ ] Daily operations walkthrough completed
+[ ] Health check procedures demonstrated
+[ ] Common issue troubleshooting trained
+[ ] Emergency recovery procedures practiced
+[ ] Escalation procedures explained
+
+Access Granted:
+[ ] VPS RDP access credentials provided
+[ ] Railway dashboard access granted
+[ ] Vercel dashboard access granted (if applicable)
+[ ] GitHub repository access granted
+[ ] Monitoring dashboards access provided
+
+Handover Meeting:
+[ ] Complete system walkthrough completed
+[ ] Live demonstration of monitoring
+[ ] Q&A session completed
+[ ] On-call rotation established
+[ ] Emergency contact information exchanged
+[ ] Post-handover support period defined
+```
+
+### Go-Live Checklist
+
+```
+GO-LIVE CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Pre-Go-Live (24 hours before):
+[ ] All tests passed and documented
+[ ] 24-hour stability test completed successfully
+[ ] No critical issues open
+[ ] Performance metrics meet all requirements
+[ ] Rollback plan documented and understood
+[ ] Team notified of go-live schedule
+[ ] Support contacts available and confirmed
+[ ] Monitoring dashboards prepared
+
+Go-Live Hour 0:
+[ ] Old system baseline metrics captured
+[ ] New system verified running
+[ ] All health checks passing
+[ ] Data flowing correctly (SQLite → Redis → PostgreSQL)
+[ ] No errors in sync.log
+[ ] Redis has 250 candles per symbol
+[ ] PostgreSQL tables populating
+
+Go-Live Hour 1:
+[ ] Monitor sync.log for errors
+[ ] Check user feedback (if applicable)
+[ ] Verify data freshness (<2 min)
+[ ] Check API response times
+[ ] Verify Redis query performance (<5ms)
+[ ] Monitor system resources
+
+Go-Live Hour 4:
+[ ] Review monitoring dashboards
+[ ] Check VPS resource usage (CPU <70%, Memory <80%)
+[ ] Verify no data gaps in timeline
+[ ] Review and address any warnings
+[ ] Confirm backup procedures running
+
+Go-Live Hour 24:
+[ ] Complete 24-hour operational review
+[ ] Performance metrics analysis
+[ ] Issue summary and resolution
+[ ] Go/No-go decision for full production
+[ ] Document lessons learned
+```
+
+### Post-Launch Monitoring Plan
+
+```
+POST-LAUNCH MONITORING PLAN
+═══════════════════════════════════════════════════════════════
+
+First 72 Hours:
+Hour 0-8:   Check every 15 minutes
+            Focus: Errors, data flow, connectivity
+Hour 8-24:  Check every 30 minutes
+            Focus: Performance, resource usage
+Hour 24-48: Check every hour
+            Focus: Stability, pattern detection
+Hour 48-72: Check every 2 hours
+            Focus: Trend analysis, optimization
+
+Week 1:
+[ ] Daily morning health checks
+[ ] Daily review of sync.log
+[ ] Daily resource usage trending
+[ ] End-of-day status report
+[ ] Friday week summary report
+
+Week 2-4:
+[ ] Transition to standard operations
+[ ] Weekly performance review
+[ ] Monthly cost analysis
+[ ] Process optimization
+[ ] Documentation updates
+```
+
+### Critical Metrics to Monitor
+
+```
+CRITICAL METRICS
+═══════════════════════════════════════════════════════════════
+
+Data Pipeline (Monitor Continuously):
+- SQLite update time: Should be <60 seconds old
+- Sync execution: Every 30 seconds
+- Sync success rate: Should be 100%
+- Redis candle count: Should be ~250 per symbol
+- PostgreSQL row growth: Should be continuous
+
+Performance (Monitor Hourly):
+- Redis query time: Should be <5ms
+- PostgreSQL query time: Should be <50ms
+- Sync execution time: Should be <10 seconds
+- API response time (hot): Should be <100ms
+- API response time (warm): Should be <300ms
+- Cache hit rate: Should be >80% (if using API cache)
+
+Resources (Monitor Every 5 Minutes):
+- VPS CPU usage: Should be <70%
+- VPS Memory usage: Should be <80%
+- VPS Disk free: Should be >20GB
+- MT5 total memory: Monitor for leaks
+- Redis memory: Should be <100MB
+
+Errors (Alert Immediately):
+- Sync script errors: Should be 0
+- API 500 errors: Should be 0
+- Database connection failures: Should be 0
+- Data gaps: Should be 0
+```
+
+### Sign-Off Requirements
+
+```
+TECHNICAL SIGN-OFF
+═══════════════════════════════════════════════════════════════
+
+I confirm that:
+[ ] All testing has been completed successfully
+[ ] System meets all performance requirements
+[ ] Hot/warm tier architecture functioning correctly
+[ ] Documentation is complete and accurate
+[ ] Monitoring and alerting is operational
+[ ] Disaster recovery procedures documented and tested
+[ ] Team is trained and ready
+
+Technical Lead: _______________________
+Date: _______________________
+Signature: _______________________
+
+
+OPERATIONS SIGN-OFF
+═══════════════════════════════════════════════════════════════
+
+I confirm that:
+[ ] Operations team has received complete handover
+[ ] All runbooks understood and accessible
+[ ] Monitoring is adequate for 24/7 operations
+[ ] Support procedures are clear
+[ ] Emergency contacts documented
+[ ] On-call rotation established
+
+Operations Lead: _______________________
+Date: _______________________
+Signature: _______________________
+
+
+BUSINESS SIGN-OFF (if applicable)
+═══════════════════════════════════════════════════════════════
+
+I confirm that:
+[ ] System meets business requirements
+[ ] User acceptance testing complete
+[ ] Cost structure approved (~$60/month)
+[ ] Go-live is approved
+
+Business Owner: _______________________
+Date: _______________________
+Signature: _______________________
+```
+
+### Final Go/No-Go Decision
+
+```
+FINAL GO/NO-GO DECISION
+═══════════════════════════════════════════════════════════════
+
+Prerequisites:
+[ ] All E2E tests passed
+[ ] All performance targets met
+[ ] 24-hour stability verified
+[ ] All documentation complete
+[ ] Team trained and ready
+[ ] Monitoring active and alerting
+[ ] Rollback plan ready and tested
+[ ] All sign-offs obtained
+
+Decision:
+
+[ ] GO - Proceed to production
+    Authorized by: _______________________
+    Date: _______________________
+
+[ ] NO-GO - Issues to resolve:
+    Issue 1: _____________________________________________
+    Issue 2: _____________________________________________
+    Issue 3: _____________________________________________
+
+    Re-evaluation date: _______________________
+```
+
+---
+
 ## Summary
 
 ### What We Achieved
@@ -1461,7 +2104,8 @@ After completing this guide:
 
 ---
 
-**Document Version:** 1.0.0
+**Document Version:** 2.0.0
 **Last Updated:** 2026-01-11
 **Status:** ✅ Ready for Production
+**Includes:** Testing Artifacts & Production Readiness Checklist
 **Author:** Claude Code (Trading Alerts SaaS Part 20)
