@@ -55,7 +55,7 @@ Our Next.js backend has 196 files organized as:
 
 ### API Routes (100 files in app/api/**/route.ts):
 
-**Authentication & User Management (20 files):**
+**Authentication & User Management (15 files):**
 - app/api/auth/[...nextauth]/route.ts - NextAuth.js handler
 - app/api/auth/register/route.ts - User registration
 - app/api/auth/forgot-password/route.ts - Password reset request
@@ -71,18 +71,19 @@ Our Next.js backend has 196 files organized as:
 - app/api/user/account/deletion-request/route.ts - Request deletion
 - app/api/user/account/deletion-cancel/route.ts - Cancel deletion
 - app/api/user/account/deletion-confirm/route.ts - Confirm deletion
-- app/api/user/2fa/setup/route.ts - 2FA setup
-- app/api/user/2fa/verify-setup/route.ts - 2FA verification
-- app/api/user/2fa/verify/route.ts - 2FA code verify
-- app/api/user/2fa/disable/route.ts - 2FA disable
-- app/api/user/2fa/backup-codes/route.ts - Backup codes
 
-**Indicators & Trading Data (5 files):**
+**Two-Factor Authentication (5 files):**
+- app/api/user/2fa/setup/route.ts - 2FA setup (generate secret)
+- app/api/user/2fa/verify-setup/route.ts - Verify and enable 2FA
+- app/api/user/2fa/verify/route.ts - Verify 2FA code during login
+- app/api/user/2fa/disable/route.ts - Disable 2FA
+- app/api/user/2fa/backup-codes/route.ts - Regenerate backup codes
+
+**Indicators & Trading Data (4 files):**
 - app/api/indicators/route.ts - List indicators
 - app/api/indicators/[symbol]/[timeframe]/route.ts - Get indicator data
 - app/api/indicators/health/route.ts - Health check
-- app/api/timeframes/route.ts - Get timeframes
-- app/api/confluence/[symbol]/route.ts - Confluence score (PRO)
+- app/api/timeframes/route.ts - Get timeframes (tier-filtered)
 
 **Watchlist & Alerts (5 files):**
 - app/api/watchlist/route.ts - CRUD watchlists
@@ -91,18 +92,17 @@ Our Next.js backend has 196 files organized as:
 - app/api/alerts/route.ts - CRUD alerts
 - app/api/alerts/[id]/route.ts - Single alert
 
-**Payments & Billing (11 files):**
-- app/api/checkout/route.ts - Unified checkout
-- app/api/checkout/validate-code/route.ts - Validate discount/affiliate code
+**Payments & Billing (10 files):**
+- app/api/checkout/route.ts - Unified checkout (Stripe + dLocal)
+- app/api/checkout/validate-code/route.ts - Validate affiliate/discount code
 - app/api/payments/dlocal/methods/route.ts - dLocal payment methods
 - app/api/payments/dlocal/create/route.ts - Create dLocal payment
 - app/api/payments/dlocal/[paymentId]/route.ts - Payment status
-- app/api/payments/dlocal/exchange-rate/route.ts - Exchange rate
+- app/api/payments/dlocal/exchange-rate/route.ts - USD → Local currency
 - app/api/payments/dlocal/convert/route.ts - Currency conversion
 - app/api/payments/dlocal/validate-discount/route.ts - Validate discount
-- app/api/payments/dlocal/check-three-day-eligibility/route.ts - Trial check
+- app/api/payments/dlocal/check-three-day-eligibility/route.ts - 3-day trial check
 - app/api/invoices/route.ts - User invoices
-- app/api/subscription/route.ts - Subscription status
 
 **Affiliate System (9 files):**
 - app/api/config/affiliate/route.ts - Affiliate config
@@ -113,17 +113,17 @@ Our Next.js backend has 196 files organized as:
 - app/api/affiliate/dashboard/code-inventory/route.ts - Code inventory
 - app/api/affiliate/dashboard/commission-report/route.ts - Commission report
 - app/api/affiliate/profile/route.ts - Profile management
-- app/api/affiliate/profile/payment/route.ts - Payment settings
+- app/api/affiliate/profile/payment/route.ts - Payment settings (RiseWorks)
 
-**Admin (20 files):**
+**Admin (19 files):**
 - app/api/admin/users/route.ts - User management
-- app/api/admin/api-usage/route.ts - API usage
+- app/api/admin/api-usage/route.ts - API usage monitoring
 - app/api/admin/error-logs/route.ts - Error logs
 - app/api/admin/analytics/route.ts - Analytics dashboard
-- app/api/admin/cache/clear/route.ts - Clear cache
+- app/api/admin/cache/clear/route.ts - Clear Redis cache
 - app/api/admin/settings/affiliate/route.ts - Affiliate settings
-- app/api/admin/fraud-alerts/route.ts - Fraud alerts
-- app/api/admin/fraud-alerts/[id]/route.ts - Fraud alert detail
+- app/api/admin/fraud-alerts/route.ts - Fraud alerts list
+- app/api/admin/fraud-alerts/[id]/route.ts - Fraud alert details
 - app/api/admin/affiliates/route.ts - Affiliate management
 - app/api/admin/affiliates/[id]/route.ts - Single affiliate
 - app/api/admin/affiliates/[id]/suspend/route.ts - Suspend affiliate
@@ -160,87 +160,156 @@ Our Next.js backend has 196 files organized as:
 - app/api/webhooks/riseworks/route.ts - RiseWorks webhook
 
 **Cron Jobs (8 files):**
-- app/api/cron/check-expiring-subscriptions/route.ts
-- app/api/cron/downgrade-expired-subscriptions/route.ts
-- app/api/cron/daily-maintenance/route.ts
-- app/api/cron/distribute-codes/route.ts
-- app/api/cron/expire-codes/route.ts
-- app/api/cron/send-monthly-reports/route.ts
-- app/api/cron/process-pending-disbursements/route.ts
-- app/api/cron/sync-riseworks-accounts/route.ts
+- app/api/cron/check-expiring-subscriptions/route.ts - Check expiring subscriptions
+- app/api/cron/downgrade-expired-subscriptions/route.ts - Downgrade expired users
+- app/api/cron/daily-maintenance/route.ts - Daily maintenance tasks
+- app/api/cron/distribute-codes/route.ts - Monthly code distribution
+- app/api/cron/expire-codes/route.ts - Expire old codes
+- app/api/cron/send-monthly-reports/route.ts - Monthly reports to affiliates
+- app/api/cron/process-pending-disbursements/route.ts - Process disbursements
+- app/api/cron/sync-riseworks-accounts/route.ts - Sync RiseWorks balances
 
-**Other (3 files):**
-- app/api/notifications/route.ts - Notifications
-- app/api/notifications/[id]/route.ts - Single notification
-- app/api/cache/stats/route.ts - Cache stats
+**Notifications (3 files):**
+- app/api/notifications/route.ts - Get user notifications
+- app/api/notifications/[id]/route.ts - Single notification operations
+- app/api/notifications/[id]/read/route.ts - Mark notification as read
+
+**Confluence (1 file):**
+- app/api/confluence/[symbol]/route.ts - Multi-timeframe confluence score (PRO)
+
+**Cache & Health (1 file):**
+- app/api/cache/stats/route.ts - Redis cache statistics
+
+**Testing (1 file):**
+- app/api/test/seed/route.ts - Seed test data (dev only)
 
 ### Library/Service Files (96 files in lib/**/*):
 
-**Database Layer:**
-- lib/db/prisma.ts - Prisma client
-- lib/db/postgresql.ts - PostgreSQL client
-- lib/db/queries.ts - Query functions
-- lib/db/multi-timeframe-query.ts - Multi-TF queries
+**Database Layer (5 files):**
+- lib/db/prisma.ts - Prisma client singleton
+- lib/db/seed.ts - Database seeding utilities
+- lib/db/postgresql.ts - PostgreSQL client with connection pooling
+- lib/db/queries.ts - Database query functions
+- lib/db/multi-timeframe-query.ts - Multi-timeframe data queries
 
-**Authentication & Security:**
-- lib/auth/auth-options.ts - NextAuth config
-- lib/auth/session.ts - Session management
-- lib/auth/session-tracker.ts - Session tracking
-- lib/auth/permissions.ts - Permission checking
-- lib/auth/two-factor.ts - 2FA utilities
-- lib/security/device-detection.ts - Device fingerprint
-- lib/csrf.ts - CSRF protection
-- lib/rate-limit.ts - Rate limiting
-- lib/tokens.ts - Token utilities
+**Authentication & Security (10 files):**
+- lib/auth/auth-options.ts - NextAuth configuration
+- lib/auth/session.ts - Session management utilities
+- lib/auth/session-tracker.ts - Track active user sessions
+- lib/auth/permissions.ts - Permission checking utilities
+- lib/auth/errors.ts - Authentication error classes
+- lib/auth/two-factor.ts - 2FA utilities (TOTP, backup codes)
+- lib/security/device-detection.ts - Device fingerprinting
+- lib/csrf.ts - CSRF protection utilities
+- lib/rate-limit.ts - Rate limiting middleware
+- lib/tokens.ts - Token generation and validation
 
-**Tier System:**
-- lib/tier-validation.ts - Tier validation
-- lib/tier-helpers.ts - Tier helpers
-- lib/tier-config.ts - Tier configuration
-- lib/tier/validation.ts, constants.ts, validator.ts, index.ts
+**Tier Validation (7 files):**
+- lib/tier-validation.ts - Tier validation (legacy)
+- lib/tier-helpers.ts - Tier helper functions
+- lib/tier-config.ts - Tier configuration constants
+- lib/tier/validation.ts - Tier validation (Part 20)
+- lib/tier/constants.ts - Tier constants
+- lib/tier/validator.ts - Tier validator utilities
+- lib/tier/index.ts - Tier module exports
 
-**Payment Processing:**
-- lib/stripe/stripe.ts - Stripe client
-- lib/stripe/webhook-handlers.ts - Stripe webhooks
-- lib/dlocal/dlocal-payment.service.ts - dLocal payments
-- lib/dlocal/payment-methods.service.ts - Payment methods
-- lib/dlocal/currency-converter.service.ts - Currency conversion
-- lib/dlocal/three-day-validator.service.ts - Trial validation
+**Payment Processing (9 files):**
+- lib/stripe/stripe.ts - Stripe client configuration
+- lib/stripe/webhook-handlers.ts - Stripe webhook event handlers
+- lib/dlocal/dlocal-payment.service.ts - dLocal payment processing
+- lib/dlocal/payment-methods.service.ts - dLocal payment methods
+- lib/dlocal/currency-converter.service.ts - Currency conversion utilities
+- lib/dlocal/three-day-validator.service.ts - 3-day trial eligibility
+- lib/dlocal/constants.ts - dLocal constants
+- lib/fraud/fraud-detection.service.ts - Fraud detection service
+- lib/geo/detect-country.ts - Country detection from IP
 
-**Affiliate System:**
-- lib/affiliate/registration.ts - Registration logic
-- lib/affiliate/code-generator.ts - Code generation
-- lib/affiliate/commission-calculator.ts - Commission calc
-- lib/affiliate/validators.ts - Validation
-- lib/affiliate/report-builder.ts - Reports
+**Affiliate System (7 files):**
+- lib/affiliate/registration.ts - Affiliate registration logic
+- lib/affiliate/code-generator.ts - Affiliate code generation
+- lib/affiliate/commission-calculator.ts - Commission calculation
+- lib/affiliate/validators.ts - Affiliate validation utilities
+- lib/affiliate/report-builder.ts - Affiliate report generation
+- lib/affiliate/types.ts - Affiliate type definitions
+- lib/affiliate/constants.ts - Affiliate constants
 
-**Disbursement System:**
-- lib/disbursement/services/batch-manager.ts
-- lib/disbursement/services/commission-aggregator.ts
-- lib/disbursement/services/payout-calculator.ts
-- lib/disbursement/services/transaction-service.ts
-- lib/disbursement/services/payment-orchestrator.ts
-- lib/disbursement/providers/rise/rise-provider.ts
-- lib/disbursement/providers/rise/siwe-auth.ts
-- lib/disbursement/providers/rise/webhook-verifier.ts
+**Disbursement System (17 files):**
+- lib/disbursement/constants.ts - Disbursement constants
+- lib/disbursement/services/batch-manager.ts - Payment batch management
+- lib/disbursement/services/commission-aggregator.ts - Aggregate commissions
+- lib/disbursement/services/payout-calculator.ts - Calculate payout amounts
+- lib/disbursement/services/transaction-service.ts - Transaction CRUD
+- lib/disbursement/services/transaction-logger.ts - Transaction logging
+- lib/disbursement/services/payment-orchestrator.ts - Payment orchestration
+- lib/disbursement/services/retry-handler.ts - Payment retry logic
+- lib/disbursement/providers/base-provider.ts - Base provider interface
+- lib/disbursement/providers/provider-factory.ts - Provider factory
+- lib/disbursement/providers/mock-provider.ts - Mock provider (testing)
+- lib/disbursement/providers/rise/rise-provider.ts - RiseWorks provider
+- lib/disbursement/providers/rise/siwe-auth.ts - Sign-In with Ethereum
+- lib/disbursement/providers/rise/webhook-verifier.ts - Webhook verification
+- lib/disbursement/providers/rise/amount-converter.ts - USD to USDC
+- lib/disbursement/webhook/event-processor.ts - Webhook event processing
+- lib/disbursement/cron/disbursement-processor.ts - Cron job processor
 
-**Caching Layer:**
-- lib/cache/redis.ts - Redis client
-- lib/cache/indicator-cache.ts - Indicator caching
-- lib/cache/confluence-cache.ts - Confluence caching
-- lib/cache/cache-manager.ts - Cache management
+**Indicators & Market Data (4 files):**
+- lib/indicators/types.ts - Indicator type definitions
+- lib/indicators/timeframe-filter.ts - Timeframe filtering logic
+- lib/market-hours/trading-sessions.ts - Trading hours configuration
+- lib/market-hours/validator.ts - Market hours validation
 
-**Email Services:**
-- lib/email/email.ts - SendGrid client
-- lib/email/subscription-emails.ts - Subscription emails
+**Confluence System (3 files):**
+- lib/confluence/types.ts - Confluence type definitions
+- lib/confluence/signals.ts - Signal detection functions
+- lib/confluence/calculator.ts - Confluence score calculation
 
-**Background Jobs:**
-- lib/jobs/queue.ts - Job queue
-- lib/jobs/alert-checker.ts - Alert checker
-- lib/cron/monthly-distribution.ts - Code distribution
+**Caching Layer (6 files):**
+- lib/redis/client.ts - Redis client (legacy)
+- lib/cache/redis.ts - Redis client (Part 20)
+- lib/cache/indicator-cache.ts - Indicator data caching
+- lib/cache/confluence-cache.ts - Confluence score caching
+- lib/cache/cache-invalidation.ts - Cache invalidation utilities
+- lib/cache/cache-manager.ts - Cache management utilities
 
-**Utilities:**
-- lib/utils.ts, lib/logger.ts, lib/errors/*, lib/validations/*
+**Email Services (2 files):**
+- lib/email/email.ts - Email sending utilities (SendGrid)
+- lib/email/subscription-emails.ts - Subscription-related emails
+
+**Background Jobs (5 files):**
+- lib/jobs/queue.ts - Job queue management
+- lib/jobs/alert-checker.ts - Price alert checking job
+- lib/cron/check-expiring-subscriptions.ts - Check expiring subscriptions
+- lib/cron/downgrade-expired-subscriptions.ts - Downgrade expired users
+- lib/cron/monthly-distribution.ts - Monthly code distribution
+
+**Utilities & Helpers (11 files):**
+- lib/utils.ts - General utility functions
+- lib/utils/helpers.ts - Helper functions
+- lib/utils/formatters.ts - Data formatting utilities
+- lib/utils/constants.ts - General constants
+- lib/logger.ts - Logging utilities
+- lib/errors/api-error.ts - API error classes
+- lib/errors/error-handler.ts - Error handling middleware
+- lib/errors/error-logger.ts - Error logging utilities
+- lib/monitoring/system-monitor.ts - System health monitoring
+- lib/constants/business-rules.ts - Business rule constants
+- lib/preferences/defaults.ts - User preference defaults
+
+**Admin Utilities (3 files):**
+- lib/admin/affiliate-management.ts - Affiliate management utilities
+- lib/admin/code-distribution.ts - Code distribution logic
+- lib/admin/pnl-calculator.ts - Profit & loss calculation
+
+**Validations (5 files):**
+- lib/validations/auth.ts - Authentication validation schemas
+- lib/validations/user.ts - User validation schemas
+- lib/validations/alert.ts - Alert validation schemas
+- lib/validations/watchlist.ts - Watchlist validation schemas
+- lib/validations/indicators.ts - Indicator validation schemas
+
+**Other (2 files):**
+- lib/websocket/server.ts - WebSocket server for real-time updates
+- lib/hooks/useAffiliateConfig.ts - Affiliate config hook (server-side)
 
 ## Infrastructure Migrations
 
