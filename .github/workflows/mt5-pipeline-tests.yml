@@ -1,0 +1,217 @@
+name: MT5 Pipeline Tests
+
+on:
+  # Run every 15 minutes
+  schedule:
+    - cron: '*/15 * * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+  # Run on push to main (for testing)
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/test-mt5-deployment.ts'
+      - 'scripts/monitor-mt5-pipeline.ts'
+      - 'scripts/verify-sync-deployment.ts'
+      - 'sync/**'
+      - '.github/workflows/mt5-pipeline-tests.yml'
+
+jobs:
+  verify-deployment:
+    name: Verify Sync Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Verify Sync Deployment
+        env:
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRESQL_URI: ${{ secrets.POSTGRESQL_URI }}
+        run: npm run test:mt5:verify
+
+  test-pipeline:
+    name: Test Complete Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: verify-deployment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Test MT5 Pipeline
+        env:
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRESQL_URI: ${{ secrets.POSTGRESQL_URI }}
+        run: npm run test:mt5:deployment
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mt5-pipeline-test-results
+          path: |
+            *.log
+            test-results/
+          retention-days: 7
+
+  monitor-health:
+    name: Monitor Pipeline Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: test-pipeline
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Monitor Pipeline Health
+        id: health-check
+        env:
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRESQL_URI: ${{ secrets.POSTGRESQL_URI }}
+        run: |
+          npm run test:mt5:monitor || echo "health_status=failed" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Issue on Critical Failure
+        if: steps.health-check.outputs.health_status == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 MT5 Pipeline Health Check Failed',
+              body: `## Critical Alert
+
+              The MT5 to PostgreSQL pipeline health check has failed.
+
+              **Workflow Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+              **Time:** ${new Date().toISOString()}
+
+              ### Possible Issues:
+              - Redis connection failure
+              - PostgreSQL connection failure
+              - Data freshness issues
+              - Data integrity problems
+
+              ### Next Steps:
+              1. Check Railway dashboard for database status
+              2. Verify Contabo VPS is running
+              3. Review sync script logs
+              4. Run manual health check: \`npm run test:mt5:monitor\`
+
+              ### Links:
+              - [Railway Dashboard](https://railway.app/dashboard)
+              - [Contabo Dashboard](https://my.contabo.com)
+              - [Testing Procedures](/mt5-to-postgresql-pipeline-building/TESTING-PROCEDURES.md)
+              `,
+              labels: ['critical', 'mt5-pipeline', 'automated']
+            });
+
+            console.log(`Created issue #${issue.data.number}`);
+
+  notify-results:
+    name: Notify Test Results
+    runs-on: ubuntu-latest
+    needs: [verify-deployment, test-pipeline, monitor-health]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        id: check-status
+        run: |
+          if [ "${{ needs.verify-deployment.result }}" == "failure" ] || \
+             [ "${{ needs.test-pipeline.result }}" == "failure" ] || \
+             [ "${{ needs.monitor-health.result }}" == "failure" ]; then
+            echo "overall_status=failure" >> $GITHUB_OUTPUT
+          else
+            echo "overall_status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Summary
+        run: |
+          echo "# MT5 Pipeline Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Pipeline | ${{ needs.test-pipeline.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Monitor Health | ${{ needs.monitor-health.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check-status.outputs.overall_status }}" == "success" ]; then
+            echo "✅ **Overall Status:** All tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Overall Status:** Some tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # Optional: Send Slack notification
+      # - name: Send Slack notification
+      #   if: steps.check-status.outputs.overall_status == 'failure'
+      #   uses: slackapi/slack-github-action@v1
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "🚨 MT5 Pipeline tests failed",
+      #         "blocks": [
+      #           {
+      #             "type": "section",
+      #             "text": {
+      #               "type": "mrkdwn",
+      #               "text": "*MT5 Pipeline Health Check Failed*\nWorkflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      #             }
+      #           }
+      #         ]
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
