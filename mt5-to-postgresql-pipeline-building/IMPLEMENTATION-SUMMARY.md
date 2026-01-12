@@ -369,7 +369,7 @@ npm run db:push
 # Test Redis connection only
 npx tsx -e "
 import { createClient } from 'redis';
-const client = createClient({ url: process.env.REDIS_URL });
+const client = createClient({ url: process.env['REDIS_URL'] });
 await client.connect();
 console.log(await client.ping());
 await client.disconnect();

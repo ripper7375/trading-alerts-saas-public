@@ -411,7 +411,7 @@ DEBUG=* npx tsx scripts/test-mt5-deployment.ts
 # Test only Redis
 npx tsx -e "
 import { createClient } from 'redis';
-const client = createClient({ url: process.env.REDIS_URL });
+const client = createClient({ url: process.env['REDIS_URL'] });
 await client.connect();
 console.log(await client.ping());
 await client.disconnect();

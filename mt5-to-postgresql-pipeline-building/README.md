@@ -235,7 +235,7 @@ npm run test:mt5:monitor
 echo $REDIS_URL
 
 # Test Redis connection
-npx tsx -e "import { createClient } from 'redis'; const c = createClient({url: process.env.REDIS_URL}); await c.connect(); console.log(await c.ping()); await c.disconnect();"
+npx tsx -e "import { createClient } from 'redis'; const c = createClient({url: process.env['REDIS_URL']}); await c.connect(); console.log(await c.ping()); await c.disconnect();"
 ```
 
 #### 2. PostgreSQL Tables Missing
