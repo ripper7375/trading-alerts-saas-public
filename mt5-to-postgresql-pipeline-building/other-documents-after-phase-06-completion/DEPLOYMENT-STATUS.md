@@ -7,14 +7,14 @@
 
 ## Deployment Steps Completion
 
-| Step | Document | Status | Completion Date | Notes |
-|------|----------|--------|-----------------|-------|
-| 1 | Contabo VPS Setup | ✅ Complete | - | VPS provisioned and configured |
-| 2 | MT5 Installation | ✅ Complete | - | 15 MT5 terminal instances running |
-| 3 | Indicator Installation | ✅ Complete | 2026-01-12 | 6 MQL5 indicators installed and working |
-| 4 | DataCollector Deployment | ✅ Complete | - | MQL5 service deployed to all instances |
-| 5 | Sync Script Deployment | ✅ Complete | - | Python sync script configured |
-| 6 | Post-Deployment Testing | 🔄 In Progress | - | Testing scripts ready, awaiting execution |
+| Step | Document                 | Status         | Completion Date | Notes                                     |
+| ---- | ------------------------ | -------------- | --------------- | ----------------------------------------- |
+| 1    | Contabo VPS Setup        | ✅ Complete    | -               | VPS provisioned and configured            |
+| 2    | MT5 Installation         | ✅ Complete    | -               | 15 MT5 terminal instances running         |
+| 3    | Indicator Installation   | ✅ Complete    | 2026-01-12      | 6 MQL5 indicators installed and working   |
+| 4    | DataCollector Deployment | ✅ Complete    | -               | MQL5 service deployed to all instances    |
+| 5    | Sync Script Deployment   | ✅ Complete    | -               | Python sync script configured             |
+| 6    | Post-Deployment Testing  | 🔄 In Progress | -               | Testing scripts ready, awaiting execution |
 
 ---
 
@@ -24,22 +24,24 @@
 
 All indicators have been successfully installed and are working properly across all 15 MT5 terminal instances.
 
-| # | Indicator Name | Status | Purpose |
-|---|----------------|--------|---------|
-| 1 | Fractal Horizontal Line_V5 | ✅ Working | Horizontal fractal analysis |
-| 2 | Fractal Diagonal Line_V4 | ✅ Working | Diagonal fractal analysis |
-| 3 | Body Size Momentum Candle_V2 | ✅ Working | Candle momentum analysis |
-| 4 | Keltner Channel_ATF_10 Bands | ✅ Working | Volatility bands |
-| 5 | TEMA_HRMA_SMA-SMMA_Modified Buffers | ✅ Working | Moving averages |
-| 6 | ZigZagColor & MarketStructure | ✅ Working | Market structure analysis |
+| #   | Indicator Name                      | Status     | Purpose                     |
+| --- | ----------------------------------- | ---------- | --------------------------- |
+| 1   | Fractal Horizontal Line_V5          | ✅ Working | Horizontal fractal analysis |
+| 2   | Fractal Diagonal Line_V4            | ✅ Working | Diagonal fractal analysis   |
+| 3   | Body Size Momentum Candle_V2        | ✅ Working | Candle momentum analysis    |
+| 4   | Keltner Channel_ATF_10 Bands        | ✅ Working | Volatility bands            |
+| 5   | TEMA_HRMA_SMA-SMMA_Modified Buffers | ✅ Working | Moving averages             |
+| 6   | ZigZagColor & MarketStructure       | ✅ Working | Market structure analysis   |
 
 ### Deployment Details
 
 **Installation Location:**
+
 - Each indicator installed in all 15 MT5 instances
 - Path: `C:\MT5Terminals\MT5_[SYMBOL]\MQL5\Indicators\`
 
 **Verification Completed:**
+
 - ✅ All 6 indicators appear in Navigator for each instance
 - ✅ Indicators can be attached to charts without errors
 - ✅ Indicator buffers are accessible
@@ -47,6 +49,7 @@ All indicators have been successfully installed and are working properly across 
 - ✅ All indicators functioning as expected
 
 **Integration Status:**
+
 - ✅ DataCollector.mq5 can read indicator buffers
 - ✅ Indicator data included in SQLite database
 - ✅ Ready for sync to PostgreSQL/Redis
@@ -58,6 +61,7 @@ All indicators have been successfully installed and are working properly across 
 ### Contabo VPS Configuration
 
 **Hardware:**
+
 - VPS M or higher
 - 16GB RAM
 - 6 vCPU
@@ -65,17 +69,20 @@ All indicators have been successfully installed and are working properly across 
 - Windows Server
 
 **MT5 Instances:**
+
 - Total: 15 instances
 - Symbols: AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD
 - Each instance has 6 indicators installed
 
 **DataCollector Service:**
+
 - Deployed to all 15 instances
 - Running as MT5 Expert Advisor
 - Collecting data every 30 seconds
 - Writing to: `C:\MT5Data\trading_data.db`
 
 **Sync Script:**
+
 - Location: `C:\Scripts\sync_package\`
 - Runs: Every 30 seconds (Task Scheduler)
 - Syncs to: Railway PostgreSQL + Redis
@@ -87,27 +94,31 @@ All indicators have been successfully installed and are working properly across 
 ### PostgreSQL (Warm Tier)
 
 **Tables:**
+
 - Total: 135 timeframe tables
 - Format: `{symbol}_{timeframe}`
 - Examples: `eurusd_m5`, `btcusd_h1`, `xauusd_d1`
 - Max rows per table: 10,000
 
 **Timeframes:**
+
 - M5, M15, M30, H1, H2, H4, H8, H12, D1
 
 ### Redis (Hot Tier)
 
 **Keys:**
+
 - Format: `{symbol}:realtime`
 - Examples: `eurusd:realtime`, `btcusd:realtime`
 - Candles per symbol: 250
 - TTL: 7 days (604800 seconds)
 
 **Data Format:**
+
 ```json
 {
   "t": 1736505000,
-  "o": 1.0850,
+  "o": 1.085,
   "h": 1.0855,
   "l": 1.0848,
   "c": 1.0852
@@ -214,14 +225,17 @@ done > stability-test.log 2>&1
 ### Logs & Monitoring
 
 **On Contabo VPS:**
+
 - Sync logs: `C:\Scripts\sync_package\sync.log`
 - SQLite database: `C:\MT5Data\trading_data.db`
 
 **On Railway:**
+
 - PostgreSQL logs: Railway dashboard
 - Redis metrics: Railway dashboard
 
 **GitHub Actions:**
+
 - Automated tests run every 15 minutes
 - Workflow: `.github/workflows/mt5-pipeline-tests.yml`
 
@@ -230,6 +244,7 @@ done > stability-test.log 2>&1
 ## Changelog
 
 ### 2026-01-12
+
 - ✅ Completed Step 3: MQL5 Indicator Installation
 - ✅ All 6 indicators installed and verified across 15 MT5 instances
 - ✅ Indicators confirmed working properly
@@ -237,6 +252,7 @@ done > stability-test.log 2>&1
 - 🔄 Ready to proceed with Step 6 testing phase
 
 ### Previous Updates
+
 - ✅ Step 1-2: Infrastructure setup complete
 - ✅ Step 4: DataCollector deployed
 - ✅ Step 5: Sync script deployed

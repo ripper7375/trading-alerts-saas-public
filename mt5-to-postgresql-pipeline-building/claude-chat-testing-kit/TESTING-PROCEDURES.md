@@ -54,6 +54,7 @@ pnpm install
 ```
 
 Ensure you have the following packages:
+
 - `redis` - Redis client
 - `@prisma/client` - PostgreSQL client
 - `tsx` - TypeScript executor
@@ -67,6 +68,7 @@ Ensure you have the following packages:
 **Purpose:** Verifies that the sync package is properly deployed and configured.
 
 **What it checks:**
+
 - Local sync package files exist
 - Environment variables are configured
 - Database connections work
@@ -82,6 +84,7 @@ Ensure you have the following packages:
 **Purpose:** Comprehensive testing of the entire data pipeline.
 
 **What it tests:**
+
 - Redis hot tier (250 candles per symbol)
 - PostgreSQL warm tier (135 tables)
 - Data freshness (<2 minutes)
@@ -97,6 +100,7 @@ Ensure you have the following packages:
 **Purpose:** Continuous health monitoring of the pipeline.
 
 **What it monitors:**
+
 - Redis health and latency
 - PostgreSQL health and query performance
 - Data freshness
@@ -130,6 +134,7 @@ npx tsx scripts/verify-sync-deployment.ts
 ```
 
 **Expected output:**
+
 ```
 ╔═══════════════════════════════════════════════════════╗
 ║  Sync Package Deployment Verification                ║
@@ -169,6 +174,7 @@ npx tsx scripts/test-mt5-deployment.ts
 ```
 
 **Expected output:**
+
 ```
 ╔═══════════════════════════════════════════════════════╗
 ║  MT5 to PostgreSQL Deployment Testing Suite          ║
@@ -219,6 +225,7 @@ npx tsx scripts/monitor-mt5-pipeline.ts
 ```
 
 **Expected output:**
+
 ```
 ═══════════════════════════════════════════════════════
 Health Check - 2026-01-11T15:35:00.000Z
@@ -263,6 +270,7 @@ npx tsx scripts/test-mt5-deployment.ts
 ```
 
 **Success criteria:**
+
 - All deployment checks pass
 - All pipeline tests pass
 - Data exists in both Redis and PostgreSQL
@@ -294,6 +302,7 @@ chmod +x monitor-24h.sh
 ```
 
 **Success criteria:**
+
 - No critical failures during 24 hours
 - Data freshness maintained (<2 minutes)
 - No data gaps
@@ -316,6 +325,7 @@ done
 ```
 
 **Success criteria:**
+
 - Redis average <5ms
 - PostgreSQL average <50ms
 - Sync time <10 seconds
@@ -329,7 +339,7 @@ done
 
 - ✅ **Green check:** Test passed
 - ❌ **Red X:** Test failed (needs attention)
-- ⚠️  **Yellow warning:** Non-critical issue
+- ⚠️ **Yellow warning:** Non-critical issue
 - 🔴 **Red circle:** Critical failure
 
 ### Health Status Levels
@@ -354,11 +364,13 @@ done
 #### Redis Connection Failed
 
 **Symptom:**
+
 ```
 ❌ Redis Connection: Connection failed: ECONNREFUSED
 ```
 
 **Solutions:**
+
 1. Check REDIS_URL is correct
 2. Verify Redis is running on Railway
 3. Check network connectivity
@@ -369,11 +381,13 @@ done
 #### PostgreSQL Tables Missing
 
 **Symptom:**
+
 ```
 ❌ PostgreSQL Tables: Found 50/135 tables
 ```
 
 **Solutions:**
+
 1. Run database migrations: `npm run db:push`
 2. Check sync script created all tables
 3. Verify table creation in sync logs
@@ -383,11 +397,13 @@ done
 #### Data is Stale
 
 **Symptom:**
+
 ```
 ⚠️  Data Freshness: WARNING - Data is aging (180s old)
 ```
 
 **Solutions:**
+
 1. Check if sync script is running
 2. Verify SQLite is updating (Contabo VPS)
 3. Check DataCollector services active in MT5
@@ -513,7 +529,7 @@ name: MT5 Pipeline Tests
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
+    - cron: '*/15 * * * *' # Every 15 minutes
   workflow_dispatch:
 
 jobs:

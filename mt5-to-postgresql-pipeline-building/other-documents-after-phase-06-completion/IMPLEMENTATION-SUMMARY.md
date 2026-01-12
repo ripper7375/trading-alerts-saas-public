@@ -14,29 +14,30 @@ This implementation completes **Step 6** of the MT5 to PostgreSQL data pipeline 
 
 #### 1. Testing Scripts (TypeScript)
 
-| File | Purpose | Command |
-|------|---------|---------|
-| `scripts/verify-sync-deployment.ts` | Verify sync package deployment | `npm run test:mt5:verify` |
-| `scripts/test-mt5-deployment.ts` | Complete pipeline testing | `npm run test:mt5:deployment` |
-| `scripts/monitor-mt5-pipeline.ts` | Continuous health monitoring | `npm run test:mt5:monitor` |
+| File                                | Purpose                        | Command                       |
+| ----------------------------------- | ------------------------------ | ----------------------------- |
+| `scripts/verify-sync-deployment.ts` | Verify sync package deployment | `npm run test:mt5:verify`     |
+| `scripts/test-mt5-deployment.ts`    | Complete pipeline testing      | `npm run test:mt5:deployment` |
+| `scripts/monitor-mt5-pipeline.ts`   | Continuous health monitoring   | `npm run test:mt5:monitor`    |
 
 #### 2. Documentation
 
-| File | Purpose |
-|------|---------|
-| `mt5-to-postgresql-pipeline-building/TESTING-PROCEDURES.md` | Step-by-step testing procedures |
-| `mt5-to-postgresql-pipeline-building/README.md` | Complete deployment guide index |
+| File                                                            | Purpose                            |
+| --------------------------------------------------------------- | ---------------------------------- |
+| `mt5-to-postgresql-pipeline-building/TESTING-PROCEDURES.md`     | Step-by-step testing procedures    |
+| `mt5-to-postgresql-pipeline-building/README.md`                 | Complete deployment guide index    |
 | `mt5-to-postgresql-pipeline-building/IMPLEMENTATION-SUMMARY.md` | This file - implementation summary |
 
 #### 3. CI/CD Workflow
 
-| File | Purpose |
-|------|---------|
+| File                                       | Purpose                            |
+| ------------------------------------------ | ---------------------------------- |
 | `.github/workflows/mt5-pipeline-tests.yml` | Automated testing every 15 minutes |
 
 #### 4. Package.json Updates
 
 Added npm scripts for easy testing:
+
 ```json
 {
   "test:mt5:verify": "tsx scripts/verify-sync-deployment.ts",
@@ -72,6 +73,7 @@ export POSTGRESQL_URI="postgresql://user:pass@host:5432/db"
 ```
 
 Or create `.env.local`:
+
 ```bash
 REDIS_URL=redis://default:password@host:6379
 DATABASE_URL=postgresql://user:pass@host:5432/db
@@ -107,6 +109,7 @@ npm run test:mt5:all
 ### Script 1: verify-sync-deployment.ts
 
 **What it does:**
+
 - Verifies sync package files exist locally
 - Checks environment variables are configured
 - Tests database connections (PostgreSQL & Redis)
@@ -114,11 +117,13 @@ npm run test:mt5:all
 - Validates Redis data structure
 
 **Exit codes:**
+
 - `0` - All checks passed
 - `1` - Some non-critical checks failed
 - `2` - Critical checks failed
 
 **Example output:**
+
 ```
 ╔═══════════════════════════════════════════════════════╗
 ║  Sync Package Deployment Verification                ║
@@ -146,6 +151,7 @@ Overall: 15/15 checks passed
 ### Script 2: test-mt5-deployment.ts
 
 **What it does:**
+
 - Tests Redis hot tier (250 candles per symbol)
 - Tests PostgreSQL warm tier (135 timeframe tables)
 - Validates data freshness (<2 minutes)
@@ -153,6 +159,7 @@ Overall: 15/15 checks passed
 - Benchmarks query performance
 
 **Test categories:**
+
 1. **Redis Hot Tier Tests**
    - Connection & PING
    - Candle counts for all 15 symbols
@@ -173,6 +180,7 @@ Overall: 15/15 checks passed
    - Data present in both Redis and PostgreSQL
 
 **Example output:**
+
 ```
 ━━━ Testing Redis Hot Tier ━━━
 ✅ Redis PING: Response: PONG (2ms)
@@ -196,6 +204,7 @@ Pass Rate: 100%
 ### Script 3: monitor-mt5-pipeline.ts
 
 **What it does:**
+
 - Continuously monitors pipeline health
 - Checks Redis latency and data availability
 - Checks PostgreSQL performance
@@ -203,17 +212,20 @@ Pass Rate: 100%
 - Verifies data integrity
 
 **Health status levels:**
+
 - `HEALTHY` ✅ - All systems operational
 - `DEGRADED` ⚠️ - Some warnings present
 - `CRITICAL` 🔴 - Immediate action required
 
 **Exit codes:**
+
 - `0` - HEALTHY
 - `1` - DEGRADED
 - `2` - CRITICAL
 - `3` - Fatal error
 
 **Example output:**
+
 ```
 ═══════════════════════════════════════════════════════
 Health Check - 2026-01-11T15:35:00.000Z
@@ -236,23 +248,27 @@ Overall Status: HEALTHY
 File: `.github/workflows/mt5-pipeline-tests.yml`
 
 **Triggers:**
+
 - Every 15 minutes (scheduled)
 - Manual trigger via GitHub UI
 - On push to main (for testing changes)
 
 **Jobs:**
+
 1. **verify-deployment** - Verify sync package
 2. **test-pipeline** - Complete pipeline tests
 3. **monitor-health** - Health monitoring
 4. **notify-results** - Create summary and alerts
 
 **Features:**
+
 - Creates GitHub issue on critical failure
 - Uploads test results as artifacts
 - Generates job summary
 - Optional Slack notifications
 
 **Secrets required:**
+
 ```
 REDIS_URL - Redis connection string
 DATABASE_URL - PostgreSQL connection (Prisma)
@@ -340,6 +356,7 @@ done > stability-test.log 2>&1
 #### 1. "REDIS_URL not configured"
 
 **Solution:**
+
 ```bash
 export REDIS_URL="redis://default:password@host:6379"
 # Or add to .env.local
@@ -348,6 +365,7 @@ export REDIS_URL="redis://default:password@host:6379"
 #### 2. "PostgreSQL tables missing"
 
 **Solution:**
+
 ```bash
 # Run migrations
 npm run db:push
@@ -359,6 +377,7 @@ npm run db:push
 #### 3. "Data is stale (>120s)"
 
 **Solution:**
+
 1. Check sync script is running (Task Scheduler on Contabo VPS)
 2. Verify SQLite is updating
 3. Check DataCollector services in MT5
@@ -391,13 +410,13 @@ await prisma.\$disconnect();
 
 ### Target Performance
 
-| Metric | Target | Critical |
-|--------|--------|----------|
-| Redis query | <5ms | >10ms |
-| PostgreSQL query | <50ms | >100ms |
-| Data freshness | <120s | >300s |
-| Sync frequency | 30s | >60s |
-| Error rate | <1% | >5% |
+| Metric           | Target | Critical |
+| ---------------- | ------ | -------- |
+| Redis query      | <5ms   | >10ms    |
+| PostgreSQL query | <50ms  | >100ms   |
+| Data freshness   | <120s  | >300s    |
+| Sync frequency   | 30s    | >60s     |
+| Error rate       | <1%    | >5%      |
 
 ### Actual Performance (Example)
 
@@ -431,9 +450,11 @@ npm run test:mt5:all
 ### 2. Set Up Alerts
 
 **GitHub Issues:**
+
 - Automatically created by workflow on critical failure
 
 **Optional - Slack Notifications:**
+
 ```yaml
 # Uncomment in .github/workflows/mt5-pipeline-tests.yml
 # Add SLACK_WEBHOOK_URL secret to repository
@@ -442,16 +463,19 @@ npm run test:mt5:all
 ### 3. Regular Maintenance
 
 **Daily:**
+
 - Review monitoring dashboard
 - Check for alerts
 - Verify data freshness
 
 **Weekly:**
+
 - Review sync logs (Contabo VPS)
 - Check system resources
 - Backup SQLite database
 
 **Monthly:**
+
 - Performance review
 - Cost analysis
 - Documentation updates

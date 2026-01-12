@@ -6,7 +6,7 @@
 
 ## Prompt for Claude Chat
 
-```
+````
 I need your assistance testing my MT5 to PostgreSQL data pipeline deployment. I've just completed deploying Step 6 (Post-Sync Script Deployment) and need to verify the entire system is working correctly.
 
 ## Context
@@ -60,7 +60,7 @@ npm run test:mt5:verify       # Verify deployment
 npm run test:mt5:deployment   # Test complete pipeline
 npm run test:mt5:monitor      # Monitor health
 npm run test:mt5:all          # Run all tests
-```
+````
 
 ## Attached Documents
 
@@ -74,6 +74,7 @@ I'm attaching the following documentation (please reference these as needed):
 ## Request
 
 Please:
+
 1. Start by asking me to confirm my environment is ready
 2. Guide me through the pre-testing checklist
 3. Walk me through running each test one by one
@@ -82,6 +83,7 @@ Please:
 6. Confirm when the system is production-ready
 
 Let's proceed methodically and ensure everything is working perfectly before I deploy to production.
+
 ```
 
 ---
@@ -275,3 +277,4 @@ Once Claude confirms all tests pass:
 ---
 
 **Ready to start?** Copy the prompt above, attach the 4 documents, and paste into Claude Chat!
+```

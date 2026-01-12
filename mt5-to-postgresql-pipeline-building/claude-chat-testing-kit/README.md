@@ -11,20 +11,20 @@ This directory contains all deployment guides and testing procedures for integra
 
 ### Deployment Guides (Steps 1-5)
 
-| Step | Document | Description | Status |
-|------|----------|-------------|---------|
-| 1 | [01-contabo-vps-setup-guide.md](./01-contabo-vps-setup-guide.md) | VPS provisioning and initial setup | ✅ Done |
-| 2 | [02-mt5-installation-guide.md](./02-mt5-installation-guide.md) | Installing 15 MT5 terminal instances | ✅ Done |
-| 3 | [03-indicator-installation-guide.md](./03-indicator-installation-guide.md) | Custom indicator deployment (6 indicators) | ✅ Done |
-| 4 | [04-datacollector-deployment-guide-revised.md](./04-datacollector-deployment-guide-revised.md) | DataCollector MQL5 service setup | ✅ Done |
-| 5 | [05-sync-script-deployment-guide-revised.md](./05-sync-script-deployment-guide-revised.md) | Python sync script configuration | ✅ Done |
+| Step | Document                                                                                       | Description                                | Status  |
+| ---- | ---------------------------------------------------------------------------------------------- | ------------------------------------------ | ------- |
+| 1    | [01-contabo-vps-setup-guide.md](./01-contabo-vps-setup-guide.md)                               | VPS provisioning and initial setup         | ✅ Done |
+| 2    | [02-mt5-installation-guide.md](./02-mt5-installation-guide.md)                                 | Installing 15 MT5 terminal instances       | ✅ Done |
+| 3    | [03-indicator-installation-guide.md](./03-indicator-installation-guide.md)                     | Custom indicator deployment (6 indicators) | ✅ Done |
+| 4    | [04-datacollector-deployment-guide-revised.md](./04-datacollector-deployment-guide-revised.md) | DataCollector MQL5 service setup           | ✅ Done |
+| 5    | [05-sync-script-deployment-guide-revised.md](./05-sync-script-deployment-guide-revised.md)     | Python sync script configuration           | ✅ Done |
 
 ### Testing & Verification (Step 6)
 
-| Document | Description | When to Use |
-|----------|-------------|-------------|
-| [06-post-sync-script-deployment.md](./06-post-sync-script-deployment.md) | Comprehensive post-deployment testing guide | After Step 5 |
-| [TESTING-PROCEDURES.md](./TESTING-PROCEDURES.md) | Step-by-step testing procedures | Testing phase |
+| Document                                                                 | Description                                 | When to Use   |
+| ------------------------------------------------------------------------ | ------------------------------------------- | ------------- |
+| [06-post-sync-script-deployment.md](./06-post-sync-script-deployment.md) | Comprehensive post-deployment testing guide | After Step 5  |
+| [TESTING-PROCEDURES.md](./TESTING-PROCEDURES.md)                         | Step-by-step testing procedures             | Testing phase |
 
 ---
 
@@ -78,6 +78,7 @@ npm run test:mt5:all
 ```
 
 This runs:
+
 1. ✅ Deployment verification
 2. ✅ Complete pipeline tests
 3. ✅ Health monitoring
@@ -207,6 +208,7 @@ npm run test:mt5:monitor
 ```
 
 **Output:**
+
 - 🔴 Redis status and metrics
 - 🐘 PostgreSQL status and metrics
 - ⏰ Data freshness
@@ -227,11 +229,13 @@ npm run test:mt5:monitor
 #### 1. Redis Connection Failed
 
 **Error:**
+
 ```
 ❌ Redis Connection: ECONNREFUSED
 ```
 
 **Fix:**
+
 ```bash
 # Check REDIS_URL is correct
 echo $REDIS_URL
@@ -243,11 +247,13 @@ npx tsx -e "import { createClient } from 'redis'; const c = createClient({url: p
 #### 2. PostgreSQL Tables Missing
 
 **Error:**
+
 ```
 ❌ PostgreSQL Tables: Found 50/135 tables
 ```
 
 **Fix:**
+
 ```bash
 # Run database migrations
 npm run db:push
@@ -259,11 +265,13 @@ npm run db:push
 #### 3. Data is Stale
 
 **Error:**
+
 ```
 ⚠️ Data Freshness: WARNING - Data is aging (180s old)
 ```
 
 **Fix:**
+
 1. Check if sync script is running (Task Scheduler)
 2. Verify SQLite is updating (Contabo VPS)
 3. Check DataCollector services active in MT5
@@ -272,14 +280,14 @@ npm run db:push
 
 ## 📈 Performance Targets
 
-| Metric | Target | Critical Threshold |
-|--------|--------|-------------------|
-| Redis query time | <5ms | >10ms |
-| PostgreSQL query | <50ms | >100ms |
-| Data freshness | <120s | >300s |
-| Sync frequency | 30s | >60s |
-| Error rate | <1% | >5% |
-| Uptime | >99.9% | <99% |
+| Metric           | Target | Critical Threshold |
+| ---------------- | ------ | ------------------ |
+| Redis query time | <5ms   | >10ms              |
+| PostgreSQL query | <50ms  | >100ms             |
+| Data freshness   | <120s  | >300s              |
+| Sync frequency   | 30s    | >60s               |
+| Error rate       | <1%    | >5%                |
+| Uptime           | >99.9% | <99%               |
 
 ---
 
@@ -293,11 +301,11 @@ npm run db:push
 
 ### Scripts
 
-| Script | Purpose | Location |
-|--------|---------|----------|
-| verify-sync-deployment.ts | Verify deployment | `/scripts/` |
-| test-mt5-deployment.ts | Test complete pipeline | `/scripts/` |
-| monitor-mt5-pipeline.ts | Health monitoring | `/scripts/` |
+| Script                    | Purpose                | Location    |
+| ------------------------- | ---------------------- | ----------- |
+| verify-sync-deployment.ts | Verify deployment      | `/scripts/` |
+| test-mt5-deployment.ts    | Test complete pipeline | `/scripts/` |
+| monitor-mt5-pipeline.ts   | Health monitoring      | `/scripts/` |
 
 ### External Links
 
@@ -367,16 +375,19 @@ If you encounter issues:
 ## 📅 Maintenance Schedule
 
 ### Daily
+
 - Review monitoring dashboard
 - Check for alerts
 - Verify data freshness
 
 ### Weekly
+
 - Review sync logs
 - Check system resources
 - Backup SQLite database
 
 ### Monthly
+
 - Performance review
 - Cost analysis
 - Documentation updates

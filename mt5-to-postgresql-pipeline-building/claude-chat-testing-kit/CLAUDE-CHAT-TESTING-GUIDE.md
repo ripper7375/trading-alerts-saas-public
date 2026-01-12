@@ -1,4 +1,5 @@
 # Claude Chat Testing Guide
+
 **MT5 to PostgreSQL Pipeline - Step 6 Testing**
 
 ---
@@ -46,12 +47,14 @@ This document provides all necessary information for Claude Chat to assist you i
 ### Infrastructure
 
 **Contabo VPS:**
+
 - Location: Remote Windows Server
 - MT5 Terminals: 15 instances running
 - SQLite Database: `C:\MT5Data\trading_data.db`
 - Sync Script: `C:\Scripts\sync_package\`
 
 **Railway (Cloud):**
+
 - PostgreSQL: Warm tier storage (135 tables)
 - Redis: Hot tier cache (250 candles per symbol)
 - Connection: Via environment variables
@@ -74,6 +77,7 @@ M5, M15, M30, H1, H2, H4, H8, H12, D1
 ### Expected Data Structure
 
 **Redis Hot Tier:**
+
 - **Keys:** `{symbol}:realtime` (e.g., `eurusd:realtime`)
 - **Data Type:** Sorted Set (ZSET)
 - **Candle Count:** ~250 per symbol
@@ -81,6 +85,7 @@ M5, M15, M30, H1, H2, H4, H8, H12, D1
 - **TTL:** 7 days (604800 seconds)
 
 **PostgreSQL Warm Tier:**
+
 - **Tables:** 135 total (15 symbols × 9 timeframes)
 - **Table Names:** `{symbol}_{timeframe}` (e.g., `eurusd_m5`)
 - **Columns:** `timestamp`, `open`, `high`, `low`, `close`
@@ -91,9 +96,11 @@ M5, M15, M30, H1, H2, H4, H8, H12, D1
 ## Testing Scripts
 
 ### 1. Verify Sync Deployment
+
 **Command:** `npm run test:mt5:verify`
 
 **What it checks:**
+
 - ✅ Sync package files exist locally
 - ✅ Environment variables configured
 - ✅ Database connections working
@@ -101,9 +108,11 @@ M5, M15, M30, H1, H2, H4, H8, H12, D1
 - ✅ Redis data structure
 
 ### 2. Test Complete Pipeline
+
 **Command:** `npm run test:mt5:deployment`
 
 **What it tests:**
+
 - ✅ Redis hot tier (250 candles per symbol, <5ms queries)
 - ✅ PostgreSQL warm tier (135 tables, <50ms queries)
 - ✅ Data freshness (<2 minutes)
@@ -111,9 +120,11 @@ M5, M15, M30, H1, H2, H4, H8, H12, D1
 - ✅ Performance benchmarks
 
 ### 3. Monitor Pipeline Health
+
 **Command:** `npm run test:mt5:monitor`
 
 **What it monitors:**
+
 - ✅ Redis latency and availability
 - ✅ PostgreSQL performance
 - ✅ Data freshness
@@ -123,14 +134,14 @@ M5, M15, M30, H1, H2, H4, H8, H12, D1
 
 ## Performance Targets
 
-| Metric | Target | Critical Threshold |
-|--------|--------|-------------------|
-| Redis query time | <5ms | >10ms |
-| PostgreSQL query | <50ms | >100ms |
-| Data freshness | <120s | >300s |
-| Sync frequency | 30s | >60s |
-| Error rate | <1% | >5% |
-| Uptime | >99.9% | <99% |
+| Metric           | Target | Critical Threshold |
+| ---------------- | ------ | ------------------ |
+| Redis query time | <5ms   | >10ms              |
+| PostgreSQL query | <50ms  | >100ms             |
+| Data freshness   | <120s  | >300s              |
+| Sync frequency   | 30s    | >60s               |
+| Error rate       | <1%    | >5%                |
+| Uptime           | >99.9% | <99%               |
 
 ---
 
@@ -167,6 +178,7 @@ npm run test:mt5:deployment
 ```
 
 **Success Criteria:**
+
 - ✅ All deployment checks pass
 - ✅ All pipeline tests pass
 - ✅ Data exists in both Redis and PostgreSQL
@@ -184,6 +196,7 @@ done > stability-test.log 2>&1
 ```
 
 **Success Criteria:**
+
 - ✅ No critical failures during 24 hours
 - ✅ Data freshness maintained (<2 minutes)
 - ✅ No data gaps
@@ -201,6 +214,7 @@ done
 ```
 
 **Success Criteria:**
+
 - ✅ Redis average <5ms
 - ✅ PostgreSQL average <50ms
 - ✅ No performance degradation over time
@@ -212,11 +226,13 @@ done
 ### Issue 1: "REDIS_URL not configured"
 
 **Symptoms:**
+
 ```
 ❌ Redis Connection: Redis not available
 ```
 
 **Solutions:**
+
 1. Check `.env.local` or `.env` file exists
 2. Verify REDIS_URL is set: `echo $REDIS_URL`
 3. Test connection manually:
@@ -233,11 +249,13 @@ done
 ### Issue 2: PostgreSQL tables missing
 
 **Symptoms:**
+
 ```
 ❌ PostgreSQL Tables: Found 50/135 tables
 ```
 
 **Solutions:**
+
 1. Check sync script has run: `C:\Scripts\sync_package\sync.log` (on Contabo)
 2. Run database migrations: `npm run db:push`
 3. Verify sync script is scheduled (Task Scheduler on Contabo VPS)
@@ -245,11 +263,13 @@ done
 ### Issue 3: Data is stale
 
 **Symptoms:**
+
 ```
 ⚠️ Data Freshness: WARNING - Data is aging (180s old)
 ```
 
 **Solutions:**
+
 1. Check sync script is running (Task Scheduler on Contabo VPS)
 2. Verify SQLite is updating: Check `C:\MT5Data\trading_data.db` modified time
 3. Check DataCollector services active in all 15 MT5 instances
@@ -260,6 +280,7 @@ done
 **Location:** `C:\Scripts\sync_package\sync.log` (on Contabo VPS)
 
 **Common errors:**
+
 - Database connection failures
 - Network timeouts
 - Insufficient permissions
@@ -272,16 +293,19 @@ done
 ### Health Status Levels
 
 **HEALTHY** ✅
+
 - All systems operational
 - Performance within targets
 - No alerts
 
 **DEGRADED** ⚠️
+
 - Some warnings present
 - Performance slightly degraded
 - Non-critical issues
 
 **CRITICAL** 🔴
+
 - Critical failures detected
 - Service unavailable or severely degraded
 - Immediate action required
@@ -289,6 +313,7 @@ done
 ### Exit Codes
 
 Scripts return these exit codes:
+
 - `0` - Success (all tests passed / HEALTHY)
 - `1` - Warning (some non-critical issues / DEGRADED)
 - `2` - Critical failure (CRITICAL)
@@ -301,6 +326,7 @@ Scripts return these exit codes:
 When assisting with testing, guide the user through:
 
 ### Pre-Testing Checklist
+
 ```
 [ ] Environment variables configured (.env.local)
 [ ] Dependencies installed (npm install)
@@ -315,6 +341,7 @@ When assisting with testing, guide the user through:
 ```
 
 ### Testing Execution Checklist
+
 ```
 [ ] Run test:mt5:verify - All checks pass
 [ ] Wait 60 seconds for sync cycle
@@ -325,6 +352,7 @@ When assisting with testing, guide the user through:
 ```
 
 ### Post-Testing Checklist
+
 ```
 [ ] Document test results
 [ ] Save logs if any issues found
