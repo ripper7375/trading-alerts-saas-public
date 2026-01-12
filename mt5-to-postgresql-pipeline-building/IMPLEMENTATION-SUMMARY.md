@@ -57,7 +57,7 @@ Ensure these are completed first:
 ```
 ✅ Step 1: Contabo VPS setup
 ✅ Step 2: MT5 terminals installed (15 instances)
-⚠️ Step 3: Indicators installed (not started)
+✅ Step 3: MQL5 indicators installed (6 indicators, all 15 instances)
 ✅ Step 4: DataCollector deployed
 ✅ Step 5: Sync script deployed
 ```

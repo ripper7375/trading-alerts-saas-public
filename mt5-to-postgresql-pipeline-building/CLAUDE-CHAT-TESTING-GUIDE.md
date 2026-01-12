@@ -307,6 +307,7 @@ When assisting with testing, guide the user through:
 [ ] Prisma generated (npm run db:generate)
 [ ] Contabo VPS accessible
 [ ] MT5 instances running (15 total)
+[ ] MQL5 indicators installed (6 indicators in all 15 instances)
 [ ] DataCollector services active in all MT5 instances
 [ ] SQLite database updating (<60s old)
 [ ] Sync script deployed (C:\Scripts\sync_package\)
