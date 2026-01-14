@@ -2,6 +2,8 @@
 
 **Last Updated:** 2026-01-14
 **Status:** Active (Both systems working in parallel)
+**Communication:** WebSocket (Part 6) + HTTP/REST (Part 20)
+**Deployment:** Windows Native (Part 6) + Railway (Part 20)
 
 ---
 
@@ -13,10 +15,18 @@ This document describes how **Part 6 (Flask MT5 Service)** and **Part 20 (SQLite
 
 After initial migration from Part 6 to Part 20, we discovered that both systems serve different purposes:
 
-- **Part 6 (Flask MT5 Service)**: Real-time indicator access directly from MT5 terminals
+- **Part 6 (Flask MT5 Service)**: Real-time indicator access via **WebSocket** from MT5 terminals
 - **Part 20 (SQLite-Sync)**: Historical data sync to PostgreSQL for scalable querying
 
 **Result**: Both systems were restored to work in parallel, giving users flexibility in how they access MT5 data.
+
+### Key Features
+
+- ✅ **Real-time WebSocket streaming** for live charts (Part 6)
+- ✅ **Historical PostgreSQL queries** for analysis (Part 20)
+- ✅ **Native Windows deployment** for MT5 integration (Part 6)
+- ✅ **Feature flag switching** between systems
+- ✅ **Bi-directional communication** with TradingView charts
 
 ---
 
@@ -35,11 +45,13 @@ After initial migration from Part 6 to Part 20, we discovered that both systems 
 │  │  MT5 Terminals (15x)                                    │  │
 │  │    ↓                                                    │  │
 │  │  Flask Python Service (Port 5001)                       │  │
+│  │  • Native Windows Deployment (no Docker)               │  │
+│  │  • WebSocket Server (Socket.IO)                        │  │
 │  │    ↓                                                    │  │
-│  │  HTTP API Endpoints                                     │  │
-│  │    - GET /api/indicators/{symbol}/{timeframe}          │  │
-│  │    - GET /api/system/health                            │  │
-│  │    - GET /api/mt5/price?symbol={symbol}                │  │
+│  │  Communication Endpoints:                               │  │
+│  │    - WebSocket: ws://host:5001/socket.io               │  │
+│  │    - HTTP API: GET /api/indicators/{symbol}/{tf}       │  │
+│  │    - Health: GET /api/system/health                    │  │
 │  │                                                         │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                            ↑                                   │
@@ -242,6 +254,199 @@ cd /opt/trading-alerts/sync
 # Check latest synced data
 psql $POSTGRESQL_URI -c "SELECT MAX(timestamp) FROM eurusd_m5"
 # Expected: Recent timestamp (< 60s ago)
+```
+
+---
+
+## WebSocket Communication (Part 6)
+
+### Why WebSocket?
+
+Part 6 now uses **WebSocket (Socket.IO)** instead of HTTP polling for real-time data streaming:
+
+| Feature | HTTP Polling (Old) | WebSocket (New) |
+|---------|-------------------|-----------------|
+| **Communication** | Request/Response | Bi-directional push |
+| **Latency** | High (1-5s polling) | Low (<100ms) |
+| **Efficiency** | Wasteful | Efficient |
+| **Real-time** | ❌ Simulated | ✅ True real-time |
+| **TradingView Charts** | ⚠️ Laggy | ✅ Smooth |
+| **Bandwidth** | High (headers) | Low (persistent) |
+
+### WebSocket Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              WebSocket Real-Time Data Flow                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Next.js Frontend (Vercel)                                  │
+│  └── TradingView Chart Component                            │
+│      └── useMT5WebSocket('EURUSD', 'M5') hook              │
+│          ↓↑ (WebSocket connection)                          │
+│          │                                                   │
+│  ws://contabo-ip:5001/socket.io                             │
+│          │                                                   │
+│          ↓↑                                                  │
+│  Flask MT5 Service (Contabo Windows)                        │
+│  └── WebSocket Server (Socket.IO)                           │
+│      ├── Event: 'subscribe' → Join room                     │
+│      ├── Event: 'unsubscribe' → Leave room                  │
+│      └── Background thread: Push updates every 1s           │
+│          ↓                                                   │
+│  MT5 Terminals (15x)                                         │
+│  └── Read indicator buffers via MetaTrader5 Python API      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Using WebSocket in Next.js
+
+**Step 1: Install Socket.IO Client**
+
+```bash
+npm install socket.io-client
+```
+
+**Step 2: Use WebSocket Hook**
+
+```typescript
+// app/charts/page.tsx
+import { useMT5WebSocket } from '@/lib/websocket/use-mt5-websocket';
+
+export default function ChartPage() {
+  const { data, connected, error } = useMT5WebSocket('EURUSD', 'M5');
+
+  if (!connected) {
+    return <div>Connecting to real-time data...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  return (
+    <TradingViewChart
+      symbol="EURUSD"
+      timeframe="M5"
+      data={data}  // Real-time updates!
+    />
+  );
+}
+```
+
+**Step 3: Configure WebSocket URL**
+
+```env
+# .env.local
+NEXT_PUBLIC_MT5_WS_URL=http://localhost:5001  # Local dev
+# or
+NEXT_PUBLIC_MT5_WS_URL=ws://your-contabo-ip:5001  # Production
+# or
+NEXT_PUBLIC_MT5_WS_URL=wss://your-domain.com  # With SSL
+```
+
+### WebSocket Events
+
+**Client → Server:**
+
+| Event | Data | Description |
+|-------|------|-------------|
+| `connect` | - | Client connected |
+| `subscribe` | `{ symbol, timeframe }` | Subscribe to symbol/tf |
+| `unsubscribe` | `{ symbol, timeframe }` | Unsubscribe from symbol/tf |
+| `ping` | - | Keep-alive heartbeat |
+
+**Server → Client:**
+
+| Event | Data | Description |
+|-------|------|-------------|
+| `connected` | `{ message, timestamp }` | Connection established |
+| `subscribed` | `{ symbol, timeframe }` | Subscription confirmed |
+| `initial_data` | `{ data, timestamp }` | Initial data on subscribe |
+| `indicator_update` | `{ data, timestamp }` | Real-time data update |
+| `error` | `{ message }` | Error occurred |
+| `pong` | `{ timestamp }` | Heartbeat response |
+
+### WebSocket Testing
+
+**Test from Browser Console:**
+
+```javascript
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5001');
+
+socket.on('connect', () => {
+  console.log('Connected!');
+
+  // Subscribe to EURUSD M5
+  socket.emit('subscribe', {
+    symbol: 'EURUSD',
+    timeframe: 'M5'
+  });
+});
+
+socket.on('indicator_update', (data) => {
+  console.log('Update:', data);
+});
+```
+
+**Test from Command Line (wscat):**
+
+```bash
+# Install wscat
+npm install -g wscat
+
+# Connect
+wscat -c "ws://localhost:5001/socket.io/?EIO=4&transport=websocket"
+
+# Send subscribe event (after connection)
+42["subscribe",{"symbol":"EURUSD","timeframe":"M5"}]
+```
+
+---
+
+## Deployment Models
+
+### Part 6 Deployment (Contabo Windows VPS)
+
+**❌ NOT Docker** - Must run natively on Windows:
+
+```
+Contabo Windows VPS
+├── Windows Server 2019/2022
+├── Python 3.9+ (native)
+├── MT5 Terminals (15x native)
+└── Flask MT5 Service
+    ├── Running as Windows Service (NSSM)
+    ├── Port: 5001
+    ├── WebSocket: Enabled
+    └── Auto-start on boot
+```
+
+**Why Windows Native?**
+- ✅ MetaTrader5 Python package requires Windows
+- ✅ Direct MT5 terminal process access (COM API)
+- ✅ No Docker virtualization overhead
+- ✅ Better performance
+
+**Deployment Guide:** See [Contabo Windows Setup](../deployment/contabo-windows-setup.md)
+
+### Part 20 Deployment (Railway + Contabo)
+
+**✅ Uses Docker** - PostgreSQL/Redis on Railway:
+
+```
+Railway (Cloud)
+├── PostgreSQL (TimescaleDB)
+├── Redis
+└── Next.js App (Vercel)
+
+Contabo Windows VPS
+├── MT5 Terminals (15x)
+├── MQL5 Scripts → SQLite
+└── Sync Script → Railway PostgreSQL
 ```
 
 ---

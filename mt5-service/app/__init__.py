@@ -85,6 +85,18 @@ def create_app(config_path: str = 'config/mt5_terminals.json') -> Flask:
     app.register_blueprint(indicators_bp)
     app.register_blueprint(admin_bp)
 
+    # Initialize WebSocket support
+    logger.info("Initializing WebSocket server...")
+    try:
+        from app.websocket import init_socketio, register_handlers
+        socketio = init_socketio(app)
+        register_handlers(socketio)
+        app.socketio = socketio  # Store socketio instance on app
+        logger.info("WebSocket server initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize WebSocket: {e}")
+        app.socketio = None
+
     # Register shutdown handler
     @atexit.register
     def cleanup():

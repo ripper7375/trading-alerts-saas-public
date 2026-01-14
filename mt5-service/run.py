@@ -1,7 +1,7 @@
 """
 Flask MT5 Service - Application Entry Point
 
-Starts the Flask development server on port 5001.
+Starts the Flask development server with WebSocket support on port 5001.
 """
 
 import os
@@ -22,9 +22,23 @@ if __name__ == '__main__':
     print(f"🚀 Starting Flask MT5 Service on port {port}")
     print(f"📊 Debug mode: {debug}")
     print(f"🔗 Health check: http://localhost:{port}/api/health")
+    print(f"🔌 WebSocket: ws://localhost:{port}/socket.io")
 
-    app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=debug
-    )
+    # Use SocketIO's run method for WebSocket support
+    if hasattr(app, 'socketio') and app.socketio:
+        print(f"✅ WebSocket server enabled")
+        app.socketio.run(
+            app,
+            host='0.0.0.0',
+            port=port,
+            debug=debug,
+            use_reloader=debug,
+            log_output=debug
+        )
+    else:
+        print(f"⚠️  WebSocket server not initialized, running without WebSocket")
+        app.run(
+            host='0.0.0.0',
+            port=port,
+            debug=debug
+        )
