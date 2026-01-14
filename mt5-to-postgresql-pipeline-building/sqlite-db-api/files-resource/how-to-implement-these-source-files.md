@@ -34,7 +34,7 @@ strcpy.mqh
 
 Libraries folder (...\MQL5\Libraries\):
 
-sqlite3_32.dll
+sqlite3_32.dll (not use)
 sqlite3_64.dll
 
 After Installation
