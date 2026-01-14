@@ -20,6 +20,7 @@ from app.utils.constants import (
     INDICATOR_MQL5_NAMES,
     INDICATOR_BUFFER_MAP,
 )
+from app.utils.symbol_resolver import get_symbol_resolver
 
 # Try to import MetaTrader5
 try:
@@ -70,10 +71,17 @@ def fetch_indicator_data(
 
     mt5_timeframe = TIMEFRAME_MAP[timeframe]
 
+    # Resolve symbol to broker-specific name (e.g., EURUSD -> EURUSD.i for Eightcap)
+    resolver = get_symbol_resolver()
+    resolved_symbol = resolver.resolve(symbol)
+
+    if resolved_symbol != symbol:
+        logger.info(f"Symbol '{symbol}' resolved to '{resolved_symbol}'")
+
     with connection.lock:  # Thread-safe access to MT5
         try:
-            # Fetch OHLC data
-            rates = mt5.copy_rates_from_pos(symbol, mt5_timeframe, 0, bars)
+            # Fetch OHLC data using resolved symbol
+            rates = mt5.copy_rates_from_pos(resolved_symbol, mt5_timeframe, 0, bars)
 
             if rates is None or len(rates) == 0:
                 raise Exception(
@@ -586,19 +594,26 @@ def fetch_pro_indicators(
 
     mt5_timeframe = TIMEFRAME_MAP[timeframe]
 
+    # Resolve symbol to broker-specific name
+    resolver = get_symbol_resolver()
+    resolved_symbol = resolver.resolve(symbol)
+
+    if resolved_symbol != symbol:
+        logger.debug(f"PRO indicators: Symbol '{symbol}' resolved to '{resolved_symbol}'")
+
     with connection.lock:
         try:
-            # Fetch each PRO indicator
+            # Fetch each PRO indicator using resolved symbol
             momentum_candles = _fetch_momentum_candles(
-                symbol, mt5_timeframe, bars
+                resolved_symbol, mt5_timeframe, bars
             )
             keltner_channels = _fetch_keltner_channels(
-                symbol, mt5_timeframe, bars
+                resolved_symbol, mt5_timeframe, bars
             )
             moving_averages = _fetch_moving_averages(
-                symbol, mt5_timeframe, bars
+                resolved_symbol, mt5_timeframe, bars
             )
-            zigzag_data = _fetch_zigzag(symbol, mt5_timeframe, bars)
+            zigzag_data = _fetch_zigzag(resolved_symbol, mt5_timeframe, bars)
 
             return {
                 'momentum_candles': momentum_candles,
