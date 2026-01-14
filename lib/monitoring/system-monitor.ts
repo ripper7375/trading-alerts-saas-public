@@ -6,6 +6,10 @@ import {
   isUserConnected,
 } from '@/lib/websocket/server';
 
+// Feature flag: Use Flask MT5 service or PostgreSQL
+const USE_FLASK_MT5 = process.env['USE_FLASK_MT5'] === 'true';
+const MT5_SERVICE_URL = process.env['MT5_SERVICE_URL'] || 'http://localhost:5001';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -93,51 +97,88 @@ async function checkRedis(): Promise<HealthCheck> {
 }
 
 /**
- * Check Part 20 Data Service (PostgreSQL indicator data + sync freshness)
- * Part 20: Replaces Flask MT5 service check
+ * Check Data Service (Flask MT5 or PostgreSQL)
+ * HYBRID MODE:
+ * - If USE_FLASK_MT5=true: Checks Flask MT5 service health (Part 6)
+ * - If USE_FLASK_MT5=false: Checks PostgreSQL sync freshness (Part 20)
  */
 async function checkDataService(): Promise<HealthCheck> {
   const start = Date.now();
   try {
-    // Check PostgreSQL connection
-    const pgConnected = await checkConnection();
+    if (USE_FLASK_MT5) {
+      // Part 6: Check Flask MT5 service health
+      try {
+        const response = await fetch(`${MT5_SERVICE_URL}/api/system/health`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-    if (!pgConnected) {
+        if (!response.ok) {
+          return {
+            status: 'down',
+            responseTime: Date.now() - start,
+            lastChecked: new Date(),
+            error: `Flask service returned ${response.status}`,
+          };
+        }
+
+        const data = await response.json();
+        return {
+          status: data.status === 'ok' ? 'healthy' : 'degraded',
+          responseTime: Date.now() - start,
+          lastChecked: new Date(),
+        };
+      } catch (error) {
+        return {
+          status: 'down',
+          responseTime: Date.now() - start,
+          lastChecked: new Date(),
+          error: error instanceof Error ? error.message : 'Flask service unreachable',
+        };
+      }
+    } else {
+      // Part 20: Check PostgreSQL indicator data + sync freshness
+      const pgConnected = await checkConnection();
+
+      if (!pgConnected) {
+        return {
+          status: 'down',
+          responseTime: Date.now() - start,
+          lastChecked: new Date(),
+          error: 'PostgreSQL connection failed',
+        };
+      }
+
+      // Check data freshness - query latest timestamp from EURUSD M5
+      const syncStatus = await query<{ last_sync: Date }>(
+        `SELECT MAX(timestamp) as last_sync FROM eurusd_m5`
+      );
+
+      const lastSync = syncStatus[0]?.last_sync;
+      if (!lastSync) {
+        return {
+          status: 'degraded',
+          responseTime: Date.now() - start,
+          lastChecked: new Date(),
+          error: 'No indicator data found in database',
+        };
+      }
+
+      // Check if data is stale (more than 60 seconds old)
+      const lastSyncAge = Date.now() - new Date(lastSync).getTime();
+      const isStale = lastSyncAge > 60000; // 60 seconds
+
       return {
-        status: 'down',
+        status: isStale ? 'degraded' : 'healthy',
         responseTime: Date.now() - start,
         lastChecked: new Date(),
-        error: 'PostgreSQL connection failed',
+        error: isStale
+          ? `Data is ${Math.floor(lastSyncAge / 1000)}s old (threshold: 60s)`
+          : undefined,
       };
     }
-
-    // Check data freshness - query latest timestamp from EURUSD M5
-    const syncStatus = await query<{ last_sync: Date }>(
-      `SELECT MAX(timestamp) as last_sync FROM eurusd_m5`
-    );
-
-    const lastSync = syncStatus[0]?.last_sync;
-    if (!lastSync) {
-      return {
-        status: 'degraded',
-        responseTime: Date.now() - start,
-        lastChecked: new Date(),
-        error: 'No indicator data found in database',
-      };
-    }
-
-    // Check if data is stale (more than 60 seconds old)
-    const lastSyncAge = Date.now() - new Date(lastSync).getTime();
-    const isStale = lastSyncAge > 60000; // 60 seconds
-
-    return {
-      status: isStale ? 'degraded' : 'healthy',
-      responseTime: Date.now() - start,
-      lastChecked: new Date(),
-      error: isStale
-        ? `Data is ${Math.floor(lastSyncAge / 1000)}s old (threshold: 60s)`
-        : undefined,
-    };
   } catch (error) {
     console.error('Data service health check failed:', error);
     return {
