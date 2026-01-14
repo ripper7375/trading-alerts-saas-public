@@ -5,14 +5,11 @@ import {
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
-  type Time,
   ColorType,
 } from 'lightweight-charts';
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 import type { Tier } from '@/lib/tier-config';
-
-import { IndicatorOverlay } from './indicator-overlay';
 
 /**
  * TradingChart Props
@@ -35,16 +32,11 @@ interface CandleData {
 }
 
 /**
- * Indicator data structure from API
+ * OHLCV data structure from API (Part 6 or Part 20)
  */
-interface IndicatorData {
-  ohlc: CandleData[];
-  horizontal: Record<string, Array<{ time: number; value: number }>>;
-  diagonal: Record<string, Array<{ time: number; value: number }>>;
-  fractals: {
-    peaks: Array<{ time: number; value: number }>;
-    bottoms: Array<{ time: number; value: number }>;
-  };
+interface OHLCVData {
+  ohlcv?: CandleData[];
+  ohlc?: CandleData[]; // Backward compatibility
   metadata?: {
     symbol: string;
     timeframe: string;
@@ -57,7 +49,7 @@ interface IndicatorData {
  */
 interface ApiResponse {
   success: boolean;
-  data: IndicatorData;
+  data: OHLCVData;
   tier: Tier;
   requestedAt: string;
 }
@@ -66,13 +58,15 @@ interface ApiResponse {
  * TradingChart Component
  *
  * Displays a TradingView-style candlestick chart using lightweight-charts.
- * Fetches data from the indicators API and renders with dark theme.
+ * Fetches OHLCV data from the indicators API and renders with dark theme.
  *
  * Features:
- * - Candlestick chart with OHLC data
- * - Indicator overlays (horizontal/diagonal lines, fractals)
+ * - Candlestick chart with OHLCV data
  * - Auto-refresh based on tier (FREE: 60s, PRO: 30s)
  * - Responsive design with resize handling
+ *
+ * NOTE: Fractal plots and trendlines are NOT included because they were
+ * calculated incorrectly from OHLCV data. Only raw OHLCV candles are displayed.
  */
 export function TradingChart({
   symbol,
@@ -84,7 +78,7 @@ export function TradingChart({
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const isFirstLoadRef = useRef(true);
 
-  const [data, setData] = useState<IndicatorData | null>(null);
+  const [data, setData] = useState<OHLCVData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -93,7 +87,7 @@ export function TradingChart({
   const refreshInterval = tier === 'PRO' ? 30000 : 60000;
 
   /**
-   * Fetch indicator data from API
+   * Fetch OHLCV data from API
    */
   const fetchData = useCallback(async (): Promise<void> => {
     try {
@@ -200,14 +194,13 @@ export function TradingChart({
       },
     });
 
-    // Add candlestick series with TradingView colors
+    // Add candlestick series
     const candleSeries = chart.addCandlestickSeries({
-      upColor: '#00c853',
-      downColor: '#f23645',
-      borderUpColor: '#00c853',
-      borderDownColor: '#f23645',
-      wickUpColor: '#00c853',
-      wickDownColor: '#f23645',
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderVisible: false,
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
     });
 
     chartRef.current = chart;
@@ -216,47 +209,57 @@ export function TradingChart({
     // Handle window resize
     const handleResize = (): void => {
       if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
+        const newWidth =
+          chartContainerRef.current.clientWidth ||
+          chartContainerRef.current.parentElement?.clientWidth ||
+          800;
+        chartRef.current.applyOptions({ width: newWidth });
       }
     };
 
-    // Use ResizeObserver for container resize
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry || !chartRef.current) return;
-      const { width } = entry.contentRect;
-      chartRef.current.applyOptions({ width });
-    });
-
-    resizeObserver.observe(chartContainerRef.current);
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
     return (): void => {
       window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
-      chart.remove();
-      chartRef.current = null;
-      candleSeriesRef.current = null;
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+        candleSeriesRef.current = null;
+      }
     };
   }, []);
 
   /**
-   * Fetch data on mount and symbol/timeframe change
+   * Update chart data when data changes
    */
   useEffect(() => {
-    setIsLoading(true);
-    fetchData();
-  }, [fetchData]);
+    if (!data || !candleSeriesRef.current) return;
+
+    // Handle both ohlcv and ohlc field names (backward compatibility)
+    const ohlcData = data.ohlcv || data.ohlc;
+
+    if (ohlcData && ohlcData.length > 0) {
+      // Set candlestick data
+      candleSeriesRef.current.setData(ohlcData);
+
+      // Fit content on first load
+      if (isFirstLoadRef.current && chartRef.current) {
+        chartRef.current.timeScale().fitContent();
+        isFirstLoadRef.current = false;
+      }
+    }
+  }, [data]);
 
   /**
-   * Set up auto-refresh interval
+   * Initial data fetch and periodic refresh
    */
   useEffect(() => {
+    // Fetch immediately
+    void fetchData();
+
+    // Set up periodic refresh
     const intervalId = setInterval(() => {
-      fetchData();
+      void fetchData();
     }, refreshInterval);
 
     return (): void => {
@@ -264,187 +267,49 @@ export function TradingChart({
     };
   }, [fetchData, refreshInterval]);
 
-  /**
-   * Update chart data when data changes
-   */
-  useEffect(() => {
-    if (!data?.ohlc || !candleSeriesRef.current || !chartRef.current) {
-      console.log('Chart update skipped:', {
-        hasData: !!data?.ohlc,
-        ohlcLength: data?.ohlc?.length,
-        hasCandleSeries: !!candleSeriesRef.current,
-        hasChart: !!chartRef.current,
-      });
-      return;
-    }
-
-    console.log('Setting chart data:', data.ohlc.length, 'candles');
-    // Set candlestick data
-    candleSeriesRef.current.setData(data.ohlc);
-
-    // Add fractal markers
-    if (data.fractals) {
-      const markers: Array<{
-        time: Time;
-        position: 'aboveBar' | 'belowBar';
-        color: string;
-        shape: 'arrowDown' | 'arrowUp';
-        text: string;
-      }> = [];
-
-      // Peak markers (red, above bar)
-      if (data.fractals.peaks) {
-        data.fractals.peaks.forEach((peak) => {
-          markers.push({
-            time: peak.time as Time,
-            position: 'aboveBar',
-            color: '#f23645',
-            shape: 'arrowDown',
-            text: 'P',
-          });
-        });
-      }
-
-      // Bottom markers (green, below bar)
-      if (data.fractals.bottoms) {
-        data.fractals.bottoms.forEach((bottom) => {
-          markers.push({
-            time: bottom.time as Time,
-            position: 'belowBar',
-            color: '#00c853',
-            shape: 'arrowUp',
-            text: 'B',
-          });
-        });
-      }
-
-      // Sort markers by time and set them
-      markers.sort((a, b) => (a.time as number) - (b.time as number));
-      candleSeriesRef.current.setMarkers(markers);
-    }
-
-    // Only fit content on first load to avoid disrupting user's view
-    if (isFirstLoadRef.current) {
-      chartRef.current.timeScale().fitContent();
-      isFirstLoadRef.current = false;
-    }
-
-    // Log last candle price for debugging
-    const lastCandle = data.ohlc[data.ohlc.length - 1];
-    if (lastCandle) {
-      console.log('Latest candle:', {
-        time: new Date(lastCandle.time * 1000).toLocaleString(),
-        close: lastCandle.close,
-      });
-    }
-  }, [data]);
-
-  /**
-   * Format time ago string
-   */
-  const formatTimeAgo = (date: Date): string => {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  };
-
   return (
-    <div className="relative">
-      {/* Loading overlay */}
-      {isLoading && !data && (
-        <div className="absolute inset-0 z-10 flex h-[600px] items-center justify-center rounded-lg bg-[#1e222d]">
-          <div className="text-center">
-            <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-            <p className="text-[#d1d4dc]">Loading chart data...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error overlay */}
-      {error && !data && (
-        <div className="absolute inset-0 z-10 flex h-[600px] items-center justify-center rounded-lg bg-[#1e222d]">
-          <div className="max-w-md px-6 text-center">
-            <div className="mb-3 text-4xl">⚠️</div>
-            <p className="mb-2 font-semibold text-red-400">
-              Failed to load chart
-            </p>
-            <p className="mb-4 text-sm text-gray-400">{error}</p>
-            <button
-              onClick={fetchData}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
-      {/* Status bar */}
-      <div className="mb-2 flex items-center justify-between px-2">
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">
-            {symbol}/{timeframe}
+    <div className="w-full space-y-4">
+      {/* Chart header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">
+          {symbol}/{timeframe}
+        </h2>
+        {lastUpdated && (
+          <span className="text-sm text-muted-foreground">
+            Last updated: {lastUpdated.toLocaleTimeString()}
           </span>
-          {data?.ohlc &&
-            data.ohlc.length > 0 &&
-            ((): React.JSX.Element | null => {
-              const lastCandle = data.ohlc[data.ohlc.length - 1];
-              if (!lastCandle) return null;
-              return (
-                <span className="font-mono text-sm text-gray-800">
-                  {lastCandle.close.toFixed(symbol.includes('JPY') ? 3 : 5)}
-                </span>
-              );
-            })()}
-        </div>
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          {lastUpdated && <span>Updated: {formatTimeAgo(lastUpdated)}</span>}
-          <span>Auto-refresh: {tier === 'PRO' ? '30s' : '60s'}</span>
-          {isLoading && (
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></span>
-              Updating...
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Chart container */}
-      <div
-        ref={chartContainerRef}
-        className="min-h-[600px] w-full overflow-hidden rounded-lg border border-gray-700"
-      />
+      <div className="relative rounded-lg border bg-card p-4">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <div className="text-center">
+              <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-sm text-muted-foreground">Loading chart...</p>
+            </div>
+          </div>
+        )}
 
-      {/* Indicator overlay component for price lines */}
-      {data && chartRef.current && candleSeriesRef.current && (
-        <IndicatorOverlay
-          chart={chartRef.current}
-          candleSeries={candleSeriesRef.current}
-          horizontal={data.horizontal}
-          diagonal={data.diagonal}
-        />
-      )}
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <div className="text-center text-destructive">
+              <p className="font-semibold">Error loading chart</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          </div>
+        )}
 
-      {/* Legend */}
-      <div className="mt-4 flex flex-wrap gap-4 px-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-[#f23645]"></span>
-          <span className="text-gray-600">Resistance (P-P1)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-[#00c853]"></span>
-          <span className="text-gray-600">Support (B-B1)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-[#1e88e5]"></span>
-          <span className="text-gray-600">Ascending Trend</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-[#ff6b35]"></span>
-          <span className="text-gray-600">Descending Trend</span>
-        </div>
+        <div ref={chartContainerRef} className="w-full" />
+      </div>
+
+      {/* Chart info */}
+      <div className="text-sm text-muted-foreground">
+        <p>Displaying OHLCV candlestick data only</p>
+        <p>
+          Refresh interval: {tier === 'PRO' ? '30' : '60'} seconds
+        </p>
       </div>
     </div>
   );
