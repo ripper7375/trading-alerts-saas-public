@@ -48,6 +48,18 @@ export interface IndicatorData {
 }
 
 /**
+ * Complete MT5 indicator data (basic + pro indicators)
+ * Used for WebSocket real-time streaming from Flask MT5 Service (Part 6)
+ */
+export interface MT5IndicatorData extends IndicatorData {
+  proIndicators?: ProIndicatorData;
+  metadata?: {
+    timestamp: number;
+    bars: number;
+  };
+}
+
+/**
  * Indicator request parameters
  */
 export interface IndicatorRequest {

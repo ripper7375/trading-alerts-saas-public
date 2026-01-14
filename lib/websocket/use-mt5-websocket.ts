@@ -21,7 +21,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { MT5IndicatorData } from '@/types/indicators';
+import type { MT5IndicatorData } from '@/types/indicator';
 
 // ============================================================================
 // Configuration
@@ -122,7 +122,7 @@ export function useMT5WebSocket(
         socket.emit('subscribe', { symbol, timeframe });
       });
 
-      socket.on('disconnect', (reason) => {
+      socket.on('disconnect', (reason: string) => {
         console.log('[MT5 WebSocket] Disconnected:', reason);
 
         setState((prev) => ({
@@ -139,7 +139,7 @@ export function useMT5WebSocket(
         }
       });
 
-      socket.on('connect_error', (error) => {
+      socket.on('connect_error', (error: Error) => {
         console.error('[MT5 WebSocket] Connection error:', error);
 
         reconnectAttemptsRef.current += 1;
@@ -158,11 +158,11 @@ export function useMT5WebSocket(
         }
       });
 
-      socket.on('subscribed', (data) => {
+      socket.on('subscribed', (data: { symbol: string; timeframe: string; room: string; timestamp: number }) => {
         console.log('[MT5 WebSocket] Subscribed to:', data);
       });
 
-      socket.on('unsubscribed', (data) => {
+      socket.on('unsubscribed', (data: { symbol: string; timeframe: string; room: string; timestamp: number }) => {
         console.log('[MT5 WebSocket] Unsubscribed from:', data);
       });
 
