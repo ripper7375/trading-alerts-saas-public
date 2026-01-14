@@ -34,13 +34,6 @@ jest.mock('lightweight-charts', () => {
   };
 });
 
-// Mock IndicatorOverlay
-jest.mock('@/components/charts/indicator-overlay', () => ({
-  IndicatorOverlay: () => (
-    <div data-testid="indicator-overlay">Indicator Overlay</div>
-  ),
-}));
-
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -55,21 +48,15 @@ global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 import { TradingChart } from '@/components/charts/trading-chart';
 
-// Sample API response
+// Sample API response (OHLCV-only, no fractals/trendlines)
 const sampleApiResponse = {
   success: true,
   data: {
-    ohlc: [
+    ohlcv: [
       { time: 1704067200, open: 2040, high: 2045, low: 2035, close: 2042 },
       { time: 1704070800, open: 2042, high: 2050, low: 2040, close: 2048 },
       { time: 1704074400, open: 2048, high: 2055, low: 2045, close: 2052 },
     ],
-    horizontal: {},
-    diagonal: {},
-    fractals: {
-      peaks: [{ time: 1704070800, value: 2050 }],
-      bottoms: [{ time: 1704067200, value: 2035 }],
-    },
     metadata: {
       symbol: 'XAUUSD',
       timeframe: 'H1',
@@ -351,51 +338,6 @@ describe('TradingChart Component', () => {
   });
 
   // ============================================================================
-  // Indicator Overlay
-  // Note: IndicatorOverlay rendering depends on chart refs which don't populate
-  // in jsdom. The overlay integration should be tested in E2E tests.
-  // ============================================================================
-  describe('indicator overlay', () => {
-    it('should have IndicatorOverlay mock configured', () => {
-      // Verify the mock is set up correctly for testing
-      const { IndicatorOverlay } = jest.requireMock(
-        '@/components/charts/indicator-overlay'
-      );
-      expect(IndicatorOverlay).toBeDefined();
-    });
-  });
-
-  // ============================================================================
-  // Legend
-  // ============================================================================
-  describe('legend', () => {
-    it('should show resistance legend item', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Resistance (P-P1)')).toBeInTheDocument();
-      });
-    });
-
-    it('should show support legend item', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Support (B-B1)')).toBeInTheDocument();
-      });
-    });
-
-    it('should show trend legend items', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Ascending Trend')).toBeInTheDocument();
-        expect(screen.getByText('Descending Trend')).toBeInTheDocument();
-      });
-    });
-  });
-
-  // ============================================================================
   // Cleanup
   // Note: Chart cleanup (remove) depends on refs which don't populate in jsdom.
   // The actual cleanup logic should be tested in E2E tests.
@@ -441,7 +383,7 @@ describe('TradingChart Component', () => {
         ...sampleApiResponse,
         data: {
           ...sampleApiResponse.data,
-          ohlc: [
+          ohlcv: [
             {
               time: 1704067200,
               open: 145.123,
@@ -470,7 +412,7 @@ describe('TradingChart Component', () => {
         ...sampleApiResponse,
         data: {
           ...sampleApiResponse.data,
-          ohlc: [
+          ohlcv: [
             {
               time: 1704067200,
               open: 1.085,
