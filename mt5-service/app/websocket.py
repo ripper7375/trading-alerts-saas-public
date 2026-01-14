@@ -200,15 +200,19 @@ def start_update_thread():
 
 def background_update_loop():
     """
-    Background loop that pushes MT5 data updates to subscribed clients
+    Background loop that pushes MT5 OHLCV data updates to subscribed clients
     Runs every 1 second to check for new data
     """
-    from app.services.indicator_reader import fetch_indicator_data
+    from app.services.indicator_reader import fetch_ohlcv_data
+    from app.services.mt5_connection_pool import get_connection_pool
 
     logger.info("Starting background update loop")
 
     # Cache last update timestamps to avoid redundant pushes
     last_updates = {}
+
+    # Get connection pool
+    connection_pool = get_connection_pool()
 
     while True:
         try:
@@ -224,8 +228,14 @@ def background_update_loop():
 
                     symbol, timeframe = parts
 
-                    # Fetch latest MT5 data
-                    data = fetch_indicator_data(symbol, timeframe)
+                    # Get MT5 connection for this symbol
+                    connection = connection_pool.get_connection_by_symbol(symbol)
+                    if not connection:
+                        logger.warning(f"No MT5 connection found for symbol {symbol}")
+                        continue
+
+                    # Fetch latest MT5 OHLCV data
+                    data = fetch_ohlcv_data(connection, symbol, timeframe)
 
                     if data:
                         # Check if data has changed since last update
@@ -234,7 +244,7 @@ def background_update_loop():
 
                         if current_timestamp > last_timestamp:
                             # New data available, push to clients
-                            socketio.emit('indicator_update', {
+                            socketio.emit('ohlcv_update', {
                                 'symbol': symbol,
                                 'timeframe': timeframe,
                                 'data': data,
@@ -242,7 +252,7 @@ def background_update_loop():
                             }, room=room)
 
                             last_updates[room] = current_timestamp
-                            logger.debug(f"Pushed update for {room}")
+                            logger.debug(f"Pushed OHLCV update for {room}")
 
                 except Exception as e:
                     logger.error(f"Error processing room {room}: {e}")
@@ -257,17 +267,29 @@ def background_update_loop():
 
 def send_initial_data(symbol: str, timeframe: str, room: str):
     """
-    Send initial data immediately upon subscription
+    Send initial OHLCV data immediately upon subscription
 
     Args:
         symbol: Trading symbol (e.g., 'EURUSD')
         timeframe: Timeframe (e.g., 'M5')
         room: Room name (e.g., 'EURUSD_M5')
     """
-    from app.services.indicator_reader import fetch_indicator_data
+    from app.services.indicator_reader import fetch_ohlcv_data
+    from app.services.mt5_connection_pool import get_connection_pool
 
     try:
-        data = fetch_indicator_data(symbol, timeframe)
+        # Get connection pool
+        connection_pool = get_connection_pool()
+
+        # Get MT5 connection for this symbol
+        connection = connection_pool.get_connection_by_symbol(symbol)
+        if not connection:
+            logger.error(f"No MT5 connection found for symbol {symbol}")
+            emit('error', {'message': f'Symbol {symbol} not configured'})
+            return
+
+        # Fetch OHLCV data
+        data = fetch_ohlcv_data(connection, symbol, timeframe)
 
         if data:
             socketio.emit('initial_data', {
@@ -277,12 +299,13 @@ def send_initial_data(symbol: str, timeframe: str, room: str):
                 'timestamp': time.time()
             }, room=room)
 
-            logger.info(f"Sent initial data for {room}")
+            logger.info(f"Sent initial OHLCV data for {room}")
         else:
             logger.warning(f"No initial data available for {room}")
 
     except Exception as e:
         logger.error(f"Error sending initial data for {room}: {e}")
+        emit('error', {'message': str(e)})
 
 
 # ============================================================================
