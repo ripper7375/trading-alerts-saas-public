@@ -5,6 +5,12 @@
 Flask==3.0.0
 Flask-CORS==4.0.0
 
+# WebSocket support for real-time data streaming
+flask-socketio==5.3.5
+python-socketio==5.10.0
+python-engineio==4.8.0
+eventlet==0.33.3
+
 # MT5 integration
 # MetaTrader5==5.0.45  # Windows-only package, not available on Linux/GitHub Actions
 # NOTE: MetaTrader5 will be installed manually on production Windows server
