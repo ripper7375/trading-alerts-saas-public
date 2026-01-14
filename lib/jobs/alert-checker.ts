@@ -4,13 +4,19 @@
  * Background job to check alert conditions against current prices.
  * Runs periodically to detect triggered alerts and send notifications.
  *
- * Part 20 Migration: Now queries PostgreSQL directly instead of Flask MT5 API.
+ * HYBRID MODE: Supports both Part 6 (Flask) and Part 20 (PostgreSQL)
+ * - Set USE_FLASK_MT5=true to use Flask service (Part 6)
+ * - Set USE_FLASK_MT5=false or unset to use PostgreSQL (Part 20, default)
  *
  * @module lib/jobs/alert-checker
  */
 
 import { prisma } from '@/lib/db/prisma';
 import { query } from '@/lib/db/postgresql';
+
+// Feature flag: Use Flask MT5 service or PostgreSQL
+const USE_FLASK_MT5 = process.env['USE_FLASK_MT5'] === 'true';
+const MT5_API_URL = process.env['MT5_API_URL'] || 'http://localhost:5000';
 
 /**
  * Parsed condition from alert.condition JSON
@@ -90,11 +96,12 @@ function parseCondition(conditionJson: string): AlertCondition | null {
 /**
  * Fetch current price for a symbol/timeframe
  *
- * Part 20: Queries PostgreSQL directly instead of Flask MT5 API.
- * Uses the M5 timeframe table for most recent price data.
+ * HYBRID MODE:
+ * - If USE_FLASK_MT5=true: Queries Flask MT5 service (Part 6, real-time)
+ * - If USE_FLASK_MT5=false: Queries PostgreSQL (Part 20, synced data)
  *
  * @param symbol - Trading symbol (e.g., XAUUSD)
- * @param _timeframe - Timeframe (unused, always queries M5 for latest price)
+ * @param _timeframe - Timeframe (unused for PostgreSQL, always queries M5)
  * @returns Current price or 0 if fetch fails
  */
 async function fetchCurrentPrice(
@@ -102,24 +109,44 @@ async function fetchCurrentPrice(
   _timeframe: string
 ): Promise<number> {
   try {
-    // Part 20: Query latest price from PostgreSQL
-    // Use M5 timeframe table for most recent data (synced every 30s)
-    const tableName = `${symbol.toLowerCase()}_m5`;
+    if (USE_FLASK_MT5) {
+      // Part 6: Query Flask MT5 service for real-time price
+      const response = await fetch(`${MT5_API_URL}/api/mt5/price?symbol=${symbol}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    const result = await query<{ close: number }>(
-      `SELECT close FROM ${tableName}
-       ORDER BY timestamp DESC
-       LIMIT 1`
-    );
+      if (!response.ok) {
+        console.error(
+          `[AlertChecker] Flask API error for ${symbol}: ${response.status}`
+        );
+        return 0;
+      }
 
-    if (!result || result.length === 0) {
-      console.error(
-        `[AlertChecker] No data found for symbol ${symbol} in table ${tableName}`
+      const data = await response.json();
+      return data?.price ?? 0;
+    } else {
+      // Part 20: Query latest price from PostgreSQL
+      // Use M5 timeframe table for most recent data (synced every 30s)
+      const tableName = `${symbol.toLowerCase()}_m5`;
+
+      const result = await query<{ close: number }>(
+        `SELECT close FROM ${tableName}
+         ORDER BY timestamp DESC
+         LIMIT 1`
       );
-      return 0;
-    }
 
-    return result[0]?.close ?? 0;
+      if (!result || result.length === 0) {
+        console.error(
+          `[AlertChecker] No data found for symbol ${symbol} in table ${tableName}`
+        );
+        return 0;
+      }
+
+      return result[0]?.close ?? 0;
+    }
   } catch (error) {
     console.error(`[AlertChecker] Error fetching price for ${symbol}:`, error);
     return 0;

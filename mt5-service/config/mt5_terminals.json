@@ -1,0 +1,109 @@
+{
+  "terminals": [
+    {
+      "id": "MT5_01",
+      "symbol": "AUDJPY",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_01}",
+      "password": "${MT5_PASSWORD_01}"
+    },
+    {
+      "id": "MT5_02",
+      "symbol": "AUDUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_02}",
+      "password": "${MT5_PASSWORD_02}"
+    },
+    {
+      "id": "MT5_03",
+      "symbol": "BTCUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_03}",
+      "password": "${MT5_PASSWORD_03}"
+    },
+    {
+      "id": "MT5_04",
+      "symbol": "ETHUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_04}",
+      "password": "${MT5_PASSWORD_04}"
+    },
+    {
+      "id": "MT5_05",
+      "symbol": "EURUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_05}",
+      "password": "${MT5_PASSWORD_05}"
+    },
+    {
+      "id": "MT5_06",
+      "symbol": "GBPJPY",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_06}",
+      "password": "${MT5_PASSWORD_06}"
+    },
+    {
+      "id": "MT5_07",
+      "symbol": "GBPUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_07}",
+      "password": "${MT5_PASSWORD_07}"
+    },
+    {
+      "id": "MT5_08",
+      "symbol": "NDX100",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_08}",
+      "password": "${MT5_PASSWORD_08}"
+    },
+    {
+      "id": "MT5_09",
+      "symbol": "NZDUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_09}",
+      "password": "${MT5_PASSWORD_09}"
+    },
+    {
+      "id": "MT5_10",
+      "symbol": "US30",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_10}",
+      "password": "${MT5_PASSWORD_10}"
+    },
+    {
+      "id": "MT5_11",
+      "symbol": "USDCAD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_11}",
+      "password": "${MT5_PASSWORD_11}"
+    },
+    {
+      "id": "MT5_12",
+      "symbol": "USDCHF",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_12}",
+      "password": "${MT5_PASSWORD_12}"
+    },
+    {
+      "id": "MT5_13",
+      "symbol": "USDJPY",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_13}",
+      "password": "${MT5_PASSWORD_13}"
+    },
+    {
+      "id": "MT5_14",
+      "symbol": "XAGUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_14}",
+      "password": "${MT5_PASSWORD_14}"
+    },
+    {
+      "id": "MT5_15",
+      "symbol": "XAUUSD",
+      "server": "${MT5_SERVER}",
+      "login": "${MT5_LOGIN_15}",
+      "password": "${MT5_PASSWORD_15}"
+    }
+  ]
+}
