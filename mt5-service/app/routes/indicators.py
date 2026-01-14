@@ -130,7 +130,11 @@ def get_timeframes() -> Tuple[Response, int]:
 )
 def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
     """
-    Get indicator data for a specific symbol and timeframe.
+    Get OHLCV data for a specific symbol and timeframe.
+
+    NOTE: This endpoint ONLY returns OHLCV data. Custom indicators are NOT
+    available via MT5 Python API (iCustom() is unreliable).
+    Use Part 20 (SQLite-Sync Script) for indicators and technical analysis.
 
     Uses connection pool to route request to correct MT5 terminal.
     Validates tier access before retrieving data.
@@ -146,18 +150,12 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
         X-User-Tier: FREE or PRO (defaults to FREE)
 
     Returns:
-        200: Indicator data including:
-            - ohlc: OHLC price data
-            - horizontal: Horizontal fractal lines
-            - diagonal: Diagonal trend lines
-            - fractals: Fractal markers (peaks/bottoms)
-            - pro_indicators: PRO-only indicators (populated for PRO tier)
-                - momentum_candles: Z-score candle classification
-                - keltner_channels: 10-band Keltner channel
-                - tema: Triple EMA
-                - hrma: Hull-like Responsive MA
-                - smma: Smoothed MA
-                - zigzag: ZigZag peaks/bottoms
+        200: OHLCV data including:
+            - symbol: Trading symbol
+            - timeframe: Chart timeframe
+            - bars: Number of bars returned
+            - ohlcv: Array of OHLCV candlestick data
+                [{time, open, high, low, close, volume}, ...]
             - metadata: Request metadata including tier info
         400: Invalid symbol or timeframe
         403: Tier cannot access this symbol/timeframe
@@ -176,11 +174,7 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
         bars = max(bars, 100)  # Minimum 100 bars
 
         # Import services
-        from app.services.indicator_reader import (
-            fetch_indicator_data,
-            fetch_pro_indicators,
-            _empty_pro_indicators,
-        )
+        from app.services.indicator_reader import fetch_ohlcv_data
         from app.services.mt5_connection_pool import get_connection_pool
         from app.services.tier_service import (
             get_accessible_symbols,
@@ -229,28 +223,12 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
                 'error': f'MT5 terminal for {symbol} is disconnected'
             }), 503
 
-        # Fetch indicator data from MT5
-        data = fetch_indicator_data(connection, symbol, timeframe, bars)
+        # Fetch OHLCV data from MT5
+        data = fetch_ohlcv_data(connection, symbol, timeframe, bars)
 
-        # Fetch PRO indicators if user is PRO tier
-        if tier == 'PRO':
-            pro_data = fetch_pro_indicators(connection, symbol, timeframe, bars)
-        else:
-            # FREE tier gets empty PRO indicators
-            pro_data = _empty_pro_indicators()
-
-        # Add PRO indicators to response
-        data['pro_indicators'] = pro_data
-
-        # Add metadata
-        data['metadata'] = {
-            'symbol': symbol,
-            'timeframe': timeframe,
-            'tier': tier,
-            'bars_returned': len(data.get('ohlc', [])),
-            'terminal_id': connection.id,
-            'pro_indicators_enabled': tier == 'PRO'
-        }
+        # Enhance metadata
+        data['metadata']['tier'] = tier
+        data['metadata']['terminal_id'] = connection.id
 
         return jsonify({
             'success': True,
@@ -273,9 +251,9 @@ def get_indicators(symbol: str, timeframe: str) -> Tuple[Response, int]:
 
     except Exception as e:
         logger.error(
-            f"Error retrieving indicators for {symbol}/{timeframe}: {str(e)}"
+            f"Error retrieving OHLCV data for {symbol}/{timeframe}: {str(e)}"
         )
         return jsonify({
             'success': False,
-            'error': 'Failed to retrieve indicator data'
+            'error': 'Failed to retrieve OHLCV data'
         }), 500
