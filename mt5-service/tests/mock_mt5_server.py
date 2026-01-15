@@ -630,10 +630,9 @@ class MockMT5:
         if not self._initialized or not self._logged_in:
             return MT5Constants.INVALID_HANDLE
 
-        # Check for known indicators
+        # Check for known indicators (from Part 20 - MQL5 EA exports)
+        # NOTE: Fractal indicators removed - Part 6 only fetches OHLCV data
         known_indicators = [
-            'Fractal Horizontal Line_V5',
-            'Fractal Diagonal Line_V4',
             'Body Size Momentum Candle_V2',
             'Keltner Channel_ATF_10 Bands',
             'TEMA_HRMA_SMA-SMMA_Modified Buffers',
@@ -693,27 +692,12 @@ class MockMT5:
         # Generate appropriate buffer data based on indicator type
         base_price = 2000.0  # Default for XAUUSD
 
-        if 'Fractal Horizontal Line' in indicator_key:
-            # Buffers 0-1: fractals, 4-9: horizontal lines
-            if buffer_num in [0, 1]:
-                return generate_indicator_buffer(
-                    count, fill_ratio=0.05, value_range=(1950, 2050)
-                )
-            elif buffer_num in [4, 5, 6, 7, 8, 9]:
-                return generate_indicator_buffer(
-                    count, fill_ratio=0.08, value_range=(1950, 2050)
-                )
-            return generate_indicator_buffer(count, fill_ratio=0)
+        # NOTE: Fractal indicators removed - Part 6 only fetches OHLCV data
+        # All indicators now come from Part 20 (SQLite-Sync) not iCustom()
+        if 'Fractal' in indicator_key:
+            return None  # Fractal indicators not supported
 
-        elif 'Fractal Diagonal Line' in indicator_key:
-            # Buffers 0-5: diagonal lines
-            if buffer_num in [0, 1, 2, 3, 4, 5]:
-                return generate_indicator_buffer(
-                    count, fill_ratio=0.1, value_range=(1950, 2050)
-                )
-            return generate_indicator_buffer(count, fill_ratio=0)
-
-        elif 'Momentum Candle' in indicator_key:
+        if 'Momentum Candle' in indicator_key:
             color_buf, zscore_buf = generate_momentum_candle_buffers(count)
             if buffer_num == 4:
                 return color_buf
@@ -959,10 +943,10 @@ if __name__ == '__main__':
     print(f"   Last bar: O={rates[-1]['open']:.2f} H={rates[-1]['high']:.2f} "
           f"L={rates[-1]['low']:.2f} C={rates[-1]['close']:.2f}")
 
-    # Test indicator data
+    # Test indicator data (NOTE: Fractal indicators removed - using Momentum Candle instead)
     print("\n3. Testing indicator data fetch...")
     handle = mock.iCustom("XAUUSD", MT5Constants.TIMEFRAME_H1,
-                          "Fractal Horizontal Line_V5")
+                          "Body Size Momentum Candle_V2")
     assert handle != MT5Constants.INVALID_HANDLE, "Invalid handle"
     buffer = mock.copy_buffer(handle, 4, 0, 100)
     assert buffer is not None, "Buffer fetch failed"

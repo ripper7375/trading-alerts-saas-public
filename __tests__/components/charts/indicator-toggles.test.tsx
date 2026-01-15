@@ -82,7 +82,7 @@ describe('IndicatorToggles Component', () => {
       expect(screen.getByText('Pro Indicators')).toBeInTheDocument();
     });
 
-    it('should render basic indicators (Fractals, Trendlines)', () => {
+    it('should not render basic indicators (all indicators are PRO-only)', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -90,8 +90,9 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      expect(screen.getByText('Fractals')).toBeInTheDocument();
-      expect(screen.getByText('Trendlines')).toBeInTheDocument();
+      // Fractals and trendlines removed - they were calculated incorrectly from OHLCV data
+      expect(screen.queryByText('Fractals')).not.toBeInTheDocument();
+      expect(screen.queryByText('Trendlines')).not.toBeInTheDocument();
     });
 
     it('should render PRO indicators', () => {
@@ -149,7 +150,7 @@ describe('IndicatorToggles Component', () => {
       expect(screen.getByText('PRO')).toBeInTheDocument();
     });
 
-    it('should allow toggling basic indicators', () => {
+    it('should not allow toggling PRO indicators when FREE (all indicators are PRO-only)', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -157,12 +158,9 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const fractalsCheckbox = screen.getByRole('checkbox', {
-        name: /fractals/i,
-      });
-      fireEvent.click(fractalsCheckbox);
-
-      expect(mockOnToggle).toHaveBeenCalledWith('fractals');
+      // All indicators are PRO-only now, so FREE users can't toggle any
+      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
+      expect(temaCheckbox).toBeDisabled();
     });
 
     it('should not call onToggle for PRO indicators when FREE', () => {
@@ -261,19 +259,19 @@ describe('IndicatorToggles Component', () => {
 
       render(
         <IndicatorToggles
-          selectedIndicators={['fractals', 'tema']}
+          selectedIndicators={['tema', 'zigzag']}
           onIndicatorToggle={mockOnToggle}
         />
       );
 
-      const fractalsCheckbox = screen.getByRole('checkbox', {
-        name: /fractals/i,
-      });
       const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
+      const zigzagCheckbox = screen.getByRole('checkbox', {
+        name: /zigzag/i,
+      });
       const hrmaCheckbox = screen.getByRole('checkbox', { name: /hrma/i });
 
-      expect(fractalsCheckbox).toBeChecked();
       expect(temaCheckbox).toBeChecked();
+      expect(zigzagCheckbox).toBeChecked();
       expect(hrmaCheckbox).not.toBeChecked();
     });
   });
@@ -283,25 +281,6 @@ describe('IndicatorToggles Component', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('collapsible sections', () => {
-    it('should toggle basic section visibility', () => {
-      render(
-        <IndicatorToggles
-          selectedIndicators={[]}
-          onIndicatorToggle={mockOnToggle}
-        />
-      );
-
-      // Initially expanded - Fractals should be visible
-      expect(screen.getByText('Fractals')).toBeVisible();
-
-      // Click Basic header to collapse
-      const basicHeader = screen.getByText('Basic');
-      fireEvent.click(basicHeader);
-
-      // Content might still be in DOM but hidden via CSS
-      // For this test, we verify the click handler works
-    });
-
     it('should toggle PRO section visibility', () => {
       render(
         <IndicatorToggles

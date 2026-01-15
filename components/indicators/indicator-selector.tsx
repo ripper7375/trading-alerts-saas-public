@@ -20,14 +20,11 @@ const PRO_ONLY_INDICATORS = [
   { id: 'zigzag', name: 'ZigZag', isPro: true },
 ] as const;
 
-const BASIC_INDICATORS = [
-  { id: 'fractals', name: 'Fractals', isPro: false },
-  { id: 'trendlines', name: 'Trendlines', isPro: false },
-] as const;
-
-type IndicatorId =
-  | (typeof BASIC_INDICATORS)[number]['id']
-  | (typeof PRO_ONLY_INDICATORS)[number]['id'];
+/**
+ * NOTE: Fractals and trendlines removed - they were calculated incorrectly from OHLCV data.
+ * All indicators now come from Part 20 (SQLite-Sync) which processes MQL5 exports.
+ */
+type IndicatorId = (typeof PRO_ONLY_INDICATORS)[number]['id'];
 
 interface IndicatorSelectorProps {
   tier: 'FREE' | 'PRO';
@@ -43,10 +40,12 @@ interface IndicatorSelectorProps {
  * PRO-only indicators are locked and display a lock icon for FREE users.
  *
  * Features:
- * - Basic indicators (FREE + PRO): Fractals, Trendlines
+ * - All indicators are PRO-only (from Part 20 SQLite-Sync)
  * - PRO indicators: Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag
  * - Lock icons for tier-gated indicators
  * - Upgrade prompt for FREE users
+ *
+ * NOTE: Fractals and trendlines removed - they were calculated incorrectly from OHLCV data.
  */
 export function IndicatorSelector({
   tier,
@@ -76,30 +75,7 @@ export function IndicatorSelector({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Basic Indicators Section */}
-      <div>
-        <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">
-          Basic Indicators (Free)
-        </h3>
-        <div className="space-y-2">
-          {BASIC_INDICATORS.map((indicator) => (
-            <label
-              key={indicator.id}
-              className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-md transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(indicator.id)}
-                onChange={() => handleToggle(indicator.id, false)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-gray-700 dark:text-gray-300">
-                {indicator.name}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
+      {/* Basic Indicators Section removed - all indicators are now PRO-only */}
 
       {/* PRO Indicators Section */}
       <div>
@@ -153,7 +129,7 @@ export function IndicatorSelector({
               variant="ghost"
               className="mt-3 w-full text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
             >
-              Unlock 6 More Indicators with Pro
+              Unlock 6 Indicators with Pro
             </Button>
           </Link>
         )}

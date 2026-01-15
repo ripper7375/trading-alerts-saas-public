@@ -126,6 +126,11 @@ export function getIndicatorUpgradeInfo(
   const locked: string[] = [];
 
   for (const indicator of requestedIndicators) {
+    // Only consider valid indicators
+    if (!isValidIndicatorId(indicator)) {
+      continue;
+    }
+
     if (canAccessIndicator(tier, indicator)) {
       accessible.push(indicator);
     } else {
