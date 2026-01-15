@@ -24,11 +24,7 @@ const PRO_ONLY_INDICATORS = [
  * NOTE: Fractals and trendlines removed - they were calculated incorrectly from OHLCV data.
  * All indicators now come from Part 20 (SQLite-Sync) which processes MQL5 exports.
  */
-const BASIC_INDICATORS = [] as const;
-
-type IndicatorId =
-  | (typeof BASIC_INDICATORS)[number]['id']
-  | (typeof PRO_ONLY_INDICATORS)[number]['id'];
+type IndicatorId = (typeof PRO_ONLY_INDICATORS)[number]['id'];
 
 interface IndicatorSelectorProps {
   tier: 'FREE' | 'PRO';
