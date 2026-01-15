@@ -540,7 +540,7 @@ bool InitializeIndicators()
    g_h_support_resistance = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Support and Resistant at_Significant Level",
+      "Support and Resistant at Significant Level",
       "Support and Resistant Levels Settings",
       InpSR_Timeframe,           // Timeframe to Analyze
       InpSR_AccuracyMultiplier,  // Accuracy Multiplier
