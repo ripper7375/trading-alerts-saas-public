@@ -3,8 +3,13 @@
 //|                                      Trading Alerts SaaS V7      |
 //+------------------------------------------------------------------+
 #property copyright "Trading Alerts SaaS"
-#property version   "2.18"
+#property version   "2.19"
 #property strict
+
+// Version 2.19 Changelog:
+// - Updated ZigZag indicator reference to V28 FIXED
+// - Compatible with optimized buffer management in V28
+// - No changes to data collection logic
 
 // Include SQLite3 library
 #include <SQLite3\SQLite3Base.mqh>
@@ -568,7 +573,7 @@ bool InitializeIndicators()
    g_h_zigzag = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "ZigZagColor___MarketStructure_JSON_Export_V27_TXT_Input",
+      "ZigZagColor___MarketStructure_JSON_Export_V28_FIXED",
       "ZigZag and Market Structure Settings",
       InpZZ_Depth,           // Depth
       InpZZ_Deviation,       // Deviation
