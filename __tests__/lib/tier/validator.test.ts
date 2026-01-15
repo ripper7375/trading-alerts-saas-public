@@ -26,12 +26,12 @@ describe('Indicator Tier Validator', () => {
 
   describe('canAccessIndicator', () => {
     describe('FREE tier', () => {
-      it('should allow access to fractals indicator', () => {
-        expect(canAccessIndicator('FREE', 'fractals')).toBe(true);
+      it('should deny access to fractals (removed - calculated incorrectly from OHLCV)', () => {
+        expect(canAccessIndicator('FREE', 'fractals')).toBe(false);
       });
 
-      it('should allow access to trendlines indicator', () => {
-        expect(canAccessIndicator('FREE', 'trendlines')).toBe(true);
+      it('should deny access to trendlines (removed - calculated incorrectly from OHLCV)', () => {
+        expect(canAccessIndicator('FREE', 'trendlines')).toBe(false);
       });
 
       it('should deny access to momentum_candles', () => {
@@ -64,9 +64,12 @@ describe('Indicator Tier Validator', () => {
     });
 
     describe('PRO tier', () => {
-      it('should allow access to all basic indicators', () => {
-        expect(canAccessIndicator('PRO', 'fractals')).toBe(true);
-        expect(canAccessIndicator('PRO', 'trendlines')).toBe(true);
+      it('should deny access to fractals (removed from all tiers)', () => {
+        expect(canAccessIndicator('PRO', 'fractals')).toBe(false);
+      });
+
+      it('should deny access to trendlines (removed from all tiers)', () => {
+        expect(canAccessIndicator('PRO', 'trendlines')).toBe(false);
       });
 
       it('should allow access to momentum_candles', () => {
@@ -122,11 +125,11 @@ describe('Indicator Tier Validator', () => {
       expect(isProOnlyIndicator('zigzag')).toBe(true);
     });
 
-    it('should return false for fractals', () => {
+    it('should return false for fractals (removed indicator)', () => {
       expect(isProOnlyIndicator('fractals')).toBe(false);
     });
 
-    it('should return false for trendlines', () => {
+    it('should return false for trendlines (removed indicator)', () => {
       expect(isProOnlyIndicator('trendlines')).toBe(false);
     });
 
@@ -140,26 +143,26 @@ describe('Indicator Tier Validator', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('getAccessibleIndicators', () => {
-    it('should return only basic indicators for FREE tier', () => {
+    it('should return 0 indicators for FREE tier (all indicators are PRO-only)', () => {
       const indicators = getAccessibleIndicators('FREE');
 
-      expect(indicators).toContain('fractals');
-      expect(indicators).toContain('trendlines');
-      expect(indicators).toHaveLength(2);
+      expect(indicators).not.toContain('fractals');
+      expect(indicators).not.toContain('trendlines');
+      expect(indicators).toHaveLength(0);
     });
 
-    it('should return all indicators for PRO tier', () => {
+    it('should return all 6 PRO indicators for PRO tier', () => {
       const indicators = getAccessibleIndicators('PRO');
 
-      expect(indicators).toContain('fractals');
-      expect(indicators).toContain('trendlines');
+      expect(indicators).not.toContain('fractals');
+      expect(indicators).not.toContain('trendlines');
       expect(indicators).toContain('momentum_candles');
       expect(indicators).toContain('keltner_channels');
       expect(indicators).toContain('tema');
       expect(indicators).toContain('hrma');
       expect(indicators).toContain('smma');
       expect(indicators).toContain('zigzag');
-      expect(indicators).toHaveLength(8);
+      expect(indicators).toHaveLength(6);
     });
 
     it('should return a new array each time', () => {
@@ -193,7 +196,7 @@ describe('Indicator Tier Validator', () => {
       expect(locked).toHaveLength(0);
     });
 
-    it('should not contain basic indicators for FREE tier', () => {
+    it('should not contain fractals/trendlines (removed indicators)', () => {
       const locked = getLockedIndicators('FREE');
 
       expect(locked).not.toContain('fractals');
@@ -206,26 +209,27 @@ describe('Indicator Tier Validator', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('filterAccessibleIndicators', () => {
-    it('should filter to only basic for FREE tier', () => {
+    it('should filter to empty array for FREE tier (no accessible indicators)', () => {
       const requested = ['fractals', 'keltner_channels', 'zigzag'];
       const result = filterAccessibleIndicators('FREE', requested);
 
-      expect(result).toEqual(['fractals']);
+      expect(result).toEqual([]);
     });
 
-    it('should return all valid for PRO tier', () => {
+    it('should return only PRO indicators for PRO tier (fractals removed)', () => {
       const requested = ['fractals', 'keltner_channels', 'zigzag'];
       const result = filterAccessibleIndicators('PRO', requested);
 
-      expect(result).toEqual(['fractals', 'keltner_channels', 'zigzag']);
+      expect(result).toEqual(['keltner_channels', 'zigzag']);
     });
 
-    it('should filter out invalid indicators', () => {
+    it('should filter out invalid indicators and removed indicators', () => {
       const requested = ['fractals', 'invalid_indicator', 'tema'];
       const result = filterAccessibleIndicators('PRO', requested);
 
-      expect(result).toEqual(['fractals', 'tema']);
+      expect(result).toEqual(['tema']);
       expect(result).not.toContain('invalid_indicator');
+      expect(result).not.toContain('fractals');
     });
 
     it('should return empty array for all invalid', () => {
@@ -248,37 +252,42 @@ describe('Indicator Tier Validator', () => {
 
   describe('getIndicatorUpgradeInfo', () => {
     it('should return upgradeRequired: true when PRO indicators requested by FREE tier', () => {
-      const requested = ['fractals', 'keltner_channels'];
+      const requested = ['keltner_channels', 'zigzag'];
       const result = getIndicatorUpgradeInfo('FREE', requested);
 
       expect(result.upgradeRequired).toBe(true);
       expect(result.lockedIndicators).toContain('keltner_channels');
-      expect(result.accessibleIndicators).toContain('fractals');
+      expect(result.lockedIndicators).toContain('zigzag');
+      expect(result.accessibleIndicators).toHaveLength(0);
     });
 
-    it('should return upgradeRequired: false for PRO tier', () => {
+    it('should return upgradeRequired: false for PRO tier (fractals removed)', () => {
       const requested = ['fractals', 'keltner_channels', 'zigzag'];
       const result = getIndicatorUpgradeInfo('PRO', requested);
 
       expect(result.upgradeRequired).toBe(false);
       expect(result.lockedIndicators).toHaveLength(0);
-      expect(result.accessibleIndicators).toHaveLength(3);
+      expect(result.accessibleIndicators).toEqual([
+        'keltner_channels',
+        'zigzag',
+      ]);
     });
 
-    it('should return upgradeRequired: false for FREE tier with only basic', () => {
+    it('should return upgradeRequired: false for FREE tier with no valid indicators', () => {
       const requested = ['fractals', 'trendlines'];
       const result = getIndicatorUpgradeInfo('FREE', requested);
 
       expect(result.upgradeRequired).toBe(false);
       expect(result.lockedIndicators).toHaveLength(0);
+      expect(result.accessibleIndicators).toHaveLength(0);
     });
 
-    it('should correctly categorize mixed requests', () => {
+    it('should correctly categorize mixed requests (no basic indicators exist)', () => {
       const requested = ['fractals', 'tema', 'hrma', 'trendlines', 'zigzag'];
       const result = getIndicatorUpgradeInfo('FREE', requested);
 
       expect(result.upgradeRequired).toBe(true);
-      expect(result.accessibleIndicators).toEqual(['fractals', 'trendlines']);
+      expect(result.accessibleIndicators).toEqual([]);
       expect(result.lockedIndicators).toEqual(['tema', 'hrma', 'zigzag']);
     });
 
@@ -296,10 +305,8 @@ describe('Indicator Tier Validator', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('isValidIndicatorId', () => {
-    it('should return true for all valid indicators', () => {
+    it('should return true for all valid indicators (6 PRO indicators)', () => {
       const validIds = [
-        'fractals',
-        'trendlines',
         'momentum_candles',
         'keltner_channels',
         'tema',
@@ -311,6 +318,11 @@ describe('Indicator Tier Validator', () => {
       validIds.forEach((id) => {
         expect(isValidIndicatorId(id)).toBe(true);
       });
+    });
+
+    it('should return false for removed indicators (fractals, trendlines)', () => {
+      expect(isValidIndicatorId('fractals')).toBe(false);
+      expect(isValidIndicatorId('trendlines')).toBe(false);
     });
 
     it('should return false for invalid indicator id', () => {

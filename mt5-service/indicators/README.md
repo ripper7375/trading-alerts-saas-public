@@ -1,111 +1,73 @@
 # MT5 Custom Indicators
 
-This directory contains documentation for the custom MQL5 indicators used by the Flask MT5 Service.
+## ⚠️ IMPORTANT: Custom Indicators Not Used
 
-## Required Indicators
+**Part 6 (Flask MT5 Service) does NOT use custom indicators.**
 
-The Flask MT5 Service reads data from two custom indicators running on MetaTrader 5:
+## Why Custom Indicators Were Removed
 
-### 1. Fractal Horizontal Line_V5.mq5
+The MT5 Python API's `iCustom()` function is unreliable and does not work consistently for fetching custom indicator data. After testing, we found that:
 
-**Purpose:** Identifies horizontal support and resistance levels based on fractal patterns.
+- `copy_buffer()` calls for custom indicators fail frequently
+- `iCustom()` handle creation is unstable
+- Fractal and trendline calculations from OHLCV data were incorrect
 
-**Buffers:**
+## Current Architecture
 
-- Buffer 0: Fractal peaks (resistance points)
-- Buffer 1: Fractal bottoms (support points)
-- Buffer 4: Peak Line 1 (primary resistance)
-- Buffer 5: Peak Line 2 (secondary resistance)
-- Buffer 6: Peak Line 3 (tertiary resistance)
-- Buffer 7: Bottom Line 1 (primary support)
-- Buffer 8: Bottom Line 2 (secondary support)
-- Buffer 9: Bottom Line 3 (tertiary support)
+### Part 6 (Flask MT5 Service) - OHLCV Data Only
 
-**Installation:**
+**Purpose:** Fetch raw OHLCV (Open, High, Low, Close, Volume) data from MT5 terminals
 
-1. Copy `Fractal Horizontal Line_V5.mq5` to `MT5_DATA_FOLDER/MQL5/Indicators/`
-2. Compile the indicator in MetaEditor
-3. Attach to charts for all 15 symbols × 9 timeframes
+**Method:** `mt5.copy_rates_from_pos()`
 
-### 2. Fractal Diagonal Line_V4.mq5
+**Data Provided:**
 
-**Purpose:** Identifies diagonal trend lines (ascending and descending).
+- Candlestick OHLC data
+- Volume data
+- Timestamp data
+- **NO custom indicators**
+- **NO fractals or trendlines**
 
-**Buffers:**
+### Part 20 (SQLite-Sync Script) - All Indicators
 
-- Buffer 0: Ascending Line 1 (primary uptrend)
-- Buffer 1: Ascending Line 2 (secondary uptrend)
-- Buffer 2: Ascending Line 3 (tertiary uptrend)
-- Buffer 3: Descending Line 1 (primary downtrend)
-- Buffer 4: Descending Line 2 (secondary downtrend)
-- Buffer 5: Descending Line 3 (tertiary downtrend)
+**Purpose:** Process and sync indicator data from MQL5 expert advisor exports
 
-**Installation:**
+**Method:** Reads SQLite databases exported by MQL5 EA running on MT5 terminals
 
-1. Copy `Fractal Diagonal Line_V4.mq5` to `MT5_DATA_FOLDER/MQL5/Indicators/`
-2. Compile the indicator in MetaEditor
-3. Attach to charts for all 15 symbols × 9 timeframes
+**Indicators Provided:**
 
-## Indicator Configuration
+- Momentum Candles (Z-score based classification)
+- Keltner Channels (10-band ATR system)
+- TEMA (Triple Exponential Moving Average)
+- HRMA (Hull-like Responsive Moving Average)
+- SMMA (Smoothed Moving Average)
+- ZigZag (Peak/Bottom structure detection)
 
-### Symbols (15 total)
-
-- **FREE tier (5):** BTCUSD, EURUSD, USDJPY, US30, XAUUSD
-- **PRO tier (10 additional):** AUDJPY, AUDUSD, ETHUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, USDCAD, USDCHF, XAGUSD
-
-### Timeframes (9 total)
-
-- **FREE tier (3):** H1, H4, D1
-- **PRO tier (6 additional):** M5, M15, M30, H2, H8, H12
-
-## Data Reading
-
-The Flask service uses `MetaTrader5.copy_buffer()` to read indicator buffer values:
-
-```python
-# Example: Read horizontal line buffer 4 (Peak Line 1)
-peak_line_1 = mt5.copy_buffer('Fractal Horizontal Line_V5', mt5.TIMEFRAME_H1, 4, 0, 1000)
-```
-
-## Troubleshooting
-
-### Indicator Not Found Error
+## Data Flow
 
 ```
-Failed to get handle for Fractal Horizontal Line_V5
+MT5 Terminal
+    ├─→ Part 6 (Flask MT5 Service)
+    │     └─→ Fetches: OHLCV data only via copy_rates_from_pos()
+    │
+    └─→ MQL5 Expert Advisor
+          └─→ Exports: Indicators to SQLite database
+                └─→ Part 20 (SQLite-Sync Script)
+                      └─→ Syncs: Indicator data to PostgreSQL
 ```
 
-**Solution:**
+## Symbol Resolver
 
-1. Ensure indicator is compiled in MetaEditor
-2. Check indicator is attached to the chart
-3. Verify indicator name matches exactly (case-sensitive)
-4. Restart MT5 terminal
+Part 6 includes a broker-specific symbol name resolver to handle naming variations:
 
-### No Data Returned
+- Eightcap: Adds `.i` suffix (e.g., `EURUSD.i`)
+- Other brokers: Uses suffixes like `-c`, `c`, `.a`, etc.
 
-```
-Buffer returns empty array
-```
-
-**Solution:**
-
-1. Check symbol is available on broker
-2. Verify timeframe is supported
-3. Ensure sufficient historical data is loaded
-4. Check indicator is calculating (not showing errors)
+See: `mt5-service/app/utils/symbol_resolver.py` and `mt5-service/docs/symbol-resolution.md`
 
 ## Reference
 
-- **MQL5 Documentation:** https://www.mql5.com/en/docs
+- **Part 6 Documentation:** See `mt5-service/README.md` (if exists)
+- **Part 20 Documentation:** See `docs/sqlite-and-mt5service/`
 - **MetaTrader5 Python Package:** https://pypi.org/project/MetaTrader5/
-- **Indicator Buffer Reading:** https://www.mql5.com/en/docs/integration/python_metatrader5/mt5copybuffer_py
-
-## Support
-
-For issues with indicators:
-
-1. Check MT5 terminal logs (Tools → Options → Expert Advisors)
-2. Verify indicator compilation errors in MetaEditor
-3. Test indicator manually on a chart first
-4. Contact indicator developer if persistent issues
+- **Symbol Resolver Guide:** `mt5-service/docs/symbol-resolution.md`

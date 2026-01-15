@@ -284,17 +284,15 @@ class TestIndicatorBuffers:
         handle = connected_mock_mt5.iCustom(
             "XAUUSD",
             MT5Constants.TIMEFRAME_H1,
-            "Fractal Horizontal Line_V5"
+            "Body Size Momentum Candle_V2"
         )
 
         assert handle != MT5Constants.INVALID_HANDLE
         assert handle > 0
 
     def test_icustom_different_indicators(self, connected_mock_mt5):
-        """Test iCustom with different indicators."""
+        """Test iCustom with different indicators (from Part 20 - SQLite-Sync)."""
         indicators = [
-            "Fractal Horizontal Line_V5",
-            "Fractal Diagonal Line_V4",
             "Body Size Momentum Candle_V2",
             "Keltner Channel_ATF_10 Bands",
             "TEMA_HRMA_SMA-SMMA_Modified Buffers",
@@ -317,7 +315,7 @@ class TestIndicatorBuffers:
         handle = connected_mock_mt5.iCustom(
             "XAUUSD",
             MT5Constants.TIMEFRAME_H1,
-            "Fractal Horizontal Line_V5"
+            "Body Size Momentum Candle_V2"
         )
 
         buffer = connected_mock_mt5.copy_buffer(handle, 4, 0, 100)
@@ -342,32 +340,6 @@ class TestIndicatorBuffers:
         handle = mock.iCustom("XAUUSD", MT5Constants.TIMEFRAME_H1, "Test")
         buffer = mock.copy_buffer(handle, 0, 0, 100)
         assert buffer is None
-
-    def test_horizontal_line_buffers(self, connected_mock_mt5):
-        """Test Fractal Horizontal Line buffers."""
-        handle = connected_mock_mt5.iCustom(
-            "XAUUSD",
-            MT5Constants.TIMEFRAME_H1,
-            "Fractal Horizontal Line_V5"
-        )
-
-        # Buffers 4-9 are horizontal line levels
-        for buf_num in [4, 5, 6, 7, 8, 9]:
-            buffer = connected_mock_mt5.copy_buffer(handle, buf_num, 0, 100)
-            assert buffer is not None, f"Buffer {buf_num} failed"
-
-    def test_diagonal_line_buffers(self, connected_mock_mt5):
-        """Test Fractal Diagonal Line buffers."""
-        handle = connected_mock_mt5.iCustom(
-            "XAUUSD",
-            MT5Constants.TIMEFRAME_H1,
-            "Fractal Diagonal Line_V4"
-        )
-
-        # Buffers 0-5 are diagonal lines
-        for buf_num in [0, 1, 2, 3, 4, 5]:
-            buffer = connected_mock_mt5.copy_buffer(handle, buf_num, 0, 100)
-            assert buffer is not None, f"Buffer {buf_num} failed"
 
     def test_momentum_candle_buffers(self, connected_mock_mt5):
         """Test Momentum Candle indicator buffers."""
