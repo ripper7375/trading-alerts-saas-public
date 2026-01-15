@@ -155,18 +155,18 @@ export function TierComparison(): React.ReactElement {
             </td>
             <td className="p-4 text-center">
               <div className="font-bold text-lg text-gray-900 dark:text-white">
-                2
+                0
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Fractals, Trendlines
+                No indicators
               </div>
             </td>
             <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
               <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                8
+                6
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                + Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag
+                Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag
               </div>
             </td>
           </tr>

@@ -27,8 +27,10 @@ export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
 
 /**
  * Basic indicators available to all tiers (FREE + PRO)
+ * NOTE: Fractals and trendlines removed - they were calculated incorrectly from OHLCV data.
+ * All indicators now come from Part 20 (SQLite-Sync) which processes MQL5 exports.
  */
-export const BASIC_INDICATORS = ['fractals', 'trendlines'] as const;
+export const BASIC_INDICATORS = [] as const;
 
 export type BasicIndicator = (typeof BASIC_INDICATORS)[number];
 
@@ -59,23 +61,10 @@ export interface IndicatorMeta {
 
 /**
  * Complete indicator metadata map
+ * NOTE: Fractals and trendlines removed - they were calculated incorrectly from OHLCV data.
  */
 export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMeta> = {
-  // Basic indicators
-  fractals: {
-    id: 'fractals',
-    label: 'Fractals',
-    description: 'Support/resistance fractal points',
-    category: 'basic',
-  },
-  trendlines: {
-    id: 'trendlines',
-    label: 'Trendlines',
-    description: 'Diagonal trend lines',
-    category: 'basic',
-  },
-
-  // PRO indicators
+  // PRO indicators (all indicators are now PRO-only from Part 20)
   momentum_candles: {
     id: 'momentum_candles',
     label: 'Momentum Candles',
