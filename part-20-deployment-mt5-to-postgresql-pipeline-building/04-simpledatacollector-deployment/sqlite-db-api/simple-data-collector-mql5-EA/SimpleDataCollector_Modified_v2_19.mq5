@@ -345,7 +345,7 @@ bool InitializeIndicators()
    g_h_fractal_diagonal = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Fractal_Diagonal_Line_V4",
+      "Fractal Diagonal Line_V4",
       "===== Fractal Detection (108 bars) =====",
       InpFractalBars,          // Fractal Bars
       "===== Diagonal Line Rules =====",
@@ -401,7 +401,7 @@ bool InitializeIndicators()
    g_h_fractal_horizontal = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Fractal_Horizontal_Line_V5",
+      "Fractal Horizontal Line_V5",
       "===== Symbol 108 Settings =====",
       InpFractalBars_Horiz,    // Fractal Bars
       5,                       // Symbol Size (LARGE)
@@ -477,7 +477,7 @@ bool InitializeIndicators()
    g_h_heiken_ashi = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Heiken_Ashi_Body_Size_Classification_Doji_Detection",
+      "Heiken Ashi_Body Size Classification_Doji Detection",
       InpZScoreLength_HA,      // Z-Score MA Length
       InpThresholdZ1_HA,       // First threshold
       InpThresholdZ2_HA,       // Second threshold
@@ -511,7 +511,7 @@ bool InitializeIndicators()
    g_h_keltner_channel = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Keltner_Channel_ATF_10_Bands_V2",
+      "Keltner Channel ATF_10 Bands_V2",
       "═══ Multi-Timeframe Keltner Settings ═══",
       InpKC_Timeframe,                    // Analysis Timeframe
       InpKC_HRMAPeriod,                   // HRMA Period
@@ -540,7 +540,7 @@ bool InitializeIndicators()
    g_h_support_resistance = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Support_and_Resistant_at_Significant_Level",
+      "Support and Resistant at_Significant Level",
       "Support and Resistant Levels Settings",
       InpSR_Timeframe,           // Timeframe to Analyze
       InpSR_AccuracyMultiplier,  // Accuracy Multiplier
