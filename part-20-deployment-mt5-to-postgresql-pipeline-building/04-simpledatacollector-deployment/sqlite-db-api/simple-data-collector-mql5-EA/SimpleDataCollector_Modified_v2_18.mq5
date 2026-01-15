@@ -314,7 +314,7 @@ bool InitializeIndicators()
    g_h_body_momentum = iCustom(
       currentSymbol,
       PERIOD_CURRENT,
-      "Body_Size_Momentum_Candle_V2",
+      "Body Size Momentum Candle_V2",
       InpZScoreLength,    // Z-Score MA Length
       InpThresholdZ1,     // First threshold
       InpThresholdZ2,     // Second threshold

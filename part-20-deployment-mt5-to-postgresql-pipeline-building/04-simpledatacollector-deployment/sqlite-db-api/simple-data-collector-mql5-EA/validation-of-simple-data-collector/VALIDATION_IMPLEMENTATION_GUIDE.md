@@ -17,7 +17,7 @@
 
 ### Step 1: Download the Script
 
-Save `validate_sqlite.py` to: `C:\Scripts\validate_sqlite.py`
+Save `validate_sqlite.py` to: `C:\Scripts\validate_sqlite.py` (in Contabo)
 
 ### Step 2: Verify Python is Available
 
