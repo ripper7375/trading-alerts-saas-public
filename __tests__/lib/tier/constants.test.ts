@@ -65,16 +65,16 @@ describe('Indicator Tier Constants', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('BASIC_INDICATORS', () => {
-    it('should contain exactly 2 basic indicators', () => {
-      expect(BASIC_INDICATORS).toHaveLength(2);
+    it('should contain 0 basic indicators (all indicators are PRO-only)', () => {
+      expect(BASIC_INDICATORS).toHaveLength(0);
     });
 
-    it('should contain fractals', () => {
-      expect(BASIC_INDICATORS).toContain('fractals');
+    it('should not contain fractals (removed - calculated incorrectly from OHLCV)', () => {
+      expect(BASIC_INDICATORS).not.toContain('fractals');
     });
 
-    it('should contain trendlines', () => {
-      expect(BASIC_INDICATORS).toContain('trendlines');
+    it('should not contain trendlines (removed - calculated incorrectly from OHLCV)', () => {
+      expect(BASIC_INDICATORS).not.toContain('trendlines');
     });
   });
 
@@ -83,11 +83,11 @@ describe('Indicator Tier Constants', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('ALL_INDICATORS', () => {
-    it('should contain 8 total indicators (2 basic + 6 PRO)', () => {
-      expect(ALL_INDICATORS).toHaveLength(8);
+    it('should contain 6 total indicators (0 basic + 6 PRO)', () => {
+      expect(ALL_INDICATORS).toHaveLength(6);
     });
 
-    it('should include all basic indicators', () => {
+    it('should include all basic indicators (currently 0)', () => {
       BASIC_INDICATORS.forEach((indicator) => {
         expect(ALL_INDICATORS).toContain(indicator);
       });
@@ -121,9 +121,9 @@ describe('Indicator Tier Constants', () => {
       });
     });
 
-    it('should categorize basic indicators as "basic"', () => {
-      expect(INDICATOR_METADATA.fractals.category).toBe('basic');
-      expect(INDICATOR_METADATA.trendlines.category).toBe('basic');
+    it('should not have fractals or trendlines (removed from OHLCV architecture)', () => {
+      expect(INDICATOR_METADATA.fractals).toBeUndefined();
+      expect(INDICATOR_METADATA.trendlines).toBeUndefined();
     });
 
     it('should categorize PRO indicators as "pro"', () => {
