@@ -114,30 +114,46 @@ function getAccessibleTimeframes(tier: Tier): readonly string[] {
 /**
  * GET /api/indicators/[symbol]/[timeframe]
  *
- * Fetches indicator data with Redis caching.
+ * Fetches indicator data from PostgreSQL with Redis caching (57-column schema).
  * First checks cache, then falls back to PostgreSQL if cache miss.
  *
  * Query Parameters:
  * - bars: Number of bars to fetch (100-5000, default: 1000)
  *
- * Response includes:
- * - data: OHLC, fractals, trendlines, momentum, keltner, tema, hrma, smma, zigzag
+ * Response includes 57-column database schema:
+ * - System columns (8): timestamp, open, high, low, close, volume, timeframe, collected_at
+ * - FREE tier indicators (16 columns): fractal_diagonal (8), fractal_horizontal (8)
+ * - PRO tier indicators (33 columns): moving_averages (3), body_momentum (2), heiken_ashi (7),
+ *   keltner_channels (10), support_resistance (8), zigzag (3)
  * - metadata.data_source: 'cache' or 'postgresql'
  * - metadata.cached: true if served from cache
  *
  * @example Request:
  * GET /api/indicators/XAUUSD/H1?bars=500
  *
- * @example Response (success):
+ * @example Response (success - PRO tier):
  * {
  *   "success": true,
- *   "data": { "ohlc": [...], "fractals": {...}, ... },
+ *   "data": {
+ *     "timestamp": 1705324800,
+ *     "open": 43265, "high": 43300, "low": 43200, "close": 43280,
+ *     "volume": 12500,
+ *     "timeframe": "H1",
+ *     "collected_at": 1705324850,
+ *     "diag_asc_line_1": 43200,     // FREE tier
+ *     "horiz_peak_line_1": 43300,   // FREE tier
+ *     "tema": 43260,                 // PRO tier
+ *     "kc_ultra_extreme_upper": 43400, // PRO tier
+ *     "zigzag_peak": 43500,          // PRO tier
+ *     ... (total 57 columns for PRO, 24 for FREE)
+ *   },
  *   "metadata": {
  *     "symbol": "XAUUSD",
  *     "timeframe": "H1",
  *     "tier": "PRO",
  *     "data_source": "cache",
  *     "cached": true,
+ *     "bars_returned": 500,
  *     "cache_ttl_seconds": 30
  *   }
  * }

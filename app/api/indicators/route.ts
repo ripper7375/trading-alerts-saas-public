@@ -35,54 +35,151 @@ interface IndicatorsListResponse {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * Available indicator types from MT5 service
+ * Available indicator types - 57-Column Database Schema
+ *
+ * Data source: PostgreSQL database via Part 20 (SQLite-Sync Script)
+ *
+ * FREE tier: 2 indicator groups (16 columns)
+ * PRO tier: 8 indicator groups total (49 columns + 8 system columns = 57 total)
  */
 const INDICATOR_TYPES: IndicatorTypeInfo[] = [
+  // ========================================
+  // FREE TIER INDICATORS (2 groups)
+  // ========================================
   {
-    id: 'FRACTAL_HORIZONTAL',
-    name: 'Fractal Horizontal Lines',
-    description:
-      'Horizontal support and resistance lines based on fractal patterns. Shows 3 peak levels and 3 bottom levels.',
-    source: 'Fractal Horizontal Line_V5.mq5',
-    dataFields: [
-      'peak_1',
-      'peak_2',
-      'peak_3',
-      'bottom_1',
-      'bottom_2',
-      'bottom_3',
-    ],
-  },
-  {
-    id: 'FRACTAL_DIAGONAL',
+    id: 'fractal_diagonal',
     name: 'Fractal Diagonal Lines',
     description:
-      'Diagonal trend lines connecting fractal points. Shows 3 ascending and 3 descending trend lines.',
-    source: 'Fractal Diagonal Line_V4.mq5',
+      'Dynamic trendlines based on fractal analysis. Shows 3 ascending and 3 descending trend lines with mapping data.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
     dataFields: [
-      'ascending_1',
-      'ascending_2',
-      'ascending_3',
-      'descending_1',
-      'descending_2',
-      'descending_3',
+      'diag_asc_line_1',
+      'diag_asc_line_2',
+      'diag_asc_line_3',
+      'diag_desc_line_1',
+      'diag_desc_line_2',
+      'diag_desc_line_3',
+      'diag_high_map',
+      'diag_low_map',
     ],
   },
   {
-    id: 'FRACTALS',
-    name: 'Fractal Points',
+    id: 'fractal_horizontal',
+    name: 'Fractal Horizontal Lines',
     description:
-      'Bill Williams fractal markers showing swing highs (peaks) and swing lows (bottoms).',
-    source: 'Fractal Horizontal Line_V5.mq5 (buffers 0-1)',
-    dataFields: ['peaks', 'bottoms'],
+      'Horizontal support and resistance levels from fractals. Shows 3 peak levels and 3 bottom levels with mapping data.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: [
+      'horiz_peak_line_1',
+      'horiz_peak_line_2',
+      'horiz_peak_line_3',
+      'horiz_bottom_line_1',
+      'horiz_bottom_line_2',
+      'horiz_bottom_line_3',
+      'horiz_high_map',
+      'horiz_low_map',
+    ],
+  },
+
+  // ========================================
+  // PRO TIER INDICATORS (6 groups)
+  // ========================================
+  {
+    id: 'moving_averages',
+    name: 'Moving Averages (TEMA/HRMA/SMMA)',
+    description:
+      'Three advanced moving averages: Triple Exponential (TEMA), Hull-like Responsive (HRMA), and Smoothed (SMMA).',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: ['tema', 'hrma', 'smma'],
   },
   {
-    id: 'OHLC',
-    name: 'OHLC Candlestick Data',
+    id: 'body_momentum',
+    name: 'Body Size Momentum',
     description:
-      'Open, High, Low, Close price data with volume for each candle.',
-    source: 'MT5 Terminal (CopyRates)',
-    dataFields: ['time', 'open', 'high', 'low', 'close', 'volume'],
+      'Candle body size analysis with Z-score classification. Identifies normal, large, and extreme body sizes.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: ['z_score_of_body_size', 'candle_classification'],
+  },
+  {
+    id: 'heiken_ashi',
+    name: 'Heiken Ashi',
+    description:
+      'Smoothed candlesticks with body size classification. Includes OHLC data, classification, and Z-score analysis.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: [
+      'ha_open',
+      'ha_high',
+      'ha_low',
+      'ha_close',
+      'ha_classification',
+      'ha_body_size',
+      'ha_body_zscore',
+    ],
+  },
+  {
+    id: 'keltner_channels',
+    name: 'Keltner Channels',
+    description:
+      '10-band ATR-based volatility channel system. From ultra-extreme to middle bands, both upper and lower.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: [
+      'kc_ultra_extreme_upper',
+      'kc_extreme_upper',
+      'kc_uppermost',
+      'kc_upper',
+      'kc_upper_middle',
+      'kc_lower_middle',
+      'kc_lower',
+      'kc_lowermost',
+      'kc_extreme_lower',
+      'kc_ultra_extreme_lower',
+    ],
+  },
+  {
+    id: 'support_resistance',
+    name: 'Support & Resistance',
+    description:
+      'Fractal-based support and resistance levels. 4 support levels and 4 resistance levels.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: [
+      'sr_support_1',
+      'sr_support_2',
+      'sr_support_3',
+      'sr_support_4',
+      'sr_resistance_1',
+      'sr_resistance_2',
+      'sr_resistance_3',
+      'sr_resistance_4',
+    ],
+  },
+  {
+    id: 'zigzag',
+    name: 'ZigZag + EMA',
+    description:
+      'Market structure with swing highs/lows and EMA trend. Identifies peaks, bottoms, and includes 26-period EMA.',
+    source: 'Part 20 SQLite-Sync (57-column schema)',
+    dataFields: ['zigzag_peak', 'zigzag_bottom', 'ema_26'],
+  },
+
+  // ========================================
+  // SYSTEM DATA (8 columns)
+  // ========================================
+  {
+    id: 'system',
+    name: 'System Columns (OHLCV)',
+    description:
+      'Core market data: timestamp, open, high, low, close, volume, timeframe, and collection timestamp.',
+    source: 'MT5 Terminal via Part 06 (copy_rates_from_pos)',
+    dataFields: [
+      'timestamp',
+      'open',
+      'high',
+      'low',
+      'close',
+      'volume',
+      'timeframe',
+      'collected_at',
+    ],
   },
 ];
 
