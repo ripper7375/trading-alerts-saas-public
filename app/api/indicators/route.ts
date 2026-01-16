@@ -47,7 +47,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
   // FREE TIER INDICATORS (2 groups)
   // ========================================
   {
-    id: 'fractal_diagonal',
+    id: 'FRACTAL_DIAGONAL',
     name: 'Fractal Diagonal Lines',
     description:
       'Dynamic trendlines based on fractal analysis. Shows 3 ascending and 3 descending trend lines with mapping data.',
@@ -64,7 +64,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
     ],
   },
   {
-    id: 'fractal_horizontal',
+    id: 'FRACTAL_HORIZONTAL',
     name: 'Fractal Horizontal Lines',
     description:
       'Horizontal support and resistance levels from fractals. Shows 3 peak levels and 3 bottom levels with mapping data.',
@@ -85,7 +85,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
   // PRO TIER INDICATORS (6 groups)
   // ========================================
   {
-    id: 'moving_averages',
+    id: 'MOVING_AVERAGES',
     name: 'Moving Averages (TEMA/HRMA/SMMA)',
     description:
       'Three advanced moving averages: Triple Exponential (TEMA), Hull-like Responsive (HRMA), and Smoothed (SMMA).',
@@ -93,7 +93,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
     dataFields: ['tema', 'hrma', 'smma'],
   },
   {
-    id: 'body_momentum',
+    id: 'BODY_MOMENTUM',
     name: 'Body Size Momentum',
     description:
       'Candle body size analysis with Z-score classification. Identifies normal, large, and extreme body sizes.',
@@ -101,7 +101,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
     dataFields: ['z_score_of_body_size', 'candle_classification'],
   },
   {
-    id: 'heiken_ashi',
+    id: 'HEIKEN_ASHI',
     name: 'Heiken Ashi',
     description:
       'Smoothed candlesticks with body size classification. Includes OHLC data, classification, and Z-score analysis.',
@@ -117,7 +117,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
     ],
   },
   {
-    id: 'keltner_channels',
+    id: 'KELTNER_CHANNELS',
     name: 'Keltner Channels',
     description:
       '10-band ATR-based volatility channel system. From ultra-extreme to middle bands, both upper and lower.',
@@ -136,7 +136,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
     ],
   },
   {
-    id: 'support_resistance',
+    id: 'SUPPORT_RESISTANCE',
     name: 'Support & Resistance',
     description:
       'Fractal-based support and resistance levels. 4 support levels and 4 resistance levels.',
@@ -153,7 +153,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
     ],
   },
   {
-    id: 'zigzag',
+    id: 'ZIGZAG',
     name: 'ZigZag + EMA',
     description:
       'Market structure with swing highs/lows and EMA trend. Identifies peaks, bottoms, and includes 26-period EMA.',
@@ -165,7 +165,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
   // SYSTEM DATA (8 columns)
   // ========================================
   {
-    id: 'system',
+    id: 'OHLC',
     name: 'System Columns (OHLCV)',
     description:
       'Core market data: timestamp, open, high, low, close, volume, timeframe, and collection timestamp.',
