@@ -83,14 +83,8 @@ export interface IndicatorMetadata {
   dataPattern: 'sparse' | 'continuous'; // Data density
 }
 
-// Legacy interface for backward compatibility
-export interface IndicatorMeta {
-  id: IndicatorId;
-  label: string;
-  description: string;
-  category: 'basic' | 'pro';
-  color?: string;
-}
+// Legacy interface for backward compatibility - now aliased to new structure
+export type IndicatorMeta = IndicatorMetadata;
 
 /**
  * Complete indicator metadata map with all 8 indicator groups
