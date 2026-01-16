@@ -249,3 +249,142 @@ export function isValidChartDataPoint(point: {
     point.time !== undefined && point.value !== undefined && !isNaN(point.value)
   );
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NEW 57-COLUMN DATABASE SCHEMA TYPES
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * System columns - accessible by FREE + PRO
+ */
+export interface SystemColumns {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number | null;
+  timeframe: string;
+  collected_at: number | null;
+}
+
+/**
+ * FREE tier indicator: Fractal Diagonal Lines (8 columns)
+ */
+export interface FractalDiagonalData {
+  diag_asc_line_1: number | null;
+  diag_asc_line_2: number | null;
+  diag_asc_line_3: number | null;
+  diag_desc_line_1: number | null;
+  diag_desc_line_2: number | null;
+  diag_desc_line_3: number | null;
+  diag_high_map: number | null;
+  diag_low_map: number | null;
+}
+
+/**
+ * FREE tier indicator: Fractal Horizontal Lines (8 columns)
+ */
+export interface FractalHorizontalData {
+  horiz_peak_line_1: number | null;
+  horiz_peak_line_2: number | null;
+  horiz_peak_line_3: number | null;
+  horiz_bottom_line_1: number | null;
+  horiz_bottom_line_2: number | null;
+  horiz_bottom_line_3: number | null;
+  horiz_high_map: number | null;
+  horiz_low_map: number | null;
+}
+
+/**
+ * PRO tier indicator: Moving Averages (3 columns)
+ * Database record format (single row)
+ */
+export interface MovingAveragesColumns {
+  tema: number | null;
+  hrma: number | null;
+  smma: number | null;
+}
+
+/**
+ * PRO tier indicator: Body Size Momentum (2 columns)
+ */
+export interface BodyMomentumData {
+  z_score_of_body_size: number | null;
+  candle_classification: number | null;
+}
+
+/**
+ * PRO tier indicator: Heiken Ashi (7 columns)
+ */
+export interface HeikenAshiData {
+  ha_open: number | null;
+  ha_high: number | null;
+  ha_low: number | null;
+  ha_close: number | null;
+  ha_classification: number | null;
+  ha_body_size: number | null;
+  ha_body_zscore: number | null;
+}
+
+/**
+ * PRO tier indicator: Keltner Channels (10 columns)
+ */
+export interface KeltnerChannelsData {
+  kc_ultra_extreme_upper: number | null;
+  kc_extreme_upper: number | null;
+  kc_uppermost: number | null;
+  kc_upper: number | null;
+  kc_upper_middle: number | null;
+  kc_lower_middle: number | null;
+  kc_lower: number | null;
+  kc_lowermost: number | null;
+  kc_extreme_lower: number | null;
+  kc_ultra_extreme_lower: number | null;
+}
+
+/**
+ * PRO tier indicator: Support & Resistance (8 columns)
+ */
+export interface SupportResistanceData {
+  sr_support_1: number | null;
+  sr_support_2: number | null;
+  sr_support_3: number | null;
+  sr_support_4: number | null;
+  sr_resistance_1: number | null;
+  sr_resistance_2: number | null;
+  sr_resistance_3: number | null;
+  sr_resistance_4: number | null;
+}
+
+/**
+ * PRO tier indicator: ZigZag + EMA (3 columns)
+ */
+export interface ZigZagData {
+  zigzag_peak: number | null;
+  zigzag_bottom: number | null;
+  ema_26: number | null;
+}
+
+/**
+ * Complete market data (all 57 columns) - PRO tier
+ */
+export interface CompleteMarketData
+  extends SystemColumns,
+    FractalDiagonalData,
+    FractalHorizontalData,
+    MovingAveragesColumns,
+    BodyMomentumData,
+    HeikenAshiData,
+    KeltnerChannelsData,
+    SupportResistanceData,
+    ZigZagData {}
+
+/**
+ * FREE tier market data (24 columns)
+ * 8 system columns + 16 FREE indicator columns
+ */
+export interface FreeMarketData
+  extends SystemColumns,
+    FractalDiagonalData,
+    FractalHorizontalData {}
