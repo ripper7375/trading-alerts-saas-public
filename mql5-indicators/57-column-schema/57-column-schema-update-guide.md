@@ -25,6 +25,7 @@
 ### What Changed?
 
 **OLD Schema (14-column JSON structure):**
+
 ```json
 {
   "timestamp": 1705324800,
@@ -45,6 +46,7 @@
 ```
 
 **NEW Schema (57-column flat structure):**
+
 ```typescript
 {
   // System columns (8)
@@ -208,114 +210,122 @@ This is NOT a bug or inconsistency—it's intentional separation of concerns!
 
 ```typescript
 {
-  timestamp: number;        // Unix timestamp (seconds)
-  open: number;             // OHLC data
+  timestamp: number; // Unix timestamp (seconds)
+  open: number; // OHLC data
   high: number;
   low: number;
   close: number;
-  volume: number;           // Trading volume
-  timeframe: string;        // 'M1', 'M5', 'M15', 'H1', 'H4', 'D1'
-  collected_at: string;     // ISO 8601 timestamp
+  volume: number; // Trading volume
+  timeframe: string; // 'M1', 'M5', 'M15', 'H1', 'H4', 'D1'
+  collected_at: string; // ISO 8601 timestamp
 }
 ```
 
 ### FREE Tier Indicators (16 columns)
 
 **Group 1: Fractal Diagonal Lines (8 columns)**
+
 ```typescript
 {
-  diag_asc_line_1: number | null;   // Ascending trendline 1
-  diag_asc_line_2: number | null;   // Ascending trendline 2
-  diag_asc_line_3: number | null;   // Ascending trendline 3
-  diag_desc_line_1: number | null;  // Descending trendline 1
-  diag_desc_line_2: number | null;  // Descending trendline 2
-  diag_desc_line_3: number | null;  // Descending trendline 3
-  diag_high_map: number | null;     // High fractal mapping data
-  diag_low_map: number | null;      // Low fractal mapping data
+  diag_asc_line_1: number | null; // Ascending trendline 1
+  diag_asc_line_2: number | null; // Ascending trendline 2
+  diag_asc_line_3: number | null; // Ascending trendline 3
+  diag_desc_line_1: number | null; // Descending trendline 1
+  diag_desc_line_2: number | null; // Descending trendline 2
+  diag_desc_line_3: number | null; // Descending trendline 3
+  diag_high_map: number | null; // High fractal mapping data
+  diag_low_map: number | null; // Low fractal mapping data
 }
 ```
 
 **Group 2: Fractal Horizontal Lines (8 columns)**
+
 ```typescript
 {
-  horiz_peak_line_1: number | null;    // Peak resistance line 1
-  horiz_peak_line_2: number | null;    // Peak resistance line 2
-  horiz_peak_line_3: number | null;    // Peak resistance line 3
-  horiz_bottom_line_1: number | null;  // Bottom support line 1
-  horiz_bottom_line_2: number | null;  // Bottom support line 2
-  horiz_bottom_line_3: number | null;  // Bottom support line 3
-  horiz_high_map: number | null;       // High fractal mapping data
-  horiz_low_map: number | null;        // Low fractal mapping data
+  horiz_peak_line_1: number | null; // Peak resistance line 1
+  horiz_peak_line_2: number | null; // Peak resistance line 2
+  horiz_peak_line_3: number | null; // Peak resistance line 3
+  horiz_bottom_line_1: number | null; // Bottom support line 1
+  horiz_bottom_line_2: number | null; // Bottom support line 2
+  horiz_bottom_line_3: number | null; // Bottom support line 3
+  horiz_high_map: number | null; // High fractal mapping data
+  horiz_low_map: number | null; // Low fractal mapping data
 }
 ```
 
 ### PRO Tier Indicators (33 columns)
 
 **Group 3: Moving Averages (3 columns)**
+
 ```typescript
 {
-  tema: number | null;   // Triple Exponential Moving Average
-  hrma: number | null;   // Hull Moving Average
-  smma: number | null;   // Smoothed Moving Average
+  tema: number | null; // Triple Exponential Moving Average
+  hrma: number | null; // Hull Moving Average
+  smma: number | null; // Smoothed Moving Average
 }
 ```
 
 **Group 4: Body Size Momentum (2 columns)**
+
 ```typescript
 {
-  body_size: number | null;      // Candle body size (0.0 to 1.0)
+  body_size: number | null; // Candle body size (0.0 to 1.0)
   body_direction: number | null; // 1 = bullish, -1 = bearish, 0 = neutral
 }
 ```
 
 **Group 5: Heiken Ashi (7 columns)**
+
 ```typescript
 {
-  ha_open: number | null;      // Heiken Ashi open
-  ha_high: number | null;      // Heiken Ashi high
-  ha_low: number | null;       // Heiken Ashi low
-  ha_close: number | null;     // Heiken Ashi close
-  ha_color: number | null;     // 1 = green, -1 = red
-  ha_trend: number | null;     // 1 = uptrend, -1 = downtrend
-  ha_strength: number | null;  // Trend strength (0.0 to 1.0)
+  ha_open: number | null; // Heiken Ashi open
+  ha_high: number | null; // Heiken Ashi high
+  ha_low: number | null; // Heiken Ashi low
+  ha_close: number | null; // Heiken Ashi close
+  ha_color: number | null; // 1 = green, -1 = red
+  ha_trend: number | null; // 1 = uptrend, -1 = downtrend
+  ha_strength: number | null; // Trend strength (0.0 to 1.0)
 }
 ```
 
 **Group 6: Keltner Channels (10 columns)**
+
 ```typescript
 {
-  kc_upper: number | null;        // Upper Keltner Channel
-  kc_middle: number | null;       // Middle line (EMA)
-  kc_lower: number | null;        // Lower Keltner Channel
-  kc_upper_ema: number | null;    // Upper channel EMA
-  kc_middle_ema: number | null;   // Middle EMA
-  kc_lower_ema: number | null;    // Lower channel EMA
-  kc_squeeze: number | null;      // Squeeze indicator (0 or 1)
-  kc_squeeze_pro: number | null;  // Pro squeeze (0 or 1)
-  kc_width: number | null;        // Channel width
-  kc_width_ema: number | null;    // Width EMA
+  kc_upper: number | null; // Upper Keltner Channel
+  kc_middle: number | null; // Middle line (EMA)
+  kc_lower: number | null; // Lower Keltner Channel
+  kc_upper_ema: number | null; // Upper channel EMA
+  kc_middle_ema: number | null; // Middle EMA
+  kc_lower_ema: number | null; // Lower channel EMA
+  kc_squeeze: number | null; // Squeeze indicator (0 or 1)
+  kc_squeeze_pro: number | null; // Pro squeeze (0 or 1)
+  kc_width: number | null; // Channel width
+  kc_width_ema: number | null; // Width EMA
 }
 ```
 
 **Group 7: Support/Resistance (8 columns)**
+
 ```typescript
 {
-  sr_1: number | null;  // Support/Resistance level 1 (strongest)
-  sr_2: number | null;  // Support/Resistance level 2
-  sr_3: number | null;  // Support/Resistance level 3
-  sr_4: number | null;  // Support/Resistance level 4
-  sr_5: number | null;  // Support/Resistance level 5
-  sr_6: number | null;  // Support/Resistance level 6
-  sr_7: number | null;  // Support/Resistance level 7
-  sr_8: number | null;  // Support/Resistance level 8 (weakest)
+  sr_1: number | null; // Support/Resistance level 1 (strongest)
+  sr_2: number | null; // Support/Resistance level 2
+  sr_3: number | null; // Support/Resistance level 3
+  sr_4: number | null; // Support/Resistance level 4
+  sr_5: number | null; // Support/Resistance level 5
+  sr_6: number | null; // Support/Resistance level 6
+  sr_7: number | null; // Support/Resistance level 7
+  sr_8: number | null; // Support/Resistance level 8 (weakest)
 }
 ```
 
 **Group 8: ZigZag (3 columns)**
+
 ```typescript
 {
-  zigzag_high: number | null;  // ZigZag swing high
-  zigzag_low: number | null;   // ZigZag swing low
+  zigzag_high: number | null; // ZigZag swing high
+  zigzag_low: number | null; // ZigZag swing low
   zigzag_trend: number | null; // 1 = uptrend, -1 = downtrend
 }
 ```
@@ -328,13 +338,14 @@ This is NOT a bug or inconsistency—it's intentional separation of concerns!
 
 **CRITICAL:** Different layers use different ID formats!
 
-| Layer | ID Format | Example | Location |
-|-------|-----------|---------|----------|
-| TypeScript Types | lowercase_snake_case | `fractal_diagonal` | lib/tier/constants.ts |
-| API Metadata | UPPERCASE_SNAKE_CASE | `FRACTAL_HORIZONTAL` | app/api/indicators/route.ts |
-| Database Columns | lowercase_snake_case | `diag_asc_line_1` | PostgreSQL schema |
+| Layer            | ID Format            | Example              | Location                    |
+| ---------------- | -------------------- | -------------------- | --------------------------- |
+| TypeScript Types | lowercase_snake_case | `fractal_diagonal`   | lib/tier/constants.ts       |
+| API Metadata     | UPPERCASE_SNAKE_CASE | `FRACTAL_HORIZONTAL` | app/api/indicators/route.ts |
+| Database Columns | lowercase_snake_case | `diag_asc_line_1`    | PostgreSQL schema           |
 
 **Example:**
+
 ```typescript
 // ✅ CORRECT: lib/tier/constants.ts (TypeScript types)
 export const FREE_TIER_INDICATORS = [
@@ -359,30 +370,32 @@ SELECT diag_asc_line_1, horiz_peak_line_1 FROM market_data;  // lowercase NEW na
 
 **CRITICAL:** Metadata endpoints must use OLD field names for consumer compatibility!
 
-| Indicator | OLD Field Names (for metadata) | NEW Database Columns |
-|-----------|-------------------------------|---------------------|
-| Fractal Horizontal | `peak_1`, `peak_2`, `peak_3`, `bottom_1`, `bottom_2`, `bottom_3` | `horiz_peak_line_1`, `horiz_peak_line_2`, `horiz_peak_line_3`, `horiz_bottom_line_1`, `horiz_bottom_line_2`, `horiz_bottom_line_3` |
-| Fractal Diagonal | `ascending_1`, `ascending_2`, `ascending_3`, `descending_1`, `descending_2`, `descending_3` | `diag_asc_line_1`, `diag_asc_line_2`, `diag_asc_line_3`, `diag_desc_line_1`, `diag_desc_line_2`, `diag_desc_line_3` |
+| Indicator          | OLD Field Names (for metadata)                                                              | NEW Database Columns                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Fractal Horizontal | `peak_1`, `peak_2`, `peak_3`, `bottom_1`, `bottom_2`, `bottom_3`                            | `horiz_peak_line_1`, `horiz_peak_line_2`, `horiz_peak_line_3`, `horiz_bottom_line_1`, `horiz_bottom_line_2`, `horiz_bottom_line_3` |
+| Fractal Diagonal   | `ascending_1`, `ascending_2`, `ascending_3`, `descending_1`, `descending_2`, `descending_3` | `diag_asc_line_1`, `diag_asc_line_2`, `diag_asc_line_3`, `diag_desc_line_1`, `diag_desc_line_2`, `diag_desc_line_3`                |
 
 **Why?** Tests and frontend consumers expect the old field names. Changing metadata breaks their expectations.
 
 ### 3. Tier Access Rules
 
 **FREE Tier:** 24 total columns
+
 - 8 system columns
 - 16 FREE indicator columns (fractal_diagonal + fractal_horizontal)
 
 **PRO Tier:** 57 total columns
+
 - 8 system columns
 - 16 FREE indicator columns
 - 33 PRO indicator columns (moving_averages, body_momentum, heiken_ashi, keltner_channels, support_resistance, zigzag)
 
 **Implementation:**
+
 ```typescript
 // Filter columns based on tier
-const allowedColumns = tier === 'PRO'
-  ? ALL_57_COLUMNS
-  : SYSTEM_COLUMNS + FREE_TIER_COLUMNS; // 24 columns
+const allowedColumns =
+  tier === 'PRO' ? ALL_57_COLUMNS : SYSTEM_COLUMNS + FREE_TIER_COLUMNS; // 24 columns
 ```
 
 ### 4. Backward Compatibility
@@ -415,6 +428,7 @@ type DataPattern = 'sparse' | 'dense' | 'continuous';
 ```
 
 **Examples:**
+
 - `fractal_diagonal`: sparse (trendlines only at fractal points)
 - `moving_averages`: continuous (value for every candle)
 - `support_resistance`: sparse (only key S/R levels)
@@ -426,70 +440,76 @@ type DataPattern = 'sparse' | 'dense' | 'continuous';
 ### Pitfall 1: Using NEW Field Names in Metadata
 
 **❌ WRONG:**
+
 ```typescript
 // app/api/indicators/route.ts
 const INDICATOR_TYPES = [
   {
     id: 'FRACTAL_HORIZONTAL',
     dataFields: [
-      'horiz_peak_line_1',    // ❌ NEW name - breaks tests!
+      'horiz_peak_line_1', // ❌ NEW name - breaks tests!
       'horiz_peak_line_2',
       'horiz_peak_line_3',
-    ]
-  }
+    ],
+  },
 ];
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // app/api/indicators/route.ts
 const INDICATOR_TYPES = [
   {
     id: 'FRACTAL_HORIZONTAL',
     dataFields: [
-      'peak_1',    // ✅ OLD name - matches consumer expectations
+      'peak_1', // ✅ OLD name - matches consumer expectations
       'peak_2',
       'peak_3',
-    ]
-  }
+    ],
+  },
 ];
 ```
 
 ### Pitfall 2: Using lowercase IDs in API Metadata
 
 **❌ WRONG:**
+
 ```typescript
 // app/api/indicators/route.ts
 const INDICATOR_TYPES = [
   {
-    id: 'fractal_horizontal',  // ❌ lowercase - breaks tests!
-  }
+    id: 'fractal_horizontal', // ❌ lowercase - breaks tests!
+  },
 ];
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // app/api/indicators/route.ts
 const INDICATOR_TYPES = [
   {
-    id: 'FRACTAL_HORIZONTAL',  // ✅ UPPERCASE for API
-  }
+    id: 'FRACTAL_HORIZONTAL', // ✅ UPPERCASE for API
+  },
 ];
 ```
 
 ### Pitfall 3: Breaking IndicatorMeta Backward Compatibility
 
 **❌ WRONG:**
+
 ```typescript
 // Separate interface with old structure
 export interface IndicatorMeta {
   tier: Tier;
   columns: string[];
-  color?: string;  // ❌ Old property, breaks new code
+  color?: string; // ❌ Old property, breaks new code
 }
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // Type alias to new interface
 export type IndicatorMeta = IndicatorMetadata;
@@ -498,12 +518,14 @@ export type IndicatorMeta = IndicatorMetadata;
 ### Pitfall 4: Not Synchronizing Frontend/Backend
 
 **❌ WRONG:**
+
 ```typescript
 // Backend updated to 57-column schema
 // But frontend still using old structure
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // Both frontend and backend use identical constants
 // Copy lib/tier/constants.ts to frontend/lib/tier/constants.ts
@@ -512,17 +534,19 @@ export type IndicatorMeta = IndicatorMetadata;
 ### Pitfall 5: Adding PRO Indicators to Metadata
 
 **❌ WRONG:**
+
 ```typescript
 // app/api/indicators/route.ts
 const INDICATOR_TYPES = [
   { id: 'FRACTAL_HORIZONTAL' },
   { id: 'FRACTAL_DIAGONAL' },
-  { id: 'MOVING_AVERAGES' },     // ❌ PRO tier - don't add to metadata!
-  { id: 'BODY_MOMENTUM' },       // ❌ PRO tier - don't add to metadata!
+  { id: 'MOVING_AVERAGES' }, // ❌ PRO tier - don't add to metadata!
+  { id: 'BODY_MOMENTUM' }, // ❌ PRO tier - don't add to metadata!
 ];
 ```
 
 **✅ CORRECT:**
+
 ```typescript
 // app/api/indicators/route.ts
 // Only include FREE tier indicators + OHLC
@@ -543,6 +567,7 @@ const INDICATOR_TYPES = [
 Use this checklist when updating any part to align with 57-column schema:
 
 ### Phase 1: Type Definitions
+
 - [ ] Update TypeScript type definitions to include all 57 columns
 - [ ] Use lowercase_snake_case for internal type properties
 - [ ] Add JSDoc comments describing each column
@@ -550,6 +575,7 @@ Use this checklist when updating any part to align with 57-column schema:
 - [ ] Add `timeframe` and `collected_at` system columns if missing
 
 ### Phase 2: Constants & Configuration
+
 - [ ] Update lib/tier/constants.ts with 8 indicator groups
 - [ ] Update frontend/lib/tier/constants.ts (synchronize with backend)
 - [ ] Verify FREE_TIER_INDICATORS contains exactly 2 indicators
@@ -560,6 +586,7 @@ Use this checklist when updating any part to align with 57-column schema:
 - [ ] Specify dataPattern for each indicator
 
 ### Phase 3: API Routes
+
 - [ ] **Metadata Endpoint** (app/api/indicators/route.ts):
   - [ ] Use UPPERCASE_SNAKE_CASE for indicator IDs
   - [ ] Use OLD field names in dataFields arrays
@@ -573,6 +600,7 @@ Use this checklist when updating any part to align with 57-column schema:
   - [ ] Return only 24 columns for FREE tier
 
 ### Phase 4: Tests
+
 - [ ] Update test expectations to use new indicator IDs (lowercase)
 - [ ] Update test expectations to use new indicator labels
 - [ ] Verify tests check for UPPERCASE IDs in API responses
@@ -581,12 +609,14 @@ Use this checklist when updating any part to align with 57-column schema:
 - [ ] Update mock data to include all 57 columns
 
 ### Phase 5: Documentation
+
 - [ ] Update JSDoc comments in type definitions
 - [ ] Update API route documentation
 - [ ] Update README or other docs mentioning schema
 - [ ] Document any breaking changes
 
 ### Phase 6: Validation
+
 - [ ] Run TypeScript type checking: `npm run validate:types`
 - [ ] Run ESLint: `npm run validate:lint`
 - [ ] Run tests: `npm test`
@@ -602,6 +632,7 @@ Use this checklist when updating any part to align with 57-column schema:
 **Location:** `prisma/schema.prisma`
 
 **What to update:**
+
 ```prisma
 model MarketData {
   id           String   @id @default(cuid())
@@ -675,6 +706,7 @@ model MarketData {
 ```
 
 **After update:**
+
 ```bash
 npx prisma generate
 npx prisma db push  # or create migration
@@ -685,6 +717,7 @@ npx prisma db push  # or create migration
 **Location:** `lib/tier/types.ts` or similar
 
 **What to update:**
+
 ```typescript
 /**
  * 57-Column Database Schema for Market Data
@@ -765,22 +798,23 @@ export interface MarketDataRecord {
 **Location:** `lib/tier/constants.ts`
 
 **What to update:**
+
 ```typescript
 /**
  * 8 Indicator Groups in 57-Column Schema
  */
 export const FREE_TIER_INDICATORS = [
-  'fractal_diagonal',      // 8 columns
-  'fractal_horizontal',    // 8 columns
+  'fractal_diagonal', // 8 columns
+  'fractal_horizontal', // 8 columns
 ] as const;
 
 export const PRO_ONLY_INDICATORS = [
-  'moving_averages',       // 3 columns
-  'body_momentum',         // 2 columns
-  'heiken_ashi',          // 7 columns
-  'keltner_channels',     // 10 columns
-  'support_resistance',   // 8 columns
-  'zigzag',               // 3 columns
+  'moving_averages', // 3 columns
+  'body_momentum', // 2 columns
+  'heiken_ashi', // 7 columns
+  'keltner_channels', // 10 columns
+  'support_resistance', // 8 columns
+  'zigzag', // 3 columns
 ] as const;
 
 export type IndicatorId =
@@ -858,6 +892,7 @@ export type IndicatorMeta = IndicatorMetadata;
 **Location:** `app/api/indicators/route.ts`
 
 **What to update:**
+
 ```typescript
 /**
  * CRITICAL: This metadata endpoint uses OLD field names
@@ -868,15 +903,16 @@ export type IndicatorMeta = IndicatorMetadata;
  */
 const INDICATOR_TYPES: IndicatorTypeInfo[] = [
   {
-    id: 'FRACTAL_HORIZONTAL',  // UPPERCASE for API
+    id: 'FRACTAL_HORIZONTAL', // UPPERCASE for API
     name: 'Fractal Horizontal Lines',
-    description: 'Horizontal support and resistance lines based on fractal patterns. Shows 3 peak levels and 3 bottom levels.',
+    description:
+      'Horizontal support and resistance lines based on fractal patterns. Shows 3 peak levels and 3 bottom levels.',
     source: 'Fractal Horizontal Line_V5.mq5',
     dataFields: [
-      'peak_1',      // OLD name (not horiz_peak_line_1)
+      'peak_1', // OLD name (not horiz_peak_line_1)
       'peak_2',
       'peak_3',
-      'bottom_1',    // OLD name (not horiz_bottom_line_1)
+      'bottom_1', // OLD name (not horiz_bottom_line_1)
       'bottom_2',
       'bottom_3',
     ],
@@ -884,13 +920,14 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
   {
     id: 'FRACTAL_DIAGONAL',
     name: 'Fractal Diagonal Lines',
-    description: 'Diagonal trend lines connecting fractal points. Shows 3 ascending and 3 descending trend lines.',
+    description:
+      'Diagonal trend lines connecting fractal points. Shows 3 ascending and 3 descending trend lines.',
     source: 'Fractal Diagonal Line_V4.mq5',
     dataFields: [
-      'ascending_1',   // OLD name (not diag_asc_line_1)
+      'ascending_1', // OLD name (not diag_asc_line_1)
       'ascending_2',
       'ascending_3',
-      'descending_1',  // OLD name (not diag_desc_line_1)
+      'descending_1', // OLD name (not diag_desc_line_1)
       'descending_2',
       'descending_3',
     ],
@@ -898,14 +935,16 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
   {
     id: 'FRACTALS',
     name: 'Fractal Points',
-    description: 'Bill Williams fractal markers showing swing highs (peaks) and swing lows (bottoms).',
+    description:
+      'Bill Williams fractal markers showing swing highs (peaks) and swing lows (bottoms).',
     source: 'Fractal Horizontal Line_V5.mq5 (buffers 0-1)',
     dataFields: ['peaks', 'bottoms'],
   },
   {
     id: 'OHLC',
     name: 'OHLC Candlestick Data',
-    description: 'Open, High, Low, Close price data with volume for each candle.',
+    description:
+      'Open, High, Low, Close price data with volume for each candle.',
     source: 'MT5 Terminal (CopyRates)',
     dataFields: ['time', 'open', 'high', 'low', 'close', 'volume'],
   },
@@ -920,6 +959,7 @@ const INDICATOR_TYPES: IndicatorTypeInfo[] = [
 **Location:** `app/api/indicators/[symbol]/[timeframe]/route.ts`
 
 **What to update:**
+
 ```typescript
 /**
  * GET /api/indicators/[symbol]/[timeframe]
@@ -993,9 +1033,10 @@ export async function GET(
       symbol: params.symbol,
       timeframe: params.timeframe,
     },
-    select: tier === 'PRO'
-      ? ALL_57_COLUMNS_SELECT  // All columns
-      : FREE_TIER_SELECT,      // Only 24 columns
+    select:
+      tier === 'PRO'
+        ? ALL_57_COLUMNS_SELECT // All columns
+        : FREE_TIER_SELECT, // Only 24 columns
   });
 
   return NextResponse.json({
@@ -1044,6 +1085,7 @@ export async function GET(
 ### Example 1: Complete Type Definition Update
 
 **Before:**
+
 ```typescript
 interface IndicatorData {
   fractals?: { peak: number; bottom: number };
@@ -1056,6 +1098,7 @@ interface IndicatorData {
 ```
 
 **After:**
+
 ```typescript
 interface MarketDataRecord {
   // System columns (8)
@@ -1126,6 +1169,7 @@ interface MarketDataRecord {
 ### Example 2: Test Update
 
 **Before:**
+
 ```typescript
 it('should contain BASIC_INDICATORS', () => {
   expect(FREE_TIER_INDICATORS).toContain('fractals');
@@ -1134,6 +1178,7 @@ it('should contain BASIC_INDICATORS', () => {
 ```
 
 **After:**
+
 ```typescript
 it('should contain exactly 2 FREE tier indicators', () => {
   expect(FREE_TIER_INDICATORS).toHaveLength(2);
@@ -1156,16 +1201,16 @@ it('should contain exactly 2 FREE tier indicators', () => {
 
 ### Quick Reference
 
-| Aspect | FREE Tier | PRO Tier |
-|--------|-----------|----------|
-| Total Columns | 24 | 57 |
-| System Columns | 8 | 8 |
-| Indicator Columns | 16 | 49 |
-| Indicator Groups | 2 | 8 |
-| API Metadata IDs | UPPERCASE | UPPERCASE |
-| TypeScript IDs | lowercase | lowercase |
-| Database Names | NEW (57-col) | NEW (57-col) |
-| Metadata Names | OLD (compat) | OLD (compat) |
+| Aspect            | FREE Tier    | PRO Tier     |
+| ----------------- | ------------ | ------------ |
+| Total Columns     | 24           | 57           |
+| System Columns    | 8            | 8            |
+| Indicator Columns | 16           | 49           |
+| Indicator Groups  | 2            | 8            |
+| API Metadata IDs  | UPPERCASE    | UPPERCASE    |
+| TypeScript IDs    | lowercase    | lowercase    |
+| Database Names    | NEW (57-col) | NEW (57-col) |
+| Metadata Names    | OLD (compat) | OLD (compat) |
 
 ---
 

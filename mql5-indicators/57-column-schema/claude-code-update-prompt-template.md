@@ -3,6 +3,7 @@
 **Purpose:** Template prompt for updating any part of the codebase to align with the new 57-column database schema
 
 **Usage Instructions:**
+
 1. Replace `[XX]` with the actual part number (e.g., "03", "04", "11", etc.)
 2. Replace `[PART_NAME]` with the part's descriptive name (e.g., "Types", "Tier System", "Alerts API", etc.)
 3. Attach the file `docs/57-column-schema-update-guide.md` to the conversation
@@ -12,7 +13,7 @@
 
 ## PROMPT TEMPLATE
 
-```
+````
 # Task: Update Part [XX] ([PART_NAME]) to 57-Column Database Schema
 
 ## Context
@@ -62,9 +63,10 @@ Migrate all type definitions, constants, and logic from:
     "smma": 43258
   }
 }
-```
+````
 
 **NEW Schema (57-column flat):**
+
 ```typescript
 {
   // System columns (8)
@@ -137,16 +139,11 @@ Migrate all type definitions, constants, and logic from:
 Update all code to use the new 8 indicator groups:
 
 **FREE Tier (2 groups, 16 columns):**
+
 1. `fractal_diagonal` (8 columns): diag_asc_line_1/2/3, diag_desc_line_1/2/3, diag_high_map, diag_low_map
 2. `fractal_horizontal` (8 columns): horiz_peak_line_1/2/3, horiz_bottom_line_1/2/3, horiz_high_map, horiz_low_map
 
-**PRO Tier (6 groups, 33 columns):**
-3. `moving_averages` (3 columns): tema, hrma, smma
-4. `body_momentum` (2 columns): body_size, body_direction
-5. `heiken_ashi` (7 columns): ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength
-6. `keltner_channels` (10 columns): kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema
-7. `support_resistance` (8 columns): sr_1 through sr_8
-8. `zigzag` (3 columns): zigzag_high, zigzag_low, zigzag_trend
+**PRO Tier (6 groups, 33 columns):** 3. `moving_averages` (3 columns): tema, hrma, smma 4. `body_momentum` (2 columns): body_size, body_direction 5. `heiken_ashi` (7 columns): ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength 6. `keltner_channels` (10 columns): kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema 7. `support_resistance` (8 columns): sr_1 through sr_8 8. `zigzag` (3 columns): zigzag_high, zigzag_low, zigzag_trend
 
 ### 3. Critical Compliance Factors
 
@@ -181,12 +178,14 @@ Update all code to use the new 8 indicator groups:
 Please follow the **complete Update Checklist** from the attached guide (`docs/57-column-schema-update-guide.md`). Key phases:
 
 **Phase 1: Type Definitions**
+
 - [ ] Update TypeScript types to include all 57 columns
 - [ ] Use lowercase_snake_case for properties
 - [ ] Mark all indicator columns as `number | null`
 - [ ] Add `timeframe` and `collected_at` system columns
 
 **Phase 2: Constants & Configuration**
+
 - [ ] Update constants with 8 indicator groups
 - [ ] Verify FREE_TIER_INDICATORS has exactly 2 items
 - [ ] Verify PRO_ONLY_INDICATORS has exactly 6 items
@@ -194,22 +193,26 @@ Please follow the **complete Update Checklist** from the attached guide (`docs/5
 - [ ] Add color configurations and dataPattern
 
 **Phase 3: API Routes** (if applicable to this part)
+
 - [ ] Metadata endpoints: UPPERCASE IDs, OLD field names
 - [ ] Data endpoints: NEW database column names
 - [ ] Apply tier-based filtering
 - [ ] Update JSDoc comments
 
 **Phase 4: Tests**
+
 - [ ] Update test expectations for new indicator IDs (lowercase)
 - [ ] Update test expectations for new labels
 - [ ] Verify UPPERCASE IDs in API tests
 - [ ] Update mock data to 57 columns
 
 **Phase 5: Documentation**
+
 - [ ] Update JSDoc comments
 - [ ] Update inline comments
 
 **Phase 6: Validation**
+
 - [ ] Run TypeScript validation: `npm run validate:types`
 - [ ] Run ESLint: `npm run validate:lint`
 - [ ] Run tests: `npm test`
@@ -218,6 +221,7 @@ Please follow the **complete Update Checklist** from the attached guide (`docs/5
 ### 5. Common Pitfalls to Avoid
 
 **DO NOT:**
+
 - ❌ Use NEW field names in metadata endpoints (use OLD names)
 - ❌ Use lowercase IDs in API metadata (use UPPERCASE)
 - ❌ Create separate IndicatorMeta interface (use type alias)
@@ -225,6 +229,7 @@ Please follow the **complete Update Checklist** from the attached guide (`docs/5
 - ❌ Break backward compatibility for BASIC_INDICATORS
 
 **DO:**
+
 - ✅ Use NEW 57-column names in database queries
 - ✅ Use OLD field names in API metadata for compatibility
 - ✅ Use UPPERCASE IDs in API responses
@@ -288,6 +293,7 @@ The update is complete when:
 ## Questions?
 
 If you encounter any ambiguity or need clarification:
+
 1. First, consult the attached guide `docs/57-column-schema-update-guide.md`
 2. Check the "Common Pitfalls" and "Examples" sections
 3. If still unclear, ask me for clarification before proceeding
@@ -298,6 +304,7 @@ Please confirm you've read the attached guide and understand the requirements. T
 
 **Branch:** claude/update-database-schema-4vEMp
 **Expected Outcome:** Part [XX] ([PART_NAME]) fully migrated to 57-column schema with all validation passing.
+
 ```
 
 ---
@@ -307,6 +314,7 @@ Please confirm you've read the attached guide and understand the requirements. T
 Here's an example of how to use this template for Part 11 (Alerts API):
 
 ```
+
 # Task: Update Part 11 (Alerts API) to 57-Column Database Schema
 
 ## Context
@@ -314,6 +322,7 @@ Here's an example of how to use this template for Part 11 (Alerts API):
 I need you to update **Part 11 (Alerts API)** to align with the new 57-column database schema. This involves migrating from the old 14-column JSON structure to the new flat 57-column structure.
 
 **CRITICAL: Please read the attached guide `docs/57-column-schema-update-guide.md` thoroughly before starting. It contains essential information about:**
+
 - The three-layer architecture (Database, Data Fetching, Metadata)
 - ID naming conventions (lowercase vs UPPERCASE)
 - Field name compatibility (NEW database names vs OLD metadata names)
@@ -323,16 +332,17 @@ I need you to update **Part 11 (Alerts API)** to align with the new 57-column da
 ## Part 11 Overview
 
 **Part Name:** Alerts API
-**Location:** app/api/alerts/*
+**Location:** app/api/alerts/\*
 **Current Status:** Uses old 14-column JSON structure with nested indicators
 
 **Files in this part:**
+
 - app/api/alerts/route.ts (GET, POST)
 - app/api/alerts/[id]/route.ts (GET, PATCH, DELETE)
 - app/api/alerts/active/route.ts
 - lib/alerts/types.ts
 - lib/alerts/utils.ts
-- __tests__/api/alerts/*.test.ts
+- **tests**/api/alerts/\*.test.ts
 
 ## Requirements
 
@@ -340,6 +350,7 @@ I need you to update **Part 11 (Alerts API)** to align with the new 57-column da
 
 **Branch:** claude/update-database-schema-4vEMp
 **Expected Outcome:** Part 11 (Alerts API) fully migrated to 57-column schema with all validation passing.
+
 ```
 
 ---
@@ -357,3 +368,4 @@ I need you to update **Part 11 (Alerts API)** to align with the new 57-column da
 **Template Version:** 1.0.0
 **Last Updated:** 2025-01-16
 **Compatible With:** 57-Column Schema Update Guide v1.0.0
+```
