@@ -165,32 +165,32 @@ describe('Tier Validation', () => {
   });
 
   // =============================================
-  // Indicator Access Tests
+  // Indicator Access Tests (57-Column Schema)
   // =============================================
   describe('Indicator Access', () => {
-    it('FREE tier can access 2 basic indicators', () => {
-      expect(canAccessIndicator('fractals', 'FREE')).toBe(true);
-      expect(canAccessIndicator('trendlines', 'FREE')).toBe(true);
+    it('FREE tier can access 2 FREE tier indicators', () => {
+      expect(canAccessIndicator('fractal_diagonal', 'FREE')).toBe(true);
+      expect(canAccessIndicator('fractal_horizontal', 'FREE')).toBe(true);
     });
 
     it('FREE tier cannot access 6 PRO-only indicators', () => {
-      expect(canAccessIndicator('momentum_candles', 'FREE')).toBe(false);
+      expect(canAccessIndicator('moving_averages', 'FREE')).toBe(false);
+      expect(canAccessIndicator('body_momentum', 'FREE')).toBe(false);
+      expect(canAccessIndicator('heiken_ashi', 'FREE')).toBe(false);
       expect(canAccessIndicator('keltner_channels', 'FREE')).toBe(false);
-      expect(canAccessIndicator('tema', 'FREE')).toBe(false);
-      expect(canAccessIndicator('hrma', 'FREE')).toBe(false);
-      expect(canAccessIndicator('smma', 'FREE')).toBe(false);
+      expect(canAccessIndicator('support_resistance', 'FREE')).toBe(false);
       expect(canAccessIndicator('zigzag', 'FREE')).toBe(false);
     });
 
-    it('PRO tier can access all 8 indicators', () => {
+    it('PRO tier can access all 8 indicators (2 FREE + 6 PRO)', () => {
       const indicators = [
-        'fractals',
-        'trendlines',
-        'momentum_candles',
+        'fractal_diagonal',
+        'fractal_horizontal',
+        'moving_averages',
+        'body_momentum',
+        'heiken_ashi',
         'keltner_channels',
-        'tema',
-        'hrma',
-        'smma',
+        'support_resistance',
         'zigzag',
       ];
       indicators.forEach((ind) => {
@@ -199,34 +199,34 @@ describe('Tier Validation', () => {
     });
 
     it('handles case-insensitive indicator matching', () => {
-      expect(canAccessIndicator('FRACTALS', 'FREE')).toBe(true);
-      expect(canAccessIndicator('Trendlines', 'FREE')).toBe(true);
+      expect(canAccessIndicator('FRACTAL_DIAGONAL', 'FREE')).toBe(true);
+      expect(canAccessIndicator('Fractal_Horizontal', 'FREE')).toBe(true);
     });
 
     it('returns correct accessible indicators', () => {
       expect(getAccessibleIndicators('FREE')).toEqual([
-        'fractals',
-        'trendlines',
+        'fractal_diagonal',
+        'fractal_horizontal',
       ]);
       expect(getAccessibleIndicators('PRO')).toEqual([
-        'fractals',
-        'trendlines',
-        'momentum_candles',
+        'fractal_diagonal',
+        'fractal_horizontal',
+        'moving_averages',
+        'body_momentum',
+        'heiken_ashi',
         'keltner_channels',
-        'tema',
-        'hrma',
-        'smma',
+        'support_resistance',
         'zigzag',
       ]);
     });
 
     it('returns correct locked indicators', () => {
       expect(getLockedIndicators('FREE')).toEqual([
-        'momentum_candles',
+        'moving_averages',
+        'body_momentum',
+        'heiken_ashi',
         'keltner_channels',
-        'tema',
-        'hrma',
-        'smma',
+        'support_resistance',
         'zigzag',
       ]);
       expect(getLockedIndicators('PRO')).toEqual([]);

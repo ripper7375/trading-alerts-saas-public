@@ -113,11 +113,11 @@ export function ProIndicatorOverlay({
     // Render Moving Averages (TEMA, HRMA, SMMA)
     //───────────────────────────────────────────────────────
     const renderMA = (
-      id: IndicatorId,
+      seriesKey: string,
       data: (number | undefined)[],
       color: string
     ): void => {
-      if (!selectedIndicators.includes(id) || data.length === 0) return;
+      if (!selectedIndicators.includes('moving_averages') || data.length === 0) return;
 
       try {
         const series = chart.addLineSeries({
@@ -140,12 +140,12 @@ export function ProIndicatorOverlay({
 
         if (lineData.length > 0) {
           series.setData(lineData);
-          currentSeriesRefs.set(id, series);
+          currentSeriesRefs.set(seriesKey, series);
         } else {
           chart.removeSeries(series);
         }
       } catch (err) {
-        console.error(`Failed to render ${id}:`, err);
+        console.error(`Failed to render ${seriesKey}:`, err);
       }
     };
 

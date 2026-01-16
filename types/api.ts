@@ -82,3 +82,64 @@ export interface FilterParams {
   status?: string;
   [key: string]: string | number | boolean | undefined;
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TIER-AWARE MARKET DATA RESPONSES (57-COLUMN SCHEMA)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import type { Tier, Symbol, Timeframe } from './tier';
+import type { CompleteMarketData, FreeMarketData } from './indicator';
+
+/**
+ * Market data response - automatically filtered by user's tier
+ */
+export interface MarketDataResponse {
+  symbol: Symbol;
+  timeframe: Timeframe;
+  tier: Tier;
+  data: CompleteMarketData[] | FreeMarketData[]; // Type depends on tier
+  filteredColumns?: string[]; // Which columns were removed (for FREE tier)
+  metadata: {
+    total: number;
+    returned: number;
+    columnCount: number; // 24 for FREE, 57 for PRO
+  };
+}
+
+/**
+ * Indicator access info for tier upgrade prompts
+ */
+export interface IndicatorAccessInfo {
+  indicator: string;
+  accessible: boolean;
+  tier: Tier;
+  requiredTier?: Tier;
+  columns: string[];
+  description: string;
+  label: string;
+}
+
+/**
+ * Column access info for tier upgrade prompts
+ */
+export interface ColumnAccessInfo {
+  columnName: string;
+  accessible: boolean;
+  tier: Tier;
+  requiredTier?: Tier;
+  indicator: string;
+  description: string;
+}
+
+/**
+ * Tier upgrade prompt response
+ */
+export interface TierUpgradePrompt {
+  upgradeRequired: boolean;
+  currentTier: Tier;
+  lockedIndicators: string[];
+  lockedColumns: string[];
+  accessibleIndicators: string[];
+  accessibleColumns: string[];
+  message: string;
+}
