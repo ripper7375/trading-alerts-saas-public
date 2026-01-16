@@ -10,11 +10,11 @@
 
 ## Application Code (12 files)
 
-**File 6/29:** ✅ `mt5-service/app/__init__.py` - Flask app factory (create_app)
+**File 6/29:** ✅ `mt5-service/app/__init__.py` - Flask app factory (create*app)
 **File 7/29:** ✅ `mt5-service/app/websocket.py` - WebSocket support for real-time OHLCV streaming
 **File 8/29:** ✅ `mt5-service/app/routes/__init__.py` - Routes package init
-**File 9/29:** ✅ `mt5-service/app/routes/admin.py` - Admin endpoints (/api/admin/_)
-**File 10/29:** ✅ `mt5-service/app/routes/indicators.py` - Indicator endpoints (/api/indicators/_)
+**File 9/29:** ✅ `mt5-service/app/routes/admin.py` - Admin endpoints (/api/admin/*)
+**File 10/29:** ✅ `mt5-service/app/routes/indicators.py` - Indicator endpoints (/api/indicators/\_)
 **File 11/29:** ✅ `mt5-service/app/services/__init__.py` - Services package init
 **File 12/29:** ✅ `mt5-service/app/services/health_monitor.py` - Background health monitoring
 **File 13/29:** ✅ `mt5-service/app/services/indicator_reader.py` - MT5 OHLCV data reading (indicator support removed)
@@ -42,6 +42,7 @@
 **File 29/29:** ✅ `mt5-service/tests/test_symbol_resolver.py` - Symbol resolver unit tests
 
 ## Status Summary
+
 - **Completed:** 29/29 files (100%)
 - **Missing:** None
 - **Architecture:** OHLCV-only data service (no custom indicators)

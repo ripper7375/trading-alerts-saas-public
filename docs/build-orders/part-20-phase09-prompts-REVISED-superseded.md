@@ -12,26 +12,21 @@
 This revised version addresses **12 critical gaps** identified in the risk validation:
 
 **Priority 1 Fixes (MUST FIX):**
+
 1. ✅ Added Step A9: CI/CD Pipeline Updates
 2. ✅ Fixed rollback script docker-compose references
 3. ✅ Added API route reversion in rollback script
 4. ✅ Added detailed environment variable restore commands
 5. ✅ Added data consistency check in rollback script
 
-**Priority 2 Fixes (SHOULD FIX):**
-6. ✅ Added alert-checker.ts migration to Step A2
-7. ✅ Added Step A8: System Monitor Migration
-8. ✅ Fixed file path: lib/api/mt5-client.ts (not lib/services/)
-9. ✅ Added git history preservation to Step A6
-10. ✅ Added environment variable backup to Step A1
-11. ✅ Added docker-compose backup to Step A5
-12. ✅ Added Pre-Migration Rollback Testing section
+**Priority 2 Fixes (SHOULD FIX):** 6. ✅ Added alert-checker.ts migration to Step A2 7. ✅ Added Step A8: System Monitor Migration 8. ✅ Fixed file path: lib/api/mt5-client.ts (not lib/services/) 9. ✅ Added git history preservation to Step A6 10. ✅ Added environment variable backup to Step A1 11. ✅ Added docker-compose backup to Step A5 12. ✅ Added Pre-Migration Rollback Testing section
 
 ---
 
 ## Usage Instructions
 
 ### For Claude Code (Web or CLI):
+
 1. Start a fresh Claude Code session
 2. Attach/provide access to these 3 documents:
    - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
@@ -40,8 +35,10 @@ This revised version addresses **12 critical gaps** identified in the risk valid
 3. Copy and paste the prompt below
 
 ### For Antigravity (Google AI Agent):
+
 1. Start a new Antigravity session in your local repository directory
 2. **Branch Setup:** Use a dedicated branch for migration work:
+
    ```bash
    # If migration branch exists on GitHub:
    git fetch origin
@@ -52,6 +49,7 @@ This revised version addresses **12 critical gaps** identified in the risk valid
    git pull origin main
    git checkout -b migration/part20-phase09
    ```
+
 3. Ensure Antigravity has access to the repository and can read:
    - `docs/sqlite-and-mt5service/part-20-architecture-design.md`
    - `docs/sqlite-and-mt5service/part-20-implementation-plan.md`
@@ -59,6 +57,7 @@ This revised version addresses **12 critical gaps** identified in the risk valid
 4. Give Antigravity the prompt below
 
 ### For Other AI Coding Agents:
+
 1. Start a session with file system access to this repository
 2. Ensure the agent can read the 3 documents listed above
 3. Provide the prompt below
