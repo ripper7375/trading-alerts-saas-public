@@ -1,10 +1,10 @@
 /**
- * IndicatorToggles Component Tests
+ * IndicatorToggles Component Tests - 57-Column Schema
  *
  * Tests for components/charts/indicator-toggles.tsx
  * UI component for toggling chart indicators with tier access control
  *
- * Part 9: Charts & Visualization - PRO Indicators Implementation
+ * Part 9: Charts & Visualization - Updated for 57-column database schema
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
@@ -33,7 +33,7 @@ jest.mock('next/link', () => {
 // Import after mocks
 import { IndicatorToggles } from '@/components/charts/indicator-toggles';
 
-describe('IndicatorToggles Component', () => {
+describe('IndicatorToggles Component - 57-Column Schema', () => {
   const mockOnToggle = jest.fn();
 
   beforeEach(() => {
@@ -82,7 +82,7 @@ describe('IndicatorToggles Component', () => {
       expect(screen.getByText('Pro Indicators')).toBeInTheDocument();
     });
 
-    it('should not render basic indicators (all indicators are PRO-only)', () => {
+    it('should render FREE tier indicators', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -90,9 +90,11 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      // Fractals and trendlines removed - they were calculated incorrectly from OHLCV data
-      expect(screen.queryByText('Fractals')).not.toBeInTheDocument();
-      expect(screen.queryByText('Trendlines')).not.toBeInTheDocument();
+      // FREE tier indicators (2 groups)
+      expect(screen.getByText('Fractal Diagonal Lines')).toBeInTheDocument();
+      expect(
+        screen.getByText('Fractal Horizontal Lines')
+      ).toBeInTheDocument();
     });
 
     it('should render PRO indicators', () => {
@@ -103,12 +105,15 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      expect(screen.getByText('Momentum Candles')).toBeInTheDocument();
+      // PRO tier indicators (6 groups)
+      expect(
+        screen.getByText('Moving Averages (TEMA/HRMA/SMMA)')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Body Size Momentum')).toBeInTheDocument();
+      expect(screen.getByText('Heiken Ashi')).toBeInTheDocument();
       expect(screen.getByText('Keltner Channels')).toBeInTheDocument();
-      expect(screen.getByText('TEMA')).toBeInTheDocument();
-      expect(screen.getByText('HRMA')).toBeInTheDocument();
-      expect(screen.getByText('SMMA')).toBeInTheDocument();
-      expect(screen.getByText('ZigZag')).toBeInTheDocument();
+      expect(screen.getByText('Support & Resistance')).toBeInTheDocument();
+      expect(screen.getByText('ZigZag + EMA')).toBeInTheDocument();
     });
   });
 
@@ -150,7 +155,7 @@ describe('IndicatorToggles Component', () => {
       expect(screen.getByText('PRO')).toBeInTheDocument();
     });
 
-    it('should not allow toggling PRO indicators when FREE (all indicators are PRO-only)', () => {
+    it('should allow toggling FREE tier indicators', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -158,9 +163,26 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      // All indicators are PRO-only now, so FREE users can't toggle any
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      expect(temaCheckbox).toBeDisabled();
+      // FREE users can toggle FREE tier indicators
+      const fractalDiagCheckbox = screen.getByRole('checkbox', {
+        name: /fractal diagonal lines/i,
+      });
+      expect(fractalDiagCheckbox).not.toBeDisabled();
+    });
+
+    it('should not allow toggling PRO indicators when FREE', () => {
+      render(
+        <IndicatorToggles
+          selectedIndicators={[]}
+          onIndicatorToggle={mockOnToggle}
+        />
+      );
+
+      // PRO indicators should be disabled for FREE users
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      expect(movingAvgCheckbox).toBeDisabled();
     });
 
     it('should not call onToggle for PRO indicators when FREE', () => {
@@ -172,11 +194,13 @@ describe('IndicatorToggles Component', () => {
       );
 
       // Find a PRO indicator checkbox (should be disabled)
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      fireEvent.click(temaCheckbox);
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      fireEvent.click(movingAvgCheckbox);
 
       // Should not be called because indicator is locked
-      expect(mockOnToggle).not.toHaveBeenCalledWith('tema');
+      expect(mockOnToggle).not.toHaveBeenCalledWith('moving_averages');
     });
 
     it('should have disabled checkboxes for PRO indicators', () => {
@@ -187,8 +211,10 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      expect(temaCheckbox).toBeDisabled();
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      expect(movingAvgCheckbox).toBeDisabled();
     });
   });
 
@@ -225,10 +251,12 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      fireEvent.click(temaCheckbox);
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      fireEvent.click(movingAvgCheckbox);
 
-      expect(mockOnToggle).toHaveBeenCalledWith('tema');
+      expect(mockOnToggle).toHaveBeenCalledWith('moving_averages');
     });
 
     it('should have enabled checkboxes for all indicators', () => {
@@ -259,20 +287,24 @@ describe('IndicatorToggles Component', () => {
 
       render(
         <IndicatorToggles
-          selectedIndicators={['tema', 'zigzag']}
+          selectedIndicators={['moving_averages', 'zigzag']}
           onIndicatorToggle={mockOnToggle}
         />
       );
 
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
       const zigzagCheckbox = screen.getByRole('checkbox', {
         name: /zigzag/i,
       });
-      const hrmaCheckbox = screen.getByRole('checkbox', { name: /hrma/i });
+      const keltnerCheckbox = screen.getByRole('checkbox', {
+        name: /keltner channels/i,
+      });
 
-      expect(temaCheckbox).toBeChecked();
+      expect(movingAvgCheckbox).toBeChecked();
       expect(zigzagCheckbox).toBeChecked();
-      expect(hrmaCheckbox).not.toBeChecked();
+      expect(keltnerCheckbox).not.toBeChecked();
     });
   });
 
@@ -289,8 +321,8 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      // Initially expanded
-      expect(screen.getByText('Momentum Candles')).toBeVisible();
+      // Initially expanded - check for a PRO indicator
+      expect(screen.getByText('Body Size Momentum')).toBeVisible();
 
       // Click Pro Indicators header to collapse
       const proHeader = screen.getByText('Pro Indicators');
