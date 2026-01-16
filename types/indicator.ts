@@ -359,8 +359,9 @@ export interface SupportResistanceData {
 
 /**
  * PRO tier indicator: ZigZag + EMA (3 columns)
+ * Database record format (single row)
  */
-export interface ZigZagData {
+export interface ZigZagColumns {
   zigzag_peak: number | null;
   zigzag_bottom: number | null;
   ema_26: number | null;
@@ -378,7 +379,7 @@ export interface CompleteMarketData
     HeikenAshiData,
     KeltnerChannelsData,
     SupportResistanceData,
-    ZigZagData {}
+    ZigZagColumns {}
 
 /**
  * FREE tier market data (24 columns)

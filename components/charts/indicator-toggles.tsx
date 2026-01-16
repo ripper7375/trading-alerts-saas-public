@@ -99,10 +99,10 @@ export function IndicatorToggles({
             >
               {meta.label}
             </span>
-            {meta.color && hasAccess && (
+            {meta.colors && hasAccess && Object.values(meta.colors)[0] && (
               <span
                 className="w-3 h-3 rounded-full flex-shrink-0"
-                style={{ backgroundColor: meta.color }}
+                style={{ backgroundColor: Object.values(meta.colors)[0] }}
               />
             )}
           </div>
