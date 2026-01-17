@@ -176,3 +176,4 @@ test-minimax-api.bat
 test-minimax-api.py
 staging-credentials.txt
 seed-code/better-auth/
+seed-code/ai-chatbot/
