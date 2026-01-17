@@ -141,7 +141,7 @@ export default function ApiTestPage() {
             </div>
             <div>
               <span className="text-blue-700">Environment:</span>{' '}
-              <span className="font-bold">{process.env.NODE_ENV}</span>
+              <span className="font-bold">{process.env['NODE_ENV']}</span>
             </div>
           </div>
         </div>

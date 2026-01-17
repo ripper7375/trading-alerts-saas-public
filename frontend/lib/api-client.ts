@@ -53,7 +53,7 @@ export class ApiClient {
 
   constructor(config?: ApiClientConfig) {
     // Use NEXT_PUBLIC_API_URL if set, otherwise default to Next.js API routes
-    this.baseURL = config?.baseURL || process.env.NEXT_PUBLIC_API_URL || '/api';
+    this.baseURL = config?.baseURL || process.env['NEXT_PUBLIC_API_URL'] || '/api';
 
     // Remove trailing slash if present
     if (this.baseURL.endsWith('/')) {
@@ -69,7 +69,7 @@ export class ApiClient {
     this.credentials = config?.credentials || 'include';
 
     // Log configuration in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
       console.log('[ApiClient] Configured with baseURL:', this.baseURL);
     }
   }
@@ -161,7 +161,7 @@ export class ApiClient {
     };
 
     // Log request in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
       console.log(
         `[ApiClient] ${options.method || 'GET'} ${url}`,
         options.body ? JSON.parse(options.body as string) : ''
@@ -201,7 +201,7 @@ export class ApiClient {
       }
 
       // Log response in development
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env['NODE_ENV'] === 'development') {
         console.log(`[ApiClient] Response:`, data);
       }
 
