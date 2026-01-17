@@ -31,13 +31,13 @@ npx tsc --noEmit
 
 **Required exports from each phase:**
 
-| Phase | File | Required Exports |
-|-------|------|------------------|
-| 04a | `lib/indicators/types.ts` | `IndicatorResponse`, `Tier` |
-| 04b | `lib/db/postgresql.ts` | `checkConnection` |
-| 04b | `lib/db/queries.ts` | `getIndicatorData`, `getDataFreshness`, `getTableCount` |
-| 04c | `lib/tier/validation.ts` | `validateTierAccess`, `isValidSymbol`, `isValidTimeframe`, `getAccessibleSymbols`, `getAccessibleTimeframes`, `ALL_SYMBOLS`, `ALL_TIMEFRAMES`, `FREE_SYMBOLS`, `FREE_TIMEFRAMES`, `Tier` |
-| 04d | `lib/market-hours/validator.ts` | `getMarketMetadata` |
+| Phase | File                            | Required Exports                                                                                                                                                                         |
+| ----- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 04a   | `lib/indicators/types.ts`       | `IndicatorResponse`, `Tier`                                                                                                                                                              |
+| 04b   | `lib/db/postgresql.ts`          | `checkConnection`                                                                                                                                                                        |
+| 04b   | `lib/db/queries.ts`             | `getIndicatorData`, `getDataFreshness`, `getTableCount`                                                                                                                                  |
+| 04c   | `lib/tier/validation.ts`        | `validateTierAccess`, `isValidSymbol`, `isValidTimeframe`, `getAccessibleSymbols`, `getAccessibleTimeframes`, `ALL_SYMBOLS`, `ALL_TIMEFRAMES`, `FREE_SYMBOLS`, `FREE_TIMEFRAMES`, `Tier` |
+| 04d   | `lib/market-hours/validator.ts` | `getMarketMetadata`                                                                                                                                                                      |
 
 **If any files are missing, complete the required phases first.**
 
@@ -70,7 +70,7 @@ Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (T
 
 ## Phase 04e Prompt
 
-```
+````
 # Part 20 - Phase 04e: API Routes
 
 ## Context
@@ -168,7 +168,7 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
-```
+````
 
 ### 2. `app/api/indicators/health/route.ts`
 
@@ -189,20 +189,26 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
     const connected = await checkConnection();
     const tableCount = connected ? await getTableCount() : 0;
 
-    return NextResponse.json({
-      status: connected ? 'healthy' : 'unhealthy',
-      version: '2.0.0',
-      database: { connected, tables: tableCount },
-      timestamp: new Date().toISOString(),
-    }, { status: connected ? 200 : 503 });
+    return NextResponse.json(
+      {
+        status: connected ? 'healthy' : 'unhealthy',
+        version: '2.0.0',
+        database: { connected, tables: tableCount },
+        timestamp: new Date().toISOString(),
+      },
+      { status: connected ? 200 : 503 }
+    );
   } catch (error) {
     console.error('Health check failed:', error);
-    return NextResponse.json({
-      status: 'unhealthy',
-      version: '2.0.0',
-      database: { connected: false, tables: 0 },
-      timestamp: new Date().toISOString(),
-    }, { status: 503 });
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
+        version: '2.0.0',
+        database: { connected: false, tables: 0 },
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
+    );
   }
 }
 ```
@@ -213,12 +219,18 @@ export async function GET(): Promise<NextResponse<HealthResponse>> {
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getAccessibleSymbols, ALL_SYMBOLS, FREE_SYMBOLS, Tier } from '@/lib/tier/validation';
+import {
+  getAccessibleSymbols,
+  ALL_SYMBOLS,
+  FREE_SYMBOLS,
+  Tier,
+} from '@/lib/tier/validation';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const userTier = ((session?.user as Record<string, unknown>)?.tier as Tier) || 'FREE';
+    const userTier =
+      ((session?.user as Record<string, unknown>)?.tier as Tier) || 'FREE';
 
     return NextResponse.json({
       success: true,
@@ -229,13 +241,16 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching symbols:', error);
-    return NextResponse.json({
-      success: false,
-      symbols: FREE_SYMBOLS,
-      tier: 'FREE',
-      total_available: ALL_SYMBOLS.length,
-      free_symbols: FREE_SYMBOLS,
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        symbols: FREE_SYMBOLS,
+        tier: 'FREE',
+        total_available: ALL_SYMBOLS.length,
+        free_symbols: FREE_SYMBOLS,
+      },
+      { status: 500 }
+    );
   }
 }
 ```
@@ -246,12 +261,18 @@ export async function GET() {
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getAccessibleTimeframes, ALL_TIMEFRAMES, FREE_TIMEFRAMES, Tier } from '@/lib/tier/validation';
+import {
+  getAccessibleTimeframes,
+  ALL_TIMEFRAMES,
+  FREE_TIMEFRAMES,
+  Tier,
+} from '@/lib/tier/validation';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const userTier = ((session?.user as Record<string, unknown>)?.tier as Tier) || 'FREE';
+    const userTier =
+      ((session?.user as Record<string, unknown>)?.tier as Tier) || 'FREE';
 
     return NextResponse.json({
       success: true,
@@ -262,18 +283,22 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching timeframes:', error);
-    return NextResponse.json({
-      success: false,
-      timeframes: FREE_TIMEFRAMES,
-      tier: 'FREE',
-      total_available: ALL_TIMEFRAMES.length,
-      free_timeframes: FREE_TIMEFRAMES,
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        timeframes: FREE_TIMEFRAMES,
+        tier: 'FREE',
+        total_available: ALL_TIMEFRAMES.length,
+        free_timeframes: FREE_TIMEFRAMES,
+      },
+      { status: 500 }
+    );
   }
 }
 ```
 
 ## Success Criteria
+
 - [ ] All 4 API route files created
 - [ ] All files compile without errors
 - [ ] `npm run build` passes
@@ -282,6 +307,7 @@ export async function GET() {
 - [ ] GET /api/timeframes returns timeframe list
 
 ## Testing Commands
+
 ```bash
 npm run build
 npm run dev
@@ -291,6 +317,7 @@ curl http://localhost:3000/api/timeframes
 ```
 
 ## Commit Message
+
 ```
 feat(api): add Next.js API routes for indicators (Phase 04e)
 
@@ -298,6 +325,7 @@ feat(api): add Next.js API routes for indicators (Phase 04e)
 - Add health check endpoint
 - Add symbols and timeframes endpoints
 ```
+
 ```
 
 ---
@@ -331,3 +359,4 @@ After completing Phase 04e, you will have:
 ## Next Step
 
 After Phase 04e compiles successfully, proceed to `part-20-phase05-prompts.md` (Redis Caching Layer).
+```

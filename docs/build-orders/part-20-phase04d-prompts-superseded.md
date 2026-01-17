@@ -53,7 +53,7 @@ Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (T
 
 ## Phase 04d Prompt
 
-```
+````
 # Part 20 - Phase 04d: Market Hours
 
 ## Context
@@ -128,22 +128,37 @@ export function getCurrentMT5ServerTime(): Date {
   const offset = getServerUTCOffset(now);
   return new Date(now.getTime() + offset * 60 * 60 * 1000);
 }
-```
+````
 
 ### 2. `lib/market-hours/validator.ts`
 
 ```typescript
 import type { TradingHours } from '@/lib/indicators/types';
-import { SYMBOL_TRADING_HOURS, isDSTActive, getServerUTCOffset } from './trading-sessions';
+import {
+  SYMBOL_TRADING_HOURS,
+  isDSTActive,
+  getServerUTCOffset,
+} from './trading-sessions';
 
-const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DAY_NAMES = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+];
 
 function timeToMinutes(timeStr: string): number {
   const [hours, minutes] = timeStr.split(':').map(Number);
   return hours * 60 + minutes;
 }
 
-export function isMarketOpen(symbol: string, timestamp: Date = new Date()): boolean {
+export function isMarketOpen(
+  symbol: string,
+  timestamp: Date = new Date()
+): boolean {
   const config = SYMBOL_TRADING_HOURS[symbol.toUpperCase()];
   if (!config) return false;
   if (config.type === 'crypto') return true;
@@ -154,10 +169,12 @@ export function isMarketOpen(symbol: string, timestamp: Date = new Date()): bool
 
   if (!config.days.includes(dayName)) return false;
 
-  const currentMinutes = serverTime.getUTCHours() * 60 + serverTime.getUTCMinutes();
+  const currentMinutes =
+    serverTime.getUTCHours() * 60 + serverTime.getUTCMinutes();
   const openMinutes = timeToMinutes(config.open);
   let closeMinutes = timeToMinutes(config.close);
-  if (closeMinutes === 0 && config.close.startsWith('24')) closeMinutes = 24 * 60;
+  if (closeMinutes === 0 && config.close.startsWith('24'))
+    closeMinutes = 24 * 60;
 
   return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 }
@@ -169,8 +186,19 @@ export function getMarketStatus(symbol: string): 'OPEN' | 'CLOSED' {
 export function getTradingHoursForSymbol(symbol: string): TradingHours {
   const config = SYMBOL_TRADING_HOURS[symbol.toUpperCase()];
   const offset = getServerUTCOffset();
-  if (!config) return { open: '00:00:00', close: '23:59:59', timezone: `GMT+${offset}`, days: [] };
-  return { open: config.open, close: config.close, timezone: `GMT+${offset}`, days: config.days };
+  if (!config)
+    return {
+      open: '00:00:00',
+      close: '23:59:59',
+      timezone: `GMT+${offset}`,
+      days: [],
+    };
+  return {
+    open: config.open,
+    close: config.close,
+    timezone: `GMT+${offset}`,
+    days: config.days,
+  };
 }
 
 export function getMarketMetadata(symbol: string) {
@@ -185,12 +213,14 @@ export function getMarketMetadata(symbol: string) {
 ```
 
 ## Success Criteria
+
 - [ ] `lib/market-hours/trading-sessions.ts` created
 - [ ] `lib/market-hours/validator.ts` created
 - [ ] Both files compile without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
+
 ```
 feat(market-hours): add market hours configuration (Phase 04d)
 
@@ -198,6 +228,7 @@ feat(market-hours): add market hours configuration (Phase 04d)
 - Add DST calculation for MT5 server time
 - Add isMarketOpen and getMarketMetadata utilities
 ```
+
 ```
 
 ---
@@ -216,3 +247,4 @@ These are required by:
 ## Next Step
 
 After Phase 04d compiles successfully, proceed to `part-20-phase04e-prompts.md` (API Routes).
+```

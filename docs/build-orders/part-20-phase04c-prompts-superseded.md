@@ -52,7 +52,7 @@ Phase 04a (Types) ──┬──► Phase 04b (Database) ──► Phase 04c (T
 
 ## Phase 04c Prompt
 
-```
+````
 # Part 20 - Phase 04c: Tier Validation
 
 ## Context
@@ -151,14 +151,16 @@ export function getAccessibleSymbols(tier: Tier): readonly string[] {
 export function getAccessibleTimeframes(tier: Tier): readonly string[] {
   return tier === 'PRO' ? ALL_TIMEFRAMES : FREE_TIMEFRAMES;
 }
-```
+````
 
 ## Success Criteria
+
 - [ ] `lib/tier/validation.ts` created
 - [ ] File compiles without errors
 - [ ] `npx tsc --noEmit` passes
 
 ## Commit Message
+
 ```
 feat(tier): add tier validation utilities (Phase 04c)
 
@@ -166,6 +168,7 @@ feat(tier): add tier validation utilities (Phase 04c)
 - Add validateTierAccess function
 - Add getAccessibleSymbols/Timeframes helpers
 ```
+
 ```
 
 ---
@@ -185,3 +188,4 @@ This is required by:
 After Phase 04c compiles successfully, proceed to `part-20-phase04d-prompts.md` (Market Hours).
 
 **Note:** Phase 04d can also be done in parallel with 04c since both only depend on 04a.
+```
