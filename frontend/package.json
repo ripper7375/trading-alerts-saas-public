@@ -20,7 +20,8 @@
     "validate:format": "echo '🔍 Checking code formatting...' && prettier --check .",
     "fix": "npm run lint:fix && npm run format",
     "prisma:generate": "prisma generate",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "verify:auth": "node scripts/verify-auth-config.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.3",
