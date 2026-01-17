@@ -1,4 +1,4 @@
-//+------------------------------------------------------------------+
+﻿//+------------------------------------------------------------------+
 //|                                              DataCollector.mq5   |
 //|                        Trading Alerts SaaS - Part 20             |
 //|                                                                   |
@@ -13,8 +13,8 @@
 //+------------------------------------------------------------------+
 #property service
 #property copyright "Trading Alerts SaaS"
-#property version   "1.00"
-#property description "Data collector service for Trading Alerts SaaS Part 20"
+#property version   "2.00"
+#property description "Data collector service - Updated with flexible symbol validation"
 
 //+------------------------------------------------------------------+
 //| Include files                                                     |
@@ -26,7 +26,7 @@
 //| Input parameters                                                  |
 //+------------------------------------------------------------------+
 input int    CollectionInterval = 30;                                    // Data collection interval (seconds)
-input string DatabasePath = "C:\\MT5Data\\trading_data.db";             // SQLite database path
+input string DatabasePath = "trading_data.db";             // SQLite database path (MT5 Files folder)
 input string SymbolToMonitor = "";                                       // Symbol to monitor (empty = use chart symbol)
 input int    BufferSize = 100;                                           // Number of bars to read from indicators
 input bool   EnableLogging = true;                                       // Enable detailed logging
@@ -46,8 +46,7 @@ int g_h_zigzag = INVALID_HANDLE;         // ZigZagColor & MarketStructure
 //| Global variables - Database                                       |
 //+------------------------------------------------------------------+
 int g_db = INVALID_HANDLE;               // SQLite database handle
-string g_symbol = "";                     // Normalized symbol name
-string g_raw_symbol = "";                 // Original broker symbol
+string g_symbol = "";                     // Symbol to use (kept for compatibility)
 
 //+------------------------------------------------------------------+
 //| Service program start function                                    |
@@ -58,24 +57,21 @@ void OnStart()
     Print("DataCollector Service Starting...");
     Print("========================================");
 
-    //--- Determine which symbol to monitor
+    //--- Determine which symbol to monitor (NO normalization)
     if(SymbolToMonitor != "")
-        g_raw_symbol = SymbolToMonitor;
+        g_symbol = SymbolToMonitor;
     else
-        g_raw_symbol = _Symbol;
+        g_symbol = _Symbol;
 
-    //--- Normalize the symbol name
-    g_symbol = NormalizeSymbol(g_raw_symbol);
-
-    //--- Validate symbol is supported
+    //--- Validate symbol using flexible matching (handles .i suffix automatically)
     if(!IsSymbolSupported(g_symbol))
     {
-        Print("ERROR: Symbol ", g_symbol, " is not supported");
-        Print("Supported symbols: AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD");
+        Print("ERROR: Symbol is not supported: ", g_symbol);
+        Print("Supported symbols: ", GetSupportedSymbolsList());
         return;
     }
 
-    Print("Monitoring symbol: ", g_raw_symbol, " -> ", g_symbol);
+    Print("Monitoring symbol: ", g_symbol);
     Print("Collection interval: ", CollectionInterval, " seconds");
     Print("Database path: ", DatabasePath);
 
@@ -164,6 +160,7 @@ bool InitializeDatabase()
     Print("Database opened successfully");
 
     //--- Create table for the symbol if it doesn't exist
+    //--- Use symbol AS-IS (no normalization)
     if(!CreateTableIfNotExists(g_db, g_symbol))
     {
         Print("ERROR: Failed to create table for ", g_symbol);
@@ -182,10 +179,10 @@ bool InitializeDatabase()
 //+------------------------------------------------------------------+
 bool InitializeIndicators()
 {
-    Print("Initializing indicators for ", g_raw_symbol, "...");
+    Print("Initializing indicators for ", g_symbol, "...");
 
     //--- Fractal Horizontal Line_V5 (provides fractals and horizontal lines)
-    g_h_fractal = iCustom(g_raw_symbol, PERIOD_CURRENT, "Fractal Horizontal Line_V5");
+    g_h_fractal = iCustom(g_symbol, PERIOD_CURRENT, "Fractal Horizontal Line_V5");
     if(g_h_fractal == INVALID_HANDLE)
     {
         Print("WARNING: Failed to load Fractal Horizontal Line_V5 indicator");
@@ -200,7 +197,7 @@ bool InitializeIndicators()
     g_h_hline = g_h_fractal;
 
     //--- Fractal Diagonal Line_V4
-    g_h_dline = iCustom(g_raw_symbol, PERIOD_CURRENT, "Fractal Diagonal Line_V4");
+    g_h_dline = iCustom(g_symbol, PERIOD_CURRENT, "Fractal Diagonal Line_V4");
     if(g_h_dline == INVALID_HANDLE)
     {
         Print("WARNING: Failed to load Fractal Diagonal Line_V4 indicator");
@@ -212,7 +209,7 @@ bool InitializeIndicators()
     }
 
     //--- Body Size Momentum Candle_V2
-    g_h_momentum = iCustom(g_raw_symbol, PERIOD_CURRENT, "Body Size Momentum Candle_V2");
+    g_h_momentum = iCustom(g_symbol, PERIOD_CURRENT, "Body Size Momentum Candle_V2");
     if(g_h_momentum == INVALID_HANDLE)
     {
         Print("WARNING: Failed to load Body Size Momentum Candle_V2 indicator");
@@ -224,7 +221,7 @@ bool InitializeIndicators()
     }
 
     //--- Keltner Channel_ATF_10 Bands
-    g_h_keltner = iCustom(g_raw_symbol, PERIOD_CURRENT, "Keltner Channel_ATF_10 Bands");
+    g_h_keltner = iCustom(g_symbol, PERIOD_CURRENT, "Keltner Channel_ATF_10 Bands");
     if(g_h_keltner == INVALID_HANDLE)
     {
         Print("WARNING: Failed to load Keltner Channel_ATF_10 Bands indicator");
@@ -236,7 +233,7 @@ bool InitializeIndicators()
     }
 
     //--- TEMA_HRMA_SMA-SMMA_Modified Buffers
-    g_h_ma = iCustom(g_raw_symbol, PERIOD_CURRENT, "TEMA_HRMA_SMA-SMMA_Modified Buffers");
+    g_h_ma = iCustom(g_symbol, PERIOD_CURRENT, "TEMA_HRMA_SMA-SMMA_Modified Buffers");
     if(g_h_ma == INVALID_HANDLE)
     {
         Print("WARNING: Failed to load TEMA_HRMA_SMA-SMMA_Modified Buffers indicator");
@@ -248,7 +245,7 @@ bool InitializeIndicators()
     }
 
     //--- ZigZagColor & MarketStructure_JSON Export_V27_TXT Input
-    g_h_zigzag = iCustom(g_raw_symbol, PERIOD_CURRENT, "ZigZagColor & MarketStructure_JSON Export_V27_TXT Input");
+    g_h_zigzag = iCustom(g_symbol, PERIOD_CURRENT, "ZigZagColor & MarketStructure_JSON Export_V27_TXT Input");
     if(g_h_zigzag == INVALID_HANDLE)
     {
         Print("WARNING: Failed to load ZigZag indicator");
@@ -285,13 +282,13 @@ bool InitializeIndicators()
 //+------------------------------------------------------------------+
 bool CollectAndStoreData()
 {
-    //--- Get OHLC data
+    //--- Get OHLC data using original symbol
     MqlRates rates[];
     ArraySetAsSeries(rates, true);
 
-    if(CopyRates(g_raw_symbol, PERIOD_CURRENT, 0, 1, rates) < 1)
+    if(CopyRates(g_symbol, PERIOD_CURRENT, 0, 1, rates) < 1)
     {
-        Print("ERROR: Failed to copy rates for ", g_raw_symbol);
+        Print("ERROR: Failed to copy rates for ", g_symbol);
         return false;
     }
 
@@ -327,8 +324,9 @@ bool CollectAndStoreData()
     StringReplace(zigzag_json, "'", "''");
 
     //--- Build INSERT OR REPLACE SQL statement
+    //--- Use symbol AS-IS for table name
     string sql = StringFormat(
-        "INSERT OR REPLACE INTO %s "
+        "INSERT OR REPLACE INTO [%s] "
         "(timestamp, open, high, low, close, fractals, horizontal_trendlines, "
         "diagonal_trendlines, momentum_candles, keltner_channels, tema, hrma, smma, zigzag) "
         "VALUES (%I64d, %.5f, %.5f, %.5f, %.5f, '%s', '%s', '%s', '%s', '%s', %s, %s, %s, '%s')",

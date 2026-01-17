@@ -15,6 +15,7 @@ from typing import List
 # Database paths
 SQLITE_PATH: str = os.getenv("SQLITE_PATH", "C:\\MT5Data\\trading_data.db")
 POSTGRESQL_URI: str = os.getenv("POSTGRESQL_URI", "")
+REDIS_URL: str = os.getenv("REDIS_URL", "")
 
 # Supported trading symbols (15 total)
 # IMPORTANT: Must match table names in SQLite created by DataCollector.mq5
@@ -69,3 +70,8 @@ SYNC_STATE_FILE: str = os.getenv("SYNC_STATE_FILE", "sync_state.json")
 # Logging settings
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Redis Real-Time Data Configuration (Hot Tier)
+REALTIME_CANDLE_LIMIT: int = 250  # Number of candles to keep in hot tier
+REDIS_REALTIME_TTL: int = 604800  # 7 days in seconds (safety expiration)
+ENABLE_REDIS_SYNC: bool = os.getenv("ENABLE_REDIS_SYNC", "true").lower() == "true"

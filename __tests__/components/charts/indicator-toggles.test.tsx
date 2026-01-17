@@ -1,15 +1,15 @@
 /**
- * IndicatorToggles Component Tests
+ * IndicatorToggles Component Tests - 57-Column Schema
  *
  * Tests for components/charts/indicator-toggles.tsx
  * UI component for toggling chart indicators with tier access control
  *
- * Part 9: Charts & Visualization - PRO Indicators Implementation
+ * Part 9: Charts & Visualization - Updated for 57-column database schema
  */
 
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from '@jest/globals';
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
 
 // Mock next-auth
 const mockUseSession = jest.fn();
@@ -33,7 +33,7 @@ jest.mock('next/link', () => {
 // Import after mocks
 import { IndicatorToggles } from '@/components/charts/indicator-toggles';
 
-describe('IndicatorToggles Component', () => {
+describe('IndicatorToggles Component - 57-Column Schema', () => {
   const mockOnToggle = jest.fn();
 
   beforeEach(() => {
@@ -82,7 +82,7 @@ describe('IndicatorToggles Component', () => {
       expect(screen.getByText('Pro Indicators')).toBeInTheDocument();
     });
 
-    it('should render basic indicators (Fractals, Trendlines)', () => {
+    it('should render FREE tier indicators', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -90,8 +90,11 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      expect(screen.getByText('Fractals')).toBeInTheDocument();
-      expect(screen.getByText('Trendlines')).toBeInTheDocument();
+      // FREE tier indicators (2 groups)
+      expect(screen.getByText('Fractal Diagonal Lines')).toBeInTheDocument();
+      expect(
+        screen.getByText('Fractal Horizontal Lines')
+      ).toBeInTheDocument();
     });
 
     it('should render PRO indicators', () => {
@@ -102,12 +105,15 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      expect(screen.getByText('Momentum Candles')).toBeInTheDocument();
+      // PRO tier indicators (6 groups)
+      expect(
+        screen.getByText('Moving Averages (TEMA/HRMA/SMMA)')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Body Size Momentum')).toBeInTheDocument();
+      expect(screen.getByText('Heiken Ashi')).toBeInTheDocument();
       expect(screen.getByText('Keltner Channels')).toBeInTheDocument();
-      expect(screen.getByText('TEMA')).toBeInTheDocument();
-      expect(screen.getByText('HRMA')).toBeInTheDocument();
-      expect(screen.getByText('SMMA')).toBeInTheDocument();
-      expect(screen.getByText('ZigZag')).toBeInTheDocument();
+      expect(screen.getByText('Support & Resistance')).toBeInTheDocument();
+      expect(screen.getByText('ZigZag + EMA')).toBeInTheDocument();
     });
   });
 
@@ -149,7 +155,7 @@ describe('IndicatorToggles Component', () => {
       expect(screen.getByText('PRO')).toBeInTheDocument();
     });
 
-    it('should allow toggling basic indicators', () => {
+    it('should allow toggling FREE tier indicators', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -157,12 +163,26 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const fractalsCheckbox = screen.getByRole('checkbox', {
-        name: /fractals/i,
+      // FREE users can toggle FREE tier indicators
+      const fractalDiagCheckbox = screen.getByRole('checkbox', {
+        name: /fractal diagonal lines/i,
       });
-      fireEvent.click(fractalsCheckbox);
+      expect(fractalDiagCheckbox).not.toBeDisabled();
+    });
 
-      expect(mockOnToggle).toHaveBeenCalledWith('fractals');
+    it('should not allow toggling PRO indicators when FREE', () => {
+      render(
+        <IndicatorToggles
+          selectedIndicators={[]}
+          onIndicatorToggle={mockOnToggle}
+        />
+      );
+
+      // PRO indicators should be disabled for FREE users
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      expect(movingAvgCheckbox).toBeDisabled();
     });
 
     it('should not call onToggle for PRO indicators when FREE', () => {
@@ -174,11 +194,13 @@ describe('IndicatorToggles Component', () => {
       );
 
       // Find a PRO indicator checkbox (should be disabled)
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      fireEvent.click(temaCheckbox);
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      fireEvent.click(movingAvgCheckbox);
 
       // Should not be called because indicator is locked
-      expect(mockOnToggle).not.toHaveBeenCalledWith('tema');
+      expect(mockOnToggle).not.toHaveBeenCalledWith('moving_averages');
     });
 
     it('should have disabled checkboxes for PRO indicators', () => {
@@ -189,8 +211,10 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      expect(temaCheckbox).toBeDisabled();
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      expect(movingAvgCheckbox).toBeDisabled();
     });
   });
 
@@ -227,10 +251,12 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      fireEvent.click(temaCheckbox);
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
+      });
+      fireEvent.click(movingAvgCheckbox);
 
-      expect(mockOnToggle).toHaveBeenCalledWith('tema');
+      expect(mockOnToggle).toHaveBeenCalledWith('moving_averages');
     });
 
     it('should have enabled checkboxes for all indicators', () => {
@@ -261,20 +287,24 @@ describe('IndicatorToggles Component', () => {
 
       render(
         <IndicatorToggles
-          selectedIndicators={['fractals', 'tema']}
+          selectedIndicators={['moving_averages', 'zigzag']}
           onIndicatorToggle={mockOnToggle}
         />
       );
 
-      const fractalsCheckbox = screen.getByRole('checkbox', {
-        name: /fractals/i,
+      const movingAvgCheckbox = screen.getByRole('checkbox', {
+        name: /moving averages/i,
       });
-      const temaCheckbox = screen.getByRole('checkbox', { name: /tema/i });
-      const hrmaCheckbox = screen.getByRole('checkbox', { name: /hrma/i });
+      const zigzagCheckbox = screen.getByRole('checkbox', {
+        name: /zigzag/i,
+      });
+      const keltnerCheckbox = screen.getByRole('checkbox', {
+        name: /keltner channels/i,
+      });
 
-      expect(fractalsCheckbox).toBeChecked();
-      expect(temaCheckbox).toBeChecked();
-      expect(hrmaCheckbox).not.toBeChecked();
+      expect(movingAvgCheckbox).toBeChecked();
+      expect(zigzagCheckbox).toBeChecked();
+      expect(keltnerCheckbox).not.toBeChecked();
     });
   });
 
@@ -283,25 +313,6 @@ describe('IndicatorToggles Component', () => {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   describe('collapsible sections', () => {
-    it('should toggle basic section visibility', () => {
-      render(
-        <IndicatorToggles
-          selectedIndicators={[]}
-          onIndicatorToggle={mockOnToggle}
-        />
-      );
-
-      // Initially expanded - Fractals should be visible
-      expect(screen.getByText('Fractals')).toBeVisible();
-
-      // Click Basic header to collapse
-      const basicHeader = screen.getByText('Basic');
-      fireEvent.click(basicHeader);
-
-      // Content might still be in DOM but hidden via CSS
-      // For this test, we verify the click handler works
-    });
-
     it('should toggle PRO section visibility', () => {
       render(
         <IndicatorToggles
@@ -310,8 +321,8 @@ describe('IndicatorToggles Component', () => {
         />
       );
 
-      // Initially expanded
-      expect(screen.getByText('Momentum Candles')).toBeVisible();
+      // Initially expanded - check for a PRO indicator
+      expect(screen.getByText('Body Size Momentum')).toBeVisible();
 
       // Click Pro Indicators header to collapse
       const proHeader = screen.getByText('Pro Indicators');

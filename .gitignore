@@ -174,4 +174,6 @@ start-aider-anthropic.bat
 stripe.exe
 test-minimax-api.bat
 test-minimax-api.py
-staging-credentials.txtfrontend/next-env.d.ts
+staging-credentials.txt
+seed-code/better-auth/
+seed-code/ai-chatbot/

@@ -7,7 +7,7 @@
  * @see docs/sqlite-and-mt5service/part-20-architecture-design.md Section 7.3
  */
 
-import { getRedisClient, isRedisConnected } from '@/lib/redis/client';
+import { getRedisClient, isRedisConnected, getRedisStatus } from '@/lib/redis/client';
 
 /**
  * Default cache TTL in seconds (30 seconds to match sync interval)
@@ -18,6 +18,43 @@ export const CACHE_TTL = 30;
  * Cache key prefix for indicator data
  */
 export const CACHE_PREFIX = 'indicators';
+
+/**
+ * Ensure Redis connection is ready before operations
+ * Handles reconnection if connection is closed
+ *
+ * @returns true if Redis is ready, false otherwise
+ */
+async function ensureRedisReady(): Promise<boolean> {
+  try {
+    const { connected, status } = getRedisStatus();
+
+    // If already ready, return immediately
+    if (connected && status === 'ready') {
+      return true;
+    }
+
+    // If connecting, wait briefly and retry
+    if (status === 'connecting' || status === 'wait') {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const retryStatus = getRedisStatus();
+      return retryStatus.connected && retryStatus.status === 'ready';
+    }
+
+    // If closed or ended, attempt to reconnect
+    if (status === 'close' || status === 'end' || status === 'not_initialized') {
+      const redis = getRedisClient();
+      await redis.connect();
+      const newStatus = getRedisStatus();
+      return newStatus.connected && newStatus.status === 'ready';
+    }
+
+    return false;
+  } catch (error) {
+    console.error('[Redis] Connection check error:', error);
+    return false;
+  }
+}
 
 /**
  * Check if Redis is available
@@ -39,6 +76,12 @@ export async function isRedisAvailable(): Promise<boolean> {
  */
 export async function get<T>(key: string): Promise<T | null> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return null;
+    }
+
     const redis = getRedisClient();
     const value = await redis.get(key);
 
@@ -66,6 +109,12 @@ export async function set(
   ttl: number = CACHE_TTL
 ): Promise<void> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return;
+    }
+
     const redis = getRedisClient();
     const serialized = JSON.stringify(value);
     await redis.setex(key, ttl, serialized);
@@ -82,6 +131,12 @@ export async function set(
  */
 export async function del(key: string): Promise<void> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return;
+    }
+
     const redis = getRedisClient();
     await redis.del(key);
   } catch (error) {
@@ -97,6 +152,12 @@ export async function del(key: string): Promise<void> {
  */
 export async function invalidatePattern(pattern: string): Promise<number> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return 0;
+    }
+
     const redis = getRedisClient();
     const keys = await redis.keys(pattern);
 
@@ -120,6 +181,12 @@ export async function invalidatePattern(pattern: string): Promise<number> {
  */
 export async function keys(pattern: string): Promise<string[]> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return [];
+    }
+
     const redis = getRedisClient();
     return await redis.keys(pattern);
   } catch (error) {
@@ -136,6 +203,12 @@ export async function getMemoryInfo(): Promise<{
   usedMemoryPeak: string;
 } | null> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return null;
+    }
+
     const redis = getRedisClient();
     const info = await redis.info('memory');
 
@@ -157,6 +230,12 @@ export async function getMemoryInfo(): Promise<{
  */
 export async function getKeyCount(): Promise<number> {
   try {
+    // Check if Redis is ready before operation
+    const isReady = await ensureRedisReady();
+    if (!isReady) {
+      return 0;
+    }
+
     const redis = getRedisClient();
     return await redis.dbsize();
   } catch (error) {

@@ -31,7 +31,23 @@ services:
       timeout: 3s
       retries: 5
 
-  # Flask MT5 Service
+  # ============================================================================
+  # Flask MT5 Service (Part 6)
+  # ============================================================================
+  # ⚠️  IMPORTANT: LOCAL DEVELOPMENT ONLY
+  #
+  # This service is for LOCAL TESTING on Linux/Mac only.
+  # Docker containers CANNOT access Windows MT5 terminals.
+  #
+  # For PRODUCTION on Contabo Windows VPS:
+  # - Run Flask service NATIVELY on Windows (no Docker)
+  # - See: docs/deployment/contabo-windows-setup.md
+  #
+  # The MetaTrader5 Python package requires:
+  # - Windows OS
+  # - Direct access to MT5 terminal processes (Windows COM API)
+  # - Not available in Linux Docker containers
+  # ============================================================================
   mt5-service:
     build:
       context: ./mt5-service
@@ -39,9 +55,10 @@ services:
     ports:
       - '5001:5001'
     environment:
-      - FLASK_ENV=production
+      - FLASK_ENV=development  # Changed from production
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/trading_alerts
       - REDIS_URL=redis://redis:6379
+      - USE_MOCK_MT5=true  # Use mock data in Docker (no real MT5 access)
     volumes:
       - ./mt5-service:/app
     depends_on:
@@ -55,6 +72,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    # Note: This container uses MOCK MT5 data for local testing
+    # Real MT5 integration requires native Windows deployment
 
   # Next.js Frontend
   web:

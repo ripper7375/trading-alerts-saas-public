@@ -19,9 +19,9 @@ export type { Tier };
 // =============================================
 
 /**
- * Comprehensive tier limits based on tier specifications
- * FREE: 5 alerts, 1 watchlist/5 items, 60 req/hour, basic indicators
- * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all indicators
+ * Comprehensive tier limits based on tier specifications and 57-column schema
+ * FREE: 5 alerts, 1 watchlist/5 items, 60 req/hour, 2 FREE indicators (16 columns)
+ * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all 8 indicators (49 columns)
  */
 export const TIER_LIMITS = {
   FREE: {
@@ -32,7 +32,7 @@ export const TIER_LIMITS = {
     symbols: FREE_SYMBOLS,
     timeframes: FREE_TIMEFRAMES,
     chartCombinations: 15, // 5 × 3
-    indicators: ['fractals', 'trendlines'] as const,
+    indicators: ['fractal_diagonal', 'fractal_horizontal'] as const,
   },
   PRO: {
     maxAlerts: 20,
@@ -43,13 +43,13 @@ export const TIER_LIMITS = {
     timeframes: PRO_TIMEFRAMES,
     chartCombinations: 135, // 15 × 9
     indicators: [
-      'fractals',
-      'trendlines',
-      'momentum_candles',
+      'fractal_diagonal',
+      'fractal_horizontal',
+      'moving_averages',
+      'body_momentum',
+      'heiken_ashi',
       'keltner_channels',
-      'tema',
-      'hrma',
-      'smma',
+      'support_resistance',
       'zigzag',
     ] as const,
   },

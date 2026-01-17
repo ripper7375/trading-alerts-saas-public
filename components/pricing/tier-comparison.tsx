@@ -32,7 +32,7 @@ export function TierComparison(): React.ReactElement {
             <th className="p-4 text-center font-semibold text-gray-900 dark:text-white">
               Free
             </th>
-            <th className="p-4 text-center bg-blue-50 dark:bg-blue-900/30 font-semibold text-gray-900 dark:text-white">
+            <th className="bg-blue-50 p-4 text-center font-semibold text-gray-900 dark:bg-blue-900/30 dark:text-white">
               Pro
             </th>
           </tr>
@@ -44,15 +44,15 @@ export function TierComparison(): React.ReactElement {
               Trading Symbols
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
                 5
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 BTCUSD, EURUSD, USDJPY, US30, XAUUSD
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 15
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -68,15 +68,15 @@ export function TierComparison(): React.ReactElement {
               Timeframes
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
                 3
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 H1, H4, D1
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 9
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -91,15 +91,15 @@ export function TierComparison(): React.ReactElement {
               Chart Combinations
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
                 15
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 5 symbols × 3 timeframes
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 135
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -114,12 +114,12 @@ export function TierComparison(): React.ReactElement {
               Trading Alerts
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
                 5
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 20
               </div>
             </td>
@@ -131,15 +131,15 @@ export function TierComparison(): React.ReactElement {
               Watchlists
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
                 1
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 Max 5 items
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 5
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -154,19 +154,19 @@ export function TierComparison(): React.ReactElement {
               Technical Indicators
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
-                2
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
+                0
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Fractals, Trendlines
+                No indicators
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
-                8
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                6
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                + Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag
+                Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag
               </div>
             </td>
           </tr>
@@ -177,15 +177,15 @@ export function TierComparison(): React.ReactElement {
               API Rate Limit
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-lg text-gray-900 dark:text-white">
+              <div className="text-lg font-bold text-gray-900 dark:text-white">
                 60/hour
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 1 per minute avg
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 300/hour
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -202,7 +202,7 @@ export function TierComparison(): React.ReactElement {
             <td className="p-4 text-center text-red-500">
               <span className="text-xl">✗</span>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30 text-green-600">
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
               <span className="text-xl">✓</span>
             </td>
           </tr>
@@ -215,7 +215,7 @@ export function TierComparison(): React.ReactElement {
             <td className="p-4 text-center text-red-500">
               <span className="text-xl">✗</span>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30 text-green-600">
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
               <span className="text-xl">✓</span>
             </td>
           </tr>
@@ -228,7 +228,7 @@ export function TierComparison(): React.ReactElement {
             <td className="p-4 text-center text-red-500">
               <span className="text-xl">✗</span>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30 text-green-600">
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
               <span className="text-xl">✓</span>
             </td>
           </tr>
@@ -241,7 +241,7 @@ export function TierComparison(): React.ReactElement {
             <td className="p-4 text-center text-red-500">
               <span className="text-xl">✗</span>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30 text-green-600">
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
               <span className="text-xl">✓</span>
             </td>
           </tr>
@@ -252,24 +252,24 @@ export function TierComparison(): React.ReactElement {
               Price
             </td>
             <td className="p-4 text-center">
-              <div className="font-bold text-2xl text-gray-900 dark:text-white">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 $0
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 Free Forever
               </div>
             </td>
-            <td className="p-4 text-center bg-blue-50 dark:bg-blue-900/30">
-              <div className="font-bold text-2xl text-blue-600 dark:text-blue-400">
+            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 ${regularPrice}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 per month
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
+              <div className="mt-1 text-sm font-medium text-blue-600 dark:text-blue-400">
                 or ${yearlyPrice}/year (save ${yearlySavings})
               </div>
-              <div className="text-sm text-green-600 dark:text-green-400 font-medium mt-1">
+              <div className="mt-1 text-sm font-medium text-green-600 dark:text-green-400">
                 7-day free trial
               </div>
             </td>
@@ -278,14 +278,14 @@ export function TierComparison(): React.ReactElement {
       </table>
 
       {/* CTA Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mt-6 justify-center">
+      <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row">
         <Link href="/register">
           <Button variant="outline" className="w-full sm:w-auto">
             Get Started Free
           </Button>
         </Link>
         <Link href="/pricing">
-          <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+          <Button className="w-full bg-blue-600 hover:bg-blue-700 sm:w-auto">
             Start 7-Day Free Trial
           </Button>
         </Link>

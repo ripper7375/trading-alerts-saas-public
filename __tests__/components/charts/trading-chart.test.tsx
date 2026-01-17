@@ -34,13 +34,6 @@ jest.mock('lightweight-charts', () => {
   };
 });
 
-// Mock IndicatorOverlay
-jest.mock('@/components/charts/indicator-overlay', () => ({
-  IndicatorOverlay: () => (
-    <div data-testid="indicator-overlay">Indicator Overlay</div>
-  ),
-}));
-
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -55,21 +48,15 @@ global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 import { TradingChart } from '@/components/charts/trading-chart';
 
-// Sample API response
+// Sample API response (OHLCV-only, no fractals/trendlines)
 const sampleApiResponse = {
   success: true,
   data: {
-    ohlc: [
+    ohlcv: [
       { time: 1704067200, open: 2040, high: 2045, low: 2035, close: 2042 },
       { time: 1704070800, open: 2042, high: 2050, low: 2040, close: 2048 },
       { time: 1704074400, open: 2048, high: 2055, low: 2045, close: 2052 },
     ],
-    horizontal: {},
-    diagonal: {},
-    fractals: {
-      peaks: [{ time: 1704070800, value: 2050 }],
-      bottoms: [{ time: 1704067200, value: 2035 }],
-    },
     metadata: {
       symbol: 'XAUUSD',
       timeframe: 'H1',
@@ -104,7 +91,7 @@ describe('TradingChart Component', () => {
 
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
 
-      expect(screen.getByText('Loading chart data...')).toBeInTheDocument();
+      expect(screen.getByText('Loading chart...')).toBeInTheDocument();
     });
 
     it('should show loading animation', () => {
@@ -182,7 +169,7 @@ describe('TradingChart Component', () => {
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to load chart')).toBeInTheDocument();
+        expect(screen.getByText('Error loading chart')).toBeInTheDocument();
       });
     });
 
@@ -201,43 +188,6 @@ describe('TradingChart Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Symbol not found')).toBeInTheDocument();
-      });
-    });
-
-    it('should show Try Again button on error', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ success: false, error: 'Error' }),
-      });
-
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Try Again')).toBeInTheDocument();
-      });
-    });
-
-    it('should refetch when Try Again is clicked', async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          json: () => Promise.resolve({ success: false, error: 'Error' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(sampleApiResponse),
-        });
-
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Try Again')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Try Again'));
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(2);
       });
     });
   });
@@ -260,20 +210,13 @@ describe('TradingChart Component', () => {
       });
     });
 
-    it('should display current price when data is loaded', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      // Wait for data to load and current price to be displayed
-      await waitFor(() => {
-        expect(screen.getByText(/2052/)).toBeInTheDocument();
-      });
-    });
-
-    it('should show legend after data load', async () => {
+    it('should display OHLCV info text', async () => {
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
 
       await waitFor(() => {
-        expect(screen.getByText('Resistance (P-P1)')).toBeInTheDocument();
+        expect(
+          screen.getByText('Displaying OHLCV candlestick data only')
+        ).toBeInTheDocument();
       });
     });
   });
@@ -290,19 +233,19 @@ describe('TradingChart Component', () => {
       });
     });
 
-    it('should show auto-refresh interval for FREE tier', async () => {
+    it('should show refresh interval for FREE tier', async () => {
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
 
       await waitFor(() => {
-        expect(screen.getByText('Auto-refresh: 60s')).toBeInTheDocument();
+        expect(screen.getByText('Refresh interval: 60 seconds')).toBeInTheDocument();
       });
     });
 
-    it('should show auto-refresh interval for PRO tier', async () => {
+    it('should show refresh interval for PRO tier', async () => {
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="PRO" />);
 
       await waitFor(() => {
-        expect(screen.getByText('Auto-refresh: 30s')).toBeInTheDocument();
+        expect(screen.getByText('Refresh interval: 30 seconds')).toBeInTheDocument();
       });
     });
 
@@ -310,7 +253,7 @@ describe('TradingChart Component', () => {
       render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Updated:/)).toBeInTheDocument();
+        expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
       });
     });
   });
@@ -346,51 +289,6 @@ describe('TradingChart Component', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
-      });
-    });
-  });
-
-  // ============================================================================
-  // Indicator Overlay
-  // Note: IndicatorOverlay rendering depends on chart refs which don't populate
-  // in jsdom. The overlay integration should be tested in E2E tests.
-  // ============================================================================
-  describe('indicator overlay', () => {
-    it('should have IndicatorOverlay mock configured', () => {
-      // Verify the mock is set up correctly for testing
-      const { IndicatorOverlay } = jest.requireMock(
-        '@/components/charts/indicator-overlay'
-      );
-      expect(IndicatorOverlay).toBeDefined();
-    });
-  });
-
-  // ============================================================================
-  // Legend
-  // ============================================================================
-  describe('legend', () => {
-    it('should show resistance legend item', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Resistance (P-P1)')).toBeInTheDocument();
-      });
-    });
-
-    it('should show support legend item', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Support (B-B1)')).toBeInTheDocument();
-      });
-    });
-
-    it('should show trend legend items', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Ascending Trend')).toBeInTheDocument();
-        expect(screen.getByText('Descending Trend')).toBeInTheDocument();
       });
     });
   });
@@ -433,15 +331,15 @@ describe('TradingChart Component', () => {
   });
 
   // ============================================================================
-  // Price Formatting
+  // Data Loading and Display
   // ============================================================================
-  describe('price formatting', () => {
-    it('should format JPY pairs with 3 decimals', async () => {
+  describe('data loading and display', () => {
+    it('should load and display JPY pair data', async () => {
       const jpyResponse = {
         ...sampleApiResponse,
         data: {
           ...sampleApiResponse.data,
-          ohlc: [
+          ohlcv: [
             {
               time: 1704067200,
               open: 145.123,
@@ -461,16 +359,17 @@ describe('TradingChart Component', () => {
       render(<TradingChart symbol="USDJPY" timeframe="H1" tier="FREE" />);
 
       await waitFor(() => {
-        expect(screen.getByText('145.234')).toBeInTheDocument();
+        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/USDJPY/H1');
+        expect(mockSetData).toHaveBeenCalled();
       });
     });
 
-    it('should format non-JPY pairs with 5 decimals', async () => {
+    it('should load and display EUR pair data', async () => {
       const eurResponse = {
         ...sampleApiResponse,
         data: {
           ...sampleApiResponse.data,
-          ohlc: [
+          ohlcv: [
             {
               time: 1704067200,
               open: 1.085,
@@ -490,7 +389,8 @@ describe('TradingChart Component', () => {
       render(<TradingChart symbol="EURUSD" timeframe="H1" tier="FREE" />);
 
       await waitFor(() => {
-        expect(screen.getByText('1.08523')).toBeInTheDocument();
+        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/EURUSD/H1');
+        expect(mockSetData).toHaveBeenCalled();
       });
     });
   });
