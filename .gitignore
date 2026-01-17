@@ -174,4 +174,4 @@ start-aider-anthropic.bat
 stripe.exe
 test-minimax-api.bat
 test-minimax-api.py
-staging-credentials.txt
+staging-credentials.txtfrontend/next-env.d.ts
