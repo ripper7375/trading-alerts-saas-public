@@ -175,4 +175,4 @@ stripe.exe
 test-minimax-api.bat
 test-minimax-api.py
 staging-credentials.txt
-better-auth/
+seed-code/better-auth/
