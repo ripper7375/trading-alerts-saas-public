@@ -280,5 +280,3 @@ Step 5 (Future - Nest.js on Railway):
 
 Migration is seamless - just change one environment variable! ✅
 */
-
-export { testCurrentAPIRoutes };

@@ -66,6 +66,8 @@ export default function ApiTestPage() {
     } catch (error) {
       if (error instanceof Error) {
         addResult(`Error: ${error.message}`, 'error');
+      } else {
+        addResult('An unknown error occurred', 'error');
       }
     } finally {
       setLoading(false);
@@ -103,6 +105,8 @@ export default function ApiTestPage() {
     } catch (error) {
       if (error instanceof Error) {
         addResult(`Error: ${error.message}`, 'error');
+      } else {
+        addResult('An unknown error occurred', 'error');
       }
     } finally {
       setLoading(false);
