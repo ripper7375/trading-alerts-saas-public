@@ -97,7 +97,20 @@ export async function del(key: string): Promise<void> {
  */
 export async function invalidatePattern(pattern: string): Promise<number> {
   try {
+    // Check if Redis is available before attempting operations
+    if (!(await isRedisAvailable())) {
+      console.warn('[Redis] Unavailable during invalidatePattern, skipping');
+      return 0;
+    }
+
     const redis = getRedisClient();
+
+    // Additional connection state check for ioredis
+    if (redis.status && redis.status === 'end') {
+      console.warn('[Redis] Connection is closed, skipping invalidation');
+      return 0;
+    }
+
     const keys = await redis.keys(pattern);
 
     if (keys.length === 0) {
@@ -106,7 +119,12 @@ export async function invalidatePattern(pattern: string): Promise<number> {
 
     await redis.del(...keys);
     return keys.length;
-  } catch (error) {
+  } catch (error: any) {
+    // Gracefully handle connection errors
+    if (error?.message?.includes('Connection is closed')) {
+      console.warn('[Redis] Invalidate pattern suppressed: Redis connection closed');
+      return 0;
+    }
     console.error('[Redis] Invalidate pattern error:', error);
     return 0;
   }

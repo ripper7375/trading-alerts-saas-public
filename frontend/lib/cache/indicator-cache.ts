@@ -374,11 +374,24 @@ export async function invalidateSymbolCache(symbol: string): Promise<void> {
  * Clear all cached indicator data
  */
 export async function clearAllCache(): Promise<number> {
-  const pattern = getCachePattern();
-  const count = await redis.invalidatePattern(pattern);
-  cacheSize = 0;
-  console.log(`[IndicatorCache] CLEARED: ${count} keys`);
-  return count;
+  try {
+    // Skip cache clearing if Redis is unavailable
+    if (!(await redis.isRedisAvailable())) {
+      console.warn('[Cache] clearAllCache skipped: Redis unavailable');
+      cacheSize = 0;
+      return 0;
+    }
+
+    const pattern = getCachePattern();
+    const count = await redis.invalidatePattern(pattern);
+    cacheSize = 0;
+    console.log(`[IndicatorCache] CLEARED: ${count} keys`);
+    return count;
+  } catch (error) {
+    console.error('[Cache] Error clearing cache:', error);
+    cacheSize = 0;
+    return 0;
+  }
 }
 
 /**
