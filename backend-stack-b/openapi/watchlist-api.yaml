@@ -1,0 +1,396 @@
+openapi: 3.0.0
+info:
+  title: Backend Stack B - Watchlist API (Part 10)
+  version: 1.0.0
+  description: |
+    Async watchlist system for managing user symbol/timeframe combinations.
+    This API handles CRUD operations for watchlist items with real-time updates.
+
+servers:
+  - url: https://trading-alerts-stack-b.railway.app
+    description: Production (Railway Container B)
+  - url: http://localhost:3002
+    description: Local Development
+
+paths:
+  /watchlist:
+    get:
+      summary: Get user watchlist
+      description: Retrieve all watchlist items for the authenticated user
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [createdAt, symbol, timeframe]
+            default: createdAt
+          description: Sort order for watchlist items
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Watchlist items retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  watchlist:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WatchlistItem'
+                  total:
+                    type: integer
+                  metadata:
+                    type: object
+                    properties:
+                      maxItems:
+                        type: integer
+                        description: Maximum watchlist items for user's tier
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      summary: Add item to watchlist
+      description: Add a new symbol/timeframe combination to user's watchlist
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWatchlistRequest'
+      responses:
+        '201':
+          description: Watchlist item created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Tier limit reached or symbol/timeframe not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: [TIER_LIMIT_REACHED, SYMBOL_NOT_ALLOWED, TIMEFRAME_NOT_ALLOWED]
+        '409':
+          description: Item already in watchlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  existingId:
+                    type: string
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /watchlist/{id}:
+    get:
+      summary: Get watchlist item by ID
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Watchlist item found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Remove item from watchlist
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /watchlist/reorder:
+    post:
+      summary: Reorder watchlist items
+      description: Update the display order of watchlist items
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order
+              properties:
+                order:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of watchlist item IDs in desired order
+      responses:
+        '200':
+          description: Order updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /watchlist/bulk:
+    post:
+      summary: Bulk add to watchlist
+      description: Add multiple items to watchlist in one request
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateWatchlistRequest'
+      responses:
+        '201':
+          description: Bulk operation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WatchlistItem'
+                  skipped:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        timeframe:
+                          type: string
+                        reason:
+                          type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: Bulk remove from watchlist
+      tags:
+        - Watchlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ids
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Items removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+                  ids:
+                    type: array
+                    items:
+                      type: string
+
+components:
+  schemas:
+    WatchlistItem:
+      type: object
+      required:
+        - id
+        - userId
+        - symbol
+        - timeframe
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        order:
+          type: integer
+          description: Display order (0-indexed)
+        notes:
+          type: string
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateWatchlistRequest:
+      type: object
+      required:
+        - symbol
+        - timeframe
+      properties:
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        notes:
+          type: string
+          maxLength: 500
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              validationErrors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Watchlist item not found
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Internal server error
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from NextAuth session

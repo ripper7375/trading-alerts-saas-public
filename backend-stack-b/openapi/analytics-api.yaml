@@ -1,0 +1,589 @@
+openapi: 3.0.0
+info:
+  title: Backend Stack B - Analytics API (Parts 22 & 23)
+  version: 1.0.0
+  description: |
+    Confluence scores computation, analysis, and symbol/timeframe leader board.
+    Part 22: Confluence Scores Computation and Analysis
+    Part 23: Symbols/Timeframes Leader Board
+
+servers:
+  - url: https://trading-alerts-stack-b.railway.app
+    description: Production (Railway Container B)
+  - url: http://localhost:3002
+    description: Local Development
+
+paths:
+  /confluence/{symbol}:
+    get:
+      summary: Get confluence scores for symbol
+      description: Retrieve computed confluence scores across all timeframes for a symbol
+      tags:
+        - Confluence Analysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+          example: XAUUSD
+        - in: query
+          name: timeframes
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+          description: Filter specific timeframes
+      responses:
+        '200':
+          description: Confluence scores retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceScores'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Symbol not allowed for user's tier
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /confluence/{symbol}/{timeframe}:
+    get:
+      summary: Get confluence score for specific symbol/timeframe
+      tags:
+        - Confluence Analysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: timeframe
+          required: true
+          schema:
+            type: string
+            enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+      responses:
+        '200':
+          description: Confluence score retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfluenceScore'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Symbol/timeframe not allowed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /confluence/{symbol}/history:
+    get:
+      summary: Get historical confluence scores
+      description: Retrieve historical confluence score data for analysis
+      tags:
+        - Confluence Analysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: timeframe
+          required: true
+          schema:
+            type: string
+            enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: Historical scores retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbol:
+                    type: string
+                  timeframe:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConfluenceScore'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leaderboard:
+    get:
+      summary: Get overall leader board
+      description: Get top performing symbols across all timeframes
+      tags:
+        - Leader Board
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: metric
+          schema:
+            type: string
+            enum: [confluence, volatility, momentum, volume]
+            default: confluence
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: allowedOnly
+          schema:
+            type: boolean
+            default: true
+          description: Only show symbols allowed for user's tier
+      responses:
+        '200':
+          description: Leader board retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderBoard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /leaderboard/{timeframe}:
+    get:
+      summary: Get leader board for specific timeframe
+      tags:
+        - Leader Board
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: timeframe
+          required: true
+          schema:
+            type: string
+            enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        - in: query
+          name: metric
+          schema:
+            type: string
+            enum: [confluence, volatility, momentum, volume]
+            default: confluence
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Timeframe leader board retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderBoard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Timeframe not allowed for user's tier
+
+  /leaderboard/symbol/{symbol}:
+    get:
+      summary: Get symbol ranking across timeframes
+      description: See how a symbol ranks in different timeframes
+      tags:
+        - Leader Board
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: symbol
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: metric
+          schema:
+            type: string
+            enum: [confluence, volatility, momentum, volume]
+            default: confluence
+      responses:
+        '200':
+          description: Symbol rankings retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbol:
+                    type: string
+                  rankings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timeframe:
+                          type: string
+                        rank:
+                          type: integer
+                        score:
+                          type: number
+                        total:
+                          type: integer
+                          description: Total symbols in this timeframe
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/market-overview:
+    get:
+      summary: Get market overview analytics
+      description: High-level market sentiment and statistics
+      tags:
+        - Analytics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Market overview retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  summary:
+                    type: object
+                    properties:
+                      bullishCount:
+                        type: integer
+                      bearishCount:
+                        type: integer
+                      neutralCount:
+                        type: integer
+                      totalSymbols:
+                        type: integer
+                  topMovers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        change:
+                          type: number
+                        timeframe:
+                          type: string
+                  hotSymbols:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        confluenceScore:
+                          type: number
+                        reason:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/compute/trigger:
+    post:
+      summary: Trigger manual confluence computation
+      description: Manually trigger confluence score computation (admin/Pro users only)
+      tags:
+        - Analytics
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                symbols:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific symbols to compute (empty = all)
+                timeframes:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific timeframes (empty = all)
+      responses:
+        '202':
+          description: Computation job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+                  estimatedDuration:
+                    type: integer
+                    description: Estimated time in seconds
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: User tier not authorized for manual computation
+
+  /analytics/jobs/{jobId}:
+    get:
+      summary: Get computation job status
+      tags:
+        - Analytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, processing, completed, failed]
+                  progress:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                  startedAt:
+                    type: string
+                    format: date-time
+                  completedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  results:
+                    type: object
+                    nullable: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    ConfluenceScores:
+      type: object
+      properties:
+        symbol:
+          type: string
+          example: XAUUSD
+        computedAt:
+          type: string
+          format: date-time
+        scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfluenceScore'
+        summary:
+          type: object
+          properties:
+            averageScore:
+              type: number
+            maxScore:
+              type: number
+            maxTimeframe:
+              type: string
+            trend:
+              type: string
+              enum: [bullish, bearish, neutral]
+
+    ConfluenceScore:
+      type: object
+      required:
+        - symbol
+        - timeframe
+        - score
+        - computedAt
+      properties:
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        score:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: Confluence score (0-100)
+        components:
+          type: object
+          description: Individual component scores
+          properties:
+            fractal:
+              type: number
+              description: Fractal pattern score
+            supportResistance:
+              type: number
+              description: Support/resistance score
+            momentum:
+              type: number
+              description: Momentum indicators score
+            volume:
+              type: number
+              description: Volume analysis score
+            trendStrength:
+              type: number
+              description: Trend strength score
+        direction:
+          type: string
+          enum: [bullish, bearish, neutral]
+        confidence:
+          type: string
+          enum: [low, medium, high, very_high]
+        keyLevels:
+          type: object
+          properties:
+            support:
+              type: array
+              items:
+                type: number
+            resistance:
+              type: array
+              items:
+                type: number
+        computedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          description: When this score should be recomputed
+
+    LeaderBoard:
+      type: object
+      properties:
+        metric:
+          type: string
+          enum: [confluence, volatility, momentum, volume]
+        timeframe:
+          type: string
+          nullable: true
+          description: Specific timeframe or null for overall
+        computedAt:
+          type: string
+          format: date-time
+        leaders:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderBoardEntry'
+        metadata:
+          type: object
+          properties:
+            totalSymbols:
+              type: integer
+            updateFrequency:
+              type: string
+              description: How often leader board updates
+            nextUpdate:
+              type: string
+              format: date-time
+
+    LeaderBoardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        symbol:
+          type: string
+        timeframe:
+          type: string
+          nullable: true
+        score:
+          type: number
+        direction:
+          type: string
+          enum: [bullish, bearish, neutral]
+        change24h:
+          type: number
+          description: Score change in last 24 hours
+        previousRank:
+          type: integer
+          nullable: true
+        isAllowed:
+          type: boolean
+          description: Whether this symbol is allowed for user's tier
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
