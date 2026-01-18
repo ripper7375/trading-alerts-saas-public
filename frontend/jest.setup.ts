@@ -8,8 +8,8 @@
 // Polyfill clearImmediate for jsdom environment
 // undici uses clearImmediate which is a Node.js global, not implemented in jsdom
 if (typeof global.clearImmediate === 'undefined') {
-  global.clearImmediate = function (id: NodeJS.Timeout) {
-    return clearTimeout(id);
+  global.clearImmediate = function (immediate?: any) {
+    return clearTimeout(immediate);
   };
 }
 
