@@ -15,15 +15,18 @@ if (typeof global.clearImmediate === 'undefined') {
 
 // Polyfill setImmediate for jsdom environment
 if (typeof global.setImmediate === 'undefined') {
-  global.setImmediate = function (callback: (...args: any[]) => void, ...args: any[]) {
-    return setTimeout(callback, 0, ...args);
-  };
+  global.setImmediate = Object.assign(
+    function (callback: (...args: any[]) => void, ...args: any[]) {
+      return setTimeout(callback, 0, ...args);
+    },
+    { __promisify__: undefined }
+  );
 }
 
 // Mock markResourceTiming for undici compatibility
 // undici calls performance.markResourceTiming which doesn't exist in jsdom
-if (typeof global.performance !== 'undefined' && typeof global.performance.markResourceTiming === 'undefined') {
-  global.performance.markResourceTiming = function () {
+if (typeof global.performance !== 'undefined' && typeof (global.performance as any).markResourceTiming === 'undefined') {
+  (global.performance as any).markResourceTiming = function () {
     // No-op mock
   };
 }
