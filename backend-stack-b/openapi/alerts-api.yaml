@@ -1,0 +1,531 @@
+openapi: 3.0.0
+info:
+  title: Backend Stack B - Alerts API (Part 11)
+  version: 1.0.0
+  description: |
+    Async alert checking system with real-time notifications.
+    Handles alert creation, management, and background checking via message queue.
+
+servers:
+  - url: https://trading-alerts-stack-b.railway.app
+    description: Production (Railway Container B)
+  - url: http://localhost:3002
+    description: Local Development
+
+paths:
+  /alerts:
+    get:
+      summary: Get user alerts
+      description: Retrieve all alerts for the authenticated user
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive, triggered, all]
+            default: active
+        - in: query
+          name: symbol
+          schema:
+            type: string
+          description: Filter by symbol
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+                  total:
+                    type: integer
+                  metadata:
+                    type: object
+                    properties:
+                      maxAlerts:
+                        type: integer
+                        description: Maximum alerts for user's tier
+                      activeCount:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      summary: Create new alert
+      description: Create a new price alert with conditions
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRequest'
+      responses:
+        '201':
+          description: Alert created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Tier limit reached or not allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: [TIER_LIMIT_REACHED, SYMBOL_NOT_ALLOWED, TIMEFRAME_NOT_ALLOWED]
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /alerts/{id}:
+    get:
+      summary: Get alert by ID
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update alert
+      description: Update alert configuration or status
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAlertRequest'
+      responses:
+        '200':
+          description: Alert updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete alert
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /alerts/{id}/toggle:
+    post:
+      summary: Toggle alert active status
+      description: Activate or deactivate an alert
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - active
+              properties:
+                active:
+                  type: boolean
+      responses:
+        '200':
+          description: Alert status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /alerts/history:
+    get:
+      summary: Get alert trigger history
+      description: Retrieve history of triggered alerts
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Alert history retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlertTrigger'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /alerts/test/{id}:
+    post:
+      summary: Test alert conditions
+      description: Test if alert would trigger with current market data
+      tags:
+        - Alerts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wouldTrigger:
+                    type: boolean
+                  currentPrice:
+                    type: number
+                  targetPrice:
+                    type: number
+                  condition:
+                    type: string
+                  evaluatedAt:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    Alert:
+      type: object
+      required:
+        - id
+        - userId
+        - symbol
+        - timeframe
+        - condition
+        - targetPrice
+        - active
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        condition:
+          type: string
+          enum: [above, below, crosses_above, crosses_below]
+          description: |
+            - above: Price is above target
+            - below: Price is below target
+            - crosses_above: Price crosses above target
+            - crosses_below: Price crosses below target
+        targetPrice:
+          type: number
+          format: double
+          example: 2000.50
+        active:
+          type: boolean
+          default: true
+        notificationChannels:
+          type: array
+          items:
+            type: string
+            enum: [email, push, sms]
+          default: [email]
+        message:
+          type: string
+          maxLength: 500
+          description: Custom message for alert notification
+        repeatInterval:
+          type: integer
+          nullable: true
+          description: Minutes to wait before re-triggering (null = trigger once)
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+        triggerCount:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateAlertRequest:
+      type: object
+      required:
+        - symbol
+        - timeframe
+        - condition
+        - targetPrice
+      properties:
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1]
+        condition:
+          type: string
+          enum: [above, below, crosses_above, crosses_below]
+        targetPrice:
+          type: number
+          format: double
+        notificationChannels:
+          type: array
+          items:
+            type: string
+            enum: [email, push, sms]
+          default: [email]
+        message:
+          type: string
+          maxLength: 500
+        repeatInterval:
+          type: integer
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    UpdateAlertRequest:
+      type: object
+      properties:
+        condition:
+          type: string
+          enum: [above, below, crosses_above, crosses_below]
+        targetPrice:
+          type: number
+          format: double
+        active:
+          type: boolean
+        notificationChannels:
+          type: array
+          items:
+            type: string
+            enum: [email, push, sms]
+        message:
+          type: string
+          maxLength: 500
+        repeatInterval:
+          type: integer
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AlertTrigger:
+      type: object
+      properties:
+        id:
+          type: string
+        alertId:
+          type: string
+        symbol:
+          type: string
+        timeframe:
+          type: string
+        condition:
+          type: string
+        targetPrice:
+          type: number
+        actualPrice:
+          type: number
+        message:
+          type: string
+        triggeredAt:
+          type: string
+          format: date-time
+        notificationsSent:
+          type: array
+          items:
+            type: string
+            enum: [email, push, sms]
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              validationErrors:
+                type: array
+                items:
+                  type: object
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
