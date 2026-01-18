@@ -13,9 +13,9 @@
 // ============================================================================
 
 export const TEST_ENV = {
-  STACK_A_URL: process.env.NEXT_PUBLIC_API_A_URL || 'http://localhost:3001',
-  STACK_B_URL: process.env.NEXT_PUBLIC_API_B_URL || 'http://localhost:3002',
-  STACK_C_URL: process.env.STACK_C_URL || 'http://localhost:5000', // Should NOT be accessible from frontend
+  STACK_A_URL: process.env['NEXT_PUBLIC_API_A_URL'] || 'http://localhost:3001',
+  STACK_B_URL: process.env['NEXT_PUBLIC_API_B_URL'] || 'http://localhost:3002',
+  STACK_C_URL: process.env['STACK_C_URL'] || 'http://localhost:5000', // Should NOT be accessible from frontend
 };
 
 // ============================================================================
@@ -104,7 +104,7 @@ export async function checkBackendHealth(
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      const data = await response.json();
+      await response.json(); // Consume response body
       return {
         available: true,
         message: `Backend at ${baseUrl} is healthy`,
@@ -230,7 +230,7 @@ export async function validateStackCInaccessible(): Promise<{
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
-    const response = await fetch(stackCUrl, {
+    await fetch(stackCUrl, {
       signal: controller.signal,
     });
 
