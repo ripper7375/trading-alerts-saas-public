@@ -5,11 +5,6 @@
  * Fixes compatibility issues with undici/jsdom environment
  */
 
-// Declare jest global (available at runtime in Jest environment)
-declare const jest: {
-  setTimeout(timeout: number): void;
-};
-
 // Polyfill clearImmediate for jsdom environment
 // undici uses clearImmediate which is a Node.js global, not implemented in jsdom
 if (typeof global.clearImmediate === 'undefined') {
@@ -37,4 +32,5 @@ if (typeof global.performance !== 'undefined' && typeof (global.performance as a
 }
 
 // Increase test timeout for integration tests (default is 5000ms)
-jest.setTimeout(15000);
+// jest global is available at runtime in Jest environment
+(global as any).jest?.setTimeout?.(15000);
