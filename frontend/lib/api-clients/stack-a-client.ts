@@ -8,11 +8,16 @@
  * - Admin Portal (Parts 12-14)
  * - Affiliate System (Part 17)
  * - Payment Integration (Part 19)
+ * - Market Data Gateway (proxies to Stack C - MT5 Python API)
+ *
+ * IMPORTANT: Both Stack A and Stack B can access Stack C for market data.
+ * Stack A fetches from Stack C, caches in Redis, and adds analytics.
  *
  * Multi-Backend Architecture - Simplified (2 backends)
  */
 
 import { BaseApiClient } from './base-client';
+import type { Timeframe } from '@/types/tier';
 
 // ============================================================================
 // Types - User & Profile
@@ -177,6 +182,84 @@ export interface Referral {
   status: 'pending' | 'active' | 'inactive';
   earnings: number;
   createdAt: string;
+}
+
+// ============================================================================
+// Types - Market Data (Proxied from Stack C)
+// ============================================================================
+
+export interface OHLCBar {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+}
+
+export interface HorizontalTrendlines {
+  peak_1: Array<{ time: number; price: number }>;
+  peak_2: Array<{ time: number; price: number }>;
+  peak_3: Array<{ time: number; price: number }>;
+  bottom_1: Array<{ time: number; price: number }>;
+  bottom_2: Array<{ time: number; price: number }>;
+  bottom_3: Array<{ time: number; price: number }>;
+}
+
+export interface DiagonalTrendlines {
+  ascending_1: Array<{
+    start_time: number;
+    end_time: number;
+    start_price: number;
+    end_price: number;
+  }>;
+  ascending_2: Array<{
+    start_time: number;
+    end_time: number;
+    start_price: number;
+    end_price: number;
+  }>;
+  ascending_3: Array<{
+    start_time: number;
+    end_time: number;
+    start_price: number;
+    end_price: number;
+  }>;
+  descending_1: Array<{
+    start_time: number;
+    end_time: number;
+    start_price: number;
+    end_price: number;
+  }>;
+  descending_2: Array<{
+    start_time: number;
+    end_time: number;
+    start_price: number;
+    end_price: number;
+  }>;
+  descending_3: Array<{
+    start_time: number;
+    end_time: number;
+    start_price: number;
+    end_price: number;
+  }>;
+}
+
+export interface FractalsData {
+  peaks: Array<{ time: number; price: number }>;
+  bottoms: Array<{ time: number; price: number }>;
+}
+
+export interface IndicatorData {
+  ohlc: OHLCBar[];
+  horizontal: HorizontalTrendlines;
+  diagonal: DiagonalTrendlines;
+  fractals: FractalsData;
+  metadata: {
+    symbol: string;
+    timeframe: Timeframe;
+    bars_returned: number;
+  };
 }
 
 // ============================================================================
@@ -460,5 +543,91 @@ export class StackAClient extends BaseApiClient {
     return this.post<{ success: boolean }>(
       `/payments/intents/${paymentIntentId}/confirm`
     );
+  }
+
+  // ==========================================================================
+  // MARKET DATA (Proxied from Stack C)
+  // ==========================================================================
+  // IMPORTANT: Both Stack A and Stack B can access Stack C for market data.
+  // Stack A fetches from Stack C (MT5 Python API), caches in Redis, and
+  // adds analytics before returning to frontend.
+  // ==========================================================================
+
+  /**
+   * Get candles (OHLC data) - Proxied from Stack C
+   *
+   * Stack A will:
+   * 1. Validate user's tier access to symbol/timeframe
+   * 2. Check cache (Redis) for recent data
+   * 3. If not cached, fetch from Stack C (MT5 Python API)
+   * 4. Cache result for 1 minute
+   * 5. Return to frontend
+   */
+  async getCandles(
+    symbol: string,
+    timeframe: Timeframe,
+    params?: {
+      startTime?: number;
+      endTime?: number;
+      limit?: number;
+    }
+  ): Promise<OHLCBar[]> {
+    return this.get<OHLCBar[]>(`/candles/${symbol}/${timeframe}`, params);
+  }
+
+  /**
+   * Get indicators (trendlines + fractals) - Proxied from Stack C
+   *
+   * Stack A will:
+   * 1. Validate tier access
+   * 2. Fetch from Stack C (MT5 Python API)
+   * 3. Add analytics and processing
+   * 4. Cache result
+   * 5. Return enriched data
+   */
+  async getIndicators(
+    symbol: string,
+    timeframe: Timeframe,
+    params?: {
+      bars?: number;
+    }
+  ): Promise<IndicatorData> {
+    return this.get<IndicatorData>(`/indicators/${symbol}/${timeframe}`, params);
+  }
+
+  /**
+   * Get available symbols - Proxied from Stack C
+   *
+   * Stack A will:
+   * 1. Fetch from Stack C
+   * 2. Filter by user's tier
+   * 3. Cache result
+   * 4. Return filtered symbols
+   */
+  async getSymbols(): Promise<{ symbols: string[] }> {
+    return this.get<{ symbols: string[] }>('/symbols');
+  }
+
+  /**
+   * Get available timeframes - Proxied from Stack C
+   *
+   * Stack A will:
+   * 1. Fetch from Stack C
+   * 2. Filter by user's tier
+   * 3. Cache result
+   * 4. Return filtered timeframes
+   */
+  async getTimeframes(): Promise<{ timeframes: Timeframe[] }> {
+    return this.get<{ timeframes: Timeframe[] }>('/timeframes');
+  }
+
+  /**
+   * Get market data health status - Proxied from Stack C
+   */
+  async getMarketDataHealth(): Promise<{
+    status: 'ok' | 'degraded' | 'error';
+    message?: string;
+  }> {
+    return this.get('/market-data/health');
   }
 }

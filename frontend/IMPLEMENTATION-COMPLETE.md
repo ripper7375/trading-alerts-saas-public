@@ -8,7 +8,14 @@
 
 ## 🎯 What Was Implemented
 
-The simplified multi-backend frontend architecture has been fully implemented based on the inter-stack communication matrix. The frontend now uses **only 2 API clients** instead of 3, with Stack B acting as a proxy/gateway to Stack C.
+The simplified multi-backend frontend architecture has been fully implemented based on the inter-stack communication matrix. The frontend now uses **only 2 API clients** instead of 3.
+
+**Architecture:**
+- Frontend → Stack A **AND** Stack B (both can handle requests)
+- **Both Stack A and Stack B** → Stack C (both fetch MT5 data, cache in Redis, add analytics)
+- Frontend CANNOT access Stack C directly (security)
+
+**Key Point:** Both Stack A and Stack B can proxy market data requests to Stack C, not just Stack B.
 
 ---
 
@@ -19,7 +26,7 @@ The simplified multi-backend frontend architecture has been fully implemented ba
 ```
 frontend/lib/api-clients/
 ├── base-client.ts          ← Base class with HTTP methods, error handling, auth
-├── stack-a-client.ts       ← Stack A: User, Auth, Billing, Admin, Affiliate, Payments
+├── stack-a-client.ts       ← Stack A: User, Auth, Billing, Admin, Affiliate, Payments, Market Data (proxy)
 ├── stack-b-client.ts       ← Stack B: Watchlist, Alerts, Notifications, Analytics, Market Data (proxy)
 └── index.ts                ← Unified export with `api.stackA` and `api.stackB`
 ```
@@ -336,18 +343,20 @@ try {
 
 ### **Additional Benefits:**
 
-✅ Stack C not exposed to internet (more secure)
-✅ Stack B caches market data (faster responses)
-✅ Stack B validates tier permissions (centralized access control)
-✅ Simpler CORS configuration
+✅ Frontend doesn't directly access Stack C (more secure)
+✅ Both Stack A and B cache market data in Redis (faster responses)
+✅ Both stacks validate tier permissions before accessing Stack C
+✅ Simpler CORS configuration (only 2 frontend clients)
 ✅ Easier testing and monitoring
 ✅ Better error handling at gateway level
 
 ---
 
-## 🔄 How Stack B Proxies to Stack C
+## 🔄 How Stack A and Stack B Proxy to Stack C
 
 ### **What Happens Behind the Scenes:**
+
+**Example using Stack B:**
 
 1. **Frontend calls:** `api.stackB.getCandles('EURUSD', 'H1')`
 2. **Request sent to:** `https://stack-b.railway.app/candles/EURUSD/H1`
@@ -356,12 +365,29 @@ try {
    - Checks user's tier permissions
    - Checks Redis cache for recent data
 4. **If not cached:**
-   - Stack B makes request to Stack C: `http://contabo-vps:5000/candles/EURUSD/H1`
+   - Stack B makes request to Stack C (MT5 Python API): `http://contabo-vps:5000/candles/EURUSD/H1`
    - Stack C returns market data
-   - Stack B caches result (TTL: 1 minute)
-5. **Stack B returns data to frontend**
+   - Stack B caches result in Redis (TTL: 1 minute)
+   - Stack B adds analytics
+5. **Stack B returns enriched data to frontend**
 
-**Frontend never knows Stack C exists!** ✅
+**Example using Stack A:**
+
+1. **Frontend calls:** `api.stackA.getCandles('EURUSD', 'H1')`
+2. **Request sent to:** `https://stack-a.railway.app/candles/EURUSD/H1`
+3. **Stack A receives request:**
+   - Validates JWT token
+   - Checks user's tier permissions
+   - Checks Redis cache for recent data
+4. **If not cached:**
+   - Stack A makes request to Stack C (MT5 Python API): `http://contabo-vps:5000/candles/EURUSD/H1`
+   - Stack C returns market data
+   - Stack A caches result in Redis (TTL: 1 minute)
+   - Stack A adds analytics
+5. **Stack A returns enriched data to frontend**
+
+**Frontend never directly accesses Stack C!** ✅
+**Both Stack A and Stack B can fetch market data from Stack C!** ✅
 
 ---
 
@@ -505,7 +531,7 @@ STACK_C_URL=http://contabo-vps:5000
 1. ✅ Complete multi-backend API client infrastructure
 2. ✅ Simplified 2-backend architecture (not 3)
 3. ✅ Base client with error handling, retries, and auth
-4. ✅ Stack A client (User, Auth, Billing, Admin, Affiliate, Payments)
+4. ✅ Stack A client (User, Auth, Billing, Admin, Affiliate, Payments, Market Data proxy)
 5. ✅ Stack B client (Watchlist, Alerts, Notifications, Analytics, Market Data proxy)
 6. ✅ Unified export for easy imports
 7. ✅ Environment variables configuration
@@ -516,9 +542,9 @@ STACK_C_URL=http://contabo-vps:5000
 
 - **~35% less complexity** compared to 3-backend architecture
 - **Only 2 environment variables** for backends
-- **Stack C not exposed** to internet (more secure)
-- **Stack B caches** market data (faster)
-- **Centralized tier validation** in Stack B
+- **Frontend doesn't directly access Stack C** (more secure)
+- **Both Stack A and B cache** market data in Redis (faster)
+- **Both Stack A and B validate** tier permissions before accessing Stack C
 
 ---
 
@@ -526,7 +552,10 @@ STACK_C_URL=http://contabo-vps:5000
 
 The frontend multi-backend architecture is now fully implemented and ready for integration with your backends. Simply deploy Backend Stack A and Stack B, configure the environment variables in Vercel, and you're good to go!
 
-**No need to access Stack C directly from the frontend anymore!** Stack B handles all market data proxying transparently.
+**Key Architecture:** Frontend → Stack A/B → Stack C (MT5 Python API)
+- Frontend never directly accesses Stack C
+- Both Stack A and Stack B can fetch market data from Stack C
+- Both stacks cache in Redis and add analytics before returning data
 
 ---
 

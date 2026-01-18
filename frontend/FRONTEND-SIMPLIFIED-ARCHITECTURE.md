@@ -134,12 +134,12 @@ export const api = {
   stackB: new StackBClient(),
 };
 
-// No stackC needed - Stack B proxies market data
+// No stackC needed - Both Stack A and Stack B proxy market data from Stack C
 ```
 
 ---
 
-### **3. Stack B Client Handles Market Data**
+### **3. Both Stack A and Stack B Can Handle Market Data**
 
 ```typescript
 // frontend/lib/api-clients/stack-b-client.ts
@@ -159,25 +159,29 @@ export class StackBClient extends BaseApiClient {
     endTime?: number;
     limit?: number;
   }) {
-    // Stack B proxies this to Stack C
+    // Stack B proxies this to Stack C (MT5 Python API)
     const query = new URLSearchParams(params as any).toString();
     return this.get(`/candles/${symbol}/${timeframe}${query ? `?${query}` : ''}`);
   }
 
   async getIndicators(symbol: string, timeframe: string) {
-    // Stack B fetches from Stack C and adds confluence scores
+    // Stack B fetches from Stack C, caches in Redis, adds confluence scores
     return this.get(`/indicators/${symbol}/${timeframe}`);
   }
 
   async getSymbols() {
-    // Stack B caches this from Stack C
+    // Stack B fetches from Stack C, filters by tier, caches in Redis
     return this.get('/symbols');
   }
 
   async getTimeframes() {
-    // Stack B caches this from Stack C
+    // Stack B fetches from Stack C, filters by tier, caches in Redis
     return this.get('/timeframes');
   }
+}
+
+// ⚠️ IMPORTANT: Stack A also has the same market data methods!
+// Both Stack A and Stack B can access Stack C for market data.
 
   // ==========================================
   // WATCHLIST (Part 10)
@@ -331,9 +335,9 @@ export class MarketDataService {
 | Error handling | 2 separate error sources ✅ |
 | Authentication | 2 backends to secure ✅ |
 | Monitoring | Frontend monitors 2 backends ✅ |
-| Network hops | Frontend → Stack B → Stack C ✅ |
-| Caching | Stack B caches Stack C data ✅ |
-| Security | Stack C not exposed to internet ✅ |
+| Network hops | Frontend → Stack A/B → Stack C ✅ |
+| Caching | Both Stack A and B cache Stack C data in Redis ✅ |
+| Security | Frontend doesn't directly access Stack C ✅ |
 
 **Reduction:** ~30% less complexity! 🎉
 
@@ -341,7 +345,7 @@ export class MarketDataService {
 
 ## 🔒 Security Benefits
 
-### **Stack C is Not Exposed to Frontend:**
+### **Stack C is Not Directly Accessible from Frontend:**
 
 ```
 ✅ Advantages:
@@ -439,16 +443,16 @@ async getCandles(user: User, symbol: string, timeframe: string) {
 
 1. ✅ Frontend only needs 2 API clients (not 3)
 2. ✅ Only 2 environment variables (not 3)
-3. ✅ Stack B proxies market data from Stack C
-4. ✅ Stack C not exposed to internet (more secure)
-5. ✅ Stack B adds caching layer for market data
-6. ✅ Stack B validates tier before fetching from Stack C
+3. ✅ **Both Stack A and Stack B** proxy market data from Stack C
+4. ✅ Frontend doesn't directly access Stack C (more secure)
+5. ✅ Both stacks add caching layer in Redis for market data
+6. ✅ Both stacks validate tier before fetching from Stack C
 7. ✅ Simpler CORS configuration
 8. ✅ Easier testing (4 scenarios vs 9)
 
 ### **Key Architecture Change:**
 ```
-Frontend → Stack B → Stack C (proxied)
+Frontend → Stack A/B → Stack C (MT5 Python API)
 Not: Frontend → Stack C (direct) ❌
 ```
 

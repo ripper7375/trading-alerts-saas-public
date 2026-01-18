@@ -99,8 +99,11 @@ export type {
  * Unified API client for all backend communication
  *
  * Only 2 clients needed:
- * - stackA: User, Auth, Billing, Admin, Affiliate, Payments
- * - stackB: Watchlist, Alerts, Notifications, Analytics, Market Data (proxied to Stack C)
+ * - stackA: User, Auth, Billing, Admin, Affiliate, Payments, Market Data Gateway
+ * - stackB: Watchlist, Alerts, Notifications, Analytics, Market Data Gateway
+ *
+ * IMPORTANT: Both Stack A and Stack B can access Stack C for market data.
+ * Frontend never accesses Stack C directly.
  */
 export const api = {
   /**
@@ -113,6 +116,10 @@ export const api = {
    * - Admin Portal (Parts 12-14)
    * - Affiliate System (Part 17)
    * - Payment Integration (Part 19)
+   * - Market Data Gateway (proxies to Stack C - MT5 Python API)
+   *
+   * IMPORTANT: Stack A can fetch market data from Stack C, cache in Redis,
+   * and add analytics before returning to frontend.
    */
   stackA: new StackAClient(),
 
@@ -126,14 +133,15 @@ export const api = {
    * - Analytics (Parts 20-21)
    * - Confluence Scores (Part 22)
    * - Leader Board (Part 23)
-   * - Market Data Gateway (proxies to Stack C)
+   * - Market Data Gateway (proxies to Stack C - MT5 Python API)
    *
-   * IMPORTANT: Market data requests (candles, indicators, symbols, timeframes)
-   * go through Stack B, which proxies to Stack C. Frontend never accesses Stack C directly.
+   * IMPORTANT: Stack B can also fetch market data from Stack C, cache in Redis,
+   * and add analytics before returning to frontend.
    */
   stackB: new StackBClient(),
 
-  // No stackC client - Stack B proxies market data requests to Stack C!
+  // No stackC client - Both Stack A and B proxy market data requests to Stack C!
+  // Frontend never accesses Stack C directly.
 };
 
 // ============================================================================
@@ -195,12 +203,20 @@ export type { StackBClient } from './stack-b-client';
  *   notificationChannels: ['email', 'push'],
  * });
  *
- * // Stack B: Market Data (proxied to Stack C)
- * const candles = await api.stackB.getCandles('EURUSD', 'H1', { limit: 1000 });
- * const indicators = await api.stackB.getIndicators('EURUSD', 'H1');
- * const symbols = await api.stackB.getSymbols();
- * const confluenceScores = await api.stackB.getConfluenceScore('EURUSD', 'H1');
+ * // Market Data can be fetched from BOTH Stack A and Stack B!
+ * // Both stacks fetch from Stack C (MT5 Python API), cache in Redis, and add analytics
  *
- * // Stack B: Leader Board
+ * // Stack A: Market Data (proxied to Stack C)
+ * const candlesFromA = await api.stackA.getCandles('EURUSD', 'H1', { limit: 1000 });
+ * const indicatorsFromA = await api.stackA.getIndicators('EURUSD', 'H1');
+ * const symbolsFromA = await api.stackA.getSymbols();
+ *
+ * // Stack B: Market Data (proxied to Stack C)
+ * const candlesFromB = await api.stackB.getCandles('EURUSD', 'H1', { limit: 1000 });
+ * const indicatorsFromB = await api.stackB.getIndicators('EURUSD', 'H1');
+ * const symbolsFromB = await api.stackB.getSymbols();
+ *
+ * // Stack B: Analytics (Confluence & Leader Board)
+ * const confluenceScores = await api.stackB.getConfluenceScore('EURUSD', 'H1');
  * const leaderboard = await api.stackB.getLeaderBoard({ timeframe: 'H1' });
  */
