@@ -1,8 +1,10 @@
 /**
  * Jest Setup File
  *
- * Polyfills and global setup for Jest tests
+ * Polyfills for Jest test environment
  * Fixes compatibility issues with undici/jsdom environment
+ *
+ * NOTE: This runs via setupFiles (before test framework), not setupFilesAfterEnv
  */
 
 // Polyfill clearImmediate for jsdom environment
@@ -30,7 +32,3 @@ if (typeof global.performance !== 'undefined' && typeof (global.performance as a
     // No-op mock
   };
 }
-
-// Increase test timeout for integration tests (default is 5000ms)
-// jest global is available at runtime in Jest environment
-(global as any).jest?.setTimeout?.(15000);
