@@ -60,9 +60,8 @@ export class ApiClient {
 
   constructor(config?: ApiClientConfig) {
     // 🔥 THIS IS THE KEY LINE:
-    this.baseURL = config?.baseURL ||
-                   process.env['NEXT_PUBLIC_API_URL'] ||
-                   '/api';
+    this.baseURL =
+      config?.baseURL || process.env['NEXT_PUBLIC_API_URL'] || '/api';
 
     // If NEXT_PUBLIC_API_URL is not set → uses '/api' (Next.js routes)
     // If NEXT_PUBLIC_API_URL is set → uses Railway URL (Nest.js API)
@@ -91,6 +90,7 @@ export const apiClient = new ApiClient();
 ### **Step 4 (Current) - Vercel Deployment Settings**
 
 **Vercel Environment Variables:**
+
 ```bash
 # No NEXT_PUBLIC_API_URL needed
 # Frontend uses local /api routes
@@ -103,6 +103,7 @@ GOOGLE_CLIENT_SECRET=...
 ```
 
 **How API calls work:**
+
 ```javascript
 // In any component:
 import { apiClient } from '@/lib/api-client';
@@ -118,6 +119,7 @@ const alerts = await apiClient.get('/alerts');
 #### 1️⃣ Deploy Nest.js to Railway
 
 **Railway Project Setup:**
+
 ```bash
 # 1. Create new Railway project
 railway login
@@ -132,6 +134,7 @@ railway up
 ```
 
 **Railway Environment Variables:**
+
 ```bash
 # Backend environment on Railway:
 DATABASE_URL=postgresql://...
@@ -144,6 +147,7 @@ PORT=3001
 #### 2️⃣ Update Vercel Environment Variables
 
 **Add this ONE variable to Vercel:**
+
 ```bash
 # Go to: Vercel Dashboard → Project Settings → Environment Variables
 # Add:
@@ -152,6 +156,7 @@ NEXT_PUBLIC_API_URL=https://trading-alerts-backend-production.up.railway.app
 ```
 
 **Full Vercel Environment Variables (Step 5):**
+
 ```bash
 # ✅ NEW - Points to Railway backend
 NEXT_PUBLIC_API_URL=https://trading-alerts-backend-production.up.railway.app
@@ -183,6 +188,7 @@ GOOGLE_CLIENT_SECRET=...
 ## 🔄 What Happens After Redeployment?
 
 ### Before (Step 4):
+
 ```javascript
 // Component makes API call
 const alerts = await apiClient.get('/alerts');
@@ -193,6 +199,7 @@ const alerts = await apiClient.get('/alerts');
 ```
 
 ### After (Step 5):
+
 ```javascript
 // SAME component code (no changes!)
 const alerts = await apiClient.get('/alerts');
@@ -316,6 +323,7 @@ const alerts = await apiClient.get('/alerts');
 ```
 
 **Important**: Both Vercel and Railway must:
+
 - ✅ Share same `NEXTAUTH_SECRET`
 - ✅ Use same PostgreSQL database (or sync sessions)
 - ✅ Have CORS configured properly
@@ -337,11 +345,11 @@ async function bootstrap() {
   // 🔥 CORS Configuration - REQUIRED for Vercel → Railway
   app.enableCors({
     origin: [
-      'https://trading-alerts-saas-frontend.vercel.app',  // Production
+      'https://trading-alerts-saas-frontend.vercel.app', // Production
       'https://trading-alerts-saas-frontend-*.vercel.app', // Preview deployments
-      'http://localhost:3000',                             // Local development
+      'http://localhost:3000', // Local development
     ],
-    credentials: true,  // Allow cookies (for NextAuth sessions)
+    credentials: true, // Allow cookies (for NextAuth sessions)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   });
@@ -352,6 +360,7 @@ bootstrap();
 ```
 
 **Without CORS**: Browser will block requests from Vercel to Railway with error:
+
 ```
 ❌ Access to fetch at 'https://api.railway.app/alerts' from origin
 'https://frontend.vercel.app' has been blocked by CORS policy
@@ -362,6 +371,7 @@ bootstrap();
 ## 📝 Complete Migration Checklist
 
 ### ✅ Pre-Migration (Step 4)
+
 - [x] Frontend deployed to Vercel
 - [x] Using Next.js API routes (`/api`)
 - [x] API client configured with default `'/api'`
@@ -370,6 +380,7 @@ bootstrap();
 ### 🚧 During Migration (Step 5)
 
 #### Railway Backend Setup
+
 - [ ] 1. Create Nest.js backend project
 - [ ] 2. Deploy to Railway: `railway up`
 - [ ] 3. Note Railway URL: `https://your-app.railway.app`
@@ -385,6 +396,7 @@ bootstrap();
 - [ ] 6. Test Railway API directly: `curl https://your-app.railway.app/health`
 
 #### Vercel Frontend Update
+
 - [ ] 7. Go to Vercel → Project Settings → Environment Variables
 - [ ] 8. Add: `NEXT_PUBLIC_API_URL=https://your-app.railway.app`
 - [ ] 9. Remove backend-only variables:
@@ -398,12 +410,14 @@ bootstrap();
 - [ ] 11. Redeploy on Vercel
 
 #### Testing
+
 - [ ] 12. Test API calls work: Check browser DevTools Network tab
 - [ ] 13. Verify CORS working: No CORS errors in console
 - [ ] 14. Test authentication: Login and make authenticated requests
 - [ ] 15. Test all critical user flows
 
 ### ✅ Post-Migration
+
 - [ ] Monitor Railway logs for errors
 - [ ] Monitor Vercel logs for frontend errors
 - [ ] Update documentation with new architecture
@@ -416,6 +430,7 @@ bootstrap();
 ### 1. Verify Environment Variable is Set
 
 **Check in Vercel Dashboard:**
+
 ```
 Vercel → Project → Settings → Environment Variables
 Look for: NEXT_PUBLIC_API_URL = https://your-app.railway.app
@@ -424,6 +439,7 @@ Look for: NEXT_PUBLIC_API_URL = https://your-app.railway.app
 ### 2. Check Build Logs
 
 **During Vercel deployment:**
+
 ```
 Building...
 ℹ Using NEXT_PUBLIC_API_URL: https://trading-alerts-backend-production.railway.app
@@ -432,6 +448,7 @@ Building...
 ### 3. Test in Browser DevTools
 
 **Open your deployed Vercel site → DevTools → Console:**
+
 ```javascript
 // Check what URL the API client is using
 console.log('API Base URL:', apiClient.getBaseURL());
@@ -445,6 +462,7 @@ console.log('Is External:', apiClient.isExternalAPI());
 ### 4. Monitor Network Requests
 
 **DevTools → Network Tab:**
+
 ```
 Look for requests to:
 ✅ https://trading-alerts-backend-production.railway.app/alerts
@@ -464,6 +482,7 @@ NOT:
 **Cause**: Environment variable not set or deployment not redeployed
 
 **Fix**:
+
 ```bash
 # 1. Verify variable in Vercel Dashboard
 # 2. Trigger new deployment (push to GitHub or click Redeploy)
@@ -475,6 +494,7 @@ NOT:
 **Error**: `Access to fetch has been blocked by CORS policy`
 
 **Fix**:
+
 ```typescript
 // backend/src/main.ts - Update CORS origin
 app.enableCors({
@@ -488,6 +508,7 @@ app.enableCors({
 **Cause**: Sessions not shared between Vercel and Railway
 
 **Fix**:
+
 ```bash
 # Ensure NEXTAUTH_SECRET matches on both:
 # Vercel:  NEXTAUTH_SECRET=abc123
@@ -499,6 +520,7 @@ app.enableCors({
 ### Issue 4: Railway backend not responding
 
 **Check**:
+
 ```bash
 # 1. Railway service running?
 railway status
@@ -515,11 +537,13 @@ curl https://your-app.railway.app/health
 ## 💰 Cost Considerations
 
 ### Vercel (Frontend)
+
 - **Free Tier**: 100GB bandwidth/month
 - **Pro**: $20/month - 1TB bandwidth
 - **Best for**: Static frontend, serverless functions
 
 ### Railway (Backend)
+
 - **Free Trial**: $5 credit
 - **Pay-as-you-go**: ~$5-20/month for small API
 - **Best for**: Long-running Node.js/Nest.js apps, WebSockets
@@ -537,12 +561,14 @@ NEXT_PUBLIC_API_URL=https://your-backend.railway.app
 ```
 
 **When you set this in Vercel:**
+
 1. ✅ All API calls automatically route to Railway
 2. ✅ No code changes needed in components
 3. ✅ Frontend and backend can scale independently
 4. ✅ Can rollback by removing the variable
 
 **Zero downtime migration:**
+
 1. Deploy Nest.js to Railway (backend ready)
 2. Add `NEXT_PUBLIC_API_URL` to Vercel (switch traffic)
 3. Done! 🎉
