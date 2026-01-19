@@ -58,8 +58,9 @@ export function useApiClientExample() {
 
   // Refs for cleanup
   const abortControllerRef = useRef<AbortController | null>(null);
-  const unsubscribeNotificationsRef = useRef<(() => void) | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  // ⚠️ Uncomment when Stack B is deployed:
+  // const unsubscribeNotificationsRef = useRef<(() => void) | null>(null);
+  // const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     loadData();
