@@ -85,15 +85,24 @@
    ├─ Database B: Analytics, surveillance, message queue
    └─ Worker database for async operations
 
-7. Stack B (Nest.js) → TimescaleDB (Timescale Cloud) + Redis Cache (Upstash)
+7. Stack B (Nest.js) → TimescaleDB (Timescale Cloud) + Redis (Upstash)
    ├─ Read from HyperTables (time-series data)
-   ├─ Redis use cases:
-   │  ├─ Leaderboard (sorted sets)
-   │  ├─ Notification Real-time (pub/sub)
-   │  ├─ Job Queue (Bull/BullMQ)
-   │  ├─ Login Session (session store)
-   │  └─ Rate Limiting (counters with TTL)
-   └─ High-performance caching layer
+   │  └─ 15 tables (1 per symbol), 90k rows max (10k × 9 timeframes)
+   ├─ Redis Queue: "market-data-sync" (Bull/BullMQ)
+   │  └─ Workers batch 50 bars before SQL INSERT
+   ├─ Backfill Worker (Python) handles SQLite recovery (0.1% fallback)
+   ├─ Python Pandas Dataframe for deep calculation (Confluence Scores)
+   └─ Additional Redis use cases:
+      ├─ Leaderboard (sorted sets - ZSET)
+      ├─ Notification Real-time (pub/sub)
+      ├─ Login Session (session store)
+      └─ Rate Limiting (counters with TTL)
+
+8. Stack C (Contabo VPS) → Redis Queue (Upstash) - One-way HTTP POST
+   ├─ 5 MT5 Terminals - V2.24 EA (3 symbol/terminal = 15 total)
+   ├─ Success rate: 99.9% direct to Redis, 0.1% fallback to SQLite
+   ├─ SQLite backup only (~10 MB, mostly empty)
+   └─ Backfill Worker (Python) recovers from SQLite when needed
 ```
 
 ### ❌ FORBIDDEN Communication Patterns:
@@ -108,13 +117,14 @@
 
 2. ❌ Stack A (Nest.js, Railway) → Stack C (MT5 Terminals EA, Contabo) ❌
    └─ Stack A does NOT directly query Stack C
-   └─ Data flows through Redis Job Queue instead
-   └─ Security isolation enforced
+   └─ Data already in PostgreSQL (arrived via Redis Queue → Workers)
+   └─ Security isolation enforced - no incoming connections to Stack C
 
 3. ❌ Stack B (Nest.js, Railway) → Stack C (MT5 Terminals EA, Contabo) ❌
    └─ Stack B does NOT directly query Stack C
-   └─ Data flows through Redis Job Queue instead
-   └─ Security isolation enforced
+   └─ Stack B Workers CONSUME from Redis Queue (Stack C pushes to Redis)
+   └─ One-way flow: Stack C (HTTP POST) → Redis → Stack B (consume)
+   └─ Security isolation enforced - no incoming connections to Stack C
 
 4. ❌ Stack C → Frontend (direct push) ❌
    └─ Stack C does not push data directly to frontend
@@ -131,61 +141,131 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ Stack C (MT5 Terminals EA, Contabo)                            │
-│ ├─ MT5 Expert Advisors collect market data                     │
-│ ├─ Local SQLite database (temporary storage)                   │
-│ └─ Pushes jobs to Redis Queue                                  │
-└────────────┬────────────────────────────────────────────────────┘
+│ CONTABO VPS (Stack C)                                           │
+│                                                                 │
+│ 5 MT5 Terminals - V2.24 EA (3 symbol/terminal)                 │
+│                                                                 │
+│ Collection Logic (per bar):                                    │
+│ 1. Try Redis Publish (fast) ───┐                              │
+│    ├─ Success (99.9%) ✅ Done  │                              │
+│    └─ Failed (0.1%) ❌          │                              │
+│         └─ SQLite backup        │                              │
+│         └─ Mark for backfill    │                              │
+│                                 │                              │
+│ SQLite Database (15 files):    │                              │
+│ ├─ Mostly empty (only failures)│                              │
+│ ├─ Size: ~10 MB (vs 90 MB)    │                              │
+│ └─ Backfill Worker PY handles  │                              │
+│                                 │                              │
+└─────────────────────────────────┼──────────────────────────────┘
+                                  │ (1) HTTP POST
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ UPSTASH REDIS (Message Broker)                                  │
+│                                                                 │
+│ Bull Queue: "market-data-sync"                                 │
+│ ├─ Receives 99.9% of data real-time                            │
+│ ├─ Queue contains: symbol, timeframe, OHLCV data, timestamps   │
+│ ├─ (92% fast path) → (8.1% recovery)                          │
+│ └─ Decouples MT5 from Railway backend                          │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │ (3) Bull Queue Consumer
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ RAILWAY WORKERS (Backend = Nest.js)                            │
+│                                                                 │
+│ Primary: Process Redis queue (main flow)                       │
+│ Secondary: Backfill from SQLite (recovery - Backfill Worker PY)│
+│                                                                 │
+│ Processing Steps:                                              │
+│ ├─ Validate (data integrity checks)                            │
+│ ├─ Batch (50 bars) - optimize bulk inserts                     │
+│ └─ Insert (batched SQL operations)                             │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │ (5) SQL INSERT
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ RAILWAY POSTGRESQL (Backend = Nest.js)                         │
+│ PostgreSQL (Railway / Timescale Cloud)                         │
+│                                                                 │
+│ Database Structure:                                            │
+│ ├─ 15 tables (1 per symbol)                                    │
+│ ├─ 90,000 rows max (10k × 9 timeframes)                        │
+│ ├─ HyperTables (TimescaleDB) for time-series optimization      │
+│ └─ Complete dataset (fast path + recovered)                    │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │
+                                  ├──────────────────────┐
+                                  ▼                      ▼
+┌────────────────────────────────────────┐  ┌──────────────────────┐
+│ Python Pandas Dataframe                │  │ TradingView Charts   │
+│ (Deep Calculation)                     │  │ Lightweight Library  │
+│                                        │  │ (Next.js Frontend)   │
+│ Pre-Computation of:                    │  └──────────────────────┘
+│ └─ Confluence Scores                   │
+└────────────┬───────────────────────────┘
              │
              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Redis Job Queue (Upstash)                                       │
-│ ├─ Bull/BullMQ job queue                                        │
-│ ├─ Jobs contain: symbol, timeframe, OHLCV data, timestamps     │
-│ └─ Decouples Stack C from Stack A/B                            │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Process Worker (Stack B - Nest.js, Railway)                    │
-│ ├─ Consumes jobs from Redis Queue                              │
-│ ├─ Validates and transforms data                               │
-│ ├─ Writes to PostgreSQL/TimescaleDB                            │
-│ └─ Updates Redis Cache for fast reads                          │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ HyperTable (TimescaleDB, Timescale Cloud)                      │
-│ ├─ Time-series data optimized storage                          │
-│ ├─ OHLCV data, market data, historical prices                  │
-│ └─ Compression and retention policies                          │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Redis Cache (Upstash)                                           │
-│ ├─ Leaderboard (ZSET with scores)                              │
-│ ├─ Latest prices (STRING with TTL)                             │
-│ ├─ Surveillance data (HASH)                                    │
-│ └─ Session data, rate limits                                   │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Frontend (Next.js, Vercel)                                      │
-│ ├─ Reads from Stack A/B APIs                                   │
-│ ├─ Stack A/B query TimescaleDB + Redis                         │
-│ └─ NEVER communicates with Stack C directly                    │
+│ Watchlist + Alert Notification System                          │
+│ Backend = Nest.js                                               │
+│ UI = Next.js                                                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Key Implementation Details:**
+
+1. **MT5 EA Collection (Contabo VPS)**
+   - 5 MT5 Terminals running V2.24 EA
+   - 3 symbols per terminal = 15 symbols total
+   - Per-bar collection logic with Redis-first approach
+
+2. **Dual-Path Strategy (99.9% vs 0.1%)**
+   - **Fast Path (99.9%)**: MT5 → HTTP POST → Redis → Workers → PostgreSQL
+   - **Backup Path (0.1%)**: MT5 → SQLite → Backfill Worker (Python) → PostgreSQL
+   - SQLite is mostly empty (~10 MB vs 90 MB in dual-write)
+
+3. **Redis Message Broker (Upstash)**
+   - Bull Queue: "market-data-sync"
+   - 92% fast path + 8.1% recovery = 100% data completeness
+   - Decouples MT5 terminals from backend infrastructure
+
+4. **Railway Workers (NestJS)**
+   - Consumes from Bull Queue
+   - Validates data integrity
+   - **Batches 50 bars** before SQL INSERT (performance optimization)
+   - Primary flow: Redis queue
+   - Secondary flow: Backfill Worker (Python) for SQLite recovery
+
+5. **PostgreSQL Database (Railway/Timescale)**
+   - 15 tables (1 per symbol)
+   - 90,000 rows maximum (10k bars × 9 timeframes)
+   - TimescaleDB HyperTables for time-series optimization
+   - Stores complete dataset from both paths
+
+6. **Data Processing & Analytics**
+   - **Python Pandas Dataframe**: Deep calculation engine
+   - Pre-computes Confluence Scores
+   - Feeds into Watchlist + Alert Notification System
+
+7. **Frontend (Next.js on Vercel)**
+   - TradingView Lightweight Charts Library
+   - Displays charts and confluence scores
+   - Queries PostgreSQL via Stack A/B APIs
+   - Never communicates with Stack C directly
+
 **Key Security Principle:**
 - Stack C is a **one-way data producer** only
-- Stack C → Redis Queue (push only)
+- Stack C → HTTP POST → Redis Queue (push only, 99.9% success rate)
+- Backup path: Stack C → SQLite → Backfill Worker (0.1% fallback)
 - No incoming connections to Stack C from Stack A, B, or Frontend
 - Admin access to Stack C only via SSH/RDP for maintenance
-```
+
+**Additional Redis Use Cases (not shown in data flow diagram):**
+- **Leaderboard**: Redis ZSET (sorted sets with scores)
+- **Notification Real-time**: Redis Pub/Sub
+- **Login Session**: Redis session store
+- **Rate Limiting**: Redis counters with TTL
 
 ## Strategy: Contract-First Development
 
