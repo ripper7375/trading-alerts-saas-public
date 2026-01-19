@@ -1,14 +1,21 @@
 /**
  * API Client Usage Examples & Testing Guide
  *
+ * ⚠️ UPDATED: 2025-01-19 - Now includes Multi-Stack API (Stack A & B)
+ *
  * This file demonstrates how to:
- * 1. Use the API client in your components
- * 2. Test that it works with current Next.js API routes
- * 3. Migrate from direct fetch() to apiClient
- * 4. Prepare for Nest.js migration
+ * 1. Use the base API client (apiClient) - low-level
+ * 2. Use the Multi-Stack API (api.stackA / api.stackB) - recommended
+ * 3. Test that it works with current Next.js API routes
+ * 4. Migrate from direct fetch() to API Client
+ * 5. Understand Stack A (available) vs Stack B (future)
+ *
+ * **Recommendation**: Use Multi-Stack API (`api.stackA` / `api.stackB`)
+ * instead of base `apiClient` for cleaner, type-safe code.
  */
 
 import { apiClient, ApiError } from './api-client';
+import { api } from './api'; // Multi-Stack API
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // EXAMPLE 1: Basic GET Request
@@ -256,6 +263,41 @@ try {
 // ✅ TypeScript support
 // ✅ Automatic JSON parsing
 // ✅ Development logging
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EXAMPLE 7: Multi-Stack API (Recommended Approach)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export async function exampleMultiStackAPI() {
+  try {
+    // ✅ Stack A - Available now (Parts 2-19)
+    const alerts = await api.stackA.getAlerts();
+    const watchlist = await api.stackA.getWatchlist();
+    const user = await api.stackA.getUser();
+    const subscription = await api.stackA.getSubscription();
+    const notifications = await api.stackA.getNotifications();
+
+    console.log('Stack A data:', { alerts, watchlist, user });
+
+    // ⚠️ Stack B - Future deployment (Parts 20-26) - Will throw 404
+    // const leaderboard = await api.stackB.getLeaderBoard('H4'); // Don't use yet
+    // const confluence = await api.stackB.getConfluenceScores('XAUUSD'); // Don't use yet
+
+    return { alerts, watchlist, user, subscription, notifications };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      console.error('API Error:', error.message, error.status);
+    }
+    throw error;
+  }
+}
+
+// Benefits of Multi-Stack API:
+// ✅ Type-safe methods (getAlerts, getWatchlist, etc.)
+// ✅ Clear separation: Stack A (available) vs Stack B (future)
+// ✅ No need to remember endpoint paths
+// ✅ Automatic retry logic, timeout, cancellation
+// ✅ Built-in WebSocket/SSE support (when Stack B is deployed)
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TESTING CHECKLIST
