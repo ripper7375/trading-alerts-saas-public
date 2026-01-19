@@ -6,6 +6,13 @@
 
 The enhanced API Client provides a comprehensive solution for communicating with the Trading Alerts SaaS microservice architecture, supporting both Stack A and Stack B backends.
 
+## ⚠️ Important: Stack Availability Status
+
+- **✅ Stack A (Parts 2-19)**: AVAILABLE NOW - All endpoints deployed and working
+- **⚠️ Stack B (Parts 20-26)**: FUTURE DEPLOYMENT - Endpoints not yet available
+
+**Current Recommendation**: Only use `api.stackA` methods in production. All `api.stackB` methods will throw 404 errors until Stack B is deployed.
+
 ## Features
 
 ✅ **Multi-Stack Routing** - Unified access to Stack A and Stack B
@@ -23,16 +30,36 @@ The enhanced API Client provides a comprehensive solution for communicating with
 
 ```
 Frontend (Next.js, Vercel)
-  ├─ api.stackA (StackAClient)
+  ├─ api.stackA (StackAClient) ✅ AVAILABLE
   │   ├─ baseURL: NEXT_PUBLIC_API_A_URL or /api
-  │   ├─ Parts 2-19: Alerts, Watchlist, Dashboard, etc.
+  │   ├─ Parts 2-19: Alerts, Watchlist, User, Subscription, etc.
   │   └─ REST API only
   │
-  └─ api.stackB (StackBClient)
+  └─ api.stackB (StackBClient) ⚠️ FUTURE
       ├─ baseURL: NEXT_PUBLIC_API_B_URL or fallback to Stack A
       ├─ Parts 20-26: Analytics, Real-time, Surveillance
-      └─ REST API + WebSocket + SSE
+      ├─ REST API + WebSocket + SSE
+      └─ Status: NOT YET DEPLOYED (all methods will throw 404)
 ```
+
+## Recent Corrections (2025-01-19)
+
+The API Client has been updated to match the current codebase after Part 20 deletion:
+
+### ✅ StackAClient Endpoint Corrections
+- `getChartData()`: Changed from `/charts/[symbol]/[timeframe]` → `/candles/[symbol]`
+- `getUser()`: Changed from `/user` → `/user/profile`
+- `updateUser()`: Changed from `/user` → `/user/profile`
+- `getAdminStats()`: Changed from `/admin/stats` → `/admin/analytics`
+- `getBillingHistory()`: Changed from `/billing/history` → `/invoices`
+- `getSettings()`: Changed from `/settings` → `/user/preferences`
+- `updateSettings()`: Changed from `/settings` → `/user/preferences`
+- `getDashboard()`: Removed (endpoint not yet implemented)
+
+### ⚠️ StackBClient Status
+- **All 17 methods** are marked as FUTURE (Stack B not deployed yet)
+- Methods include JSDoc warnings: `⚠️ FUTURE: Stack B not deployed yet`
+- Using any StackBClient method will throw 404 errors until Stack B deployment
 
 ---
 
@@ -68,72 +95,69 @@ NEXT_PUBLIC_API_B_URL=http://localhost:3002
 ```typescript
 import { api } from '@/lib/api';
 
-// Stack A - Get alerts
+// ✅ Stack A - Get alerts (WORKS NOW)
 const alerts = await api.stackA.getAlerts();
 
-// Stack B - Get leaderboard
-const leaderboard = await api.stackB.getLeaderBoard('H4');
+// ✅ Stack A - Get watchlist (WORKS NOW)
+const watchlist = await api.stackA.getWatchlist();
 
-// Parallel requests to both stacks
-const [alerts, leaderboard] = await Promise.all([
+// ✅ Stack A - Get user profile (WORKS NOW)
+const user = await api.stackA.getUser();
+
+// ⚠️ Stack B - NOT YET AVAILABLE (will throw 404)
+// const leaderboard = await api.stackB.getLeaderBoard('H4'); // DON'T USE YET
+
+// ✅ Parallel requests to Stack A (WORKS NOW)
+const [alerts, watchlist, subscription] = await Promise.all([
   api.stackA.getAlerts(),
-  api.stackB.getLeaderBoard('H4')
+  api.stackA.getWatchlist(),
+  api.stackA.getSubscription()
 ]);
 ```
 
 ### WebSocket (Real-time)
 
+⚠️ **WebSocket features are NOT YET AVAILABLE** (Stack B not deployed)
+
 ```typescript
 import { api } from '@/lib/api';
 
-// Subscribe to real-time notifications
-const unsubscribe = api.stackB.subscribeToNotifications(
-  (notification) => {
-    console.log('New notification:', notification);
-  },
-  {
-    reconnect: true, // Auto-reconnect on disconnect
-    onError: (error) => {
-      console.error('WebSocket error:', error);
-    },
-    onClose: (event) => {
-      console.log('WebSocket closed:', event.code);
-    }
-  }
-);
+// ⚠️ DON'T USE YET - Stack B not deployed
+// This will fail with WebSocket connection error
 
-// Later: unsubscribe
-unsubscribe();
-
-// Subscribe to leaderboard updates
-const unsubscribeLB = api.stackB.subscribeToLeaderBoard(
-  'H4',
-  (data) => {
-    console.log('Leaderboard updated:', data);
-  },
-  { reconnect: true }
-);
+// Subscribe to real-time notifications (FUTURE)
+// const unsubscribe = api.stackB.subscribeToNotifications(
+//   (notification) => {
+//     console.log('New notification:', notification);
+//   },
+//   {
+//     reconnect: true,
+//     onError: (error) => {
+//       console.error('WebSocket error:', error);
+//     },
+//     onClose: (event) => {
+//       console.log('WebSocket closed:', event.code);
+//     }
+//   }
+// );
 ```
 
 ### Server-Sent Events (SSE)
 
+⚠️ **SSE features are NOT YET AVAILABLE** (Stack B not deployed)
+
 ```typescript
 import { api } from '@/lib/api';
 
-// Create SSE connection
-const eventSource = api.stackB.createNotificationsStream();
+// ⚠️ DON'T USE YET - Stack B not deployed
+// This will fail with connection error
 
-eventSource.onmessage = (event) => {
-  const notification = JSON.parse(event.data);
-  console.log('SSE notification:', notification);
-};
-
-eventSource.onerror = (error) => {
-  console.error('SSE error:', error);
-};
-
-// Later: close connection
-eventSource.close();
+// Create SSE connection (FUTURE)
+// const eventSource = api.stackB.createNotificationsStream();
+// eventSource.onmessage = (event) => {
+//   const notification = JSON.parse(event.data);
+//   console.log('SSE notification:', notification);
+// };
 ```
 
 ### Request Timeout
@@ -199,7 +223,7 @@ const data = await api.stackB.get('/endpoint', {
 
 ## React Hook Examples
 
-### Example 1: Load data from both stacks
+### Example 1: Load data from Stack A
 
 ```typescript
 import { useEffect, useState } from 'react';
@@ -212,13 +236,14 @@ function useDashboardData() {
   useEffect(() => {
     async function load() {
       try {
-        const [alerts, leaderboard, notifications] = await Promise.all([
+        // ✅ Only Stack A endpoints (all work now)
+        const [alerts, watchlist, notifications] = await Promise.all([
           api.stackA.getAlerts(),
-          api.stackB.getLeaderBoard('H4'),
-          api.stackB.getAdvancedNotifications({ limit: 10 })
+          api.stackA.getWatchlist(),
+          api.stackA.getNotifications()
         ]);
 
-        setData({ alerts, leaderboard, notifications });
+        setData({ alerts, watchlist, notifications });
       } catch (error) {
         console.error('Failed to load:', error);
       } finally {
@@ -233,28 +258,57 @@ function useDashboardData() {
 }
 ```
 
-### Example 2: Real-time notifications
+### Example 2: Real-time notifications (FUTURE)
+
+⚠️ **This example will NOT work until Stack B is deployed**
 
 ```typescript
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 
-function useRealTimeNotifications() {
+// ⚠️ DON'T USE YET - Stack B WebSocket not available
+// function useRealTimeNotifications() {
+//   const [notifications, setNotifications] = useState([]);
+//
+//   useEffect(() => {
+//     // Subscribe to WebSocket (FUTURE - Stack B)
+//     const unsubscribe = api.stackB.subscribeToNotifications(
+//       (notification) => {
+//         setNotifications(prev => [notification, ...prev]);
+//       },
+//       { reconnect: true }
+//     );
+//
+//     // Cleanup on unmount
+//     return () => {
+//       unsubscribe();
+//     };
+//   }, []);
+//
+//   return { notifications };
+// }
+
+// ✅ USE THIS INSTEAD - Poll Stack A notifications
+function usePollingNotifications() {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    // Subscribe to WebSocket
-    const unsubscribe = api.stackB.subscribeToNotifications(
-      (notification) => {
-        setNotifications(prev => [notification, ...prev]);
-      },
-      { reconnect: true }
-    );
+    async function fetchNotifications() {
+      try {
+        const data = await api.stackA.getNotifications();
+        setNotifications(data);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    }
 
-    // Cleanup on unmount
-    return () => {
-      unsubscribe();
-    };
+    // Initial fetch
+    fetchNotifications();
+
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return { notifications };

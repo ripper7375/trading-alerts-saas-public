@@ -4,41 +4,38 @@
  * Provides unified access to both Stack A and Stack B microservices
  * following the architecture defined in MULTI-BACKEND-SYNC-STRATEGY.md
  *
- * Stack A (Railway) - Parts 2-19:
+ * ✅ Stack A (Railway) - Parts 2-19 - AVAILABLE NOW:
  *   - Database A, Types, Tier System
- *   - Flask MT5 Service, OHLCV data API
- *   - Dashboard, Charts, Watchlist, Alerts
- *   - E-commerce, Settings, Admin Dashboard
+ *   - Flask MT5 Service (via Stack C → Redis → Workers)
+ *   - Watchlist, Alerts, User Management
+ *   - E-commerce, Subscription, Admin Dashboard
  *   - Basic Notifications, Utilities
  *   - Affiliate Marketing, dLocal Payments, Riseworks Disbursements
  *
- * Stack B (Railway) - Parts 20-26:
+ * ⚠️ Stack B (Railway) - Parts 20-26 - FUTURE DEPLOYMENT:
  *   - Database B, Message Broker
  *   - Market Data Collection (via Redis Queue)
  *   - Confluence Scores, Leader Board
- *   - Surveillance, Advance Notifications & Real-time
+ *   - Surveillance, Advanced Notifications & Real-time
  *
  * Usage:
  * ```typescript
  * import { api } from '@/lib/api';
  *
- * // Stack A operations
+ * // ✅ Stack A operations (AVAILABLE NOW)
  * const alerts = await api.stackA.getAlerts();
  * const watchlist = await api.stackA.getWatchlist();
+ * const user = await api.stackA.getUser();
  *
- * // Stack B operations
- * const leaderboard = await api.stackB.getLeaderBoard('H4');
- * const surveillance = await api.stackB.getSurveillance();
+ * // ⚠️ Stack B operations (FUTURE - Will throw 404 errors)
+ * // const leaderboard = await api.stackB.getLeaderBoard('H4'); // Not yet available
+ * // const surveillance = await api.stackB.getSurveillance(); // Not yet available
  *
- * // Real-time notifications (Stack B)
- * api.stackB.subscribeToNotifications((notification) => {
- *   console.log('New notification:', notification);
- * });
- *
- * // Parallel requests to both stacks
- * const [alerts, leaderboard] = await Promise.all([
+ * // Stack A methods work in production:
+ * const [alerts, watchlist, subscription] = await Promise.all([
  *   api.stackA.getAlerts(),
- *   api.stackB.getLeaderBoard('H4')
+ *   api.stackA.getWatchlist(),
+ *   api.stackA.getSubscription()
  * ]);
  * ```
  */
@@ -93,22 +90,21 @@ export class StackAClient extends ApiClient {
   }
 
   // ===== Dashboard (Part 8) =====
-  async getDashboard() {
-    return this.get('/dashboard');
-  }
+  // Note: Generic dashboard endpoint not yet implemented
+  // Use specific endpoints (alerts, watchlist, subscription) instead
 
   // ===== Charts (Part 9) =====
-  async getChartData(symbol: string, timeframe: string) {
-    return this.get(`/charts/${symbol}/${timeframe}`);
+  async getChartData(symbol: string) {
+    return this.get(`/candles/${symbol}`);
   }
 
   // ===== User Profile =====
   async getUser() {
-    return this.get('/user');
+    return this.get('/user/profile');
   }
 
   async updateUser(data: any) {
-    return this.patch('/user', data);
+    return this.patch('/user/profile', data);
   }
 
   // ===== Subscription (Part 4 - Tier System) =====
@@ -131,7 +127,7 @@ export class StackAClient extends ApiClient {
 
   // ===== Admin Operations (Part 14) =====
   async getAdminStats() {
-    return this.get('/admin/stats');
+    return this.get('/admin/analytics');
   }
 
   async getAffiliates(params?: any) {
@@ -141,25 +137,39 @@ export class StackAClient extends ApiClient {
 
   // ===== E-commerce & Billing (Part 12) =====
   async getBillingHistory() {
-    return this.get('/billing/history');
+    return this.get('/invoices');
   }
 
   async createPayment(data: any) {
-    return this.post('/payments', data);
+    return this.post('/payments/dlocal/create', data);
   }
 
   // ===== Settings (Part 13) =====
   async getSettings() {
-    return this.get('/settings');
+    return this.get('/user/preferences');
   }
 
   async updateSettings(data: any) {
-    return this.patch('/settings', data);
+    return this.patch('/user/preferences', data);
   }
 }
 
 /**
  * Stack B Client - Analytics & Real-time (Parts 20-26)
+ *
+ * ⚠️ IMPORTANT: Stack B is NOT YET DEPLOYED
+ *
+ * This client is prepared for future Stack B deployment (Parts 20-26).
+ * All methods below will throw errors until Stack B microservices are deployed.
+ *
+ * Stack B includes:
+ * - Part 21: Market Data Collection (Redis Job Queue)
+ * - Part 22: Confluence Scores
+ * - Part 23: Leader Board
+ * - Part 24: Surveillance
+ * - Part 26: Advanced Notifications & Real-time
+ *
+ * Current Status: FUTURE - Endpoints not available yet
  */
 export class StackBClient extends ApiClient {
   constructor() {
@@ -176,51 +186,97 @@ export class StackBClient extends ApiClient {
   }
 
   // ===== Market Data Broker (Part 21) =====
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getMarketData(symbol: string) {
     return this.get(`/market-data/${symbol}`);
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getOHLCV(symbol: string, timeframe: string, params?: any) {
     const query = params ? `?${new URLSearchParams(params)}` : '';
     return this.get(`/market-data/${symbol}/${timeframe}${query}`);
   }
 
   // ===== Confluence Scores (Part 22) =====
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * Part 20 (confluence endpoints) was deleted and will be reimplemented in Stack B
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getConfluenceScores(symbol: string) {
     return this.get(`/confluence/${symbol}`);
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * Part 20 (confluence endpoints) was deleted and will be reimplemented in Stack B
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getConfluenceHistory(symbol: string, timeframe: string) {
     return this.get(`/confluence/${symbol}/${timeframe}/history`);
   }
 
   // ===== Leader Board (Part 23) =====
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getLeaderBoard(timeframe: string) {
     return this.get(`/leaderboard/${timeframe}`);
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getTopSymbols(limit: number = 10) {
     return this.get(`/leaderboard/symbols?limit=${limit}`);
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getTopTimeframes(limit: number = 10) {
     return this.get(`/leaderboard/timeframes?limit=${limit}`);
   }
 
   // ===== Surveillance (Part 24) =====
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getSurveillance() {
     return this.get('/surveillance');
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getSymbolsSurveillance() {
     return this.get('/surveillance/symbols');
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getTimeframesSurveillance() {
     return this.get('/surveillance/timeframes');
   }
 
   // ===== Advance Notifications & Real-time (Part 26) =====
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getAdvancedNotifications(params?: any) {
     const query = params ? `?${new URLSearchParams(params)}` : '';
     return this.get(`/notifications/advanced${query}`);
@@ -228,6 +284,9 @@ export class StackBClient extends ApiClient {
 
   /**
    * Subscribe to real-time notifications via WebSocket
+   *
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {Error} WebSocket connection will fail until Stack B deployment
    */
   subscribeToNotifications(
     onMessage: (notification: any) => void,
@@ -245,6 +304,9 @@ export class StackBClient extends ApiClient {
 
   /**
    * Subscribe to real-time market data updates via WebSocket
+   *
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {Error} WebSocket connection will fail until Stack B deployment
    */
   subscribeToMarketData(
     symbol: string,
@@ -263,6 +325,9 @@ export class StackBClient extends ApiClient {
 
   /**
    * Subscribe to leaderboard updates via WebSocket
+   *
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {Error} WebSocket connection will fail until Stack B deployment
    */
   subscribeToLeaderBoard(
     timeframe: string,
@@ -281,16 +346,27 @@ export class StackBClient extends ApiClient {
 
   /**
    * Create Server-Sent Events (SSE) connection for live updates
+   *
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {Error} SSE connection will fail until Stack B deployment
    */
   createNotificationsStream(): EventSource {
     return this.createEventSource('/notifications/stream');
   }
 
   // ===== Job Queue Status (Part 21 - Message Broker) =====
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getQueueStatus() {
     return this.get('/queue/status');
   }
 
+  /**
+   * ⚠️ FUTURE: Stack B not deployed yet
+   * @throws {ApiError} 404 - Endpoint not available until Stack B deployment
+   */
   async getQueueJobs(status: 'waiting' | 'active' | 'completed' | 'failed') {
     return this.get(`/queue/jobs?status=${status}`);
   }
