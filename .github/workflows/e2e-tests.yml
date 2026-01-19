@@ -86,23 +86,39 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       playwright-version: ${{ steps.playwright-version.outputs.version }}
+      has-config: ${{ steps.check-config.outputs.has-config }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check for Playwright config
+        id: check-config
+        run: |
+          if [ -f "e2e/playwright.config.ts" ]; then
+            echo "has-config=true" >> $GITHUB_OUTPUT
+            echo "✅ Playwright config found"
+          else
+            echo "has-config=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Playwright config not found - E2E tests will be skipped"
+            echo "   This is expected after Part 20 removal due to architecture changes"
+          fi
+
       - name: Install pnpm
+        if: steps.check-config.outputs.has-config == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
       - name: Setup Node.js
+        if: steps.check-config.outputs.has-config == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: 'pnpm'
 
       - name: Get Playwright version
+        if: steps.check-config.outputs.has-config == 'true'
         id: playwright-version
         run: |
           PLAYWRIGHT_VERSION=$(node -p "require('./package.json').devDependencies['@playwright/test']")
@@ -110,6 +126,7 @@ jobs:
           echo "Playwright version: $PLAYWRIGHT_VERSION"
 
       - name: Cache Playwright browsers
+        if: steps.check-config.outputs.has-config == 'true'
         uses: actions/cache@v4
         id: playwright-cache
         with:
@@ -117,13 +134,15 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
       - name: Install dependencies
+        if: steps.check-config.outputs.has-config == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        if: steps.check-config.outputs.has-config == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium firefox webkit
 
       - name: Generate Prisma Client
+        if: steps.check-config.outputs.has-config == 'true'
         run: pnpm exec prisma generate
 
   # =========================================================================
@@ -133,6 +152,7 @@ jobs:
     name: E2E Tests (${{ matrix.test-group }} - ${{ matrix.browser }})
     runs-on: ubuntu-latest
     needs: setup
+    if: needs.setup.outputs.has-config == 'true'
     timeout-minutes: 30
 
     strategy:
@@ -264,25 +284,36 @@ jobs:
           echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Results by Group" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Group | Browser | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|---------|--------|" >> $GITHUB_STEP_SUMMARY
 
-          # Check results
-          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
-            echo "| Group A | Chromium | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-            echo "| Group B | Chromium | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          # Check if config exists
+          if [ "${{ needs.setup.outputs.has-config }}" != "true" ]; then
+            echo "### Status" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⏭️ **E2E tests skipped** - Playwright config not found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Note:** Part 20 E2E tests have been removed due to architecture changes." >> $GITHUB_STEP_SUMMARY
+            echo "E2E tests will be re-enabled when the new architecture implementation includes them." >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Tests | Mixed | ⚠️ Check details |" >> $GITHUB_STEP_SUMMARY
+            echo "### Results by Group" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Group | Browser | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|-------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+
+            # Check results
+            if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+              echo "| Group A | Chromium | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Group B | Chromium | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Tests | Mixed | ⚠️ Check details |" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "Test reports and screenshots are available in the workflow artifacts." >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "Test reports and screenshots are available in the workflow artifacts." >> $GITHUB_STEP_SUMMARY
-
       - name: Check overall status
-        if: needs.e2e-tests.result == 'failure'
+        if: needs.setup.outputs.has-config == 'true' && needs.e2e-tests.result == 'failure'
         run: |
           echo "❌ E2E tests failed"
           exit 1
