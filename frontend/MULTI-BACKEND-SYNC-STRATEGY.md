@@ -20,26 +20,30 @@
 │                                                                     │
 └──────┬────────────────┬──────────────────────────────────────────────┘
        │                │
-       │                │         ┌──────────────┐
-       │                │         │ Backend C    │
-       │                │    ┌───▶│ (Contabo VPS)│
-       │                │    │    ├──────────────┤
-       ▼                ▼    │    │ Part 26:     │
-┌──────────────┐ ┌──────────────┐│ │ Market Data  │
-│ Backend A    │ │ Backend B    │└─│ Collection   │
-│ (Railway)    │ │ (Railway)    │  │              │
-├──────────────┤ ├──────────────┤  │ SQLite + MT5 │
-│ Parts:       │ │ Parts:       │  │              │
-│ 2,3,4,6,7,8, │ │ 20,21,22,23, │  │ Admin Access │
-│ 9,10,11,12,  │ │ 24,26        │  │ Only (SSH)   │
-│ 13,14,15,16, │ │              │  └──────────────┘
-│ 17A,17B,18,  │ │ Message Queue│         ▲
-│ 19           │ │ Analytics    │         │
-│              │ │ Surveillance │         │
-│ Database A   │ │ Notifications│    Stack A & B
-│ (Prisma+     │ │              │    can access C
-│  PostgreSQL) │ │ Database B   │
-└──────────────┘ └──────────────┘
+       │                │         ┌──────────────────────────┐
+       │                │         │ Backend C (Contabo VPS)  │
+       │                │         │ MT5 Terminals + SQLite   │
+       │                │         │ Part 26: Market Data     │
+       ▼                ▼         │ Admin Access (SSH/RDP)   │
+┌──────────────┐ ┌──────────────┐└─────┬────────────────────┘
+│ Backend A    │ │ Backend B    │      │
+│ (Railway)    │ │ (Railway)    │      │ ❌ NO direct access
+│              │◄├──────────────┤      │    from Stack A/B
+├──────────────┤ ├──────────────┤      │
+│ Parts:       │ │ Parts:       │      │ One-way push only
+│ 2,3,4,6,7,8, │ │ 20,21,22,23, │      ▼
+│ 9,10,11,12,  │ │ 24,26        │ ┌────────────────┐
+│ 13,14,15,16, │ │              │ │ Redis Queue    │
+│ 17A,17B,18,  │ │ Job Queue    │◄┤ (Upstash)      │
+│ 19           │ │ Consumers ───┘ │ Bull/BullMQ    │
+│              │ │ Analytics    │  └────────────────┘
+│ Database A   │ │ Surveillance │
+│ (Prisma+     │ │ Notifications│  ┌────────────────┐
+│  PostgreSQL) │ │              │  │ Redis Cache    │
+│              │ │ Database B   │◄─┤ (Upstash)      │
+│              │ │ TimescaleDB  │  │ Leaderboard,   │
+└──────────────┘ └──────────────┘  │ Sessions, etc. │
+                                    └────────────────┘
 ```
 
 ## Communication Patterns Summary
@@ -47,52 +51,221 @@
 ### ✅ Allowed Communication Patterns:
 
 ```
-1. Frontend → Stack A (Single request)
+1. Frontend (Next.js, Vercel) → Stack A (Nest.js, Railway)
    ├─ GET /api/alerts
    ├─ POST /api/watchlist
-   └─ PATCH /api/user/settings
+   ├─ PATCH /api/user/settings
+   └─ All CRUD operations for Parts 2-19
 
-2. Frontend → Stack B (Single request)
-   ├─ GET /notifications
-   ├─ GET /leaderboard/:timeframe
-   └─ GET /surveillance/symbols
+2. Frontend (Next.js, Vercel) → Stack B (Nest.js, Railway)
+   ├─ GET /notifications (real-time via Redis)
+   ├─ GET /leaderboard/:timeframe (cached in Redis)
+   ├─ GET /surveillance/symbols
+   └─ Analytics and message queue operations (Parts 20-26)
 
-3. Frontend → Stack A + Stack B (Simultaneous parallel requests)
+3. Frontend → Stack A (MT5 Flask Service) + Stack B simultaneously
    ├─ Promise.all([
-   │    api.stackA.getAlerts(),
-   │    api.stackB.getLeaderBoard(),
-   │    api.stackB.getNotifications()
+   │    api.stackA.getAlerts(),           // Nest.js API
+   │    api.stackA.getFlaskMT5Data(),     // Flask MT5 Service
+   │    api.stackB.getLeaderBoard(),      // Analytics
+   │    api.stackB.getNotifications()     // Redis-based notifications
    │  ])
-   └─ ⚡ Faster page loads, better UX
+   └─ ⚡ Parallel requests: ~500ms vs ~1500ms sequential
 
-4. Stack A ↔ Stack B (Backend-to-backend bidirectional)
-   ├─ Stack A → Stack B: Trigger analytics jobs
-   ├─ Stack A → Stack B: Fetch surveillance data
-   └─ Stack B → Stack A: Query user/subscription data
+4. Stack A (Nest.js) → Stack B (Nest.js)
+   ├─ Trigger analytics jobs in message queue
+   ├─ Fetch surveillance data
+   └─ Cross-stack operations
 
-5. Stack A → Stack C (Backend fetches market data)
-   └─ Stack A queries MT5 terminals + SQLite database
+5. Stack A (Nest.js) → PostgreSQL (Prisma, Timescale Cloud)
+   ├─ Database A: User data, alerts, watchlist, subscriptions
+   └─ Main application database
 
-6. Stack B → Stack C (Backend fetches market data)
-   └─ Stack B queries MT5 terminals + SQLite database
+6. Stack B (Nest.js) → PostgreSQL (Prisma, Timescale Cloud)
+   ├─ Database B: Analytics, surveillance, message queue
+   └─ Worker database for async operations
+
+7. Stack B (Nest.js) → TimescaleDB (Timescale Cloud) + Redis (Upstash)
+   ├─ Read from HyperTables (time-series data)
+   │  └─ 15 tables (1 per symbol), 90k rows max (10k × 9 timeframes)
+   ├─ Redis Queue: "market-data-sync" (Bull/BullMQ)
+   │  └─ Workers batch 50 bars before SQL INSERT
+   ├─ Backfill Worker (Python) handles SQLite recovery (0.1% fallback)
+   ├─ Python Pandas Dataframe for deep calculation (Confluence Scores)
+   └─ Additional Redis use cases:
+      ├─ Leaderboard (sorted sets - ZSET)
+      ├─ Notification Real-time (pub/sub)
+      ├─ Login Session (session store)
+      └─ Rate Limiting (counters with TTL)
+
+8. Stack C (Contabo VPS) → Redis Queue (Upstash) - One-way HTTP POST
+   ├─ 5 MT5 Terminals - V2.24 EA (3 symbol/terminal = 15 total)
+   ├─ Success rate: 99.9% direct to Redis, 0.1% fallback to SQLite
+   ├─ SQLite backup only (~10 MB, mostly empty)
+   └─ Backfill Worker (Python) recovers from SQLite when needed
 ```
 
-### ❌ Forbidden Communication Patterns:
+### ❌ FORBIDDEN Communication Patterns:
+
+**CRITICAL SECURITY POLICY:**
 
 ```
-1. Frontend → Stack C ❌
+1. ❌ Frontend (Next.js, Vercel) → Stack C (MT5 Terminals EA, Contabo) ❌
    └─ Frontend CANNOT access Contabo VPS directly
-   └─ Security: Market data infrastructure isolated
+   └─ Security: Market data infrastructure completely isolated
    └─ Access: Admin SSH/RDP only
 
-2. Stack C → Frontend ❌
-   └─ Stack C does not push data to frontend
-   └─ Data flows through Stack A or Stack B only
+2. ❌ Stack A (Nest.js, Railway) → Stack C (MT5 Terminals EA, Contabo) ❌
+   └─ Stack A does NOT directly query Stack C
+   └─ Data already in PostgreSQL (arrived via Redis Queue → Workers)
+   └─ Security isolation enforced - no incoming connections to Stack C
 
-3. Stack C → Stack A/B ❌
-   └─ Stack C is passive (does not initiate connections)
-   └─ Only responds to queries from Stack A/B
+3. ❌ Stack B (Nest.js, Railway) → Stack C (MT5 Terminals EA, Contabo) ❌
+   └─ Stack B does NOT directly query Stack C
+   └─ Stack B Workers CONSUME from Redis Queue (Stack C pushes to Redis)
+   └─ One-way flow: Stack C (HTTP POST) → Redis → Stack B (consume)
+   └─ Security isolation enforced - no incoming connections to Stack C
+
+4. ❌ Stack C → Frontend (direct push) ❌
+   └─ Stack C does not push data directly to frontend
+   └─ Data flows through Redis → Workers → Database → Frontend
+
+5. ❌ Any direct HTTP/API calls to Stack C ❌
+   └─ Stack C only accessible via Redis Job Queue
+   └─ Complete network isolation from Railway stacks
 ```
+
+### 🔄 Data Collection Flow (Stack C → Frontend):
+
+**The ONLY way data flows from Stack C to the application:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ CONTABO VPS (Stack C)                                           │
+│                                                                 │
+│ 5 MT5 Terminals - V2.24 EA (3 symbol/terminal)                 │
+│                                                                 │
+│ Collection Logic (per bar):                                    │
+│ 1. Try Redis Publish (fast) ───┐                              │
+│    ├─ Success (99.9%) ✅ Done  │                              │
+│    └─ Failed (0.1%) ❌          │                              │
+│         └─ SQLite backup        │                              │
+│         └─ Mark for backfill    │                              │
+│                                 │                              │
+│ SQLite Database (15 files):    │                              │
+│ ├─ Mostly empty (only failures)│                              │
+│ ├─ Size: ~10 MB (vs 90 MB)    │                              │
+│ └─ Backfill Worker PY handles  │                              │
+│                                 │                              │
+└─────────────────────────────────┼──────────────────────────────┘
+                                  │ (1) HTTP POST
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ UPSTASH REDIS (Message Broker)                                  │
+│                                                                 │
+│ Bull Queue: "market-data-sync"                                 │
+│ ├─ Receives 99.9% of data real-time                            │
+│ ├─ Queue contains: symbol, timeframe, OHLCV data, timestamps   │
+│ ├─ (92% fast path) → (8.1% recovery)                          │
+│ └─ Decouples MT5 from Railway backend                          │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │ (3) Bull Queue Consumer
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ RAILWAY WORKERS (Backend = Nest.js)                            │
+│                                                                 │
+│ Primary: Process Redis queue (main flow)                       │
+│ Secondary: Backfill from SQLite (recovery - Backfill Worker PY)│
+│                                                                 │
+│ Processing Steps:                                              │
+│ ├─ Validate (data integrity checks)                            │
+│ ├─ Batch (50 bars) - optimize bulk inserts                     │
+│ └─ Insert (batched SQL operations)                             │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │ (5) SQL INSERT
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ RAILWAY POSTGRESQL (Backend = Nest.js)                         │
+│ PostgreSQL (Railway / Timescale Cloud)                         │
+│                                                                 │
+│ Database Structure:                                            │
+│ ├─ 15 tables (1 per symbol)                                    │
+│ ├─ 90,000 rows max (10k × 9 timeframes)                        │
+│ ├─ HyperTables (TimescaleDB) for time-series optimization      │
+│ └─ Complete dataset (fast path + recovered)                    │
+└─────────────────────────────────┬───────────────────────────────┘
+                                  │
+                                  ├──────────────────────┐
+                                  ▼                      ▼
+┌────────────────────────────────────────┐  ┌──────────────────────┐
+│ Python Pandas Dataframe                │  │ TradingView Charts   │
+│ (Deep Calculation)                     │  │ Lightweight Library  │
+│                                        │  │ (Next.js Frontend)   │
+│ Pre-Computation of:                    │  └──────────────────────┘
+│ └─ Confluence Scores                   │
+└────────────┬───────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Watchlist + Alert Notification System                          │
+│ Backend = Nest.js                                               │
+│ UI = Next.js                                                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Implementation Details:**
+
+1. **MT5 EA Collection (Contabo VPS)**
+   - 5 MT5 Terminals running V2.24 EA
+   - 3 symbols per terminal = 15 symbols total
+   - Per-bar collection logic with Redis-first approach
+
+2. **Dual-Path Strategy (99.9% vs 0.1%)**
+   - **Fast Path (99.9%)**: MT5 → HTTP POST → Redis → Workers → PostgreSQL
+   - **Backup Path (0.1%)**: MT5 → SQLite → Backfill Worker (Python) → PostgreSQL
+   - SQLite is mostly empty (~10 MB vs 90 MB in dual-write)
+
+3. **Redis Message Broker (Upstash)**
+   - Bull Queue: "market-data-sync"
+   - 92% fast path + 8.1% recovery = 100% data completeness
+   - Decouples MT5 terminals from backend infrastructure
+
+4. **Railway Workers (NestJS)**
+   - Consumes from Bull Queue
+   - Validates data integrity
+   - **Batches 50 bars** before SQL INSERT (performance optimization)
+   - Primary flow: Redis queue
+   - Secondary flow: Backfill Worker (Python) for SQLite recovery
+
+5. **PostgreSQL Database (Railway/Timescale)**
+   - 15 tables (1 per symbol)
+   - 90,000 rows maximum (10k bars × 9 timeframes)
+   - TimescaleDB HyperTables for time-series optimization
+   - Stores complete dataset from both paths
+
+6. **Data Processing & Analytics**
+   - **Python Pandas Dataframe**: Deep calculation engine
+   - Pre-computes Confluence Scores
+   - Feeds into Watchlist + Alert Notification System
+
+7. **Frontend (Next.js on Vercel)**
+   - TradingView Lightweight Charts Library
+   - Displays charts and confluence scores
+   - Queries PostgreSQL via Stack A/B APIs
+   - Never communicates with Stack C directly
+
+**Key Security Principle:**
+- Stack C is a **one-way data producer** only
+- Stack C → HTTP POST → Redis Queue (push only, 99.9% success rate)
+- Backup path: Stack C → SQLite → Backfill Worker (0.1% fallback)
+- No incoming connections to Stack C from Stack A, B, or Frontend
+- Admin access to Stack C only via SSH/RDP for maintenance
+
+**Additional Redis Use Cases (not shown in data flow diagram):**
+- **Leaderboard**: Redis ZSET (sorted sets with scores)
+- **Notification Real-time**: Redis Pub/Sub
+- **Login Session**: Redis session store
+- **Rate Limiting**: Redis counters with TTL
 
 ## Strategy: Contract-First Development
 
@@ -632,7 +805,9 @@ NEXTAUTH_SECRET=production-secret
    - Part 23: Symbols/Timeframes Leader Board
    - Part 24: Symbols/Timeframes Under Surveillance
    - Part 26: Advance Notifications & Real-time
-🔨 Integrate with Stack C (Contabo VPS) for market data fetching
+🔨 Setup Redis Job Queue consumers (Bull/BullMQ)
+🔨 ❌ NO direct Stack B → Stack C integration (FORBIDDEN)
+🔨 Stack B consumes jobs from Redis Queue pushed by Stack C
 🔨 Test backend independently
 🔨 Deploy to Railway Container B
 ```
@@ -643,7 +818,8 @@ NEXTAUTH_SECRET=production-secret
 🔗 Disable MSW mocks (set NEXT_PUBLIC_USE_MOCKS=false)
 🔗 Test frontend → Backend Stack A integration
 🔗 Test frontend → Backend Stack B integration
-🔗 Verify Stack A & B can access Stack C (but frontend cannot)
+🔗 Verify Redis Job Queue flow: Stack C → Redis → Stack B Workers
+🔗 ❌ Verify Stack A & B CANNOT directly access Stack C (security test)
 🔗 Both teams can work in parallel!
 ```
 
@@ -816,7 +992,9 @@ test('cannot access Stack C directly', async ({ page }) => {
 - [ ] Build Analytics (Parts 22, 23 - Confluence Scores + Leader Board)
 - [ ] Build Surveillance (Part 24)
 - [ ] Build Advance Notifications (Part 26)
-- [ ] Configure Stack B → Stack C communication
+- [ ] Setup Redis Job Queue consumers (Bull/BullMQ)
+- [ ] Configure Stack B Workers to consume from Redis Queue
+- [ ] ❌ NO direct Stack B → Stack C communication (FORBIDDEN)
 - [ ] Test backend independently
 
 ### Week 7: Integration
@@ -827,8 +1005,10 @@ test('cannot access Stack C directly', async ({ page }) => {
   - [ ] Frontend → Stack A ✅
   - [ ] Frontend → Stack B ✅
   - [ ] Frontend → Stack C ❌ (verify blocked)
-  - [ ] Stack A → Stack C ✅
-  - [ ] Stack B → Stack C ✅
+  - [ ] Stack A → Stack C ❌ (verify FORBIDDEN - security test)
+  - [ ] Stack B → Stack C ❌ (verify FORBIDDEN - security test)
+  - [ ] Stack C → Redis Queue ✅ (verify data flow)
+  - [ ] Stack B Workers → Redis Queue ✅ (verify consumption)
 - [ ] Production deployment
 
 ---
@@ -844,15 +1024,19 @@ Based on the latest microservice architecture:
 ### ❌ Frontend CANNOT communicate with:
 - **Stack C (Contabo VPS)** - Part 26 Market Data Collection (MT5 + SQLite)
   - **Only admin access via SSH/RDP**
-  - **Only Stack A & B can fetch data from Stack C**
+  - **Data flows through Redis Job Queue, NOT direct access**
 
 ### ✅ Backend Stacks CAN communicate with each other:
 - **Stack A ↔ Stack B** ✅ (bidirectional communication)
   - Stack A can trigger jobs in Stack B's message queue
   - Stack A can fetch analytics/surveillance data from Stack B
   - Stack B can query user/subscription data from Stack A
-- **Stack A → Stack C** ✅ (for market data fetching)
-- **Stack B → Stack C** ✅ (for market data fetching)
+
+### ❌ Backend Stacks CANNOT directly communicate with Stack C:
+- **Stack A → Stack C** ❌ (FORBIDDEN - security isolation)
+- **Stack B → Stack C** ❌ (FORBIDDEN - security isolation)
+- **Data flows via Redis Job Queue only:**
+  - Stack C → Redis Queue → Stack B Workers → Database → Stack A/B APIs → Frontend
 
 ### ✅ Frontend CAN communicate with multiple stacks simultaneously:
 - **Frontend → Stack A and Stack B in parallel** ✅
@@ -900,14 +1084,21 @@ The key is **contract-first development** using OpenAPI specs.
 
 **Next Steps:**
 1. Create OpenAPI specs for Backend Stack B (Parts 20-26)
+   - Include Redis connection specs (Leaderboard, Notifications, Job Queue, Sessions, Rate Limiting)
 2. Generate TypeScript types
 3. Create multi-backend API clients (Stack A + Stack B ONLY)
 4. **DO NOT create Stack C client** - Frontend cannot access it
 5. Setup MSW mocks for Stack B
 6. Build frontend components using api.stackA.* and api.stackB.*
 7. Backend team builds Stack B following contracts
-8. Configure Stack B → Stack C communication (backend-to-backend)
+8. Setup Redis Job Queue consumers in Stack B (Bull/BullMQ)
+9. **❌ DO NOT configure direct Stack B → Stack C communication (FORBIDDEN)**
+10. Configure Stack C to push jobs to Redis Queue (one-way data flow)
 
 Both teams can work in parallel! 🚀
 
-**Remember:** Frontend can talk to Stack A and Stack B, but NEVER to Stack C!
+**Remember:**
+- ✅ Frontend can talk to Stack A and Stack B
+- ❌ Frontend can NEVER talk to Stack C
+- ❌ Stack A/B can NEVER directly access Stack C
+- ✅ Data flows: Stack C → Redis Queue → Stack B Workers → Database → Frontend
