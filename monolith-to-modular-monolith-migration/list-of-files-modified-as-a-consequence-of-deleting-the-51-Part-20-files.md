@@ -1,4 +1,4 @@
-Here's the complete list of files modified as a consequence of deleting the 51 Part 20 files:
+Here's the complete list of files modified as a consequence of deleting the 51 Part 20 (old) files:
 
 📋 MODIFIED FILES (7 total)
 
