@@ -336,8 +336,5 @@ export class MultiStackAPI {
 // Export singleton instance
 export const api = new MultiStackAPI();
 
-// Export individual clients for direct access
-export { StackAClient, StackBClient };
-
 // Export default
 export default api;
