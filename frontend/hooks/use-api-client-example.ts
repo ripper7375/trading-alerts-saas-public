@@ -133,9 +133,8 @@ export function useApiClientExample() {
    * ⚠️ FUTURE: Commented out until Stack B deployment
    * This will fail with WebSocket connection error if uncommented
    */
+  /* Uncomment when Stack B is deployed
   const setupRealTimeNotifications = () => {
-    // ⚠️ Uncomment when Stack B is deployed
-    /*
     const unsubscribe = api.stackB.subscribeToNotifications(
       (notification: Notification) => {
         console.log('New real-time notification:', notification);
@@ -155,8 +154,8 @@ export function useApiClientExample() {
     );
 
     unsubscribeNotificationsRef.current = unsubscribe;
-    */
   };
+  */
 
   /**
    * Setup Server-Sent Events (SSE) for live updates
@@ -164,9 +163,8 @@ export function useApiClientExample() {
    * ⚠️ FUTURE: Commented out until Stack B deployment
    * This will fail with connection error if uncommented
    */
+  /* Uncomment when Stack B is deployed
   const setupServerSentEvents = () => {
-    // ⚠️ Uncomment when Stack B is deployed
-    /*
     const eventSource = api.stackB.createNotificationsStream();
 
     eventSource.onmessage = (event) => {
@@ -185,8 +183,8 @@ export function useApiClientExample() {
     };
 
     eventSourceRef.current = eventSource;
-    */
   };
+  */
 
   /**
    * Create new alert (Stack A)
