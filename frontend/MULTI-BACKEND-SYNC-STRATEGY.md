@@ -42,6 +42,58 @@
 └──────────────┘ └──────────────┘
 ```
 
+## Communication Patterns Summary
+
+### ✅ Allowed Communication Patterns:
+
+```
+1. Frontend → Stack A (Single request)
+   ├─ GET /api/alerts
+   ├─ POST /api/watchlist
+   └─ PATCH /api/user/settings
+
+2. Frontend → Stack B (Single request)
+   ├─ GET /notifications
+   ├─ GET /leaderboard/:timeframe
+   └─ GET /surveillance/symbols
+
+3. Frontend → Stack A + Stack B (Simultaneous parallel requests)
+   ├─ Promise.all([
+   │    api.stackA.getAlerts(),
+   │    api.stackB.getLeaderBoard(),
+   │    api.stackB.getNotifications()
+   │  ])
+   └─ ⚡ Faster page loads, better UX
+
+4. Stack A ↔ Stack B (Backend-to-backend bidirectional)
+   ├─ Stack A → Stack B: Trigger analytics jobs
+   ├─ Stack A → Stack B: Fetch surveillance data
+   └─ Stack B → Stack A: Query user/subscription data
+
+5. Stack A → Stack C (Backend fetches market data)
+   └─ Stack A queries MT5 terminals + SQLite database
+
+6. Stack B → Stack C (Backend fetches market data)
+   └─ Stack B queries MT5 terminals + SQLite database
+```
+
+### ❌ Forbidden Communication Patterns:
+
+```
+1. Frontend → Stack C ❌
+   └─ Frontend CANNOT access Contabo VPS directly
+   └─ Security: Market data infrastructure isolated
+   └─ Access: Admin SSH/RDP only
+
+2. Stack C → Frontend ❌
+   └─ Stack C does not push data to frontend
+   └─ Data flows through Stack A or Stack B only
+
+3. Stack C → Stack A/B ❌
+   └─ Stack C is passive (does not initiate connections)
+   └─ Only responds to queries from Stack A/B
+```
+
 ## Strategy: Contract-First Development
 
 ### Step 1: Define API Contracts for Backend Stack B
@@ -313,6 +365,91 @@ export default function LeaderboardPage() {
   );
 }
 ```
+
+#### Example: Simultaneous Requests to Stack A and Stack B
+
+```typescript
+// frontend/app/dashboard/page.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api-clients';
+
+export default function DashboardPage() {
+  const [alerts, setAlerts] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        // ✅ Make parallel requests to Stack A and Stack B simultaneously
+        // This reduces total load time significantly!
+        const [alertsData, leaderboardData, notificationsData] = await Promise.all([
+          api.stackA.getAlerts(),        // Stack A - Part 11
+          api.stackB.getLeaderBoard('H4'), // Stack B - Part 23
+          api.stackB.getNotifications(),   // Stack B - Part 26
+        ]);
+
+        setAlerts(alertsData);
+        setLeaderboard(leaderboardData);
+        setNotifications(notificationsData);
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
+
+  if (loading) return <p>Loading dashboard...</p>;
+
+  return (
+    <div className="dashboard">
+      <h1>Trading Dashboard</h1>
+
+      {/* Data from Stack A */}
+      <section className="alerts-section">
+        <h2>Active Alerts (Stack A)</h2>
+        <ul>
+          {alerts.map((alert) => (
+            <li key={alert.id}>{alert.symbol} - {alert.condition}</li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Data from Stack B */}
+      <section className="leaderboard-section">
+        <h2>Top Symbols (Stack B)</h2>
+        <ul>
+          {leaderboard.leaders?.map((item) => (
+            <li key={item.symbol}>{item.symbol} - Score: {item.score}</li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Data from Stack B */}
+      <section className="notifications-section">
+        <h2>Recent Notifications (Stack B)</h2>
+        <ul>
+          {notifications.map((notif) => (
+            <li key={notif.id}>{notif.message}</li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+```
+
+**Benefits of Simultaneous Requests:**
+- ⚡ **Faster page loads**: 3 parallel requests complete in ~500ms vs 1500ms sequential
+- 🎯 **Better UX**: Users see complete dashboard data faster
+- 🔄 **Independent failures**: If Stack B is slow, Stack A data still loads
+- 📊 **Real-time data**: Both stacks provide fresh data simultaneously
 
 ### Step 5: Mock Server for Stack B During Development
 
@@ -709,10 +846,19 @@ Based on the latest microservice architecture:
   - **Only admin access via SSH/RDP**
   - **Only Stack A & B can fetch data from Stack C**
 
-### ✅ Backend Stacks CAN communicate with:
-- Stack A ↔ Stack B ✅
-- Stack A → Stack C ✅ (for market data fetching)
-- Stack B → Stack C ✅ (for market data fetching)
+### ✅ Backend Stacks CAN communicate with each other:
+- **Stack A ↔ Stack B** ✅ (bidirectional communication)
+  - Stack A can trigger jobs in Stack B's message queue
+  - Stack A can fetch analytics/surveillance data from Stack B
+  - Stack B can query user/subscription data from Stack A
+- **Stack A → Stack C** ✅ (for market data fetching)
+- **Stack B → Stack C** ✅ (for market data fetching)
+
+### ✅ Frontend CAN communicate with multiple stacks simultaneously:
+- **Frontend → Stack A and Stack B in parallel** ✅
+  - Load dashboard data from Stack A while fetching analytics from Stack B
+  - Reduces total page load time by making concurrent requests
+  - Example: Dashboard shows user alerts (Stack A) + leader board (Stack B) at the same time
 
 ---
 
