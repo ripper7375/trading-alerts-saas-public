@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/db/prisma';
-import { query, checkConnection } from '@/lib/db/postgresql';
-import { isRedisAvailable } from '@/lib/cache/redis';
 import {
   getConnectedUsersCount,
   isUserConnected,
 } from '@/lib/websocket/server';
+
+// Flask MT5 service configuration
+const MT5_SERVICE_URL = process.env['MT5_SERVICE_URL'] || 'http://localhost:5001';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -70,80 +71,55 @@ async function checkDatabase(): Promise<HealthCheck> {
 
 /**
  * Check Redis connectivity
- * Part 20: Uses actual Redis client check
+ * Note: Redis health check disabled - to be re-implemented with new architecture
  */
 async function checkRedis(): Promise<HealthCheck> {
-  const start = Date.now();
-  try {
-    const isConnected = await isRedisAvailable();
-    return {
-      status: isConnected ? 'healthy' : 'degraded',
-      responseTime: Date.now() - start,
-      lastChecked: new Date(),
-      error: isConnected ? undefined : 'Redis connection not available',
-    };
-  } catch (error) {
-    console.error('Redis health check failed:', error);
-    return {
-      status: 'down',
-      lastChecked: new Date(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Redis check disabled - Part 20 infrastructure removed
+  return {
+    status: 'degraded',
+    responseTime: 0,
+    lastChecked: new Date(),
+    error: 'Redis health check not implemented (architecture migration in progress)',
+  };
 }
 
 /**
- * Check Part 20 Data Service (PostgreSQL indicator data + sync freshness)
- * Part 20: Replaces Flask MT5 service check
+ * Check Data Service (Flask MT5)
+ * Checks Flask MT5 service health for real-time data
  */
 async function checkDataService(): Promise<HealthCheck> {
   const start = Date.now();
   try {
-    // Check PostgreSQL connection
-    const pgConnected = await checkConnection();
+    // Check Flask MT5 service health
+    const response = await fetch(`${MT5_SERVICE_URL}/api/system/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (!pgConnected) {
+    if (!response.ok) {
       return {
         status: 'down',
         responseTime: Date.now() - start,
         lastChecked: new Date(),
-        error: 'PostgreSQL connection failed',
+        error: `Flask service returned ${response.status}`,
       };
     }
 
-    // Check data freshness - query latest timestamp from EURUSD M5
-    const syncStatus = await query<{ last_sync: Date }>(
-      `SELECT MAX(timestamp) as last_sync FROM eurusd_m5`
-    );
-
-    const lastSync = syncStatus[0]?.last_sync;
-    if (!lastSync) {
-      return {
-        status: 'degraded',
-        responseTime: Date.now() - start,
-        lastChecked: new Date(),
-        error: 'No indicator data found in database',
-      };
-    }
-
-    // Check if data is stale (more than 60 seconds old)
-    const lastSyncAge = Date.now() - new Date(lastSync).getTime();
-    const isStale = lastSyncAge > 60000; // 60 seconds
-
+    const data = await response.json();
     return {
-      status: isStale ? 'degraded' : 'healthy',
+      status: data.status === 'ok' ? 'healthy' : 'degraded',
       responseTime: Date.now() - start,
       lastChecked: new Date(),
-      error: isStale
-        ? `Data is ${Math.floor(lastSyncAge / 1000)}s old (threshold: 60s)`
-        : undefined,
     };
   } catch (error) {
     console.error('Data service health check failed:', error);
     return {
       status: 'down',
+      responseTime: Date.now() - start,
       lastChecked: new Date(),
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : 'Flask service unreachable',
     };
   }
 }
@@ -223,8 +199,8 @@ async function getTierMetrics(tier: 'FREE' | 'PRO'): Promise<TierMetrics> {
  *
  * Performs health checks on all system components:
  * - Database (PostgreSQL via Prisma)
- * - Redis (for caching/sessions)
- * - Data Service (Part 20 PostgreSQL + sync freshness)
+ * - Redis (caching - currently disabled)
+ * - Data Service (Flask MT5 service)
  * - WebSocket (real-time notifications)
  *
  * Also collects tier-specific metrics for FREE and PRO users.
