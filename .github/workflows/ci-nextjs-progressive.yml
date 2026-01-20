@@ -102,6 +102,64 @@ jobs:
             echo "✅ Project ready for CI/CD validation"
           fi
 
+  check-frontend-sync:
+    name: Check Frontend Sync Status
+    runs-on: ubuntu-latest
+    needs: check-project-status
+    if: needs.check-project-status.outputs.has_config == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check if frontend sync is needed
+        id: sync-check
+        run: |
+          echo "🔍 Checking frontend-backend sync status..."
+          if pnpm run sync:check; then
+            echo "✅ Frontend is in sync with backend"
+            echo "sync_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  Frontend sync required!"
+            echo "sync_needed=true" >> $GITHUB_OUTPUT
+            echo ""
+            echo "Modified files require frontend sync:"
+            git diff --name-only HEAD~1..HEAD | grep -E '^(types/|lib/tier)' || true
+            echo ""
+            echo "📋 To fix this issue:"
+            echo "   1. Run: npm run sync:frontend"
+            echo "   2. Commit the synced files"
+            echo "   3. Push changes"
+            exit 1
+          fi
+
+      - name: Display sync status
+        if: always()
+        run: |
+          if [ "${{ steps.sync-check.outputs.sync_needed }}" == "true" ]; then
+            echo "❌ Frontend sync check FAILED"
+            echo ""
+            echo "This means that shared files between backend and frontend are out of sync."
+            echo "Please run 'npm run sync:frontend' locally and commit the changes."
+          else
+            echo "✅ Frontend sync check PASSED"
+            echo "All shared files are synchronized between backend and frontend."
+          fi
+
   install-and-build:
     name: Install Dependencies & Build
     runs-on: ubuntu-latest
@@ -265,7 +323,7 @@ jobs:
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [check-project-status, install-and-build, type-check, lint, test]
+    needs: [check-project-status, check-frontend-sync, install-and-build, type-check, lint, test]
     if: always()
 
     steps:
@@ -278,6 +336,7 @@ jobs:
           echo ""
           echo "Jobs Executed:"
           echo "  check-project-status: ✅"
+          echo "  check-frontend-sync: ${{ needs.check-frontend-sync.result || '⏭️  skipped' }}"
           echo "  install-and-build: ${{ needs.install-and-build.result || '⏭️  skipped' }}"
           echo "  type-check: ${{ needs.type-check.result || '⏭️  skipped' }}"
           echo "  lint: ${{ needs.lint.result || '⏭️  skipped' }}"
