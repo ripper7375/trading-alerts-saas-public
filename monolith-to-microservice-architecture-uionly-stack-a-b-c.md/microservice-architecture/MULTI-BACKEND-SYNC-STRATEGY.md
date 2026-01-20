@@ -255,6 +255,7 @@
    - Never communicates with Stack C directly
 
 **Key Security Principle:**
+
 - Stack C is a **one-way data producer** only
 - Stack C → HTTP POST → Redis Queue (push only, 99.9% success rate)
 - Backup path: Stack C → SQLite → Backfill Worker (0.1% fallback)
@@ -262,6 +263,7 @@
 - Admin access to Stack C only via SSH/RDP for maintenance
 
 **Additional Redis Use Cases (not shown in data flow diagram):**
+
 - **Leaderboard**: Redis ZSET (sorted sets with scores)
 - **Notification Real-time**: Redis Pub/Sub
 - **Login Session**: Redis session store
@@ -436,9 +438,10 @@ import type { paths as StackBPaths } from '@/types/api-stack-b';
 export class StackBClient extends BaseApiClient {
   constructor() {
     // Stack B might not be deployed yet - provide fallback
-    const baseURL = process.env['NEXT_PUBLIC_API_B_URL'] ||
-                    process.env['NEXT_PUBLIC_API_A_URL'] || // Fallback to Stack A during development
-                    '/api';
+    const baseURL =
+      process.env['NEXT_PUBLIC_API_B_URL'] ||
+      process.env['NEXT_PUBLIC_API_A_URL'] || // Fallback to Stack A during development
+      '/api';
     super(baseURL);
   }
 
@@ -619,6 +622,7 @@ export default function DashboardPage() {
 ```
 
 **Benefits of Simultaneous Requests:**
+
 - ⚡ **Faster page loads**: 3 parallel requests complete in ~500ms vs 1500ms sequential
 - 🎯 **Better UX**: Users see complete dashboard data faster
 - 🔄 **Independent failures**: If Stack B is slow, Stack A data still loads
@@ -632,7 +636,8 @@ While Backend Stack B is being built, use Mock Service Worker (MSW):
 // frontend/mocks/stack-b-handlers.ts
 import { http, HttpResponse } from 'msw';
 
-const STACK_B_URL = process.env['NEXT_PUBLIC_API_B_URL'] || 'http://localhost:3002';
+const STACK_B_URL =
+  process.env['NEXT_PUBLIC_API_B_URL'] || 'http://localhost:3002';
 
 export const stackBHandlers = [
   // GET /notifications (Part 26)
@@ -722,8 +727,10 @@ import { useEffect } from 'react';
 
 export default function RootLayout({ children }) {
   useEffect(() => {
-    if (process.env['NODE_ENV'] === 'development' &&
-        process.env['NEXT_PUBLIC_USE_MOCKS'] === 'true') {
+    if (
+      process.env['NODE_ENV'] === 'development' &&
+      process.env['NEXT_PUBLIC_USE_MOCKS'] === 'true'
+    ) {
       // Start MSW for Stack B mocking
       import('../mocks/browser').then(({ worker }) => {
         worker.start({
@@ -785,6 +792,7 @@ NEXTAUTH_SECRET=production-secret
 ## Development Workflow
 
 ### Phase 1: Frontend Development (NOW)
+
 ```
 ✅ Define OpenAPI contracts for Stack B (Parts 20-26)
 ✅ Generate TypeScript types from contracts
@@ -796,6 +804,7 @@ NEXTAUTH_SECRET=production-secret
 ```
 
 ### Phase 2: Backend Stack B Development (Parallel)
+
 ```
 🔨 Build Nest.js services following OpenAPI contracts
 🔨 Implement Parts 20-26:
@@ -813,6 +822,7 @@ NEXTAUTH_SECRET=production-secret
 ```
 
 ### Phase 3: Integration
+
 ```
 🔗 Update NEXT_PUBLIC_API_B_URL to Railway URL
 🔗 Disable MSW mocks (set NEXT_PUBLIC_USE_MOCKS=false)
@@ -826,56 +836,63 @@ NEXTAUTH_SECRET=production-secret
 ## Benefits of This Approach
 
 ### ✅ Parallel Development
+
 - Frontend team can build UI now
 - Backend team can build APIs later
 - No waiting for each other
 
 ### ✅ Contract-Driven
+
 - OpenAPI spec is single source of truth
 - TypeScript types auto-generated
 - Breaking changes caught early
 
 ### ✅ Easy Testing
+
 - Frontend can test with mocks
 - Backend can test independently
 - Integration testing straightforward
 
 ### ✅ Gradual Rollout
+
 - Deploy Stack A first
 - Deploy Stack B when ready
 - Fallback to Stack A if Stack B fails
 
 ### ✅ Clear Separation
+
 - Each stack has dedicated client
 - Easy to route requests
 - Simple to monitor which stack is slow
 
 ## Sync Functionality Matrix
 
-| Frontend Feature | Backend Stack | Client Used | Status |
-|-----------------|---------------|-------------|--------|
-| User Profile | Stack A | `api.stackA.getUser()` | ✅ Ready |
-| Subscription | Stack A | `api.stackA.getSubscription()` | ✅ Ready |
-| Dashboard (Part 8) | Stack A | `api.stackA.getDashboard()` | ✅ Ready |
-| Charts (Part 9) | Stack A | `api.stackA.getCharts()` | ✅ Ready |
-| Watchlist (Part 10) | Stack A | `api.stackA.getWatchlist()` | ✅ Ready |
-| Alerts (Part 11) | Stack A | `api.stackA.getAlerts()` | ✅ Ready |
-| E-commerce (Part 12) | Stack A | `api.stackA.getBilling()` | ✅ Ready |
-| **Market Data Broker** | **Stack B** | **`api.stackB.getMarketData()`** | 🔨 Use mocks |
-| **Notifications (Adv)** | **Stack B** | **`api.stackB.getNotifications()`** | 🔨 Use mocks |
-| **Confluence Scores** | **Stack B** | **`api.stackB.getConfluenceScores()`** | 🔨 Use mocks |
-| **Leader Board** | **Stack B** | **`api.stackB.getLeaderBoard()`** | 🔨 Use mocks |
-| **Surveillance** | **Stack B** | **`api.stackB.getSymbolsSurveillance()`** | 🔨 Use mocks |
-| ❌ Market Data (Raw) | Stack C | ❌ **FORBIDDEN** | ⛔ No frontend access |
+| Frontend Feature        | Backend Stack | Client Used                               | Status                |
+| ----------------------- | ------------- | ----------------------------------------- | --------------------- |
+| User Profile            | Stack A       | `api.stackA.getUser()`                    | ✅ Ready              |
+| Subscription            | Stack A       | `api.stackA.getSubscription()`            | ✅ Ready              |
+| Dashboard (Part 8)      | Stack A       | `api.stackA.getDashboard()`               | ✅ Ready              |
+| Charts (Part 9)         | Stack A       | `api.stackA.getCharts()`                  | ✅ Ready              |
+| Watchlist (Part 10)     | Stack A       | `api.stackA.getWatchlist()`               | ✅ Ready              |
+| Alerts (Part 11)        | Stack A       | `api.stackA.getAlerts()`                  | ✅ Ready              |
+| E-commerce (Part 12)    | Stack A       | `api.stackA.getBilling()`                 | ✅ Ready              |
+| **Market Data Broker**  | **Stack B**   | **`api.stackB.getMarketData()`**          | 🔨 Use mocks          |
+| **Notifications (Adv)** | **Stack B**   | **`api.stackB.getNotifications()`**       | 🔨 Use mocks          |
+| **Confluence Scores**   | **Stack B**   | **`api.stackB.getConfluenceScores()`**    | 🔨 Use mocks          |
+| **Leader Board**        | **Stack B**   | **`api.stackB.getLeaderBoard()`**         | 🔨 Use mocks          |
+| **Surveillance**        | **Stack B**   | **`api.stackB.getSymbolsSurveillance()`** | 🔨 Use mocks          |
+| ❌ Market Data (Raw)    | Stack C       | ❌ **FORBIDDEN**                          | ⛔ No frontend access |
 
 ## Migration Path
 
 ### Current State (Monolith)
+
 ```
 Frontend (Vercel) → Next.js API routes (All-in-one)
 ```
 
 ### Intermediate State (Stack A deployed, Stack B mocked)
+
 ```
 Frontend (Vercel) → Stack A (Railway) [Real - Parts 2-19]
                   → Stack B (Mocked via MSW) [Parts 20-26]
@@ -888,6 +905,7 @@ Stack B ──────────┘
 ```
 
 ### Final State (All stacks deployed)
+
 ```
 Frontend (Vercel) → Stack A (Railway) [Real - Parts 2-19]
                   → Stack B (Railway) [Real - Parts 20-26]
@@ -906,6 +924,7 @@ Stack B ──────────┘
 ## Testing Strategy
 
 ### Unit Tests (Frontend)
+
 ```typescript
 // Test with mocked Stack B client
 describe('LeaderboardPage', () => {
@@ -942,6 +961,7 @@ describe('WatchlistPage', () => {
 ```
 
 ### Integration Tests (E2E)
+
 ```typescript
 // Test.spec.ts (Playwright)
 test('leaderboard integration', async ({ page }) => {
@@ -978,6 +998,7 @@ test('cannot access Stack C directly', async ({ page }) => {
 ## Recommended Timeline
 
 ### Week 1-2: Contracts & Frontend (No Backend Stack B needed)
+
 - [ ] Define OpenAPI specs for Stack B (Parts 20-26)
 - [ ] Generate TypeScript types
 - [ ] Create stackBClient (NO stackCClient)
@@ -986,6 +1007,7 @@ test('cannot access Stack C directly', async ({ page }) => {
 - [ ] Document that frontend cannot access Stack C
 
 ### Week 3-6: Backend Stack B Development (Parallel)
+
 - [ ] Build Nest.js services for Stack B
 - [ ] Build Database B (Part 20)
 - [ ] Build Market Data Collection (Part 21 - Message Broker + Worker Database)
@@ -998,6 +1020,7 @@ test('cannot access Stack C directly', async ({ page }) => {
 - [ ] Test backend independently
 
 ### Week 7: Integration
+
 - [ ] Deploy Stack B to Railway
 - [ ] Update NEXT_PUBLIC_API_B_URL
 - [ ] Disable mocks
@@ -1018,27 +1041,32 @@ test('cannot access Stack C directly', async ({ page }) => {
 Based on the latest microservice architecture:
 
 ### ✅ Frontend CAN communicate with:
+
 - **Stack A (Railway)** - Parts 2-19 (Main CRUD, Dashboard, Watchlist, Alerts, etc.)
 - **Stack B (Railway)** - Parts 20-26 (Message Queue, Analytics, Surveillance, Notifications)
 
 ### ❌ Frontend CANNOT communicate with:
+
 - **Stack C (Contabo VPS)** - Part 26 Market Data Collection (MT5 + SQLite)
   - **Only admin access via SSH/RDP**
   - **Data flows through Redis Job Queue, NOT direct access**
 
 ### ✅ Backend Stacks CAN communicate with each other:
+
 - **Stack A ↔ Stack B** ✅ (bidirectional communication)
   - Stack A can trigger jobs in Stack B's message queue
   - Stack A can fetch analytics/surveillance data from Stack B
   - Stack B can query user/subscription data from Stack A
 
 ### ❌ Backend Stacks CANNOT directly communicate with Stack C:
+
 - **Stack A → Stack C** ❌ (FORBIDDEN - security isolation)
 - **Stack B → Stack C** ❌ (FORBIDDEN - security isolation)
 - **Data flows via Redis Job Queue only:**
   - Stack C → Redis Queue → Stack B Workers → Database → Stack A/B APIs → Frontend
 
 ### ✅ Frontend CAN communicate with multiple stacks simultaneously:
+
 - **Frontend → Stack A and Stack B in parallel** ✅
   - Load dashboard data from Stack A while fetching analytics from Stack B
   - Reduces total page load time by making concurrent requests
@@ -1065,6 +1093,7 @@ The key is **contract-first development** using OpenAPI specs.
 ## Architecture Changes Summary
 
 ### Updated Parts Distribution:
+
 - **Frontend Stack (Vercel)**: Part 5 (Auth), Part 27 (UI Only)
 - **Backend Stack A (Railway)**: Parts 2-19
   - Database A, Types, Tier System, Flask MT5, OHLCV API
@@ -1083,13 +1112,14 @@ The key is **contract-first development** using OpenAPI specs.
 ---
 
 **Next Steps:**
+
 1. Create OpenAPI specs for Backend Stack B (Parts 20-26)
    - Include Redis connection specs (Leaderboard, Notifications, Job Queue, Sessions, Rate Limiting)
 2. Generate TypeScript types
 3. Create multi-backend API clients (Stack A + Stack B ONLY)
 4. **DO NOT create Stack C client** - Frontend cannot access it
 5. Setup MSW mocks for Stack B
-6. Build frontend components using api.stackA.* and api.stackB.*
+6. Build frontend components using api.stackA._ and api.stackB._
 7. Backend team builds Stack B following contracts
 8. Setup Redis Job Queue consumers in Stack B (Bull/BullMQ)
 9. **❌ DO NOT configure direct Stack B → Stack C communication (FORBIDDEN)**
@@ -1098,6 +1128,7 @@ The key is **contract-first development** using OpenAPI specs.
 Both teams can work in parallel! 🚀
 
 **Remember:**
+
 - ✅ Frontend can talk to Stack A and Stack B
 - ❌ Frontend can NEVER talk to Stack C
 - ❌ Stack A/B can NEVER directly access Stack C
