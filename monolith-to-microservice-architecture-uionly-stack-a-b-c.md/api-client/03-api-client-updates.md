@@ -62,6 +62,7 @@ Changes that **don't break existing functionality**:
 - **Adding new stacks** (existing stacks unchanged)
 
 **Example:**
+
 ```typescript
 // Before
 interface AlertData {
@@ -89,6 +90,7 @@ Changes that **break existing functionality**:
 - **Removing endpoints** without deprecation period
 
 **Example:**
+
 ```typescript
 // Before
 interface AlertData {
@@ -112,6 +114,7 @@ Changes that **mark old features for removal**:
 - **New endpoints** available as replacements
 
 **Example:**
+
 ```typescript
 // Old endpoint (deprecated but still works)
 getUser: () => {
@@ -142,6 +145,7 @@ open https://your-domain.com/api-docs
 ```
 
 **Expected info:**
+
 - Endpoint URL: `/api/alerts/bulk`
 - HTTP Method: `POST`
 - Request body: `{ alerts: AlertData[] }`
@@ -193,7 +197,7 @@ describe('Stack A - Alerts API', () => {
     const bulkData = {
       alerts: [
         { symbol: 'XAUUSD', value: 2000 },
-        { symbol: 'EURUSD', value: 1.10 },
+        { symbol: 'EURUSD', value: 1.1 },
       ],
     };
 
@@ -271,7 +275,8 @@ const stackA = {
   // UPDATED: Changed endpoint URL
   getUser: () => apiCall('/api/user/profile', { method: 'GET' }), // Was: /api/user
   updateUser: (data: UserData) =>
-    apiCall('/api/user/profile', { // Was: /api/user
+    apiCall('/api/user/profile', {
+      // Was: /api/user
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
@@ -410,13 +415,13 @@ npm run build
 
 ### Common Stack A Updates
 
-| Update Type | Frequency | Example |
-|-------------|-----------|---------|
-| New alert endpoint | Medium | `POST /api/alerts/schedule` |
-| New watchlist filter | Low | `GET /api/watchlist?filter=active` |
-| Chart timeframe added | Low | `GET /api/candles/:symbol?tf=M15` |
-| User settings expanded | Medium | New fields in `SettingsData` |
-| Admin endpoint added | Low | `GET /api/admin/users/:id` |
+| Update Type            | Frequency | Example                            |
+| ---------------------- | --------- | ---------------------------------- |
+| New alert endpoint     | Medium    | `POST /api/alerts/schedule`        |
+| New watchlist filter   | Low       | `GET /api/watchlist?filter=active` |
+| Chart timeframe added  | Low       | `GET /api/candles/:symbol?tf=M15`  |
+| User settings expanded | Medium    | New fields in `SettingsData`       |
+| Admin endpoint added   | Low       | `GET /api/admin/users/:id`         |
 
 ### Example: Adding New Admin Endpoint
 
@@ -447,12 +452,12 @@ const stackA = {
 
 ### Common Stack B Updates
 
-| Update Type | Frequency | Example |
-|-------------|-----------|---------|
-| New market data symbol | High | Support for crypto symbols |
-| Leaderboard timeframe | Medium | Add M1, M5 timeframes |
-| Surveillance filters | Medium | Filter by symbol type |
-| WebSocket event type | Low | New event types |
+| Update Type            | Frequency | Example                    |
+| ---------------------- | --------- | -------------------------- |
+| New market data symbol | High      | Support for crypto symbols |
+| Leaderboard timeframe  | Medium    | Add M1, M5 timeframes      |
+| Surveillance filters   | Medium    | Filter by symbol type      |
+| WebSocket event type   | Low       | New event types            |
 
 ### Example: Adding Crypto Support to Market Data
 
@@ -466,8 +471,12 @@ type MarketSymbol = string; // Any symbol including crypto
 
 // Or be more specific
 type MarketSymbol =
-  | 'XAUUSD' | 'EURUSD' | 'GBPUSD' // Forex
-  | 'BTCUSD' | 'ETHUSD' | 'BNBUSD'; // Crypto
+  | 'XAUUSD'
+  | 'EURUSD'
+  | 'GBPUSD' // Forex
+  | 'BTCUSD'
+  | 'ETHUSD'
+  | 'BNBUSD'; // Crypto
 ```
 
 #### Step 2: Update Method
@@ -531,13 +540,17 @@ const stackA = {
   // DEPRECATED: Moved to Stack B
   /** @deprecated Use api.stackB.getNotifications() instead */
   getNotifications: () => {
-    console.warn('⚠️ api.stackA.getNotifications() is deprecated. Use api.stackB.getNotifications()');
+    console.warn(
+      '⚠️ api.stackA.getNotifications() is deprecated. Use api.stackB.getNotifications()'
+    );
     return apiCall('/api/notifications', { method: 'GET' });
   },
 
   /** @deprecated Use api.stackB.markNotificationAsRead() instead */
   markNotificationAsRead: (id: string) => {
-    console.warn('⚠️ api.stackA.markNotificationAsRead() is deprecated. Use api.stackB.markNotificationAsRead()');
+    console.warn(
+      '⚠️ api.stackA.markNotificationAsRead() is deprecated. Use api.stackB.markNotificationAsRead()'
+    );
     return apiCall(`/api/notifications/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ read: true }),
@@ -653,9 +666,15 @@ const USE_NEW_ALERTS_API = process.env['ENABLE_NEW_ALERTS_API'] === 'true';
 const stackA = {
   createAlert: (data: AlertData) => {
     if (USE_NEW_ALERTS_API) {
-      return apiCall('/api/v2/alerts', { method: 'POST', body: JSON.stringify(data) });
+      return apiCall('/api/v2/alerts', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
     } else {
-      return apiCall('/api/alerts', { method: 'POST', body: JSON.stringify(data) });
+      return apiCall('/api/alerts', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
     }
   },
 };
@@ -676,6 +695,7 @@ Follow Semantic Versioning (semver):
 - **PATCH**: Bug fixes (e.g., corrected endpoint URLs)
 
 **Examples:**
+
 - `1.0.0` → `1.1.0`: Added new `createBulkAlerts()` method (minor)
 - `1.1.0` → `1.1.1`: Fixed typo in endpoint URL (patch)
 - `1.1.1` → `2.0.0`: Removed deprecated methods (major)
@@ -699,16 +719,18 @@ Follow Semantic Versioning (semver):
 
 Maintain `CHANGELOG.md`:
 
-```markdown
+````markdown
 # Changelog
 
 ## [2.0.0] - 2026-01-20
 
 ### Breaking Changes
+
 - Removed `stackA.getNotifications()` (moved to Stack B)
 - Removed `stackA.markNotificationAsRead()` (moved to Stack B)
 
 ### Migration Guide
+
 ```typescript
 // Before
 await api.stackA.getNotifications();
@@ -716,18 +738,22 @@ await api.stackA.getNotifications();
 // After
 await api.stackB.getNotifications();
 ```
+````
 
 ## [1.1.0] - 2026-01-15
 
 ### Added
+
 - `stackA.createBulkAlerts()` - Bulk create alerts endpoint
 
 ## [1.0.0] - 2026-01-10
 
 ### Added
+
 - Initial API Client with Stack A (19 methods)
 - Initial API Client with Stack B (17 methods)
-```
+
+````
 
 ---
 
@@ -748,7 +774,7 @@ npm test -- __tests__/lib/api/stack-b-client.test.ts
 
 # Test integration workflows
 npm test -- __tests__/integration/api-client-workflow.test.ts
-```
+````
 
 #### 2. Type Checking
 
@@ -890,13 +916,13 @@ git push origin main
 
 ### Quick Reference
 
-| Change Type | Procedure | Testing | Risk |
-|-------------|-----------|---------|------|
-| Add new endpoint | Procedure 1 | Unit tests | Low |
-| Modify endpoint URL | Procedure 2 | Unit + Integration | Medium |
-| Change types | Procedure 3 | Full suite | High |
-| Add Stack C | See Integration Guide | E2E tests | Medium |
-| Breaking change | Dual support / Versioning | Full suite + Manual | High |
+| Change Type         | Procedure                 | Testing             | Risk   |
+| ------------------- | ------------------------- | ------------------- | ------ |
+| Add new endpoint    | Procedure 1               | Unit tests          | Low    |
+| Modify endpoint URL | Procedure 2               | Unit + Integration  | Medium |
+| Change types        | Procedure 3               | Full suite          | High   |
+| Add Stack C         | See Integration Guide     | E2E tests           | Medium |
+| Breaking change     | Dual support / Versioning | Full suite + Manual | High   |
 
 ### Best Practices
 
@@ -922,6 +948,7 @@ git push origin main
 ---
 
 **Next Steps:**
+
 1. Review `01-api-client-design.md` for architecture principles
 2. Review `02-stack-b-integration.md` for integration procedures
 3. Bookmark this guide for future API Client updates

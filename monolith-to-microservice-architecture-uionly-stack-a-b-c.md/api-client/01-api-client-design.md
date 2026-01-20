@@ -75,7 +75,7 @@ Each stack client (`stackA`, `stackB`, `stackC`) is responsible **only** for its
 ```typescript
 // ✅ GOOD: Each stack handles its own domain
 const stackA = {
-  getAlerts: () => apiCall('/api/alerts'),      // Alerts domain
+  getAlerts: () => apiCall('/api/alerts'), // Alerts domain
   getWatchlist: () => apiCall('/api/watchlist'), // Watchlist domain
 };
 
@@ -131,7 +131,7 @@ function AlertsPage() {
 
   useEffect(() => {
     fetch('/api/alerts')
-      .then(res => res.json())
+      .then((res) => res.json())
       .then(setAlerts); // Tightly coupled to fetch
   }, []);
 }
@@ -165,7 +165,9 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: response.statusText }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
     throw new Error(error.error || `API Error: ${response.status}`);
   }
 
@@ -175,7 +177,8 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
 // All methods reuse this helper
 const stackA = {
   getAlerts: () => apiCall('/api/alerts', { method: 'GET' }),
-  createAlert: (data) => apiCall('/api/alerts', { method: 'POST', body: JSON.stringify(data) }),
+  createAlert: (data) =>
+    apiCall('/api/alerts', { method: 'POST', body: JSON.stringify(data) }),
 };
 ```
 
@@ -198,6 +201,7 @@ Stack A API       Stack B API   Stack C API
 ```
 
 **Benefits:**
+
 - Components don't need to know about multiple stacks
 - Consistent interface regardless of backend complexity
 - Easy to swap implementations without affecting components
@@ -218,7 +222,11 @@ function createStackClient(endpoints) {
 // Usage (simplified concept)
 const stackA = createStackClient({
   getAlerts: () => '/api/alerts',
-  createAlert: (data) => ({ endpoint: '/api/alerts', method: 'POST', body: data }),
+  createAlert: (data) => ({
+    endpoint: '/api/alerts',
+    method: 'POST',
+    body: data,
+  }),
 });
 ```
 
@@ -228,19 +236,18 @@ Different HTTP methods (GET, POST, PUT, DELETE) are handled as strategies:
 
 ```typescript
 // Strategy 1: GET request
-getAlerts: () => apiCall('/api/alerts', { method: 'GET' })
+getAlerts: () => apiCall('/api/alerts', { method: 'GET' });
 
 // Strategy 2: POST request
 createAlert: (data: AlertData) =>
-  apiCall('/api/alerts', { method: 'POST', body: JSON.stringify(data) })
+  apiCall('/api/alerts', { method: 'POST', body: JSON.stringify(data) });
 
 // Strategy 3: PUT request
 updateAlert: (id: string, data: AlertData) =>
-  apiCall(`/api/alerts/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+  apiCall(`/api/alerts/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 
 // Strategy 4: DELETE request
-deleteAlert: (id: string) =>
-  apiCall(`/api/alerts/${id}`, { method: 'DELETE' })
+deleteAlert: (id: string) => apiCall(`/api/alerts/${id}`, { method: 'DELETE' });
 ```
 
 ### 4. Proxy Pattern
@@ -376,7 +383,7 @@ export const api = {
 ```typescript
 // Flexible input - allows extra properties via index signature
 interface AlertData {
-  symbol?: string;      // Required fields are explicit
+  symbol?: string; // Required fields are explicit
   condition?: string;
   price?: number;
   value?: number;
@@ -385,7 +392,7 @@ interface AlertData {
 }
 
 interface WatchlistData {
-  symbol: string;        // This is required (no ?)
+  symbol: string; // This is required (no ?)
   [key: string]: unknown;
 }
 
@@ -402,7 +409,7 @@ interface SubscriptionData {
 }
 
 interface PaymentData {
-  amount: number;        // Required
+  amount: number; // Required
   currency?: string;
   [key: string]: unknown;
 }
@@ -417,6 +424,7 @@ interface QueryParams {
 ```
 
 **Design Rationale:**
+
 - `[key: string]: unknown` allows for **extensibility** without breaking existing code
 - Optional fields (`?`) allow partial updates
 - Required fields (no `?`) enforce critical data
@@ -534,7 +542,9 @@ export class ValidationError extends ApiError {
 
 export class RateLimitError extends ApiError {
   constructor(endpoint: string, retryAfter: number) {
-    super(429, endpoint, `Rate limited - Retry after ${retryAfter}s`, { retryAfter });
+    super(429, endpoint, `Rate limited - Retry after ${retryAfter}s`, {
+      retryAfter,
+    });
     this.name = 'RateLimitError';
   }
 }
@@ -548,9 +558,8 @@ export class RateLimitError extends ApiError {
 
 ```typescript
 // ✅ SECURE: Use bracket notation for strict TypeScript
-const BASE_URL = typeof window !== 'undefined'
-  ? ''
-  : process.env['NEXT_PUBLIC_API_URL'] || '';
+const BASE_URL =
+  typeof window !== 'undefined' ? '' : process.env['NEXT_PUBLIC_API_URL'] || '';
 ```
 
 ### 2. Authentication Headers
@@ -566,7 +575,9 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
+      ...(session?.accessToken && {
+        Authorization: `Bearer ${session.accessToken}`,
+      }),
       ...options.headers,
     },
     ...options,
@@ -772,12 +783,18 @@ const stackC = {
   // Social Trading API
   getSocialStrategies: () => apiCall('/api/social-trading/strategies'),
   followStrategy: (data: SocialTradingData) =>
-    apiCall('/api/social-trading/follow', { method: 'POST', body: JSON.stringify(data) }),
+    apiCall('/api/social-trading/follow', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // Copy Trading API
   getCopyTrades: () => apiCall('/api/copy-trading'),
   createCopyTrade: (data: unknown) =>
-    apiCall('/api/copy-trading', { method: 'POST', body: JSON.stringify(data) }),
+    apiCall('/api/copy-trading', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // Step 3: Export
@@ -837,6 +854,7 @@ const stackB = {
 ---
 
 **Next Steps:**
+
 1. Read `02-stack-b-integration.md` to learn how to integrate Stack B
 2. Read `03-api-client-updates.md` to learn how to handle API changes
 3. Test the API Client using `TESTING-API-CLIENT.md`

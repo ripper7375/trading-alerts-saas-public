@@ -28,15 +28,15 @@
 
 **Stack B** contains Parts 20-26 of the microservices architecture:
 
-| Part | Feature | Endpoints |
-|------|---------|-----------|
-| Part 20 | Data Infrastructure | PostgreSQL, Redis, Sync |
-| Part 21 | Market Data API | `/api/market-data/*`, `/api/queue/*` |
-| Part 22 | Confluence Scores | `/api/confluence/*` |
-| Part 23 | Leaderboard | `/api/leaderboard/*` |
-| Part 24 | Surveillance | `/api/surveillance/*` |
-| Part 25 | WebSocket/SSE | Real-time connections |
-| Part 26 | Advanced Notifications | `/api/notifications/advanced` |
+| Part    | Feature                | Endpoints                            |
+| ------- | ---------------------- | ------------------------------------ |
+| Part 20 | Data Infrastructure    | PostgreSQL, Redis, Sync              |
+| Part 21 | Market Data API        | `/api/market-data/*`, `/api/queue/*` |
+| Part 22 | Confluence Scores      | `/api/confluence/*`                  |
+| Part 23 | Leaderboard            | `/api/leaderboard/*`                 |
+| Part 24 | Surveillance           | `/api/surveillance/*`                |
+| Part 25 | WebSocket/SSE          | Real-time connections                |
+| Part 26 | Advanced Notifications | `/api/notifications/advanced`        |
 
 ### Current State
 
@@ -101,6 +101,7 @@ Before integrating Stack B into the API Client, ensure backend services are depl
   - `ADMIN_API_KEY`
 
 **Validation:**
+
 ```bash
 # Test PostgreSQL connection
 psql $POSTGRESQL_URI -c "SELECT version();"
@@ -122,6 +123,7 @@ curl http://your-contabo-ip:5000/health
 - [ ] Rate limiting configured
 
 **Validation:**
+
 ```bash
 # Test market data endpoint
 curl https://your-domain.vercel.app/api/market-data/XAUUSD
@@ -138,6 +140,7 @@ curl https://your-domain.vercel.app/api/queue/status
 - [ ] Historical data available
 
 **Validation:**
+
 ```bash
 curl https://your-domain.vercel.app/api/confluence/XAUUSD
 ```
@@ -151,6 +154,7 @@ curl https://your-domain.vercel.app/api/confluence/XAUUSD
 - [ ] Real-time updates configured
 
 **Validation:**
+
 ```bash
 curl https://your-domain.vercel.app/api/leaderboard/H4
 ```
@@ -163,6 +167,7 @@ curl https://your-domain.vercel.app/api/leaderboard/H4
 - [ ] Multi-timeframe analysis working
 
 **Validation:**
+
 ```bash
 curl https://your-domain.vercel.app/api/surveillance
 ```
@@ -175,6 +180,7 @@ curl https://your-domain.vercel.app/api/surveillance
 - [ ] Heartbeat mechanism working
 
 **Validation:**
+
 ```bash
 # Test WebSocket connection
 wscat -c wss://your-domain.vercel.app/ws
@@ -190,6 +196,7 @@ curl https://your-domain.vercel.app/api/notifications/stream
 - [ ] Push notification service configured
 
 **Validation:**
+
 ```bash
 curl https://your-domain.vercel.app/api/notifications/advanced?type=alert
 ```
@@ -203,6 +210,7 @@ curl https://your-domain.vercel.app/api/notifications/advanced?type=alert
 **When:** All Stack B services are fully deployed and tested.
 
 **Steps:**
+
 1. Update API Client to enable Stack B methods
 2. Update frontend components to use Stack B features
 3. Run integration tests
@@ -217,6 +225,7 @@ curl https://your-domain.vercel.app/api/notifications/advanced?type=alert
 **When:** You want to deploy Stack B gradually.
 
 **Steps:**
+
 1. Deploy Part 20 (Infrastructure) first
 2. Deploy Part 21 (Market Data API)
 3. Update API Client to enable Part 21 methods
@@ -234,6 +243,7 @@ curl https://your-domain.vercel.app/api/notifications/advanced?type=alert
 **When:** You want to test Stack B with selected users first.
 
 **Steps:**
+
 1. Deploy all Stack B services
 2. Add feature flag in API Client
 3. Enable Stack B only for beta users
@@ -256,6 +266,7 @@ curl https://your-domain.vercel.app/api/notifications/advanced?type=alert
 ```
 
 Create `scripts/check-stack-b-health.sh`:
+
 ```bash
 #!/bin/bash
 
@@ -388,6 +399,7 @@ const stackB = {
 #### Step 3.1: Remove Placeholder Implementations
 
 **Before (Placeholder):**
+
 ```typescript
 const stackB = {
   // WebSocket methods (placeholders - not testable without server)
@@ -409,6 +421,7 @@ const stackB = {
 ```
 
 **After (Real Implementation):**
+
 ```typescript
 const stackB = {
   // WebSocket methods - ENABLED
@@ -427,7 +440,10 @@ const stackB = {
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
       if (options.reconnect) {
-        setTimeout(() => stackB.subscribeToNotifications(callback, options), 5000);
+        setTimeout(
+          () => stackB.subscribeToNotifications(callback, options),
+          5000
+        );
       }
     };
 
@@ -465,7 +481,10 @@ const stackB = {
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
       if (options.reconnect) {
-        setTimeout(() => stackB.subscribeToLeaderBoard(timeframe, callback, options), 5000);
+        setTimeout(
+          () => stackB.subscribeToLeaderBoard(timeframe, callback, options),
+          5000
+        );
       }
     };
 
@@ -527,6 +546,7 @@ interface Leaderboard {
 **File:** `frontend/hooks/use-api-client-example.ts`
 
 **Before:**
+
 ```typescript
 export function useRealTimeNotifications() {
   const [notifications, _setNotifications] = useState<Notification[]>([]);
@@ -549,6 +569,7 @@ export function useRealTimeNotifications() {
 ```
 
 **After:**
+
 ```typescript
 export function useRealTimeNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -666,6 +687,7 @@ npm test -- __tests__/lib/api/stack-b-client.test.ts
 **Update test expectations:**
 
 **Before:**
+
 ```typescript
 it('should throw 404 for GET /leaderboard/[timeframe] - getLeaderBoard() ⚠️', async () => {
   (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
@@ -681,6 +703,7 @@ it('should throw 404 for GET /leaderboard/[timeframe] - getLeaderBoard() ⚠️'
 ```
 
 **After:**
+
 ```typescript
 it('should GET /leaderboard/[timeframe] - getLeaderBoard() ✅', async () => {
   const mockLeaderboard = {
@@ -762,14 +785,14 @@ git push origin main
 
 ### Environment Variables to Add
 
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `POSTGRESQL_URI` | Yes | TimescaleDB connection | `postgresql://user:pass@railway.app:5432/db` |
-| `REDIS_URL` | Yes | Redis connection | `redis://default:pass@railway.app:6379` |
-| `NEXT_PUBLIC_STACK_B_API_URL` | No | Stack B API URL (if different) | `https://stack-b.your-domain.com` |
-| `NEXT_PUBLIC_WS_URL` | Yes | WebSocket URL | `wss://your-domain.com/ws` |
-| `ENABLE_STACK_B` | No | Feature flag | `true` |
-| `ADMIN_API_KEY` | Yes | Admin endpoints auth | `your_secret_key` |
+| Variable                      | Required | Description                    | Example                                      |
+| ----------------------------- | -------- | ------------------------------ | -------------------------------------------- |
+| `POSTGRESQL_URI`              | Yes      | TimescaleDB connection         | `postgresql://user:pass@railway.app:5432/db` |
+| `REDIS_URL`                   | Yes      | Redis connection               | `redis://default:pass@railway.app:6379`      |
+| `NEXT_PUBLIC_STACK_B_API_URL` | No       | Stack B API URL (if different) | `https://stack-b.your-domain.com`            |
+| `NEXT_PUBLIC_WS_URL`          | Yes      | WebSocket URL                  | `wss://your-domain.com/ws`                   |
+| `ENABLE_STACK_B`              | No       | Feature flag                   | `true`                                       |
+| `ADMIN_API_KEY`               | Yes      | Admin endpoints auth           | `your_secret_key`                            |
 
 ---
 
@@ -812,7 +835,9 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
     });
 
     const duration = Date.now() - startTime;
-    console.log(`[API] ${options.method || 'GET'} ${endpoint} - ${response.status} in ${duration}ms`);
+    console.log(
+      `[API] ${options.method || 'GET'} ${endpoint} - ${response.status} in ${duration}ms`
+    );
 
     if (!response.ok) {
       const error = await response
@@ -824,7 +849,10 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
     return response.json();
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[API] ${options.method || 'GET'} ${endpoint} - Error in ${duration}ms:`, error);
+    console.error(
+      `[API] ${options.method || 'GET'} ${endpoint} - Error in ${duration}ms:`,
+      error
+    );
     throw error;
   }
 }
@@ -873,7 +901,7 @@ const STACK_B_ROLLOUT_PERCENTAGE = 10; // 10% of users
 const isStackBEnabled = () => {
   const userId = getUserId();
   const hash = hashCode(userId);
-  return (hash % 100) < STACK_B_ROLLOUT_PERCENTAGE;
+  return hash % 100 < STACK_B_ROLLOUT_PERCENTAGE;
 };
 
 export const api = {
@@ -894,6 +922,7 @@ export const api = {
 ### Issue 1: CORS Errors
 
 **Symptom:**
+
 ```
 Access to fetch at 'https://stack-b.your-domain.com/api/leaderboard/H4' from origin 'https://your-domain.com' has been blocked by CORS policy
 ```
@@ -909,8 +938,14 @@ export async function GET(req: NextRequest) {
 
   // Add CORS headers
   response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.set(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE'
+  );
+  response.headers.set(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization'
+  );
 
   return response;
 }
@@ -921,6 +956,7 @@ export async function GET(req: NextRequest) {
 ### Issue 2: WebSocket Connection Failures
 
 **Symptom:**
+
 ```
 WebSocket connection to 'wss://your-domain.com/ws' failed
 ```
@@ -963,6 +999,7 @@ subscribeToNotifications: (callback, options = { reconnect: true, maxRetries: 5 
 ### Issue 3: 401 Unauthorized on Stack B Endpoints
 
 **Symptom:**
+
 ```
 API Error: 401 - Unauthorized
 ```
@@ -979,7 +1016,9 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(session?.accessToken && { Authorization: `Bearer ${session.accessToken}` }),
+      ...(session?.accessToken && {
+        Authorization: `Bearer ${session.accessToken}`,
+      }),
       ...options.headers,
     },
     ...options,
@@ -1018,6 +1057,7 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
 ---
 
 **Next Steps:**
+
 1. Review `03-api-client-updates.md` to learn how to handle API changes
 2. Set up monitoring and alerting for Stack B
 3. Train team on new Stack B features
