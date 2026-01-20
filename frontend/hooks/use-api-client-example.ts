@@ -329,7 +329,7 @@ export function useApiClientExample() {
  * This hook will fail with WebSocket connection error if uncommented
  */
 export function useRealTimeNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, _setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     // ⚠️ Uncomment when Stack B is deployed
@@ -362,8 +362,8 @@ export function useRealTimeNotifications() {
  * Both REST endpoint and WebSocket will fail
  */
 export function useLiveLeaderboard(timeframe: string = 'H4') {
-  const [leaderboard, setLeaderboard] = useState<Leaderboard | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [leaderboard, _setLeaderboard] = useState<Leaderboard | null>(null);
+  const [isLoading, _setIsLoading] = useState(true);
 
   useEffect(() => {
     // ⚠️ Uncomment when Stack B is deployed
