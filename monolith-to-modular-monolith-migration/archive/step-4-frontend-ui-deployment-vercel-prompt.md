@@ -14,6 +14,7 @@
 You are implementing **Step 4** of the Monolith to Modular Monolith Architecture Migration for the Trading Alerts SaaS application. This step focuses on **separating Interactive Elements from Readable Elements** in the frontend to minimize JavaScript bundle size before deploying to Vercel.
 
 ### Migration Overview
+
 - **Step 1**: Baseline Assessment ✅ (Completed)
 - **Step 2**: Extract Frontend (UI components, pages, client-side logic) ✅ (Completed)
 - **Step 3**: Extract Backend (API logic, database access, business rules) ✅ (Completed)
@@ -21,6 +22,7 @@ You are implementing **Step 4** of the Monolith to Modular Monolith Architecture
 - **Step 5-8**: Backend Upgrade, Connect, Testing (Future)
 
 ### Target Architecture
+
 ```
 Frontend (Vercel)
 ├── Readable Elements (Server Components) - 0KB JS sent to client
@@ -39,6 +41,7 @@ Frontend (Vercel)
 **This deployment MUST be a NEW/FRESH Vercel project, separate from the existing monolith deployment.**
 
 ### Deployment Strategy
+
 ```
 EXISTING (Keep Intact - DO NOT MODIFY)
 ├── Vercel Project: trading-alerts-saas (monolith)
@@ -55,6 +58,7 @@ NEW (Create Fresh)
 ```
 
 ### Why Fresh Deployment?
+
 1. **Zero Risk**: Old monolith remains functional during migration
 2. **A/B Testing**: Can compare performance between old and new
 3. **Rollback Ready**: If issues arise, old deployment is still live
@@ -116,6 +120,7 @@ NEXT_PUBLIC_USE_MODULAR_BACKEND=false  # Enable after Step 5
 #### Step D: Verify Fresh Deployment
 
 After initial deploy, verify:
+
 - [ ] New Vercel project created (separate from monolith)
 - [ ] Deployment URL is different from existing monolith
 - [ ] Old monolith deployment still working at original URL
@@ -200,6 +205,7 @@ cp package.json frontend/
 ### Step F: Create Frontend-Specific Configuration
 
 **frontend/next.config.js:**
+
 ```javascript
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -229,6 +235,7 @@ module.exports = withBundleAnalyzer(nextConfig);
 ```
 
 **frontend/vercel.json:**
+
 ```json
 {
   "framework": "nextjs",
@@ -280,6 +287,7 @@ mv frontend/components/forms/login-form.tsx frontend/components/interactive/
 ```
 
 **Component Classification Rule:**
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ READABLE (Server Components)         │ INTERACTIVE (Client)    │
@@ -324,10 +332,12 @@ Read these files before starting:
 ## Current State Analysis
 
 ### Frontend UI Pages Summary (62 files total)
+
 - **Readable Elements (Server Components)**: 23 files (37%) ← Target: >90%
 - **Interactive Elements (Client Components)**: 39 files (63%) ← Target: <10%
 
 ### Pages Currently Using `'use client'` (need conversion):
+
 ```
 app/(auth)/forgot-password/page.tsx
 app/(auth)/login/page.tsx
@@ -370,6 +380,7 @@ app/error.tsx
 ```
 
 ### Pages Already Using Server Components (good examples):
+
 ```
 app/(auth)/verify-email/page.tsx
 app/(auth)/verify-email/pending/page.tsx
@@ -396,6 +407,7 @@ app/affiliate/dashboard/commissions/page.tsx
 ### Phase 1: Setup & Foundation (Day 1)
 
 #### Step 1.1: Create loading.tsx Files for All Routes
+
 For every route that will be converted to Server Component, create a `loading.tsx` file with a skeleton matching the page layout.
 
 ```bash
@@ -408,24 +420,26 @@ touch app/(dashboard)/charts/loading.tsx
 ```
 
 **Pattern for loading.tsx:**
+
 ```tsx
 // app/(dashboard)/admin/loading.tsx
 export default function Loading() {
   return (
-    <div className="space-y-6 animate-pulse">
-      <div className="h-8 w-48 bg-gray-700 rounded" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="animate-pulse space-y-6">
+      <div className="h-8 w-48 rounded bg-gray-700" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-24 bg-gray-800 rounded-lg" />
+          <div key={i} className="h-24 rounded-lg bg-gray-800" />
         ))}
       </div>
-      <div className="h-64 bg-gray-800 rounded-lg" />
+      <div className="h-64 rounded-lg bg-gray-800" />
     </div>
   );
 }
 ```
 
 #### Step 1.2: Create Client Component Directory Structure
+
 For each page that needs conversion, create a `_components` directory for interactive parts:
 
 ```
@@ -446,6 +460,7 @@ app/(dashboard)/admin/
 #### Priority 1: Quick Wins - Admin Pages with Minimal Interactivity
 
 **Convert in this order:**
+
 1. `app/(dashboard)/admin/errors/page.tsx` (already server)
 2. `app/(dashboard)/admin/api-usage/page.tsx` (already server)
 3. `app/(dashboard)/admin/page.tsx` (needs conversion)
@@ -454,6 +469,7 @@ app/(dashboard)/admin/
 **Conversion Pattern:**
 
 **BEFORE (Client Component):**
+
 ```tsx
 // app/(dashboard)/admin/page.tsx
 'use client';
@@ -486,6 +502,7 @@ export default function AdminDashboardPage() {
 ```
 
 **AFTER (Server Component + Client Component Island):**
+
 ```tsx
 // app/(dashboard)/admin/page.tsx
 import { redirect } from 'next/navigation';
@@ -527,7 +544,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Static metric cards - Server Component */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard title="Total Users" value={metrics.totalUsers} />
         <MetricCard title="PRO Users" value={metrics.proUsers} />
         <MetricCard title="FREE Users" value={metrics.freeUsers} />
@@ -542,7 +559,7 @@ export default async function AdminDashboardPage() {
 
 function MetricCard({ title, value }: { title: string; value: number }) {
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+    <div className="rounded-lg border border-gray-700 bg-gray-800 p-4">
       <p className="text-sm text-gray-400">{title}</p>
       <p className="text-2xl font-bold text-white">{value.toLocaleString()}</p>
     </div>
@@ -580,12 +597,10 @@ export function AdminClient({ initialMetrics }: AdminClientProps) {
 
   return (
     <div className="flex justify-end">
-      <Button
-        onClick={handleRefresh}
-        disabled={isPending}
-        variant="outline"
-      >
-        <RefreshCw className={`h-4 w-4 mr-2 ${isPending ? 'animate-spin' : ''}`} />
+      <Button onClick={handleRefresh} disabled={isPending} variant="outline">
+        <RefreshCw
+          className={`mr-2 h-4 w-4 ${isPending ? 'animate-spin' : ''}`}
+        />
         {isPending ? 'Refreshing...' : 'Refresh Data'}
       </Button>
     </div>
@@ -672,7 +687,7 @@ export function LoginForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email"
         required
-        className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded"
+        className="w-full rounded border border-gray-700 bg-gray-800 px-4 py-2"
       />
       <input
         type="password"
@@ -680,13 +695,13 @@ export function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Password"
         required
-        className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded"
+        className="w-full rounded border border-gray-700 bg-gray-800 px-4 py-2"
       />
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+        className="w-full rounded bg-blue-600 py-2 text-white disabled:opacity-50"
       >
         {isLoading ? 'Signing in...' : 'Sign In'}
       </button>
@@ -728,7 +743,7 @@ export default async function ChartPage({ params }: ChartPageProps) {
 
   if (!validation.allowed) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
+      <div className="flex h-full flex-col items-center justify-center">
         <h1 className="text-xl font-bold text-white">PRO Feature</h1>
         <p className="text-gray-400">{validation.reason}</p>
         <a href="/pricing" className="mt-4 text-blue-400">
@@ -761,11 +776,12 @@ export default async function ChartPage({ params }: ChartPageProps) {
 import dynamic from 'next/dynamic';
 
 const TradingChart = dynamic(
-  () => import('@/components/charts/trading-chart').then((mod) => mod.TradingChart),
+  () =>
+    import('@/components/charts/trading-chart').then((mod) => mod.TradingChart),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-[500px] bg-gray-800 animate-pulse rounded-lg flex items-center justify-center">
+      <div className="flex h-[500px] w-full animate-pulse items-center justify-center rounded-lg bg-gray-800">
         <p className="text-gray-400">Loading chart...</p>
       </div>
     ),
@@ -801,7 +817,7 @@ import { AlertList } from './_components/alert-list';
 // PRO-only components (lazy loaded)
 const ProIndicatorPanel = dynamic(
   () => import('./_components/pro-indicator-panel'),
-  { loading: () => <div className="h-32 animate-pulse bg-gray-800 rounded" /> }
+  { loading: () => <div className="h-32 animate-pulse rounded bg-gray-800" /> }
 );
 
 export default async function DashboardPage() {
@@ -816,9 +832,7 @@ export default async function DashboardPage() {
 
       {/* FREE tier: 5 symbols */}
       <Suspense fallback={<div>Loading FREE symbols...</div>}>
-        <AlertList
-          symbols={['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD']}
-        />
+        <AlertList symbols={['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD']} />
       </Suspense>
 
       {/* PRO tier: Additional 10 symbols (lazy loaded) */}
@@ -826,8 +840,16 @@ export default async function DashboardPage() {
         <Suspense fallback={<div>Loading PRO symbols...</div>}>
           <AlertList
             symbols={[
-              'AUDJPY', 'AUDUSD', 'ETHUSD', 'GBPJPY', 'GBPUSD',
-              'NDX100', 'NZDUSD', 'USDCAD', 'USDCHF', 'XAGUSD'
+              'AUDJPY',
+              'AUDUSD',
+              'ETHUSD',
+              'GBPJPY',
+              'GBPUSD',
+              'NDX100',
+              'NZDUSD',
+              'USDCAD',
+              'USDCHF',
+              'XAGUSD',
             ]}
           />
         </Suspense>
@@ -842,10 +864,15 @@ export default async function DashboardPage() {
 
       {/* Upgrade CTA for FREE users */}
       {!isPro && (
-        <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-6 rounded-lg">
+        <div className="rounded-lg bg-gradient-to-r from-blue-900 to-purple-900 p-6">
           <h2 className="text-xl font-bold text-white">Upgrade to PRO</h2>
-          <p className="text-gray-300">Get access to 15 symbols, 9 timeframes, and all indicators</p>
-          <a href="/pricing" className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded">
+          <p className="text-gray-300">
+            Get access to 15 symbols, 9 timeframes, and all indicators
+          </p>
+          <a
+            href="/pricing"
+            className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-white"
+          >
             View Pricing
           </a>
         </div>
@@ -905,6 +932,7 @@ npx lighthouse http://localhost:3000/dashboard --view
 ```
 
 **Target Metrics:**
+
 - First Contentful Paint: <1.8s
 - Time to Interactive: <3.5s (mobile)
 - Lighthouse Performance Score: >90
@@ -916,19 +944,22 @@ npx lighthouse http://localhost:3000/dashboard --view
 Use this checklist for each page conversion:
 
 ### Before Starting
+
 - [ ] Read the page.tsx file completely
 - [ ] Identify all useState, useEffect, and event handlers
 - [ ] List what MUST be client-side vs what can be server-side
 - [ ] Check if a loading.tsx exists for the route
 
 ### During Conversion
+
 - [ ] Remove 'use client' from page.tsx
 - [ ] Add `export const dynamic = 'force-dynamic'` if needed
 - [ ] Move data fetching to server-side (Prisma queries)
-- [ ] Create *-client.tsx for interactive parts only
+- [ ] Create \*-client.tsx for interactive parts only
 - [ ] Pass data via props from server to client
 
 ### After Conversion
+
 - [ ] Build succeeds: `pnpm run build`
 - [ ] Tests pass: `pnpm run test`
 - [ ] Page loads correctly (manual test)
@@ -941,25 +972,25 @@ Use this checklist for each page conversion:
 
 ### Bundle Size Reduction
 
-| User Tier | Before | After | Reduction |
-|-----------|--------|-------|-----------|
-| FREE | ~150KB JS | ~30KB JS | 80% |
-| PRO | ~200KB JS | ~50KB JS | 75% |
+| User Tier | Before    | After    | Reduction |
+| --------- | --------- | -------- | --------- |
+| FREE      | ~150KB JS | ~30KB JS | 80%       |
+| PRO       | ~200KB JS | ~50KB JS | 75%       |
 
 ### Performance Improvement
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Time to Interactive (Mobile) | 8-12s | 1.5-2s |
-| First Contentful Paint | 3-5s | 0.5-1s |
-| Lighthouse Score | 45 | 90+ |
+| Metric                       | Before | After  |
+| ---------------------------- | ------ | ------ |
+| Time to Interactive (Mobile) | 8-12s  | 1.5-2s |
+| First Contentful Paint       | 3-5s   | 0.5-1s |
+| Lighthouse Score             | 45     | 90+    |
 
 ### Component Distribution
 
-| Category | Before | After |
-|----------|--------|-------|
+| Category          | Before   | After    |
+| ----------------- | -------- | -------- |
 | Server Components | 23 (37%) | 54 (87%) |
-| Client Components | 39 (63%) | 8 (13%) |
+| Client Components | 39 (63%) | 8 (13%)  |
 
 ---
 
@@ -999,18 +1030,22 @@ git commit -m "perf: implement dynamic imports for chart components"
 ## Troubleshooting
 
 ### Issue: "useState is not defined"
+
 **Cause**: Using React hooks in Server Component
 **Fix**: Move hook usage to a separate `*-client.tsx` file with `'use client'`
 
 ### Issue: "window is not defined"
+
 **Cause**: Using browser APIs in Server Component
 **Fix**: Add `'use client'` or use `typeof window !== 'undefined'` check
 
 ### Issue: "Cannot use import statement outside a module"
+
 **Cause**: Next.js dynamic import with `ssr: false` in Server Component
 **Fix**: Create a Client Component wrapper file
 
 ### Issue: Build shows ● (Client) for page that should be Server
+
 **Cause**: Likely a parent layout has `'use client'`
 **Fix**: Check all parent layouts and remove unnecessary `'use client'` directives
 

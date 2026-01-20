@@ -45,18 +45,18 @@ That's it! These three commands handle 90% of sync operations.
 
 ### Available npm Scripts
 
-| Command | Script | Purpose | Exit Code |
-|---------|--------|---------|-----------|
-| `npm run sync:check` | `node scripts/check-sync-needed.js` | Check if sync needed | 0 = No sync, 1 = Sync needed |
-| `npm run sync:frontend` | `bash scripts/sync-frontend.sh` | Execute sync operation | 0 = Success, 1 = Error |
-| `npm run sync:all` | `npm run sync:frontend && npm run validate` | Sync + full validation | 0 = All pass, 1 = Failure |
+| Command                 | Script                                      | Purpose                | Exit Code                    |
+| ----------------------- | ------------------------------------------- | ---------------------- | ---------------------------- |
+| `npm run sync:check`    | `node scripts/check-sync-needed.js`         | Check if sync needed   | 0 = No sync, 1 = Sync needed |
+| `npm run sync:frontend` | `bash scripts/sync-frontend.sh`             | Execute sync operation | 0 = Success, 1 = Error       |
+| `npm run sync:all`      | `npm run sync:frontend && npm run validate` | Sync + full validation | 0 = All pass, 1 = Failure    |
 
 ### Script Locations
 
-| Script | Path | Language | Executable |
-|--------|------|----------|-----------|
-| Sync Check | `scripts/check-sync-needed.js` | Node.js | ✅ Via npm |
-| Sync Execute | `scripts/sync-frontend.sh` | Bash | ✅ Via npm or direct |
+| Script       | Path                           | Language | Executable           |
+| ------------ | ------------------------------ | -------- | -------------------- |
+| Sync Check   | `scripts/check-sync-needed.js` | Node.js  | ✅ Via npm           |
+| Sync Execute | `scripts/sync-frontend.sh`     | Bash     | ✅ Via npm or direct |
 
 ---
 
@@ -82,6 +82,7 @@ npm run sync:check
 ### What It Does
 
 1. **Retrieves changed files** from git:
+
    ```bash
    git diff --cached --name-only  # Staged files
    git diff --name-only           # Unstaged files
@@ -220,6 +221,7 @@ cp -r types/* frontend/types/
 ```
 
 **Files Synced**:
+
 - `types/api.ts`
 - `types/indicator.ts`
 - `types/tier.ts`
@@ -454,6 +456,7 @@ tsc --noEmit
 ```
 
 **Checks**:
+
 - No type errors
 - All imports resolve
 - No implicit `any` types
@@ -461,6 +464,7 @@ tsc --noEmit
 - Type definitions complete
 
 **Common Failures**:
+
 ```bash
 error TS2304: Cannot find name 'CompleteMarketData'.
 error TS2345: Argument of type 'unknown' not assignable to parameter of type 'string'.
@@ -475,6 +479,7 @@ next lint --max-warnings 0
 ```
 
 **Checks**:
+
 - No ESLint errors
 - No ESLint warnings (strict mode)
 - React hooks rules followed
@@ -482,6 +487,7 @@ next lint --max-warnings 0
 - No unused variables
 
 **Common Failures**:
+
 ```bash
 ✖ Problems (0 errors, 2 warnings)
 ESLint found too many warnings (maximum: 0)
@@ -496,12 +502,14 @@ prettier --check .
 ```
 
 **Checks**:
+
 - All files properly formatted
 - Consistent indentation
 - Correct quote style
 - Proper line endings
 
 **Common Failures**:
+
 ```bash
 [warn] lib/tier-config.ts
 [warn] types/api.ts
@@ -517,6 +525,7 @@ node scripts/validate-file.js --all
 ```
 
 **Checks**:
+
 - Authentication present
 - Tier validation included
 - Error handling comprehensive
@@ -524,6 +533,7 @@ node scripts/validate-file.js --all
 - Security standards met
 
 **Common Failures**:
+
 ```bash
 🔴 Critical Issues (1):
   - Missing authentication check in app/api/alerts/route.ts
@@ -670,6 +680,7 @@ git push
 ### Issue 1: Sync Check Says "No Changed Files"
 
 **Symptoms**:
+
 ```bash
 $ npm run sync:check
 No changed files detected.
@@ -681,6 +692,7 @@ No changed files detected.
 **Cause**: Files not tracked by git
 
 **Solution**:
+
 ```bash
 # Add files to git first
 git add types/api.ts
@@ -694,6 +706,7 @@ npm run sync:check
 ### Issue 2: Sync Completes but Files Still Different
 
 **Symptoms**:
+
 ```bash
 $ npm run sync:frontend
 ✓ Sync completed successfully!
@@ -705,6 +718,7 @@ Files differ
 **Cause 1**: File not in SHARED_FILES list
 
 **Solution**:
+
 ```bash
 # Add to scripts/sync-frontend.sh
 SHARED_FILES=(
@@ -716,6 +730,7 @@ SHARED_FILES=(
 **Cause 2**: File manually modified in frontend
 
 **Solution**:
+
 ```bash
 # Manually copy to override
 cp types/api.ts frontend/types/api.ts
@@ -727,6 +742,7 @@ npm run sync:frontend
 ### Issue 3: TypeScript Errors After Sync
 
 **Symptoms**:
+
 ```bash
 $ npm run sync:frontend
 ✗ TypeScript errors found
@@ -736,6 +752,7 @@ error TS2307: Cannot find module './indicator'
 **Cause**: Missing dependency file not synced
 
 **Solution**:
+
 ```bash
 # Check what file is being imported
 grep "from './indicator'" types/api.ts
@@ -749,6 +766,7 @@ ls frontend/types/indicator.ts
 ### Issue 4: Permission Denied Running Sync
 
 **Symptoms**:
+
 ```bash
 $ npm run sync:frontend
 bash: scripts/sync-frontend.sh: Permission denied
@@ -757,6 +775,7 @@ bash: scripts/sync-frontend.sh: Permission denied
 **Cause**: Script not executable
 
 **Solution**:
+
 ```bash
 # Make script executable
 chmod +x scripts/sync-frontend.sh
@@ -768,12 +787,14 @@ bash scripts/sync-frontend.sh
 ### Issue 5: CI Fails but Local Passes
 
 **Symptoms**:
+
 - Local: `npm run sync:check` → ✅ No sync required
 - CI: Frontend sync check FAILED
 
 **Cause**: Different git state in CI
 
 **Solution**:
+
 ```bash
 # CI checks commits, not working directory
 # Ensure you committed synced files
@@ -790,6 +811,7 @@ git push
 ### Issue 6: Prisma Client Out of Date
 
 **Symptoms**:
+
 ```bash
 ⚠️ Run 'cd frontend && npx prisma generate' to update Prisma client
 ```
@@ -797,6 +819,7 @@ git push
 **Cause**: Prisma schema changed
 
 **Solution**:
+
 ```bash
 # Generate in frontend
 cd frontend
@@ -1065,6 +1088,7 @@ When adding new shared files:
 ### 7. Monitor CI Failures
 
 If CI fails with sync errors:
+
 - Fix immediately
 - Don't merge until passing
 - Investigate why sync was missed
@@ -1084,6 +1108,7 @@ npm run sync:check || {
 ### 9. Regular Sync Audits
 
 Monthly:
+
 - Review all synced files
 - Check for drift
 - Verify sync scripts are correct
@@ -1092,6 +1117,7 @@ Monthly:
 ### 10. Document Architecture Changes
 
 When changing sync strategy:
+
 - Update scripts
 - Update documentation
 - Update tests
@@ -1103,13 +1129,13 @@ When changing sync strategy:
 
 ### Commands
 
-| Task | Command | Exit Code |
-|------|---------|-----------|
-| Check if sync needed | `npm run sync:check` | 0 = No, 1 = Yes |
-| Run sync | `npm run sync:frontend` | 0 = Success |
-| Sync + validate | `npm run sync:all` | 0 = All pass |
-| Fix formatting | `npm run format` | - |
-| Fix linting | `npm run lint:fix` | - |
+| Task                 | Command                 | Exit Code       |
+| -------------------- | ----------------------- | --------------- |
+| Check if sync needed | `npm run sync:check`    | 0 = No, 1 = Yes |
+| Run sync             | `npm run sync:frontend` | 0 = Success     |
+| Sync + validate      | `npm run sync:all`      | 0 = All pass    |
+| Fix formatting       | `npm run format`        | -               |
+| Fix linting          | `npm run lint:fix`      | -               |
 
 ### Files That Trigger Sync
 
@@ -1131,20 +1157,20 @@ When changing sync strategy:
 
 ### Common Issues
 
-| Problem | Solution |
-|---------|----------|
+| Problem                  | Solution                               |
+| ------------------------ | -------------------------------------- |
 | CI fails with sync error | Run `npm run sync:frontend` and commit |
-| Files differ after sync | Check SHARED_FILES includes file |
-| TypeScript errors | Sync dependencies first |
-| Permission denied | `chmod +x scripts/sync-frontend.sh` |
+| Files differ after sync  | Check SHARED_FILES includes file       |
+| TypeScript errors        | Sync dependencies first                |
+| Permission denied        | `chmod +x scripts/sync-frontend.sh`    |
 
 ---
 
 ## Version History
 
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 1.0.0 | 2026-01-20 | Initial usage guide | DevOps Team |
+| Version | Date       | Changes             | Author      |
+| ------- | ---------- | ------------------- | ----------- |
+| 1.0.0   | 2026-01-20 | Initial usage guide | DevOps Team |
 
 ---
 

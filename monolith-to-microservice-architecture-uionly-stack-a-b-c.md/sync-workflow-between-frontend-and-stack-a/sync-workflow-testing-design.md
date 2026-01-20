@@ -25,6 +25,7 @@
 ### Purpose
 
 The sync workflow testing design ensures that:
+
 1. Frontend and backend shared files remain synchronized
 2. npm scripts function correctly
 3. CI/CD integration works as expected
@@ -45,36 +46,36 @@ The sync workflow testing design ensures that:
 
 ### Primary Test Files
 
-| File | Location | Type | Lines | Purpose |
-|------|----------|------|-------|---------|
-| `test-sync-workflow.sh` | `/tmp/` (generated) | Shell Script | 350 | Comprehensive sync workflow test suite |
-| `check-sync-needed.js` | `scripts/` | Node.js Script | 96 | Detect if sync is required |
-| `sync-frontend.sh` | `scripts/` | Shell Script | 119 | Execute sync operations |
-| `ci-nextjs-progressive.yml` | `.github/workflows/` | GitHub Actions | 303 | CI/CD sync validation |
+| File                        | Location             | Type           | Lines | Purpose                                |
+| --------------------------- | -------------------- | -------------- | ----- | -------------------------------------- |
+| `test-sync-workflow.sh`     | `/tmp/` (generated)  | Shell Script   | 350   | Comprehensive sync workflow test suite |
+| `check-sync-needed.js`      | `scripts/`           | Node.js Script | 96    | Detect if sync is required             |
+| `sync-frontend.sh`          | `scripts/`           | Shell Script   | 119   | Execute sync operations                |
+| `ci-nextjs-progressive.yml` | `.github/workflows/` | GitHub Actions | 303   | CI/CD sync validation                  |
 
 ### Supporting Test Files
 
-| File | Location | Type | Purpose |
-|------|----------|------|---------|
-| `package.json` | Root | JSON | Define npm test scripts |
-| `SYNC-WORKFLOW-REVIEW.md` | Root | Documentation | Review findings and issues |
-| `PRIORITY-1-FIXES-SUMMARY.md` | Root | Documentation | Fix implementation summary |
-| `PRIORITY-2-TEST-RESULTS.md` | Root | Documentation | Test execution results |
-| `frontend/SYNC-WORKFLOW.md` | Frontend | Documentation | Sync workflow guide |
+| File                          | Location | Type          | Purpose                    |
+| ----------------------------- | -------- | ------------- | -------------------------- |
+| `package.json`                | Root     | JSON          | Define npm test scripts    |
+| `SYNC-WORKFLOW-REVIEW.md`     | Root     | Documentation | Review findings and issues |
+| `PRIORITY-1-FIXES-SUMMARY.md` | Root     | Documentation | Fix implementation summary |
+| `PRIORITY-2-TEST-RESULTS.md`  | Root     | Documentation | Test execution results     |
+| `frontend/SYNC-WORKFLOW.md`   | Frontend | Documentation | Sync workflow guide        |
 
 ### Test Data Files (Referenced)
 
-| File | Location | Purpose in Testing |
-|------|----------|-------------------|
-| `types/api.ts` | Root & Frontend | Verify type sync |
-| `types/indicator.ts` | Root & Frontend | Verify type sync |
-| `lib/tier-config.ts` | Root & Frontend | Verify lib sync |
-| `lib/tier-helpers.ts` | Root & Frontend | Verify lib sync |
-| `lib/tier-validation.ts` | Root & Frontend | Verify lib sync |
-| `lib/utils.ts` | Root & Frontend | Verify lib sync |
-| `lib/constants/business-rules.ts` | Root & Frontend | Verify lib sync |
-| `lib/tier/constants.ts` | Root & Frontend | Verify lib sync |
-| `lib/tier/validator.ts` | Root & Frontend | Verify lib sync |
+| File                              | Location        | Purpose in Testing |
+| --------------------------------- | --------------- | ------------------ |
+| `types/api.ts`                    | Root & Frontend | Verify type sync   |
+| `types/indicator.ts`              | Root & Frontend | Verify type sync   |
+| `lib/tier-config.ts`              | Root & Frontend | Verify lib sync    |
+| `lib/tier-helpers.ts`             | Root & Frontend | Verify lib sync    |
+| `lib/tier-validation.ts`          | Root & Frontend | Verify lib sync    |
+| `lib/utils.ts`                    | Root & Frontend | Verify lib sync    |
+| `lib/constants/business-rules.ts` | Root & Frontend | Verify lib sync    |
+| `lib/tier/constants.ts`           | Root & Frontend | Verify lib sync    |
+| `lib/tier/validator.ts`           | Root & Frontend | Verify lib sync    |
 
 ---
 
@@ -162,6 +163,7 @@ The sync workflow testing design ensures that:
 **Test Files**: `test-sync-workflow.sh` (Tests 1-3)
 
 **What is Tested**:
+
 ```bash
 # Test 1: sync:frontend exists
 npm run | grep -q "sync:frontend"
@@ -174,12 +176,14 @@ npm run | grep -q "sync:all"
 ```
 
 **Expected Behavior**:
+
 - All three scripts found in `package.json`
 - Scripts are executable via `npm run`
 
 **Update Trigger**: When adding/removing/renaming npm scripts in `package.json`
 
 **Maintenance**:
+
 ```javascript
 // package.json - If you add a new sync-related script:
 "scripts": {
@@ -191,6 +195,7 @@ npm run | grep -q "sync:all"
 ```
 
 **Update Test**:
+
 ```bash
 # Add to test-sync-workflow.sh
 print_test_header "Verify npm sync:verify script exists"
@@ -207,6 +212,7 @@ check_result
 **Test Files**: `test-sync-workflow.sh` (Tests 4-8)
 
 **What is Tested**:
+
 ```bash
 # Correct paths present
 grep -q "lib/tier/validator.ts" scripts/sync-frontend.sh
@@ -217,11 +223,13 @@ grep -q "lib/tier-validation.ts" scripts/sync-frontend.sh
 ```
 
 **Expected Behavior**:
+
 - All referenced files exist in filesystem
 - No references to non-existent files
 - Paths match actual file locations
 
 **Update Trigger**: When:
+
 - Moving files to different directories
 - Renaming files
 - Adding new files to sync list
@@ -232,7 +240,9 @@ grep -q "lib/tier-validation.ts" scripts/sync-frontend.sh
 **Scenario**: You move `lib/tier/validator.ts` → `lib/validation/tier-validator.ts`
 
 **Steps**:
+
 1. Update `scripts/sync-frontend.sh`:
+
    ```bash
    SHARED_FILES=(
        # ... other files
@@ -241,14 +251,16 @@ grep -q "lib/tier-validation.ts" scripts/sync-frontend.sh
    ```
 
 2. Update `scripts/check-sync-needed.js`:
+
    ```javascript
    const SYNC_TRIGGERS = [
-       // ... other files
-       'lib/validation/tier-validator.ts',  // NEW PATH
+     // ... other files
+     'lib/validation/tier-validator.ts', // NEW PATH
    ];
    ```
 
 3. Update test expectations:
+
    ```bash
    # In test-sync-workflow.sh
    print_test_header "Check sync-frontend.sh has correct file paths"
@@ -275,6 +287,7 @@ grep -q "lib/tier-validation.ts" scripts/sync-frontend.sh
 **Test Files**: `test-sync-workflow.sh` (Tests 9-14)
 
 **What is Tested**:
+
 ```bash
 # Compare root and frontend files
 diff -q types/api.ts frontend/types/api.ts
@@ -282,10 +295,12 @@ diff -q lib/tier-config.ts frontend/lib/tier-config.ts
 ```
 
 **Expected Behavior**:
+
 - All synced files are byte-for-byte identical
 - No drift between root and frontend versions
 
 **Update Trigger**: When:
+
 - Adding new files to sync list
 - Removing files from sync list
 - Changing sync strategy (selective vs full sync)
@@ -295,7 +310,9 @@ diff -q lib/tier-config.ts frontend/lib/tier-config.ts
 **Scenario**: Add new file `lib/tier/permissions.ts` to sync list
 
 **Steps**:
+
 1. Add to sync scripts:
+
    ```bash
    # scripts/sync-frontend.sh
    SHARED_FILES=(
@@ -305,15 +322,17 @@ diff -q lib/tier-config.ts frontend/lib/tier-config.ts
    ```
 
 2. Add to sync check:
+
    ```javascript
    // scripts/check-sync-needed.js
    const SYNC_TRIGGERS = [
-       // ... existing files
-       'lib/tier/permissions.ts',  // NEW FILE
+     // ... existing files
+     'lib/tier/permissions.ts', // NEW FILE
    ];
    ```
 
 3. Add test case:
+
    ```bash
    # In test-sync-workflow.sh, Section 3
    print_test_header "Verify lib/tier/permissions.ts is in sync"
@@ -322,6 +341,7 @@ diff -q lib/tier-config.ts frontend/lib/tier-config.ts
    ```
 
 4. Add to file existence tests:
+
    ```bash
    # Section 5 - Root files
    for f in "lib/tier/permissions.ts" ...; do
@@ -343,6 +363,7 @@ diff -q lib/tier-config.ts frontend/lib/tier-config.ts
 **Test Files**: `test-sync-workflow.sh` (Tests 15-16)
 
 **What is Tested**:
+
 ```bash
 # Test 15: No sync needed when no changes
 npm run sync:check
@@ -355,11 +376,13 @@ npm run sync:check
 ```
 
 **Expected Behavior**:
+
 - Detects when sync-triggering files are modified
 - Ignores modifications to non-synced files
 - Provides clear output about what needs syncing
 
 **Update Trigger**: When:
+
 - Changing sync detection logic
 - Adding new file patterns to detect
 - Modifying git diff strategy
@@ -369,13 +392,15 @@ npm run sync:check
 **Scenario**: Add detection for specific subdirectories only
 
 **Steps**:
+
 1. Update detection logic:
+
    ```javascript
    // scripts/check-sync-needed.js
    const SYNC_TRIGGERS = [
-       'types/',                    // All types
-       'lib/tier/',                 // All tier files
-       'lib/constants/business-*.ts' // Specific pattern
+     'types/', // All types
+     'lib/tier/', // All tier files
+     'lib/constants/business-*.ts', // Specific pattern
    ];
    ```
 
@@ -400,6 +425,7 @@ npm run sync:check
 **Test Files**: `test-sync-workflow.sh` (Tests 17-18)
 
 **What is Tested**:
+
 ```bash
 # Root files
 for f in "types/api.ts" "lib/tier-config.ts" ...; do
@@ -413,11 +439,13 @@ done
 ```
 
 **Expected Behavior**:
+
 - All files in sync list exist in root
 - All files in sync list exist in frontend
 - No broken references
 
 **Update Trigger**: When:
+
 - Adding files to project
 - Removing files from project
 - Restructuring directory layout
@@ -431,6 +459,7 @@ done
 **Test Files**: `test-sync-workflow.sh` (Tests 19-21)
 
 **What is Tested**:
+
 ```bash
 # Correct paths documented
 grep -q "lib/tier/validator.ts" frontend/SYNC-WORKFLOW.md
@@ -440,11 +469,13 @@ grep -q "lib/tier/validator.ts" frontend/SYNC-WORKFLOW.md
 ```
 
 **Expected Behavior**:
+
 - Documentation reflects actual file paths
 - All synced files are documented
 - No outdated references
 
 **Update Trigger**: When:
+
 - Adding/removing synced files
 - Changing file paths
 - Updating sync procedures
@@ -454,12 +485,14 @@ grep -q "lib/tier/validator.ts" frontend/SYNC-WORKFLOW.md
 **Scenario**: Update documentation after file reorganization
 
 **Steps**:
+
 1. Update table in `frontend/SYNC-WORKFLOW.md`:
+
    ```markdown
-   | Modified File/Directory        | Action Required                 | Why                          |
-   |--------------------------------|---------------------------------|------------------------------|
-   | `lib/tier/validator.ts`        | Run `npm run sync:frontend`     | Tier validation utilities    |
-   | `lib/validation/permissions.ts`| Run `npm run sync:frontend`     | Permission validation        |
+   | Modified File/Directory         | Action Required             | Why                       |
+   | ------------------------------- | --------------------------- | ------------------------- |
+   | `lib/tier/validator.ts`         | Run `npm run sync:frontend` | Tier validation utilities |
+   | `lib/validation/permissions.ts` | Run `npm run sync:frontend` | Permission validation     |
    ```
 
 2. Update test to check new documentation:
@@ -478,6 +511,7 @@ grep -q "lib/tier/validator.ts" frontend/SYNC-WORKFLOW.md
 **Test Files**: `test-sync-workflow.sh` (Tests 22-24)
 
 **What is Tested**:
+
 ```bash
 # Type exists in file
 grep -q "export interface CompleteMarketData" frontend/types/indicator.ts
@@ -487,11 +521,13 @@ grep -q "import type { CompleteMarketData" frontend/types/api.ts
 ```
 
 **Expected Behavior**:
+
 - All exported types are present
 - Import statements reference existing types
 - No missing type definitions
 
 **Update Trigger**: When:
+
 - Adding new type definitions
 - Removing type definitions
 - Renaming types
@@ -502,18 +538,21 @@ grep -q "import type { CompleteMarketData" frontend/types/api.ts
 **Scenario**: Add new type `TierPermissions` to sync workflow
 
 **Steps**:
+
 1. Create type in root:
+
    ```typescript
    // types/tier.ts
    export interface TierPermissions {
-       canAccessPro: boolean;
-       // ...
+     canAccessPro: boolean;
+     // ...
    }
    ```
 
 2. Sync to frontend (run sync script)
 
 3. Add test to verify:
+
    ```bash
    print_test_header "Verify TierPermissions exists in frontend/types/tier.ts"
    grep -q "export interface TierPermissions" frontend/types/tier.ts
@@ -536,6 +575,7 @@ grep -q "import type { CompleteMarketData" frontend/types/api.ts
 #### Step 1: Identify What to Test
 
 Ask yourself:
+
 - What could break if this changes?
 - How do I verify it's working correctly?
 - What's the failure scenario?
@@ -543,6 +583,7 @@ Ask yourself:
 #### Step 2: Choose Test Category
 
 Determine which category your test falls into:
+
 - NPM scripts → Category 1
 - File paths → Category 2
 - File sync → Category 3
@@ -584,6 +625,7 @@ bash /tmp/test-sync-workflow.sh
 #### Step 6: Update Documentation
 
 Update this document with:
+
 - New test description
 - Maintenance instructions
 - Update triggers
@@ -616,6 +658,7 @@ fi
 **Files to Update**:
 
 1. **scripts/sync-frontend.sh** (Line 36-44):
+
    ```bash
    SHARED_FILES=(
        # ... other files
@@ -624,14 +667,16 @@ fi
    ```
 
 2. **scripts/check-sync-needed.js** (Line 12-22):
+
    ```javascript
    const SYNC_TRIGGERS = [
-       // ... other files
-       'lib/validation/tier.ts',  // UPDATED PATH
+     // ... other files
+     'lib/validation/tier.ts', // UPDATED PATH
    ];
    ```
 
 3. **test-sync-workflow.sh** (Multiple locations):
+
    ```bash
    # Section 2: File path tests
    grep -q "lib/validation/tier.ts" scripts/sync-frontend.sh
@@ -644,6 +689,7 @@ fi
    ```
 
 4. **frontend/SYNC-WORKFLOW.md** (Line 19-28):
+
    ```markdown
    | `lib/validation/tier.ts` | Run `npm run sync:frontend` | Tier validation utilities |
    ```
@@ -657,6 +703,7 @@ fi
 **Files to Update**:
 
 1. **scripts/sync-frontend.sh**:
+
    ```bash
    SHARED_FILES=(
        # ... existing files
@@ -665,14 +712,16 @@ fi
    ```
 
 2. **scripts/check-sync-needed.js**:
+
    ```javascript
    const SYNC_TRIGGERS = [
-       // ... existing files
-       'lib/tier/rate-limits.ts',  // NEW
+     // ... existing files
+     'lib/tier/rate-limits.ts', // NEW
    ];
    ```
 
 3. **test-sync-workflow.sh**:
+
    ```bash
    # Add sync test
    print_test_header "Verify lib/tier/rate-limits.ts is in sync"
@@ -695,6 +744,7 @@ fi
 **Files to Update**:
 
 1. **scripts/sync-frontend.sh**:
+
    ```bash
    SHARED_FILES=(
        "lib/tier-config.ts"
@@ -704,15 +754,17 @@ fi
    ```
 
 2. **scripts/check-sync-needed.js**:
+
    ```javascript
    const SYNC_TRIGGERS = [
-       'types/',
-       // 'lib/utils.ts',  // REMOVED
-       'lib/tier-config.ts',
+     'types/',
+     // 'lib/utils.ts',  // REMOVED
+     'lib/tier-config.ts',
    ];
    ```
 
 3. **test-sync-workflow.sh**:
+
    ```bash
    # Remove from Section 3
    # print_test_header "Verify lib/utils.ts is in sync"  # REMOVED
@@ -726,6 +778,7 @@ fi
 4. **frontend/SYNC-WORKFLOW.md**:
    ```markdown
    ### Sync is NOT required for:
+
    - `lib/utils.ts` - Backend only (utility functions)
    ```
 
@@ -736,6 +789,7 @@ fi
 **Files to Update**:
 
 1. **scripts/sync-frontend.sh**:
+
    ```bash
    # OLD: Individual files
    # SHARED_FILES=(
@@ -750,6 +804,7 @@ fi
    ```
 
 2. **scripts/check-sync-needed.js**:
+
    ```javascript
    // OLD: Individual files
    // const SYNC_TRIGGERS = [
@@ -759,7 +814,7 @@ fi
 
    // NEW: Directory pattern
    const SYNC_TRIGGERS = [
-       'lib/tier/',  // Matches entire directory
+     'lib/tier/', // Matches entire directory
    ];
    ```
 
@@ -846,6 +901,7 @@ Use this checklist when making architecture changes:
 #### Failure: "npm script not found"
 
 **Symptoms**:
+
 ```
 ❌ FAIL - Verify npm sync:frontend script exists
 ```
@@ -853,6 +909,7 @@ Use this checklist when making architecture changes:
 **Cause**: Script missing from `package.json`
 
 **Fix**:
+
 ```json
 // package.json
 "scripts": {
@@ -865,6 +922,7 @@ Use this checklist when making architecture changes:
 #### Failure: "File path not found in sync script"
 
 **Symptoms**:
+
 ```
 ❌ FAIL - Check sync-frontend.sh has correct file paths
 ```
@@ -872,6 +930,7 @@ Use this checklist when making architecture changes:
 **Cause**: File path not in SHARED_FILES array
 
 **Fix**:
+
 ```bash
 # scripts/sync-frontend.sh
 SHARED_FILES=(
@@ -883,6 +942,7 @@ SHARED_FILES=(
 #### Failure: "Files are not in sync"
 
 **Symptoms**:
+
 ```
 ❌ FAIL - Verify lib/tier-config.ts is in sync
 Files lib/tier-config.ts and frontend/lib/tier-config.ts differ
@@ -891,6 +951,7 @@ Files lib/tier-config.ts and frontend/lib/tier-config.ts differ
 **Cause**: Frontend file is outdated
 
 **Fix**:
+
 ```bash
 # Run sync to update frontend
 npm run sync:frontend
@@ -902,6 +963,7 @@ cp lib/tier-config.ts frontend/lib/tier-config.ts
 #### Failure: "File does not exist"
 
 **Symptoms**:
+
 ```
 ❌ FAIL - Verify all synced files exist in root
   ❌ Missing: lib/tier/permissions.ts
@@ -910,6 +972,7 @@ cp lib/tier-config.ts frontend/lib/tier-config.ts
 **Cause**: File referenced in tests but doesn't exist
 
 **Fix**:
+
 ```bash
 # Option 1: Create the missing file
 touch lib/tier/permissions.ts
@@ -921,6 +984,7 @@ touch lib/tier/permissions.ts
 #### Failure: "Type definition not found"
 
 **Symptoms**:
+
 ```
 ❌ FAIL - Verify CompleteMarketData exists in frontend/types/indicator.ts
 ```
@@ -928,6 +992,7 @@ touch lib/tier/permissions.ts
 **Cause**: Type not synced or file outdated
 
 **Fix**:
+
 ```bash
 # Sync types
 npm run sync:frontend
@@ -939,6 +1004,7 @@ grep "CompleteMarketData" frontend/types/indicator.ts
 #### Failure: "Sync detection not working"
 
 **Symptoms**:
+
 ```
 ❌ FAIL - Test sync detection with file modification
 Expected: SYNC REQUIRED
@@ -948,11 +1014,12 @@ Got: No sync required
 **Cause**: File pattern not in SYNC_TRIGGERS
 
 **Fix**:
+
 ```javascript
 // scripts/check-sync-needed.js
 const SYNC_TRIGGERS = [
-    'types/',
-    'lib/tier-config.ts',  // Make sure this file is listed
+  'types/',
+  'lib/tier-config.ts', // Make sure this file is listed
 ];
 ```
 
@@ -960,9 +1027,9 @@ const SYNC_TRIGGERS = [
 
 ## Version History
 
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 1.0.0 | 2026-01-20 | Initial testing design document | DevOps Team |
+| Version | Date       | Changes                         | Author      |
+| ------- | ---------- | ------------------------------- | ----------- |
+| 1.0.0   | 2026-01-20 | Initial testing design document | DevOps Team |
 
 ---
 
