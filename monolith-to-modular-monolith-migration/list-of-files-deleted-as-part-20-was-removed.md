@@ -1,4 +1,4 @@
-List of files deleted as Part 20 was removed
+List of files deleted as Part 20 (old) was removed
 
 1 **tests**/api/confluence.test.ts
 2 **tests**/api/indicators.test.ts

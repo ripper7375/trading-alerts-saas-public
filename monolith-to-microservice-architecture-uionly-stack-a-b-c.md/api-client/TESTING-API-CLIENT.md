@@ -42,6 +42,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
 
 **Generate secrets:**
+
 ```bash
 # Generate NEXTAUTH_SECRET
 openssl rand -base64 32
@@ -88,6 +89,7 @@ pnpm dev
 The server will start at `http://localhost:3000`
 
 **Expected output:**
+
 ```
 ▲ Next.js 15.5.9
 - Local:        http://localhost:3000
@@ -415,27 +417,30 @@ npm run test:api
 
 Stack A endpoints (Parts 1-19) are **currently deployed** and should work:
 
-| Endpoint | Expected Response |
-|----------|-------------------|
-| `GET /api/alerts` | 200 OK - Array of alerts |
-| `GET /api/watchlist` | 200 OK - Array of symbols |
-| `GET /api/candles/XAUUSD` | 200 OK - Candle data |
-| `GET /api/user/profile` | 200 OK - User object (if authenticated) |
-| `GET /api/subscription` | 200 OK - Subscription object |
-| `GET /api/notifications` | 200 OK - Array of notifications |
-| `GET /api/admin/analytics` | 200 OK - Analytics data (if admin) |
-| `GET /api/invoices` | 200 OK - Billing history |
-| `GET /api/user/preferences` | 200 OK - User settings |
+| Endpoint                    | Expected Response                       |
+| --------------------------- | --------------------------------------- |
+| `GET /api/alerts`           | 200 OK - Array of alerts                |
+| `GET /api/watchlist`        | 200 OK - Array of symbols               |
+| `GET /api/candles/XAUUSD`   | 200 OK - Candle data                    |
+| `GET /api/user/profile`     | 200 OK - User object (if authenticated) |
+| `GET /api/subscription`     | 200 OK - Subscription object            |
+| `GET /api/notifications`    | 200 OK - Array of notifications         |
+| `GET /api/admin/analytics`  | 200 OK - Analytics data (if admin)      |
+| `GET /api/invoices`         | 200 OK - Billing history                |
+| `GET /api/user/preferences` | 200 OK - User settings                  |
 
 **If you see 401 Unauthorized:**
+
 - The endpoint requires authentication
 - Sign in first at `http://localhost:3000/sign-in`
 
 **If you see 404 Not Found:**
+
 - The API route doesn't exist yet
 - Check if the route file exists in `app/api/`
 
 **If you see 500 Internal Server Error:**
+
 - Check database connection
 - Check server logs in terminal
 - Check database has required tables
@@ -446,13 +451,13 @@ Stack A endpoints (Parts 1-19) are **currently deployed** and should work:
 
 Stack B endpoints (Parts 20-26) are **NOT deployed yet** and should return 404:
 
-| Endpoint | Expected Response |
-|----------|-------------------|
-| `GET /api/leaderboard/H4` | 404 Not Found |
-| `GET /api/market-data/XAUUSD` | 404 Not Found |
-| `GET /api/confluence/XAUUSD` | 404 Not Found |
-| `GET /api/surveillance` | 404 Not Found |
-| `GET /api/queue/status` | 404 Not Found |
+| Endpoint                      | Expected Response |
+| ----------------------------- | ----------------- |
+| `GET /api/leaderboard/H4`     | 404 Not Found     |
+| `GET /api/market-data/XAUUSD` | 404 Not Found     |
+| `GET /api/confluence/XAUUSD`  | 404 Not Found     |
+| `GET /api/surveillance`       | 404 Not Found     |
+| `GET /api/queue/status`       | 404 Not Found     |
 
 **This is CORRECT behavior!** Stack B features are for future deployment.
 
@@ -463,6 +468,7 @@ Stack B endpoints (Parts 20-26) are **NOT deployed yet** and should return 404:
 ### Issue 1: "Cannot find module '@/lib/api'"
 
 **Solution:**
+
 ```bash
 # Verify the file exists
 ls -la lib/api/index.ts
@@ -479,6 +485,7 @@ cat tsconfig.json | grep -A 3 "paths"
 ### Issue 2: "Database connection error"
 
 **Solution:**
+
 ```bash
 # Check DATABASE_URL in .env.local
 cat .env.local | grep DATABASE_URL
@@ -499,6 +506,7 @@ npx prisma studio
 The endpoint requires authentication. Two options:
 
 **Option A: Sign in via UI**
+
 1. Go to `http://localhost:3000/sign-in`
 2. Sign in with Google or email
 3. Try API request again
@@ -526,6 +534,7 @@ export async function GET(req: NextRequest) {
 **Possible causes:**
 
 1. **Dev server not running**
+
    ```bash
    # Make sure server is running
    npm run dev
@@ -693,6 +702,7 @@ You now have **5 methods** to test the API Client:
 5. **cURL/Postman** - Direct HTTP testing
 
 **Expected Results:**
+
 - ✅ Stack A endpoints work (200 OK)
 - ⚠️ Stack B endpoints return 404 (expected, not deployed yet)
 - ✅ TypeScript types work correctly
