@@ -18,11 +18,12 @@ npm run sync:check
 |--------------------------------|--------------------------------------------|------------------------------|
 | `types/*`                      | Run `npm run sync:frontend`                | Shared type definitions      |
 | `lib/tier-config.ts`           | Run `npm run sync:frontend`                | Tier limits (FREE/PRO)       |
-| `lib/tier-helpers.ts`          | Run `npm run sync:frontend`                | Tier validation logic        |
+| `lib/tier-helpers.ts`          | Run `npm run sync:frontend`                | Tier validation helpers      |
+| `lib/tier-validation.ts`       | Run `npm run sync:frontend`                | Tier validation logic        |
 | `lib/utils.ts`                 | Run `npm run sync:frontend`                | Shared utility functions     |
 | `lib/constants/business-rules.ts` | Run `npm run sync:frontend`             | Business rule constants      |
 | `lib/tier/constants.ts`        | Run `npm run sync:frontend`                | Tier-specific constants      |
-| `lib/tier/validation.ts`       | Run `npm run sync:frontend`                | Tier validation functions    |
+| `lib/tier/validator.ts`        | Run `npm run sync:frontend`                | Tier validation utilities    |
 | `prisma/schema.prisma`         | Run `npx prisma generate` then sync       | Database schema changed      |
 | `app/api/*` (response changes) | Update `frontend/types/` manually          | API contract changed         |
 | `.env.example`                 | Update `frontend/.env.example` manually    | Environment vars changed     |
