@@ -3,14 +3,20 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 
+interface TestResult {
+  testName: string;
+  data: unknown;
+  status: 'success';
+}
+
 export default function TestAPIPage() {
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<TestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const testEndpoint = async (
     testName: string,
-    apiCall: () => Promise<any>
+    apiCall: () => Promise<unknown>
   ) => {
     setLoading(true);
     setError(null);
@@ -21,8 +27,8 @@ export default function TestAPIPage() {
       const data = await apiCall();
       setResult({ testName, data, status: 'success' });
       console.log(`✅ ${testName} succeeded:`, data);
-    } catch (err: any) {
-      const errorMsg = err.message || 'Unknown error';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
       setError(`❌ ${testName} failed: ${errorMsg}`);
       console.error(`❌ ${testName} failed:`, err);
     } finally {
