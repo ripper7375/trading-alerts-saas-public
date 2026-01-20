@@ -5,8 +5,49 @@
  * Stack B: Future endpoints (Parts 20-26) - will return 404 until deployed
  */
 
+// Type definitions
+interface AlertData {
+  symbol?: string;
+  condition?: string;
+  price?: number;
+  value?: number;
+  enabled?: boolean;
+  [key: string]: unknown;
+}
+
+interface WatchlistData {
+  symbol: string;
+  [key: string]: unknown;
+}
+
+interface UserData {
+  name?: string;
+  email?: string;
+  [key: string]: unknown;
+}
+
+interface SubscriptionData {
+  tier?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface PaymentData {
+  amount: number;
+  currency?: string;
+  [key: string]: unknown;
+}
+
+interface SettingsData {
+  [key: string]: unknown;
+}
+
+interface QueryParams {
+  [key: string]: string | number | boolean;
+}
+
 const BASE_URL =
-  typeof window !== 'undefined' ? '' : process.env.NEXT_PUBLIC_API_URL || '';
+  typeof window !== 'undefined' ? '' : process.env['NEXT_PUBLIC_API_URL'] || '';
 
 // Helper function for API calls
 async function apiCall(endpoint: string, options: RequestInit = {}) {
@@ -32,16 +73,16 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
 const stackA = {
   // Alerts API (Part 11)
   getAlerts: () => apiCall('/api/alerts', { method: 'GET' }),
-  createAlert: (data: any) =>
+  createAlert: (data: AlertData) =>
     apiCall('/api/alerts', { method: 'POST', body: JSON.stringify(data) }),
-  updateAlert: (id: string, data: any) =>
+  updateAlert: (id: string, data: AlertData) =>
     apiCall(`/api/alerts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAlert: (id: string) =>
     apiCall(`/api/alerts/${id}`, { method: 'DELETE' }),
 
   // Watchlist API (Part 10)
   getWatchlist: () => apiCall('/api/watchlist', { method: 'GET' }),
-  addToWatchlist: (data: any) =>
+  addToWatchlist: (data: WatchlistData) =>
     apiCall('/api/watchlist', { method: 'POST', body: JSON.stringify(data) }),
   removeFromWatchlist: (id: string) =>
     apiCall(`/api/watchlist/${id}`, { method: 'DELETE' }),
@@ -52,7 +93,7 @@ const stackA = {
 
   // User Profile - CORRECTED
   getUser: () => apiCall('/api/user/profile', { method: 'GET' }),
-  updateUser: (data: any) =>
+  updateUser: (data: UserData) =>
     apiCall('/api/user/profile', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -60,7 +101,7 @@ const stackA = {
 
   // Subscription API (Part 4)
   getSubscription: () => apiCall('/api/subscription', { method: 'GET' }),
-  updateSubscription: (data: any) =>
+  updateSubscription: (data: SubscriptionData) =>
     apiCall('/api/subscription', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -76,14 +117,16 @@ const stackA = {
 
   // Admin API - CORRECTED
   getAdminStats: () => apiCall('/api/admin/analytics', { method: 'GET' }),
-  getAffiliates: (params?: any) => {
-    const query = params ? `?${new URLSearchParams(params).toString()}` : '';
+  getAffiliates: (params?: QueryParams) => {
+    const query = params
+      ? `?${new URLSearchParams(params as Record<string, string>).toString()}`
+      : '';
     return apiCall(`/api/admin/affiliates${query}`, { method: 'GET' });
   },
 
   // Billing & Payments - CORRECTED
   getBillingHistory: () => apiCall('/api/invoices', { method: 'GET' }),
-  createPayment: (data: any) =>
+  createPayment: (data: PaymentData) =>
     apiCall('/api/payments/dlocal/create', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -91,7 +134,7 @@ const stackA = {
 
   // Settings - CORRECTED
   getSettings: () => apiCall('/api/user/preferences', { method: 'GET' }),
-  updateSettings: (data: any) =>
+  updateSettings: (data: SettingsData) =>
     apiCall('/api/user/preferences', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -130,8 +173,8 @@ const stackB = {
     apiCall('/api/surveillance/timeframes', { method: 'GET' }),
 
   // Advanced Notifications API (Part 26)
-  getAdvancedNotifications: (params: any) => {
-    const query = `?${new URLSearchParams(params).toString()}`;
+  getAdvancedNotifications: (params: QueryParams) => {
+    const query = `?${new URLSearchParams(params as Record<string, string>).toString()}`;
     return apiCall(`/api/notifications/advanced${query}`, { method: 'GET' });
   },
 
