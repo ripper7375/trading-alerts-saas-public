@@ -38,21 +38,25 @@ frontend/
 ## Key Optimizations
 
 ### 1. Server Components by Default
+
 - **95%+ of UI** rendered on server
 - **0 KB JavaScript** for static content
 - Direct database access (no API calls)
 
 ### 2. Client Component Islands
+
 - **<5% of UI** requires client-side JavaScript
 - Forms, buttons, interactive widgets
 - Lazy-loaded when needed
 
 ### 3. Loading Skeletons
+
 - Instant visual feedback
 - Matches page layout
 - Reduces perceived load time
 
 ### 4. Tier-Based Loading
+
 - FREE users: Load only FREE features (~30KB JS)
 - PRO users: Load PRO features on demand (~50KB JS)
 - 75-80% bundle size reduction
@@ -60,6 +64,7 @@ frontend/
 ## Deployment
 
 ### Fresh Vercel Project
+
 This MUST be deployed as a **NEW** Vercel project, separate from the existing monolith:
 
 ```bash
@@ -76,6 +81,7 @@ vercel --prod
 ```
 
 ### Environment Variables
+
 Configure in Vercel project settings:
 
 ```bash
@@ -94,6 +100,7 @@ NEXT_PUBLIC_USE_MODULAR_BACKEND=false
 ```
 
 ### Vercel Project Settings
+
 - **Framework**: Next.js
 - **Root Directory**: `frontend`
 - **Build Command**: `pnpm run build`
@@ -146,27 +153,30 @@ pnpm run validate
 
 ## Bundle Size Targets
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| FREE tier JS | ~150KB | ~30KB | 80% reduction |
-| PRO tier JS | ~200KB | ~50KB | 75% reduction |
-| Time to Interactive (Mobile) | 8-12s | 1.5-2s | 75% faster |
-| Lighthouse Score | 45 | 90+ | 2x improvement |
+| Metric                       | Before | After  | Improvement    |
+| ---------------------------- | ------ | ------ | -------------- |
+| FREE tier JS                 | ~150KB | ~30KB  | 80% reduction  |
+| PRO tier JS                  | ~200KB | ~50KB  | 75% reduction  |
+| Time to Interactive (Mobile) | 8-12s  | 1.5-2s | 75% faster     |
+| Lighthouse Score             | 45     | 90+    | 2x improvement |
 
 ## Migration Status
 
 ### ✅ Completed
+
 - [x] Directory structure created
 - [x] Configuration files set up
 - [x] Loading skeletons created
 - [x] Component organization
 
 ### 🚧 In Progress
+
 - [ ] Admin pages conversion
 - [ ] Auth pages conversion
 - [ ] Dashboard & Charts conversion
 
 ### ⏳ Pending
+
 - [ ] Tier-based optimization
 - [ ] Bundle analysis
 - [ ] Fresh Vercel deployment
@@ -185,18 +195,21 @@ pnpm run validate
 ## Deployment Strategy
 
 ### Phase 1: Staging (Current)
+
 1. Deploy frontend to new Vercel project
 2. Test with existing monolith backend
 3. Validate performance improvements
 4. A/B test with subset of users
 
 ### Phase 2: Production Rollout
+
 1. Gradual traffic shift (10% → 50% → 100%)
 2. Monitor metrics and error rates
 3. Keep monolith as fallback
 4. Full cutover after validation
 
 ### Phase 3: Backend Migration (Step 5+)
+
 1. Deploy NestJS backend to Railway
 2. Update `NEXT_PUBLIC_API_URL`
 3. Enable `NEXT_PUBLIC_USE_MODULAR_BACKEND`
@@ -205,6 +218,7 @@ pnpm run validate
 ## Support
 
 For issues or questions:
+
 - Check `CONVERSION_GUIDE.md` for common patterns
 - Review main migration docs
 - File GitHub issue with `frontend` label

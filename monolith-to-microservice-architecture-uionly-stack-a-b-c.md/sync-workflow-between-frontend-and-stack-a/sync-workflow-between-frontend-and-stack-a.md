@@ -14,18 +14,19 @@ npm run sync:check
 
 ### Sync is REQUIRED when you modify:
 
-| Modified File/Directory        | Action Required                            | Why                          |
-|--------------------------------|--------------------------------------------|------------------------------|
-| `types/*`                      | Run `npm run sync:frontend`                | Shared type definitions      |
-| `lib/tier-config.ts`           | Run `npm run sync:frontend`                | Tier limits (FREE/PRO)       |
-| `lib/tier-helpers.ts`          | Run `npm run sync:frontend`                | Tier validation logic        |
-| `lib/utils.ts`                 | Run `npm run sync:frontend`                | Shared utility functions     |
-| `lib/constants/business-rules.ts` | Run `npm run sync:frontend`             | Business rule constants      |
-| `lib/tier/constants.ts`        | Run `npm run sync:frontend`                | Tier-specific constants      |
-| `lib/tier/validation.ts`       | Run `npm run sync:frontend`                | Tier validation functions    |
-| `prisma/schema.prisma`         | Run `npx prisma generate` then sync       | Database schema changed      |
-| `app/api/*` (response changes) | Update `frontend/types/` manually          | API contract changed         |
-| `.env.example`                 | Update `frontend/.env.example` manually    | Environment vars changed     |
+| Modified File/Directory           | Action Required                         | Why                       |
+| --------------------------------- | --------------------------------------- | ------------------------- |
+| `types/*`                         | Run `npm run sync:frontend`             | Shared type definitions   |
+| `lib/tier-config.ts`              | Run `npm run sync:frontend`             | Tier limits (FREE/PRO)    |
+| `lib/tier-helpers.ts`             | Run `npm run sync:frontend`             | Tier validation helpers   |
+| `lib/tier-validation.ts`          | Run `npm run sync:frontend`             | Tier validation logic     |
+| `lib/utils.ts`                    | Run `npm run sync:frontend`             | Shared utility functions  |
+| `lib/constants/business-rules.ts` | Run `npm run sync:frontend`             | Business rule constants   |
+| `lib/tier/constants.ts`           | Run `npm run sync:frontend`             | Tier-specific constants   |
+| `lib/tier/validator.ts`           | Run `npm run sync:frontend`             | Tier validation utilities |
+| `prisma/schema.prisma`            | Run `npx prisma generate` then sync     | Database schema changed   |
+| `app/api/*` (response changes)    | Update `frontend/types/` manually       | API contract changed      |
+| `.env.example`                    | Update `frontend/.env.example` manually | Environment vars changed  |
 
 ### Sync is NOT required for:
 
@@ -57,6 +58,7 @@ This will:
 5. ✅ Report any errors
 
 **Output**:
+
 ```
 🔄 Frontend-Backend Sync Tool
 ==============================
@@ -103,6 +105,7 @@ npm run sync:all
 ```
 
 This runs:
+
 1. Frontend sync
 2. TypeScript type checking
 3. Reports any issues
@@ -140,6 +143,7 @@ git commit -m "feat: add alert priority feature
 For changes affecting both backend and frontend:
 
 **Option A: Single Branch (Recommended)**
+
 1. Create feature branch
 2. Make backend changes
 3. Run `npm run sync:frontend`
@@ -158,6 +162,7 @@ git push
 ```
 
 **Option B: Sequential Commits**
+
 1. Make backend changes
 2. Commit backend
 3. Run sync
@@ -185,7 +190,9 @@ git push
 **Example**: Add `priority` field to Alert type
 
 **Steps**:
+
 1. Update `types/alert.ts`:
+
    ```typescript
    export interface Alert {
      id: string;
@@ -195,6 +202,7 @@ git push
    ```
 
 2. Update Prisma schema:
+
    ```prisma
    model Alert {
      // ... existing fields ...
@@ -203,11 +211,13 @@ git push
    ```
 
 3. Run sync:
+
    ```bash
    npm run sync:frontend
    ```
 
 4. Update frontend components to use new field:
+
    ```tsx
    // frontend/components/alerts/alert-card.tsx
    <Badge variant={alert.priority}>{alert.priority}</Badge>
@@ -224,7 +234,9 @@ git push
 **Example**: Increase PRO tier symbol limit from 15 to 20
 
 **Steps**:
+
 1. Update `lib/tier-config.ts`:
+
    ```typescript
    export const TIER_LIMITS = {
      FREE: { symbols: 5, timeframes: 3, alerts: 5 },
@@ -233,6 +245,7 @@ git push
    ```
 
 2. Run sync:
+
    ```bash
    npm run sync:frontend
    ```
@@ -250,7 +263,9 @@ git push
 **Example**: Add new field to User model
 
 **Steps**:
+
 1. Update `prisma/schema.prisma`:
+
    ```prisma
    model User {
      // ... existing fields ...
@@ -259,21 +274,25 @@ git push
    ```
 
 2. Generate Prisma client:
+
    ```bash
    npx prisma generate
    ```
 
 3. Run migration (if in development):
+
    ```bash
    npx prisma migrate dev
    ```
 
 4. Run sync:
+
    ```bash
    npm run sync:frontend
    ```
 
 5. Generate frontend Prisma client:
+
    ```bash
    cd frontend && npx prisma generate
    ```
@@ -293,6 +312,7 @@ git push
 **Problem**: After running sync, frontend has TypeScript errors
 
 **Solution**:
+
 ```bash
 # Check what changed
 git diff frontend/types/
@@ -317,6 +337,7 @@ npm run build
 **Problem**: `bash: scripts/sync-frontend.sh: No such file or directory`
 
 **Solution**:
+
 ```bash
 # Make script executable
 chmod +x scripts/sync-frontend.sh
@@ -344,6 +365,7 @@ mkdir -p frontend/{app,components,lib,types,prisma}
 **Problem**: Sync completes but `npx prisma generate` fails
 
 **Solution**:
+
 ```bash
 # Check Prisma schema syntax
 cd frontend
@@ -361,6 +383,7 @@ cat .env.local | grep DATABASE_URL
 **Problem**: Type check fails because dependencies not installed
 
 **Solution**:
+
 ```bash
 cd frontend
 npm install
@@ -478,21 +501,25 @@ A: Frontend TypeScript build will fail due to missing/outdated types.
 ## Migration Phases and Sync
 
 ### Step 4 (Current)
+
 - Frontend created in `frontend/` directory
 - Shares types and utils with monolith
 - **Sync required**: ✅ Yes, frequently
 
 ### Step 5 (Backend to NestJS)
+
 - Backend moves to Railway
 - Frontend calls backend API
 - **Sync required**: ✅ Yes, for API types
 
 ### Step 6-7 (Integration & Testing)
+
 - Frontend and backend fully separated
 - Communication via REST/GraphQL
 - **Sync required**: ⚠️ Only for type definitions
 
 ### Step 8 (Production Cutover)
+
 - Frontend on Vercel, Backend on Railway
 - Independent deployments
 - **Sync required**: ⚠️ Minimal (OpenAPI codegen instead)

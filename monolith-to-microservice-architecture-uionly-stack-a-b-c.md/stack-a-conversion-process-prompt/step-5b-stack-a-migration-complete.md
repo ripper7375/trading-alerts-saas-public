@@ -7,12 +7,14 @@ This document guides you through **Part B of Step 5**: Migrating your backend fr
 **⚠️ CRITICAL: Complete Step 5A (Infrastructure Migration) BEFORE starting this step**
 
 **Key migrations:**
+
 - **Backend Framework**: Next.js API routes → Nest.js modules
 - **Deployment Platform**: Vercel serverless → Railway Docker container
 - **Architecture Pattern**: Monolithic routes → Modular domain modules
 - **Authentication**: NextAuth.js → Passport.js with JWT
 
 **Prerequisites:**
+
 - ✅ Step 5A completed (Database + Cache migrated)
 - ✅ Next.js working with Timescale Cloud + Upstash
 - ✅ Infrastructure stable for 24+ hours
@@ -42,12 +44,14 @@ This document guides you through **Part B of Step 5**: Migrating your backend fr
 ### Required Before Starting
 
 **Infrastructure (from Step 5A):**
+
 - [x] ✅ Database migrated to Timescale Cloud
 - [x] ✅ Cache migrated to Upstash Redis
 - [x] ✅ Next.js tested with new infrastructure (24+ hours stable)
 - [x] ✅ Connection strings documented
 
 **Codebase Status:**
+
 - [x] Next.js monolith repository at `/home/user/trading-alerts-saas-public`
 - [x] 100 API route files in `app/api/**/*.ts`
 - [x] 96 library/service files in `lib/**/*.ts`
@@ -55,6 +59,7 @@ This document guides you through **Part B of Step 5**: Migrating your backend fr
 - [x] Prisma schema at `prisma/schema.prisma`
 
 **Tools Required:**
+
 ```bash
 # Node.js 18+
 node --version  # Should be v18.x or higher
@@ -114,6 +119,7 @@ railway --version
 ```
 
 **CORS Configuration:**
+
 - Frontend (Vercel) makes API calls to Backend (Railway)
 - Backend has CORS enabled for Vercel domains
 - Authentication via JWT tokens
@@ -125,26 +131,27 @@ railway --version
 ### Backend Files to Migrate
 
 **Total Files: 196**
+
 - API Routes: 100 files (`app/api/**/*.ts`)
 - Library/Services: 96 files (`lib/**/*.ts`)
 
 ### Module Organization
 
-| Nest.js Module | Next.js Files | File Count |
-|----------------|---------------|------------|
-| **Auth Module** | `app/api/auth/**`, `lib/auth/**` | 25 files |
-| **Users Module** | `app/api/user/**`, `lib/validations/user.ts` | 12 files |
-| **Indicators Module** | `app/api/indicators/**`, `lib/indicators/**`, `lib/cache/indicator-cache.ts` | 9 files |
-| **Watchlist Module** | `app/api/watchlist/**`, `lib/validations/watchlist.ts` | 4 files |
-| **Alerts Module** | `app/api/alerts/**`, `lib/validations/alert.ts`, `lib/jobs/alert-checker.ts` | 4 files |
-| **Billing Module** | `app/api/checkout/**`, `app/api/payments/**`, `app/api/invoices/**`, `lib/stripe/**`, `lib/dlocal/**` | 19 files |
-| **Affiliate Module** | `app/api/affiliate/**`, `app/api/config/affiliate/**`, `lib/affiliate/**` | 16 files |
-| **Admin Module** | `app/api/admin/**`, `lib/admin/**` | 22 files |
-| **Disbursement Module** | `app/api/disbursement/**`, `lib/disbursement/**` | 33 files |
-| **Webhooks Module** | `app/api/webhooks/**` | 3 files |
-| **Notifications Module** | `app/api/notifications/**` | 3 files |
-| **Cron Module** | `app/api/cron/**`, `lib/cron/**` | 11 files |
-| **Common/Shared** | `lib/db/**`, `lib/cache/**`, `lib/utils/**`, `lib/errors/**`, etc. | 35 files |
+| Nest.js Module           | Next.js Files                                                                                         | File Count |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- | ---------- |
+| **Auth Module**          | `app/api/auth/**`, `lib/auth/**`                                                                      | 25 files   |
+| **Users Module**         | `app/api/user/**`, `lib/validations/user.ts`                                                          | 12 files   |
+| **Indicators Module**    | `app/api/indicators/**`, `lib/indicators/**`, `lib/cache/indicator-cache.ts`                          | 9 files    |
+| **Watchlist Module**     | `app/api/watchlist/**`, `lib/validations/watchlist.ts`                                                | 4 files    |
+| **Alerts Module**        | `app/api/alerts/**`, `lib/validations/alert.ts`, `lib/jobs/alert-checker.ts`                          | 4 files    |
+| **Billing Module**       | `app/api/checkout/**`, `app/api/payments/**`, `app/api/invoices/**`, `lib/stripe/**`, `lib/dlocal/**` | 19 files   |
+| **Affiliate Module**     | `app/api/affiliate/**`, `app/api/config/affiliate/**`, `lib/affiliate/**`                             | 16 files   |
+| **Admin Module**         | `app/api/admin/**`, `lib/admin/**`                                                                    | 22 files   |
+| **Disbursement Module**  | `app/api/disbursement/**`, `lib/disbursement/**`                                                      | 33 files   |
+| **Webhooks Module**      | `app/api/webhooks/**`                                                                                 | 3 files    |
+| **Notifications Module** | `app/api/notifications/**`                                                                            | 3 files    |
+| **Cron Module**          | `app/api/cron/**`, `lib/cron/**`                                                                      | 11 files   |
+| **Common/Shared**        | `lib/db/**`, `lib/cache/**`, `lib/utils/**`, `lib/errors/**`, etc.                                    | 35 files   |
 
 **Total:** 196 files
 
@@ -499,13 +506,15 @@ backend deployed on Railway.
 ## Repository Structure After Step 5B
 
 ```
+
 trading-alerts-saas-public/
-├── frontend/                    # Vercel (Next.js UI only)
-├── backend/                     # Railway (Nest.js API)
+├── frontend/ # Vercel (Next.js UI only)
+├── backend/ # Railway (Nest.js API)
 ├── archive/
-│   └── step5-nextjs-backend/   # This archive
+│ └── step5-nextjs-backend/ # This archive
 └── (old monolith files - cleaned up in Step 11)
-```
+
+````
 
 ## Restoration
 
@@ -516,7 +525,8 @@ If rollback is needed:
    ```bash
    cp -r archive/step5-nextjs-backend/app/api/* app/api/
    cp -r archive/step5-nextjs-backend/lib/* lib/
-   ```
+````
+
 3. Update Vercel environment variables (if changed)
 4. Redeploy Next.js monolith to Vercel
 5. Verify all endpoints working
@@ -539,9 +549,10 @@ If rollback is needed:
 
 ---
 
-*Archived as part of Trading Alerts SaaS Modular Monolith Migration*
+_Archived as part of Trading Alerts SaaS Modular Monolith Migration_
 EOF
-```
+
+````
 
 ---
 
@@ -564,7 +575,7 @@ git commit -m "archive: preserve Next.js backend files before Nest.js migration 
 
 # Push to remote
 git push origin main
-```
+````
 
 ---
 
@@ -613,12 +624,10 @@ export class PrismaService
     }
 
     const models = Reflect.ownKeys(this).filter(
-      (key) => key[0] !== '_' && key[0] === key[0].toLowerCase(),
+      (key) => key[0] !== '_' && key[0] === key[0].toLowerCase()
     );
 
-    return Promise.all(
-      models.map((modelKey) => this[modelKey].deleteMany()),
-    );
+    return Promise.all(models.map((modelKey) => this[modelKey].deleteMany()));
   }
 }
 ```
@@ -885,7 +894,7 @@ export class LoggingInterceptor implements NestInterceptor {
       tap(() => {
         const duration = Date.now() - now;
         console.log(`${method} ${url} - ${duration}ms`);
-      }),
+      })
     );
   }
 }
@@ -953,7 +962,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // Global exception filter
@@ -1003,7 +1012,13 @@ curl http://localhost:5000/api
 **File:** `backend/src/modules/auth/dto/register.dto.ts`
 
 ```typescript
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsEnum,
+  IsOptional,
+} from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -1103,7 +1118,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private config: ConfigService,
-    private prisma: PrismaService,
+    private prisma: PrismaService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -1261,7 +1276,7 @@ export const CurrentUser = createParamDecorator(
     const user = request.user;
 
     return data ? user?.[data] : user;
-  },
+  }
 );
 ```
 
@@ -1302,7 +1317,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private config: ConfigService,
+    private config: ConfigService
   ) {}
 
   /**
@@ -1870,7 +1885,7 @@ export class IndicatorsService {
 
   constructor(
     private prisma: PrismaService,
-    private redis: RedisService,
+    private redis: RedisService
   ) {}
 
   /**
@@ -2015,13 +2030,9 @@ export class IndicatorsController {
   async getIndicators(
     @Param('symbol') symbol: string,
     @Param('timeframe') timeframe: string,
-    @CurrentUser('tier') userTier: string,
+    @CurrentUser('tier') userTier: string
   ) {
-    return this.indicatorsService.getIndicators(
-      symbol,
-      timeframe,
-      userTier,
-    );
+    return this.indicatorsService.getIndicators(symbol, timeframe, userTier);
   }
 }
 ```
@@ -2077,7 +2088,11 @@ export class CreateWatchlistDto {
 **File:** `backend/src/modules/watchlist/watchlist.service.ts`
 
 ```typescript
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateWatchlistDto } from './dto/create-watchlist.dto';
 import { UpdateWatchlistDto } from './dto/update-watchlist.dto';
@@ -2213,10 +2228,7 @@ export class WatchlistController {
   constructor(private watchlistService: WatchlistService) {}
 
   @Post()
-  create(
-    @CurrentUser('id') userId: string,
-    @Body() dto: CreateWatchlistDto,
-  ) {
+  create(@CurrentUser('id') userId: string, @Body() dto: CreateWatchlistDto) {
     return this.watchlistService.create(userId, dto);
   }
 
@@ -2226,10 +2238,7 @@ export class WatchlistController {
   }
 
   @Get(':id')
-  findOne(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ) {
+  findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.watchlistService.findOne(id, userId);
   }
 
@@ -2237,16 +2246,13 @@ export class WatchlistController {
   update(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
-    @Body() dto: UpdateWatchlistDto,
+    @Body() dto: UpdateWatchlistDto
   ) {
     return this.watchlistService.update(id, userId, dto);
   }
 
   @Delete(':id')
-  remove(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.watchlistService.remove(id, userId);
   }
 }
@@ -2259,11 +2265,13 @@ export class WatchlistController {
 Follow this pattern for all remaining modules:
 
 **✅ Completed Modules:**
+
 - [x] Auth Module (25 files)
 - [x] Indicators Module (example provided)
 - [x] Watchlist Module (example provided)
 
 **📋 Remaining Modules (follow same pattern):**
+
 - [ ] Users Module (12 files)
 - [ ] Alerts Module (4 files)
 - [ ] Billing Module (19 files)
@@ -2275,6 +2283,7 @@ Follow this pattern for all remaining modules:
 - [ ] Cron Module (11 files)
 
 **For each module:**
+
 1. Create DTOs (validation with class-validator)
 2. Create Service (business logic)
 3. Create Controller (HTTP endpoints)
@@ -2532,7 +2541,9 @@ describe('AuthService', () => {
         email: dto.email,
       } as any);
 
-      await expect(service.register(dto)).rejects.toThrow('Email already registered');
+      await expect(service.register(dto)).rejects.toThrow(
+        'Email already registered'
+      );
     });
   });
 });
@@ -2589,12 +2600,10 @@ describe('Auth (e2e)', () => {
     });
 
     it('should return 409 if email exists', async () => {
-      await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          email: 'duplicate@example.com',
-          password: 'Test123!',
-        });
+      await request(app.getHttpServer()).post('/api/auth/register').send({
+        email: 'duplicate@example.com',
+        password: 'Test123!',
+      });
 
       return request(app.getHttpServer())
         .post('/api/auth/register')
@@ -2608,12 +2617,10 @@ describe('Auth (e2e)', () => {
 
   describe('/api/auth/login (POST)', () => {
     beforeAll(async () => {
-      await request(app.getHttpServer())
-        .post('/api/auth/register')
-        .send({
-          email: 'login@example.com',
-          password: 'Test123!',
-        });
+      await request(app.getHttpServer()).post('/api/auth/register').send({
+        email: 'login@example.com',
+        password: 'Test123!',
+      });
     });
 
     it('should login with valid credentials', () => {
@@ -2843,6 +2850,7 @@ Use feature flag or routing logic in frontend to gradually shift traffic.
 ### Step 9.3: Monitor Both Systems
 
 **Checklist:**
+
 - [ ] Nest.js backend responding (< 200ms P95)
 - [ ] No errors in Railway logs
 - [ ] Database connections stable
@@ -2889,17 +2897,17 @@ Create migration completion report.
 
 **Track these metrics for 2 weeks post-migration:**
 
-| Metric | Target | Status |
-|--------|--------|--------|
-| API Response Time (P95) | < 200ms | ⏱️ Monitoring |
-| Error Rate | < 0.1% | 📊 Monitoring |
-| Database Query Time | < 100ms | ⏱️ Monitoring |
-| Cache Hit Rate | > 80% | 📊 Monitoring |
+| Metric                      | Target  | Status        |
+| --------------------------- | ------- | ------------- |
+| API Response Time (P95)     | < 200ms | ⏱️ Monitoring |
+| Error Rate                  | < 0.1%  | 📊 Monitoring |
+| Database Query Time         | < 100ms | ⏱️ Monitoring |
+| Cache Hit Rate              | > 80%   | 📊 Monitoring |
 | Authentication Success Rate | > 99.5% | ✅ Monitoring |
-| Uptime | > 99.9% | ✅ Monitoring |
+| Uptime                      | > 99.9% | ✅ Monitoring |
 
 ---
 
-*End of Step 5B Complete Implementation Guide*
-*Generated: 2026-01-11*
-*Status: Production-Ready ✅*
+_End of Step 5B Complete Implementation Guide_
+_Generated: 2026-01-11_
+_Status: Production-Ready ✅_

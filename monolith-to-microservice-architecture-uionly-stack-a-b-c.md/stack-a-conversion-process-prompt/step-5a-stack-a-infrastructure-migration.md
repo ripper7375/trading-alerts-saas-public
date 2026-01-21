@@ -7,10 +7,12 @@ This document guides you through **Part A of Step 5**: Migrating your database a
 **⚠️ CRITICAL: Complete this BEFORE starting Step 5B (Backend Migration)**
 
 **Key migrations:**
+
 - **Database**: Railway PostgreSQL → Timescale Cloud (PostgreSQL 15 + TimescaleDB)
 - **Cache**: Railway Redis → Upstash Redis
 
 **Why migrate infrastructure first:**
+
 1. ✅ Test infrastructure changes with existing Next.js backend (minimal risk)
 2. ✅ Verify database and cache work before touching backend code
 3. ✅ Nest.js migration (Step 5B) can use stable infrastructure from Day 1
@@ -141,6 +143,7 @@ Plan: Dynamic Compute
 **4. Copy connection details:**
 
 You'll receive:
+
 ```
 Host: [service-id].tsdb.cloud.timescale.com
 Port: 5432
@@ -415,6 +418,7 @@ EOF
 ```
 
 **Expected output:**
+
 ```
  extname     | extversion
 -------------+------------
@@ -598,6 +602,7 @@ curl $VERCEL_URL/api/admin/users \
 **Before proceeding to cache migration, monitor database for 24 hours:**
 
 **Checklist:**
+
 - [ ] No database connection errors in Vercel logs
 - [ ] Query performance acceptable (< 200ms for most queries)
 - [ ] Timescale Cloud CPU usage < 50%
@@ -639,6 +644,7 @@ Eviction Policy: allkeys-lru (recommended for cache)
 **3. Copy connection details:**
 
 You'll receive:
+
 ```
 Endpoint: [id].upstash.io
 Port: 6379 (non-TLS) or 6380 (TLS)
@@ -771,7 +777,7 @@ const REDIS_OPTIONS: RedisOptions = {
     }
     return Math.min(times * 500, 30000);
   },
-  enableReadyCheck: true,  // ⚠️ Change to false for Upstash
+  enableReadyCheck: true, // ⚠️ Change to false for Upstash
   lazyConnect: true,
 };
 ```
@@ -791,7 +797,7 @@ const REDIS_OPTIONS: RedisOptions = {
     }
     return Math.min(times * 500, 30000);
   },
-  enableReadyCheck: false,  // ✅ Changed for Upstash compatibility
+  enableReadyCheck: false, // ✅ Changed for Upstash compatibility
   lazyConnect: true,
   // Auto-detect TLS from URL
   tls: process.env.REDIS_URL?.startsWith('rediss://') ? {} : undefined,
@@ -896,6 +902,7 @@ curl $VERCEL_URL/api/cache/stats
 **Before completing migration, monitor cache for 24 hours:**
 
 **Checklist:**
+
 - [ ] No Redis connection errors in Vercel logs
 - [ ] Cache hit rate > 50% for indicator requests
 - [ ] Upstash latency < 20ms (P95)
@@ -1195,6 +1202,7 @@ Total: ~$30-45/month
 **Cost Increase:** +$20-25/month (+150%)
 
 **Value Gained:**
+
 - ✅ TimescaleDB time-series optimizations (10x faster queries)
 - ✅ Automatic data compression (save 70-90% storage)
 - ✅ Automatic data retention policies
@@ -1210,6 +1218,7 @@ Total: ~$30-45/month
 ### Issue 1: "connection refused" to Timescale Cloud
 
 **Symptoms:**
+
 ```
 Error: connect ECONNREFUSED
 ```
@@ -1240,6 +1249,7 @@ psql $TIMESCALE_DATABASE_URL -c "SELECT 1;"
 ### Issue 2: Slow queries on TimescaleDB
 
 **Symptoms:**
+
 ```
 Query takes > 1 second
 ```
@@ -1273,6 +1283,7 @@ psql $TIMESCALE_DATABASE_URL -c "ANALYZE eurusd_h1;"
 ### Issue 3: Upstash connection timeout
 
 **Symptoms:**
+
 ```
 Error: Connection timeout
 ```
@@ -1301,6 +1312,7 @@ redis-cli -u $REDIS_URL --tls --insecure PING
 ### Issue 4: Cache miss rate too high
 
 **Symptoms:**
+
 ```
 Cache hit rate < 50%
 ```
@@ -1328,6 +1340,7 @@ curl https://your-app.vercel.app/api/cache/stats
 ### Issue 5: High Timescale Cloud costs
 
 **Symptoms:**
+
 ```
 Monthly bill > $50
 ```
@@ -1376,6 +1389,7 @@ EOF
 **Migration is successful when ALL criteria are met:**
 
 ### Database Migration ✅
+
 - [ ] All tables exist in Timescale Cloud (Prisma tables + 135 time-series tables)
 - [ ] TimescaleDB extension enabled (version 2.13+)
 - [ ] 135 hypertables created successfully
@@ -1387,6 +1401,7 @@ EOF
 - [ ] No connection errors in logs for 24 hours
 
 ### Cache Migration ✅
+
 - [ ] Upstash Redis database created with TLS
 - [ ] Next.js can connect to Upstash Redis
 - [ ] Cache hit rate > 50% after warmup
@@ -1395,6 +1410,7 @@ EOF
 - [ ] No Redis connection errors in logs for 24 hours
 
 ### Application Health ✅
+
 - [ ] User registration working
 - [ ] User login working
 - [ ] Indicator endpoints returning data
@@ -1406,6 +1422,7 @@ EOF
 - [ ] No performance degradation
 
 ### Monitoring & Alerts ✅
+
 - [ ] Timescale Cloud monitoring configured
 - [ ] Upstash monitoring configured
 - [ ] Vercel Analytics tracking requests
@@ -1445,6 +1462,7 @@ EOF
 **Step 5A Complete! 🎉**
 
 You have successfully migrated your infrastructure:
+
 - ✅ Database: Railway PostgreSQL → Timescale Cloud (with TimescaleDB features)
 - ✅ Cache: Railway Redis → Upstash Redis (serverless)
 - ✅ Next.js tested and working with new infrastructure
@@ -1452,6 +1470,7 @@ You have successfully migrated your infrastructure:
 - ✅ Ready for Step 5B (Nest.js backend migration)
 
 **Important:**
+
 - Next.js code is **unchanged** - only connection strings updated
 - Infrastructure is **stable** and **battle-tested** before backend migration
 - Easy rollback available if needed
@@ -1461,7 +1480,7 @@ You have successfully migrated your infrastructure:
 
 ---
 
-*Generated: 2026-01-11*
-*Migration Step: 5A of Step 5 (Infrastructure Migration)*
-*Target: Timescale Cloud + Upstash Redis*
-*Status: Production-Ready ✅*
+_Generated: 2026-01-11_
+_Migration Step: 5A of Step 5 (Infrastructure Migration)_
+_Target: Timescale Cloud + Upstash Redis_
+_Status: Production-Ready ✅_

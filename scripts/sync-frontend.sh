@@ -36,10 +36,11 @@ echo -e "\n${YELLOW}Step 2: Syncing shared utilities...${NC}"
 SHARED_FILES=(
     "lib/tier-config.ts"
     "lib/tier-helpers.ts"
+    "lib/tier-validation.ts"
     "lib/utils.ts"
     "lib/constants/business-rules.ts"
     "lib/tier/constants.ts"
-    "lib/tier/validation.ts"
+    "lib/tier/validator.ts"
 )
 
 for file in "${SHARED_FILES[@]}"; do
