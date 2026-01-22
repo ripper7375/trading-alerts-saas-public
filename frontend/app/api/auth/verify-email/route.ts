@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { InvalidTokenError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
-import { sendWelcomeEmail } from '@/lib/email/email'; // ✅ ADDED: Import welcome email function
+import { sendWelcomeEmail } from '@/lib/email/email';
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
@@ -34,9 +34,17 @@ export async function GET(request: Request): Promise<NextResponse> {
       },
     });
 
-    // ✅ FIX: Send welcome email AFTER successful email verification
+    // FIX APPLIED: Send welcome email AFTER successful email verification
+    // ====================================================================
     // This ensures user only receives welcome email once they've verified
-    // and the "Go to Dashboard" button will work properly
+    // their email address. This prevents the confusion of receiving two
+    // emails simultaneously during registration.
+    //
+    // Benefits:
+    // 1. User receives only ONE email during registration (verification)
+    // 2. Welcome email comes after verification is complete
+    // 3. "Go to Dashboard" button in welcome email will work properly
+    //    since the account is now verified and ready to use
     try {
       const welcomeResult = await sendWelcomeEmail(
         user.email,
@@ -45,14 +53,27 @@ export async function GET(request: Request): Promise<NextResponse> {
 
       if (!welcomeResult.success) {
         // Log error but don't fail the verification
-        console.error('[Verify Email] Failed to send welcome email:', welcomeResult.error);
-        console.error('[Verify Email] User email verified successfully, but welcome email failed');
+        // Email verification is more important than welcome email delivery
+        console.error(
+          '[Verify Email] Failed to send welcome email:',
+          welcomeResult.error
+        );
+        console.error(
+          '[Verify Email] User email verified successfully, but welcome email failed'
+        );
       } else {
-        console.log('[Verify Email] Welcome email sent successfully to:', user.email);
+        console.log(
+          '[Verify Email] Welcome email sent successfully to:',
+          user.email
+        );
       }
     } catch (emailError) {
       // Log error but don't fail the verification
-      console.error('[Verify Email] Exception sending welcome email:', emailError);
+      // The user's email is verified - that's the critical operation
+      console.error(
+        '[Verify Email] Exception while sending welcome email:',
+        emailError
+      );
     }
 
     return NextResponse.json({
@@ -67,7 +88,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       );
     }
 
-    console.error('Email verification failed:', error);
+    console.error('[Verify Email] Email verification failed:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
