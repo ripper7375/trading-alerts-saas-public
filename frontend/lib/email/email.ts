@@ -166,6 +166,12 @@ export function getVerificationEmail(
         <a href="${verificationUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin: 16px 0;">
           Verify Email Address
         </a>
+        <p style="color: #71717a; font-size: 13px; margin: 16px 0 0 0;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+        <p style="color: #2563eb; font-size: 13px; word-break: break-all; margin: 8px 0 0 0; background: #f4f4f5; padding: 12px; border-radius: 4px;">
+          ${verificationUrl}
+        </p>
         <p style="color: #71717a; font-size: 14px; margin: 24px 0 0 0;">
           If you didn't create an account with Trading Alerts, you can safely ignore this email.
         </p>

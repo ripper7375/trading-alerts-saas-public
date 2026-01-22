@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db/prisma';
 import {
   isEmailServiceConfigured,
   sendVerificationEmail,
-  sendWelcomeEmail,
+  // ❌ REMOVED: sendWelcomeEmail - will be sent AFTER email verification
 } from '@/lib/email/email';
 
 const registerSchema = z.object({
@@ -93,15 +93,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
     }
 
-    // Send welcome email
-    const welcomeResult = await sendWelcomeEmail(
-      validated.email,
-      validated.name || 'User'
-    );
-
-    if (!welcomeResult.success) {
-      console.error('Failed to send welcome email:', welcomeResult.error);
-    }
+    // ✅ FIX: REMOVED welcome email send from here
+    // Welcome email will be sent AFTER user verifies their email
+    // This prevents user confusion from receiving two emails at once
+    // 
+    // OLD CODE (REMOVED):
+    // const welcomeResult = await sendWelcomeEmail(
+    //   validated.email,
+    //   validated.name || 'User'
+    // );
+    //
+    // if (!welcomeResult.success) {
+    //   console.error('Failed to send welcome email:', welcomeResult.error);
+    // }
 
     // Return appropriate message based on verification status
     const message = autoVerify
