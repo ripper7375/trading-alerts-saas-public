@@ -25,6 +25,22 @@ export async function GET(request: Request): Promise<NextResponse> {
       throw new InvalidTokenError('Invalid or expired verification token');
     }
 
+    // SIMPLE FIX: Prevent Gmail auto-preview from triggering verification
+    // Token must be at least 5 seconds old before we allow verification
+    const tokenAge = Date.now() - user.updatedAt.getTime();
+    const MIN_DELAY_MS = 5000; // 5 seconds
+
+    if (tokenAge < MIN_DELAY_MS) {
+      const waitSeconds = Math.ceil((MIN_DELAY_MS - tokenAge) / 1000);
+      return NextResponse.json(
+        {
+          error: `Please wait ${waitSeconds} more seconds, then refresh this page.`,
+          retryAfter: waitSeconds,
+        },
+        { status: 429 }
+      );
+    }
+
     // Update user: set emailVerified and clear verificationToken
     await prisma.user.update({
       where: { id: user.id },
@@ -34,17 +50,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       },
     });
 
-    // FIX APPLIED: Send welcome email AFTER successful email verification
-    // ====================================================================
-    // This ensures user only receives welcome email once they've verified
-    // their email address. This prevents the confusion of receiving two
-    // emails simultaneously during registration.
-    //
-    // Benefits:
-    // 1. User receives only ONE email during registration (verification)
-    // 2. Welcome email comes after verification is complete
-    // 3. "Go to Dashboard" button in welcome email will work properly
-    //    since the account is now verified and ready to use
+    // Send welcome email after successful verification
     try {
       const welcomeResult = await sendWelcomeEmail(
         user.email,
@@ -52,14 +58,9 @@ export async function GET(request: Request): Promise<NextResponse> {
       );
 
       if (!welcomeResult.success) {
-        // Log error but don't fail the verification
-        // Email verification is more important than welcome email delivery
         console.error(
           '[Verify Email] Failed to send welcome email:',
           welcomeResult.error
-        );
-        console.error(
-          '[Verify Email] User email verified successfully, but welcome email failed'
         );
       } else {
         console.log(
@@ -68,8 +69,6 @@ export async function GET(request: Request): Promise<NextResponse> {
         );
       }
     } catch (emailError) {
-      // Log error but don't fail the verification
-      // The user's email is verified - that's the critical operation
       console.error(
         '[Verify Email] Exception while sending welcome email:',
         emailError
