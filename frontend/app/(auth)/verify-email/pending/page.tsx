@@ -7,7 +7,8 @@ import { useState, useEffect, Suspense } from 'react';
 
 function VerifyEmailPendingContent(): JSX.Element {
   const searchParams = useSearchParams();
-  const emailFromUrl = searchParams.get('email') || '';
+  // ✅ FIX: Decode URL-encoded email parameter (e.g., ripper7375%40gmail.com → ripper7375@gmail.com)
+  const emailFromUrl = decodeURIComponent(searchParams.get('email') || '');
   
   // State for email - allows manual entry if missing from URL
   const [email, setEmail] = useState(emailFromUrl);
@@ -22,7 +23,7 @@ function VerifyEmailPendingContent(): JSX.Element {
   // Update email when URL changes
   useEffect(() => {
     if (emailFromUrl) {
-      setEmail(emailFromUrl);
+      setEmail(emailFromUrl); // Already decoded above
       setShowEmailInput(false);
     }
   }, [emailFromUrl]);
