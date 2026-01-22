@@ -7,13 +7,25 @@ import { useState, useEffect, Suspense } from 'react';
 
 function VerifyEmailPendingContent(): JSX.Element {
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || '';
+  const emailFromUrl = searchParams.get('email') || '';
+  
+  // State for email - allows manual entry if missing from URL
+  const [email, setEmail] = useState(emailFromUrl);
+  const [showEmailInput, setShowEmailInput] = useState(!emailFromUrl);
 
   const [resendStatus, setResendStatus] = useState<
     'idle' | 'loading' | 'success' | 'error' | 'rate_limited'
   >('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [countdown, setCountdown] = useState(0);
+
+  // Update email when URL changes
+  useEffect(() => {
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
+      setShowEmailInput(false);
+    }
+  }, [emailFromUrl]);
 
   // Countdown timer for rate limiting
   useEffect(() => {
@@ -28,8 +40,8 @@ function VerifyEmailPendingContent(): JSX.Element {
   }, [countdown, resendStatus]);
 
   const handleResendEmail = async (): Promise<void> => {
-    if (!email) {
-      setErrorMessage('Email address is missing. Please try registering again.');
+    if (!email || !email.includes('@')) {
+      setErrorMessage('Please enter a valid email address.');
       setResendStatus('error');
       return;
     }
@@ -43,7 +55,7 @@ function VerifyEmailPendingContent(): JSX.Element {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
 
       const data = await response.json();
@@ -55,15 +67,15 @@ function VerifyEmailPendingContent(): JSX.Element {
       } else if (response.status === 429) {
         setResendStatus('rate_limited');
         setCountdown(data.retryAfter || 60);
-        setErrorMessage(data.error);
+        setErrorMessage(data.error || 'Please wait before resending.');
       } else {
         setResendStatus('error');
-        setErrorMessage(data.error || 'Failed to resend verification email.');
+        setErrorMessage(data.error || 'Failed to resend verification email. Please try again.');
       }
     } catch (error) {
       console.error('Resend error:', error);
       setResendStatus('error');
-      setErrorMessage('An error occurred. Please try again.');
+      setErrorMessage('Network error. Please check your connection and try again.');
     }
   };
 
@@ -85,10 +97,37 @@ function VerifyEmailPendingContent(): JSX.Element {
           <p className="text-gray-600 mb-2">
             We&apos;ve sent a verification link to:
           </p>
-          {email && (
-            <p className="text-indigo-600 font-medium mb-6 break-all">
-              {email}
-            </p>
+          
+          {/* Email Display or Input */}
+          {!showEmailInput && email ? (
+            <div className="mb-6">
+              <p className="text-indigo-600 font-medium break-all">
+                {email}
+              </p>
+              <button
+                onClick={() => setShowEmailInput(true)}
+                className="text-xs text-gray-500 hover:text-gray-700 mt-2"
+              >
+                Wrong email?
+              </button>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <label htmlFor="email-input" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Enter the email you used to register
+              </p>
+            </div>
           )}
 
           {/* Instructions */}
@@ -109,31 +148,36 @@ function VerifyEmailPendingContent(): JSX.Element {
 
             {/* Status Messages */}
             {resendStatus === 'success' && (
-              <div className="flex items-center justify-center gap-2 text-green-600 mb-4">
+              <div className="flex items-center justify-center gap-2 text-green-600 mb-4 bg-green-50 py-2 px-4 rounded-lg">
                 <CheckCircle2 className="w-5 h-5" />
-                <span className="text-sm font-medium">Verification email sent!</span>
+                <span className="text-sm font-medium">✓ Verification email sent! Check your inbox.</span>
               </div>
             )}
 
             {resendStatus === 'error' && (
-              <div className="flex items-center justify-center gap-2 text-red-600 mb-4">
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-sm">{errorMessage}</span>
+              <div className="flex items-start justify-center gap-2 text-red-600 mb-4 bg-red-50 py-2 px-4 rounded-lg">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-left">{errorMessage}</span>
               </div>
             )}
 
             {resendStatus === 'rate_limited' && (
-              <div className="flex items-center justify-center gap-2 text-amber-600 mb-4">
+              <div className="flex items-center justify-center gap-2 text-amber-600 mb-4 bg-amber-50 py-2 px-4 rounded-lg">
                 <AlertCircle className="w-5 h-5" />
-                <span className="text-sm">Wait {countdown}s before resending</span>
+                <span className="text-sm font-medium">Please wait {countdown} seconds before resending</span>
               </div>
             )}
 
             {/* Resend Button */}
             <button
               onClick={handleResendEmail}
-              disabled={resendStatus === 'loading' || resendStatus === 'rate_limited' || !email}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              disabled={
+                resendStatus === 'loading' || 
+                resendStatus === 'rate_limited' || 
+                !email || 
+                !email.includes('@')
+              }
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {resendStatus === 'loading' ? (
                 <>
@@ -152,6 +196,12 @@ function VerifyEmailPendingContent(): JSX.Element {
                 </>
               )}
             </button>
+            
+            {!email && (
+              <p className="text-xs text-red-600 mt-2">
+                Please enter your email address above
+              </p>
+            )}
           </div>
 
           {/* Back to Login Link */}
@@ -173,7 +223,7 @@ function VerifyEmailPendingContent(): JSX.Element {
               href="/register"
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Wrong email? Register with a different address
+              Need to register with a different address?
             </Link>
           </div>
         </div>
