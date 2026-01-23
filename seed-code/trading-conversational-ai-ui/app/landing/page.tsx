@@ -23,7 +23,7 @@ const SidebarTrigger = dynamic(
   { ssr: false }
 );
 
-export default function Page() {
+export default function LandingPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
