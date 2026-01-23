@@ -1,0 +1,3 @@
+[submodule "seed-code/txtchat"]
+	path = seed-code/txtchat
+	url = https://github.com/neuml/txtchat.git
