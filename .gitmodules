@@ -1,6 +1,3 @@
 [submodule "seed-code/txtchat"]
 	path = seed-code/txtchat
 	url = https://github.com/neuml/txtchat.git
-[submodule "seed-code/ultrarag"]
-	path = seed-code/ultrarag
-	url = https://github.com/OpenBMB/UltraRAG.git
