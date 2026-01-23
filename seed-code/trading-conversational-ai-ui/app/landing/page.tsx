@@ -1,37 +1,12 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-// Import components with ssr disabled to preserve React context
-const ChatInterface = dynamic(
-  () => import('@davintrade/components/chat-interface')
-    .then((mod) => ({ default: mod.ChatInterface })),
-  { ssr: false }
-);
-
-const AppSidebar = dynamic(
-  () => import('@davintrade/components/app-sidebar')
-    .then((mod) => ({ default: mod.AppSidebar })),
-  { ssr: false }
-);
-
-const SidebarProvider = dynamic(
-  () => import('@davintrade/components/ui/sidebar')
-    .then((mod) => ({ default: mod.SidebarProvider })),
-  { ssr: false }
-);
-
-const SidebarInset = dynamic(
-  () => import('@davintrade/components/ui/sidebar')
-    .then((mod) => ({ default: mod.SidebarInset })),
-  { ssr: false }
-);
-
-const SidebarTrigger = dynamic(
-  () => import('@davintrade/components/ui/sidebar')
-    .then((mod) => ({ default: mod.SidebarTrigger })),
-  { ssr: false }
-);
+import { ChatInterface } from '@davintrade/components/chat-interface';
+import { AppSidebar } from '@davintrade/components/app-sidebar';
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from '@davintrade/components/ui/sidebar';
 
 export default function LandingPage() {
   return (
