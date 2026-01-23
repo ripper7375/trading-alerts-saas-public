@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@davintrade/*": ["./seed-code/davintrade-newchat-page-without-sizebar/*"]
     }
   },
   "include": [
