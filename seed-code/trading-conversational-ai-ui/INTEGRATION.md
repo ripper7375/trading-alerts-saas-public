@@ -55,9 +55,26 @@ We implemented **Option A: Route-Based Integration** which provides:
 
 ## Technical Implementation
 
-### 1. Dependencies Added
+### 1. Dependencies Installation
 
-The following packages from Component (2) were added to Component (1):
+**IMPORTANT**: Both projects need dependencies installed!
+
+```bash
+# Install main project dependencies
+cd seed-code/trading-conversational-ai-ui
+npm install
+
+# Install nested component dependencies (REQUIRED!)
+cd seed-code/davintrade-newchat-page-without-sizebar
+npm install
+```
+
+**Why both?**
+- Main project needs dependencies for building
+- Nested component needs dependencies for module resolution via `@davintrade/*` alias
+- Without nested component's node_modules, you'll get "Module not found" errors
+
+**Dependencies added to main project:**
 
 ```json
 {
@@ -349,6 +366,51 @@ npm start
 
 # Visit http://localhost:3000
 ```
+
+---
+
+## Quick Start Guide
+
+### First-Time Setup
+
+1. **Install dependencies for BOTH projects:**
+   ```bash
+   # Navigate to main project
+   cd seed-code/trading-conversational-ai-ui
+
+   # Install main project dependencies
+   npm install
+
+   # Install nested component dependencies (CRITICAL!)
+   cd seed-code/davintrade-newchat-page-without-sizebar
+   npm install
+
+   # Return to main project
+   cd ../..
+   ```
+
+2. **Start development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Visit the app:**
+   - Landing page: http://localhost:3000
+   - Trading interface: http://localhost:3000/chat
+
+### Common Issues
+
+**❌ "Module not found: Can't resolve '@paper-design/shaders-react'"**
+
+**Solution:** Install nested component dependencies:
+```bash
+cd seed-code/trading-conversational-ai-ui/seed-code/davintrade-newchat-page-without-sizebar
+npm install
+```
+
+**❌ "useSidebar must be used within a SidebarProvider"**
+
+**Solution:** Already fixed with dynamic imports (`ssr: false`). Ensure you're using the latest code.
 
 ---
 
