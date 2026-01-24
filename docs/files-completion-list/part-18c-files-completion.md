@@ -72,9 +72,9 @@
 
 **Flow B: Unified Payment Flow** - Both Stripe and dLocal on same page
 
-- **Stripe (Primary)**: International card payments shown first
+- **Stripe (Primary)**: International payments shown first
   - Prominent card at top with shadow styling
-  - Pay with Visa, Mastercard, American Express
+  - Pay with card, Apple Pay, Google Pay, or PayPal
   - PRO Monthly at $29/mo
   - Available for all users globally
 
@@ -292,11 +292,11 @@ These files mirror the backend components for frontend deployment:
 │  2. Checkout Page displays TWO payment options:             │
 │                                                             │
 │     ┌─────────────────────────────────────────────────┐     │
-│     │  PRIMARY: Stripe International Card Payment     │     │
+│     │  PRIMARY: Stripe International Payment          │     │
 │     │  ─────────────────────────────────────────────  │     │
 │     │  • PRO Monthly: $29/mo                          │     │
-│     │  • Visa, Mastercard, American Express           │     │
-│     │  • [Pay with Card] button                       │     │
+│     │  • Card, Apple Pay, Google Pay, PayPal          │     │
+│     │  • [Continue to Payment] button                 │     │
 │     └─────────────────────────────────────────────────┘     │
 │                                                             │
 │     ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐     │
@@ -312,8 +312,8 @@ These files mirror the backend components for frontend deployment:
 │                                                             │
 │  3. User chooses payment option:                            │
 │                                                             │
-│     OPTION A: Stripe (International Cards)                  │
-│     ├── Click "Pay with Card"                               │
+│     OPTION A: Stripe (International Payments)               │
+│     ├── Click "Continue to Payment"                         │
 │     ├── Redirect to Stripe Checkout                         │
 │     ├── Enter card details → Pay                            │
 │     ├── Stripe webhook: checkout.session.completed          │

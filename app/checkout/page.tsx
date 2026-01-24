@@ -4,7 +4,7 @@
  * Unified Checkout Page
  *
  * Single checkout page that supports both Stripe and dLocal:
- * - Stripe is the PRIMARY payment method (international cards)
+ * - Stripe is the PRIMARY payment method (cards, Apple Pay, Google Pay, PayPal)
  * - dLocal is shown as ALTERNATIVE for local payment methods
  * - Auto-detects user country to filter local payment options
  * - Shows 3-day trial plan for eligible dLocal users
@@ -13,7 +13,7 @@
  * Flow B: Unified Payment Flow
  * - Both payment options on same page
  * - Country detection filters dLocal payment methods
- * - User chooses between international cards (Stripe) or local methods (dLocal)
+ * - User chooses between international payments (Stripe) or local methods (dLocal)
  *
  * @module app/checkout/page
  */
@@ -258,13 +258,13 @@ function CheckoutContent(): React.ReactElement {
           </p>
         </div>
 
-        {/* Primary: Stripe International Card Payments */}
+        {/* Primary: Stripe International Payments */}
         <Card className="mb-6 shadow-lg">
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                International Card Payment
+                International Payment
               </CardTitle>
               <Badge
                 variant="secondary"
@@ -278,7 +278,7 @@ function CheckoutContent(): React.ReactElement {
           <CardContent className="space-y-6 p-6">
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Pay securely with Visa, Mastercard, or American Express
+                Pay with card, Apple Pay, Google Pay, or PayPal
               </p>
 
               {/* Price display */}
@@ -313,7 +313,7 @@ function CheckoutContent(): React.ReactElement {
                 size="lg"
               >
                 <CreditCard className="mr-2 h-5 w-5" />
-                Pay with Card
+                Continue to Payment
               </Button>
             </div>
           </CardContent>
