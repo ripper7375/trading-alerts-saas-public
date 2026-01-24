@@ -1,31 +1,56 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Notifications & Real-time API (Part 15)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Notifications and Real-time Communication API for Trading Alerts SaaS platform (Part 15).
 
-    This API provides notification management and real-time communication capabilities.
+    This API provides comprehensive notification management and real-time communication capabilities.
 
     ## Features
-    - Notification CRUD operations
-    - Filtering and pagination
-    - Bulk mark as read
-    - Real-time notifications via WebSocket
+    - Notification CRUD operations with pagination and filtering
+    - Bulk mark as read functionality
+    - Real-time notifications via WebSocket (Socket.IO)
     - Notification types (ALERT, SUBSCRIPTION, PAYMENT, SYSTEM)
     - Priority levels (LOW, MEDIUM, HIGH)
+    - Toast notification system (client-side)
+    - System health monitoring
 
     ## Notification Types
-    - **ALERT**: Alert triggered notifications
-    - **SUBSCRIPTION**: Subscription/billing updates
-    - **PAYMENT**: Payment confirmations and failures
-    - **SYSTEM**: System announcements and updates
+    - **ALERT**: Alert triggered notifications (e.g., price alerts, condition met)
+    - **SUBSCRIPTION**: Subscription/billing updates (renewals, expirations)
+    - **PAYMENT**: Payment confirmations, failures, and refunds
+    - **SYSTEM**: System announcements, maintenance notices, and updates
+
+    ## Priority Levels
+    - **LOW**: Informational notifications
+    - **MEDIUM**: Standard notifications (default)
+    - **HIGH**: Urgent notifications requiring immediate attention
 
     ## Real-time Features
-    - WebSocket connection for live notifications
-    - Automatic notification delivery
-    - Badge count updates
-    - Desktop push notifications (browser API)
+    - WebSocket connection via Socket.IO for live notifications
+    - Automatic notification delivery to connected clients
+    - Badge count updates in real-time
+    - Cross-tab notification synchronization
+    - Auto-reconnect with exponential backoff
+
+    ## UI Components
+    - **NotificationBell**: Header icon with unread count badge and dropdown
+    - **NotificationList**: Full page notification list with filters and pagination
+
+    ## Database Schema
+    Notifications are stored with the following flat structure:
+    - `id`: Unique identifier (cuid)
+    - `userId`: Owner user ID
+    - `type`: NotificationType enum
+    - `title`: Notification title
+    - `body`: Notification message body
+    - `priority`: NotificationPriority enum
+    - `read`: Boolean read status
+    - `readAt`: Timestamp when marked as read
+    - `link`: Optional link to related resource
+    - `createdAt`: Creation timestamp
+    - `updatedAt`: Last update timestamp
 
   contact:
     name: API Support
@@ -46,6 +71,10 @@ security:
 tags:
   - name: Notifications
     description: Notification management endpoints
+  - name: WebSocket
+    description: Real-time WebSocket communication (documented for reference)
+  - name: Toast
+    description: Client-side toast notification system (documented for reference)
 
 paths:
   /api/notifications:
@@ -56,18 +85,26 @@ paths:
       description: |
         Retrieves paginated list of user notifications with filtering options.
 
+        **Authentication:** Required (session-based)
+
         **Filters:**
         - `status`: Filter by read status (all, unread, read)
-        - `type`: Filter by notification type
+        - `type`: Filter by notification type (ALERT, SUBSCRIPTION, PAYMENT, SYSTEM)
 
         **Pagination:**
-        - `page`: Page number (default: 1)
-        - `pageSize`: Items per page (default: 20, max: 50)
+        - `page`: Page number (default: 1, minimum: 1)
+        - `pageSize`: Items per page (default: 20, min: 10, max: 50)
+
+        **Sorting:** Results are sorted by `createdAt` descending (newest first)
 
         **Returns:**
         - Paginated notifications list
-        - Total count and pages
+        - Total count and pages for pagination UI
         - Unread count for badge display
+
+        **UI Integration:**
+        - Used by `NotificationBell` component (pageSize=10)
+        - Used by `NotificationList` component (pageSize=20)
       operationId: getNotifications
       parameters:
         - name: status
@@ -90,7 +127,7 @@ paths:
         - name: page
           in: query
           required: false
-          description: Page number
+          description: Page number (1-indexed)
           schema:
             type: integer
             minimum: 1
@@ -99,7 +136,7 @@ paths:
         - name: pageSize
           in: query
           required: false
-          description: Items per page
+          description: Items per page (10-50)
           schema:
             type: integer
             minimum: 10
@@ -113,33 +150,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotificationsListResponse'
-              example:
-                notifications:
-                  - id: 'notif_001'
-                    userId: 'user_123'
-                    type: 'ALERT'
-                    title: 'BTC Alert Triggered'
-                    body: 'BTCUSD has crossed above $50,000'
-                    priority: 'HIGH'
-                    read: false
-                    readAt: null
-                    link: '/alerts/alert_abc123'
-                    createdAt: '2025-12-20T15:30:00.000Z'
-                  - id: 'notif_002'
-                    userId: 'user_123'
-                    type: 'SUBSCRIPTION'
-                    title: 'Subscription Renewed'
-                    body: 'Your PRO subscription has been renewed'
-                    priority: 'MEDIUM'
-                    read: true
-                    readAt: '2025-12-20T14:00:00.000Z'
-                    link: '/settings/billing'
-                    createdAt: '2025-12-20T12:00:00.000Z'
-                total: 45
-                page: 1
-                pageSize: 20
-                totalPages: 3
-                unreadCount: 12
+              examples:
+                withNotifications:
+                  summary: Response with notifications
+                  value:
+                    notifications:
+                      - id: 'clp1234567890'
+                        userId: 'cluser123456'
+                        type: 'ALERT'
+                        title: 'BTC Alert Triggered'
+                        body: 'BTCUSD has crossed above $50,000'
+                        priority: 'HIGH'
+                        read: false
+                        readAt: null
+                        link: '/alerts/clalert123'
+                        createdAt: '2026-01-24T15:30:00.000Z'
+                      - id: 'clp0987654321'
+                        userId: 'cluser123456'
+                        type: 'SUBSCRIPTION'
+                        title: 'Subscription Renewed'
+                        body: 'Your PRO subscription has been renewed successfully'
+                        priority: 'MEDIUM'
+                        read: true
+                        readAt: '2026-01-24T14:00:00.000Z'
+                        link: '/settings/billing'
+                        createdAt: '2026-01-24T12:00:00.000Z'
+                    total: 45
+                    page: 1
+                    pageSize: 20
+                    totalPages: 3
+                    unreadCount: 12
+                emptyList:
+                  summary: Empty response (no notifications)
+                  value:
+                    notifications: []
+                    total: 0
+                    page: 1
+                    pageSize: 20
+                    totalPages: 0
+                    unreadCount: 0
         '400':
           description: Invalid query parameters
           content:
@@ -151,9 +200,9 @@ paths:
                 message: 'Please check your query parameters'
                 details:
                   - path: ['pageSize']
-                    message: 'Must be between 10 and 50'
+                    message: 'Number must be less than or equal to 50'
         '401':
-          description: Unauthorized
+          description: Unauthorized - not logged in
           content:
             application/json:
               schema:
@@ -167,6 +216,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Failed to fetch notifications'
+                message: 'An error occurred while fetching notifications'
 
     post:
       tags:
@@ -175,11 +227,19 @@ paths:
       description: |
         Marks all unread notifications as read for the authenticated user.
 
+        **Authentication:** Required (session-based)
+
         **Bulk Operation:**
-        - Updates all unread notifications
-        - Sets read flag to true
-        - Sets readAt timestamp
+        - Updates all notifications where `read = false`
+        - Sets `read = true`
+        - Sets `readAt = now()`
         - Returns count of updated notifications
+
+        **Idempotent:** Safe to call multiple times. If all notifications are already read, returns `updatedCount: 0`.
+
+        **UI Integration:**
+        - Used by "Mark all as read" button in `NotificationBell` dropdown
+        - Used by "Mark all as read" button in `NotificationList` header
       operationId: markAllAsRead
       responses:
         '200':
@@ -188,22 +248,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MarkAllReadResponse'
-              example:
-                success: true
-                updatedCount: 12
-                message: '12 notification(s) marked as read'
+              examples:
+                withUpdates:
+                  summary: Some notifications marked as read
+                  value:
+                    success: true
+                    updatedCount: 12
+                    message: '12 notification(s) marked as read'
+                alreadyRead:
+                  summary: All already read
+                  value:
+                    success: true
+                    updatedCount: 0
+                    message: '0 notification(s) marked as read'
         '401':
-          description: Unauthorized
+          description: Unauthorized - not logged in
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                message: 'You must be logged in to update notifications'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Failed to mark all as read'
+                message: 'An error occurred while updating notifications'
 
   /api/notifications/{id}:
     get:
@@ -213,19 +288,24 @@ paths:
       description: |
         Retrieves a specific notification by ID with ownership validation.
 
+        **Authentication:** Required (session-based)
+
+        **Authorization:** User must own the notification (userId must match session user)
+
         **Includes:**
         - Full notification details
         - Read status and timestamp
         - Link to related resource
+        - Creation and update timestamps
       operationId: getNotification
       parameters:
         - name: id
           in: path
           required: true
-          description: Notification ID
+          description: Notification ID (cuid format)
           schema:
             type: string
-          example: 'notif_001'
+          example: 'clp1234567890'
       responses:
         '200':
           description: Notification retrieved successfully
@@ -234,23 +314,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/Notification'
               example:
-                id: 'notif_001'
-                userId: 'user_123'
+                id: 'clp1234567890'
+                userId: 'cluser123456'
                 type: 'ALERT'
                 title: 'BTC Alert Triggered'
                 body: 'BTCUSD has crossed above $50,000'
                 priority: 'HIGH'
                 read: false
                 readAt: null
-                link: '/alerts/alert_abc123'
-                createdAt: '2025-12-20T15:30:00.000Z'
-                updatedAt: '2025-12-20T15:30:00.000Z'
+                link: '/alerts/clalert123'
+                createdAt: '2026-01-24T15:30:00.000Z'
+                updatedAt: '2026-01-24T15:30:00.000Z'
         '401':
-          description: Unauthorized
+          description: Unauthorized - not logged in
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                message: 'You must be logged in to view notifications'
         '403':
           description: Forbidden - not owner
           content:
@@ -275,6 +358,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Failed to fetch notification'
+                message: 'An error occurred while fetching the notification'
 
     delete:
       tags:
@@ -283,16 +369,25 @@ paths:
       description: |
         Deletes a specific notification with ownership validation.
 
-        **Note:** This is a hard delete. The notification will be permanently removed.
+        **Authentication:** Required (session-based)
+
+        **Authorization:** User must own the notification (userId must match session user)
+
+        **Hard Delete:** The notification will be permanently removed from the database.
+
+        **UI Integration:**
+        - Used by delete button in `NotificationBell` dropdown
+        - Used by delete button in `NotificationList` (with undo functionality)
+        - `NotificationList` provides 5-second undo window before confirming deletion
       operationId: deleteNotification
       parameters:
         - name: id
           in: path
           required: true
-          description: Notification ID
+          description: Notification ID (cuid format)
           schema:
             type: string
-          example: 'notif_001'
+          example: 'clp1234567890'
       responses:
         '200':
           description: Notification deleted successfully
@@ -304,29 +399,41 @@ paths:
                 success: true
                 message: 'Notification deleted successfully'
         '401':
-          description: Unauthorized
+          description: Unauthorized - not logged in
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                message: 'You must be logged in to delete notifications'
         '403':
           description: Forbidden - not owner
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Forbidden'
+                message: 'You do not have permission to delete this notification'
         '404':
           description: Notification not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Not found'
+                message: 'Notification not found'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Failed to delete notification'
+                message: 'An error occurred while deleting the notification'
 
   /api/notifications/{id}/read:
     post:
@@ -336,21 +443,32 @@ paths:
       description: |
         Marks a specific notification as read with ownership validation.
 
-        **Updates:**
-        - Sets read flag to true
-        - Sets readAt timestamp
-        - Returns updated notification
+        **Authentication:** Required (session-based)
 
-        **Idempotent:** Safe to call multiple times, even if already read.
+        **Authorization:** User must own the notification (userId must match session user)
+
+        **Updates:**
+        - Sets `read = true`
+        - Sets `readAt = now()` (only if not already read)
+        - Returns updated notification with read status
+
+        **Idempotent:** Safe to call multiple times.
+        - If already read: returns `alreadyRead: true` with original `readAt` timestamp
+        - If newly read: returns `success: true` with new `readAt` timestamp
+
+        **UI Integration:**
+        - Called when clicking a notification in `NotificationBell` dropdown
+        - Called when clicking a notification in `NotificationList`
+        - Optimistic updates are used in the UI for immediate feedback
       operationId: markNotificationAsRead
       parameters:
         - name: id
           in: path
           required: true
-          description: Notification ID
+          description: Notification ID (cuid format)
           schema:
             type: string
-          example: 'notif_001'
+          example: 'clp1234567890'
       responses:
         '200':
           description: Notification marked as read
@@ -363,60 +481,72 @@ paths:
                   summary: Successfully marked as read
                   value:
                     notification:
-                      id: 'notif_001'
-                      userId: 'user_123'
+                      id: 'clp1234567890'
+                      userId: 'cluser123456'
                       type: 'ALERT'
                       title: 'BTC Alert Triggered'
                       body: 'BTCUSD has crossed above $50,000'
                       priority: 'HIGH'
                       read: true
-                      readAt: '2025-12-20T16:00:00.000Z'
-                      link: '/alerts/alert_abc123'
-                      createdAt: '2025-12-20T15:30:00.000Z'
-                      updatedAt: '2025-12-20T16:00:00.000Z'
+                      readAt: '2026-01-24T16:00:00.000Z'
+                      link: '/alerts/clalert123'
+                      createdAt: '2026-01-24T15:30:00.000Z'
+                      updatedAt: '2026-01-24T16:00:00.000Z'
                     success: true
                     message: 'Notification marked as read'
                 alreadyRead:
-                  summary: Already marked as read
+                  summary: Already marked as read (idempotent)
                   value:
                     notification:
-                      id: 'notif_001'
-                      userId: 'user_123'
+                      id: 'clp1234567890'
+                      userId: 'cluser123456'
                       type: 'ALERT'
                       title: 'BTC Alert Triggered'
                       body: 'BTCUSD has crossed above $50,000'
                       priority: 'HIGH'
                       read: true
-                      readAt: '2025-12-20T15:45:00.000Z'
-                      link: '/alerts/alert_abc123'
-                      createdAt: '2025-12-20T15:30:00.000Z'
-                      updatedAt: '2025-12-20T15:45:00.000Z'
+                      readAt: '2026-01-24T15:45:00.000Z'
+                      link: '/alerts/clalert123'
+                      createdAt: '2026-01-24T15:30:00.000Z'
+                      updatedAt: '2026-01-24T15:45:00.000Z'
                     alreadyRead: true
                     message: 'Notification was already marked as read'
         '401':
-          description: Unauthorized
+          description: Unauthorized - not logged in
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                message: 'You must be logged in to update notifications'
         '403':
           description: Forbidden - not owner
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Forbidden'
+                message: 'You do not have permission to update this notification'
         '404':
           description: Notification not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Not found'
+                message: 'Notification not found'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Failed to mark as read'
+                message: 'An error occurred while updating the notification'
 
 components:
   securitySchemes:
@@ -424,11 +554,12 @@ components:
       type: apiKey
       in: cookie
       name: next-auth.session-token
-      description: NextAuth session cookie
+      description: NextAuth.js session cookie for authentication
 
   schemas:
     Notification:
       type: object
+      description: Notification entity representing a user notification
       required:
         - id
         - userId
@@ -441,29 +572,38 @@ components:
       properties:
         id:
           type: string
-          description: Unique notification identifier
-          example: 'notif_001'
+          description: Unique notification identifier (cuid)
+          example: 'clp1234567890'
         userId:
           type: string
           description: User ID this notification belongs to
-          example: 'user_123'
+          example: 'cluser123456'
         type:
           type: string
           enum: [ALERT, SUBSCRIPTION, PAYMENT, SYSTEM]
-          description: Notification type
+          description: |
+            Notification type:
+            - ALERT: Alert triggered notifications
+            - SUBSCRIPTION: Subscription/billing updates
+            - PAYMENT: Payment confirmations and failures
+            - SYSTEM: System announcements and updates
           example: 'ALERT'
         title:
           type: string
-          description: Notification title
+          description: Notification title (displayed as heading)
           example: 'BTC Alert Triggered'
         body:
           type: string
-          description: Notification body/message
+          description: Notification message body (displayed as description)
           example: 'BTCUSD has crossed above $50,000'
         priority:
           type: string
           enum: [LOW, MEDIUM, HIGH]
-          description: Notification priority level
+          description: |
+            Notification priority level:
+            - LOW: Informational
+            - MEDIUM: Standard (default)
+            - HIGH: Urgent, displayed with special styling
           example: 'HIGH'
         read:
           type: boolean
@@ -473,26 +613,27 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: When notification was marked as read
-          example: '2025-12-20T16:00:00.000Z'
+          description: Timestamp when notification was marked as read (null if unread)
+          example: '2026-01-24T16:00:00.000Z'
         link:
           type: string
           nullable: true
-          description: Link to related resource
-          example: '/alerts/alert_abc123'
+          description: Optional link to related resource (e.g., alert details page)
+          example: '/alerts/clalert123'
         createdAt:
           type: string
           format: date-time
           description: Notification creation timestamp
-          example: '2025-12-20T15:30:00.000Z'
+          example: '2026-01-24T15:30:00.000Z'
         updatedAt:
           type: string
           format: date-time
           description: Notification last update timestamp
-          example: '2025-12-20T16:00:00.000Z'
+          example: '2026-01-24T16:00:00.000Z'
 
     NotificationsListResponse:
       type: object
+      description: Paginated list of notifications with metadata
       required:
         - notifications
         - total
@@ -503,31 +644,33 @@ components:
       properties:
         notifications:
           type: array
+          description: Array of notification objects for current page
           items:
             $ref: '#/components/schemas/Notification'
         total:
           type: integer
-          description: Total number of notifications
+          description: Total number of notifications matching filters
           example: 45
         page:
           type: integer
-          description: Current page number
+          description: Current page number (1-indexed)
           example: 1
         pageSize:
           type: integer
-          description: Items per page
+          description: Number of items per page
           example: 20
         totalPages:
           type: integer
-          description: Total number of pages
+          description: Total number of pages available
           example: 3
         unreadCount:
           type: integer
-          description: Number of unread notifications (for badge)
+          description: Total unread notifications (for badge display, ignores type filter)
           example: 12
 
     MarkAllReadResponse:
       type: object
+      description: Response after marking all notifications as read
       required:
         - success
         - updatedCount
@@ -535,17 +678,20 @@ components:
       properties:
         success:
           type: boolean
+          description: Whether the operation succeeded
           example: true
         updatedCount:
           type: integer
-          description: Number of notifications marked as read
+          description: Number of notifications that were marked as read
           example: 12
         message:
           type: string
+          description: Human-readable result message
           example: '12 notification(s) marked as read'
 
     MarkReadResponse:
       type: object
+      description: Response after marking a single notification as read
       required:
         - notification
       properties:
@@ -553,30 +699,52 @@ components:
           $ref: '#/components/schemas/Notification'
         success:
           type: boolean
+          description: Whether the notification was newly marked as read
           example: true
         alreadyRead:
           type: boolean
-          description: Whether notification was already read
+          description: Whether the notification was already read before this call
           example: false
         message:
           type: string
+          description: Human-readable result message
           example: 'Notification marked as read'
 
     DeleteResponse:
       type: object
+      description: Response after deleting a notification
       required:
         - success
         - message
       properties:
         success:
           type: boolean
+          description: Whether the deletion succeeded
           example: true
         message:
           type: string
+          description: Human-readable result message
           example: 'Notification deleted successfully'
 
     ErrorResponse:
       type: object
+      description: Standard error response
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type/category
+          example: 'Unauthorized'
+        message:
+          type: string
+          description: Human-readable error message
+          example: 'You must be logged in to view notifications'
+
+    ValidationErrorResponse:
+      type: object
+      description: Validation error response with field-level details
       required:
         - error
         - message
@@ -584,32 +752,294 @@ components:
         error:
           type: string
           description: Error type
-          example: 'Unauthorized'
-        message:
-          type: string
-          description: Error message
-          example: 'You must be logged in to view notifications'
-
-    ValidationErrorResponse:
-      type: object
-      required:
-        - error
-        - message
-      properties:
-        error:
-          type: string
           example: 'Invalid query parameters'
         message:
           type: string
+          description: Human-readable error message
           example: 'Please check your query parameters'
         details:
           type: array
+          description: Array of validation errors (from Zod)
           items:
             type: object
             properties:
               path:
                 type: array
+                description: Path to the invalid field
                 items:
                   type: string
               message:
                 type: string
+                description: Validation error message
+
+    # WebSocket message types (for documentation)
+    WebSocketMessage:
+      type: object
+      description: |
+        WebSocket message structure used for real-time communication.
+
+        **Connection:** Socket.IO on port 3001 (configurable via NEXT_PUBLIC_WS_URL)
+
+        **Authentication:** After connecting, send `authenticate` message with user token.
+
+        **Message Types:**
+        - `authenticate`: Client -> Server authentication request
+        - `authenticated`: Server -> Client authentication confirmation
+        - `notification`: Server -> Client new notification
+        - `notification_read`: Bidirectional notification read sync
+        - `ping`: Client -> Server keep-alive
+        - `pong`: Server -> Client keep-alive response
+        - `error`: Server -> Client error message
+      properties:
+        type:
+          type: string
+          enum: [authenticate, authenticated, notification, notification_read, ping, pong, error]
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/NotificationPayload'
+            - type: object
+              additionalProperties: true
+
+    NotificationPayload:
+      type: object
+      description: Notification payload sent via WebSocket
+      required:
+        - id
+        - type
+        - title
+        - body
+        - priority
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Notification ID
+          example: 'clp1234567890'
+        type:
+          type: string
+          enum: [ALERT, SUBSCRIPTION, PAYMENT, SYSTEM]
+          example: 'ALERT'
+        title:
+          type: string
+          example: 'BTC Alert Triggered'
+        body:
+          type: string
+          example: 'BTCUSD has crossed above $50,000'
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          example: 'HIGH'
+        link:
+          type: string
+          nullable: true
+          example: '/alerts/clalert123'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-01-24T15:30:00.000Z'
+
+    # Toast notification types (for documentation)
+    Toast:
+      type: object
+      description: |
+        Toast notification for client-side feedback.
+
+        **Usage:** Via `useToast()` hook in React components.
+
+        **Methods:**
+        - `success(title, description?)`: Green checkmark toast
+        - `error(title, description?)`: Red X toast
+        - `warning(title, description?)`: Yellow warning toast
+        - `info(title, description?)`: Blue info toast
+
+        **Auto-dismiss:** 5 seconds by default (configurable)
+        **Max visible:** 5 toasts (oldest removed when exceeded)
+      properties:
+        id:
+          type: string
+          description: Unique toast ID
+        type:
+          type: string
+          enum: [success, error, warning, info]
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          description: Duration in milliseconds before auto-dismiss
+
+    # System health types (for documentation)
+    SystemHealth:
+      type: object
+      description: |
+        System health status returned by monitoring service.
+
+        **Checks performed:**
+        - Database (PostgreSQL via Prisma)
+        - Redis (caching, currently placeholder)
+        - Data Service (Flask MT5)
+        - WebSocket server
+
+        **Tier metrics:** Active connections, response times, error rates for FREE and PRO tiers.
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, down]
+        checks:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/HealthCheck'
+            redis:
+              $ref: '#/components/schemas/HealthCheck'
+            dataService:
+              $ref: '#/components/schemas/HealthCheck'
+            websocket:
+              $ref: '#/components/schemas/HealthCheck'
+        tierMetrics:
+          type: object
+          properties:
+            FREE:
+              $ref: '#/components/schemas/TierMetrics'
+            PRO:
+              $ref: '#/components/schemas/TierMetrics'
+        timestamp:
+          type: string
+          format: date-time
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, down]
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+        lastChecked:
+          type: string
+          format: date-time
+        error:
+          type: string
+          nullable: true
+
+    TierMetrics:
+      type: object
+      properties:
+        activeConnections:
+          type: integer
+        avgResponseTime:
+          type: number
+        errorRate:
+          type: number
+        requestsPerMinute:
+          type: integer
+
+# WebSocket documentation (non-REST, for reference)
+x-websocket-events:
+  description: |
+    ## WebSocket Real-time Communication
+
+    The application uses Socket.IO for real-time notification delivery.
+
+    ### Connection
+    ```javascript
+    const socket = io('ws://localhost:3001', {
+      withCredentials: true
+    });
+    ```
+
+    ### Authentication Flow
+    1. Connect to WebSocket server
+    2. Send `authenticate` event with user token
+    3. Receive `authenticated` event on success
+    4. Join user-specific room for targeted notifications
+
+    ```javascript
+    socket.emit('authenticate', { token: userId });
+    socket.on('authenticated', (data) => {
+      console.log('Authenticated:', data.success);
+    });
+    ```
+
+    ### Receiving Notifications
+    ```javascript
+    socket.on('notification', (message) => {
+      const notification = message.data;
+      // Update UI, show toast, update badge count
+    });
+    ```
+
+    ### Cross-tab Sync
+    When a notification is marked as read in one tab, other tabs receive the update:
+    ```javascript
+    // Send read status
+    socket.emit('notification_read', { notificationId: 'xxx' });
+
+    // Receive read status from other tabs
+    socket.on('notification_read', ({ notificationId }) => {
+      // Update local state to mark notification as read
+    });
+    ```
+
+    ### Keep-alive
+    Client sends ping every 30 seconds:
+    ```javascript
+    socket.emit('ping');
+    socket.on('pong', (data) => {
+      console.log('Server timestamp:', data.timestamp);
+    });
+    ```
+
+    ### Server-side Functions
+    ```typescript
+    // Send to specific user
+    sendNotificationToUser(userId, notification);
+
+    // Broadcast to all connected users
+    broadcastNotification(notification);
+
+    // Check connection status
+    isUserConnected(userId);
+    getConnectedUsersCount();
+    getUniqueUsersCount();
+    ```
+
+  events:
+    authenticate:
+      direction: client-to-server
+      description: Authenticate with user token
+      payload:
+        token: string
+    authenticated:
+      direction: server-to-client
+      description: Authentication confirmation
+      payload:
+        success: boolean
+        userId: string
+    notification:
+      direction: server-to-client
+      description: New notification delivery
+      payload:
+        type: notification
+        data: NotificationPayload
+    notification_read:
+      direction: bidirectional
+      description: Notification read status sync
+      payload:
+        notificationId: string
+    ping:
+      direction: client-to-server
+      description: Keep-alive ping
+    pong:
+      direction: server-to-client
+      description: Keep-alive pong response
+      payload:
+        timestamp: number
+    error:
+      direction: server-to-client
+      description: Error message
+      payload:
+        message: string
