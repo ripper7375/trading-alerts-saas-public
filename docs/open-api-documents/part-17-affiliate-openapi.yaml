@@ -4,34 +4,44 @@ info:
   description: |
     Complete API specification for the Affiliate Marketing Platform (Part 17).
 
+    **Last Updated:** 2026-01-24
+
     ## Overview
     This document covers all API endpoints for:
-    - **Part 17A**: Affiliate Portal (Registration, Dashboard, Profile)
-    - **Part 17B**: Admin Portal (Management, Reports, Automation)
+    - **Part 17A**: Affiliate Portal (Registration, Dashboard, Profile, Checkout Integration)
+    - **Part 17B**: Admin Portal (Management, Reports, Settings, Automation)
 
     ## Authentication
     - **Affiliate Routes**: Require NextAuth session with `isAffiliate: true`
     - **Admin Routes**: Require NextAuth session with `role: 'ADMIN'`
     - **Cron Routes**: Require `CRON_SECRET` bearer token
+    - **Public Routes**: No authentication required (cached)
 
     ## Commission Model (Percentage-Based)
-    - **Customer Discount**: 20% off regular price ($29.00 → $23.20)
-    - **Affiliate Commission**: 20% of net revenue ($23.20 × 20% = $4.64)
+    - **Customer Discount**: 20% off regular price ($29.00 → $23.20) - configurable
+    - **Affiliate Commission**: 20% of net revenue ($23.20 × 20% = $4.64) - configurable
     - Both percentages are dynamically configurable via **SystemConfig** database table
 
-    ## SystemConfig Architecture
-    All configurable values are stored in the `SystemConfig` database table:
+    ## Database Architecture
+    The affiliate system uses a **normalized flat-column structure**:
+    - **AffiliateProfile**: 16 columns (user info, social URLs, payment, stats, status)
+    - **AffiliateCode**: 11 columns (code, config, status, dates, usage tracking)
+    - **Commission**: 14 columns (amounts breakdown, status, payment tracking)
+    - **SystemConfig**: Dynamic configuration storage with audit trail
+
+    ## SystemConfig Keys
     - `affiliate_discount_percent`: Customer discount percentage (default: 20.0)
     - `affiliate_commission_percent`: Affiliate commission percentage (default: 20.0)
     - `affiliate_codes_per_month`: Monthly code distribution count (default: 15)
     - `affiliate_base_price`: Base subscription price (default: 29.0)
+    - `affiliate_three_day_price`: 3-day trial price (default: 1.0)
 
     Configuration changes are:
     - Audited via `SystemConfigHistory` table
     - Applied in real-time (no restart required)
-    - Managed via Admin System Config endpoints
+    - Managed via Admin Settings endpoints
 
-  version: 1.0.0
+  version: 2.0.0
   contact:
     name: Trading Alerts Team
   license:
@@ -48,20 +58,50 @@ tags:
     description: Affiliate dashboard statistics and reports
   - name: Affiliate Profile
     description: Affiliate profile management
+  - name: Public Config
+    description: Public configuration endpoints (no auth required)
   - name: Checkout
     description: Checkout with affiliate code support
   - name: Admin Affiliates
     description: Admin affiliate management
   - name: Admin Reports
-    description: Admin BI reports (P&L, Sales, Commissions)
-  - name: Admin Actions
-    description: Admin actions (pay commission, cancel code)
-  - name: Admin System Config
-    description: System configuration management (discount/commission rates)
+    description: Admin BI reports (P&L, Sales, Commissions, Code Inventory)
+  - name: Admin Settings
+    description: Admin affiliate settings management
   - name: Cron Jobs
     description: Scheduled automation jobs
+  - name: Disbursement
+    description: Part 19 integration - affiliate disbursement endpoints
 
 paths:
+  # ============================================
+  # PUBLIC CONFIGURATION ENDPOINTS
+  # ============================================
+  /config/affiliate:
+    get:
+      tags:
+        - Public Config
+      summary: Get public affiliate configuration
+      description: |
+        Returns public affiliate configuration values.
+        No authentication required. Cached for 5 minutes.
+
+        Use this endpoint to display discount information to potential customers.
+      operationId: getPublicAffiliateConfig
+      responses:
+        '200':
+          description: Public affiliate configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicAffiliateConfig'
+              example:
+                discountPercent: 20.0
+                commissionPercent: 20.0
+                codesPerMonth: 15
+                basePrice: 29.0
+                threeDayPrice: 1.0
+
   # ============================================
   # AFFILIATE AUTH ENDPOINTS
   # ============================================
@@ -74,6 +114,16 @@ paths:
         Register the currently authenticated user as an affiliate.
         Creates an AffiliateProfile and sets `User.isAffiliate = true`.
         Sends verification email to the user.
+
+        **Required fields:**
+        - fullName: Legal name for payments
+        - country: 2-letter ISO code
+        - paymentMethod: BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, or WISE
+        - paymentDetails: Method-specific details (JSON)
+        - terms: Must be true
+
+        **Optional fields:**
+        - youtubeUrl, twitterUrl, instagramUrl, tiktokUrl, websiteUrl
       operationId: registerAffiliate
       security:
         - NextAuth: []
@@ -118,8 +168,9 @@ paths:
         Verify affiliate email using the token sent via email.
         On success:
         - Sets `AffiliateProfile.status = 'ACTIVE'`
-        - Distributes initial 15 codes to affiliate
+        - Distributes initial 15 codes to affiliate (uses SystemConfig.affiliate_codes_per_month)
         - Clears verification token
+        - Sends welcome email with codes
       operationId: verifyAffiliateEmail
       requestBody:
         required: true
@@ -148,6 +199,9 @@ paths:
                   message:
                     type: string
                     example: 'Email verified. Initial codes distributed.'
+                  codesDistributed:
+                    type: integer
+                    example: 15
         '400':
           description: Invalid or expired token
           content:
@@ -163,7 +217,15 @@ paths:
       tags:
         - Affiliate Dashboard
       summary: Get affiliate dashboard statistics
-      description: Returns aggregate statistics for the authenticated affiliate
+      description: |
+        Returns aggregate statistics for the authenticated affiliate.
+
+        **Statistics included:**
+        - activeCodes: Unused, unexpired codes
+        - usedCodes: Codes redeemed by customers
+        - totalEarnings: All-time commission total
+        - pendingBalance: Unpaid commissions
+        - paidBalance: Total commissions paid out
       operationId: getAffiliateDashboardStats
       security:
         - AffiliateAuth: []
@@ -198,7 +260,12 @@ paths:
       tags:
         - Affiliate Dashboard
       summary: List affiliate codes
-      description: Returns paginated list of affiliate's codes with optional status filter
+      description: |
+        Returns paginated list of affiliate's codes with optional status filter.
+
+        **Default behavior:**
+        - Returns ACTIVE codes first
+        - Sorted by distributedAt (newest first)
       operationId: getAffiliateCodes
       security:
         - AffiliateAuth: []
@@ -250,13 +317,23 @@ paths:
       summary: Get code inventory report
       description: |
         Returns a detailed code inventory report showing:
-        - Opening balance
-        - Additions (monthly, bonus)
+        - Opening balance (start of period)
+        - Additions (monthly distribution, bonus distribution)
         - Reductions (used, expired, cancelled)
-        - Closing balance
+        - Closing balance (current)
+
+        **Period:** Current calendar month by default
       operationId: getAffiliateCodeInventory
       security:
         - AffiliateAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Report period
+          schema:
+            type: string
+            enum: [current_month, last_month, last_3_months]
+            default: current_month
       responses:
         '200':
           description: Code inventory report
@@ -282,11 +359,24 @@ paths:
       tags:
         - Affiliate Dashboard
       summary: Get commission report
-      description: Returns paginated list of affiliate's commissions with code details
+      description: |
+        Returns paginated list of affiliate's commissions with code details.
+
+        **Includes:**
+        - Commission amount and status
+        - Associated code reference
+        - Earning date and payment date (if paid)
+        - Summary totals
       operationId: getAffiliateCommissionReport
       security:
         - AffiliateAuth: []
       parameters:
+        - name: status
+          in: query
+          description: Filter by commission status
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, PAID, CANCELLED]
         - name: page
           in: query
           schema:
@@ -328,7 +418,7 @@ paths:
       tags:
         - Affiliate Profile
       summary: Get affiliate profile
-      description: Returns the authenticated affiliate's profile
+      description: Returns the authenticated affiliate's full profile
       operationId: getAffiliateProfile
       security:
         - AffiliateAuth: []
@@ -361,7 +451,13 @@ paths:
       tags:
         - Affiliate Profile
       summary: Update affiliate profile
-      description: Updates the authenticated affiliate's profile (name, country)
+      description: |
+        Updates the authenticated affiliate's profile.
+
+        **Updatable fields:**
+        - fullName
+        - country
+        - youtubeUrl, twitterUrl, instagramUrl, tiktokUrl, websiteUrl
       operationId: updateAffiliateProfile
       security:
         - AffiliateAuth: []
@@ -370,18 +466,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                fullName:
-                  type: string
-                  minLength: 2
-                  maxLength: 100
-                  example: 'John Doe'
-                country:
-                  type: string
-                  minLength: 2
-                  maxLength: 2
-                  example: 'US'
+              $ref: '#/components/schemas/AffiliateProfileUpdate'
       responses:
         '200':
           description: Profile updated
@@ -389,6 +474,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AffiliateProfile'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
         '401':
           description: Not authenticated
           content:
@@ -413,7 +504,14 @@ paths:
       tags:
         - Affiliate Profile
       summary: Update payment method
-      description: Updates the affiliate's payment method and details
+      description: |
+        Updates the affiliate's payment method and details.
+
+        **Payment Methods:**
+        - BANK_TRANSFER: Requires bankName, accountNumber, routingNumber, accountHolderName
+        - PAYPAL: Requires email
+        - CRYPTOCURRENCY: Requires walletAddress, network (ETH, BTC, USDT)
+        - WISE: Requires email
       operationId: updateAffiliatePayment
       security:
         - AffiliateAuth: []
@@ -459,7 +557,13 @@ paths:
       summary: Validate affiliate code
       description: |
         Validates an affiliate code for use at checkout.
-        Returns discount percentage if valid.
+        Returns discount information if valid.
+
+        **Validation checks:**
+        - Code exists
+        - Code status is ACTIVE
+        - Code not expired
+        - Affiliate is active
       operationId: validateAffiliateCode
       requestBody:
         required: true
@@ -494,7 +598,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /checkout/create-session:
+  /checkout:
     post:
       tags:
         - Checkout
@@ -502,8 +606,9 @@ paths:
       description: |
         Creates a Stripe checkout session.
         If an affiliate code is provided and valid:
-        - Applies discount to price
+        - Applies discount percentage to price
         - Stores affiliateCodeId in session metadata
+        - Creates commission record on successful payment (via webhook)
       operationId: createCheckoutSession
       security:
         - NextAuth: []
@@ -540,6 +645,21 @@ paths:
                     type: string
                     format: uri
                     description: Redirect URL for checkout
+                  discountApplied:
+                    type: boolean
+                    example: true
+                  originalPrice:
+                    type: number
+                    example: 29.00
+                  finalPrice:
+                    type: number
+                    example: 23.20
+        '400':
+          description: Invalid affiliate code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Not authenticated
           content:
@@ -555,7 +675,18 @@ paths:
       tags:
         - Admin Affiliates
       summary: List all affiliates
-      description: Returns paginated list of all affiliates with filters
+      description: |
+        Returns paginated list of all affiliates with comprehensive filters.
+
+        **Filter options:**
+        - status: Filter by account status
+        - country: Filter by 2-letter country code
+        - paymentMethod: Filter by payment method
+
+        **Includes:**
+        - User email and name
+        - Code and commission statistics
+        - Balance information
       operationId: listAffiliates
       security:
         - AdminAuth: []
@@ -576,6 +707,23 @@ paths:
           schema:
             type: string
             enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+        - name: search
+          in: query
+          description: Search by name or email
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, fullName, pendingBalance, codesUsed]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
         - name: page
           in: query
           schema:
@@ -614,7 +762,15 @@ paths:
       tags:
         - Admin Affiliates
       summary: Get affiliate details
-      description: Returns detailed information about a specific affiliate
+      description: |
+        Returns comprehensive information about a specific affiliate.
+
+        **Includes:**
+        - Full profile with social links
+        - All codes (with status breakdown)
+        - Recent commissions
+        - User account details
+        - Suspension history (if applicable)
       operationId: getAffiliateById
       security:
         - AdminAuth: []
@@ -659,6 +815,16 @@ paths:
       description: |
         Distribute additional codes to an active affiliate.
         Uses the same code generation logic as monthly distribution.
+
+        **Requirements:**
+        - Affiliate must be ACTIVE
+        - Count must be 1-50
+        - Reason is required for audit trail
+
+        **Actions:**
+        - Creates new codes with ADMIN_BONUS distribution reason
+        - Updates affiliate's codesDistributed count
+        - Sends notification email
       operationId: distributeCodesByAdmin
       security:
         - AdminAuth: []
@@ -687,7 +853,8 @@ paths:
                 reason:
                   type: string
                   minLength: 1
-                  example: 'Bonus for good performance'
+                  maxLength: 500
+                  example: 'Bonus for excellent Q4 performance'
       responses:
         '200':
           description: Codes distributed successfully
@@ -702,6 +869,14 @@ paths:
                   message:
                     type: string
                     example: 'Distributed 10 codes to affiliate'
+                  codesCreated:
+                    type: integer
+                    example: 10
+                  codes:
+                    type: array
+                    items:
+                      type: string
+                    example: ['ABCD1234', 'EFGH5678']
         '400':
           description: Cannot distribute to inactive affiliate
           content:
@@ -732,7 +907,16 @@ paths:
       tags:
         - Admin Affiliates
       summary: Suspend affiliate
-      description: Suspends an affiliate account with a reason
+      description: |
+        Suspends an affiliate account with a reason.
+
+        **Actions:**
+        - Sets status to SUSPENDED
+        - Records suspensionReason and suspendedAt
+        - Deactivates all active codes
+        - Sends suspension notification email
+
+        **Note:** Pending commissions are preserved but not payable until reactivated.
       operationId: suspendAffiliate
       security:
         - AdminAuth: []
@@ -755,7 +939,8 @@ paths:
                 reason:
                   type: string
                   minLength: 1
-                  example: 'Violation of terms of service'
+                  maxLength: 1000
+                  example: 'Violation of terms of service - spam complaints'
       responses:
         '200':
           description: Affiliate suspended
@@ -772,6 +957,12 @@ paths:
                     example: 'Affiliate suspended'
                   affiliate:
                     $ref: '#/components/schemas/AffiliateProfile'
+        '400':
+          description: Affiliate already suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Not authenticated
           content:
@@ -796,7 +987,15 @@ paths:
       tags:
         - Admin Affiliates
       summary: Reactivate affiliate
-      description: Reactivates a previously suspended affiliate account
+      description: |
+        Reactivates a previously suspended affiliate account.
+
+        **Actions:**
+        - Sets status to ACTIVE
+        - Clears suspensionReason and suspendedAt
+        - Sends reactivation notification email
+
+        **Note:** Previously deactivated codes remain cancelled. New codes can be distributed.
       operationId: reactivateAffiliate
       security:
         - AdminAuth: []
@@ -823,6 +1022,12 @@ paths:
                     example: 'Affiliate reactivated'
                   affiliate:
                     $ref: '#/components/schemas/AffiliateProfile'
+        '400':
+          description: Affiliate not suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Not authenticated
           content:
@@ -851,13 +1056,15 @@ paths:
         - Admin Reports
       summary: Get P&L report
       description: |
-        Returns profit and loss report for affiliate program.
-        Includes:
-        - Gross revenue (before discounts)
-        - Discounts given
+        Returns comprehensive profit and loss report for affiliate program.
+
+        **Includes:**
+        - Gross revenue (at regular price)
+        - Discounts given to customers
         - Net revenue (after discounts)
         - Commissions (paid and pending)
-        - Net profit and margin
+        - Net profit and margin percentage
+        - Month-by-month breakdown
       operationId: getProfitLossReport
       security:
         - AdminAuth: []
@@ -866,7 +1073,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [3months, 6months, 1year]
+            enum: [1month, 3months, 6months, 1year, all]
             default: 3months
       responses:
         '200':
@@ -895,7 +1102,12 @@ paths:
       summary: Get sales performance report
       description: |
         Returns top performing affiliates by conversions.
-        Groups by affiliate, counts conversions, calculates total commissions.
+
+        **Metrics per affiliate:**
+        - Total conversions
+        - Conversion rate (codes used / codes distributed)
+        - Total commissions earned
+        - Average commission per conversion
       operationId: getSalesPerformanceReport
       security:
         - AdminAuth: []
@@ -904,10 +1116,11 @@ paths:
           in: query
           schema:
             type: string
-            enum: [3months, 6months, 1year]
+            enum: [1month, 3months, 6months, 1year]
             default: 3months
         - name: limit
           in: query
+          description: Number of top performers to return
           schema:
             type: integer
             minimum: 5
@@ -939,11 +1152,25 @@ paths:
         - Admin Reports
       summary: Get commission owings report
       description: |
-        Returns affiliates with pending commissions >= minimum payout ($50).
-        Shows amount owed per affiliate, sorted by amount.
+        Returns affiliates with pending commissions >= minimum payout threshold.
+
+        **Default minimum payout:** $50.00 (configurable via SystemConfig)
+
+        **Includes:**
+        - Affiliate details and payment method
+        - Pending balance
+        - Number of pending commissions
+        - Last payment date (if any)
       operationId: getCommissionOwingsReport
       security:
         - AdminAuth: []
+      parameters:
+        - name: minBalance
+          in: query
+          description: Minimum balance filter (overrides default)
+          schema:
+            type: number
+            minimum: 0
       responses:
         '200':
           description: Commission owings report
@@ -971,10 +1198,26 @@ paths:
       summary: Get global code inventory report
       description: |
         Returns global code inventory statistics across all affiliates.
-        Shows distribution, usage, and expiry stats.
+
+        **Summary metrics:**
+        - Total codes distributed (all time)
+        - Currently active codes
+        - Used codes (conversions)
+        - Expired codes
+        - Cancelled codes
+        - Overall usage rate
+
+        **Monthly breakdown:** Distribution and usage by month
       operationId: getGlobalCodeInventoryReport
       security:
         - AdminAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [3months, 6months, 1year]
+            default: 6months
       responses:
         '200':
           description: Global code inventory report
@@ -996,17 +1239,63 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   # ============================================
-  # ADMIN ACTIONS ENDPOINTS
+  # ADMIN SETTINGS ENDPOINTS
   # ============================================
-  /admin/commissions/pay:
-    post:
+  /admin/settings/affiliate:
+    get:
       tags:
-        - Admin Actions
-      summary: Pay commissions
+        - Admin Settings
+      summary: Get affiliate settings
       description: |
-        Mark pending commissions as paid for an affiliate.
-        Updates affiliate paidBalance and clears pendingBalance.
-      operationId: payCommissions
+        Returns current affiliate program configuration.
+
+        **Settings:**
+        - discountPercent: Customer discount
+        - commissionPercent: Affiliate commission
+        - codesPerMonth: Monthly distribution count
+        - basePrice: Regular subscription price
+        - threeDayPrice: Trial price
+        - minimumPayout: Minimum balance for payout
+      operationId: getAffiliateSettings
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          description: Current affiliate settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateSettings'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags:
+        - Admin Settings
+      summary: Update affiliate settings
+      description: |
+        Updates affiliate program configuration.
+
+        **All changes are:**
+        - Validated for reasonable ranges
+        - Audited in SystemConfigHistory
+        - Applied immediately (no restart)
+
+        **Validation:**
+        - discountPercent: 0-50%
+        - commissionPercent: 0-50%
+        - codesPerMonth: 1-100
+        - basePrice: > 0
+      operationId: updateAffiliateSettings
       security:
         - AdminAuth: []
       requestBody:
@@ -1014,21 +1303,10 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - affiliateProfileId
-              properties:
-                affiliateProfileId:
-                  type: string
-                  description: Affiliate profile ID
-                commissionIds:
-                  type: array
-                  items:
-                    type: string
-                  description: Optional specific commission IDs (pay all pending if not specified)
+              $ref: '#/components/schemas/AffiliateSettingsUpdate'
       responses:
         '200':
-          description: Commissions paid
+          description: Settings updated
           content:
             application/json:
               schema:
@@ -1037,303 +1315,25 @@ paths:
                   success:
                     type: boolean
                     example: true
-                  message:
-                    type: string
-                    example: 'Paid $150.00 in commissions'
-                  amountPaid:
-                    type: number
-                    format: double
-                    example: 150.00
-                  commissionsCount:
-                    type: integer
-                    example: 32
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Admin access required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Affiliate not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /admin/codes/{code}/cancel:
-    post:
-      tags:
-        - Admin Actions
-      summary: Cancel affiliate code
-      description: Marks an affiliate code as cancelled (admin action)
-      operationId: cancelAffiliateCode
-      security:
-        - AdminAuth: []
-      parameters:
-        - name: code
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: '^[A-Z0-9]{8}$'
-          description: The 8-character affiliate code
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  description: Reason for cancellation
-      responses:
-        '200':
-          description: Code cancelled
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: 'Code ABCD1234 cancelled'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Admin access required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Code not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  # ============================================
-  # ADMIN SYSTEM CONFIG ENDPOINTS
-  # ============================================
-  /admin/system-config:
-    get:
-      tags:
-        - Admin System Config
-      summary: List all system configurations
-      description: |
-        Returns all system configuration values.
-        Includes affiliate-related configs (discount%, commission%, etc.)
-      operationId: listSystemConfigs
-      security:
-        - AdminAuth: []
-      parameters:
-        - name: category
-          in: query
-          description: Filter by category
-          schema:
-            type: string
-            enum: [affiliate, pricing, system]
-      responses:
-        '200':
-          description: List of system configurations
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  configs:
+                  settings:
+                    $ref: '#/components/schemas/AffiliateSettings'
+                  changes:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SystemConfig'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Admin access required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /admin/system-config/{key}:
-    get:
-      tags:
-        - Admin System Config
-      summary: Get system configuration by key
-      description: Returns a specific system configuration value
-      operationId: getSystemConfigByKey
-      security:
-        - AdminAuth: []
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Configuration key (e.g., affiliate_discount_percent)
-          example: affiliate_discount_percent
-      responses:
-        '200':
-          description: System configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SystemConfig'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Admin access required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Configuration not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    put:
-      tags:
-        - Admin System Config
-      summary: Update system configuration
-      description: |
-        Updates a system configuration value.
-        Changes are audited in SystemConfigHistory table.
-        Takes effect immediately (no restart required).
-      operationId: updateSystemConfig
-      security:
-        - AdminAuth: []
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Configuration key
-          example: affiliate_discount_percent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - value
-              properties:
-                value:
-                  type: string
-                  description: New configuration value
-                  example: '25.0'
-                reason:
-                  type: string
-                  description: Reason for change (for audit trail)
-                  example: 'Increased discount for holiday promotion'
-      responses:
-        '200':
-          description: Configuration updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  config:
-                    $ref: '#/components/schemas/SystemConfig'
-                  previousValue:
-                    type: string
-                    example: '20.0'
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                        previousValue:
+                          type: string
+                        newValue:
+                          type: string
         '400':
-          description: Invalid value for configuration type
+          description: Validation failed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Admin access required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Configuration not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /admin/system-config/history:
-    get:
-      tags:
-        - Admin System Config
-      summary: Get configuration change history
-      description: |
-        Returns audit trail of all configuration changes.
-        Shows who changed what, when, and why.
-      operationId: getSystemConfigHistory
-      security:
-        - AdminAuth: []
-      parameters:
-        - name: key
-          in: query
-          description: Filter by configuration key
-          schema:
-            type: string
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 10
-            maximum: 100
-            default: 20
-      responses:
-        '200':
-          description: Configuration change history
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/PaginationMeta'
-                  - type: object
-                    properties:
-                      history:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/SystemConfigHistory'
+                $ref: '#/components/schemas/ValidationError'
         '401':
           description: Not authenticated
           content:
@@ -1357,9 +1357,18 @@ paths:
       summary: Monthly code distribution
       description: |
         Cron job that runs on the 1st of each month.
-        Distributes 15 codes to all active affiliates.
+        Distributes codes to all active affiliates.
 
-        **Schedule**: `0 0 1 * *` (00:00 on 1st of month)
+        **Schedule**: `0 0 1 * *` (00:00 UTC on 1st of month)
+
+        **Actions:**
+        - Queries all ACTIVE affiliates
+        - Generates 15 unique codes per affiliate (uses SystemConfig)
+        - Creates AffiliateCode records with MONTHLY distribution reason
+        - Updates codesDistributed count
+        - Sends notification emails
+
+        **Idempotent:** Safe to retry if partially failed
       operationId: cronDistributeCodes
       security:
         - CronAuth: []
@@ -1384,9 +1393,15 @@ paths:
       summary: Expire old codes
       description: |
         Cron job that runs at end of each month.
-        Marks all expired codes (expiresAt <= now) as EXPIRED.
+        Marks all expired codes as EXPIRED.
 
-        **Schedule**: `59 23 28-31 * *` (23:59 on days 28-31)
+        **Schedule**: `59 23 28-31 * *` (23:59 UTC on days 28-31)
+
+        **Actions:**
+        - Queries codes where expiresAt <= now AND status = ACTIVE
+        - Updates status to EXPIRED
+
+        **Note:** Handles variable month lengths automatically
       operationId: cronExpireCodes
       security:
         - CronAuth: []
@@ -1413,7 +1428,13 @@ paths:
         Cron job that runs on the 1st of each month.
         Sends monthly performance report emails to all active affiliates.
 
-        **Schedule**: `0 6 1 * *` (06:00 on 1st of month)
+        **Schedule**: `0 6 1 * *` (06:00 UTC on 1st of month)
+
+        **Report includes:**
+        - Previous month's performance summary
+        - Codes distributed vs used
+        - Conversions and earnings
+        - Comparison to previous month
       operationId: cronSendMonthlyReports
       security:
         - CronAuth: []
@@ -1426,6 +1447,60 @@ paths:
                 $ref: '#/components/schemas/CronJobResponse'
         '401':
           description: Invalid cron secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================
+  # DISBURSEMENT INTEGRATION (PART 19)
+  # ============================================
+  /disbursement/reports/affiliate/{affiliateId}:
+    get:
+      tags:
+        - Disbursement
+      summary: Get affiliate disbursement report
+      description: |
+        Returns disbursement history and pending payouts for a specific affiliate.
+
+        **Part 19 Integration:** This endpoint integrates with the RiseWorks
+        disbursement system for processing actual payments.
+
+        **Includes:**
+        - Pending commissions eligible for payout
+        - Payment history
+        - RiseWorks account status
+      operationId: getAffiliateDisbursementReport
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: affiliateId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Affiliate profile ID
+      responses:
+        '200':
+          description: Disbursement report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateDisbursementReport'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Affiliate not found
           content:
             application/json:
               schema:
@@ -1462,6 +1537,9 @@ components:
         error:
           type: string
           example: 'Error message'
+        code:
+          type: string
+          example: 'NOT_FOUND'
 
     ValidationError:
       type: object
@@ -1499,6 +1577,41 @@ components:
         totalPages:
           type: integer
           example: 5
+        hasMore:
+          type: boolean
+          example: true
+
+    # ============================================
+    # PUBLIC CONFIG SCHEMAS
+    # ============================================
+    PublicAffiliateConfig:
+      type: object
+      description: Public affiliate configuration (no auth required)
+      properties:
+        discountPercent:
+          type: number
+          format: double
+          description: Customer discount percentage
+          example: 20.0
+        commissionPercent:
+          type: number
+          format: double
+          description: Affiliate commission percentage
+          example: 20.0
+        codesPerMonth:
+          type: integer
+          description: Codes distributed monthly
+          example: 15
+        basePrice:
+          type: number
+          format: double
+          description: Base subscription price
+          example: 29.0
+        threeDayPrice:
+          type: number
+          format: double
+          description: 3-day trial price
+          example: 1.0
 
     # ============================================
     # AFFILIATE SCHEMAS
@@ -1521,6 +1634,7 @@ components:
           type: string
           minLength: 2
           maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
           example: 'US'
         paymentMethod:
           type: string
@@ -1534,6 +1648,26 @@ components:
           type: boolean
           description: Must be true to accept terms
           example: true
+        youtubeUrl:
+          type: string
+          format: uri
+          example: 'https://youtube.com/@johndoe'
+        twitterUrl:
+          type: string
+          format: uri
+          example: 'https://twitter.com/johndoe'
+        instagramUrl:
+          type: string
+          format: uri
+          example: 'https://instagram.com/johndoe'
+        tiktokUrl:
+          type: string
+          format: uri
+          example: 'https://tiktok.com/@johndoe'
+        websiteUrl:
+          type: string
+          format: uri
+          example: 'https://johndoe.com'
 
     AffiliateRegistrationResponse:
       type: object
@@ -1544,9 +1678,13 @@ components:
         message:
           type: string
           example: 'Registration successful. Please verify your email.'
+        affiliateId:
+          type: string
+          format: uuid
 
     AffiliateProfile:
       type: object
+      description: Full affiliate profile (16 columns from flat schema)
       properties:
         id:
           type: string
@@ -1560,34 +1698,100 @@ components:
         country:
           type: string
           example: 'US'
+        youtubeUrl:
+          type: string
+          format: uri
+          nullable: true
+        twitterUrl:
+          type: string
+          format: uri
+          nullable: true
+        instagramUrl:
+          type: string
+          format: uri
+          nullable: true
+        tiktokUrl:
+          type: string
+          format: uri
+          nullable: true
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
         paymentMethod:
           type: string
           enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
         paymentDetails:
           type: object
-        status:
-          type: string
-          enum: [PENDING_VERIFICATION, ACTIVE, SUSPENDED, DELETED]
         codesDistributed:
           type: integer
+          description: Total codes ever distributed
           example: 45
         codesUsed:
           type: integer
+          description: Total codes redeemed
           example: 12
         pendingBalance:
           type: number
           format: double
+          description: Unpaid commission balance
           example: 55.68
         paidBalance:
           type: number
           format: double
+          description: Total paid out
           example: 142.50
+        status:
+          type: string
+          enum: [PENDING_VERIFICATION, ACTIVE, SUSPENDED, DELETED]
+        verificationToken:
+          type: string
+          nullable: true
+        suspensionReason:
+          type: string
+          nullable: true
+        suspendedAt:
+          type: string
+          format: date-time
+          nullable: true
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+
+    AffiliateProfileUpdate:
+      type: object
+      properties:
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 100
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+        youtubeUrl:
+          type: string
+          format: uri
+          nullable: true
+        twitterUrl:
+          type: string
+          format: uri
+          nullable: true
+        instagramUrl:
+          type: string
+          format: uri
+          nullable: true
+        tiktokUrl:
+          type: string
+          format: uri
+          nullable: true
+        websiteUrl:
+          type: string
+          format: uri
+          nullable: true
 
     PaymentMethodUpdate:
       type: object
@@ -1615,6 +1819,10 @@ components:
           type: integer
           description: Number of codes used for purchases
           example: 8
+        expiredCodes:
+          type: integer
+          description: Number of expired codes
+          example: 5
         totalEarnings:
           type: number
           format: double
@@ -1630,9 +1838,15 @@ components:
           format: double
           description: Total commissions paid out
           example: 142.50
+        conversionRate:
+          type: number
+          format: double
+          description: Percentage of distributed codes used
+          example: 26.7
 
     AffiliateCode:
       type: object
+      description: Affiliate code (11 columns from flat schema)
       properties:
         id:
           type: string
@@ -1641,6 +1855,19 @@ components:
           type: string
           pattern: '^[A-Z0-9]{8}$'
           example: 'ABCD1234'
+        affiliateProfileId:
+          type: string
+          format: uuid
+        discountPercent:
+          type: number
+          format: double
+          description: Customer discount (snapshot at creation)
+          example: 20.0
+        commissionPercent:
+          type: number
+          format: double
+          description: Affiliate commission (snapshot at creation)
+          example: 20.0
         status:
           type: string
           enum: [ACTIVE, USED, EXPIRED, CANCELLED]
@@ -1649,7 +1876,7 @@ components:
           format: date-time
         distributionReason:
           type: string
-          enum: [INITIAL, MONTHLY, BONUS]
+          enum: [INITIAL, MONTHLY, ADMIN_BONUS]
         expiresAt:
           type: string
           format: date-time
@@ -1660,6 +1887,9 @@ components:
         usedByUserId:
           type: string
           format: uuid
+          nullable: true
+        subscriptionId:
+          type: string
           nullable: true
 
     AffiliateCodesResponse:
@@ -1690,6 +1920,9 @@ components:
         additions:
           type: object
           properties:
+            initial:
+              type: integer
+              example: 0
             monthlyDistribution:
               type: integer
               example: 15
@@ -1720,24 +1953,59 @@ components:
 
     Commission:
       type: object
+      description: Commission record (14 columns from flat schema)
       properties:
         id:
           type: string
           format: uuid
-        amount:
+        affiliateProfileId:
+          type: string
+          format: uuid
+        affiliateCodeId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+          description: Customer who used the code
+        grossRevenue:
           type: number
           format: double
+          description: Original price before discount
+          example: 29.00
+        discountAmount:
+          type: number
+          format: double
+          description: Discount given to customer
+          example: 5.80
+        netRevenue:
+          type: number
+          format: double
+          description: Amount charged to customer
+          example: 23.20
+        commissionAmount:
+          type: number
+          format: double
+          description: Affiliate's commission
           example: 4.64
         status:
           type: string
-          enum: [PENDING, PAID, CANCELLED]
+          enum: [PENDING, APPROVED, PAID, CANCELLED]
         earnedAt:
           type: string
           format: date-time
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
         paidAt:
           type: string
           format: date-time
           nullable: true
+        paymentReference:
+          type: string
+          nullable: true
+          description: External payment reference (e.g., RiseWorks ID)
         affiliateCode:
           type: object
           properties:
@@ -1754,6 +2022,18 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Commission'
+            summary:
+              type: object
+              properties:
+                totalPending:
+                  type: number
+                  format: double
+                totalPaid:
+                  type: number
+                  format: double
+                totalCancelled:
+                  type: number
+                  format: double
 
     CodeValidationResponse:
       type: object
@@ -1761,15 +2041,21 @@ components:
         valid:
           type: boolean
           example: true
+        code:
+          type: string
+          example: 'ABCD1234'
         discountPercent:
           type: number
           format: double
-          description: Discount percentage to apply (from AFFILIATE_CONFIG)
+          description: Discount percentage to apply
           example: 20.0
         affiliateId:
           type: string
           format: uuid
           description: ID of the affiliate profile
+        expiresAt:
+          type: string
+          format: date-time
 
     # ============================================
     # ADMIN SCHEMAS
@@ -1782,22 +2068,33 @@ components:
             user:
               type: object
               properties:
+                id:
+                  type: string
+                  format: uuid
                 email:
                   type: string
                   format: email
                 name:
                   type: string
-            affiliateCodes:
+            codesSummary:
+              type: object
+              properties:
+                active:
+                  type: integer
+                used:
+                  type: integer
+                expired:
+                  type: integer
+                cancelled:
+                  type: integer
+            recentCodes:
               type: array
               items:
                 $ref: '#/components/schemas/AffiliateCode'
-            suspensionReason:
-              type: string
-              nullable: true
-            suspendedAt:
-              type: string
-              format: date-time
-              nullable: true
+            recentCommissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Commission'
 
     AdminAffiliatesListResponse:
       allOf:
@@ -1817,6 +2114,20 @@ components:
                           email:
                             type: string
                             format: email
+                          name:
+                            type: string
+            summary:
+              type: object
+              properties:
+                totalActive:
+                  type: integer
+                totalPending:
+                  type: integer
+                totalSuspended:
+                  type: integer
+                totalPendingBalance:
+                  type: number
+                  format: double
 
     ProfitLossReport:
       type: object
@@ -1892,6 +2203,24 @@ components:
           type: integer
           description: Number of affiliate conversions
           example: 30
+        monthlyBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+                example: '2026-01'
+              grossRevenue:
+                type: number
+              netRevenue:
+                type: number
+              commissions:
+                type: number
+              profit:
+                type: number
+              sales:
+                type: integer
 
     SalesPerformanceReport:
       type: object
@@ -1905,6 +2234,13 @@ components:
             end:
               type: string
               format: date-time
+        totalConversions:
+          type: integer
+          example: 150
+        totalCommissions:
+          type: number
+          format: double
+          example: 696.00
         topPerformers:
           type: array
           items:
@@ -1916,9 +2252,15 @@ components:
               affiliateName:
                 type: string
                 example: 'John Doe'
+              email:
+                type: string
+                format: email
               conversions:
                 type: integer
                 example: 12
+              codesDistributed:
+                type: integer
+                example: 45
               totalCommissions:
                 type: number
                 format: double
@@ -1928,6 +2270,9 @@ components:
                 format: double
                 description: Percentage of distributed codes used
                 example: 26.7
+              rank:
+                type: integer
+                example: 1
 
     CommissionOwingsReport:
       type: object
@@ -1967,6 +2312,10 @@ components:
               commissionsCount:
                 type: integer
                 example: 18
+              lastPaidAt:
+                type: string
+                format: date-time
+                nullable: true
 
     GlobalCodeInventoryReport:
       type: object
@@ -1994,6 +2343,11 @@ components:
               format: double
               description: Percentage of distributed codes used
               example: 30.0
+            expiryRate:
+              type: number
+              format: double
+              description: Percentage of distributed codes expired
+              example: 12.0
         byMonth:
           type: array
           items:
@@ -2001,13 +2355,82 @@ components:
             properties:
               month:
                 type: string
-                example: '2024-01'
+                example: '2026-01'
               distributed:
                 type: integer
               used:
                 type: integer
               expired:
                 type: integer
+              activeAtEnd:
+                type: integer
+
+    # ============================================
+    # SETTINGS SCHEMAS
+    # ============================================
+    AffiliateSettings:
+      type: object
+      properties:
+        discountPercent:
+          type: number
+          format: double
+          example: 20.0
+        commissionPercent:
+          type: number
+          format: double
+          example: 20.0
+        codesPerMonth:
+          type: integer
+          example: 15
+        basePrice:
+          type: number
+          format: double
+          example: 29.0
+        threeDayPrice:
+          type: number
+          format: double
+          example: 1.0
+        minimumPayout:
+          type: number
+          format: double
+          example: 50.0
+        updatedAt:
+          type: string
+          format: date-time
+
+    AffiliateSettingsUpdate:
+      type: object
+      properties:
+        discountPercent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 50
+        commissionPercent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 50
+        codesPerMonth:
+          type: integer
+          minimum: 1
+          maximum: 100
+        basePrice:
+          type: number
+          format: double
+          minimum: 0.01
+        threeDayPrice:
+          type: number
+          format: double
+          minimum: 0
+        minimumPayout:
+          type: number
+          format: double
+          minimum: 0
+        reason:
+          type: string
+          description: Reason for changes (for audit trail)
+          example: 'Holiday promotion adjustments'
 
     # ============================================
     # CRON SCHEMAS
@@ -2021,110 +2444,72 @@ components:
         message:
           type: string
           example: 'Distributed codes to 45 affiliates'
+        stats:
+          type: object
+          properties:
+            processed:
+              type: integer
+              example: 45
+            succeeded:
+              type: integer
+              example: 45
+            failed:
+              type: integer
+              example: 0
         errors:
           type: array
           items:
             type: string
           description: List of errors (if any)
           nullable: true
-
-    # ============================================
-    # SYSTEM CONFIG SCHEMAS
-    # ============================================
-    SystemConfig:
-      type: object
-      description: System configuration entry stored in database
-      properties:
-        id:
-          type: string
-          format: uuid
-        key:
-          type: string
-          description: Unique configuration key
-          example: affiliate_discount_percent
-        value:
-          type: string
-          description: Configuration value (stored as string, parsed by valueType)
-          example: '20.0'
-        valueType:
-          type: string
-          enum: [string, number, boolean, json]
-          description: Type of the value for parsing
-          example: number
-        description:
-          type: string
-          nullable: true
-          description: Human-readable description of this configuration
-          example: 'Discount percentage applied to customers using affiliate codes'
-        category:
-          type: string
-          description: Category for grouping related configs
-          example: affiliate
-        updatedBy:
-          type: string
-          nullable: true
-          description: User ID who last updated this config
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    SystemConfigHistory:
-      type: object
-      description: Audit trail entry for configuration changes
-      properties:
-        id:
-          type: string
-          format: uuid
-        configKey:
-          type: string
-          description: The configuration key that was changed
-          example: affiliate_discount_percent
-        oldValue:
-          type: string
-          description: Previous value before change
-          example: '20.0'
-        newValue:
-          type: string
-          description: New value after change
-          example: '25.0'
-        changedBy:
-          type: string
-          description: User ID who made the change
-        reason:
-          type: string
-          nullable: true
-          description: Reason provided for the change
-          example: 'Holiday promotion - increased customer discount'
-        changedAt:
-          type: string
-          format: date-time
-          description: When the change was made
-
-    AffiliateConfig:
-      type: object
-      description: |
-        Aggregated affiliate configuration values.
-        Retrieved via getAffiliateConfigFromDB() hook.
-      properties:
-        discountPercent:
-          type: number
-          format: double
-          description: Customer discount percentage
-          example: 20.0
-        commissionPercent:
-          type: number
-          format: double
-          description: Affiliate commission percentage
-          example: 20.0
-        codesPerMonth:
+        executionTime:
           type: integer
-          description: Number of codes distributed monthly
-          example: 15
-        basePrice:
+          description: Execution time in milliseconds
+          example: 2500
+
+    # ============================================
+    # DISBURSEMENT SCHEMAS (PART 19 INTEGRATION)
+    # ============================================
+    AffiliateDisbursementReport:
+      type: object
+      properties:
+        affiliateId:
+          type: string
+          format: uuid
+        affiliateName:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+        riseAccountId:
+          type: string
+          nullable: true
+          description: RiseWorks account ID (if linked)
+        pendingCommissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Commission'
+        pendingTotal:
           type: number
           format: double
-          description: Base subscription price
-          example: 29.0
+        paymentHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              amount:
+                type: number
+                format: double
+              paidAt:
+                type: string
+                format: date-time
+              reference:
+                type: string
+              status:
+                type: string
+                enum: [COMPLETED, FAILED, PENDING]
+        eligibleForPayout:
+          type: boolean
+          description: Whether balance meets minimum payout threshold
