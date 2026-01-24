@@ -1,30 +1,76 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Watchlist System API (Part 10)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Watchlist System API for Trading Alerts SaaS platform (Part 10).
 
-    This API provides watchlist management capabilities for tracking symbol+timeframe combinations.
+    This API provides comprehensive watchlist management capabilities for tracking symbol+timeframe combinations with tier-based access control.
 
     ## Features
     - Create and manage watchlist items
     - Tier-based limits (FREE: 5 items, PRO: 50 items)
     - Symbol and timeframe access validation
-    - Drag-and-drop reordering
+    - Drag-and-drop reordering support
     - Duplicate prevention
+    - Auto-creation of default watchlist
+    - Optimistic UI updates with rollback
+    - Undo functionality (5-second window)
+    - Search functionality for symbols
 
     ## Tier-Based Access
 
     **FREE Tier:**
     - Max 5 watchlist items
-    - 5 symbols (BTCUSD, ETHUSD, EURUSD, GBPUSD, USDJPY)
-    - 2 timeframes (H1, D1)
+    - 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
+    - 3 timeframes (H1, H4, D1)
 
     **PRO Tier:**
     - Max 50 watchlist items
-    - 15 symbols (all major pairs)
-    - 8 timeframes (M1, M5, M15, M30, H1, H4, D1, W1)
+    - 15 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD, AUDJPY, AUDUSD, ETHUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, USDCAD, USDCHF, XAGUSD)
+    - 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
+
+    ## Database Schema
+
+    The watchlist system uses a relational database with the following models:
+
+    **Watchlist:**
+    - `id` (string): Unique identifier
+    - `userId` (string): Owner's user ID
+    - `name` (string): Watchlist name (default: "My Watchlist")
+    - `order` (int): Display order
+    - `createdAt` (datetime): Creation timestamp
+    - `updatedAt` (datetime): Last update timestamp
+
+    **WatchlistItem:**
+    - `id` (string): Unique identifier
+    - `watchlistId` (string): Parent watchlist ID
+    - `userId` (string): Owner's user ID
+    - `symbol` (string): Trading symbol
+    - `timeframe` (string): Chart timeframe
+    - `order` (int): Display order within watchlist
+    - `createdAt` (datetime): Creation timestamp
+
+    **Constraints:**
+    - Unique constraint on `[userId, symbol, timeframe]` prevents duplicates
+    - Cascade delete: Removing watchlist removes all items
+    - Indexes on `userId`, `watchlistId` for performance
+
+    ## Frontend Features
+
+    **Components:**
+    - Symbol selector with search functionality
+    - Timeframe grid with visual selection
+    - Watchlist item cards with actions
+    - Upgrade prompts for locked features
+    - Undo banner for removed items
+
+    **User Experience:**
+    - Optimistic updates for instant feedback
+    - Error rollback on API failures
+    - 5-second undo window for deletions
+    - Tier limit warnings and upgrade CTAs
+    - Loading states for all operations
 
   contact:
     name: API Support
@@ -59,8 +105,14 @@ paths:
 
         **Features:**
         - Returns all watchlist items
-        - Items sorted by order field
-        - Auto-creates watchlist if doesn't exist
+        - Items sorted by order field (ascending)
+        - Auto-creates default watchlist if doesn't exist
+        - Includes watchlist metadata (id, name)
+
+        **Frontend Integration:**
+        - Server component fetches initial data
+        - Client component manages interactive UI
+        - Supports optimistic updates
       operationId: getWatchlist
       responses:
         '200':
@@ -119,12 +171,24 @@ paths:
       description: |
         Creates a new watchlist item with symbol+timeframe combination.
 
-        **Validation:**
-        - Checks tier limits (5 items for FREE, 50 for PRO)
-        - Validates symbol access for user's tier
-        - Validates timeframe access for user's tier
-        - Prevents duplicate symbol+timeframe combinations
-        - Auto-creates default watchlist if needed
+        **Validation Steps:**
+        1. Authentication check (401 if not logged in)
+        2. Input validation (symbol and timeframe required)
+        3. Symbol access check (403 if not allowed for tier)
+        4. Timeframe access check (403 if not allowed for tier)
+        5. Watchlist creation (auto-creates if doesn't exist)
+        6. Tier limit check (403 if limit reached)
+        7. Duplicate check (409 if combination exists)
+        8. Item creation with auto-incremented order
+
+        **Frontend Behavior:**
+        - Optimistic UI: Item appears immediately
+        - Rollback on error: Item removed if API fails
+        - Temporary ID replaced with server ID on success
+
+        **Tier Limits:**
+        - FREE: Maximum 5 watchlist items
+        - PRO: Maximum 50 watchlist items
       operationId: createWatchlistItem
       requestBody:
         required: true
@@ -382,6 +446,18 @@ paths:
       summary: Delete watchlist item
       description: |
         Deletes a watchlist item with ownership validation.
+
+        **Frontend Behavior:**
+        - Optimistic deletion: Item removed from UI immediately
+        - Undo banner displayed for 5 seconds
+        - User can restore item within undo window
+        - Rollback on API error
+        - Permanent deletion after undo timeout
+
+        **Undo Functionality:**
+        - Client maintains removed item state
+        - Re-POST to `/api/watchlist` to restore
+        - Original order position preserved
       operationId: deleteWatchlistItem
       parameters:
         - name: id
@@ -441,12 +517,28 @@ paths:
         Updates the order of multiple watchlist items in bulk.
 
         **Process:**
-        - Accepts array of item IDs in desired order
-        - Index in array becomes the new order value
-        - Validates ownership of all items
-        - Updates all items in a single transaction
+        1. Accepts array of item IDs in desired order
+        2. Index in array becomes the new order value (0-based)
+        3. Fetches all items to validate existence
+        4. Validates ownership of all items
+        5. Updates all items using Promise.all() for parallelism
+        6. Returns success with updated count
 
-        **Use case:** Drag-and-drop reordering in UI
+        **Frontend Integration:**
+        - Optimistic update: Items reordered immediately in UI
+        - Rollback: Refetch on error to restore correct order
+        - Used for drag-and-drop reordering
+        - Can reorder partial or all items
+
+        **Validation:**
+        - All item IDs must exist (400 if not found)
+        - All items must be owned by user (403 if not)
+        - Empty array rejected (400 if no items)
+
+        **Performance:**
+        - Parallel updates for speed
+        - Single database transaction
+        - Typically completes in <100ms
       operationId: reorderWatchlistItems
       requestBody:
         required: true
@@ -534,13 +626,73 @@ components:
         symbol:
           type: string
           minLength: 1
-          description: Trading symbol (must be allowed for user's tier)
-          example: 'BTCUSD'
+          description: |
+            Trading symbol (must be allowed for user's tier)
+
+            **FREE Tier Symbols:**
+            - BTCUSD (Bitcoin)
+            - EURUSD (Euro / US Dollar)
+            - USDJPY (US Dollar / Japanese Yen)
+            - US30 (Dow Jones)
+            - XAUUSD (Gold)
+
+            **PRO Tier Additional Symbols:**
+            - AUDJPY (Australian Dollar / Yen)
+            - AUDUSD (Australian Dollar / USD)
+            - ETHUSD (Ethereum)
+            - GBPJPY (British Pound / Yen)
+            - GBPUSD (British Pound / USD)
+            - NDX100 (Nasdaq 100)
+            - NZDUSD (New Zealand Dollar / USD)
+            - USDCAD (USD / Canadian Dollar)
+            - USDCHF (USD / Swiss Franc)
+            - XAGUSD (Silver)
+          example: 'XAUUSD'
+          enum:
+            - BTCUSD
+            - EURUSD
+            - USDJPY
+            - US30
+            - XAUUSD
+            - AUDJPY
+            - AUDUSD
+            - ETHUSD
+            - GBPJPY
+            - GBPUSD
+            - NDX100
+            - NZDUSD
+            - USDCAD
+            - USDCHF
+            - XAGUSD
         timeframe:
           type: string
           minLength: 1
-          description: Timeframe (must be allowed for user's tier)
+          description: |
+            Chart timeframe (must be allowed for user's tier)
+
+            **FREE Tier Timeframes:**
+            - H1 (1 Hour)
+            - H4 (4 Hours)
+            - D1 (1 Day)
+
+            **PRO Tier Additional Timeframes:**
+            - M5 (5 Minutes)
+            - M15 (15 Minutes)
+            - M30 (30 Minutes)
+            - H2 (2 Hours)
+            - H8 (8 Hours)
+            - H12 (12 Hours)
           example: 'H1'
+          enum:
+            - M5
+            - M15
+            - M30
+            - H1
+            - H2
+            - H4
+            - H8
+            - H12
+            - D1
 
     UpdateWatchlistItemRequest:
       type: object
@@ -713,3 +865,205 @@ components:
           type: string
           description: Human-readable error message
           example: 'You must be logged in to view your watchlist'
+
+x-frontend-components:
+  WatchlistPage:
+    file: app/(dashboard)/watchlist/page.tsx
+    type: Server Component
+    description: |
+      Entry point for the watchlist page. Handles authentication, fetches initial data,
+      and renders the client component.
+    features:
+      - Session validation and redirect
+      - Fetches user's watchlist from database
+      - Auto-creates default watchlist if needed
+      - Calculates tier-based limits
+      - Passes initial data to client component
+
+  WatchlistClient:
+    file: app/(dashboard)/watchlist/watchlist-client.tsx
+    type: Client Component
+    description: |
+      Main interactive watchlist management interface with full CRUD operations.
+    features:
+      - Add/remove watchlist items
+      - Symbol selector with tier filtering
+      - Timeframe grid selection
+      - Optimistic UI updates
+      - 5-second undo functionality
+      - Duplicate prevention
+      - Tier limit enforcement
+      - Empty state messaging
+      - Upgrade prompts
+    state:
+      - items: Current watchlist items
+      - selectedSymbol: Symbol selection state
+      - selectedTimeframe: Timeframe selection state
+      - showAddForm: Add form visibility
+      - isAdding: Loading state for add operation
+      - isRemoving: Loading state for remove operation
+      - error: Error message state
+      - removedItem: Stored for undo functionality
+      - showUndo: Undo banner visibility
+      - pendingAddId: Temporary ID for optimistic add
+
+  SymbolSelector:
+    file: components/watchlist/symbol-selector.tsx
+    type: Client Component (Reusable)
+    description: |
+      Dropdown component for selecting trading symbols with search functionality.
+    features:
+      - 15 total symbols (5 FREE, 10 PRO-only)
+      - Search by symbol ID or description
+      - Lock icons for PRO-only symbols
+      - Symbol descriptions and emojis
+      - Tier-based filtering
+      - Disabled state support
+    props:
+      userTier: User's subscription tier (FREE or PRO)
+      selectedSymbol: Currently selected symbol
+      onSymbolChange: Callback when selection changes
+      disabled: Whether selector is disabled
+
+  TimeframeGrid:
+    file: components/watchlist/timeframe-grid.tsx
+    type: Client Component (Reusable)
+    description: |
+      Grid of selectable timeframe buttons with tier-based access control.
+    features:
+      - 9 timeframes (3 FREE, 6 PRO-only)
+      - Visual selection state
+      - Lock icons for PRO-only timeframes
+      - Upgrade dialog component
+      - Tier info message
+      - Disabled state support
+    props:
+      userTier: User's subscription tier
+      selectedTimeframe: Currently selected timeframe
+      onTimeframeChange: Callback when selection changes
+      showUpgradePrompt: Whether to show upgrade dialog
+      disabled: Whether grid is disabled
+
+  WatchlistItem:
+    file: components/watchlist/watchlist-item.tsx
+    type: Client Component (Reusable)
+    description: |
+      Card component for displaying individual watchlist items.
+    features:
+      - Symbol and timeframe display
+      - Optional price data (not yet implemented)
+      - Status badges (support/resistance/normal)
+      - Action dropdown menu
+      - Delete confirmation dialog
+      - Loading states
+      - Link to chart view
+    props:
+      id: Item identifier
+      symbol: Trading symbol
+      timeframe: Chart timeframe
+      currentPrice: Current price (optional)
+      priceChange: Price change amount (optional)
+      priceChangePercent: Price change percentage (optional)
+      status: Status indicator (support/resistance/normal)
+      lastUpdated: Last update timestamp (optional)
+      onRemove: Callback when remove is clicked
+      isRemoving: Loading state for remove operation
+
+  useWatchlist:
+    file: hooks/use-watchlist.ts
+    type: React Hook
+    description: |
+      Custom React hook for watchlist data management and operations.
+    features:
+      - Fetch watchlist data
+      - Add/remove items
+      - Reorder items
+      - Tier limit calculations
+      - Error state management
+      - Loading states
+      - Duplicate checking
+    returns:
+      items: Array of watchlist items
+      watchlist: Watchlist metadata
+      isLoading: Loading state
+      error: Error message
+      currentCount: Number of items
+      limit: Maximum items allowed
+      canAdd: Whether user can add more
+      slotsRemaining: Available slots
+      fetchWatchlist: Function to fetch data
+      addItem: Function to add item
+      removeItem: Function to remove item
+      reorderItems: Function to reorder items
+      hasCombo: Function to check if combination exists
+
+x-implementation-notes:
+  authentication:
+    method: NextAuth session
+    check: getServerSession() in all API routes
+    redirect: Unauthenticated users redirected to /login
+
+  database:
+    orm: Prisma
+    models:
+      - Watchlist (parent container)
+      - WatchlistItem (individual items)
+    indexes:
+      - userId for fast user lookups
+      - watchlistId for item queries
+      - symbol+timeframe for duplicate prevention
+    constraints:
+      - Unique on [userId, name] for watchlists
+      - Unique on [userId, symbol, timeframe] for items
+
+  tier-validation:
+    location: lib/tier-validation.ts
+    functions:
+      - canAccessSymbol(tier, symbol): boolean
+      - validateTimeframeAccess(tier, timeframe): { allowed: boolean, reason?: string }
+    config: lib/tier-config.ts
+    constants:
+      - FREE_SYMBOLS: readonly array of 5 symbols
+      - PRO_SYMBOLS: readonly array of 15 symbols
+      - FREE_TIMEFRAMES: readonly array of 3 timeframes
+      - PRO_TIMEFRAMES: readonly array of 9 timeframes
+      - FREE_TIER_CONFIG.maxWatchlistItems: 5
+      - PRO_TIER_CONFIG.maxWatchlistItems: 50
+
+  optimistic-updates:
+    strategy: Update UI immediately, rollback on error
+    implementation:
+      - Store previous state before update
+      - Apply optimistic update to local state
+      - Make API call
+      - On success: Replace temp data with server data
+      - On error: Rollback to previous state and show error
+
+  undo-functionality:
+    duration: 5000ms (5 seconds)
+    implementation:
+      - Store removed item in state
+      - Show undo banner with countdown
+      - Clear banner after timeout
+      - On undo: Re-POST item to server
+      - Preserve original order position
+
+  error-handling:
+    client:
+      - Display error messages in banner
+      - Auto-clear after user action
+      - Rollback optimistic updates
+    server:
+      - Comprehensive error logging
+      - User-friendly error messages
+      - Appropriate HTTP status codes
+      - Validation error details
+
+x-migration-notes:
+  database-schema:
+    version: 2.0
+    changes:
+      - MarketData migrated to flat 57-column schema
+      - WatchlistItem model unchanged (compatible)
+      - Added unique constraint on [userId, name] for Watchlist
+    compatibility: Fully backward compatible with existing watchlist data
