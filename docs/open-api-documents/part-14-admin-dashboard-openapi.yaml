@@ -1,18 +1,22 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Admin Dashboard API (Part 14)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Admin Dashboard API for Trading Alerts SaaS platform (Part 14).
 
-    This API provides administrative operations for platform management and monitoring.
+    This comprehensive API provides administrative operations for platform management,
+    user administration, affiliate management, fraud detection, and reporting.
 
     ## Features
-    - User management and administration
-    - System analytics and metrics
-    - API usage monitoring
-    - Error log management
-    - Affiliate system administration (from Part 17)
+    - **User Management**: View, filter, and manage user accounts
+    - **System Analytics**: Platform metrics, revenue, and growth statistics
+    - **API Monitoring**: Usage statistics, endpoint performance, error rates
+    - **Error Logging**: System error tracking with filtering
+    - **Affiliate Administration**: Manage affiliates, codes, and commissions
+    - **Affiliate Reporting**: Code inventory, P&L, sales performance reports
+    - **Fraud Detection**: Alert management and user blocking
+    - **Settings Management**: Dynamic configuration for affiliate system
 
     ## Security
     **Admin Access Only**: All endpoints require ADMIN role.
@@ -20,6 +24,7 @@ info:
     **Authentication:**
     - Session-based authentication (NextAuth)
     - Role validation on every request
+    - Returns 401 for unauthenticated requests
     - Returns 403 if user is not ADMIN
 
   contact:
@@ -47,15 +52,31 @@ tags:
     description: API usage monitoring
   - name: Error Logs
     description: Error log management
+  - name: Affiliates
+    description: Affiliate account management
+  - name: Affiliate Reports
+    description: Affiliate program reporting
+  - name: Codes
+    description: Affiliate code management
+  - name: Commissions
+    description: Commission payment operations
+  - name: Settings
+    description: System configuration management
+  - name: Fraud Alerts
+    description: Fraud detection and alert management
 
 paths:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # CORE ADMIN ENDPOINTS
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   /api/admin/users:
     get:
       tags:
         - Users
       summary: List all users
       description: |
-        Retrieves a list of all users with filtering and pagination.
+        Retrieves a paginated list of all users with filtering and sorting options.
 
         **Filters:**
         - `tier`: Filter by subscription tier (FREE, PRO)
@@ -72,7 +93,7 @@ paths:
         - name: tier
           in: query
           required: false
-          description: Filter by tier
+          description: Filter by subscription tier
           schema:
             type: string
             enum: [FREE, PRO]
@@ -80,7 +101,7 @@ paths:
         - name: role
           in: query
           required: false
-          description: Filter by role
+          description: Filter by user role
           schema:
             type: string
             enum: [USER, ADMIN]
@@ -118,55 +139,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersListResponse'
-              example:
-                users:
-                  - id: 'user_001'
-                    name: 'John Doe'
-                    email: 'john@example.com'
-                    tier: 'PRO'
-                    role: 'USER'
-                    isAffiliate: false
-                    emailVerified: true
-                    createdAt: '2025-11-15T10:00:00.000Z'
-                    lastLoginAt: '2025-12-20T14:30:00.000Z'
-                  - id: 'user_002'
-                    name: 'Jane Smith'
-                    email: 'jane@example.com'
-                    tier: 'FREE'
-                    role: 'USER'
-                    isAffiliate: true
-                    emailVerified: true
-                    createdAt: '2025-12-01T09:00:00.000Z'
-                    lastLoginAt: '2025-12-19T16:45:00.000Z'
-                pagination:
-                  page: 1
-                  limit: 50
-                  total: 127
-                  totalPages: 3
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Unauthorized'
-                message: 'Authentication required'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden - not admin
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Forbidden'
-                message: 'Admin access required'
+          $ref: '#/components/responses/Forbidden'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/admin/analytics:
     get:
@@ -174,19 +152,12 @@ paths:
         - Analytics
       summary: Get system analytics
       description: |
-        Retrieves comprehensive system analytics and metrics.
-
-        **Metrics Included:**
+        Retrieves comprehensive system analytics and metrics including:
         - User statistics (total, active, new this month)
         - Subscription metrics (FREE vs PRO breakdown)
         - Revenue metrics (MRR, total revenue)
-        - Alert statistics (total alerts, active alerts)
-        - Watchlist statistics
+        - Alert and watchlist statistics
         - API usage metrics
-
-        **Date Range:**
-        - `startDate`: Start date for metrics (ISO 8601)
-        - `endDate`: End date for metrics (ISO 8601)
 
         **Admin Only**: Requires ADMIN role
       operationId: getAnalytics
@@ -214,47 +185,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalyticsResponse'
-              example:
-                users:
-                  total: 1247
-                  active: 823
-                  newThisMonth: 45
-                  freeUsers: 892
-                  proUsers: 355
-                subscriptions:
-                  totalRevenue: 10345.00
-                  mrr: 8950.00
-                  activeSubscriptions: 355
-                  cancelledThisMonth: 12
-                alerts:
-                  totalAlerts: 3421
-                  activeAlerts: 2876
-                  triggeredToday: 234
-                watchlist:
-                  totalItems: 5234
-                  averagePerUser: 4.2
-                apiUsage:
-                  totalRequests: 125634
-                  requestsToday: 4532
-                  averageResponseTime: 145
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden - not admin
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Forbidden'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/admin/api-usage:
     get:
@@ -262,20 +198,12 @@ paths:
         - API Usage
       summary: Get API usage statistics
       description: |
-        Retrieves detailed API usage statistics and metrics.
-
-        **Metrics Included:**
+        Retrieves detailed API usage statistics including:
         - Request count by endpoint
         - Response time metrics
         - Error rate by endpoint
-        - Usage by user/tier
-        - Rate limiting statistics
-
-        **Filters:**
-        - `startDate`: Start date for usage data
-        - `endDate`: End date for usage data
-        - `endpoint`: Filter by specific endpoint
-        - `userId`: Filter by specific user
+        - Usage breakdown by tier
+        - Timeline data
 
         **Admin Only**: Requires ADMIN role
       operationId: getApiUsage
@@ -297,14 +225,14 @@ paths:
         - name: endpoint
           in: query
           required: false
-          description: Filter by endpoint path
+          description: Filter by specific endpoint path
           schema:
             type: string
           example: '/api/alerts'
         - name: userId
           in: query
           required: false
-          description: Filter by user ID
+          description: Filter by specific user ID
           schema:
             type: string
       responses:
@@ -314,53 +242,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiUsageResponse'
-              example:
-                summary:
-                  totalRequests: 125634
-                  totalErrors: 234
-                  errorRate: 0.19
-                  averageResponseTime: 145
-                byEndpoint:
-                  - endpoint: '/api/alerts'
-                    requests: 34521
-                    errors: 45
-                    avgResponseTime: 123
-                  - endpoint: '/api/watchlist'
-                    requests: 28932
-                    errors: 12
-                    avgResponseTime: 98
-                  - endpoint: '/api/subscription'
-                    requests: 12456
-                    errors: 23
-                    avgResponseTime: 234
-                byTier:
-                  FREE: 78234
-                  PRO: 47400
-                timeline:
-                  - date: '2025-12-20'
-                    requests: 4532
-                    errors: 12
-                  - date: '2025-12-19'
-                    requests: 4321
-                    errors: 8
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden - not admin
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Forbidden'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/admin/error-logs:
     get:
@@ -373,12 +260,7 @@ paths:
         **Filters:**
         - `level`: Error level (error, warn, info)
         - `source`: Error source/component
-        - `startDate`: Start date for logs
-        - `endDate`: End date for logs
-
-        **Pagination:**
-        - `page`: Page number
-        - `limit`: Items per page
+        - `startDate`/`endDate`: Date range
 
         **Admin Only**: Requires ADMIN role
       operationId: getErrorLogs
@@ -401,21 +283,18 @@ paths:
         - name: startDate
           in: query
           required: false
-          description: Start date (ISO 8601)
           schema:
             type: string
             format: date-time
         - name: endDate
           in: query
           required: false
-          description: End date (ISO 8601)
           schema:
             type: string
             format: date-time
         - name: page
           in: query
           required: false
-          description: Page number
           schema:
             type: integer
             minimum: 1
@@ -423,7 +302,6 @@ paths:
         - name: limit
           in: query
           required: false
-          description: Items per page
           schema:
             type: integer
             minimum: 1
@@ -436,48 +314,843 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorLogsResponse'
-              example:
-                logs:
-                  - id: 'log_001'
-                    timestamp: '2025-12-20T15:30:45.123Z'
-                    level: 'error'
-                    source: 'api/alerts'
-                    message: 'Failed to create alert'
-                    error: 'Database connection timeout'
-                    userId: 'user_123'
-                    requestId: 'req_abc456'
-                    stackTrace: "Error: Database connection timeout\n  at ..."
-                  - id: 'log_002'
-                    timestamp: '2025-12-20T14:22:15.456Z'
-                    level: 'warn'
-                    source: 'api/subscription'
-                    message: 'Payment method declined'
-                    error: 'Card declined by issuer'
-                    userId: 'user_456'
-                    requestId: 'req_def789'
-                pagination:
-                  page: 1
-                  limit: 50
-                  total: 234
-                  totalPages: 5
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # AFFILIATE MANAGEMENT ENDPOINTS
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /api/admin/affiliates:
+    get:
+      tags:
+        - Affiliates
+      summary: List all affiliates
+      description: |
+        Retrieves a paginated list of affiliates with filtering options.
+
+        **Filters:**
+        - `status`: ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE
+        - `country`: Country code (US, UK, etc.)
+        - `paymentMethod`: BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getAffiliates
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by affiliate status
+          schema:
+            type: string
+            enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
+        - name: country
+          in: query
+          required: false
+          description: Filter by country code
+          schema:
+            type: string
+          example: 'US'
+        - name: paymentMethod
+          in: query
+          required: false
+          description: Filter by payment method
+          schema:
+            type: string
+            enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Affiliates retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliatesListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/{id}:
+    get:
+      tags:
+        - Affiliates
+      summary: Get affiliate details
+      description: |
+        Retrieves detailed information for a specific affiliate including:
+        - Full profile data
+        - User email
+        - All affiliate codes
+        - Recent commissions
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getAffiliateById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Affiliate profile ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Affiliate details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/{id}/suspend:
+    post:
+      tags:
+        - Affiliates
+      summary: Suspend affiliate account
+      description: |
+        Suspends an active affiliate account. Requires a reason for suspension.
+        Suspended affiliates cannot earn commissions or use codes.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: suspendAffiliate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Affiliate profile ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  description: Reason for suspension
+                  example: 'Violation of terms of service'
+      responses:
+        '200':
+          description: Affiliate suspended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateSuspendResponse'
+        '400':
+          description: Invalid request or affiliate already suspended
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden - not admin
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/{id}/reactivate:
+    post:
+      tags:
+        - Affiliates
+      summary: Reactivate suspended affiliate
+      description: |
+        Reactivates a suspended affiliate account.
+        Only suspended affiliates can be reactivated.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: reactivateAffiliate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Affiliate profile ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Affiliate reactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateReactivateResponse'
+        '400':
+          description: Affiliate is not suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/{id}/distribute-codes:
+    post:
+      tags:
+        - Affiliates
+      summary: Distribute bonus codes to affiliate
+      description: |
+        Distributes additional bonus codes to an affiliate.
+        Can distribute between 1 and 50 codes at a time.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: distributeCodes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Affiliate profile ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - count
+                - reason
+              properties:
+                count:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  description: Number of codes to distribute
+                  example: 10
+                reason:
+                  type: string
+                  minLength: 1
+                  description: Reason for distribution
+                  example: 'Performance bonus for Q4'
+      responses:
+        '200':
+          description: Codes distributed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistributeCodesResponse'
+        '400':
+          description: Invalid request or affiliate not eligible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # AFFILIATE REPORTS ENDPOINTS
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /api/admin/affiliates/reports/code-inventory:
+    get:
+      tags:
+        - Affiliate Reports
+      summary: Get code inventory report
+      description: |
+        Retrieves global code inventory statistics including:
+        - Total codes distributed (all time and period)
+        - Status breakdown (active, used, expired, cancelled)
+        - Distribution by reason (initial, monthly, admin bonus)
+        - Conversion metrics
+        - Expiring codes alerts
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getCodeInventoryReport
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Reporting period
+          schema:
+            type: string
+            enum: [3months, 6months, 1year]
+            default: 3months
+      responses:
+        '200':
+          description: Code inventory report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeInventoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/reports/commission-owings:
+    get:
+      tags:
+        - Affiliate Reports
+      summary: Get commission owings report
+      description: |
+        Retrieves affiliates with pending commissions ready for payout.
+        Shows affiliates who have reached the minimum payout threshold.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getCommissionOwingsReport
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+        - name: minBalance
+          in: query
+          required: false
+          description: Minimum pending balance filter (default uses MINIMUM_PAYOUT config)
+          schema:
+            type: number
+            minimum: 0
+      responses:
+        '200':
+          description: Commission owings report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommissionOwingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/reports/profit-loss:
+    get:
+      tags:
+        - Affiliate Reports
+      summary: Get profit & loss report
+      description: |
+        Generates profit and loss report for the affiliate program showing:
+        - Gross revenue
+        - Discounts given
+        - Net revenue
+        - Commission breakdown (paid, pending, approved)
+        - Net profit and margin
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getProfitLossReport
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Reporting period
+          schema:
+            type: string
+            enum: [3months, 6months, 1year]
+            default: 3months
+      responses:
+        '200':
+          description: P&L report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfitLossResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/reports/sales-performance:
+    get:
+      tags:
+        - Affiliate Reports
+      summary: Get sales performance report
+      description: |
+        Generates sales performance report showing top affiliates by:
+        - Conversion count
+        - Total commissions earned
+        - Conversion rate
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getSalesPerformanceReport
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: Reporting period
+          schema:
+            type: string
+            enum: [3months, 6months, 1year]
+            default: 3months
+        - name: limit
+          in: query
+          required: false
+          description: Number of top affiliates to return
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Sales performance report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesPerformanceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # CODE & COMMISSION ENDPOINTS
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /api/admin/codes/{code}/cancel:
+    post:
+      tags:
+        - Codes
+      summary: Cancel affiliate code
+      description: |
+        Cancels an active affiliate code. Only ACTIVE codes can be cancelled.
+        Used codes and already cancelled codes cannot be cancelled.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: cancelCode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: The affiliate code to cancel (case-insensitive)
+          schema:
+            type: string
+          example: 'JOHN-ABC123'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional reason for cancellation
+                  example: 'Code compromised'
+      responses:
+        '200':
+          description: Code cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelCodeResponse'
+        '400':
+          description: Code already used or cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Code not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
-          description: Internal server error
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/commissions/pay:
+    post:
+      tags:
+        - Commissions
+      summary: Mark commissions as paid
+      description: |
+        Marks pending commissions as paid for an affiliate.
+        If commissionIds not provided, pays all pending commissions.
+        Total amount must meet minimum payout threshold.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: payCommissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - affiliateId
+                - paymentMethod
+                - paymentReference
+              properties:
+                affiliateId:
+                  type: string
+                  description: Affiliate profile ID
+                  example: 'aff_123abc'
+                paymentMethod:
+                  type: string
+                  description: Method used for payment
+                  example: 'BANK_TRANSFER'
+                paymentReference:
+                  type: string
+                  description: Payment transaction reference
+                  example: 'TXN-2025-001234'
+                commissionIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Optional specific commission IDs to pay (pays all pending if not provided)
+      responses:
+        '200':
+          description: Commissions marked as paid successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayCommissionsResponse'
+        '400':
+          description: No pending commissions or below minimum payout
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # SETTINGS ENDPOINTS
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /api/admin/settings/affiliate:
+    get:
+      tags:
+        - Settings
+      summary: Get affiliate settings
+      description: |
+        Returns current affiliate system settings with metadata.
+        Includes who last updated each setting and when.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getAffiliateSettings
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateSettingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - Settings
+      summary: Update affiliate settings
+      description: |
+        Updates affiliate system settings. Creates audit history entries.
+        All fields are optional - only provided fields are updated.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: updateAffiliateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discountPercent:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Discount percentage for customers using affiliate codes
+                  example: 20
+                commissionPercent:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Commission percentage for affiliates on net revenue
+                  example: 20
+                codesPerMonth:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  description: Number of codes distributed to each affiliate monthly
+                  example: 15
+                basePrice:
+                  type: number
+                  minimum: 0
+                  description: Base subscription price in USD
+                  example: 29.0
+                threeDayPrice:
+                  type: number
+                  minimum: 0
+                  description: 3-day trial plan price in USD
+                  example: 1.99
+                reason:
+                  type: string
+                  description: Reason for the change (for audit trail)
+                  example: 'Promotional rate for Q1'
+      responses:
+        '200':
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateSettingsResponse'
+        '400':
+          description: Invalid values provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # FRAUD ALERT ENDPOINTS
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  /api/admin/fraud-alerts:
+    get:
+      tags:
+        - Fraud Alerts
+      summary: List fraud alerts
+      description: |
+        Retrieves paginated fraud alerts with filtering and statistics.
+
+        **Filters:**
+        - `severity`: LOW, MEDIUM, HIGH, CRITICAL
+        - `status`: PENDING, REVIEWED, DISMISSED, BLOCKED
+        - `pattern`: Fraud pattern type
+        - `userId`: Filter by specific user
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getFraudAlerts
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 20
+        - name: severity
+          in: query
+          required: false
+          description: Filter by severity level
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        - name: status
+          in: query
+          required: false
+          description: Filter by alert status
+          schema:
+            type: string
+            enum: [PENDING, REVIEWED, DISMISSED, BLOCKED]
+        - name: pattern
+          in: query
+          required: false
+          description: Filter by fraud pattern
+          schema:
+            type: string
+        - name: userId
+          in: query
+          required: false
+          description: Filter by user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fraud alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlertsListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/fraud-alerts/{id}:
+    get:
+      tags:
+        - Fraud Alerts
+      summary: Get fraud alert details
+      description: |
+        Retrieves detailed information for a specific fraud alert
+        including user details.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: getFraudAlertById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Fraud alert ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fraud alert retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlertDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      tags:
+        - Fraud Alerts
+      summary: Update fraud alert status
+      description: |
+        Updates the status of a fraud alert. When setting status to BLOCKED,
+        the associated user account is also blocked.
+
+        **Admin Only**: Requires ADMIN role
+      operationId: updateFraudAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Fraud alert ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, REVIEWED, DISMISSED, BLOCKED]
+                  description: New status for the alert
+                resolution:
+                  type: string
+                  description: Resolution type (optional)
+                notes:
+                  type: string
+                  description: Admin notes (optional)
+      responses:
+        '200':
+          description: Fraud alert updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlertUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# COMPONENTS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 components:
   securitySchemes:
@@ -487,7 +1160,118 @@ components:
       name: next-auth.session-token
       description: NextAuth session cookie (must have ADMIN role)
 
+  responses:
+    Unauthorized:
+      description: Unauthorized - Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Unauthorized'
+            message: 'Authentication required'
+
+    Forbidden:
+      description: Forbidden - Not admin
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Forbidden'
+            message: 'Admin access required'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Not Found'
+            message: 'Resource not found'
+
+    BadRequest:
+      description: Bad request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Invalid query parameters'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Internal Server Error'
+            message: 'An unexpected error occurred'
+
   schemas:
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # COMMON SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: 'Error message'
+        message:
+          type: string
+          example: 'Additional error details'
+        details:
+          type: object
+          description: Validation error details
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 50
+        total:
+          type: integer
+          example: 127
+        totalPages:
+          type: integer
+          example: 3
+
+    ReportPeriod:
+      type: object
+      required:
+        - start
+        - end
+        - name
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        name:
+          type: string
+          enum: [3months, 6months, 1year]
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # USER SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
     UsersListResponse:
       type: object
       required:
@@ -538,12 +1322,14 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: '2025-11-15T10:00:00.000Z'
         lastLoginAt:
           type: string
           format: date-time
           nullable: true
-          example: '2025-12-20T14:30:00.000Z'
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ANALYTICS SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     AnalyticsResponse:
       type: object
@@ -559,71 +1345,55 @@ components:
           properties:
             total:
               type: integer
-              example: 1247
             active:
               type: integer
-              example: 823
             newThisMonth:
               type: integer
-              example: 45
             freeUsers:
               type: integer
-              example: 892
             proUsers:
               type: integer
-              example: 355
         subscriptions:
           type: object
           properties:
             totalRevenue:
               type: number
-              format: float
-              example: 10345.00
             mrr:
               type: number
-              format: float
-              example: 8950.00
             activeSubscriptions:
               type: integer
-              example: 355
             cancelledThisMonth:
               type: integer
-              example: 12
         alerts:
           type: object
           properties:
             totalAlerts:
               type: integer
-              example: 3421
             activeAlerts:
               type: integer
-              example: 2876
             triggeredToday:
               type: integer
-              example: 234
         watchlist:
           type: object
           properties:
             totalItems:
               type: integer
-              example: 5234
             averagePerUser:
               type: number
-              format: float
-              example: 4.2
         apiUsage:
           type: object
           properties:
             totalRequests:
               type: integer
-              example: 125634
             requestsToday:
               type: integer
-              example: 4532
             averageResponseTime:
               type: integer
               description: Average response time in milliseconds
-              example: 145
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # API USAGE SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     ApiUsageResponse:
       type: object
@@ -636,17 +1406,12 @@ components:
           properties:
             totalRequests:
               type: integer
-              example: 125634
             totalErrors:
               type: integer
-              example: 234
             errorRate:
               type: number
-              format: float
-              example: 0.19
             averageResponseTime:
               type: integer
-              example: 145
         byEndpoint:
           type: array
           items:
@@ -654,25 +1419,19 @@ components:
             properties:
               endpoint:
                 type: string
-                example: '/api/alerts'
               requests:
                 type: integer
-                example: 34521
               errors:
                 type: integer
-                example: 45
               avgResponseTime:
                 type: integer
-                example: 123
         byTier:
           type: object
           properties:
             FREE:
               type: integer
-              example: 78234
             PRO:
               type: integer
-              example: 47400
         timeline:
           type: array
           items:
@@ -681,13 +1440,14 @@ components:
               date:
                 type: string
                 format: date
-                example: '2025-12-20'
               requests:
                 type: integer
-                example: 4532
               errors:
                 type: integer
-                example: 12
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ERROR LOG SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     ErrorLogsResponse:
       type: object
@@ -713,67 +1473,686 @@ components:
       properties:
         id:
           type: string
-          example: 'log_001'
         timestamp:
           type: string
           format: date-time
-          example: '2025-12-20T15:30:45.123Z'
         level:
           type: string
           enum: [error, warn, info]
-          example: 'error'
         source:
           type: string
-          example: 'api/alerts'
         message:
           type: string
-          example: 'Failed to create alert'
         error:
           type: string
           nullable: true
-          example: 'Database connection timeout'
         userId:
           type: string
           nullable: true
-          example: 'user_123'
         requestId:
           type: string
           nullable: true
-          example: 'req_abc456'
         stackTrace:
           type: string
           nullable: true
-          example: "Error: Database connection timeout\n  at ..."
 
-    Pagination:
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # AFFILIATE SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    AffiliatesListResponse:
       type: object
       required:
-        - page
-        - limit
-        - total
-        - totalPages
+        - affiliates
+        - pagination
       properties:
-        page:
-          type: integer
-          example: 1
-        limit:
-          type: integer
-          example: 50
-        total:
-          type: integer
-          example: 127
-        totalPages:
-          type: integer
-          example: 3
+        affiliates:
+          type: array
+          items:
+            $ref: '#/components/schemas/AffiliateListItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
 
-    ErrorResponse:
+    AffiliateListItem:
       type: object
       required:
-        - error
+        - id
+        - fullName
+        - status
+        - country
       properties:
-        error:
+        id:
           type: string
-          example: 'Unauthorized'
+        fullName:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
+        country:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
+        totalCodesDistributed:
+          type: integer
+        totalCodesUsed:
+          type: integer
+        pendingCommissions:
+          type: number
+        totalEarnings:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    AffiliateDetailResponse:
+      type: object
+      required:
+        - id
+        - fullName
+        - status
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
+        country:
+          type: string
+        paymentMethod:
+          type: string
+        paymentDetails:
+          type: object
+        totalCodesDistributed:
+          type: integer
+        totalCodesUsed:
+          type: integer
+        pendingCommissions:
+          type: number
+        paidCommissions:
+          type: number
+        totalEarnings:
+          type: number
+        codes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AffiliateCode'
+        recentCommissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommissionItem'
+        createdAt:
+          type: string
+          format: date-time
+
+    AffiliateCode:
+      type: object
+      properties:
+        code:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, USED, EXPIRED, CANCELLED]
+        distributedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        usedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CommissionItem:
+      type: object
+      properties:
+        id:
+          type: string
+        commissionAmount:
+          type: number
+        status:
+          type: string
+          enum: [PENDING, APPROVED, PAID, CANCELLED]
+        earnedAt:
+          type: string
+          format: date-time
+
+    AffiliateSuspendResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
         message:
           type: string
-          example: 'Additional error details'
+        affiliate:
+          $ref: '#/components/schemas/AffiliateListItem'
+
+    AffiliateReactivateResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        affiliate:
+          $ref: '#/components/schemas/AffiliateListItem'
+
+    DistributeCodesResponse:
+      type: object
+      required:
+        - success
+        - codesDistributed
+      properties:
+        success:
+          type: boolean
+        codesDistributed:
+          type: integer
+        newCodes:
+          type: array
+          items:
+            type: string
+        message:
+          type: string
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # AFFILIATE REPORTS SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    CodeInventoryResponse:
+      type: object
+      required:
+        - period
+        - allTime
+        - periodMetrics
+        - alerts
+      properties:
+        period:
+          $ref: '#/components/schemas/ReportPeriod'
+        allTime:
+          type: object
+          properties:
+            totalCodes:
+              type: integer
+            byStatus:
+              type: object
+              properties:
+                active:
+                  type: integer
+                used:
+                  type: integer
+                expired:
+                  type: integer
+                cancelled:
+                  type: integer
+            byReason:
+              type: object
+              properties:
+                initial:
+                  type: integer
+                monthly:
+                  type: integer
+                adminBonus:
+                  type: integer
+            conversionRate:
+              type: number
+        periodMetrics:
+          type: object
+          properties:
+            distributed:
+              type: integer
+            used:
+              type: integer
+            expired:
+              type: integer
+            periodConversionRate:
+              type: number
+        alerts:
+          type: object
+          properties:
+            expiringIn7Days:
+              type: integer
+            lowActiveCodesWarning:
+              type: boolean
+
+    CommissionOwingsResponse:
+      type: object
+      required:
+        - summary
+        - affiliates
+        - pagination
+      properties:
+        summary:
+          type: object
+          properties:
+            totalAffiliatesOwed:
+              type: integer
+            affiliatesReadyForPayout:
+              type: integer
+            totalOwed:
+              type: number
+            minimumPayoutThreshold:
+              type: number
+        affiliates:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              fullName:
+                type: string
+              email:
+                type: string
+              country:
+                type: string
+              paymentMethod:
+                type: string
+              balance:
+                type: object
+                properties:
+                  pending:
+                    type: number
+                  paid:
+                    type: number
+                  total:
+                    type: number
+              pendingCount:
+                type: integer
+              oldestPendingDate:
+                type: string
+                format: date-time
+                nullable: true
+              readyForPayout:
+                type: boolean
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ProfitLossResponse:
+      type: object
+      required:
+        - period
+        - revenue
+        - costs
+        - profit
+        - volume
+      properties:
+        period:
+          $ref: '#/components/schemas/ReportPeriod'
+        revenue:
+          type: object
+          properties:
+            grossRevenue:
+              type: number
+            discounts:
+              type: number
+            netRevenue:
+              type: number
+            discountPercent:
+              type: number
+            averageTicket:
+              type: number
+        costs:
+          type: object
+          properties:
+            paidCommissions:
+              type: number
+            pendingCommissions:
+              type: number
+            approvedCommissions:
+              type: number
+            totalCommissions:
+              type: number
+            commissionPercent:
+              type: number
+            averageCommission:
+              type: number
+        profit:
+          type: object
+          properties:
+            netProfit:
+              type: number
+            margin:
+              type: number
+        volume:
+          type: object
+          properties:
+            totalSales:
+              type: integer
+            regularPrice:
+              type: number
+
+    SalesPerformanceResponse:
+      type: object
+      required:
+        - period
+        - summary
+        - topPerformers
+      properties:
+        period:
+          $ref: '#/components/schemas/ReportPeriod'
+        summary:
+          type: object
+          properties:
+            totalAffiliates:
+              type: integer
+            totalConversions:
+              type: integer
+            totalCommissionsEarned:
+              type: number
+            averageConversionsPerAffiliate:
+              type: number
+        topPerformers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              fullName:
+                type: string
+              email:
+                type: string
+              country:
+                type: string
+              metrics:
+                type: object
+                properties:
+                  codesDistributed:
+                    type: integer
+                  codesUsed:
+                    type: integer
+                  conversionsPeriod:
+                    type: integer
+                  totalCommissions:
+                    type: number
+                  conversionRate:
+                    type: number
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # CODE & COMMISSION SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    CancelCodeResponse:
+      type: object
+      required:
+        - success
+        - message
+        - code
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        code:
+          type: object
+          properties:
+            code:
+              type: string
+            status:
+              type: string
+            cancelledAt:
+              type: string
+              format: date-time
+            affiliateId:
+              type: string
+            affiliateName:
+              type: string
+            reason:
+              type: string
+
+    PayCommissionsResponse:
+      type: object
+      required:
+        - success
+        - message
+        - payment
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        payment:
+          type: object
+          properties:
+            batchId:
+              type: string
+            affiliateId:
+              type: string
+            commissionCount:
+              type: integer
+            totalAmount:
+              type: number
+            paymentMethod:
+              type: string
+            paymentReference:
+              type: string
+            paidAt:
+              type: string
+              format: date-time
+            paidBy:
+              type: string
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SETTINGS SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ConfigValue:
+      type: object
+      required:
+        - value
+        - updatedAt
+      properties:
+        value:
+          type: number
+        updatedBy:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    AffiliateSettingsResponse:
+      type: object
+      required:
+        - discountPercent
+        - commissionPercent
+        - codesPerMonth
+        - basePrice
+        - threeDayPrice
+      properties:
+        discountPercent:
+          $ref: '#/components/schemas/ConfigValue'
+        commissionPercent:
+          $ref: '#/components/schemas/ConfigValue'
+        codesPerMonth:
+          $ref: '#/components/schemas/ConfigValue'
+        basePrice:
+          $ref: '#/components/schemas/ConfigValue'
+        threeDayPrice:
+          $ref: '#/components/schemas/ConfigValue'
+
+    UpdateSettingsResponse:
+      type: object
+      required:
+        - success
+        - message
+        - changes
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              setting:
+                type: string
+              oldValue:
+                type: string
+              newValue:
+                type: string
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # FRAUD ALERT SCHEMAS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    FraudAlertsListResponse:
+      type: object
+      required:
+        - alerts
+        - stats
+        - pagination
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/FraudAlertItem'
+        stats:
+          type: object
+          properties:
+            total:
+              type: integer
+            bySeverity:
+              type: object
+              properties:
+                LOW:
+                  type: integer
+                MEDIUM:
+                  type: integer
+                HIGH:
+                  type: integer
+                CRITICAL:
+                  type: integer
+            byStatus:
+              type: object
+              properties:
+                PENDING:
+                  type: integer
+                REVIEWED:
+                  type: integer
+                DISMISSED:
+                  type: integer
+                BLOCKED:
+                  type: integer
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    FraudAlertItem:
+      type: object
+      required:
+        - id
+        - severity
+        - pattern
+        - status
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        pattern:
+          type: string
+        description:
+          type: string
+        userId:
+          type: string
+        userEmail:
+          type: string
+        userName:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        paymentMethod:
+          type: string
+          nullable: true
+        amount:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, REVIEWED, DISMISSED, BLOCKED]
+        ipAddress:
+          type: string
+          nullable: true
+        resolution:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        reviewedBy:
+          type: string
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    FraudAlertDetailResponse:
+      type: object
+      required:
+        - alert
+      properties:
+        alert:
+          allOf:
+            - $ref: '#/components/schemas/FraudAlertItem'
+            - type: object
+              properties:
+                updatedAt:
+                  type: string
+                  format: date-time
+                user:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    email:
+                      type: string
+                    name:
+                      type: string
+                      nullable: true
+                    tier:
+                      type: string
+                    isActive:
+                      type: boolean
+                    createdAt:
+                      type: string
+                      format: date-time
+
+    FraudAlertUpdateResponse:
+      type: object
+      required:
+        - alert
+        - message
+      properties:
+        alert:
+          $ref: '#/components/schemas/FraudAlertItem'
+        message:
+          type: string
