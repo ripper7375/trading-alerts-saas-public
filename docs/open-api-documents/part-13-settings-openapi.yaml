@@ -1,27 +1,37 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Settings System API (Part 13)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Settings System API for Trading Alerts SaaS platform (Part 13).
 
-    This API provides comprehensive user settings management including profile, preferences, security, and account operations.
+    This API provides comprehensive user settings management including profile, preferences,
+    security (2FA), session management, login history, and account operations.
 
     ## Features
     - User profile management (name, email, avatar)
-    - Preferences (theme, language, timezone, notifications)
-    - Password management
-    - Account deletion workflow
-    - Privacy and security settings
+    - Preferences (theme, language, timezone, notifications, chart settings)
+    - Password management with security alerts
+    - Two-Factor Authentication (TOTP) with backup codes
+    - Session management (list, revoke individual/all)
+    - Login history tracking with geolocation
+    - Account deletion workflow with 7-day grace period
 
     ## Settings Categories
-    - **Profile**: Name, email, avatar
-    - **Appearance**: Theme, color scheme
-    - **Account**: Language, timezone, date/time format
-    - **Privacy**: Visibility, data sharing
+    - **Profile**: Name, email, avatar, verification status
+    - **Appearance**: Theme (light/dark/system), color scheme, chart colors
+    - **Localization**: Language, timezone, date/time format, currency
+    - **Privacy**: Profile visibility, data sharing settings
+    - **Security**: Password, 2FA, security alerts, login history
+    - **Sessions**: Active sessions, device management
     - **Billing**: Subscription management (see Part 12)
-    - **Security**: Password changes
-    - **Notifications**: Email and push preferences
+
+    ## Security Features
+    - TOTP-based two-factor authentication
+    - 10 backup codes for 2FA recovery
+    - Login history with device/location tracking
+    - Security alerts for new devices and password changes
+    - Session management with device fingerprinting
 
   contact:
     name: API Support
@@ -46,6 +56,12 @@ tags:
     description: User preferences and settings
   - name: Password
     description: Password management
+  - name: Sessions
+    description: Session management and device tracking
+  - name: Login History
+    description: Login activity tracking
+  - name: Two-Factor Auth
+    description: Two-factor authentication (2FA) management
   - name: Account Deletion
     description: Account deletion workflow
 
@@ -61,7 +77,7 @@ paths:
         **Includes:**
         - User ID, name, email
         - Avatar/image URL
-        - Tier and role
+        - Tier (FREE/PRO) and role
         - Email verification status
         - Account timestamps
       operationId: getProfile
@@ -84,13 +100,7 @@ paths:
                   createdAt: '2025-11-15T10:00:00.000Z'
                   updatedAt: '2025-12-20T14:30:00.000Z'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '404':
           description: User not found
           content:
@@ -100,11 +110,7 @@ paths:
               example:
                 error: 'User not found'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
     patch:
       tags:
@@ -115,8 +121,8 @@ paths:
 
         **Updatable Fields:**
         - `name`: Display name (2-50 characters)
-        - `email`: Email address (triggers verification)
-        - `avatarUrl`: Profile image URL
+        - `email`: Email address (triggers verification if changed)
+        - `avatarUrl`: Profile image URL (nullable)
 
         **Email Changes:**
         - Triggers email verification flow
@@ -162,17 +168,9 @@ paths:
                   createdAt: '2025-11-15T10:00:00.000Z'
                   updatedAt: '2025-12-20T15:00:00.000Z'
         '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
+          $ref: '#/components/responses/ValidationError'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '409':
           description: Email already in use
           content:
@@ -182,11 +180,7 @@ paths:
               example:
                 error: 'Email already exists'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/user/preferences:
     get:
@@ -201,6 +195,7 @@ paths:
         - **Localization**: language, timezone, dateFormat, timeFormat, currency
         - **Privacy**: profileVisibility, showStats, showEmail
         - **Notifications**: emailNotifications, pushNotifications
+        - **Security Alerts**: newDeviceAlerts, passwordChangeAlerts
         - **Chart**: chartUpColor, chartDownColor, gridOpacity
       operationId: getPreferences
       responses:
@@ -214,7 +209,7 @@ paths:
                 preferences:
                   theme: 'dark'
                   colorScheme: 'blue'
-                  language: 'en'
+                  language: 'en-US'
                   timezone: 'America/New_York'
                   dateFormat: 'MDY'
                   timeFormat: '12h'
@@ -224,15 +219,15 @@ paths:
                   showEmail: false
                   emailNotifications: true
                   pushNotifications: false
+                  newDeviceAlerts: true
+                  passwordChangeAlerts: true
                   chartUpColor: '#22c55e'
                   chartDownColor: '#ef4444'
-                  gridOpacity: 10
+                  gridOpacity: 50
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
     put:
       tags:
@@ -242,6 +237,7 @@ paths:
         Updates the authenticated user's preferences.
 
         **Note:** Only provided fields are updated. Omitted fields retain their current values.
+        Uses upsert pattern - creates preferences record if none exists.
       operationId: updatePreferences
       requestBody:
         required: true
@@ -267,6 +263,17 @@ paths:
                   dateFormat: 'DMY'
                   timeFormat: '24h'
                   currency: 'EUR'
+              updateSecurityAlerts:
+                summary: Configure security alerts
+                value:
+                  newDeviceAlerts: true
+                  passwordChangeAlerts: true
+              updateChartSettings:
+                summary: Customize chart colors
+                value:
+                  chartUpColor: '#10b981'
+                  chartDownColor: '#f43f5e'
+                  gridOpacity: 30
       responses:
         '200':
           description: Preferences updated successfully
@@ -285,23 +292,11 @@ paths:
                   timeFormat: '24h'
                   currency: 'EUR'
         '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
+          $ref: '#/components/responses/ValidationError'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/user/password:
     post:
@@ -313,13 +308,15 @@ paths:
 
         **Requirements:**
         - Current password must be correct
-        - New password minimum 8 characters
+        - New password: minimum 8 characters, 1 uppercase, 1 lowercase, 1 number
         - New password must be different from current
 
-        **Security:**
+        **Security Features:**
         - Validates current password before change
         - Hashes new password with bcrypt
-        - Invalidates all existing sessions except current
+        - Creates security alert if `passwordChangeAlerts` is enabled
+        - Sends email notification on password change
+        - Not available for OAuth-only accounts
       operationId: changePassword
       requestBody:
         required: true
@@ -359,19 +356,544 @@ paths:
                 weakPassword:
                   summary: Password too weak
                   value:
-                    error: 'Password must be at least 8 characters'
+                    error: 'Password must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number'
+                oauthOnly:
+                  summary: OAuth-only account
+                  value:
+                    error: 'Cannot change password for OAuth-only accounts'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Internal server error
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/sessions:
+    get:
+      tags:
+        - Sessions
+      summary: List active sessions
+      description: |
+        Retrieves all active sessions for the authenticated user.
+
+        **Includes for each session:**
+        - Session ID
+        - Device type (Desktop, Mobile, Tablet)
+        - Browser name and version
+        - Operating system
+        - Location (City, Region, Country)
+        - IP address
+        - Last active timestamp
+        - Whether it's the current session
+
+        Uses device fingerprinting and user agent parsing for device detection.
+      operationId: listSessions
+      responses:
+        '200':
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionsResponse'
+              example:
+                sessions:
+                  - id: 'sess_abc123'
+                    device: 'Desktop'
+                    browser: 'Chrome 120'
+                    os: 'Windows 11'
+                    location: 'New York, NY, US'
+                    ipAddress: '192.168.1.100'
+                    lastActive: '2025-12-20T15:30:00.000Z'
+                    isCurrent: true
+                  - id: 'sess_def456'
+                    device: 'Mobile'
+                    browser: 'Safari 17'
+                    os: 'iOS 17'
+                    location: 'Los Angeles, CA, US'
+                    ipAddress: '10.0.0.50'
+                    lastActive: '2025-12-19T10:00:00.000Z'
+                    isCurrent: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - Sessions
+      summary: Revoke all other sessions
+      description: |
+        Revokes all sessions except the current session.
+        Useful for signing out from all other devices.
+
+        **Note:** The current session remains active.
+      operationId: revokeAllSessions
+      responses:
+        '200':
+          description: All other sessions revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'All other sessions have been signed out'
+                  revokedCount:
+                    type: integer
+                    example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/sessions/{id}:
+    delete:
+      tags:
+        - Sessions
+      summary: Revoke specific session
+      description: |
+        Revokes a specific session by ID.
+        Cannot revoke the current session using this endpoint.
+      operationId: revokeSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Session ID to revoke
+          schema:
+            type: string
+            example: 'sess_def456'
+      responses:
+        '200':
+          description: Session revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Session revoked successfully'
+        '400':
+          description: Cannot revoke current session
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Cannot revoke current session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Session not found'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/login-history:
+    get:
+      tags:
+        - Login History
+      summary: Get login history
+      description: |
+        Retrieves the user's login history with pagination.
+
+        **Includes for each entry:**
+        - Login timestamp
+        - Status (SUCCESS, FAILED, BLOCKED)
+        - Authentication provider (credentials, google, twitter, linkedin)
+        - Device, browser, OS information
+        - Location (City, Region, Country)
+        - IP address
+        - Whether it was a new device
+
+        Sorted by timestamp descending (most recent first).
+      operationId: getLoginHistory
+      parameters:
+        - name: limit
+          in: query
+          description: Number of entries to return (1-100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of entries to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Login history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginHistoryResponse'
+              example:
+                history:
+                  - id: 'login_abc123'
+                    timestamp: '2025-12-20T15:30:00.000Z'
+                    status: 'SUCCESS'
+                    provider: 'credentials'
+                    device: 'Desktop'
+                    browser: 'Chrome 120'
+                    os: 'Windows 11'
+                    location: 'New York, NY, US'
+                    ipAddress: '192.168.1.100'
+                    isNewDevice: false
+                  - id: 'login_def456'
+                    timestamp: '2025-12-19T08:15:00.000Z'
+                    status: 'FAILED'
+                    provider: 'credentials'
+                    device: 'Mobile'
+                    browser: 'Safari 17'
+                    os: 'iOS 17'
+                    location: 'Unknown'
+                    ipAddress: '10.0.0.50'
+                    isNewDevice: true
+                pagination:
+                  total: 45
+                  limit: 20
+                  offset: 0
+                  hasMore: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/2fa/setup:
+    post:
+      tags:
+        - Two-Factor Auth
+      summary: Initiate 2FA setup
+      description: |
+        Generates a TOTP secret and QR code for 2FA setup.
+        User must verify the code using `/api/user/2fa/verify-setup` to complete setup.
+
+        **Process:**
+        1. Call this endpoint to get QR code
+        2. Scan QR code with authenticator app (Google Authenticator, Authy, etc.)
+        3. Call verify-setup with the 6-digit code from the app
+        4. Store backup codes securely
+
+        **Note:** Does not enable 2FA - just generates the secret.
+      operationId: setup2FA
+      responses:
+        '200':
+          description: 2FA setup initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorSetupResponse'
+              example:
+                qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...'
+                secret: 'JBSWY3DPEHPK3PXP'
+                message: 'Scan the QR code with your authenticator app'
+        '400':
+          description: 2FA already enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Two-factor authentication is already enabled'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/2fa/verify-setup:
+    post:
+      tags:
+        - Two-Factor Auth
+      summary: Verify and enable 2FA
+      description: |
+        Verifies the TOTP code and enables 2FA on the account.
+        Must be called after `/api/user/2fa/setup`.
+
+        **On success:**
+        - 2FA is enabled on the account
+        - 10 backup codes are generated and returned
+        - User should store backup codes securely
+
+        **Backup codes:**
+        - One-time use codes for recovery
+        - 10 codes generated
+        - Can be regenerated later
+      operationId: verifySetup2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorVerifyRequest'
+            example:
+              code: '123456'
+      responses:
+        '200':
+          description: 2FA enabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorVerifySetupResponse'
+              example:
+                message: 'Two-factor authentication enabled successfully'
+                backupCodes:
+                  - 'ABCD-EFGH-1234'
+                  - 'IJKL-MNOP-5678'
+                  - 'QRST-UVWX-9012'
+                  - 'YZAB-CDEF-3456'
+                  - 'GHIJ-KLMN-7890'
+                  - 'OPQR-STUV-1234'
+                  - 'WXYZ-ABCD-5678'
+                  - 'EFGH-IJKL-9012'
+                  - 'MNOP-QRST-3456'
+                  - 'UVWX-YZAB-7890'
+        '400':
+          description: Invalid code or setup not initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  summary: Invalid verification code
+                  value:
+                    error: 'Invalid verification code'
+                noSetup:
+                  summary: Setup not initiated
+                  value:
+                    error: 'Please initiate 2FA setup first'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/2fa/verify:
+    post:
+      tags:
+        - Two-Factor Auth
+      summary: Verify 2FA code
+      description: |
+        Verifies a 2FA code during login or sensitive operations.
+        Accepts both TOTP codes and backup codes.
+
+        **Code types:**
+        - 6-digit TOTP code from authenticator app
+        - Backup code (one-time use, format: XXXX-XXXX-XXXX)
+
+        **Backup code usage:**
+        - Each backup code can only be used once
+        - After use, the code is invalidated
+      operationId: verify2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorVerifyRequest'
+            examples:
+              totpCode:
+                summary: TOTP code
+                value:
+                  code: '123456'
+              backupCode:
+                summary: Backup code
+                value:
+                  code: 'ABCD-EFGH-1234'
+      responses:
+        '200':
+          description: Code verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Verification successful'
+                  usedBackupCode:
+                    type: boolean
+                    description: Whether a backup code was used
+                    example: false
+        '400':
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Invalid verification code'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/2fa/disable:
+    post:
+      tags:
+        - Two-Factor Auth
+      summary: Disable 2FA
+      description: |
+        Disables two-factor authentication on the account.
+
+        **Requirements:**
+        - Current password must be provided
+        - Valid 2FA code must be provided
+
+        **On success:**
+        - 2FA is disabled
+        - TOTP secret is removed
+        - Backup codes are invalidated
+      operationId: disable2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorDisableRequest'
+            example:
+              password: 'CurrentPassword123'
+              code: '123456'
+      responses:
+        '200':
+          description: 2FA disabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Two-factor authentication disabled successfully'
+        '400':
+          description: Invalid password or code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPassword:
+                  summary: Incorrect password
+                  value:
+                    error: 'Incorrect password'
+                invalidCode:
+                  summary: Invalid 2FA code
+                  value:
+                    error: 'Invalid verification code'
+                notEnabled:
+                  summary: 2FA not enabled
+                  value:
+                    error: 'Two-factor authentication is not enabled'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/2fa/backup-codes:
+    get:
+      tags:
+        - Two-Factor Auth
+      summary: Get backup codes count
+      description: |
+        Returns the number of remaining valid backup codes.
+        Does not return the actual codes for security.
+      operationId: getBackupCodesCount
+      responses:
+        '200':
+          description: Backup codes count retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupCodesCountResponse'
+              example:
+                remainingCodes: 8
+                totalCodes: 10
+        '400':
+          description: 2FA not enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Two-factor authentication is not enabled'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags:
+        - Two-Factor Auth
+      summary: Regenerate backup codes
+      description: |
+        Generates a new set of 10 backup codes.
+        Invalidates all previous backup codes.
+
+        **Requirements:**
+        - Current password must be provided
+        - 2FA must be enabled
+
+        **Security:**
+        - Old codes are immediately invalidated
+        - Store new codes securely
+      operationId: regenerateBackupCodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegenerateBackupCodesRequest'
+            example:
+              password: 'CurrentPassword123'
+      responses:
+        '200':
+          description: Backup codes regenerated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupCodesResponse'
+              example:
+                message: 'Backup codes regenerated successfully'
+                backupCodes:
+                  - 'NEWC-ODE1-XXXX'
+                  - 'NEWC-ODE2-XXXX'
+                  - 'NEWC-ODE3-XXXX'
+                  - 'NEWC-ODE4-XXXX'
+                  - 'NEWC-ODE5-XXXX'
+                  - 'NEWC-ODE6-XXXX'
+                  - 'NEWC-ODE7-XXXX'
+                  - 'NEWC-ODE8-XXXX'
+                  - 'NEWC-ODE9-XXXX'
+                  - 'NEWC-OD10-XXXX'
+        '400':
+          description: Invalid password or 2FA not enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPassword:
+                  summary: Incorrect password
+                  value:
+                    error: 'Incorrect password'
+                notEnabled:
+                  summary: 2FA not enabled
+                  value:
+                    error: 'Two-factor authentication is not enabled'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/user/account/deletion-request:
     post:
@@ -388,7 +910,7 @@ paths:
         4. Automated job deletes account after 7 days
 
         **Grace Period:**
-        User can cancel deletion within 7 days using the link in email.
+        User can cancel deletion within 7 days using the cancellation token.
       operationId: requestAccountDeletion
       responses:
         '200':
@@ -411,17 +933,9 @@ paths:
                 error: 'Deletion already requested'
                 message: 'Your account is already scheduled for deletion'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/user/account/deletion-confirm:
     post:
@@ -435,10 +949,12 @@ paths:
 
         **Deletes:**
         - User account
-        - All alerts
-        - All watchlist items
-        - User preferences
-        - Subscription history (marks as deleted in billing)
+        - All alerts and watchlist items
+        - User preferences and sessions
+        - Login history and security alerts
+        - Subscription data (marks as deleted in billing)
+
+        Uses cascading deletes via Prisma relations.
       operationId: confirmAccountDeletion
       requestBody:
         required: true
@@ -465,14 +981,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Invalid deletion token'
+              examples:
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    error: 'Invalid deletion token'
+                expiredToken:
+                  summary: Token expired
+                  value:
+                    error: 'Deletion token has expired'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
   /api/user/account/deletion-cancel:
     post:
@@ -482,7 +1001,7 @@ paths:
       description: |
         Cancels a pending account deletion request.
 
-        **Note:** Can only cancel if deletion hasn't been confirmed yet.
+        **Note:** Can only cancel if deletion hasn't been confirmed/completed yet.
       operationId: cancelAccountDeletion
       requestBody:
         required: true
@@ -509,14 +1028,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'No pending deletion request found'
+              examples:
+                invalidToken:
+                  summary: Invalid token
+                  value:
+                    error: 'Invalid cancellation token'
+                noPending:
+                  summary: No pending deletion
+                  value:
+                    error: 'No pending deletion request found'
+                alreadyCompleted:
+                  summary: Already deleted
+                  value:
+                    error: 'Account deletion has already been completed'
         '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/InternalError'
 
 components:
   securitySchemes:
@@ -525,6 +1051,32 @@ components:
       in: cookie
       name: next-auth.session-token
       description: NextAuth session cookie
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Unauthorized'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Internal server error'
 
   schemas:
     ProfileResponse:
@@ -547,38 +1099,47 @@ components:
       properties:
         id:
           type: string
+          description: Unique user identifier (CUID)
           example: 'cm4f8j0nh0001i7jqe2rm3y6p'
         name:
           type: string
           nullable: true
+          description: Display name
           example: 'John Doe'
         email:
           type: string
           nullable: true
+          description: Email address
           example: 'john@example.com'
         image:
           type: string
           format: uri
           nullable: true
+          description: Profile image URL
           example: 'https://lh3.googleusercontent.com/a/example'
         tier:
           type: string
           enum: [FREE, PRO]
+          description: Subscription tier
           example: 'PRO'
         role:
           type: string
           enum: [USER, ADMIN]
+          description: User role
           example: 'USER'
         emailVerified:
           type: boolean
+          description: Whether email is verified
           example: true
         createdAt:
           type: string
           format: date-time
+          description: Account creation timestamp
           example: '2025-11-15T10:00:00.000Z'
         updatedAt:
           type: string
           format: date-time
+          description: Last profile update timestamp
           example: '2025-12-20T14:30:00.000Z'
 
     UpdateProfileRequest:
@@ -588,15 +1149,18 @@ components:
           type: string
           minLength: 2
           maxLength: 50
+          description: Display name (2-50 characters)
           example: 'Jane Doe'
         email:
           type: string
           format: email
+          description: Email address
           example: 'jane.new@example.com'
         avatarUrl:
           type: string
           format: uri
           nullable: true
+          description: Profile image URL
           example: 'https://example.com/avatar.jpg'
 
     UpdateProfileResponse:
@@ -621,62 +1185,87 @@ components:
 
     UserPreferences:
       type: object
+      description: User preferences object with all settings
       properties:
         theme:
           type: string
           enum: [light, dark, system]
+          description: UI theme preference
           example: 'dark'
         colorScheme:
           type: string
           enum: [blue, purple, green, orange]
+          description: Accent color scheme
           example: 'blue'
         language:
           type: string
-          example: 'en'
+          description: Preferred language (locale code)
+          example: 'en-US'
         timezone:
           type: string
+          description: User timezone (IANA format)
           example: 'America/New_York'
         dateFormat:
           type: string
           enum: [MDY, DMY, YMD]
+          description: Date format preference
           example: 'MDY'
         timeFormat:
           type: string
           enum: ['12h', '24h']
+          description: Time format preference
           example: '12h'
         currency:
           type: string
+          description: Preferred currency for display
           example: 'USD'
         profileVisibility:
           type: string
           enum: [public, private, connections]
+          description: Profile visibility setting
           example: 'private'
         showStats:
           type: boolean
+          description: Show trading statistics publicly
           example: true
         showEmail:
           type: boolean
+          description: Show email address publicly
           example: false
         emailNotifications:
           type: boolean
+          description: Enable email notifications
           example: true
         pushNotifications:
           type: boolean
+          description: Enable push notifications
           example: false
+        newDeviceAlerts:
+          type: boolean
+          description: Alert on login from new device
+          example: true
+        passwordChangeAlerts:
+          type: boolean
+          description: Alert on password change
+          example: true
         chartUpColor:
           type: string
+          description: Candlestick up/bullish color (hex)
           example: '#22c55e'
         chartDownColor:
           type: string
+          description: Candlestick down/bearish color (hex)
           example: '#ef4444'
         gridOpacity:
           type: number
           minimum: 0
           maximum: 100
-          example: 10
+          description: Chart grid opacity percentage
+          example: 50
 
     UpdatePreferencesRequest:
       type: object
+      description: Partial update for preferences - only include fields to update
       properties:
         theme:
           type: string
@@ -706,6 +1295,10 @@ components:
         emailNotifications:
           type: boolean
         pushNotifications:
+          type: boolean
+        newDeviceAlerts:
+          type: boolean
+        passwordChangeAlerts:
           type: boolean
         chartUpColor:
           type: string
@@ -737,12 +1330,271 @@ components:
         currentPassword:
           type: string
           format: password
+          description: Current password for verification
           example: 'OldPassword123'
         newPassword:
           type: string
           format: password
           minLength: 8
+          description: New password (8+ chars, 1 uppercase, 1 lowercase, 1 number)
           example: 'NewSecurePassword456'
+
+    SessionsResponse:
+      type: object
+      required:
+        - sessions
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+
+    Session:
+      type: object
+      required:
+        - id
+        - device
+        - browser
+        - os
+        - lastActive
+        - isCurrent
+      properties:
+        id:
+          type: string
+          description: Session identifier
+          example: 'sess_abc123'
+        device:
+          type: string
+          description: Device type
+          example: 'Desktop'
+        browser:
+          type: string
+          description: Browser name and version
+          example: 'Chrome 120'
+        os:
+          type: string
+          description: Operating system
+          example: 'Windows 11'
+        location:
+          type: string
+          nullable: true
+          description: Geolocation (City, Region, Country)
+          example: 'New York, NY, US'
+        ipAddress:
+          type: string
+          description: IP address
+          example: '192.168.1.100'
+        lastActive:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: '2025-12-20T15:30:00.000Z'
+        isCurrent:
+          type: boolean
+          description: Whether this is the current session
+          example: true
+
+    LoginHistoryResponse:
+      type: object
+      required:
+        - history
+        - pagination
+      properties:
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoginHistoryEntry'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    LoginHistoryEntry:
+      type: object
+      required:
+        - id
+        - timestamp
+        - status
+        - provider
+      properties:
+        id:
+          type: string
+          description: Login history entry ID
+          example: 'login_abc123'
+        timestamp:
+          type: string
+          format: date-time
+          description: Login attempt timestamp
+          example: '2025-12-20T15:30:00.000Z'
+        status:
+          type: string
+          enum: [SUCCESS, FAILED, BLOCKED]
+          description: Login attempt status
+          example: 'SUCCESS'
+        provider:
+          type: string
+          enum: [credentials, google, twitter, linkedin]
+          description: Authentication provider used
+          example: 'credentials'
+        device:
+          type: string
+          nullable: true
+          description: Device type
+          example: 'Desktop'
+        browser:
+          type: string
+          nullable: true
+          description: Browser name and version
+          example: 'Chrome 120'
+        os:
+          type: string
+          nullable: true
+          description: Operating system
+          example: 'Windows 11'
+        location:
+          type: string
+          nullable: true
+          description: Geolocation (City, Region, Country)
+          example: 'New York, NY, US'
+        ipAddress:
+          type: string
+          nullable: true
+          description: IP address
+          example: '192.168.1.100'
+        isNewDevice:
+          type: boolean
+          description: Whether login was from a new device
+          example: false
+
+    Pagination:
+      type: object
+      required:
+        - total
+        - limit
+        - offset
+        - hasMore
+      properties:
+        total:
+          type: integer
+          description: Total number of entries
+          example: 45
+        limit:
+          type: integer
+          description: Current page size
+          example: 20
+        offset:
+          type: integer
+          description: Current offset
+          example: 0
+        hasMore:
+          type: boolean
+          description: Whether more entries exist
+          example: true
+
+    TwoFactorSetupResponse:
+      type: object
+      required:
+        - qrCode
+        - secret
+        - message
+      properties:
+        qrCode:
+          type: string
+          description: Base64-encoded QR code image
+          example: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...'
+        secret:
+          type: string
+          description: TOTP secret for manual entry
+          example: 'JBSWY3DPEHPK3PXP'
+        message:
+          type: string
+          example: 'Scan the QR code with your authenticator app'
+
+    TwoFactorVerifyRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          description: 6-digit TOTP code or backup code
+          example: '123456'
+
+    TwoFactorVerifySetupResponse:
+      type: object
+      required:
+        - message
+        - backupCodes
+      properties:
+        message:
+          type: string
+          example: 'Two-factor authentication enabled successfully'
+        backupCodes:
+          type: array
+          items:
+            type: string
+          description: 10 backup codes for recovery
+          example:
+            - 'ABCD-EFGH-1234'
+            - 'IJKL-MNOP-5678'
+
+    TwoFactorDisableRequest:
+      type: object
+      required:
+        - password
+        - code
+      properties:
+        password:
+          type: string
+          format: password
+          description: Current account password
+          example: 'CurrentPassword123'
+        code:
+          type: string
+          description: 6-digit TOTP code
+          example: '123456'
+
+    BackupCodesCountResponse:
+      type: object
+      required:
+        - remainingCodes
+        - totalCodes
+      properties:
+        remainingCodes:
+          type: integer
+          description: Number of unused backup codes
+          example: 8
+        totalCodes:
+          type: integer
+          description: Total backup codes generated
+          example: 10
+
+    RegenerateBackupCodesRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password:
+          type: string
+          format: password
+          description: Current account password
+          example: 'CurrentPassword123'
+
+    BackupCodesResponse:
+      type: object
+      required:
+        - message
+        - backupCodes
+      properties:
+        message:
+          type: string
+          example: 'Backup codes regenerated successfully'
+        backupCodes:
+          type: array
+          items:
+            type: string
+          description: 10 new backup codes
+          example:
+            - 'NEWC-ODE1-XXXX'
+            - 'NEWC-ODE2-XXXX'
 
     DeletionRequestResponse:
       type: object
@@ -757,9 +1609,11 @@ components:
         scheduledFor:
           type: string
           format: date-time
+          description: When account will be deleted (7 days from request)
           example: '2025-12-27T15:00:00.000Z'
         cancellationToken:
           type: string
+          description: Token for cancelling deletion
           example: 'del_abc123xyz456'
 
     ConfirmDeletionRequest:
@@ -769,6 +1623,7 @@ components:
       properties:
         token:
           type: string
+          description: Deletion confirmation token
           example: 'del_abc123xyz456'
 
     CancelDeletionRequest:
@@ -778,6 +1633,7 @@ components:
       properties:
         token:
           type: string
+          description: Deletion cancellation token
           example: 'del_abc123xyz456'
 
     ErrorResponse:
@@ -787,9 +1643,11 @@ components:
       properties:
         error:
           type: string
+          description: Error message
           example: 'Unauthorized'
         message:
           type: string
+          description: Additional error details
           example: 'Additional error details'
 
     ValidationErrorResponse:
@@ -807,5 +1665,7 @@ components:
             properties:
               field:
                 type: string
+                description: Field that failed validation
               message:
                 type: string
+                description: Validation error message
