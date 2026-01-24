@@ -27,8 +27,8 @@ psycopg2-binary==2.9.9
 requests==2.31.0
 python-dotenv==1.0.0
 
-# Validation
-pydantic==2.5.0
+# Validation and API type definitions
+pydantic>=2.12.0  # Runtime validation for API responses
 
 # Logging
 colorlog==6.8.0
