@@ -966,44 +966,44 @@ model MarketData {
   smma                 Float?
 
   // PRO tier indicators - Group 4: Body Size Momentum (2 columns)
-  body_size            Float?
-  body_direction       Float?
+  z_score_of_body_size Float?
+  candle_classification Float?
 
   // PRO tier indicators - Group 5: Heiken Ashi (7 columns)
   ha_open              Float?
   ha_high              Float?
   ha_low               Float?
   ha_close             Float?
-  ha_color             Float?
-  ha_trend             Float?
-  ha_strength          Float?
+  ha_classification    Float?
+  ha_body_size         Float?
+  ha_body_zscore       Float?
 
   // PRO tier indicators - Group 6: Keltner Channels (10 columns)
+  kc_ultra_extreme_upper Float?
+  kc_extreme_upper     Float?
+  kc_uppermost         Float?
   kc_upper             Float?
-  kc_middle            Float?
+  kc_upper_middle      Float?
+  kc_lower_middle      Float?
   kc_lower             Float?
-  kc_upper_ema         Float?
-  kc_middle_ema        Float?
-  kc_lower_ema         Float?
-  kc_squeeze           Float?
-  kc_squeeze_pro       Float?
-  kc_width             Float?
-  kc_width_ema         Float?
+  kc_lowermost         Float?
+  kc_extreme_lower     Float?
+  kc_ultra_extreme_lower Float?
 
   // PRO tier indicators - Group 7: Support/Resistance (8 columns)
-  sr_1                 Float?
-  sr_2                 Float?
-  sr_3                 Float?
-  sr_4                 Float?
-  sr_5                 Float?
-  sr_6                 Float?
-  sr_7                 Float?
-  sr_8                 Float?
+  sr_support_1         Float?
+  sr_support_2         Float?
+  sr_support_3         Float?
+  sr_support_4         Float?
+  sr_resistance_1      Float?
+  sr_resistance_2      Float?
+  sr_resistance_3      Float?
+  sr_resistance_4      Float?
 
   // PRO tier indicators - Group 8: ZigZag (3 columns)
-  zigzag_high          Float?
-  zigzag_low           Float?
-  zigzag_trend         Float?
+  zigzag_peak          Float?
+  zigzag_bottom        Float?
+  ema_26               Float?
 
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
