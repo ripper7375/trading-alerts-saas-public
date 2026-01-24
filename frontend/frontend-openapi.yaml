@@ -1,0 +1,2365 @@
+openapi: 3.1.0
+info:
+  title: Trading Alerts SaaS Frontend API
+  version: 1.0.0
+  description: |
+    Trading Alerts SaaS V7 Frontend API - Complete REST API documentation for the Next.js 15 application.
+
+    ## Technology Stack
+    - **Framework**: Next.js 15.5.7 (App Router)
+    - **Language**: TypeScript 5.3.2 (Strict Mode)
+    - **React**: 19.2.1
+    - **Database**: PostgreSQL with Prisma ORM 5.22.0
+    - **Authentication**: NextAuth.js 4.24.5
+    - **Payments**: Stripe + dLocal
+    - **UI**: Radix UI + Tailwind CSS
+
+    ## Authentication
+    Most endpoints require authentication via NextAuth session cookies.
+
+    ## Tier-Based Access Control
+    - **FREE Tier**: 5 alerts max, 5 watchlist items, limited symbols (4), limited timeframes (H1, D1)
+    - **PRO Tier**: 20 alerts max, 50 watchlist items, full symbols (15), all timeframes
+
+  contact:
+    name: Trading Alerts Team
+    email: support@tradingalerts.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and registration endpoints
+  - name: User Management
+    description: User profile and account management
+  - name: Alerts
+    description: Price alert management
+  - name: Watchlist
+    description: Watchlist and symbol tracking
+  - name: Subscription
+    description: Subscription and billing management
+  - name: Tier & Symbol Access
+    description: Tier validation and symbol access control
+  - name: Payment (dLocal)
+    description: dLocal payment integration for international users
+  - name: Checkout
+    description: Stripe checkout and payment processing
+  - name: Admin
+    description: Admin portal endpoints (requires ADMIN role)
+  - name: Affiliate
+    description: Affiliate system endpoints
+  - name: Disbursement
+    description: Affiliate payment disbursement system
+  - name: Notifications
+    description: User notification management
+  - name: Webhooks
+    description: External webhook handlers (Stripe, dLocal, Rise Works)
+  - name: Cron Jobs
+    description: Scheduled task endpoints
+  - name: Configuration
+    description: Application configuration endpoints
+
+security:
+  - sessionCookie: []
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user account
+      description: |
+        Creates a new user account with email/password credentials.
+        - Password must be 8+ characters with uppercase, lowercase, number, and special character
+        - Sends email verification link (if email service configured)
+        - Auto-verifies in development if email service not configured
+        - Creates FREE tier account by default
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecureP@ss123
+                  description: Must contain uppercase, lowercase, number, and special character
+                name:
+                  type: string
+                  example: John Doe
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  userId:
+                    type: string
+                    example: clh123abc456def
+                  message:
+                    type: string
+                    example: Registration successful. Please check your email to verify your account.
+                  autoVerified:
+                    type: boolean
+                    example: false
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/verify-email:
+    post:
+      tags: [Authentication]
+      summary: Verify email address
+      description: Verifies user email using token from verification email
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  example: a1b2c3d4e5f6g7h8i9j0
+      responses:
+        '200':
+          description: Email verified successfully
+        '400':
+          description: Invalid or expired token
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      description: Sends password reset link to user's email
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        '200':
+          description: Password reset email sent
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password
+      description: Resets user password using token from reset email
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                  example: reset_token_123
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: NewSecureP@ss456
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Invalid token or weak password
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/resend-verification:
+    post:
+      tags: [Authentication]
+      summary: Resend verification email
+      description: Resends email verification link
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Verification email sent
+        '429':
+          description: Too many requests
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/auth/track-login:
+    post:
+      tags: [Authentication]
+      summary: Track user login event
+      description: Records login event with device and location information
+      operationId: trackLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deviceInfo:
+                  type: object
+                  properties:
+                    userAgent:
+                      type: string
+                    ip:
+                      type: string
+      responses:
+        '200':
+          description: Login tracked successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== USER MANAGEMENT ====================
+  /api/user/profile:
+    get:
+      tags: [User Management]
+      summary: Get user profile
+      description: Returns authenticated user's profile information
+      operationId: getUserProfile
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: User not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags: [User Management]
+      summary: Update user profile
+      description: Updates user profile (name, email, avatar)
+      operationId: updateUserProfile
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  example: Jane Doe
+                email:
+                  type: string
+                  format: email
+                  example: newemail@example.com
+                avatarUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                  example: https://example.com/avatar.jpg
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+                  message:
+                    type: string
+                    example: Profile updated successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Email already in use
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/user/password:
+    patch:
+      tags: [User Management]
+      summary: Change password
+      description: Updates user password (requires current password)
+      operationId: changePassword
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+      responses:
+        '200':
+          description: Password changed successfully
+        '400':
+          description: Invalid current password or weak new password
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/preferences:
+    get:
+      tags: [User Management]
+      summary: Get user preferences
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: User preferences retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    patch:
+      tags: [User Management]
+      summary: Update user preferences
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/login-history:
+    get:
+      tags: [User Management]
+      summary: Get login history
+      description: Returns user's recent login events
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Login history retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logins:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LoginEvent'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/sessions:
+    get:
+      tags: [User Management]
+      summary: Get active sessions
+      description: Lists all active user sessions
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Sessions retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/sessions/{id}:
+    delete:
+      tags: [User Management]
+      summary: Revoke session
+      description: Terminates a specific user session
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session revoked successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Session not found
+
+  /api/user/account/deletion-request:
+    post:
+      tags: [User Management]
+      summary: Request account deletion
+      description: Initiates account deletion process (30-day grace period)
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Deletion request submitted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/account/deletion-cancel:
+    post:
+      tags: [User Management]
+      summary: Cancel account deletion
+      description: Cancels pending account deletion request
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Deletion cancelled
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/account/deletion-confirm:
+    post:
+      tags: [User Management]
+      summary: Confirm account deletion
+      description: Immediately deletes user account (irreversible)
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Account deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== TWO-FACTOR AUTHENTICATION ====================
+  /api/user/2fa/setup:
+    post:
+      tags: [User Management]
+      summary: Setup 2FA
+      description: Generates TOTP secret and QR code for 2FA setup
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: 2FA setup initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:
+                    type: string
+                    example: JBSWY3DPEHPK3PXP
+                  qrCode:
+                    type: string
+                    description: Base64-encoded QR code image
+                  backupCodes:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/2fa/verify-setup:
+    post:
+      tags: [User Management]
+      summary: Verify 2FA setup
+      description: Verifies TOTP code to enable 2FA
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: 2FA enabled successfully
+        '400':
+          description: Invalid code
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/2fa/verify:
+    post:
+      tags: [User Management]
+      summary: Verify 2FA code during login
+      description: Validates TOTP code during authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: Code verified
+        '400':
+          description: Invalid code
+
+  /api/user/2fa/disable:
+    post:
+      tags: [User Management]
+      summary: Disable 2FA
+      description: Disables two-factor authentication for user
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: 2FA disabled successfully
+        '400':
+          description: Invalid password
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/user/2fa/backup-codes:
+    get:
+      tags: [User Management]
+      summary: Get backup codes
+      description: Retrieves 2FA backup codes
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Backup codes retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  codes:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== ALERTS ====================
+  /api/alerts:
+    get:
+      tags: [Alerts]
+      summary: List user's alerts
+      description: |
+        Returns user's price alerts with optional filters.
+        - Supports filtering by status (active, paused, triggered)
+        - Supports filtering by symbol
+        - Results ordered by creation date (newest first)
+      operationId: listAlerts
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused, triggered]
+          description: Filter by alert status
+        - name: symbol
+          in: query
+          schema:
+            type: string
+          description: Filter by trading symbol
+          example: EURUSD
+      responses:
+        '200':
+          description: Alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Alerts]
+      summary: Create new alert
+      description: |
+        Creates a new price alert with tier validation.
+        - Validates symbol access based on user tier
+        - Validates timeframe access based on user tier
+        - Enforces tier-based alert limits (FREE: 5, PRO: 20)
+        - Returns 403 if tier restrictions violated
+      operationId: createAlert
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, timeframe, conditionType, targetValue]
+              properties:
+                symbol:
+                  type: string
+                  example: EURUSD
+                  description: Trading symbol
+                timeframe:
+                  type: string
+                  example: H1
+                  enum: [M5, M15, M30, H1, H4, D1, W1]
+                  description: Chart timeframe
+                conditionType:
+                  type: string
+                  enum: [price_above, price_below, price_equals]
+                  example: price_above
+                targetValue:
+                  type: number
+                  format: double
+                  minimum: 0
+                  example: 1.1000
+                  description: Target price value
+                name:
+                  type: string
+                  maxLength: 100
+                  example: EURUSD H1 Alert
+                  description: Optional custom alert name
+      responses:
+        '201':
+          description: Alert created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alert:
+                    $ref: '#/components/schemas/Alert'
+                  message:
+                    type: string
+                    example: Alert created successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Tier restriction violated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Alert limit exceeded
+                  message:
+                    type: string
+                    example: You have reached your FREE tier limit of 5 alerts
+                  code:
+                    type: string
+                    enum: [SYMBOL_NOT_ALLOWED, TIMEFRAME_NOT_ALLOWED, ALERT_LIMIT_EXCEEDED]
+                  currentCount:
+                    type: integer
+                  limit:
+                    type: integer
+                  upgradeUrl:
+                    type: string
+                    example: /pricing
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/alerts/{id}:
+    delete:
+      tags: [Alerts]
+      summary: Delete alert
+      description: Deletes a specific alert (with ownership verification)
+      operationId: deleteAlert
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Alert ID
+      responses:
+        '200':
+          description: Alert deleted successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not authorized to delete this alert
+        '404':
+          description: Alert not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Alerts]
+      summary: Update alert
+      description: Updates alert properties (status, target value)
+      operationId: updateAlert
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                  description: Enable/disable alert
+                targetValue:
+                  type: number
+                  format: double
+                  description: New target price
+      responses:
+        '200':
+          description: Alert updated successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not authorized to update this alert
+        '404':
+          description: Alert not found
+
+  # ==================== WATCHLIST ====================
+  /api/watchlist:
+    get:
+      tags: [Watchlist]
+      summary: Get user's watchlist
+      description: Returns user's watchlist with all items ordered by position
+      operationId: getWatchlist
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Watchlist retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  watchlist:
+                    $ref: '#/components/schemas/Watchlist'
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WatchlistItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Watchlist]
+      summary: Add item to watchlist
+      description: |
+        Adds a symbol+timeframe combination to watchlist.
+        - Validates symbol access based on tier
+        - Validates timeframe access based on tier
+        - Enforces tier limits (FREE: 5 items, PRO: 50 items)
+        - Prevents duplicate combinations
+      operationId: addWatchlistItem
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [symbol, timeframe]
+              properties:
+                symbol:
+                  type: string
+                  example: EURUSD
+                timeframe:
+                  type: string
+                  example: H1
+                  enum: [M5, M15, M30, H1, H4, D1, W1]
+                watchlistId:
+                  type: string
+                  description: Optional watchlist ID (uses default if omitted)
+      responses:
+        '201':
+          description: Item added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  item:
+                    $ref: '#/components/schemas/WatchlistItem'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Tier restriction or limit exceeded
+        '409':
+          description: Duplicate symbol+timeframe combination
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/watchlist/{id}:
+    delete:
+      tags: [Watchlist]
+      summary: Remove item from watchlist
+      description: Removes a watchlist item
+      operationId: removeWatchlistItem
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item removed successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Not authorized to remove this item
+        '404':
+          description: Item not found
+
+  /api/watchlist/reorder:
+    post:
+      tags: [Watchlist]
+      summary: Reorder watchlist items
+      description: Updates the display order of watchlist items
+      operationId: reorderWatchlist
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, order]
+                    properties:
+                      id:
+                        type: string
+                      order:
+                        type: integer
+      responses:
+        '200':
+          description: Items reordered successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== SUBSCRIPTION ====================
+  /api/subscription:
+    get:
+      tags: [Subscription]
+      summary: Get subscription status
+      description: |
+        Returns user's current subscription details.
+        Supports both Stripe and dLocal payment providers.
+      operationId: getSubscription
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: User not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Subscription]
+      summary: Create/upgrade subscription
+      description: Redirects to checkout endpoint for subscription creation
+      operationId: createSubscription
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Redirected to checkout
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/subscription/cancel:
+    post:
+      tags: [Subscription]
+      summary: Cancel subscription
+      description: Cancels user's active subscription (ends at period end)
+      operationId: cancelSubscription
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Subscription cancelled successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: No active subscription found
+
+  /api/invoices:
+    get:
+      tags: [Subscription]
+      summary: Get invoices
+      description: Returns user's payment invoices
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Invoices retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== TIER & SYMBOL ACCESS ====================
+  /api/tier/symbols:
+    get:
+      tags: [Tier & Symbol Access]
+      summary: Get allowed symbols for tier
+      description: Returns list of symbols accessible by user's tier
+      operationId: getTierSymbols
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Symbols retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tier:
+                    type: string
+                    enum: [FREE, PRO]
+                  symbols:
+                    type: array
+                    items:
+                      type: string
+                    example: [EURUSD, GBPUSD, USDJPY, AUDUSD]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/tier/combinations:
+    get:
+      tags: [Tier & Symbol Access]
+      summary: Get allowed symbol+timeframe combinations
+      description: Returns all valid symbol+timeframe combinations for user's tier
+      operationId: getTierCombinations
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Combinations retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tier:
+                    type: string
+                    enum: [FREE, PRO]
+                  combinations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        timeframe:
+                          type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/tier/check/{symbol}:
+    get:
+      tags: [Tier & Symbol Access]
+      summary: Check symbol access
+      description: Validates if user can access specific symbol
+      operationId: checkSymbolAccess
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+          example: EURUSD
+      responses:
+        '200':
+          description: Access check result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allowed:
+                    type: boolean
+                  tier:
+                    type: string
+                  requiresUpgrade:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== CHECKOUT ====================
+  /api/checkout:
+    post:
+      tags: [Checkout]
+      summary: Create checkout session
+      description: |
+        Creates Stripe checkout session for subscription purchase.
+        Supports promotional discount codes.
+      operationId: createCheckout
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priceId:
+                  type: string
+                  description: Stripe price ID
+                discountCode:
+                  type: string
+                  description: Optional promotional code
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Stripe checkout URL
+                  sessionId:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/checkout/validate-code:
+    post:
+      tags: [Checkout]
+      summary: Validate discount code
+      description: Validates promotional or affiliate discount code
+      operationId: validateDiscountCode
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  example: AFFILIATE20
+      responses:
+        '200':
+          description: Code validated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  discountPercentage:
+                    type: integer
+                  affiliateId:
+                    type: string
+        '400':
+          description: Invalid or expired code
+
+  # ==================== DLOCAL PAYMENTS ====================
+  /api/payments/dlocal/methods:
+    get:
+      tags: [Payment (dLocal)]
+      summary: Get available payment methods
+      description: Returns available dLocal payment methods for user's country
+      operationId: getDLocalPaymentMethods
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: country
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+          example: BR
+      responses:
+        '200':
+          description: Payment methods retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  methods:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/payments/dlocal/exchange-rate:
+    get:
+      tags: [Payment (dLocal)]
+      summary: Get exchange rate
+      description: Returns current USD to local currency exchange rate
+      operationId: getDLocalExchangeRate
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: currency
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]{3}$'
+          example: BRL
+      responses:
+        '200':
+          description: Exchange rate retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rate:
+                    type: number
+                    format: double
+                  currency:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/payments/dlocal/create:
+    post:
+      tags: [Payment (dLocal)]
+      summary: Create dLocal payment
+      description: Creates dLocal payment for 3-day or monthly plan
+      operationId: createDLocalPayment
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [country, currency, paymentMethod, planType]
+              properties:
+                country:
+                  type: string
+                  pattern: '^[A-Z]{2}$'
+                  example: BR
+                currency:
+                  type: string
+                  pattern: '^[A-Z]{3}$'
+                  example: BRL
+                paymentMethod:
+                  type: string
+                  example: pix
+                planType:
+                  type: string
+                  enum: [THREE_DAY, MONTHLY]
+                discountCode:
+                  type: string
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentId:
+                    type: string
+                  redirectUrl:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: User not eligible for this plan
+
+  /api/payments/dlocal/check-three-day-eligibility:
+    get:
+      tags: [Payment (dLocal)]
+      summary: Check 3-day plan eligibility
+      description: Checks if user is eligible for 3-day trial plan
+      operationId: checkThreeDayEligibility
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Eligibility status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eligible:
+                    type: boolean
+                  reason:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/payments/dlocal/validate-discount:
+    post:
+      tags: [Payment (dLocal)]
+      summary: Validate discount code for dLocal
+      description: Validates discount code for dLocal payment
+      operationId: validateDLocalDiscount
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Code validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  discountPercentage:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/payments/dlocal/{paymentId}:
+    get:
+      tags: [Payment (dLocal)]
+      summary: Get payment status
+      description: Retrieves status of dLocal payment
+      operationId: getDLocalPaymentStatus
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [PENDING, COMPLETED, FAILED, CANCELLED]
+                  paymentId:
+                    type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Payment not found
+
+  /api/payments/dlocal/convert:
+    post:
+      tags: [Payment (dLocal)]
+      summary: Convert currency
+      description: Converts USD amount to local currency
+      operationId: convertDLocalCurrency
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, currency]
+              properties:
+                amount:
+                  type: number
+                  format: double
+                currency:
+                  type: string
+                  pattern: '^[A-Z]{3}$'
+      responses:
+        '200':
+          description: Conversion successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  convertedAmount:
+                    type: number
+                    format: double
+                  currency:
+                    type: string
+                  rate:
+                    type: number
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== NOTIFICATIONS ====================
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: Get user notifications
+      description: Returns user's notifications
+      operationId: getNotifications
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Notifications retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/notifications/{id}:
+    delete:
+      tags: [Notifications]
+      summary: Delete notification
+      operationId: deleteNotification
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Notification not found
+
+  /api/notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Mark notification as read
+      operationId: markNotificationRead
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification marked as read
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Notification not found
+
+  # ==================== ADMIN ENDPOINTS ====================
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users (Admin only)
+      description: Returns paginated list of all users
+      operationId: adminListUsers
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Users retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserProfile'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Admin access required
+
+  /api/admin/analytics:
+    get:
+      tags: [Admin]
+      summary: Get platform analytics (Admin only)
+      description: Returns platform-wide analytics and statistics
+      operationId: adminGetAnalytics
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Analytics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAnalytics'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Admin access required
+
+  /api/admin/error-logs:
+    get:
+      tags: [Admin]
+      summary: Get error logs (Admin only)
+      operationId: adminGetErrorLogs
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Error logs retrieved
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Admin access required
+
+  /api/admin/fraud-alerts:
+    get:
+      tags: [Admin]
+      summary: Get fraud alerts (Admin only)
+      operationId: adminGetFraudAlerts
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Fraud alerts retrieved
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Admin access required
+
+  /api/admin/fraud-alerts/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update fraud alert status (Admin only)
+      operationId: adminUpdateFraudAlert
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, REVIEWED, RESOLVED, FALSE_POSITIVE]
+      responses:
+        '200':
+          description: Fraud alert updated
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Admin access required
+
+  # ==================== AFFILIATE ENDPOINTS ====================
+  /api/affiliate/auth/register:
+    post:
+      tags: [Affiliate]
+      summary: Register as affiliate
+      description: Creates new affiliate account
+      operationId: affiliateRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, businessName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                businessName:
+                  type: string
+                taxId:
+                  type: string
+      responses:
+        '201':
+          description: Affiliate registered successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email already exists
+
+  /api/affiliate/auth/verify-email:
+    post:
+      tags: [Affiliate]
+      summary: Verify affiliate email
+      operationId: affiliateVerifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Email verified successfully
+        '400':
+          description: Invalid or expired token
+
+  /api/affiliate/dashboard/stats:
+    get:
+      tags: [Affiliate]
+      summary: Get affiliate dashboard stats
+      description: Returns affiliate performance statistics
+      operationId: affiliateGetStats
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Stats retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateStats'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/affiliate/dashboard/codes:
+    get:
+      tags: [Affiliate]
+      summary: Get affiliate discount codes
+      operationId: affiliateGetCodes
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Codes retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  codes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AffiliateCode'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/affiliate/dashboard/commission-report:
+    get:
+      tags: [Affiliate]
+      summary: Get commission report
+      operationId: affiliateGetCommissionReport
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Report retrieved
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/affiliate/profile:
+    get:
+      tags: [Affiliate]
+      summary: Get affiliate profile
+      operationId: affiliateGetProfile
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffiliateProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    patch:
+      tags: [Affiliate]
+      summary: Update affiliate profile
+      operationId: affiliateUpdateProfile
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                businessName:
+                  type: string
+                taxId:
+                  type: string
+                website:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Profile updated
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/affiliate/profile/payment:
+    get:
+      tags: [Affiliate]
+      summary: Get payment information
+      operationId: affiliateGetPaymentInfo
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Payment info retrieved
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    patch:
+      tags: [Affiliate]
+      summary: Update payment information
+      operationId: affiliateUpdatePaymentInfo
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentMethod:
+                  type: string
+                  enum: [BANK_TRANSFER, PAYPAL, WISE]
+                accountDetails:
+                  type: object
+      responses:
+        '200':
+          description: Payment info updated
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== WEBHOOKS ====================
+  /api/webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      summary: Stripe webhook handler
+      description: Handles Stripe webhook events
+      operationId: stripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook signature
+
+  /api/webhooks/dlocal:
+    post:
+      tags: [Webhooks]
+      summary: dLocal webhook handler
+      description: Handles dLocal payment webhook events
+      operationId: dlocalWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook signature
+
+  /api/webhooks/riseworks:
+    post:
+      tags: [Webhooks]
+      summary: Rise Works webhook handler
+      description: Handles Rise Works disbursement webhook events
+      operationId: riseworksWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook signature
+
+  # ==================== CONFIGURATION ====================
+  /api/config/affiliate:
+    get:
+      tags: [Configuration]
+      summary: Get affiliate configuration
+      description: Returns public affiliate configuration settings
+      operationId: getAffiliateConfig
+      responses:
+        '200':
+          description: Configuration retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commissionRate:
+                    type: number
+                    example: 0.20
+                  minimumPayout:
+                    type: number
+                    example: 50.00
+                  payoutSchedule:
+                    type: string
+                    example: monthly
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js session cookie
+
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clh123abc456def
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          nullable: true
+          example: John Doe
+        image:
+          type: string
+          format: uri
+          nullable: true
+          example: https://example.com/avatar.jpg
+        tier:
+          type: string
+          enum: [FREE, PRO]
+          example: FREE
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          example: USER
+        emailVerified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-01-16T14:20:00Z'
+
+    UserPreferences:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+          default: system
+        notifications:
+          type: object
+          properties:
+            email:
+              type: boolean
+              default: true
+            push:
+              type: boolean
+              default: true
+            alerts:
+              type: boolean
+              default: true
+        defaultTimeframe:
+          type: string
+          default: H1
+        defaultSymbol:
+          type: string
+          default: EURUSD
+        language:
+          type: string
+          default: en
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+          example: alert_123abc
+        name:
+          type: string
+          nullable: true
+          example: EURUSD H1 Alert
+        symbol:
+          type: string
+          example: EURUSD
+        timeframe:
+          type: string
+          example: H1
+        condition:
+          type: string
+          description: JSON-encoded condition
+          example: '{"type":"price_above","targetValue":1.1000}'
+        alertType:
+          type: string
+          example: PRICE_ALERT
+        isActive:
+          type: boolean
+          example: true
+        lastTriggered:
+          type: string
+          format: date-time
+          nullable: true
+        triggerCount:
+          type: integer
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Watchlist:
+      type: object
+      properties:
+        id:
+          type: string
+          example: watchlist_456def
+        name:
+          type: string
+          example: My Watchlist
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchlistItem'
+
+    WatchlistItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: item_789ghi
+        symbol:
+          type: string
+          example: EURUSD
+        timeframe:
+          type: string
+          example: H1
+        order:
+          type: integer
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+
+    SubscriptionResponse:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [FREE, PRO]
+        status:
+          type: string
+          enum: [none, active, cancelled, past_due, trialing]
+        subscription:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            provider:
+              type: string
+              enum: [STRIPE, DLOCAL]
+              nullable: true
+            planType:
+              type: string
+              enum: [MONTHLY, THREE_DAY]
+              nullable: true
+            currentPeriodEnd:
+              type: string
+              format: date-time
+              nullable: true
+            expiresAt:
+              type: string
+              format: date-time
+              nullable: true
+            cancelAtPeriodEnd:
+              type: boolean
+            trialEnd:
+              type: string
+              format: date-time
+              nullable: true
+            paymentMethod:
+              type: object
+              nullable: true
+              properties:
+                brand:
+                  type: string
+                  example: visa
+                last4:
+                  type: string
+                  example: '4242'
+                expiryMonth:
+                  type: integer
+                  example: 12
+                expiryYear:
+                  type: integer
+                  example: 2025
+            dLocalPaymentMethod:
+              type: string
+              nullable: true
+            dLocalCountry:
+              type: string
+              nullable: true
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [paid, pending, failed]
+        createdAt:
+          type: string
+          format: date-time
+        pdfUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [ALERT, SUBSCRIPTION, SYSTEM]
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    LoginEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        deviceInfo:
+          type: string
+        ipAddress:
+          type: string
+        location:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        successful:
+          type: boolean
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        deviceInfo:
+          type: string
+        ipAddress:
+          type: string
+        lastActive:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminAnalytics:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeSubscriptions:
+          type: integer
+        monthlyRevenue:
+          type: number
+          format: double
+        conversionRate:
+          type: number
+          format: double
+        churnRate:
+          type: number
+          format: double
+
+    AffiliateStats:
+      type: object
+      properties:
+        totalSales:
+          type: integer
+        totalCommissions:
+          type: number
+          format: double
+        pendingCommissions:
+          type: number
+          format: double
+        paidCommissions:
+          type: number
+          format: double
+        conversionRate:
+          type: number
+          format: double
+
+    AffiliateCode:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        discountPercentage:
+          type: integer
+        usageCount:
+          type: integer
+        status:
+          type: string
+          enum: [ACTIVE, EXPIRED, CANCELLED]
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    AffiliateProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        businessName:
+          type: string
+        taxId:
+          type: string
+          nullable: true
+        website:
+          type: string
+          format: uri
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, PENDING]
+        createdAt:
+          type: string
+          format: date-time
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or session expired
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+
+    ValidationError:
+      description: Invalid input data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Invalid input
+              code:
+                type: string
+                example: VALIDATION_ERROR
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: array
+                      items:
+                        type: string
+                    message:
+                      type: string
+
+    ConflictError:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: User with this email already exists
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Failed to process request
+              code:
+                type: string
+                example: INTERNAL_ERROR
