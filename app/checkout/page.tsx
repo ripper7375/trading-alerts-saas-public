@@ -4,11 +4,16 @@
  * Unified Checkout Page
  *
  * Single checkout page that supports both Stripe and dLocal:
- * - Auto-detects user country
- * - Shows dLocal options for supported countries
- * - Shows 3-day plan for eligible users
- * - Falls back to Stripe for non-dLocal countries
+ * - Stripe is the PRIMARY payment method (international cards)
+ * - dLocal is shown as ALTERNATIVE for local payment methods
+ * - Auto-detects user country to filter local payment options
+ * - Shows 3-day trial plan for eligible dLocal users
  * - Supports discount codes for monthly plan
+ *
+ * Flow B: Unified Payment Flow
+ * - Both payment options on same page
+ * - Country detection filters dLocal payment methods
+ * - User chooses between international cards (Stripe) or local methods (dLocal)
  *
  * @module app/checkout/page
  */
@@ -249,17 +254,78 @@ function CheckoutContent(): React.ReactElement {
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Complete Your Purchase</h1>
           <p className="text-muted-foreground">
-            Secure payment with local payment methods
+            Choose your preferred payment method
           </p>
         </div>
 
-        {/* Main checkout card */}
+        {/* Primary: Stripe International Card Payments */}
         <Card className="mb-6 shadow-lg">
           <CardHeader className="border-b">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                International Card Payment
+              </CardTitle>
+              <Badge
+                variant="secondary"
+                className="bg-blue-100 text-blue-700"
+              >
+                Stripe Powered
+              </Badge>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6 p-6">
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Pay securely with Visa, Mastercard, or American Express
+              </p>
+
+              {/* Price display */}
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold">PRO Monthly</span>
+                  <span className="text-2xl font-bold">$29/mo</span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Full access to all PRO features
+                </p>
+              </div>
+
+              {/* Discount code for Stripe */}
+              {discountCode && (
+                <p className="text-sm text-green-600">
+                  Affiliate code: {discountCode}
+                </p>
+              )}
+
+              {/* Error display */}
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
+              {/* Stripe checkout button */}
+              <Button
+                onClick={handleStripeCheckout}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="lg"
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                Pay with Card
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Secondary: dLocal Local Payment Methods */}
+        <Card className="mb-6 border-2 border-dashed">
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
-                Local Payment
+                Local Payment Methods
               </CardTitle>
               <Badge
                 variant="secondary"
@@ -268,6 +334,9 @@ function CheckoutContent(): React.ReactElement {
                 dLocal Powered
               </Badge>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Pay with UPI, bank transfer, e-wallets, and more in your local currency
+            </p>
           </CardHeader>
 
           <CardContent className="space-y-6 p-6">
@@ -334,39 +403,17 @@ function CheckoutContent(): React.ReactElement {
                   onClick={handleCreatePayment}
                   disabled={!isFormComplete}
                 >
-                  Proceed to Payment
+                  Pay with Local Method
                 </PaymentButton>
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* Stripe alternative */}
-        <Card className="border-dashed">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="mb-4 flex items-center justify-center gap-2">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                <span className="font-medium">Prefer credit card?</span>
-              </div>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Pay with Visa, Mastercard, or American Express via Stripe
-              </p>
-              <Button
-                variant="outline"
-                onClick={handleStripeCheckout}
-                className="border-blue-300 text-blue-600 hover:bg-blue-50"
-              >
-                Use Stripe Checkout
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Trust badges */}
         <div className="mt-8 text-center">
           <p className="mb-2 text-xs text-muted-foreground">
-            Secure payment processing by dLocal and Stripe
+            Secure payment processing by Stripe and dLocal
           </p>
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span>256-bit SSL</span>
