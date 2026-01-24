@@ -1,36 +1,75 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Alerts System API (Part 11)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Alerts System API for Trading Alerts SaaS platform (Part 11).
+
+    **Last Updated:** 2026-01-24
+    **Migration Status:** Updated to reflect new flat 10-column Alert schema (after migration from 14-column JSON structure)
 
     This API provides price alert management with automated monitoring and notifications.
 
     ## Features
-    - Create price-based alerts (above, below, equals)
-    - Tier-based limits (FREE: 3 alerts, PRO: 50 alerts)
-    - Symbol and timeframe validation
-    - Background job processing
-    - Alert status management (active/paused)
+    - Create price-based alerts (above, below, equals, crosses)
+    - Tier-based limits (FREE: 5 alerts, PRO: 20 alerts)
+    - Symbol and timeframe tier validation
+    - Background job processing with Flask MT5 API integration
+    - Alert status management (active/paused/triggered)
     - Trigger history tracking
+    - Optimistic UI updates with rollback
+    - Bulk operations (pause, delete)
 
-    ## Alert Types
+    ## Alert Condition Types
     - **price_above**: Trigger when price goes above target value
     - **price_below**: Trigger when price goes below target value
-    - **price_equals**: Trigger when price equals target value (within threshold)
+    - **price_equals**: Trigger when price equals target value (within 0.5% threshold)
+    - **price_crosses_above**: Trigger when price crosses above target (future enhancement)
+    - **price_crosses_below**: Trigger when price crosses below target (future enhancement)
 
-    ## Tier-Based Limits
+    ## Tier-Based Configuration
 
     **FREE Tier:**
-    - Max 3 active alerts
-    - 5 symbols (BTCUSD, ETHUSD, EURUSD, GBPUSD, USDJPY)
-    - 2 timeframes (H1, D1)
+    - Max Alerts: **5**
+    - Symbols: **5** (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
+    - Timeframes: **3** (H1, H4, D1)
+    - Chart Combinations: 15 (5 × 3)
+    - Price: $0/month
 
     **PRO Tier:**
-    - Max 50 active alerts
-    - 15 symbols (all major pairs)
-    - 8 timeframes (M1, M5, M15, M30, H1, H4, D1, W1)
+    - Max Alerts: **20**
+    - Symbols: **15** (FREE 5 + PRO exclusive 10: AUDJPY, AUDUSD, ETHUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, USDCAD, USDCHF, XAGUSD)
+    - Timeframes: **9** (FREE 3 + PRO exclusive 6: M5, M15, M30, H2, H8, H12)
+    - Chart Combinations: 135 (15 × 9)
+    - Price: $29/month
+    - Trial: 7-day free trial with full PRO access
+
+    ## Database Schema (10 Columns - Flat Structure)
+
+    The Alert model uses a simple 10-column flat structure:
+    - `id` (String, CUID) - Unique identifier
+    - `userId` (String) - Owner reference
+    - `name` (String, nullable) - Custom alert name
+    - `symbol` (String) - Trading symbol (e.g., "XAUUSD")
+    - `timeframe` (String) - Chart timeframe (e.g., "H1")
+    - `condition` (String) - JSON-encoded condition: `{"type":"price_above","targetValue":2000.50}`
+    - `alertType` (String) - Alert type (default: "PRICE_TOUCH_LINE")
+    - `isActive` (Boolean) - Active/paused status
+    - `lastTriggered` (DateTime, nullable) - Last trigger timestamp
+    - `triggerCount` (Int) - Number of times triggered
+    - `createdAt` (DateTime) - Creation timestamp
+    - `updatedAt` (DateTime) - Last update timestamp
+
+    **Note:** The 57-column flat structure refers to the **MarketData model**, not the Alert model.
+
+    ## Background Job Processing
+
+    **Alert Checker Job:** `lib/jobs/alert-checker.ts`
+    - Periodically checks all active alerts against current market prices
+    - Integrates with Flask MT5 API: `GET {MT5_API_URL}/api/mt5/price?symbol=XAUUSD`
+    - Groups alerts by symbol for optimization
+    - Triggers matching alerts (sets `isActive=false`, updates `lastTriggered`, increments `triggerCount`)
+    - Future enhancements: Email notifications, WebSocket push, notification records
 
   contact:
     name: API Support
@@ -50,9 +89,9 @@ security:
 
 tags:
   - name: Alerts
-    description: Alert management endpoints
+    description: Alert management endpoints (list, create)
   - name: Alert Details
-    description: Individual alert operations
+    description: Individual alert operations (get, update, delete)
 
 paths:
   /api/alerts:
@@ -63,11 +102,13 @@ paths:
       description: |
         Retrieves all alerts for the authenticated user with optional filtering.
 
-        **Filters:**
+        **Query Parameters:**
         - `status`: Filter by status (active, paused, triggered)
         - `symbol`: Filter by trading symbol
 
-        **Note:** Results are ordered by creation date (newest first)
+        **Response Order:** Alerts are sorted by creation date (newest first)
+
+        **Implementation:** `app/api/alerts/route.ts` (lines 61-127)
       operationId: getAlerts
       parameters:
         - name: status
@@ -81,10 +122,10 @@ paths:
         - name: symbol
           in: query
           required: false
-          description: Filter by trading symbol
+          description: Filter by trading symbol (case-sensitive)
           schema:
             type: string
-          example: BTCUSD
+          example: XAUUSD
       responses:
         '200':
           description: Alerts retrieved successfully
@@ -94,30 +135,30 @@ paths:
                 $ref: '#/components/schemas/AlertListResponse'
               example:
                 alerts:
-                  - id: 'alert_001'
-                    name: 'BTCUSD H1 Alert'
-                    symbol: 'BTCUSD'
+                  - id: 'clx1a2b3c4d5e6f7g8h9i0j1k'
+                    name: 'Gold Above 2000'
+                    symbol: 'XAUUSD'
                     timeframe: 'H1'
-                    condition: '{"type":"price_above","targetValue":50000}'
-                    alertType: 'PRICE_ALERT'
+                    condition: '{"type":"price_above","targetValue":2000.50}'
+                    alertType: 'PRICE_TOUCH_LINE'
                     isActive: true
                     lastTriggered: null
                     triggerCount: 0
-                    createdAt: '2025-12-20T10:00:00Z'
-                    updatedAt: '2025-12-20T10:00:00Z'
-                  - id: 'alert_002'
-                    name: 'ETHUSD D1 Alert'
-                    symbol: 'ETHUSD'
+                    createdAt: '2026-01-24T10:00:00Z'
+                    updatedAt: '2026-01-24T10:00:00Z'
+                  - id: 'clx2k3l4m5n6o7p8q9r0s1t2u'
+                    name: 'BTC Below 40k'
+                    symbol: 'BTCUSD'
                     timeframe: 'D1'
-                    condition: '{"type":"price_below","targetValue":3000}'
-                    alertType: 'PRICE_ALERT'
-                    isActive: true
-                    lastTriggered: '2025-12-19T15:30:00Z'
+                    condition: '{"type":"price_below","targetValue":40000}'
+                    alertType: 'PRICE_TOUCH_LINE'
+                    isActive: false
+                    lastTriggered: '2026-01-23T15:30:00Z'
                     triggerCount: 1
-                    createdAt: '2025-12-18T09:00:00Z'
-                    updatedAt: '2025-12-19T15:30:00Z'
+                    createdAt: '2026-01-22T09:00:00Z'
+                    updatedAt: '2026-01-23T15:30:00Z'
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
@@ -140,16 +181,25 @@ paths:
         - Alerts
       summary: Create a new alert
       description: |
-        Creates a new price alert with tier validation.
+        Creates a new price alert with comprehensive tier validation.
 
-        **Validation:**
-        - Checks active alert limit (3 for FREE, 50 for PRO)
-        - Validates symbol access for user's tier
-        - Validates timeframe access for user's tier
-        - Validates condition type and target value
+        **Validation Steps:**
+        1. Checks active alert limit (FREE: 5, PRO: 20)
+        2. Validates symbol access for user's tier
+        3. Validates timeframe access for user's tier
+        4. Validates condition type (price_above, price_below, price_equals)
+        5. Validates target value (must be positive number)
+
+        **Condition Storage:**
+        The condition is stored as a JSON string in the database:
+        ```json
+        {"type": "price_above", "targetValue": 2000.50}
+        ```
 
         **Background Processing:**
-        Alert is added to background job queue for automated monitoring.
+        After creation, alert is monitored by the alert-checker background job.
+
+        **Implementation:** `app/api/alerts/route.ts` (lines 134-270)
       operationId: createAlert
       requestBody:
         required: true
@@ -158,21 +208,29 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateAlertRequest'
             examples:
-              priceAbove:
-                summary: Alert when BTC goes above 50,000
+              freeUserGold:
+                summary: FREE tier - Gold alert
                 value:
-                  symbol: 'BTCUSD'
+                  symbol: 'XAUUSD'
                   timeframe: 'H1'
                   conditionType: 'price_above'
-                  targetValue: 50000
-                  name: 'BTC Above 50k'
-              priceBelow:
-                summary: Alert when ETH goes below 3,000
+                  targetValue: 2000.50
+                  name: 'Gold Above 2000'
+              proUserBitcoin:
+                summary: PRO tier - Bitcoin alert
                 value:
-                  symbol: 'ETHUSD'
-                  timeframe: 'D1'
+                  symbol: 'BTCUSD'
+                  timeframe: 'M15'
                   conditionType: 'price_below'
-                  targetValue: 3000
+                  targetValue: 40000
+                  name: 'BTC Below 40k'
+              withoutName:
+                summary: Auto-generated name
+                value:
+                  symbol: 'EURUSD'
+                  timeframe: 'H4'
+                  conditionType: 'price_above'
+                  targetValue: 1.1000
       responses:
         '201':
           description: Alert created successfully
@@ -182,20 +240,20 @@ paths:
                 $ref: '#/components/schemas/CreateAlertResponse'
               example:
                 alert:
-                  id: 'alert_003'
-                  name: 'BTC Above 50k'
-                  symbol: 'BTCUSD'
+                  id: 'clx3u4v5w6x7y8z9a0b1c2d3e'
+                  name: 'Gold Above 2000'
+                  symbol: 'XAUUSD'
                   timeframe: 'H1'
-                  condition: '{"type":"price_above","targetValue":50000}'
-                  alertType: 'PRICE_ALERT'
+                  condition: '{"type":"price_above","targetValue":2000.50}'
+                  alertType: 'PRICE_TOUCH_LINE'
                   isActive: true
                   lastTriggered: null
                   triggerCount: 0
-                  createdAt: '2025-12-20T12:00:00Z'
-                  updatedAt: '2025-12-20T12:00:00Z'
+                  createdAt: '2026-01-24T12:00:00Z'
+                  updatedAt: '2026-01-24T12:00:00Z'
                 message: 'Alert created successfully'
         '400':
-          description: Invalid input
+          description: Invalid input - validation failed
           content:
             application/json:
               schema:
@@ -215,48 +273,63 @@ paths:
                       - path: ['symbol']
                         message: 'Symbol is required'
                 invalidTargetValue:
-                  summary: Invalid target value
+                  summary: Target value must be positive
                   value:
                     error: 'Invalid input'
                     code: 'VALIDATION_ERROR'
                     details:
                       - path: ['targetValue']
-                        message: 'Target value must be positive'
+                        message: 'Target value must be a positive number'
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                code: 'UNAUTHORIZED'
         '403':
-          description: Forbidden - tier limit or access denied
+          description: Forbidden - tier limit or access restriction
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TierErrorResponse'
               examples:
-                alertLimit:
-                  summary: Alert limit exceeded
+                alertLimitFree:
+                  summary: FREE tier alert limit exceeded
                   value:
                     error: 'Alert limit exceeded'
-                    message: 'You have reached your FREE tier limit of 3 alerts'
+                    message: 'You have reached your FREE tier limit of 5 alerts'
                     code: 'ALERT_LIMIT_EXCEEDED'
-                    currentCount: 3
-                    limit: 3
+                    currentCount: 5
+                    limit: 5
                     upgradeUrl: '/pricing'
+                alertLimitPro:
+                  summary: PRO tier alert limit exceeded
+                  value:
+                    error: 'Alert limit exceeded'
+                    message: 'You have reached your PRO tier limit of 20 alerts'
+                    code: 'ALERT_LIMIT_EXCEEDED'
+                    currentCount: 20
+                    limit: 20
                 symbolNotAllowed:
-                  summary: Symbol not allowed
+                  summary: Symbol not allowed for FREE tier
                   value:
                     error: 'Symbol not allowed'
-                    message: 'XAUUSD is not available on the FREE tier'
+                    message: 'GBPUSD is not available on the FREE tier. Upgrade to PRO for access to 15 symbols.'
                     code: 'SYMBOL_NOT_ALLOWED'
+                    tier: 'FREE'
+                    allowedSymbols: ['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD']
                     upgradeUrl: '/pricing'
                 timeframeNotAllowed:
-                  summary: Timeframe not allowed
+                  summary: Timeframe not allowed for FREE tier
                   value:
                     error: 'Timeframe not allowed'
-                    message: 'M5 is not available on the FREE tier'
+                    message: 'M15 is not available on the FREE tier. Upgrade to PRO for access to 9 timeframes.'
                     code: 'TIMEFRAME_NOT_ALLOWED'
+                    tier: 'FREE'
+                    allowedTimeframes: ['H1', 'H4', 'D1']
                     upgradeUrl: '/pricing'
         '500':
           description: Internal server error
@@ -264,23 +337,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Failed to create alert'
+                code: 'CREATE_ERROR'
 
   /api/alerts/{id}:
     get:
       tags:
         - Alert Details
-      summary: Get single alert
+      summary: Get single alert by ID
       description: |
         Retrieves a specific alert by ID with ownership validation.
+
+        **Security:**
+        - Validates user session
+        - Verifies alert belongs to authenticated user (403 if not owner)
+
+        **Implementation:** `app/api/alerts/[id]/route.ts` (lines 38-98)
       operationId: getAlert
       parameters:
         - name: id
           in: path
           required: true
-          description: Alert ID
+          description: Alert ID (CUID format)
           schema:
             type: string
-          example: 'alert_001'
+          example: 'clx1a2b3c4d5e6f7g8h9i0j1k'
       responses:
         '200':
           description: Alert retrieved successfully
@@ -290,25 +372,28 @@ paths:
                 $ref: '#/components/schemas/AlertResponse'
               example:
                 alert:
-                  id: 'alert_001'
-                  name: 'BTCUSD H1 Alert'
-                  symbol: 'BTCUSD'
+                  id: 'clx1a2b3c4d5e6f7g8h9i0j1k'
+                  name: 'Gold Above 2000'
+                  symbol: 'XAUUSD'
                   timeframe: 'H1'
-                  condition: '{"type":"price_above","targetValue":50000}'
-                  alertType: 'PRICE_ALERT'
+                  condition: '{"type":"price_above","targetValue":2000.50}'
+                  alertType: 'PRICE_TOUCH_LINE'
                   isActive: true
                   lastTriggered: null
                   triggerCount: 0
-                  createdAt: '2025-12-20T10:00:00Z'
-                  updatedAt: '2025-12-20T10:00:00Z'
+                  createdAt: '2026-01-24T10:00:00Z'
+                  updatedAt: '2026-01-24T10:00:00Z'
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                code: 'UNAUTHORIZED'
         '403':
-          description: Forbidden - not owner
+          description: Forbidden - user does not own this alert
           content:
             application/json:
               schema:
@@ -316,6 +401,7 @@ paths:
               example:
                 error: 'Forbidden'
                 code: 'FORBIDDEN'
+                message: 'You do not have permission to access this alert'
         '404':
           description: Alert not found
           content:
@@ -335,17 +421,25 @@ paths:
     patch:
       tags:
         - Alert Details
-      summary: Update alert
+      summary: Update alert properties
       description: |
-        Updates an alert's properties with ownership validation.
+        Updates an alert's mutable properties with ownership validation.
 
         **Updatable Fields:**
-        - `isActive`: Enable/disable alert
-        - `name`: Change alert name
-        - `targetValue`: Update target price
+        - `isActive`: Enable/disable alert (pause/resume)
+        - `name`: Change alert name (max 100 chars)
+        - `targetValue`: Update target price (updates condition JSON)
 
-        **Note:** Cannot change symbol, timeframe, or condition type.
-        For those changes, delete and create a new alert.
+        **Non-Updatable Fields:**
+        Cannot change: symbol, timeframe, conditionType
+        To change these, delete and create a new alert.
+
+        **Condition Update Behavior:**
+        When updating `targetValue`, the existing condition type is preserved:
+        - Old: `{"type":"price_above","targetValue":2000}`
+        - New: `{"type":"price_above","targetValue":2100}`
+
+        **Implementation:** `app/api/alerts/[id]/route.ts` (lines 105-230)
       operationId: updateAlert
       parameters:
         - name: id
@@ -354,7 +448,7 @@ paths:
           description: Alert ID
           schema:
             type: string
-          example: 'alert_001'
+          example: 'clx1a2b3c4d5e6f7g8h9i0j1k'
       requestBody:
         required: true
         content:
@@ -366,14 +460,24 @@ paths:
                 summary: Pause alert
                 value:
                   isActive: false
+              resumeAlert:
+                summary: Resume alert
+                value:
+                  isActive: true
               updateTargetValue:
                 summary: Update target price
                 value:
-                  targetValue: 55000
+                  targetValue: 2100.00
               renameAlert:
                 summary: Rename alert
                 value:
-                  name: 'BTC Above 55k (Updated)'
+                  name: 'Gold Above 2100 (Updated)'
+              multipleUpdates:
+                summary: Update multiple fields
+                value:
+                  isActive: true
+                  name: 'Gold Alert (Modified)'
+                  targetValue: 2050.00
       responses:
         '200':
           description: Alert updated successfully
@@ -383,32 +487,47 @@ paths:
                 $ref: '#/components/schemas/UpdateAlertResponse'
               example:
                 alert:
-                  id: 'alert_001'
-                  name: 'BTC Above 55k (Updated)'
-                  symbol: 'BTCUSD'
+                  id: 'clx1a2b3c4d5e6f7g8h9i0j1k'
+                  name: 'Gold Above 2100 (Updated)'
+                  symbol: 'XAUUSD'
                   timeframe: 'H1'
-                  condition: '{"type":"price_above","targetValue":55000}'
-                  alertType: 'PRICE_ALERT'
+                  condition: '{"type":"price_above","targetValue":2100.00}'
+                  alertType: 'PRICE_TOUCH_LINE'
                   isActive: true
                   lastTriggered: null
                   triggerCount: 0
-                  createdAt: '2025-12-20T10:00:00Z'
-                  updatedAt: '2025-12-20T12:30:00Z'
+                  createdAt: '2026-01-24T10:00:00Z'
+                  updatedAt: '2026-01-24T12:30:00Z'
                 message: 'Alert updated successfully'
         '400':
-          description: Invalid input
+          description: Invalid input - validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
+              examples:
+                invalidTargetValue:
+                  value:
+                    error: 'Invalid input'
+                    code: 'VALIDATION_ERROR'
+                    details:
+                      - path: ['targetValue']
+                        message: 'Target value must be a positive number'
+                nameTooLong:
+                  value:
+                    error: 'Invalid input'
+                    code: 'VALIDATION_ERROR'
+                    details:
+                      - path: ['name']
+                        message: 'Name must be 100 characters or less'
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Forbidden - not owner
+          description: Forbidden - user does not own this alert
           content:
             application/json:
               schema:
@@ -429,11 +548,18 @@ paths:
     delete:
       tags:
         - Alert Details
-      summary: Delete alert
+      summary: Delete alert permanently
       description: |
         Deletes an alert with ownership validation.
 
-        **Note:** This is a hard delete. The alert and its history will be permanently removed.
+        **Warning:** This is a **hard delete**. The alert and its trigger history will be permanently removed.
+
+        **Frontend Behavior:**
+        - Optimistic UI update (immediate removal from list)
+        - 5-second undo window before actual deletion
+        - Rollback on error or user undo
+
+        **Implementation:** `app/api/alerts/[id]/route.ts` (lines 237-289)
       operationId: deleteAlert
       parameters:
         - name: id
@@ -442,7 +568,7 @@ paths:
           description: Alert ID
           schema:
             type: string
-          example: 'alert_001'
+          example: 'clx1a2b3c4d5e6f7g8h9i0j1k'
       responses:
         '200':
           description: Alert deleted successfully
@@ -453,19 +579,19 @@ paths:
               example:
                 message: 'Alert deleted successfully'
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          description: Forbidden - not owner
+          description: Forbidden - user does not own this alert
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Alert not found
+          description: Alert not found (may already be deleted)
           content:
             application/json:
               schema:
@@ -497,48 +623,60 @@ components:
         symbol:
           type: string
           minLength: 1
-          description: Trading symbol (must be allowed for user's tier)
-          example: 'BTCUSD'
+          description: |
+            Trading symbol (must be allowed for user's tier)
+            - FREE: BTCUSD, EURUSD, USDJPY, US30, XAUUSD
+            - PRO: FREE symbols + AUDJPY, AUDUSD, ETHUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, USDCAD, USDCHF, XAGUSD
+          example: 'XAUUSD'
         timeframe:
           type: string
           minLength: 1
-          description: Timeframe (must be allowed for user's tier)
+          description: |
+            Chart timeframe (must be allowed for user's tier)
+            - FREE: H1, H4, D1
+            - PRO: FREE timeframes + M5, M15, M30, H2, H8, H12
           example: 'H1'
         conditionType:
           type: string
-          enum: [price_above, price_below, price_equals]
-          description: Alert condition type
+          enum: [price_above, price_below, price_equals, price_crosses_above, price_crosses_below]
+          description: |
+            Alert condition type
+            - price_above: Trigger when price > targetValue
+            - price_below: Trigger when price < targetValue
+            - price_equals: Trigger when price ≈ targetValue (within 0.5%)
+            - price_crosses_above: Future enhancement
+            - price_crosses_below: Future enhancement
           example: 'price_above'
         targetValue:
           type: number
           minimum: 0
           exclusiveMinimum: true
-          description: Target price value
-          example: 50000
+          description: Target price value (must be positive)
+          example: 2000.50
         name:
           type: string
           maxLength: 100
           description: Custom alert name (auto-generated if not provided)
-          example: 'BTC Above 50k'
+          example: 'Gold Above 2000'
 
     UpdateAlertRequest:
       type: object
       properties:
         isActive:
           type: boolean
-          description: Enable or disable alert
+          description: Enable (true) or disable (false) alert
           example: false
         name:
           type: string
           maxLength: 100
           description: Update alert name
-          example: 'BTC Above 55k (Updated)'
+          example: 'Gold Above 2100 (Updated)'
         targetValue:
           type: number
           minimum: 0
           exclusiveMinimum: true
-          description: Update target price value
-          example: 55000
+          description: Update target price value (preserves existing condition type)
+          example: 2100.00
 
     Alert:
       type: object
@@ -555,52 +693,59 @@ components:
       properties:
         id:
           type: string
-          description: Unique alert identifier
-          example: 'alert_001'
+          description: Unique alert identifier (CUID format)
+          example: 'clx1a2b3c4d5e6f7g8h9i0j1k'
         name:
           type: string
-          description: Alert name
-          example: 'BTCUSD H1 Alert'
+          nullable: true
+          description: Alert name (null if auto-generated)
+          example: 'Gold Above 2000'
         symbol:
           type: string
           description: Trading symbol
-          example: 'BTCUSD'
+          example: 'XAUUSD'
         timeframe:
           type: string
           description: Chart timeframe
           example: 'H1'
         condition:
           type: string
-          description: JSON-encoded condition object
-          example: '{"type":"price_above","targetValue":50000}'
+          description: |
+            JSON-encoded condition object
+            Format: {"type":"price_above|price_below|price_equals","targetValue":number}
+          example: '{"type":"price_above","targetValue":2000.50}'
         alertType:
           type: string
-          description: Alert type (currently only PRICE_ALERT)
-          example: 'PRICE_ALERT'
+          description: Alert type (currently only PRICE_TOUCH_LINE supported)
+          example: 'PRICE_TOUCH_LINE'
         isActive:
           type: boolean
-          description: Whether alert is active
+          description: |
+            Whether alert is active
+            - true: Alert is monitoring (watching for trigger)
+            - false: Alert is paused OR has been triggered
           example: true
         lastTriggered:
           type: string
           format: date-time
           nullable: true
-          description: When alert was last triggered
-          example: '2025-12-19T15:30:00Z'
+          description: When alert was last triggered (null if never triggered)
+          example: '2026-01-23T15:30:00Z'
         triggerCount:
           type: integer
+          minimum: 0
           description: Number of times alert has been triggered
           example: 0
         createdAt:
           type: string
           format: date-time
           description: Alert creation timestamp
-          example: '2025-12-20T10:00:00Z'
+          example: '2026-01-24T10:00:00Z'
         updatedAt:
           type: string
           format: date-time
           description: Alert last update timestamp
-          example: '2025-12-20T10:00:00Z'
+          example: '2026-01-24T10:00:00Z'
 
     AlertListResponse:
       type: object
@@ -667,6 +812,10 @@ components:
           type: string
           description: Error code for programmatic handling
           example: 'UNAUTHORIZED'
+        message:
+          type: string
+          description: Additional error details (optional)
+          example: 'Session required to access this resource'
 
     ValidationErrorResponse:
       type: object
@@ -689,8 +838,10 @@ components:
                 type: array
                 items:
                   type: string
+                description: Field path that failed validation
               message:
                 type: string
+                description: Validation error message
 
     TierErrorResponse:
       type: object
@@ -703,16 +854,37 @@ components:
           example: 'Alert limit exceeded'
         message:
           type: string
-          example: 'You have reached your FREE tier limit of 3 alerts'
+          example: 'You have reached your FREE tier limit of 5 alerts'
         code:
           type: string
+          enum: [ALERT_LIMIT_EXCEEDED, SYMBOL_NOT_ALLOWED, TIMEFRAME_NOT_ALLOWED]
           example: 'ALERT_LIMIT_EXCEEDED'
+        tier:
+          type: string
+          enum: [FREE, PRO]
+          description: User's current tier
+          example: 'FREE'
         currentCount:
           type: integer
-          example: 3
+          description: Current number of active alerts (for ALERT_LIMIT_EXCEEDED)
+          example: 5
         limit:
           type: integer
-          example: 3
+          description: Maximum alerts allowed for tier (for ALERT_LIMIT_EXCEEDED)
+          example: 5
+        allowedSymbols:
+          type: array
+          items:
+            type: string
+          description: Symbols allowed for user's tier (for SYMBOL_NOT_ALLOWED)
+          example: ['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD']
+        allowedTimeframes:
+          type: array
+          items:
+            type: string
+          description: Timeframes allowed for user's tier (for TIMEFRAME_NOT_ALLOWED)
+          example: ['H1', 'H4', 'D1']
         upgradeUrl:
           type: string
+          description: URL to upgrade page
           example: '/pricing'
