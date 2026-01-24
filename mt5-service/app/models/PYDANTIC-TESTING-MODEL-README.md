@@ -36,6 +36,7 @@ python3 -m datamodel_code_generator \
 ```
 
 **Or use the npm script:**
+
 ```bash
 npm run generate:types:python
 ```
@@ -179,30 +180,38 @@ def internal_error(error):
 ## Benefits
 
 ### ✅ **1. Runtime Validation**
+
 Catches invalid data before it reaches your code:
+
 - Wrong types (string instead of int)
 - Missing required fields
 - Invalid enum values
 - Out-of-range values
 
 ### ✅ **2. Type Safety**
+
 Python type hints work with your IDE:
+
 - Autocomplete for model attributes
 - Type checking with mypy
 - Inline documentation
 
 ### ✅ **3. Single Source of Truth**
+
 - Models generated from OpenAPI spec
 - Frontend and backend use same contract
 - Changes to spec automatically update types
 
 ### ✅ **4. Self-Documenting**
+
 - Field descriptions from OpenAPI spec
 - Example values included
 - Clear error messages when validation fails
 
 ### ✅ **5. Data Coercion**
+
 Pydantic automatically converts compatible types:
+
 ```python
 bar = OHLCVBar(
     time="1699632000",  # String → int
@@ -216,6 +225,7 @@ bar = OHLCVBar(
 ## Available Models
 
 ### Enums
+
 - `UserTier` - FREE, PRO
 - `Symbol` - All 15 trading symbols
 - `Timeframe` - All 9 timeframes
@@ -223,6 +233,7 @@ bar = OHLCVBar(
 - `Level` - INFO, WARNING, ERROR, DEBUG
 
 ### Response Models
+
 - `OHLCVDataResponse` - Main data endpoint response
 - `HealthResponse` - Service health check
 - `SymbolsResponse` - Available symbols by tier
@@ -231,12 +242,14 @@ bar = OHLCVBar(
 - `ErrorResponse` - Generic error
 
 ### Data Models
+
 - `OHLCVData` - Complete OHLCV package
 - `OHLCVBar` - Single candlestick
 - `OHLCVMetadata` - Request metadata
 - `TerminalStatus` - MT5 terminal status
 
 ### Admin Models
+
 - `AdminHealthResponse` - Admin health with metrics
 - `AdminTerminalStatus` - Detailed terminal status
 - `TerminalRestartResponse` - Restart operation result
@@ -253,6 +266,7 @@ bar = OHLCVBar(
 This file is auto-generated. Any manual changes will be lost when regenerated.
 
 **Instead:**
+
 1. Update the OpenAPI spec: `docs/open-api-documents/part-06-flask_mt5_openapi.yaml`
 2. Regenerate the models: `python3 -m datamodel_code_generator ...`
 
@@ -284,6 +298,7 @@ response.model_dump(exclude_none=True)
 The existing Flask routes can be gradually updated to use Pydantic models:
 
 **Phase 1:** Validate inputs
+
 ```python
 # Before: No validation
 symbol = request.args.get('symbol')
@@ -293,6 +308,7 @@ symbol = Symbol(request.args.get('symbol'))
 ```
 
 **Phase 2:** Validate outputs
+
 ```python
 # Before: Return dict
 return jsonify({"success": True, "data": data})
@@ -303,6 +319,7 @@ return jsonify(response.model_dump())
 ```
 
 **Phase 3:** Full integration
+
 ```python
 # Both inputs and outputs validated
 # Type hints throughout the codebase
