@@ -1,0 +1,1610 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Part 02 Database Schema
+  description: |
+    Complete database schema specification for the Trading Alerts SaaS platform.
+
+    This document describes all database models, enums, relationships, and constraints
+    defined in the Prisma schema. The database uses PostgreSQL as the primary data store.
+
+    ## Database Structure
+
+    - **Total Models**: 30+
+    - **Database Provider**: PostgreSQL
+    - **ORM**: Prisma 5.x
+    - **Migration Strategy**: Prisma Migrate
+
+    ## Key Features
+
+    1. **User Management**: Authentication, authorization, tier management
+    2. **Subscription System**: Stripe and dLocal payment integration
+    3. **Affiliate Marketing**: Complete affiliate tracking and commission system
+    4. **Market Data**: 57-column schema for FREE and PRO tier indicators
+    5. **Security**: 2FA, fraud detection, session tracking
+    6. **Notifications**: Alert and notification management
+    7. **Disbursement**: RiseWorks integration for affiliate payouts
+
+  version: 1.0.0
+  contact:
+    name: Trading Alerts SaaS
+    email: support@tradingalerts.com
+  license:
+    name: Proprietary
+    url: https://tradingalerts.com/license
+
+servers:
+  - url: https://api.tradingalerts.com/v1
+    description: Production API
+  - url: https://staging-api.tradingalerts.com/v1
+    description: Staging API
+  - url: http://localhost:3000/api
+    description: Local Development
+
+tags:
+  - name: Database Schema
+    description: Complete database schema definitions
+  - name: User Models
+    description: User, authentication, and session models
+  - name: Subscription Models
+    description: Subscription and payment models
+  - name: Affiliate Models
+    description: Affiliate marketing system models
+  - name: Market Data Models
+    description: Market data and indicators (57-column schema)
+  - name: Security Models
+    description: Security, fraud detection, and audit models
+  - name: Notification Models
+    description: Notification and alert models
+  - name: System Models
+    description: System configuration and utilities
+
+components:
+  schemas:
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ENUMS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    UserTier:
+      type: string
+      enum:
+        - FREE
+        - PRO
+      description: User subscription tier level
+
+    SubscriptionStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - CANCELED
+        - PAST_DUE
+        - UNPAID
+        - TRIALING
+      description: Current subscription status
+
+    TrialStatus:
+      type: string
+      enum:
+        - NOT_STARTED
+        - ACTIVE
+        - EXPIRED
+        - CONVERTED
+        - CANCELLED
+      description: Trial period status (7-day PRO trial)
+
+    AffiliateStatus:
+      type: string
+      enum:
+        - PENDING_VERIFICATION
+        - ACTIVE
+        - SUSPENDED
+        - INACTIVE
+      description: Affiliate account status
+
+    CodeStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - USED
+        - EXPIRED
+        - CANCELLED
+      description: Affiliate discount code status
+
+    DistributionReason:
+      type: string
+      enum:
+        - INITIAL
+        - MONTHLY
+        - ADMIN_BONUS
+      description: Reason for code distribution to affiliate
+
+    CommissionStatus:
+      type: string
+      enum:
+        - PENDING
+        - APPROVED
+        - PAID
+        - CANCELLED
+      description: Commission payment status
+
+    FraudAlertStatus:
+      type: string
+      enum:
+        - PENDING
+        - REVIEWED
+        - DISMISSED
+        - BLOCKED
+      description: Fraud alert review status
+
+    FraudAlertSeverity:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - CRITICAL
+      description: Fraud alert severity level
+
+    LoginStatus:
+      type: string
+      enum:
+        - SUCCESS
+        - FAILED
+        - BLOCKED
+      description: Login attempt result
+
+    SecurityAlertType:
+      type: string
+      enum:
+        - NEW_DEVICE_LOGIN
+        - PASSWORD_CHANGED
+        - EMAIL_CHANGED
+        - TWO_FACTOR_ENABLED
+        - TWO_FACTOR_DISABLED
+        - SUSPICIOUS_LOGIN
+        - ACCOUNT_LOCKED
+      description: Type of security alert
+
+    NotificationType:
+      type: string
+      enum:
+        - ALERT
+        - SUBSCRIPTION
+        - PAYMENT
+        - SYSTEM
+      description: Notification category
+
+    NotificationPriority:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+      description: Notification priority level
+
+    RiseWorksKycStatus:
+      type: string
+      enum:
+        - PENDING
+        - SUBMITTED
+        - APPROVED
+        - REJECTED
+        - EXPIRED
+      description: RiseWorks KYC verification status
+
+    PaymentBatchStatus:
+      type: string
+      enum:
+        - PENDING
+        - QUEUED
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+      description: Payment batch processing status
+
+    DisbursementTransactionStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - COMPLETED
+        - FAILED
+        - CANCELLED
+      description: Individual disbursement transaction status
+
+    DisbursementProvider:
+      type: string
+      enum:
+        - RISE
+        - MOCK
+      description: Disbursement payment provider
+
+    AuditLogStatus:
+      type: string
+      enum:
+        - SUCCESS
+        - FAILURE
+        - WARNING
+        - INFO
+      description: Audit log entry status
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # USER MODELS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - tier
+        - role
+        - isActive
+        - isAffiliate
+      properties:
+        id:
+          type: string
+          format: cuid
+          description: Unique user identifier
+        email:
+          type: string
+          format: email
+          description: User email address (unique)
+        name:
+          type: string
+          nullable: true
+          description: User display name
+        password:
+          type: string
+          nullable: true
+          description: Hashed password (nullable for OAuth-only users)
+        image:
+          type: string
+          nullable: true
+          description: Profile image URL
+        emailVerified:
+          type: string
+          format: date-time
+          nullable: true
+          description: Email verification timestamp (CRITICAL for verified-only OAuth linking)
+        tier:
+          $ref: '#/components/schemas/UserTier'
+        role:
+          type: string
+          default: USER
+          description: User role (USER, ADMIN)
+        isActive:
+          type: boolean
+          default: true
+          description: Account active status
+        isAffiliate:
+          type: boolean
+          default: false
+          description: Whether user is also an affiliate
+
+        # Trial Management (7-day PRO trial)
+        trialStatus:
+          $ref: '#/components/schemas/TrialStatus'
+        trialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: When user started 7-day trial
+        trialEndDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: When trial expires (trialStartDate + 7 days)
+        trialConvertedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When trial converted to paid subscription
+        trialCancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When user cancelled trial
+        hasUsedFreeTrial:
+          type: boolean
+          default: false
+          description: Prevent multiple 7-day trials
+
+        # Anti-abuse fields (Part 18)
+        hasUsedStripeTrial:
+          type: boolean
+          default: false
+          description: Track Stripe trial usage
+        stripeTrialStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+        hasUsedThreeDayPlan:
+          type: boolean
+          default: false
+          description: Track dLocal 3-day plan usage
+        threeDayPlanUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+        # Fraud detection
+        signupIP:
+          type: string
+          nullable: true
+          description: IP address at signup
+        lastLoginIP:
+          type: string
+          nullable: true
+          description: Most recent login IP
+        deviceFingerprint:
+          type: string
+          nullable: true
+          description: Browser fingerprint for tracking
+
+        # Email verification and password reset
+        verificationToken:
+          type: string
+          nullable: true
+          description: Email verification token (unique)
+        resetToken:
+          type: string
+          nullable: true
+          description: Password reset token (unique)
+        resetTokenExpiry:
+          type: string
+          format: date-time
+          nullable: true
+          description: Password reset token expiration
+
+        # Two-Factor Authentication (TOTP)
+        twoFactorEnabled:
+          type: boolean
+          default: false
+          description: Whether 2FA is enabled
+        twoFactorSecret:
+          type: string
+          nullable: true
+          description: Encrypted TOTP secret
+        twoFactorBackupCodes:
+          type: string
+          nullable: true
+          description: JSON array of hashed backup codes
+        twoFactorVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When 2FA was successfully enabled
+
+        # Timestamps
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        Core user model with authentication, tier management, and security features.
+
+        **Indexes:**
+        - email (unique)
+        - tier
+        - isAffiliate
+        - trialStatus
+        - trialEndDate
+
+    Account:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - provider
+        - providerAccountId
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        type:
+          type: string
+          description: Account type (oauth, credentials)
+        provider:
+          type: string
+          description: OAuth provider (google, twitter, linkedin)
+        providerAccountId:
+          type: string
+          description: Provider-specific user ID
+        refresh_token:
+          type: string
+          nullable: true
+        access_token:
+          type: string
+          nullable: true
+        expires_at:
+          type: integer
+          nullable: true
+        token_type:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          nullable: true
+        id_token:
+          type: string
+          nullable: true
+        session_state:
+          type: string
+          nullable: true
+      description: |
+        OAuth account linking (NextAuth standard model).
+
+        **Indexes:**
+        - provider + providerAccountId (unique)
+        - userId
+
+    Session:
+      type: object
+      required:
+        - id
+        - sessionToken
+        - userId
+        - expires
+      properties:
+        id:
+          type: string
+          format: cuid
+        sessionToken:
+          type: string
+          description: Session token (unique)
+        userId:
+          type: string
+          format: cuid
+        expires:
+          type: string
+          format: date-time
+      description: |
+        NextAuth session management.
+
+        **Indexes:**
+        - sessionToken (unique)
+        - userId
+
+    UserSession:
+      type: object
+      required:
+        - id
+        - userId
+        - isActive
+        - expiresAt
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+
+        # Session metadata
+        userAgent:
+          type: string
+          nullable: true
+          description: Full user agent string
+        ipAddress:
+          type: string
+          nullable: true
+          description: Client IP address
+        deviceType:
+          type: string
+          nullable: true
+          description: desktop, mobile, tablet
+        browser:
+          type: string
+          nullable: true
+          description: Chrome, Safari, Firefox, etc.
+        browserVersion:
+          type: string
+          nullable: true
+        os:
+          type: string
+          nullable: true
+          description: MacOS, Windows, iOS, Android
+        osVersion:
+          type: string
+          nullable: true
+
+        # Geolocation (from IP)
+        country:
+          type: string
+          nullable: true
+          description: Country code (US, UK, etc.)
+        city:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+          description: State/region
+
+        # Session state
+        isActive:
+          type: boolean
+          default: true
+        lastActiveAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+        # Link to NextAuth session
+        sessionToken:
+          type: string
+          nullable: true
+          description: NextAuth session token for revoking
+
+      description: |
+        Extended session tracking for device/location monitoring.
+        Separate from NextAuth Session to preserve auth functionality.
+
+        **Indexes:**
+        - userId
+        - sessionToken (unique)
+        - isActive
+        - lastActiveAt
+
+    UserPreferences:
+      type: object
+      required:
+        - id
+        - userId
+        - preferences
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+          description: One-to-one with User
+        preferences:
+          type: object
+          default: {}
+          description: JSON object for flexible preference storage
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      description: |
+        User preferences and settings.
+
+        **Indexes:**
+        - userId (unique)
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SECURITY MODELS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    LoginHistory:
+      type: object
+      required:
+        - id
+        - userId
+        - status
+        - provider
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        status:
+          $ref: '#/components/schemas/LoginStatus'
+        provider:
+          type: string
+          description: credentials, google, twitter, linkedin
+
+        # Device/browser info
+        userAgent:
+          type: string
+          nullable: true
+        deviceType:
+          type: string
+          nullable: true
+        browser:
+          type: string
+          nullable: true
+        browserVersion:
+          type: string
+          nullable: true
+        os:
+          type: string
+          nullable: true
+        osVersion:
+          type: string
+          nullable: true
+
+        # Geolocation
+        ipAddress:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+
+        # Device fingerprint
+        deviceFingerprint:
+          type: string
+          nullable: true
+        isNewDevice:
+          type: boolean
+          default: false
+
+        # Failure info
+        failureReason:
+          type: string
+          nullable: true
+
+        createdAt:
+          type: string
+          format: date-time
+
+      description: |
+        Tracks all login attempts for security monitoring.
+
+        **Indexes:**
+        - userId
+        - userId + createdAt
+        - ipAddress
+        - deviceFingerprint
+        - createdAt
+
+    SecurityAlert:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - title
+        - message
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        type:
+          $ref: '#/components/schemas/SecurityAlertType'
+        title:
+          type: string
+        message:
+          type: string
+
+        # Context
+        ipAddress:
+          type: string
+          nullable: true
+        deviceInfo:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+
+        # Status
+        emailSent:
+          type: boolean
+          default: false
+        emailSentAt:
+          type: string
+          format: date-time
+          nullable: true
+        read:
+          type: boolean
+          default: false
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+
+        createdAt:
+          type: string
+          format: date-time
+
+      description: |
+        Security alerts sent to users.
+
+        **Indexes:**
+        - userId
+        - userId + read
+        - type
+        - createdAt
+
+    FraudAlert:
+      type: object
+      required:
+        - id
+        - userId
+        - pattern
+        - severity
+        - status
+        - description
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+
+        # Alert details
+        pattern:
+          type: string
+          description: 3DAY_PLAN_REUSE, MULTIPLE_FAILED_PAYMENTS, VELOCITY_LIMIT, IP_MISMATCH, etc.
+        severity:
+          $ref: '#/components/schemas/FraudAlertSeverity'
+        status:
+          $ref: '#/components/schemas/FraudAlertStatus'
+        description:
+          type: string
+
+        # Payment context
+        country:
+          type: string
+          nullable: true
+        paymentMethod:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: decimal
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+
+        # Detection metadata
+        ipAddress:
+          type: string
+          nullable: true
+        deviceFingerprint:
+          type: string
+          nullable: true
+        additionalData:
+          type: object
+          nullable: true
+          description: Flexible field for extra context
+
+        # Admin review
+        reviewedBy:
+          type: string
+          nullable: true
+          description: Admin user ID
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolution:
+          type: string
+          nullable: true
+          description: FALSE_POSITIVE, WARNING_SENT, BLOCKED, etc.
+        notes:
+          type: string
+          nullable: true
+
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        Fraud detection and prevention alerts.
+
+        **Indexes:**
+        - userId
+        - pattern
+        - severity
+        - status
+        - createdAt
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SUBSCRIPTION MODELS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Subscription:
+      type: object
+      required:
+        - id
+        - userId
+        - amountUsd
+        - status
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+          description: One-to-one with User
+
+        # Affiliate tracking
+        affiliateCodeId:
+          type: string
+          format: cuid
+          nullable: true
+          description: Which affiliate code was used
+
+        # Stripe fields (nullable for dLocal)
+        stripeCustomerId:
+          type: string
+          nullable: true
+          description: Stripe customer ID (unique)
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+          description: Stripe subscription ID (unique)
+        stripePriceId:
+          type: string
+          nullable: true
+        stripeCurrentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+
+        # dLocal fields (nullable for Stripe)
+        dLocalPaymentId:
+          type: string
+          nullable: true
+          description: dLocal payment ID (unique)
+        dLocalPaymentMethod:
+          type: string
+          nullable: true
+          description: UPI, PAYTM, GOPAY, etc.
+        dLocalCountry:
+          type: string
+          nullable: true
+          description: IN, ID, PK, etc.
+        dLocalCurrency:
+          type: string
+          nullable: true
+          description: INR, IDR, PKR, etc.
+
+        # Common fields
+        planType:
+          type: string
+          nullable: true
+          description: MONTHLY, THREE_DAY (dLocal only)
+        amountUsd:
+          type: number
+          format: float
+          description: Subscription amount in USD
+        status:
+          $ref: '#/components/schemas/SubscriptionStatus'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Explicit expiry date (critical for dLocal)
+        renewalReminderSent:
+          type: boolean
+          default: false
+
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        User subscription management (Stripe + dLocal).
+
+        **Indexes:**
+        - userId (unique)
+        - status
+        - expiresAt
+        - affiliateCodeId
+        - stripeCustomerId (unique)
+        - stripeSubscriptionId (unique)
+        - dLocalPaymentId (unique)
+
+    Payment:
+      type: object
+      required:
+        - id
+        - userId
+        - provider
+        - providerPaymentId
+        - providerStatus
+        - amount
+        - amountUSD
+        - currency
+        - status
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        subscriptionId:
+          type: string
+          format: cuid
+          nullable: true
+
+        # Payment provider
+        provider:
+          type: string
+          description: STRIPE or DLOCAL
+
+        # Transaction details
+        providerPaymentId:
+          type: string
+          description: Provider payment ID (unique)
+        providerStatus:
+          type: string
+          description: Provider-specific status
+
+        # Amount and currency
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount in local currency
+        amountUSD:
+          type: number
+          format: decimal
+          description: Payment amount in USD
+        currency:
+          type: string
+          description: Payment currency code
+        country:
+          type: string
+          nullable: true
+        paymentMethod:
+          type: string
+          nullable: true
+
+        # Additional data
+        planType:
+          type: string
+          nullable: true
+          description: THREE_DAY, MONTHLY
+        duration:
+          type: integer
+          nullable: true
+          description: Days (3 or 30)
+        discountCode:
+          type: string
+          nullable: true
+        discountAmount:
+          type: number
+          format: decimal
+          nullable: true
+
+        # Status
+        status:
+          type: string
+          description: PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED
+        failureReason:
+          type: string
+          nullable: true
+
+        # Fraud detection
+        ipAddress:
+          type: string
+          nullable: true
+        deviceFingerprint:
+          type: string
+          nullable: true
+
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        Payment transaction records.
+
+        **Indexes:**
+        - userId
+        - provider
+        - status
+        - createdAt
+        - providerPaymentId (unique)
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # MARKET DATA MODEL (57-COLUMN SCHEMA)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    MarketData:
+      type: object
+      required:
+        - id
+        - symbol
+        - timestamp
+        - open
+        - high
+        - low
+        - close
+        - volume
+        - timeframe
+      properties:
+        id:
+          type: string
+          format: cuid
+        symbol:
+          type: string
+          description: Trading symbol (BTCUSD, EURUSD, etc.)
+
+        # System columns (8) - Always accessible to all tiers
+        timestamp:
+          type: integer
+          description: Unix timestamp (seconds)
+        open:
+          type: number
+          format: float
+          description: Opening price
+        high:
+          type: number
+          format: float
+          description: High price
+        low:
+          type: number
+          format: float
+          description: Low price
+        close:
+          type: number
+          format: float
+          description: Closing price
+        volume:
+          type: number
+          format: float
+          description: Trading volume
+        timeframe:
+          type: string
+          description: M1, M5, M15, H1, H4, D1
+        collected_at:
+          type: string
+          format: date-time
+          description: Data collection timestamp
+
+        # FREE tier indicators - Group 1: Fractal Diagonal Lines (8 columns)
+        diag_asc_line_1:
+          type: number
+          format: float
+          nullable: true
+        diag_asc_line_2:
+          type: number
+          format: float
+          nullable: true
+        diag_asc_line_3:
+          type: number
+          format: float
+          nullable: true
+        diag_desc_line_1:
+          type: number
+          format: float
+          nullable: true
+        diag_desc_line_2:
+          type: number
+          format: float
+          nullable: true
+        diag_desc_line_3:
+          type: number
+          format: float
+          nullable: true
+        diag_high_map:
+          type: number
+          format: float
+          nullable: true
+        diag_low_map:
+          type: number
+          format: float
+          nullable: true
+
+        # FREE tier indicators - Group 2: Fractal Horizontal Lines (8 columns)
+        horiz_peak_line_1:
+          type: number
+          format: float
+          nullable: true
+        horiz_peak_line_2:
+          type: number
+          format: float
+          nullable: true
+        horiz_peak_line_3:
+          type: number
+          format: float
+          nullable: true
+        horiz_bottom_line_1:
+          type: number
+          format: float
+          nullable: true
+        horiz_bottom_line_2:
+          type: number
+          format: float
+          nullable: true
+        horiz_bottom_line_3:
+          type: number
+          format: float
+          nullable: true
+        horiz_high_map:
+          type: number
+          format: float
+          nullable: true
+        horiz_low_map:
+          type: number
+          format: float
+          nullable: true
+
+        # PRO tier indicators - Group 3: Moving Averages (3 columns)
+        tema:
+          type: number
+          format: float
+          nullable: true
+          description: Triple Exponential Moving Average
+        hrma:
+          type: number
+          format: float
+          nullable: true
+          description: Hull-like Moving Average
+        smma:
+          type: number
+          format: float
+          nullable: true
+          description: Smoothed Moving Average
+
+        # PRO tier indicators - Group 4: Body Size Momentum (2 columns)
+        z_score_of_body_size:
+          type: number
+          format: float
+          nullable: true
+          description: Z-score of candle body size
+        candle_classification:
+          type: number
+          format: float
+          nullable: true
+          description: Candle classification (0-5)
+
+        # PRO tier indicators - Group 5: Heiken Ashi (7 columns)
+        ha_open:
+          type: number
+          format: float
+          nullable: true
+        ha_high:
+          type: number
+          format: float
+          nullable: true
+        ha_low:
+          type: number
+          format: float
+          nullable: true
+        ha_close:
+          type: number
+          format: float
+          nullable: true
+        ha_classification:
+          type: number
+          format: float
+          nullable: true
+        ha_body_size:
+          type: number
+          format: float
+          nullable: true
+        ha_body_zscore:
+          type: number
+          format: float
+          nullable: true
+
+        # PRO tier indicators - Group 6: Keltner Channels (10 columns)
+        kc_ultra_extreme_upper:
+          type: number
+          format: float
+          nullable: true
+        kc_extreme_upper:
+          type: number
+          format: float
+          nullable: true
+        kc_uppermost:
+          type: number
+          format: float
+          nullable: true
+        kc_upper:
+          type: number
+          format: float
+          nullable: true
+        kc_upper_middle:
+          type: number
+          format: float
+          nullable: true
+        kc_lower_middle:
+          type: number
+          format: float
+          nullable: true
+        kc_lower:
+          type: number
+          format: float
+          nullable: true
+        kc_lowermost:
+          type: number
+          format: float
+          nullable: true
+        kc_extreme_lower:
+          type: number
+          format: float
+          nullable: true
+        kc_ultra_extreme_lower:
+          type: number
+          format: float
+          nullable: true
+
+        # PRO tier indicators - Group 7: Support/Resistance (8 columns)
+        sr_support_1:
+          type: number
+          format: float
+          nullable: true
+        sr_support_2:
+          type: number
+          format: float
+          nullable: true
+        sr_support_3:
+          type: number
+          format: float
+          nullable: true
+        sr_support_4:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_1:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_2:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_3:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_4:
+          type: number
+          format: float
+          nullable: true
+
+        # PRO tier indicators - Group 8: ZigZag (3 columns)
+        zigzag_peak:
+          type: number
+          format: float
+          nullable: true
+        zigzag_bottom:
+          type: number
+          format: float
+          nullable: true
+        ema_26:
+          type: number
+          format: float
+          nullable: true
+          description: EMA 26 period
+
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        Market data with 57-column flat schema.
+
+        **Structure:**
+        - 8 system columns (OHLCV + metadata)
+        - 16 FREE tier indicator columns (2 groups)
+        - 33 PRO tier indicator columns (6 groups)
+
+        **Total:** 57 columns
+
+        **Tier Access:**
+        - FREE tier: 24 columns (8 system + 16 FREE indicators)
+        - PRO tier: 57 columns (8 system + 16 FREE + 33 PRO indicators)
+
+        **Indexes:**
+        - symbol + timeframe + timestamp (unique)
+        - symbol
+        - timeframe
+        - timestamp
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ALERT & WATCHLIST MODELS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Alert:
+      type: object
+      required:
+        - id
+        - userId
+        - symbol
+        - timeframe
+        - condition
+        - alertType
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+
+        # Alert configuration
+        name:
+          type: string
+          nullable: true
+        symbol:
+          type: string
+        timeframe:
+          type: string
+        condition:
+          type: string
+          description: JSON string for complex conditions
+        alertType:
+          type: string
+          default: PRICE_TOUCH_LINE
+
+        # Alert state
+        isActive:
+          type: boolean
+          default: true
+        lastTriggered:
+          type: string
+          format: date-time
+          nullable: true
+        triggerCount:
+          type: integer
+          default: 0
+
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        User-configured price and indicator alerts.
+
+        **Indexes:**
+        - userId
+        - symbol + timeframe
+        - isActive
+
+    Watchlist:
+      type: object
+      required:
+        - id
+        - userId
+        - name
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        name:
+          type: string
+        order:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        User watchlist container.
+
+        **Indexes:**
+        - userId
+        - userId + name (unique)
+
+    WatchlistItem:
+      type: object
+      required:
+        - id
+        - watchlistId
+        - userId
+        - symbol
+        - timeframe
+      properties:
+        id:
+          type: string
+          format: cuid
+        watchlistId:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        symbol:
+          type: string
+        timeframe:
+          type: string
+        order:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+
+      description: |
+        Individual watchlist item (symbol + timeframe).
+
+        **Indexes:**
+        - watchlistId
+        - userId
+        - userId + symbol + timeframe (unique)
+
+    Notification:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - title
+        - body
+      properties:
+        id:
+          type: string
+          format: cuid
+        userId:
+          type: string
+          format: cuid
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+        body:
+          type: string
+        priority:
+          $ref: '#/components/schemas/NotificationPriority'
+        read:
+          type: boolean
+          default: false
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        link:
+          type: string
+          nullable: true
+          description: Optional link to related resource
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        User notifications.
+
+        **Indexes:**
+        - userId
+        - userId + read
+        - createdAt
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SYSTEM CONFIGURATION MODELS
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    SystemConfig:
+      type: object
+      required:
+        - id
+        - key
+        - value
+        - category
+      properties:
+        id:
+          type: string
+          format: cuid
+        key:
+          type: string
+          description: Unique setting identifier (e.g., affiliate_discount_percent)
+        value:
+          type: string
+          description: Value stored as string (parsed based on valueType)
+        valueType:
+          type: string
+          default: string
+          description: number, string, boolean, json
+        description:
+          type: string
+          nullable: true
+          description: Human-readable description
+        category:
+          type: string
+          description: Setting category (affiliate, payment, system)
+        updatedBy:
+          type: string
+          nullable: true
+          description: Admin user ID or email
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+      description: |
+        System-wide configuration settings that can be changed by admin
+        without code deployment.
+
+        **Indexes:**
+        - key (unique)
+        - category
+
+    SystemConfigHistory:
+      type: object
+      required:
+        - id
+        - configKey
+        - oldValue
+        - newValue
+        - changedBy
+      properties:
+        id:
+          type: string
+          format: cuid
+        configKey:
+          type: string
+          description: The config key that was changed
+        oldValue:
+          type: string
+          description: Previous value
+        newValue:
+          type: string
+          description: New value
+        changedBy:
+          type: string
+          description: Admin user ID or email
+        reason:
+          type: string
+          nullable: true
+          description: Optional reason for change
+        changedAt:
+          type: string
+          format: date-time
+
+      description: |
+        Audit trail for SystemConfig changes.
+
+        **Indexes:**
+        - configKey
+        - changedBy
+        - changedAt
+
+paths: {}
+
