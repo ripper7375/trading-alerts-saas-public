@@ -69,20 +69,6 @@ export interface IndicatorRequest {
   bars?: number; // Number of bars to fetch (default: 100)
 }
 
-/**
- * Chart data (candlesticks + indicators)
- */
-export interface ChartData {
-  symbol: Symbol;
-  timeframe: Timeframe;
-  data: Candlestick[];
-  indicators: {
-    fractalHorizontal?: IndicatorPoint[];
-    fractalDiagonal?: IndicatorPoint[];
-  };
-  lastUpdate: Date;
-}
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PRO INDICATOR TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
