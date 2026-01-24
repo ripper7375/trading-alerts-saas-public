@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - dLocal Payment Integration API (Part 18)
-  version: 1.0.0
+  version: 2.0.0
   description: |
     dLocal Payment Integration API for Trading Alerts SaaS platform (Part 18).
 
@@ -14,28 +14,31 @@ info:
     - **Part 18B**: Subscription Lifecycle Management
     - **Part 18C**: User Experience & Admin Dashboard
 
-    ## Supported Regions
-    - **India (IN)**: INR - UPI, Wallets, Net Banking, Cards
-    - **Nigeria (NG)**: NGN - Bank Transfer, Cards, Mobile Money
-    - **Pakistan (PK)**: PKR - EasyPaisa, JazzCash, Bank Transfer
-    - **Vietnam (VN)**: VND - Momo, ZaloPay, Bank Transfer
-    - **Indonesia (ID)**: IDR - OVO, GoPay, DANA, Bank Transfer
-    - **Thailand (TH)**: THB - PromptPay, TrueMoney, Bank Transfer
-    - **South Africa (ZA)**: ZAR - EFT, Instant EFT, Cards
-    - **Turkey (TR)**: TRY - Cards, Bank Transfer
+    ## Supported Regions (8 Countries)
+    | Country       | Code | Currency | Payment Methods                     |
+    | ------------- | ---- | -------- | ----------------------------------- |
+    | India         | IN   | INR      | UPI, Paytm, PhonePe, Net Banking    |
+    | Nigeria       | NG   | NGN      | Bank Transfer, USSD, Paystack       |
+    | Pakistan      | PK   | PKR      | JazzCash, Easypaisa                 |
+    | Vietnam       | VN   | VND      | VNPay, MoMo, ZaloPay                |
+    | Indonesia     | ID   | IDR      | GoPay, OVO, Dana, ShopeePay         |
+    | Thailand      | TH   | THB      | TrueMoney, Rabbit LINE Pay, Thai QR |
+    | South Africa  | ZA   | ZAR      | Instant EFT, EFT                    |
+    | Turkey        | TR   | TRY      | Bank Transfer, Local Cards          |
 
     ## Payment Plans
-    - **3-Day Plan**: $3 for 3 days (promotional/trial)
-    - **Monthly Plan**: $29/month (recurring via manual renewal)
+    - **3-Day Plan**: $1.99 USD (one-time, lifetime limit per account)
+    - **Monthly Plan**: $29.00 USD (recurring via manual renewal)
 
     ## Features
     - Multi-currency support with real-time conversion
-    - Local payment method integration
-    - Anti-abuse validation for 3-day plans
+    - 30+ local payment method integrations
+    - Anti-abuse validation for 3-day plans (one per account)
     - Subscription lifecycle management
     - Automated expiry and renewal reminders
-    - Fraud detection and monitoring
+    - Fraud detection and monitoring dashboard
     - Discount code support (monthly plan only)
+    - HMAC-SHA256 webhook signature verification
 
   contact:
     name: API Support
@@ -64,8 +67,12 @@ tags:
     description: dLocal webhook handlers
   - name: Discount
     description: Discount code validation
+  - name: Eligibility
+    description: Plan eligibility checks
   - name: Cron Jobs
     description: Automated subscription management
+  - name: Admin - Fraud
+    description: Fraud alert management (Admin only)
 
 paths:
   /api/payments/dlocal/methods:
@@ -80,10 +87,15 @@ paths:
         - Simple list of payment method IDs
         - Detailed information with names and icons (detailed=true)
 
-        **Examples:**
-        - India: UPI, Paytm, PhonePe, GooglePay, AmazonPay
-        - Nigeria: Bank Transfer, Card, Flutterwave
-        - Pakistan: EasyPaisa, JazzCash, BankAlfalah
+        **Payment Methods by Country:**
+        - India: UPI, Paytm, PhonePe, Net Banking
+        - Nigeria: Bank Transfer, USSD, Paystack
+        - Pakistan: JazzCash, Easypaisa
+        - Vietnam: VNPay, MoMo, ZaloPay
+        - Indonesia: GoPay, OVO, Dana, ShopeePay
+        - Thailand: TrueMoney, Rabbit LINE Pay, Thai QR
+        - South Africa: Instant EFT, EFT
+        - Turkey: Bank Transfer, Local Cards
       operationId: getPaymentMethods
       parameters:
         - name: country
@@ -116,9 +128,9 @@ paths:
                     country: 'IN'
                     methods:
                       - 'UPI'
-                      - 'PAYTM'
-                      - 'PHONEPE'
-                      - 'GOOGLEPAY'
+                      - 'Paytm'
+                      - 'PhonePe'
+                      - 'Net Banking'
                 detailed:
                   summary: Detailed information
                   value:
@@ -126,10 +138,12 @@ paths:
                     methods:
                       - id: 'UPI'
                         name: 'UPI'
-                        icon: 'upi-icon.svg'
-                      - id: 'PAYTM'
+                        type: 'bank'
+                        logo: 'upi-icon.svg'
+                      - id: 'Paytm'
                         name: 'Paytm Wallet'
-                        icon: 'paytm-icon.svg'
+                        type: 'wallet'
+                        logo: 'paytm-icon.svg'
         '400':
           description: Invalid or unsupported country
           content:
@@ -155,8 +169,9 @@ paths:
       description: |
         Returns the current USD to local currency exchange rate.
 
-        **Rate Source:** dLocal API with caching
+        **Rate Source:** exchangerate-api.com with caching
         **Cache Duration:** 1 hour
+        **Fallback:** Static rates for offline mode
       operationId: getExchangeRate
       parameters:
         - name: currency
@@ -178,7 +193,7 @@ paths:
                 from: 'USD'
                 to: 'INR'
                 rate: 83.25
-                timestamp: '2025-12-25T10:00:00.000Z'
+                timestamp: '2026-01-24T10:00:00.000Z'
         '400':
           description: Invalid currency
           content:
@@ -200,7 +215,7 @@ paths:
       description: |
         Converts a USD amount to local currency using current exchange rate.
 
-        **Use Case:** Display pricing in local currency
+        **Use Case:** Display pricing in local currency on checkout page
       operationId: convertCurrency
       parameters:
         - name: amount
@@ -256,7 +271,7 @@ paths:
         - User must be authenticated
         - User must not have active PRO subscription
         - Payment method must be valid for country
-        - 3-day plan: Anti-abuse checks (max 1 per user)
+        - 3-day plan: Anti-abuse checks (max 1 per user lifetime)
         - Discount code: Only valid for monthly plan
 
         **Process:**
@@ -265,7 +280,7 @@ paths:
         3. Apply discount code (if provided for monthly)
         4. Calculate amount in local currency
         5. Create payment record in database
-        6. Call dLocal API to create payment
+        6. Call dLocal API with HMAC-SHA256 signature
         7. Return redirect URL for user to complete payment
       operationId: createPayment
       requestBody:
@@ -286,7 +301,7 @@ paths:
                 summary: Monthly plan with discount
                 value:
                   country: 'NG'
-                  paymentMethod: 'BANK_TRANSFER'
+                  paymentMethod: 'Bank Transfer'
                   planType: 'MONTHLY'
                   currency: 'NGN'
                   discountCode: 'SAVE20'
@@ -300,9 +315,9 @@ paths:
               example:
                 paymentId: 'dlp_abc123xyz456'
                 redirectUrl: 'https://pay.dlocal.com/checkout/dlp_abc123xyz456'
-                amount: 249
+                amount: 166
                 currency: 'INR'
-                expiresAt: '2025-12-25T11:00:00.000Z'
+                expiresAt: '2026-01-24T11:00:00.000Z'
         '400':
           description: Validation error
           content:
@@ -355,10 +370,10 @@ paths:
 
         **Status Values:**
         - PENDING: Payment initiated, awaiting completion
-        - PAID: Payment successful
-        - REJECTED: Payment failed
+        - COMPLETED: Payment successful
+        - FAILED: Payment failed
         - CANCELLED: Payment cancelled
-        - EXPIRED: Payment expired
+        - REFUNDED: Payment refunded
       operationId: getPaymentStatus
       parameters:
         - name: paymentId
@@ -376,13 +391,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentStatusResponse'
               example:
+                id: 'clp_internal_id'
                 paymentId: 'dlp_abc123xyz456'
-                status: 'PAID'
-                amount: 249
+                orderId: 'ord_xyz789'
+                status: 'COMPLETED'
+                amount: '166.00'
                 currency: 'INR'
                 planType: 'THREE_DAY'
-                createdAt: '2025-12-25T10:00:00.000Z'
-                paidAt: '2025-12-25T10:05:00.000Z'
+                createdAt: '2026-01-24T10:00:00.000Z'
+                dLocalStatus:
+                  id: 'dlp_abc123xyz456'
+                  status: 'PAID'
+                  amount: 166
+                  currency: 'INR'
         '401':
           description: Unauthorized
           content:
@@ -408,6 +429,50 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/payments/dlocal/check-three-day-eligibility:
+    get:
+      tags:
+        - Eligibility
+      summary: Check 3-day plan eligibility
+      description: |
+        Checks if the authenticated user is eligible for the 3-day promotional plan.
+
+        **Anti-Abuse Rules:**
+        - Max 1 three-day subscription per user (lifetime limit)
+        - Checks payment history for previous 3-day purchases
+        - Checks subscription history
+        - Verifies no active PRO subscription
+      operationId: checkThreeDayEligibility
+      responses:
+        '200':
+          description: Eligibility check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThreeDayEligibilityResponse'
+              examples:
+                eligible:
+                  summary: User is eligible
+                  value:
+                    eligible: true
+                    reason: null
+                alreadyUsed:
+                  summary: Already used 3-day plan
+                  value:
+                    eligible: false
+                    reason: 'ALREADY_USED'
+                activeSubscription:
+                  summary: Has active subscription
+                  value:
+                    eligible: false
+                    reason: 'ACTIVE_SUBSCRIPTION'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/payments/dlocal/validate-discount:
     post:
       tags:
@@ -417,12 +482,12 @@ paths:
         Validates a discount code for monthly plan.
 
         **Rules:**
-        - Only valid for MONTHLY plan
-        - Checks if code is active and not expired
+        - Only valid for MONTHLY plan (not 3-day)
+        - Checks if code exists and is active
+        - Checks if code has not expired
         - Checks usage limits
-        - Returns discount amount or percentage
-
-        **Note:** This is Part 18C functionality
+        - Returns discount type (PERCENTAGE or FIXED)
+        - Calculates final price after discount
       operationId: validateDiscountCode
       requestBody:
         required: true
@@ -441,65 +506,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidateDiscountResponse'
               examples:
-                validCode:
-                  summary: Valid discount code
+                validPercentage:
+                  summary: Valid percentage discount
                   value:
                     valid: true
                     code: 'SAVE20'
                     discountType: 'PERCENTAGE'
                     discountValue: 20
                     finalPrice: 23.20
+                validFixed:
+                  summary: Valid fixed discount
+                  value:
+                    valid: true
+                    code: 'FLAT5'
+                    discountType: 'FIXED'
+                    discountValue: 5
+                    finalPrice: 24.00
                 invalidCode:
                   summary: Invalid code
                   value:
                     valid: false
                     error: 'Code not found or expired'
+                wrongPlan:
+                  summary: Code not valid for plan type
+                  value:
+                    valid: false
+                    error: 'Discount codes are only valid for monthly plan'
         '400':
           description: Validation error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/check-three-day-eligibility:
-    get:
-      tags:
-        - Payments
-      summary: Check 3-day plan eligibility
-      description: |
-        Checks if the authenticated user is eligible for the 3-day promotional plan.
-
-        **Anti-Abuse Rules:**
-        - Max 1 three-day subscription per user (lifetime)
-        - Checks payment history
-        - Checks subscription history
-
-        **Note:** This is Part 18B functionality
-      operationId: checkThreeDayEligibility
-      responses:
-        '200':
-          description: Eligibility check result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ThreeDayEligibilityResponse'
-              examples:
-                eligible:
-                  summary: User is eligible
-                  value:
-                    eligible: true
-                    reason: null
-                notEligible:
-                  summary: User not eligible
-                  value:
-                    eligible: false
-                    reason: 'ALREADY_USED'
         '401':
           description: Unauthorized
           content:
@@ -516,29 +554,30 @@ paths:
         Handles webhook events from dLocal for payment status updates.
 
         **Events Handled:**
-        - payment.paid: Payment successful → Create subscription
-        - payment.rejected: Payment failed → Update status
+        - payment.paid: Payment successful → Create subscription, upgrade to PRO
+        - payment.rejected: Payment failed → Update status, send failure email
         - payment.cancelled: Payment cancelled → Update status
 
         **Process (payment.paid):**
-        1. Verify webhook signature
-        2. Find payment in database
-        3. Update payment status
-        4. Create/update subscription
-        5. Upgrade user to PRO tier
-        6. Send confirmation email
+        1. Verify webhook signature (HMAC-SHA256)
+        2. Find payment in database by order_id
+        3. Update payment status to COMPLETED
+        4. Create/update subscription with correct duration (3 or 30 days)
+        5. Upgrade user tier to PRO
+        6. Mark 3-day plan as used (if applicable, anti-abuse)
+        7. Send confirmation email
 
         **Security:**
-        - Validates dLocal signature
-        - Rejects invalid signatures
-        - Idempotent processing
+        - HMAC-SHA256 signature validation
+        - Rejects invalid signatures with 400 error
+        - Idempotent processing (prevents duplicate subscriptions)
       operationId: handleDLocalWebhook
       security: []
       parameters:
         - name: x-dlocal-signature
           in: header
           required: true
-          description: dLocal webhook signature
+          description: dLocal webhook HMAC-SHA256 signature
           schema:
             type: string
       requestBody:
@@ -546,8 +585,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: dLocal webhook payload
+              $ref: '#/components/schemas/DLocalWebhookPayload'
       responses:
         '200':
           description: Webhook processed successfully
@@ -583,17 +621,17 @@ paths:
         **Schedule:** Daily at 00:00 UTC (Vercel Cron)
 
         **Process:**
-        1. Find subscriptions expiring in 3 days
-        2. Send renewal reminder emails
-        3. Log results
+        1. Find dLocal subscriptions expiring in 3 days
+        2. Send renewal reminder emails with local currency pricing
+        3. Log processing results
 
-        **Note:** This is Part 18B functionality - manages dLocal subscription lifecycle
+        **Authentication:** Cron secret header required
       operationId: checkExpiringSubscriptions
       security: []
       parameters:
         - name: authorization
           in: header
-          required: false
+          required: true
           description: Cron secret for authentication
           schema:
             type: string
@@ -634,17 +672,17 @@ paths:
         **Process:**
         1. Find expired subscriptions (past expiresAt date)
         2. Update subscription status to EXPIRED
-        3. Downgrade user tier to FREE
+        3. Downgrade user tier from PRO to FREE
         4. Send expiry notification email
-        5. Log results
+        5. Log processing results
 
-        **Note:** This is Part 18B functionality - manages dLocal subscription lifecycle
+        **Authentication:** Cron secret header required
       operationId: downgradeExpiredSubscriptions
       security: []
       parameters:
         - name: authorization
           in: header
-          required: false
+          required: true
           description: Cron secret for authentication
           schema:
             type: string
@@ -667,6 +705,207 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Cron job error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/fraud-alerts:
+    get:
+      tags:
+        - Admin - Fraud
+      summary: List fraud alerts
+      description: |
+        Returns paginated list of fraud alerts with optional filters.
+
+        **Requires:** Admin role
+      operationId: listFraudAlerts
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by alert status
+          schema:
+            type: string
+            enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
+        - name: severity
+          in: query
+          required: false
+          description: Filter by severity level
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        - name: pattern
+          in: query
+          required: false
+          description: Filter by fraud pattern type
+          schema:
+            type: string
+            enum: [MULTIPLE_3DAY_ATTEMPTS, RAPID_FAILURES, COUNTRY_HOPPING, UNUSUAL_METHODS]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Fraud alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlertsListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Admin - Fraud
+      summary: Create fraud alert
+      description: |
+        Creates a new fraud alert manually.
+
+        **Requires:** Admin role
+      operationId: createFraudAlert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFraudAlertRequest'
+      responses:
+        '201':
+          description: Fraud alert created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlert'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/fraud-alerts/{id}:
+    get:
+      tags:
+        - Admin - Fraud
+      summary: Get fraud alert details
+      description: |
+        Returns detailed information about a specific fraud alert.
+
+        **Requires:** Admin role
+      operationId: getFraudAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fraud alert details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlertDetail'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Fraud alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Admin - Fraud
+      summary: Update fraud alert
+      description: |
+        Updates fraud alert status or adds investigation notes.
+
+        **Requires:** Admin role
+      operationId: updateFraudAlert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFraudAlertRequest'
+      responses:
+        '200':
+          description: Fraud alert updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FraudAlert'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Fraud alert not found
           content:
             application/json:
               schema:
@@ -697,13 +936,14 @@ components:
             oneOf:
               - type: string
               - $ref: '#/components/schemas/PaymentMethodDetail'
-          example: ['UPI', 'PAYTM', 'PHONEPE']
+          example: ['UPI', 'Paytm', 'PhonePe', 'Net Banking']
 
     PaymentMethodDetail:
       type: object
       required:
         - id
         - name
+        - type
       properties:
         id:
           type: string
@@ -711,7 +951,11 @@ components:
         name:
           type: string
           example: 'UPI'
-        icon:
+        type:
+          type: string
+          enum: [bank, wallet, qr, card]
+          example: 'bank'
+        logo:
           type: string
           example: 'upi-icon.svg'
 
@@ -736,7 +980,7 @@ components:
         timestamp:
           type: string
           format: date-time
-          example: '2025-12-25T10:00:00.000Z'
+          example: '2026-01-24T10:00:00.000Z'
 
     ConvertResponse:
       type: object
@@ -775,6 +1019,7 @@ components:
           example: 'IN'
         paymentMethod:
           type: string
+          description: Payment method ID (must be valid for selected country)
           example: 'UPI'
         planType:
           type: string
@@ -810,7 +1055,7 @@ components:
         amount:
           type: number
           description: Amount in local currency
-          example: 249
+          example: 166
         currency:
           type: string
           example: 'INR'
@@ -818,28 +1063,40 @@ components:
           type: string
           format: date-time
           description: Payment link expiration
-          example: '2025-12-25T11:00:00.000Z'
+          example: '2026-01-24T11:00:00.000Z'
 
     PaymentStatusResponse:
       type: object
       required:
+        - id
         - paymentId
+        - orderId
         - status
         - amount
         - currency
         - planType
         - createdAt
       properties:
+        id:
+          type: string
+          description: Internal payment record ID
+          example: 'clp_internal_id'
         paymentId:
           type: string
+          description: dLocal payment ID
           example: 'dlp_abc123xyz456'
+        orderId:
+          type: string
+          description: Internal order ID
+          example: 'ord_xyz789'
         status:
           type: string
-          enum: [PENDING, PAID, REJECTED, CANCELLED, EXPIRED]
-          example: 'PAID'
+          enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
+          example: 'COMPLETED'
         amount:
-          type: number
-          example: 249
+          type: string
+          description: Amount in local currency (string for precision)
+          example: '166.00'
         currency:
           type: string
           example: 'INR'
@@ -850,12 +1107,19 @@ components:
         createdAt:
           type: string
           format: date-time
-          example: '2025-12-25T10:00:00.000Z'
-        paidAt:
-          type: string
-          format: date-time
-          nullable: true
-          example: '2025-12-25T10:05:00.000Z'
+          example: '2026-01-24T10:00:00.000Z'
+        dLocalStatus:
+          type: object
+          description: Status from dLocal API (if available)
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            amount:
+              type: number
+            currency:
+              type: string
 
     ValidateDiscountRequest:
       type: object
@@ -869,6 +1133,7 @@ components:
         planType:
           type: string
           enum: [MONTHLY]
+          description: Discount codes only valid for MONTHLY plan
           example: 'MONTHLY'
 
     ValidateDiscountResponse:
@@ -888,7 +1153,7 @@ components:
           example: 'PERCENTAGE'
         discountValue:
           type: number
-          description: Percentage (1-100) or fixed amount
+          description: Percentage (1-100) or fixed USD amount
           example: 20
         finalPrice:
           type: number
@@ -911,7 +1176,45 @@ components:
           type: string
           nullable: true
           enum: [ALREADY_USED, ACTIVE_SUBSCRIPTION]
+          description: Reason if not eligible
           example: null
+
+    DLocalWebhookPayload:
+      type: object
+      description: dLocal webhook payload structure
+      properties:
+        id:
+          type: string
+          description: dLocal payment ID
+        status:
+          type: string
+          description: Payment status from dLocal
+        amount:
+          type: number
+        currency:
+          type: string
+        order_id:
+          type: string
+          description: Our internal order ID
+        payment_method_id:
+          type: string
+        created_date:
+          type: string
+          format: date-time
+        approved_date:
+          type: string
+          format: date-time
+        failure_reason:
+          type: string
+        payer:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            document:
+              type: string
 
     CronJobResponse:
       type: object
@@ -934,6 +1237,125 @@ components:
           type: integer
           description: Number of users downgraded (for downgrade cron)
           example: 8
+
+    FraudAlert:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        status:
+          type: string
+          enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        pattern:
+          type: string
+          enum: [MULTIPLE_3DAY_ATTEMPTS, RAPID_FAILURES, COUNTRY_HOPPING, UNUSUAL_METHODS]
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FraudAlertDetail:
+      allOf:
+        - $ref: '#/components/schemas/FraudAlert'
+        - type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+                name:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+            paymentHistory:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+                  status:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+            investigationNotes:
+              type: array
+              items:
+                type: object
+                properties:
+                  note:
+                    type: string
+                  createdBy:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+
+    FraudAlertsListResponse:
+      type: object
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/FraudAlert'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+
+    CreateFraudAlertRequest:
+      type: object
+      required:
+        - userId
+        - severity
+        - pattern
+        - description
+      properties:
+        userId:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        pattern:
+          type: string
+          enum: [MULTIPLE_3DAY_ATTEMPTS, RAPID_FAILURES, COUNTRY_HOPPING, UNUSUAL_METHODS]
+        description:
+          type: string
+
+    UpdateFraudAlertRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
+        note:
+          type: string
+          description: Investigation note to add
 
     ErrorResponse:
       type: object
