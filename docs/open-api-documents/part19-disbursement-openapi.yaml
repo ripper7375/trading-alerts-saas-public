@@ -8,28 +8,36 @@ info:
     - **Part 19A (Foundation)**: Database schema, types, payment providers, commission services
     - **Part 19B (Execution)**: Batch management, payment orchestration, admin APIs
     - **Part 19C (Automation)**: Webhooks, reports, audit logs, cron jobs
+    - **Part 19D (Frontend)**: Admin dashboard UI for disbursement management
 
     ## Key Features
     - Automated commission aggregation and payout
-    - Multi-provider support (Mock, RiseWorks)
-    - Batch payment processing
+    - Multi-provider support (Mock for testing, RiseWorks for production)
+    - Batch payment processing with transaction tracking
     - Webhook event handling (idempotent)
     - Comprehensive reporting and audit trails
-    - Automated cron jobs for disbursements
+    - Automated cron jobs for disbursements and account sync
 
     ## Authentication
     - Admin APIs require NextAuth session with ADMIN role
-    - Webhook endpoints verify signatures
+    - Webhook endpoints verify HMAC SHA256 signatures
     - Cron endpoints require Bearer token authentication
 
     ## Payment Flow
     1. Commissions accumulate (from Part 17 Affiliate system)
-    2. Admin creates payment batch for eligible affiliates
-    3. Batch executes payments via payment provider
-    4. Webhooks confirm payment status
-    5. Audit logs track all operations
+    2. Admin views payable affiliates meeting $50 minimum threshold
+    3. Admin creates payment batch for eligible affiliates
+    4. Batch executes payments via payment provider (MOCK or RISE)
+    5. Webhooks confirm payment status (for RiseWorks)
+    6. Audit logs track all operations
 
-  version: 1.0.0
+    ## Database Schema
+    Uses normalized relational structure with proper foreign key relationships:
+    - AffiliateRiseAccount ↔ AffiliateProfile (Part 17)
+    - DisbursementTransaction ↔ Commission (Part 17)
+    - PaymentBatch → DisbursementTransaction[]
+
+  version: 2.0.0
   contact:
     name: Trading Alerts SaaS Team
     email: support@tradingalerts.example.com
@@ -48,15 +56,17 @@ tags:
   - name: Affiliates
     description: Payable affiliate management
   - name: RiseWorks Accounts
-    description: RiseWorks account management
+    description: RiseWorks blockchain account management
   - name: Batches
     description: Payment batch operations
   - name: Payments
     description: Quick payment operations
   - name: Reports
     description: Disbursement reports and summaries
+  - name: Transactions
+    description: Transaction history
   - name: Audit
-    description: Audit logs and transaction history
+    description: Audit logs
   - name: Configuration
     description: System configuration
   - name: Health
@@ -76,8 +86,9 @@ paths:
         - Affiliates
       summary: Get payable affiliates
       description: |
-        Returns all affiliates who have commissions ready for payout.
-        Includes affiliate details, pending amounts, and RiseWorks account status.
+        Returns all affiliates who have approved commissions ready for payout.
+        Includes affiliate details, pending amounts, RiseWorks account status,
+        and payout eligibility based on $50 minimum threshold and KYC approval.
       operationId: getPayableAffiliates
       security:
         - AdminAuth: []
@@ -98,16 +109,33 @@ paths:
                     properties:
                       totalAffiliates:
                         type: integer
+                        description: Total number of affiliates with pending commissions
                         example: 15
                       totalPendingAmount:
                         type: number
                         format: double
+                        description: Sum of all pending commission amounts
                         example: 5250.00
                       readyForPayout:
                         type: integer
+                        description: Affiliates meeting threshold AND with approved KYC
+                        example: 12
+                      meetsThreshold:
+                        type: integer
+                        description: Affiliates meeting $50 minimum threshold
+                        example: 14
+                      withRiseAccount:
+                        type: integer
+                        description: Affiliates with RiseWorks account linked
+                        example: 13
+                      withApprovedKyc:
+                        type: integer
+                        description: Affiliates with KYC approved
                         example: 12
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -197,7 +225,7 @@ paths:
       tags:
         - RiseWorks Accounts
       summary: Get all RiseWorks accounts
-      description: Returns all registered RiseWorks accounts with affiliate details
+      description: Returns all registered RiseWorks accounts with affiliate details and KYC status
       operationId: getRiseWorksAccounts
       security:
         - AdminAuth: []
@@ -222,7 +250,7 @@ paths:
       tags:
         - RiseWorks Accounts
       summary: Create RiseWorks account
-      description: Creates a new RiseWorks account for an affiliate
+      description: Creates a new RiseWorks account for an affiliate by linking their blockchain wallet address
       operationId: createRiseWorksAccount
       security:
         - AdminAuth: []
@@ -239,14 +267,16 @@ paths:
               properties:
                 affiliateProfileId:
                   type: string
+                  description: Affiliate Profile ID to link
                   example: clp123abc456def
                 riseId:
                   type: string
-                  description: Blockchain wallet address
+                  description: Blockchain wallet address (Ethereum format)
                   example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
                 email:
                   type: string
                   format: email
+                  description: Email for RiseWorks account
                   example: affiliate@example.com
       responses:
         '201':
@@ -270,7 +300,7 @@ paths:
       tags:
         - RiseWorks Accounts
       summary: Sync RiseWorks accounts
-      description: Synchronizes all RiseWorks accounts with the RiseWorks API to update KYC status and account details
+      description: Synchronizes all RiseWorks accounts with the external RiseWorks API to update KYC status and account details
       operationId: syncRiseWorksAccounts
       security:
         - AdminAuth: []
@@ -291,6 +321,15 @@ paths:
                   syncedAt:
                     type: string
                     format: date-time
+                  results:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      updated:
+                        type: integer
+                      failed:
+                        type: integer
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -304,7 +343,7 @@ paths:
       tags:
         - Batches
       summary: Get payment batches
-      description: Returns list of payment batches with optional status filter
+      description: Returns list of payment batches with optional status filter and statistics
       operationId: getPaymentBatches
       security:
         - AdminAuth: []
@@ -314,6 +353,14 @@ paths:
           description: Filter by batch status
           schema:
             $ref: '#/components/schemas/PaymentBatchStatus'
+        - name: limit
+          in: query
+          description: Maximum number of batches to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
       responses:
         '200':
           description: Successful response
@@ -325,7 +372,11 @@ paths:
                   batches:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PaymentBatch'
+                      $ref: '#/components/schemas/PaymentBatchWithCounts'
+                  statistics:
+                    $ref: '#/components/schemas/BatchStatistics'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -335,7 +386,9 @@ paths:
       tags:
         - Batches
       summary: Create payment batch
-      description: Creates a new payment batch for specified affiliates or all payable affiliates
+      description: |
+        Creates a new payment batch for specified affiliates or all payable affiliates.
+        Only includes affiliates meeting the $50 minimum payout threshold.
       operationId: createPaymentBatch
       security:
         - AdminAuth: []
@@ -362,10 +415,46 @@ paths:
               schema:
                 type: object
                 properties:
+                  message:
+                    type: string
+                    example: Payment batch created successfully
                   batch:
-                    $ref: '#/components/schemas/PaymentBatch'
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      batchNumber:
+                        type: string
+                      provider:
+                        $ref: '#/components/schemas/DisbursementProvider'
+                      status:
+                        $ref: '#/components/schemas/PaymentBatchStatus'
+                      paymentCount:
+                        type: integer
+                      totalAmount:
+                        type: number
+                        format: double
+                      currency:
+                        type: string
+                      affiliateCount:
+                        type: integer
+                      transactionCount:
+                        type: integer
+                      createdAt:
+                        type: string
+                        format: date-time
         '400':
-          $ref: '#/components/responses/BadRequestError'
+          description: Invalid request or no payable affiliates found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: No payable affiliates found
+                  details:
+                    type: string
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -376,7 +465,7 @@ paths:
       tags:
         - Batches
       summary: Preview payment batch
-      description: Previews what would be included in a batch without creating it
+      description: Previews what would be included in a batch without creating it. Useful for dry-run validation.
       operationId: previewPaymentBatch
       security:
         - AdminAuth: []
@@ -408,6 +497,8 @@ paths:
                       properties:
                         affiliateId:
                           type: string
+                        affiliateName:
+                          type: string
                         commissionCount:
                           type: integer
                         totalAmount:
@@ -417,6 +508,7 @@ paths:
                           type: boolean
                         reason:
                           type: string
+                          description: Reason if not eligible
                   summary:
                     type: object
                     properties:
@@ -427,6 +519,10 @@ paths:
                       totalAmount:
                         type: number
                         format: double
+                      ineligibleReasons:
+                        type: object
+                        additionalProperties:
+                          type: integer
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -437,7 +533,7 @@ paths:
       tags:
         - Batches
       summary: Get batch details
-      description: Returns detailed information about a payment batch including all transactions
+      description: Returns detailed information about a payment batch including all transactions and audit logs
       operationId: getBatchDetails
       security:
         - AdminAuth: []
@@ -470,7 +566,7 @@ paths:
       tags:
         - Batches
       summary: Delete payment batch
-      description: Deletes a payment batch (only if not processing or completed)
+      description: Deletes a payment batch. Only allowed for PENDING or CANCELLED batches.
       operationId: deletePaymentBatch
       security:
         - AdminAuth: []
@@ -493,12 +589,19 @@ paths:
                   success:
                     type: boolean
                     example: true
+                  message:
+                    type: string
+                    example: Batch deleted successfully
         '400':
           description: Cannot delete batch in current state
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Cannot delete batch with status PROCESSING
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -511,7 +614,10 @@ paths:
       tags:
         - Batches
       summary: Execute payment batch
-      description: Executes all payments in a batch via the configured payment provider
+      description: |
+        Executes all payments in a batch via the configured payment provider.
+        Only allowed for batches in PENDING status.
+        Updates batch status to PROCESSING, then COMPLETED or FAILED.
       operationId: executePaymentBatch
       security:
         - AdminAuth: []
@@ -538,9 +644,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Batch must be in PENDING status to execute
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -555,6 +667,7 @@ paths:
       description: |
         Creates and immediately executes a payment batch for a single affiliate.
         Useful for ad-hoc payments or urgent disbursements.
+        Affiliate must meet minimum payout threshold and have approved KYC.
       operationId: quickPayAffiliate
       security:
         - AdminAuth: []
@@ -588,7 +701,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: string
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -682,13 +800,15 @@ paths:
                         description: Percentage (0-100)
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
   /api/disbursement/transactions:
     get:
       tags:
-        - Audit
+        - Transactions
       summary: Get disbursement transactions
       description: Returns paginated list of disbursement transactions with optional status filter
       operationId: getDisbursementTransactions
@@ -748,14 +868,14 @@ paths:
       tags:
         - Audit
       summary: Get audit logs
-      description: Returns audit logs for disbursement operations
+      description: Returns audit logs for disbursement operations with optional action filtering
       operationId: getAuditLogs
       security:
         - AdminAuth: []
       parameters:
         - name: action
           in: query
-          description: Filter by action type
+          description: Filter by action type (e.g., batch.created, payment.completed)
           schema:
             type: string
             example: batch.created
@@ -767,6 +887,16 @@ paths:
             default: 100
             minimum: 1
             maximum: 500
+        - name: batchId
+          in: query
+          description: Filter by specific batch
+          schema:
+            type: string
+        - name: transactionId
+          in: query
+          description: Filter by specific transaction
+          schema:
+            type: string
       responses:
         '200':
           description: Successful response
@@ -815,7 +945,7 @@ paths:
       tags:
         - Configuration
       summary: Update disbursement configuration
-      description: Updates disbursement system configuration
+      description: Updates disbursement system configuration. Only specified fields are updated.
       operationId: updateDisbursementConfig
       security:
         - AdminAuth: []
@@ -824,7 +954,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DisbursementConfig'
+              type: object
+              properties:
+                provider:
+                  $ref: '#/components/schemas/DisbursementProvider'
+                enabled:
+                  type: boolean
+                minimumPayout:
+                  type: number
+                  format: double
+                  minimum: 1
+                  example: 50.00
+                batchSize:
+                  type: integer
+                  minimum: 1
+                  maximum: 500
+                  example: 100
       responses:
         '200':
           description: Configuration updated successfully
@@ -838,6 +983,8 @@ paths:
                     example: Configuration updated
                   config:
                     $ref: '#/components/schemas/DisbursementConfig'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -851,7 +998,10 @@ paths:
       tags:
         - Health
       summary: Health check
-      description: Returns disbursement system health status
+      description: |
+        Returns disbursement system health status.
+        Public endpoint for monitoring - no authentication required.
+        Returns 200 if healthy, 503 if unhealthy.
       operationId: getDisbursementHealth
       responses:
         '200':
@@ -882,7 +1032,14 @@ paths:
         **Signature Verification:**
         - Webhooks must include `x-rise-signature` header
         - Signature verified using HMAC SHA256
-        - Unsigned or invalid webhooks are rejected
+        - Unsigned or invalid webhooks are rejected with 401
+
+        **Supported Events:**
+        - payment.completed - Payment successfully processed
+        - payment.failed - Payment failed
+        - invite.accepted - Affiliate accepted RiseWorks invite
+        - fund.received - Funds received to wallet
+        - account.duplication_detected - Duplicate account detected
       operationId: handleRiseWorksWebhook
       security:
         - WebhookSignature: []
@@ -906,13 +1063,20 @@ paths:
                     - fund.received
                     - account.duplication_detected
                   example: payment.completed
+                teamId:
+                  type: string
+                  description: RiseWorks team ID
+                timestamp:
+                  type: string
+                  format: date-time
                 data:
                   type: object
                   description: Event payload (varies by event type)
                   additionalProperties: true
                   example:
                     providerTxId: rise-txn-123456
-                    amount: 50.00
+                    amount: 50000000
+                    payeeRiseId: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
       responses:
         '200':
           description: Webhook received and processed
@@ -924,6 +1088,9 @@ paths:
                   received:
                     type: boolean
                     example: true
+                  eventId:
+                    type: string
+                    description: Internal event ID for tracking
         '401':
           description: Missing or invalid signature
           content:
@@ -947,7 +1114,13 @@ paths:
       summary: Process pending disbursements (Cron)
       description: |
         Automated cron job that processes pending disbursements.
-        Should be scheduled to run daily (e.g., 2 AM).
+        Should be scheduled to run daily (e.g., 2 AM UTC).
+
+        **Process:**
+        1. Find all affiliates with pending commissions ≥ $50
+        2. Create payment batches (max 100 affiliates per batch)
+        3. Execute batches via configured provider
+        4. Log results to audit trail
 
         **Idempotent:** Safe to run multiple times.
       operationId: processPendingDisbursements
@@ -969,6 +1142,8 @@ paths:
                   result:
                     type: object
                     properties:
+                      affiliatesProcessed:
+                        type: integer
                       batchesCreated:
                         type: integer
                       batchesExecuted:
@@ -976,6 +1151,10 @@ paths:
                       totalAmount:
                         type: number
                         format: double
+                      successfulPayments:
+                        type: integer
+                      failedPayments:
+                        type: integer
                       errors:
                         type: array
                         items:
@@ -992,7 +1171,13 @@ paths:
       summary: Sync RiseWorks accounts (Cron)
       description: |
         Automated cron job that syncs RiseWorks account statuses.
-        Should be scheduled to run daily (e.g., 3 AM).
+        Should be scheduled to run daily (e.g., 3 AM UTC).
+
+        **Process:**
+        1. Query all AffiliateRiseAccount records
+        2. Fetch current status from RiseWorks API
+        3. Update KYC status and timestamps
+        4. Log sync results
 
         **Idempotent:** Safe to run multiple times.
       operationId: syncRiseWorksAccountsCron
@@ -1014,7 +1199,11 @@ paths:
                   result:
                     type: object
                     properties:
+                      accountsTotal:
+                        type: integer
                       accountsSynced:
+                        type: integer
+                      accountsUpdated:
                         type: integer
                       errors:
                         type: array
@@ -1045,7 +1234,7 @@ components:
     CronSecret:
       type: http
       scheme: bearer
-      description: Bearer token for cron job authentication
+      description: Bearer token for cron job authentication (CRON_SECRET env var)
 
   schemas:
     # ============================================================
@@ -1057,7 +1246,10 @@ components:
         - MOCK
         - RISE
       default: MOCK
-      description: Payment provider (MOCK for testing, RISE for production)
+      description: |
+        Payment provider:
+        - MOCK: Test provider for development (simulates success/failure)
+        - RISE: Production RiseWorks blockchain provider (USDC on Base)
 
     PaymentBatchStatus:
       type: string
@@ -1068,6 +1260,14 @@ components:
         - COMPLETED
         - FAILED
         - CANCELLED
+      description: |
+        Batch lifecycle status:
+        - PENDING: Created, awaiting execution
+        - QUEUED: Scheduled for execution
+        - PROCESSING: Currently executing payments
+        - COMPLETED: All payments successful
+        - FAILED: One or more payments failed
+        - CANCELLED: Batch cancelled by admin
 
     DisbursementTransactionStatus:
       type: string
@@ -1086,6 +1286,13 @@ components:
         - APPROVED
         - REJECTED
         - EXPIRED
+      description: |
+        KYC verification status:
+        - PENDING: Not started
+        - SUBMITTED: Documents submitted, under review
+        - APPROVED: KYC verified, can receive payments
+        - REJECTED: KYC failed, cannot receive payments
+        - EXPIRED: KYC expired, needs re-verification
 
     AuditLogStatus:
       type: string
@@ -1117,20 +1324,29 @@ components:
         pendingAmount:
           type: number
           format: double
+          description: Total pending commission amount (USD)
           example: 250.00
         paidAmount:
           type: number
           format: double
+          description: Historical total paid (USD)
           example: 1500.00
         pendingCommissionCount:
           type: integer
+          description: Number of pending commissions
           example: 5
         oldestPendingDate:
           type: string
           format: date-time
           nullable: true
+          description: Date of oldest pending commission
         readyForPayout:
           type: boolean
+          description: True if meets threshold AND has approved KYC
+          example: true
+        meetsThreshold:
+          type: boolean
+          description: True if pending amount >= $50
           example: true
         riseAccount:
           type: object
@@ -1144,6 +1360,7 @@ components:
               $ref: '#/components/schemas/RiseWorksKycStatus'
             canReceivePayments:
               type: boolean
+              description: True if KYC is APPROVED
 
     AffiliateDetails:
       type: object
@@ -1179,7 +1396,7 @@ components:
           type: string
         riseId:
           type: string
-          description: Blockchain wallet address
+          description: Blockchain wallet address (Ethereum format)
         email:
           type: string
           format: email
@@ -1304,6 +1521,26 @@ components:
           type: string
           format: date-time
 
+    PaymentBatchWithCounts:
+      allOf:
+        - $ref: '#/components/schemas/PaymentBatch'
+        - type: object
+          properties:
+            transactionCounts:
+              type: object
+              description: Transaction counts by status
+              properties:
+                PENDING:
+                  type: integer
+                PROCESSING:
+                  type: integer
+                COMPLETED:
+                  type: integer
+                FAILED:
+                  type: integer
+                CANCELLED:
+                  type: integer
+
     PaymentBatchDetailed:
       allOf:
         - $ref: '#/components/schemas/PaymentBatch'
@@ -1317,6 +1554,35 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/DisbursementAuditLog'
+
+    BatchStatistics:
+      type: object
+      description: Overall batch statistics
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: object
+          properties:
+            PENDING:
+              type: integer
+            QUEUED:
+              type: integer
+            PROCESSING:
+              type: integer
+            COMPLETED:
+              type: integer
+            FAILED:
+              type: integer
+            CANCELLED:
+              type: integer
+        totalAmount:
+          type: number
+          format: double
+        successRate:
+          type: number
+          format: double
+          description: Percentage of completed batches
 
     # ============================================================
     # TRANSACTION SCHEMAS
@@ -1332,10 +1598,12 @@ components:
           type: string
         transactionId:
           type: string
+          description: Internal transaction ID
           example: TXN-1234567890-ABC123
         providerTxId:
           type: string
           nullable: true
+          description: External provider transaction ID
           example: rise-txn-123456
         provider:
           $ref: '#/components/schemas/DisbursementProvider'
@@ -1345,16 +1613,18 @@ components:
         payeeRiseId:
           type: string
           nullable: true
+          description: Recipient blockchain address
           example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
         amount:
           type: number
           format: double
+          description: Amount in USD
           example: 50.00
         amountRiseUnits:
           type: integer
           format: int64
           nullable: true
-          description: Amount in RiseWorks units (1e6 = $1 USD)
+          description: Amount in RiseWorks units (1e6 = $1 USD for USDC)
           example: 50000000
         currency:
           type: string
@@ -1364,6 +1634,7 @@ components:
         retryCount:
           type: integer
           default: 0
+          description: Number of retry attempts
         lastRetryAt:
           type: string
           format: date-time
@@ -1371,6 +1642,7 @@ components:
         errorMessage:
           type: string
           nullable: true
+          description: Error message if failed
         createdAt:
           type: string
           format: date-time
@@ -1388,19 +1660,27 @@ components:
       properties:
         success:
           type: boolean
+          description: True if all payments succeeded
         batchId:
+          type: string
+        batchNumber:
           type: string
         totalAmount:
           type: number
           format: double
         successCount:
           type: integer
+          description: Number of successful payments
         failedCount:
           type: integer
+          description: Number of failed payments
+        status:
+          $ref: '#/components/schemas/PaymentBatchStatus'
         errors:
           type: array
           items:
             type: string
+          description: Error messages for failed payments
 
     # ============================================================
     # AUDIT & REPORTING SCHEMAS
@@ -1418,16 +1698,24 @@ components:
           nullable: true
         action:
           type: string
+          description: |
+            Action types:
+            - batch.created, batch.executed, batch.completed, batch.failed, batch.cancelled
+            - payment.initiated, payment.completed, payment.failed
+            - webhook.received, webhook.processed
+            - config.updated
           example: batch.created
         actor:
           type: string
           nullable: true
+          description: User ID who performed the action
         status:
           $ref: '#/components/schemas/AuditLogStatus'
         details:
           type: object
           additionalProperties: true
           nullable: true
+          description: Additional context as JSON
         ipAddress:
           type: string
           nullable: true
@@ -1449,6 +1737,8 @@ components:
             completed:
               type: integer
             pending:
+              type: integer
+            failed:
               type: integer
             successRate:
               type: number
@@ -1472,9 +1762,24 @@ components:
             totalPaid:
               type: number
               format: double
+              description: Total successfully disbursed (USD)
             totalPending:
               type: number
               format: double
+              description: Total pending commissions (USD)
+            totalFailed:
+              type: number
+              format: double
+              description: Total from failed transactions (USD)
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
 
     # ============================================================
     # CONFIGURATION SCHEMAS
@@ -1486,25 +1791,47 @@ components:
           $ref: '#/components/schemas/DisbursementProvider'
         enabled:
           type: boolean
+          description: Whether disbursement system is enabled
         minimumPayout:
           type: number
           format: double
+          description: Minimum payout threshold (USD)
           example: 50.00
         batchSize:
           type: integer
+          description: Maximum affiliates per batch
           example: 100
         environment:
           type: string
           enum:
             - production
             - staging
+            - development
           example: staging
+        retryPolicy:
+          type: object
+          properties:
+            maxAttempts:
+              type: integer
+              example: 3
+            initialDelay:
+              type: integer
+              description: Initial delay in milliseconds
+              example: 1000
+            maxDelay:
+              type: integer
+              description: Maximum delay in milliseconds
+              example: 16000
+            backoffMultiplier:
+              type: number
+              example: 2
 
     HealthStatus:
       type: object
       properties:
         healthy:
           type: boolean
+          description: Overall health status
         timestamp:
           type: string
           format: date-time
@@ -1513,13 +1840,21 @@ components:
           properties:
             database:
               type: boolean
+              description: Database connectivity
             provider:
               type: boolean
+              description: Payment provider connectivity
             pendingBatches:
               type: integer
+              description: Count of pending/processing batches
             failedTransactions:
               type: integer
+              description: Failed transactions in last 24h
             lastWebhookReceived:
+              type: string
+              format: date-time
+              nullable: true
+            lastBatchCompleted:
               type: string
               format: date-time
               nullable: true
@@ -1527,6 +1862,13 @@ components:
           type: array
           items:
             type: string
+          description: Warning messages for degraded conditions
+        provider:
+          type: string
+          description: Current provider name
+        uptime:
+          type: integer
+          description: Server uptime in seconds
 
     # ============================================================
     # ERROR SCHEMAS
@@ -1537,10 +1879,14 @@ components:
         error:
           type: string
           example: Error message
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
 
   responses:
     UnauthorizedError:
-      description: Unauthorized - Authentication required
+      description: Unauthorized - Authentication required or invalid
       content:
         application/json:
           schema:
@@ -1548,8 +1894,17 @@ components:
           example:
             error: Unauthorized
 
+    ForbiddenError:
+      description: Forbidden - Insufficient permissions (admin role required)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Forbidden - Admin access required
+
     BadRequestError:
-      description: Bad Request - Invalid input
+      description: Bad Request - Invalid input parameters
       content:
         application/json:
           schema:
