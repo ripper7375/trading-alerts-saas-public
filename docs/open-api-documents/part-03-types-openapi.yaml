@@ -1,0 +1,1610 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Type Definitions (Part 03)
+  version: 1.0.0
+  description: |
+    Comprehensive TypeScript type definitions for Trading Alerts SaaS V7 platform.
+
+    This specification documents all TypeScript types, interfaces, and schemas used
+    throughout the application. Part 03 provides the foundational type system for
+    the entire codebase, ensuring type safety and consistency.
+
+    ## Type Categories
+
+    1. **Tier System Types** (`types/tier.ts`)
+       - Tier enums (FREE, PRO)
+       - Symbol and timeframe definitions
+       - Tier limits and configuration
+       - Trial status management
+
+    2. **User Types** (`types/user.ts`)
+       - User model and extensions
+       - Session types
+       - Preferences and statistics
+       - Public profiles
+
+    3. **Alert Types** (`types/alert.ts`)
+       - Alert model and status
+       - Alert conditions
+       - Create/update requests
+
+    4. **Indicator Types** (`types/indicator.ts`)
+       - Candlestick data structures
+       - PRO indicator types (Keltner, ZigZag, Momentum, etc.)
+       - 57-column database schema types
+       - Chart data structures
+
+    5. **API Types** (`types/api.ts`)
+       - Standard API responses
+       - Error handling
+       - Pagination
+       - Market data responses
+
+    6. **Payment Types** (`types/payment.ts`, `types/dlocal.ts`)
+       - dLocal integration types
+       - Payment providers and statuses
+       - Currency conversion
+
+    7. **Disbursement Types** (`types/disbursement.ts`)
+       - RiseWorks payment system
+       - Batch payments
+       - KYC status
+       - Affiliate payouts
+
+    8. **Watchlist Types** (`types/watchlist.ts`)
+       - Watchlist model
+       - Watchlist items
+       - CRUD requests
+
+    9. **NextAuth Types** (`types/next-auth.d.ts`)
+       - Session augmentation
+       - JWT types
+
+    10. **Prisma Type Stubs** (`types/prisma-stubs.d.ts`)
+        - Fallback types when Prisma client unavailable
+        - All Prisma models and enums
+
+    ## V7 Architecture
+
+    - **2-Tier System**: FREE and PRO (ENTERPRISE removed)
+    - **FREE Tier**: 5 symbols × 3 timeframes (H1, H4, D1) = 15 combinations
+    - **PRO Tier**: 15 symbols × 9 timeframes = 135 combinations
+    - **7-Day Free Trial**: Available for PRO tier
+    - **57-Column Database**: 8 system + 16 FREE + 33 PRO indicator columns
+
+  contact:
+    name: Trading Alerts SaaS Development Team
+    email: dev@tradingalerts.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+tags:
+  - name: Tier Types
+    description: Tier system, symbols, timeframes, and limits
+  - name: User Types
+    description: User models, sessions, and preferences
+  - name: Alert Types
+    description: Alert models and conditions
+  - name: Indicator Types
+    description: Market data, indicators, and chart types
+  - name: API Types
+    description: Standard API responses and errors
+  - name: Payment Types
+    description: Payment and billing types
+  - name: Disbursement Types
+    description: Affiliate payout types
+  - name: Watchlist Types
+    description: Watchlist models and items
+
+components:
+  schemas:
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # TIER SYSTEM TYPES (types/tier.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Tier:
+      type: string
+      enum: [FREE, PRO]
+      description: |
+        User tier levels in V7 (2-tier system).
+        ENTERPRISE tier removed in V7.
+      example: FREE
+
+    TrialStatus:
+      type: string
+      enum: [NOT_STARTED, ACTIVE, EXPIRED, CONVERTED, CANCELLED]
+      description: |
+        7-day PRO trial status for users.
+      example: ACTIVE
+
+    Timeframe:
+      type: string
+      enum: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
+      description: |
+        All supported timeframes.
+
+        - FREE tier: H1, H4, D1 (3 timeframes)
+        - PRO tier: All 9 timeframes
+      example: H1
+
+    Symbol:
+      type: string
+      enum:
+        - BTCUSD
+        - EURUSD
+        - USDJPY
+        - US30
+        - XAUUSD
+        - AUDJPY
+        - AUDUSD
+        - ETHUSD
+        - GBPJPY
+        - GBPUSD
+        - NDX100
+        - NZDUSD
+        - USDCAD
+        - USDCHF
+        - XAGUSD
+      description: |
+        All supported trading symbols.
+
+        - FREE tier (5 symbols): BTCUSD, EURUSD, USDJPY, US30, XAUUSD
+        - PRO tier (15 symbols): All symbols
+      example: XAUUSD
+
+    TierLimits:
+      type: object
+      properties:
+        maxAlerts:
+          type: integer
+          description: Maximum number of alerts allowed
+          example: 5
+        maxWatchlists:
+          type: integer
+          description: Maximum number of watchlists allowed
+          example: 1
+        allowedSymbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/Symbol'
+          description: List of symbols accessible to this tier
+        allowedTimeframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timeframe'
+          description: List of timeframes accessible to this tier
+        pricing:
+          type: object
+          properties:
+            monthlyPrice:
+              type: number
+              description: Monthly subscription price in USD
+              example: 29
+            yearlyPrice:
+              type: number
+              description: Yearly subscription price in USD
+              example: 290
+            hasFreeTrial:
+              type: boolean
+              description: Whether this tier offers a free trial
+              example: true
+            trialDays:
+              type: integer
+              description: Number of trial days
+              example: 7
+        features:
+          type: object
+          properties:
+            advancedCharts:
+              type: boolean
+              example: false
+            exportData:
+              type: boolean
+              example: false
+            apiAccess:
+              type: boolean
+              example: false
+            prioritySupport:
+              type: boolean
+              example: false
+
+    ChartCombination:
+      type: object
+      required: [symbol, timeframe]
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+      description: A symbol+timeframe combination for charting
+
+    TierUpgradeInfo:
+      type: object
+      required:
+        - currentTier
+        - targetTier
+        - additionalSymbols
+        - additionalTimeframes
+        - additionalAlerts
+        - pricePerMonth
+      properties:
+        currentTier:
+          $ref: '#/components/schemas/Tier'
+        targetTier:
+          $ref: '#/components/schemas/Tier'
+        additionalSymbols:
+          type: integer
+          description: Additional symbols gained
+          example: 10
+        additionalTimeframes:
+          type: integer
+          description: Additional timeframes gained
+          example: 6
+        additionalAlerts:
+          type: integer
+          description: Additional alerts allowed
+          example: 15
+        pricePerMonth:
+          type: number
+          description: Monthly price for target tier
+          example: 29
+
+    TierAccessResult:
+      type: object
+      required: [allowed]
+      properties:
+        allowed:
+          type: boolean
+          description: Whether access is allowed
+          example: true
+        reason:
+          type: string
+          description: Reason if access denied
+          example: Symbol not available in FREE tier
+        upgradeRequired:
+          type: boolean
+          description: Whether upgrade is required
+          example: true
+        requiredTier:
+          $ref: '#/components/schemas/Tier'
+
+    TrialInfo:
+      type: object
+      required:
+        - status
+        - startDate
+        - endDate
+        - daysRemaining
+        - isActive
+        - hasUsedTrial
+        - canStartTrial
+      properties:
+        status:
+          $ref: '#/components/schemas/TrialStatus'
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2024-01-15T10:00:00Z'
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2024-01-22T10:00:00Z'
+        daysRemaining:
+          type: integer
+          nullable: true
+          description: Days remaining in trial
+          example: 5
+        isActive:
+          type: boolean
+          description: Whether trial is currently active
+          example: true
+        hasUsedTrial:
+          type: boolean
+          description: Whether user has used their free trial
+          example: false
+        canStartTrial:
+          type: boolean
+          description: Whether user can start a trial
+          example: true
+
+    SubscriptionStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, CANCELED, PAST_DUE, UNPAID, TRIALING]
+      description: Subscription status matching Prisma enum
+      example: ACTIVE
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # USER TYPES (types/user.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - tier
+        - role
+        - isActive
+        - twoFactorEnabled
+        - hasUsedStripeTrial
+        - hasUsedThreeDayPlan
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          nullable: true
+          example: John Doe
+        image:
+          type: string
+          format: uri
+          nullable: true
+          example: https://example.com/avatar.jpg
+        password:
+          type: string
+          nullable: true
+          description: Hashed password (bcrypt)
+        tier:
+          $ref: '#/components/schemas/Tier'
+        role:
+          type: string
+          example: USER
+        stripeCustomerId:
+          type: string
+          nullable: true
+          example: cus_1234567890
+        stripePriceId:
+          type: string
+          nullable: true
+          example: price_1234567890
+        subscriptionId:
+          type: string
+          nullable: true
+          example: sub_1234567890
+        isActive:
+          type: boolean
+          description: Whether user account is active
+          example: true
+        emailVerified:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2024-01-15T10:00:00Z'
+        hasUsedStripeTrial:
+          type: boolean
+          description: Whether user has used Stripe trial
+          example: false
+        hasUsedThreeDayPlan:
+          type: boolean
+          description: Whether user has used 3-day plan
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-01T00:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T12:00:00Z'
+        twoFactorEnabled:
+          type: boolean
+          description: Whether 2FA/TOTP is enabled
+          example: false
+        twoFactorSecret:
+          type: string
+          nullable: true
+          description: TOTP secret (encrypted)
+        twoFactorBackupCodes:
+          type: string
+          nullable: true
+          description: Backup codes for 2FA (encrypted)
+        twoFactorVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When 2FA was last verified
+
+    PublicUserProfile:
+      type: object
+      required: [id, email, tier, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        image:
+          type: string
+          format: uri
+          nullable: true
+        tier:
+          $ref: '#/components/schemas/Tier'
+        createdAt:
+          type: string
+          format: date-time
+      description: Public user profile (excludes sensitive fields like password)
+
+    UserSession:
+      type: object
+      required: [user, expires]
+      properties:
+        user:
+          type: object
+          required: [id, email, tier]
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+              nullable: true
+            image:
+              type: string
+              format: uri
+              nullable: true
+            tier:
+              $ref: '#/components/schemas/Tier'
+        expires:
+          type: string
+          format: date-time
+          description: Session expiration time
+      description: User session data from NextAuth
+
+    UserPreferences:
+      type: object
+      required: [theme, notifications, defaultTimeframe, defaultSymbol, language]
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+          example: dark
+        notifications:
+          type: object
+          required: [email, push, alerts]
+          properties:
+            email:
+              type: boolean
+              example: true
+            push:
+              type: boolean
+              example: true
+            alerts:
+              type: boolean
+              example: true
+        defaultTimeframe:
+          type: string
+          example: H1
+        defaultSymbol:
+          type: string
+          example: XAUUSD
+        language:
+          type: string
+          example: en
+
+    UserStats:
+      type: object
+      required:
+        - totalAlerts
+        - activeAlerts
+        - triggeredAlerts
+        - totalWatchlists
+        - joinedDate
+      properties:
+        totalAlerts:
+          type: integer
+          example: 10
+        activeAlerts:
+          type: integer
+          example: 5
+        triggeredAlerts:
+          type: integer
+          example: 3
+        totalWatchlists:
+          type: integer
+          example: 2
+        joinedDate:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+        image:
+          type: string
+          format: uri
+          example: https://example.com/new-avatar.jpg
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+      description: Request to update user profile
+
+    Watchlist:
+      type: object
+      required: [id, userId, name, order, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: My Watchlist
+        order:
+          type: integer
+          description: Display order
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+
+    Subscription:
+      type: object
+      required:
+        - id
+        - userId
+        - status
+        - plan
+        - cancelAtPeriodEnd
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          example: ACTIVE
+        plan:
+          type: string
+          example: PRO
+        currentPeriodStart:
+          type: string
+          format: date-time
+          nullable: true
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+        cancelAtPeriodEnd:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ALERT TYPES (types/alert.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Alert:
+      type: object
+      required:
+        - id
+        - userId
+        - symbol
+        - timeframe
+        - condition
+        - alertType
+        - isActive
+        - triggerCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          nullable: true
+          example: Gold Price Alert
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          example: H1
+        condition:
+          type: string
+          example: price > 2000
+        alertType:
+          type: string
+          example: PRICE_ABOVE
+        isActive:
+          type: boolean
+          example: true
+        lastTriggered:
+          type: string
+          format: date-time
+          nullable: true
+        triggerCount:
+          type: integer
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AlertStatus:
+      type: string
+      enum: [ACTIVE, TRIGGERED, EXPIRED, DISABLED]
+      description: Alert status
+      example: ACTIVE
+
+    AlertConditionType:
+      type: string
+      enum:
+        - PRICE_ABOVE
+        - PRICE_BELOW
+        - PRICE_CROSS_ABOVE
+        - PRICE_CROSS_BELOW
+        - INDICATOR_SIGNAL
+      description: Type of alert condition
+      example: PRICE_ABOVE
+
+    CreateAlertRequest:
+      type: object
+      required: [symbol, timeframe, conditionType, targetValue]
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        conditionType:
+          $ref: '#/components/schemas/AlertConditionType'
+        targetValue:
+          type: number
+          description: Target price or value
+          example: 2000
+        message:
+          type: string
+          description: Custom message for alert
+          example: Gold crossed 2000!
+
+    UpdateAlertRequest:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+          example: true
+        targetValue:
+          type: number
+          example: 2050
+        message:
+          type: string
+          example: Updated alert message
+
+    AlertNotification:
+      type: object
+      required:
+        - alertId
+        - symbol
+        - timeframe
+        - condition
+        - currentPrice
+        - targetPrice
+        - triggeredAt
+      properties:
+        alertId:
+          type: string
+          format: uuid
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        condition:
+          type: string
+          example: price > 2000
+        currentPrice:
+          type: number
+          example: 2010.50
+        targetPrice:
+          type: number
+          example: 2000
+        triggeredAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+          example: Gold crossed 2000!
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # INDICATOR TYPES (types/indicator.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    IndicatorType:
+      type: string
+      enum: [FRACTAL_HORIZONTAL, FRACTAL_DIAGONAL]
+      description: Indicator types from MT5
+      example: FRACTAL_HORIZONTAL
+
+    Candlestick:
+      type: object
+      required: [time, open, high, low, close]
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp
+          example: 1704067200
+        open:
+          type: number
+          example: 2000.50
+        high:
+          type: number
+          example: 2010.75
+        low:
+          type: number
+          example: 1995.25
+        close:
+          type: number
+          example: 2005.00
+        volume:
+          type: number
+          description: Trading volume (optional)
+          example: 1234567
+
+    IndicatorPoint:
+      type: object
+      required: [time, value]
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp
+          example: 1704067200
+        value:
+          type: number
+          example: 2000.50
+        type:
+          type: string
+          enum: [SUPPORT, RESISTANCE]
+          description: Type of indicator point
+
+    IndicatorData:
+      type: object
+      required:
+        - symbol
+        - timeframe
+        - indicatorType
+        - candlesticks
+        - indicators
+        - lastUpdate
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        indicatorType:
+          $ref: '#/components/schemas/IndicatorType'
+        candlesticks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candlestick'
+        indicators:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndicatorPoint'
+        lastUpdate:
+          type: string
+          format: date-time
+
+    MomentumCandleType:
+      type: integer
+      enum: [0, 1, 2, 3, 4, 5]
+      description: |
+        Momentum Candle classification:
+        - 0: UP_NORMAL
+        - 1: UP_LARGE
+        - 2: UP_EXTREME
+        - 3: DOWN_NORMAL
+        - 4: DOWN_LARGE
+        - 5: DOWN_EXTREME
+      example: 1
+
+    MomentumCandleData:
+      type: object
+      required: [index, type, zscore]
+      properties:
+        index:
+          type: integer
+          description: Candle index
+          example: 100
+        type:
+          $ref: '#/components/schemas/MomentumCandleType'
+        zscore:
+          type: number
+          description: Z-score of body size
+          example: 2.5
+
+    KeltnerChannelData:
+      type: object
+      description: |
+        Keltner Channel 10-band system.
+        Arrays use null for empty slots.
+      properties:
+        ultraExtremeUpper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        extremeUpper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upperMost:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upper:
+          type: array
+          items:
+            type: number
+            nullable: true
+        upperMiddle:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lowerMiddle:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lower:
+          type: array
+          items:
+            type: number
+            nullable: true
+        lowerMost:
+          type: array
+          items:
+            type: number
+            nullable: true
+        extremeLower:
+          type: array
+          items:
+            type: number
+            nullable: true
+        ultraExtremeLower:
+          type: array
+          items:
+            type: number
+            nullable: true
+
+    ZigZagPoint:
+      type: object
+      required: [index, price]
+      properties:
+        index:
+          type: integer
+          example: 50
+        price:
+          type: number
+          example: 2000.50
+        timestamp:
+          type: integer
+          description: Unix timestamp (optional)
+          example: 1704067200
+
+    ZigZagData:
+      type: object
+      required: [peaks, bottoms]
+      properties:
+        peaks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+        bottoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZigZagPoint'
+
+    ProIndicatorData:
+      type: object
+      required: [momentumCandles, tema, hrma, smma]
+      properties:
+        momentumCandles:
+          type: array
+          items:
+            $ref: '#/components/schemas/MomentumCandleData'
+        keltnerChannels:
+          $ref: '#/components/schemas/KeltnerChannelData'
+        tema:
+          type: array
+          items:
+            type: number
+            nullable: true
+        hrma:
+          type: array
+          items:
+            type: number
+            nullable: true
+        smma:
+          type: array
+          items:
+            type: number
+            nullable: true
+        zigzag:
+          $ref: '#/components/schemas/ZigZagData'
+      description: Complete PRO indicators response
+
+    # 57-Column Database Schema Types
+
+    SystemColumns:
+      type: object
+      required:
+        - timestamp
+        - open
+        - high
+        - low
+        - close
+        - volume
+        - timeframe
+        - collected_at
+      properties:
+        timestamp:
+          type: integer
+          description: Unix timestamp
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        close:
+          type: number
+        volume:
+          type: number
+          nullable: true
+        timeframe:
+          type: string
+        collected_at:
+          type: integer
+          nullable: true
+
+    FractalDiagonalData:
+      type: object
+      description: FREE tier indicator - 8 columns
+      properties:
+        diag_asc_line_1:
+          type: number
+          nullable: true
+        diag_asc_line_2:
+          type: number
+          nullable: true
+        diag_asc_line_3:
+          type: number
+          nullable: true
+        diag_desc_line_1:
+          type: number
+          nullable: true
+        diag_desc_line_2:
+          type: number
+          nullable: true
+        diag_desc_line_3:
+          type: number
+          nullable: true
+        diag_high_map:
+          type: number
+          nullable: true
+        diag_low_map:
+          type: number
+          nullable: true
+
+    FractalHorizontalData:
+      type: object
+      description: FREE tier indicator - 8 columns
+      properties:
+        horiz_peak_line_1:
+          type: number
+          nullable: true
+        horiz_peak_line_2:
+          type: number
+          nullable: true
+        horiz_peak_line_3:
+          type: number
+          nullable: true
+        horiz_bottom_line_1:
+          type: number
+          nullable: true
+        horiz_bottom_line_2:
+          type: number
+          nullable: true
+        horiz_bottom_line_3:
+          type: number
+          nullable: true
+        horiz_high_map:
+          type: number
+          nullable: true
+        horiz_low_map:
+          type: number
+          nullable: true
+
+    FreeMarketData:
+      allOf:
+        - $ref: '#/components/schemas/SystemColumns'
+        - $ref: '#/components/schemas/FractalDiagonalData'
+        - $ref: '#/components/schemas/FractalHorizontalData'
+      description: |
+        FREE tier market data (24 columns):
+        - 8 system columns
+        - 8 fractal diagonal columns
+        - 8 fractal horizontal columns
+
+    CompleteMarketData:
+      allOf:
+        - $ref: '#/components/schemas/FreeMarketData'
+        - type: object
+          properties:
+            # PRO tier indicators (33 additional columns)
+            tema:
+              type: number
+              nullable: true
+            hrma:
+              type: number
+              nullable: true
+            smma:
+              type: number
+              nullable: true
+            z_score_of_body_size:
+              type: number
+              nullable: true
+            candle_classification:
+              type: number
+              nullable: true
+            ha_open:
+              type: number
+              nullable: true
+            ha_high:
+              type: number
+              nullable: true
+            ha_low:
+              type: number
+              nullable: true
+            ha_close:
+              type: number
+              nullable: true
+            ha_classification:
+              type: number
+              nullable: true
+            ha_body_size:
+              type: number
+              nullable: true
+            ha_body_zscore:
+              type: number
+              nullable: true
+            kc_ultra_extreme_upper:
+              type: number
+              nullable: true
+            kc_extreme_upper:
+              type: number
+              nullable: true
+            kc_uppermost:
+              type: number
+              nullable: true
+            kc_upper:
+              type: number
+              nullable: true
+            kc_upper_middle:
+              type: number
+              nullable: true
+            kc_lower_middle:
+              type: number
+              nullable: true
+            kc_lower:
+              type: number
+              nullable: true
+            kc_lowermost:
+              type: number
+              nullable: true
+            kc_extreme_lower:
+              type: number
+              nullable: true
+            kc_ultra_extreme_lower:
+              type: number
+              nullable: true
+            sr_support_1:
+              type: number
+              nullable: true
+            sr_support_2:
+              type: number
+              nullable: true
+            sr_support_3:
+              type: number
+              nullable: true
+            sr_support_4:
+              type: number
+              nullable: true
+            sr_resistance_1:
+              type: number
+              nullable: true
+            sr_resistance_2:
+              type: number
+              nullable: true
+            sr_resistance_3:
+              type: number
+              nullable: true
+            sr_resistance_4:
+              type: number
+              nullable: true
+            zigzag_peak:
+              type: number
+              nullable: true
+            zigzag_bottom:
+              type: number
+              nullable: true
+            ema_26:
+              type: number
+              nullable: true
+      description: |
+        PRO tier complete market data (57 columns):
+        - 8 system columns
+        - 16 FREE tier indicator columns
+        - 33 PRO tier indicator columns
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # API TYPES (types/api.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ApiResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Response data (type varies)
+        error:
+          $ref: '#/components/schemas/ApiError'
+        message:
+          type: string
+          example: Operation successful
+      description: Standard API response wrapper
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Invalid input data
+        details:
+          type: object
+          additionalProperties: true
+        field:
+          type: string
+          description: Field that caused the error (for validation errors)
+          example: email
+
+    PaginationParams:
+      type: object
+      required: [page, limit]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 20
+        sortBy:
+          type: string
+          example: createdAt
+        sortOrder:
+          type: string
+          enum: [asc, desc]
+          example: desc
+
+    PaginatedResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        pagination:
+          type: object
+          required:
+            - page
+            - limit
+            - total
+            - totalPages
+            - hasNext
+            - hasPrevious
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              description: Total number of items
+              example: 100
+            totalPages:
+              type: integer
+              example: 5
+            hasNext:
+              type: boolean
+              example: true
+            hasPrevious:
+              type: boolean
+              example: false
+
+    ValidationError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          example: email
+        message:
+          type: string
+          example: Invalid email format
+        value:
+          description: Invalid value submitted
+
+    ErrorResponse:
+      type: object
+      required: [error, message, statusCode, timestamp]
+      properties:
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Validation failed
+        statusCode:
+          type: integer
+          example: 400
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+          example: /api/alerts
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    SuccessResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+          example: true
+        message:
+          type: string
+          example: Operation completed successfully
+        data:
+          description: Optional response data
+
+    MarketDataResponse:
+      type: object
+      required: [symbol, timeframe, tier, data, metadata]
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        tier:
+          $ref: '#/components/schemas/Tier'
+        data:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/CompleteMarketData'
+              - $ref: '#/components/schemas/FreeMarketData'
+          description: Market data (filtered by user tier)
+        filteredColumns:
+          type: array
+          items:
+            type: string
+          description: Columns removed for FREE tier users
+        metadata:
+          type: object
+          required: [total, returned, columnCount]
+          properties:
+            total:
+              type: integer
+              description: Total records available
+              example: 1000
+            returned:
+              type: integer
+              description: Number of records returned
+              example: 100
+            columnCount:
+              type: integer
+              description: Number of columns (24 for FREE, 57 for PRO)
+              example: 24
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # PAYMENT TYPES (types/dlocal.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    PaymentProvider:
+      type: string
+      enum: [DLOCAL, STRIPE]
+      description: Payment provider identifier
+      example: STRIPE
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
+      description: Payment status
+      example: COMPLETED
+
+    PlanType:
+      type: string
+      enum: [THREE_DAY, MONTHLY]
+      description: Subscription plan type
+      example: MONTHLY
+
+    DLocalCountry:
+      type: string
+      enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+      description: Supported dLocal countries (8 total)
+      example: IN
+
+    DLocalCurrency:
+      type: string
+      enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+      description: Corresponding currencies for dLocal countries
+      example: INR
+
+    DLocalPaymentRequest:
+      type: object
+      required: [userId, amount, currency, country, paymentMethod, planType]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          description: USD amount
+          example: 29
+        currency:
+          $ref: '#/components/schemas/DLocalCurrency'
+        country:
+          $ref: '#/components/schemas/DLocalCountry'
+        paymentMethod:
+          type: string
+          example: card
+        planType:
+          $ref: '#/components/schemas/PlanType'
+        discountCode:
+          type: string
+          example: SAVE10
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # DISBURSEMENT TYPES (types/disbursement.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    DisbursementProvider:
+      type: string
+      enum: [RISE, MOCK]
+      description: Disbursement provider
+      example: RISE
+
+    PaymentBatchStatus:
+      type: string
+      enum: [PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+      description: Payment batch status
+      example: COMPLETED
+
+    DisbursementTransactionStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED]
+      description: Disbursement transaction status
+      example: COMPLETED
+
+    RiseWorksKycStatus:
+      type: string
+      enum: [PENDING, SUBMITTED, APPROVED, REJECTED, EXPIRED]
+      description: RiseWorks KYC status
+      example: APPROVED
+
+    PayableAffiliate:
+      type: object
+      required:
+        - id
+        - fullName
+        - email
+        - country
+        - pendingAmount
+        - paidAmount
+        - pendingCommissionCount
+        - readyForPayout
+        - riseAccount
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+        country:
+          type: string
+          example: US
+        pendingAmount:
+          type: number
+          example: 150.50
+        paidAmount:
+          type: number
+          example: 500.00
+        pendingCommissionCount:
+          type: integer
+          example: 5
+        oldestPendingDate:
+          type: string
+          format: date-time
+          nullable: true
+        readyForPayout:
+          type: boolean
+          example: true
+        riseAccount:
+          type: object
+          required: [hasAccount, kycStatus, canReceivePayments]
+          properties:
+            hasAccount:
+              type: boolean
+              example: true
+            riseId:
+              type: string
+              example: rise_1234567890
+            kycStatus:
+              oneOf:
+                - $ref: '#/components/schemas/RiseWorksKycStatus'
+                - type: string
+                  enum: [none]
+            canReceivePayments:
+              type: boolean
+              example: true
+
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # WATCHLIST TYPES (types/watchlist.ts)
+    #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    WatchlistItem:
+      type: object
+      required:
+        - id
+        - watchlistId
+        - userId
+        - symbol
+        - timeframe
+        - order
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        watchlistId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+        order:
+          type: integer
+          description: Display order in watchlist
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateWatchlistRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: My Forex Watchlist
+        items:
+          type: array
+          items:
+            type: object
+            required: [symbol, timeframe]
+            properties:
+              symbol:
+                $ref: '#/components/schemas/Symbol'
+              timeframe:
+                $ref: '#/components/schemas/Timeframe'
+
+    UpdateWatchlistRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Updated Watchlist Name
+        order:
+          type: integer
+          example: 2
+
+    AddWatchlistItemRequest:
+      type: object
+      required: [symbol, timeframe]
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        timeframe:
+          $ref: '#/components/schemas/Timeframe'
+
+    WatchlistWithItems:
+      allOf:
+        - $ref: '#/components/schemas/Watchlist'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/WatchlistItem'
+
+paths: {}
