@@ -35,11 +35,11 @@ export type FreeTierIndicator = (typeof FREE_TIER_INDICATORS)[number];
  */
 export const PRO_ONLY_INDICATORS = [
   'moving_averages', // 3 columns: tema, hrma, smma
-  'body_momentum', // 2 columns: z_score_of_body_size, candle_classification
-  'heiken_ashi', // 7 columns: ha_open, ha_high, ha_low, ha_close, ha_classification, ha_body_size, ha_body_zscore
-  'keltner_channels', // 10 columns: kc_ultra_extreme_upper → kc_ultra_extreme_lower
-  'support_resistance', // 8 columns: sr_support_1-4, sr_resistance_1-4
-  'zigzag', // 3 columns: zigzag_peak, zigzag_bottom, ema_26
+  'body_momentum', // 2 columns: body_size, body_direction
+  'heiken_ashi', // 7 columns: ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength
+  'keltner_channels', // 10 columns: kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema
+  'support_resistance', // 8 columns: sr_1, sr_2, sr_3, sr_4, sr_5, sr_6, sr_7, sr_8
+  'zigzag', // 3 columns: zigzag_high, zigzag_low, zigzag_trend
 ] as const;
 
 export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
@@ -162,10 +162,10 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
   body_momentum: {
     id: 'body_momentum',
     label: 'Body Size Momentum',
-    description: 'Candle body size analysis with Z-score classification',
+    description: 'Candle body size analysis with direction classification',
     category: 'momentum',
     tier: 'PRO',
-    columns: ['z_score_of_body_size', 'candle_classification'],
+    columns: ['body_size', 'body_direction'],
     colors: {
       up_normal: '#90ee90',
       up_large: '#00c853',
@@ -180,7 +180,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
   heiken_ashi: {
     id: 'heiken_ashi',
     label: 'Heiken Ashi',
-    description: 'Smoothed candlesticks with body size classification',
+    description: 'Smoothed candlesticks with trend and strength analysis',
     category: 'candlesticks',
     tier: 'PRO',
     columns: [
@@ -188,9 +188,9 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
       'ha_high',
       'ha_low',
       'ha_close',
-      'ha_classification',
-      'ha_body_size',
-      'ha_body_zscore',
+      'ha_color',
+      'ha_trend',
+      'ha_strength',
     ],
     colors: {
       bullish: '#00c853',
@@ -202,27 +202,26 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
   keltner_channels: {
     id: 'keltner_channels',
     label: 'Keltner Channels',
-    description: '10-band volatility channel system',
+    description: 'Volatility channel system with squeeze detection',
     category: 'volatility',
     tier: 'PRO',
     columns: [
-      'kc_ultra_extreme_upper',
-      'kc_extreme_upper',
-      'kc_uppermost',
       'kc_upper',
-      'kc_upper_middle',
-      'kc_lower_middle',
+      'kc_middle',
       'kc_lower',
-      'kc_lowermost',
-      'kc_extreme_lower',
-      'kc_ultra_extreme_lower',
+      'kc_upper_ema',
+      'kc_middle_ema',
+      'kc_lower_ema',
+      'kc_squeeze',
+      'kc_squeeze_pro',
+      'kc_width',
+      'kc_width_ema',
     ],
     colors: {
-      ultra_extreme: '#9c27b0',
-      extreme: '#ff5722',
-      uppermost: '#ff9800',
       upper: '#2196f3',
       middle: '#808080',
+      lower: '#ff5722',
+      ema: '#9c27b0',
     },
     dataPattern: 'continuous', // Values on every bar
   },
@@ -230,18 +229,18 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
   support_resistance: {
     id: 'support_resistance',
     label: 'Support & Resistance',
-    description: 'Fractal-based support and resistance levels',
+    description: 'Key support and resistance levels (8 levels)',
     category: 'support_resistance',
     tier: 'PRO',
     columns: [
-      'sr_support_1',
-      'sr_support_2',
-      'sr_support_3',
-      'sr_support_4',
-      'sr_resistance_1',
-      'sr_resistance_2',
-      'sr_resistance_3',
-      'sr_resistance_4',
+      'sr_1',
+      'sr_2',
+      'sr_3',
+      'sr_4',
+      'sr_5',
+      'sr_6',
+      'sr_7',
+      'sr_8',
     ],
     colors: {
       support: '#00c853',
@@ -252,17 +251,17 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
 
   zigzag: {
     id: 'zigzag',
-    label: 'ZigZag + EMA',
-    description: 'Market structure with swing highs/lows and EMA trend',
+    label: 'ZigZag',
+    description: 'Market structure with swing highs/lows and trend direction',
     category: 'trend',
     tier: 'PRO',
-    columns: ['zigzag_peak', 'zigzag_bottom', 'ema_26'],
+    columns: ['zigzag_high', 'zigzag_low', 'zigzag_trend'],
     colors: {
-      peaks: '#f23645',
-      bottoms: '#00c853',
-      ema: '#ffa726',
+      highs: '#f23645',
+      lows: '#00c853',
+      trend: '#ffa726',
     },
-    dataPattern: 'sparse', // 2-5% of bars have values (peaks/bottoms), EMA is continuous
+    dataPattern: 'sparse', // 2-5% of bars have values
   },
 };
 

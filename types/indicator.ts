@@ -310,8 +310,8 @@ export interface MovingAveragesColumns {
  * PRO tier indicator: Body Size Momentum (2 columns)
  */
 export interface BodyMomentumData {
-  z_score_of_body_size: number | null;
-  candle_classification: number | null;
+  body_size: number | null;
+  body_direction: number | null;
 }
 
 /**
@@ -322,49 +322,49 @@ export interface HeikenAshiData {
   ha_high: number | null;
   ha_low: number | null;
   ha_close: number | null;
-  ha_classification: number | null;
-  ha_body_size: number | null;
-  ha_body_zscore: number | null;
+  ha_color: number | null;
+  ha_trend: number | null;
+  ha_strength: number | null;
 }
 
 /**
  * PRO tier indicator: Keltner Channels (10 columns)
  */
 export interface KeltnerChannelsData {
-  kc_ultra_extreme_upper: number | null;
-  kc_extreme_upper: number | null;
-  kc_uppermost: number | null;
   kc_upper: number | null;
-  kc_upper_middle: number | null;
-  kc_lower_middle: number | null;
+  kc_middle: number | null;
   kc_lower: number | null;
-  kc_lowermost: number | null;
-  kc_extreme_lower: number | null;
-  kc_ultra_extreme_lower: number | null;
+  kc_upper_ema: number | null;
+  kc_middle_ema: number | null;
+  kc_lower_ema: number | null;
+  kc_squeeze: number | null;
+  kc_squeeze_pro: number | null;
+  kc_width: number | null;
+  kc_width_ema: number | null;
 }
 
 /**
  * PRO tier indicator: Support & Resistance (8 columns)
  */
 export interface SupportResistanceData {
-  sr_support_1: number | null;
-  sr_support_2: number | null;
-  sr_support_3: number | null;
-  sr_support_4: number | null;
-  sr_resistance_1: number | null;
-  sr_resistance_2: number | null;
-  sr_resistance_3: number | null;
-  sr_resistance_4: number | null;
+  sr_1: number | null;
+  sr_2: number | null;
+  sr_3: number | null;
+  sr_4: number | null;
+  sr_5: number | null;
+  sr_6: number | null;
+  sr_7: number | null;
+  sr_8: number | null;
 }
 
 /**
- * PRO tier indicator: ZigZag + EMA (3 columns)
+ * PRO tier indicator: ZigZag (3 columns)
  * Database record format (single row)
  */
 export interface ZigZagColumns {
-  zigzag_peak: number | null;
-  zigzag_bottom: number | null;
-  ema_26: number | null;
+  zigzag_high: number | null;
+  zigzag_low: number | null;
+  zigzag_trend: number | null;
 }
 
 /**

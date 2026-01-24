@@ -921,6 +921,101 @@ model DisbursementAuditLog {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MARKET DATA (57-COLUMN SCHEMA)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// Market data with 57-column flat schema
+/// Structure: 8 system + 16 FREE tier + 33 PRO tier = 57 columns
+model MarketData {
+  id           String   @id @default(cuid())
+  symbol       String
+
+  // System columns (8) - Always accessible to all tiers
+  timestamp    Int      // Unix timestamp (seconds)
+  open         Float
+  high         Float
+  low          Float
+  close        Float
+  volume       Float
+  timeframe    String   // M1, M5, M15, H1, H4, D1
+  collected_at DateTime @default(now())
+
+  // FREE tier indicators - Group 1: Fractal Diagonal Lines (8 columns)
+  diag_asc_line_1      Float?
+  diag_asc_line_2      Float?
+  diag_asc_line_3      Float?
+  diag_desc_line_1     Float?
+  diag_desc_line_2     Float?
+  diag_desc_line_3     Float?
+  diag_high_map        Float?
+  diag_low_map         Float?
+
+  // FREE tier indicators - Group 2: Fractal Horizontal Lines (8 columns)
+  horiz_peak_line_1    Float?
+  horiz_peak_line_2    Float?
+  horiz_peak_line_3    Float?
+  horiz_bottom_line_1  Float?
+  horiz_bottom_line_2  Float?
+  horiz_bottom_line_3  Float?
+  horiz_high_map       Float?
+  horiz_low_map        Float?
+
+  // PRO tier indicators - Group 3: Moving Averages (3 columns)
+  tema                 Float?
+  hrma                 Float?
+  smma                 Float?
+
+  // PRO tier indicators - Group 4: Body Size Momentum (2 columns)
+  body_size            Float?
+  body_direction       Float?
+
+  // PRO tier indicators - Group 5: Heiken Ashi (7 columns)
+  ha_open              Float?
+  ha_high              Float?
+  ha_low               Float?
+  ha_close             Float?
+  ha_color             Float?
+  ha_trend             Float?
+  ha_strength          Float?
+
+  // PRO tier indicators - Group 6: Keltner Channels (10 columns)
+  kc_upper             Float?
+  kc_middle            Float?
+  kc_lower             Float?
+  kc_upper_ema         Float?
+  kc_middle_ema        Float?
+  kc_lower_ema         Float?
+  kc_squeeze           Float?
+  kc_squeeze_pro       Float?
+  kc_width             Float?
+  kc_width_ema         Float?
+
+  // PRO tier indicators - Group 7: Support/Resistance (8 columns)
+  sr_1                 Float?
+  sr_2                 Float?
+  sr_3                 Float?
+  sr_4                 Float?
+  sr_5                 Float?
+  sr_6                 Float?
+  sr_7                 Float?
+  sr_8                 Float?
+
+  // PRO tier indicators - Group 8: ZigZag (3 columns)
+  zigzag_high          Float?
+  zigzag_low           Float?
+  zigzag_trend         Float?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([symbol, timeframe, timestamp])
+  @@index([symbol, timeframe, timestamp])
+  @@index([symbol])
+  @@index([timeframe])
+  @@index([timestamp])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SYSTEM CONFIGURATION (Dynamic Settings)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
