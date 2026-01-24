@@ -1,29 +1,80 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Dashboard & Layout Components (Part 08)
-  version: 1.0.0
+  version: 2.0.0
   description: |
-    Part 08: Dashboard & Layout Components
+    # Part 08: Dashboard & Layout Components
 
-    **Note:** This part consists entirely of UI components and has no backend API endpoints.
+    ## Overview
 
-    ## Components Included:
-    - Dashboard layout wrapper
-    - Dashboard homepage with statistics
-    - Header component with navigation
-    - Sidebar navigation
-    - Mobile navigation
-    - Footer component
-    - Dashboard stats cards
-    - Recent alerts widget
-    - Watchlist widget
+    Part 08 implements the complete dashboard layout system including interactive UI pages,
+    navigation components, tier-aware features, and real-time data visualization. While this
+    part primarily consists of UI components, it includes significant backend operations for
+    data fetching, authentication, tier validation, and database queries.
 
-    ## Purpose:
-    These components provide the user interface structure for the dashboard area.
-    All data is fetched using API endpoints documented in other parts:
-    - Part 10: Watchlist API
-    - Part 11: Alerts API
-    - Part 12: Subscription/Billing API
+    ## Key Features
+
+    - **Responsive Dashboard Layout** - Desktop and mobile navigation
+    - **Tier-Aware UI** - FREE vs PRO feature access and limits
+    - **Real-Time Updates** - WebSocket integration for live data
+    - **Server-Side Authentication** - Protected routes with session management
+    - **Interactive Widgets** - Alerts, watchlist, and stats cards
+    - **Admin Dashboard** - System management and monitoring
+    - **57-Column MarketData Integration** - Optimized market data schema
+
+    ## Database Schema Migration
+
+    **Important:** The system recently migrated from a 14-column JSON structure to a flat
+    57-column MarketData schema. This provides:
+    - Better query performance via indexed columns
+    - Tier-aware data access (FREE: 16 columns, PRO: all 57 columns)
+    - Support for 8 advanced indicator groups
+
+    ## Components Structure
+
+    ### Dashboard Pages (36 pages)
+    - Main dashboard overview
+    - Alerts management (list, create, edit)
+    - Watchlist management
+    - Trading charts viewer
+    - Settings pages (11 pages)
+    - Admin dashboard (16 pages)
+
+    ### UI Components (8 components)
+    - Dashboard widgets: stats-card, recent-alerts, watchlist-widget, upgrade-prompt
+    - Layout components: header, sidebar, mobile-nav, footer
+
+    ### Backend Operations
+    - Session authentication and user data extraction
+    - Prisma database queries for alerts, watchlists, subscriptions
+    - Tier validation and limit enforcement
+    - MarketData queries with tier-based column access
+    - Real-time WebSocket connections
+
+    ## Data Flow
+
+    ```
+    User Request → Next.js Page (Server Component)
+         ↓
+    Authentication Check (getServerSession)
+         ↓
+    Prisma Database Query
+         ↓
+    Tier Validation & Data Filtering
+         ↓
+    Render UI with Client Components
+         ↓
+    WebSocket Updates (Real-Time)
+    ```
+
+    ## API Dependencies
+
+    Dashboard pages consume APIs documented in other parts:
+    - **Part 10:** Watchlist API (`/api/watchlists/*`)
+    - **Part 11:** Alerts API (`/api/alerts/*`)
+    - **Part 12:** Subscription/Billing API (`/api/checkout/*`)
+    - **Part 13:** Market Data API (`/api/candles/*`)
+    - **Part 17:** Affiliate Dashboard API (`/api/affiliate/dashboard/*`)
 
   contact:
     name: API Support
@@ -35,14 +86,1078 @@ servers:
   - url: https://tradingalerts.example.com
     description: Production server
 
-paths: {}
+tags:
+  - name: Dashboard Pages
+    description: Server-rendered dashboard pages with authentication
+  - name: Components
+    description: React components and their interfaces
+  - name: Data Models
+    description: Database models and schemas used by dashboard
+  - name: Backend Operations
+    description: Server-side operations performed by dashboard pages
+
+paths:
+  # Dashboard Pages (Server Components - Not REST APIs)
+
+  /dashboard:
+    get:
+      tags:
+        - Dashboard Pages
+      summary: Dashboard home page
+      description: |
+        Server-rendered dashboard overview page showing user statistics, tier information,
+        recent alerts, and watchlist widget.
+
+        **Backend Operations:**
+        - Authenticates user session
+        - Fetches active alerts count
+        - Fetches watchlist items count
+        - Retrieves recent 5 alerts
+        - Computes tier statistics
+        - Determines upgrade prompt visibility
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Dashboard page rendered successfully
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Rendered HTML page
+        '302':
+          description: Redirect to login (not authenticated)
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /login
+
+  /dashboard/alerts:
+    get:
+      tags:
+        - Dashboard Pages
+      summary: Alerts list page
+      description: |
+        Displays all user alerts with filtering, search, and status tabs.
+
+        **Backend Operations:**
+        - Authenticates user session
+        - Fetches all user alerts with status computation
+        - Applies tier-based limits (FREE: 5, PRO: 20)
+        - Includes symbol, timeframe, target/current price, distance
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Alerts page rendered successfully
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /dashboard/alerts/new:
+    get:
+      tags:
+        - Dashboard Pages
+      summary: Create new alert page
+      description: |
+        Form for creating a new price alert.
+
+        **Backend Operations:**
+        - Authenticates user session
+        - Validates tier limits before showing form
+        - Provides tier-filtered symbol/timeframe options
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Create alert page rendered
+
+  /dashboard/watchlist:
+    get:
+      tags:
+        - Dashboard Pages
+      summary: Watchlist management page
+      description: |
+        Displays user's watchlist with add/remove functionality.
+
+        **Backend Operations:**
+        - Authenticates user session
+        - Fetches or creates default watchlist
+        - Retrieves all watchlist items
+        - Applies tier-based limits (FREE: 5, PRO: 50)
+        - Provides tier-filtered symbol/timeframe selectors
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Watchlist page rendered
+
+  /dashboard/charts:
+    get:
+      tags:
+        - Dashboard Pages
+      summary: Trading charts selector page
+      description: |
+        Chart selector with tier-based symbol and timeframe filtering.
+
+        **Backend Operations:**
+        - Authenticates user session
+        - Displays tier statistics (available symbols, timeframes, combinations)
+        - Provides grid of available chart combinations
+      security:
+        - SessionAuth: []
+      responses:
+        '200':
+          description: Chart selector page rendered
+
+  /dashboard/charts/{symbol}/{timeframe}:
+    get:
+      tags:
+        - Dashboard Pages
+      summary: Individual chart page
+      description: |
+        Displays trading chart for specific symbol and timeframe with 57-column MarketData.
+
+        **Backend Operations:**
+        - Authenticates user session
+        - Validates tier access to symbol and timeframe
+        - Queries MarketData with tier-appropriate column selection
+        - FREE users: 24 columns (8 system + 16 FREE indicators)
+        - PRO users: 57 columns (all indicators)
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, SOLUSDT, DOTUSDT, MATICUSDT, SHIBUSDT, LTCUSDT, AVAXUSDT, ATOMUSDT, LINKUSDT, UNIUSDT]
+        - name: timeframe
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
+      responses:
+        '200':
+          description: Chart page rendered with market data
+        '403':
+          description: Symbol or timeframe not allowed for user tier
 
 components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: Next-Auth session cookie for authentication
+
   schemas:
-    UIComponentReference:
+    # ==========================================
+    # Tier Configuration
+    # ==========================================
+
+    Tier:
+      type: string
+      enum: [FREE, PRO]
+      description: User subscription tier
+
+    TierLimits:
       type: object
-      description: This part contains no API endpoints - UI components only
+      description: Tier-based feature limits
       properties:
+        tier:
+          $ref: '#/components/schemas/Tier'
+        maxAlerts:
+          type: integer
+          description: Maximum number of alerts
+          example: 5
+        maxWatchlistItems:
+          type: integer
+          description: Maximum watchlist items
+          example: 5
+        availableSymbols:
+          type: array
+          items:
+            type: string
+          description: Allowed trading symbols
+          example: [BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT]
+        availableTimeframes:
+          type: array
+          items:
+            type: string
+          description: Allowed chart timeframes
+          example: [M15, H1, D1]
+        chartCombinations:
+          type: integer
+          description: Total symbol x timeframe combinations
+          example: 15
+        apiRateLimit:
+          type: integer
+          description: API requests per hour
+          example: 60
+        updateInterval:
+          type: integer
+          description: Data update interval in seconds
+          example: 60
+        features:
+          type: object
+          properties:
+            analytics:
+              type: boolean
+            customIndicators:
+              type: boolean
+            advancedCharts:
+              type: boolean
+
+    TierConfig:
+      type: object
+      description: Complete tier configuration
+      properties:
+        FREE:
+          $ref: '#/components/schemas/TierLimits'
+        PRO:
+          $ref: '#/components/schemas/TierLimits'
+      example:
+        FREE:
+          tier: FREE
+          maxAlerts: 5
+          maxWatchlistItems: 5
+          availableSymbols: [BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT]
+          availableTimeframes: [M15, H1, D1]
+          chartCombinations: 15
+          apiRateLimit: 60
+          updateInterval: 60
+          features:
+            analytics: false
+            customIndicators: false
+            advancedCharts: false
+        PRO:
+          tier: PRO
+          maxAlerts: 20
+          maxWatchlistItems: 50
+          availableSymbols: [BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, SOLUSDT, DOTUSDT, MATICUSDT, SHIBUSDT, LTCUSDT, AVAXUSDT, ATOMUSDT, LINKUSDT, UNIUSDT]
+          availableTimeframes: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
+          chartCombinations: 135
+          apiRateLimit: 300
+          updateInterval: 30
+          features:
+            analytics: true
+            customIndicators: true
+            advancedCharts: true
+
+    # ==========================================
+    # Dashboard Data Models
+    # ==========================================
+
+    DashboardStats:
+      type: object
+      description: Statistics displayed on dashboard home
+      properties:
+        tierStats:
+          type: object
+          properties:
+            symbols:
+              type: integer
+              example: 5
+            timeframes:
+              type: integer
+              example: 3
+            chartCombinations:
+              type: integer
+              example: 15
+            maxAlerts:
+              type: integer
+              example: 5
+            indicators:
+              type: integer
+              example: 2
+        usageStats:
+          type: object
+          properties:
+            activeAlerts:
+              type: integer
+              example: 3
+            watchlistItems:
+              type: integer
+              example: 4
+            apiUsage:
+              type: object
+              properties:
+                current:
+                  type: integer
+                  example: 45
+                max:
+                  type: integer
+                  example: 60
+            chartViews:
+              type: integer
+              example: 127
+
+    StatsCardProps:
+      type: object
+      description: Props for StatsCard component
+      required:
+        - title
+        - value
+      properties:
+        title:
+          type: string
+          example: Active Alerts
+        value:
+          oneOf:
+            - type: string
+            - type: number
+          example: 3
+        change:
+          type: number
+          description: Percentage change (for 'default' variant)
+          example: 12.5
+        changeLabel:
+          type: string
+          example: vs last month
+        icon:
+          type: string
+          description: Lucide icon name
+          example: Bell
+        description:
+          type: string
+          example: Price alerts being monitored
+        variant:
+          type: string
+          enum: [default, usage]
+          default: default
+        current:
+          type: number
+          description: Current usage (for 'usage' variant)
+          example: 3
+        max:
+          type: number
+          description: Maximum limit (for 'usage' variant)
+          example: 5
+
+    # ==========================================
+    # Alert Data Models
+    # ==========================================
+
+    Alert:
+      type: object
+      description: User price alert
+      required:
+        - id
+        - userId
+        - name
+        - symbol
+        - timeframe
+        - condition
+        - alertType
+        - isActive
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: BTC above $50k
+        symbol:
+          type: string
+          example: BTCUSDT
+        timeframe:
+          type: string
+          enum: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
+          example: H1
+        condition:
+          type: object
+          description: Alert condition (JSON)
+          properties:
+            operator:
+              type: string
+              enum: [ABOVE, BELOW, CROSSES_ABOVE, CROSSES_BELOW]
+            targetPrice:
+              type: number
+              format: float
+              example: 50000.00
+        alertType:
+          type: string
+          enum: [PRICE, INDICATOR]
+          default: PRICE
+        isActive:
+          type: boolean
+          default: true
+        lastTriggered:
+          type: string
+          format: date-time
+          nullable: true
+        triggerCount:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        # Computed fields (not in DB)
+        currentPrice:
+          type: number
+          format: float
+          description: Current market price (computed)
+          example: 48500.50
+        distance:
+          type: number
+          format: float
+          description: Distance to target price (computed)
+          example: -1499.50
+        distancePercent:
+          type: number
+          format: float
+          description: Percentage distance to target (computed)
+          example: -3.09
+        status:
+          type: string
+          enum: [watching, triggered, paused]
+          description: Computed status based on conditions
+          example: watching
+
+    RecentAlertsProps:
+      type: object
+      description: Props for RecentAlerts component
+      properties:
+        limit:
+          type: integer
+          default: 5
+          description: Number of alerts to display
+        userId:
+          type: string
+          format: uuid
+          description: User ID for filtering alerts
+
+    # ==========================================
+    # Watchlist Data Models
+    # ==========================================
+
+    Watchlist:
+      type: object
+      description: User watchlist
+      required:
+        - id
+        - userId
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: My Watchlist
+        isDefault:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WatchlistItem'
+
+    WatchlistItem:
+      type: object
+      description: Item in user watchlist
+      required:
+        - id
+        - watchlistId
+        - symbol
+        - timeframe
+      properties:
+        id:
+          type: string
+          format: uuid
+        watchlistId:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+          example: BTCUSDT
+        timeframe:
+          type: string
+          enum: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
+          example: H1
+        order:
+          type: integer
+          description: Display order
+          example: 0
+        addedAt:
+          type: string
+          format: date-time
+        # Computed fields from MarketData
+        currentPrice:
+          type: number
+          format: float
+          example: 48500.50
+        priceChange:
+          type: number
+          format: float
+          description: 24h price change
+          example: 1250.75
+        priceChangePercent:
+          type: number
+          format: float
+          description: 24h price change percentage
+          example: 2.64
+        status:
+          type: string
+          example: Active
+
+    WatchlistWidgetProps:
+      type: object
+      description: Props for WatchlistWidget component
+      properties:
+        limit:
+          type: integer
+          default: 5
+          description: Number of items to display
+        userId:
+          type: string
+          format: uuid
+          description: User ID for filtering watchlist
+
+    # ==========================================
+    # MarketData Schema (57 Columns)
+    # ==========================================
+
+    MarketData:
+      type: object
+      description: |
+        Market candle data with 57 columns optimized for tier-aware access.
+
+        **Schema Structure:**
+        - System columns (8): timestamp, OHLCV, timeframe, collected_at
+        - FREE tier indicators (16): Fractal diagonal and horizontal lines
+        - PRO tier indicators (33): Advanced indicators (8 groups)
+
+        **Tier Access:**
+        - FREE users: Columns 1-24 (8 system + 16 FREE indicators)
+        - PRO users: All 57 columns
+      required:
+        - timestamp
+        - symbol
+        - timeframe
+        - open
+        - high
+        - low
+        - close
+        - volume
+      properties:
+        # System Columns (8)
+        timestamp:
+          type: string
+          format: date-time
+          description: Candle timestamp
+        symbol:
+          type: string
+          example: BTCUSDT
+        timeframe:
+          type: string
+          enum: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
+        open:
+          type: number
+          format: float
+        high:
+          type: number
+          format: float
+        low:
+          type: number
+          format: float
+        close:
+          type: number
+          format: float
+        volume:
+          type: number
+          format: float
+        collected_at:
+          type: string
+          format: date-time
+
+        # FREE Tier Group 1: Fractal Diagonal Lines (8 columns)
+        diag_asc_line_1:
+          type: number
+          format: float
+          nullable: true
+          description: First ascending diagonal line
+        diag_asc_line_2:
+          type: number
+          format: float
+          nullable: true
+        diag_asc_line_3:
+          type: number
+          format: float
+          nullable: true
+        diag_desc_line_1:
+          type: number
+          format: float
+          nullable: true
+          description: First descending diagonal line
+        diag_desc_line_2:
+          type: number
+          format: float
+          nullable: true
+        diag_desc_line_3:
+          type: number
+          format: float
+          nullable: true
+        diag_high_map:
+          type: string
+          nullable: true
+          description: JSON map of high diagonal points
+        diag_low_map:
+          type: string
+          nullable: true
+          description: JSON map of low diagonal points
+
+        # FREE Tier Group 2: Fractal Horizontal Lines (8 columns)
+        horiz_peak_line_1:
+          type: number
+          format: float
+          nullable: true
+          description: First horizontal peak line
+        horiz_peak_line_2:
+          type: number
+          format: float
+          nullable: true
+        horiz_peak_line_3:
+          type: number
+          format: float
+          nullable: true
+        horiz_bottom_line_1:
+          type: number
+          format: float
+          nullable: true
+          description: First horizontal bottom line
+        horiz_bottom_line_2:
+          type: number
+          format: float
+          nullable: true
+        horiz_bottom_line_3:
+          type: number
+          format: float
+          nullable: true
+        horiz_high_map:
+          type: string
+          nullable: true
+          description: JSON map of horizontal high points
+        horiz_low_map:
+          type: string
+          nullable: true
+          description: JSON map of horizontal low points
+
+        # PRO Tier Group 3: Moving Averages (3 columns)
+        tema:
+          type: number
+          format: float
+          nullable: true
+          description: Triple Exponential Moving Average (PRO only)
+        hrma:
+          type: number
+          format: float
+          nullable: true
+          description: Hull Moving Average (PRO only)
+        smma:
+          type: number
+          format: float
+          nullable: true
+          description: Smoothed Moving Average (PRO only)
+
+        # PRO Tier Group 4: Body Size Momentum (2 columns)
+        z_score_of_body_size:
+          type: number
+          format: float
+          nullable: true
+          description: Z-score of candle body size (PRO only)
+        candle_classification:
+          type: string
+          nullable: true
+          description: Candle classification based on body size (PRO only)
+
+        # PRO Tier Group 5: Heiken Ashi (7 columns)
+        ha_open:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi open (PRO only)
+        ha_high:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi high (PRO only)
+        ha_low:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi low (PRO only)
+        ha_close:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi close (PRO only)
+        ha_classification:
+          type: string
+          nullable: true
+          description: Heiken Ashi candle classification (PRO only)
+        ha_body_size:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi body size (PRO only)
+        ha_body_zscore:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi body Z-score (PRO only)
+
+        # PRO Tier Group 6: Keltner Channels (10 columns)
+        kc_upper_4:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel upper band (4 ATR) (PRO only)
+        kc_upper_3:
+          type: number
+          format: float
+          nullable: true
+        kc_upper_2:
+          type: number
+          format: float
+          nullable: true
+        kc_upper_1:
+          type: number
+          format: float
+          nullable: true
+        kc_middle:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel middle line (PRO only)
+        kc_lower_1:
+          type: number
+          format: float
+          nullable: true
+        kc_lower_2:
+          type: number
+          format: float
+          nullable: true
+        kc_lower_3:
+          type: number
+          format: float
+          nullable: true
+        kc_lower_4:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel lower band (4 ATR) (PRO only)
+        kc_width:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel width (PRO only)
+
+        # PRO Tier Group 7: Support/Resistance (8 columns)
+        sr_support_1:
+          type: number
+          format: float
+          nullable: true
+          description: First support level (PRO only)
+        sr_support_2:
+          type: number
+          format: float
+          nullable: true
+        sr_support_3:
+          type: number
+          format: float
+          nullable: true
+        sr_support_4:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_1:
+          type: number
+          format: float
+          nullable: true
+          description: First resistance level (PRO only)
+        sr_resistance_2:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_3:
+          type: number
+          format: float
+          nullable: true
+        sr_resistance_4:
+          type: number
+          format: float
+          nullable: true
+
+        # PRO Tier Group 8: ZigZag (3 columns)
+        zigzag_peak:
+          type: number
+          format: float
+          nullable: true
+          description: ZigZag peak value (PRO only)
+        zigzag_bottom:
+          type: number
+          format: float
+          nullable: true
+          description: ZigZag bottom value (PRO only)
+        ema_26:
+          type: number
+          format: float
+          nullable: true
+          description: 26-period EMA (PRO only)
+
+    # ==========================================
+    # User & Session Models
+    # ==========================================
+
+    UserSession:
+      type: object
+      description: Authenticated user session data
+      required:
+        - user
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+              nullable: true
+            email:
+              type: string
+              format: email
+            image:
+              type: string
+              format: uri
+              nullable: true
+            tier:
+              $ref: '#/components/schemas/Tier'
+            role:
+              type: string
+              enum: [USER, ADMIN]
+              default: USER
+            emailVerified:
+              type: string
+              format: date-time
+              nullable: true
+        expires:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      description: User model from database
+      required:
+        - id
+        - email
+        - tier
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        emailVerified:
+          type: string
+          format: date-time
+          nullable: true
+        image:
+          type: string
+          format: uri
+          nullable: true
+        tier:
+          $ref: '#/components/schemas/Tier'
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          default: USER
+        trialEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        trialUsed:
+          type: boolean
+          default: false
+        twoFactorEnabled:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ==========================================
+    # Navigation & Layout Models
+    # ==========================================
+
+    NavigationItem:
+      type: object
+      description: Sidebar/mobile navigation item
+      required:
+        - label
+        - href
+      properties:
+        label:
+          type: string
+          example: Dashboard
+        href:
+          type: string
+          example: /dashboard
+        icon:
+          type: string
+          description: Lucide icon name
+          example: LayoutDashboard
+        requiredTier:
+          $ref: '#/components/schemas/Tier'
+          description: Minimum tier required to access
+        badge:
+          type: string
+          nullable: true
+          description: Badge text (e.g., "NEW", "BETA")
+          example: PRO
+
+    HeaderProps:
+      type: object
+      description: Props for Header component
+      properties:
+        user:
+          type: object
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+            image:
+              type: string
+              nullable: true
+            tier:
+              $ref: '#/components/schemas/Tier'
+
+    SidebarProps:
+      type: object
+      description: Props for Sidebar component
+      properties:
+        userTier:
+          $ref: '#/components/schemas/Tier'
+        currentPath:
+          type: string
+          description: Current route path for active link highlighting
+
+    # ==========================================
+    # Upgrade & Billing Models
+    # ==========================================
+
+    UpgradePromptProps:
+      type: object
+      description: Props for UpgradePrompt component
+      properties:
+        showForFreeTierOnly:
+          type: boolean
+          default: true
+          description: Only show prompt for FREE tier users
+        pricingConfig:
+          type: object
+          properties:
+            monthlyPrice:
+              type: number
+              format: float
+              example: 9.99
+            yearlyPrice:
+              type: number
+              format: float
+              example: 99.99
+            currency:
+              type: string
+              example: USD
+
+    SystemConfig:
+      type: object
+      description: System configuration for pricing and features
+      properties:
+        proMonthlyPrice:
+          type: number
+          format: float
+          example: 9.99
+        proYearlyPrice:
+          type: number
+          format: float
+          example: 99.99
+        currency:
+          type: string
+          example: USD
+        features:
+          type: object
+          additionalProperties: true
+
+    # ==========================================
+    # Notification Models
+    # ==========================================
+
+    Notification:
+      type: object
+      description: User notification
+      required:
+        - id
+        - userId
+        - type
+        - title
+        - message
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [ALERT, SUBSCRIPTION, PAYMENT, SYSTEM]
+        title:
+          type: string
+          example: Alert Triggered
         message:
           type: string
-          example: 'Part 08 contains UI components only. Refer to other parts for API documentation.'
+          example: BTC has crossed above $50,000
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          default: MEDIUM
+        isRead:
+          type: boolean
+          default: false
+        link:
+          type: string
+          nullable: true
+          description: Optional link to related resource
+        createdAt:
+          type: string
+          format: date-time
