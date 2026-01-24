@@ -70,15 +70,22 @@
 
 ### Checkout Page Features
 
-- Provider auto-detection based on user location
-- Stripe checkout for non-dLocal countries
-- dLocal checkout for 8 supported countries
-- Step-by-step payment flow
-- Real-time price conversion
-- Discount code application
-- 3-day plan eligibility checking
-- Payment method selection
-- Redirect to payment provider
+**Flow B: Unified Payment Flow** - Both Stripe and dLocal on same page
+
+- **Stripe (Primary)**: International card payments shown first
+  - Prominent card at top with shadow styling
+  - Pay with Visa, Mastercard, American Express
+  - PRO Monthly at $29/mo
+  - Available for all users globally
+
+- **dLocal (Secondary)**: Local payment methods shown below
+  - Alternative option with dashed border styling
+  - Country auto-detection to filter payment methods
+  - 8 supported countries: IN, NG, PK, VN, ID, TH, ZA, TR
+  - Local currency pricing with real-time conversion
+  - 3-day plan eligibility checking (one-time per user)
+  - Discount code application (monthly plan only)
+  - Country-specific payment methods (UPI, Paytm, bank transfer, etc.)
 
 ---
 
@@ -276,46 +283,51 @@ These files mirror the backend components for frontend deployment:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│               dLocal User Experience Flow                   │
+│       Unified Payment Flow (Flow B) - Stripe Primary        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  1. User visits /pricing or /checkout                      │
-│     └── Auto-detect location via IP                        │
+│  1. User visits /pricing or /checkout                       │
+│     └── Country auto-detected via IP (for dLocal options)   │
 │                                                             │
-│  2. Country Selection                                       │
-│     ├── Show supported dLocal countries                    │
-│     └── Auto-select detected country                       │
+│  2. Checkout Page displays TWO payment options:             │
 │                                                             │
-│  3. Plan Selection                                          │
-│     ├── 3-Day Plan: $1.99 (if eligible)                    │
-│     └── Monthly Plan: $29.00                               │
+│     ┌─────────────────────────────────────────────────┐     │
+│     │  PRIMARY: Stripe International Card Payment     │     │
+│     │  ─────────────────────────────────────────────  │     │
+│     │  • PRO Monthly: $29/mo                          │     │
+│     │  • Visa, Mastercard, American Express           │     │
+│     │  • [Pay with Card] button                       │     │
+│     └─────────────────────────────────────────────────┘     │
 │                                                             │
-│  4. Price Display                                           │
-│     ├── Show local currency amount                         │
-│     └── Show USD equivalent                                │
+│     ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐     │
+│     │  SECONDARY: dLocal Local Payment Methods        │     │
+│     │  ─────────────────────────────────────────────  │     │
+│     │  • Select country (auto-detected)               │     │
+│     │  • Select plan (3-Day $1.99 or Monthly $29)     │     │
+│     │  • Select local payment method                  │     │
+│     │  • View price in local currency                 │     │
+│     │  • Apply discount code (monthly only)           │     │
+│     │  • [Pay with Local Method] button               │     │
+│     └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘     │
 │                                                             │
-│  5. Payment Method Selection                                │
-│     └── Show methods for selected country                  │
+│  3. User chooses payment option:                            │
 │                                                             │
-│  6. Discount Code (Monthly only)                            │
-│     ├── Enter code                                         │
-│     ├── Validate via API                                   │
-│     └── Show discounted price                              │
+│     OPTION A: Stripe (International Cards)                  │
+│     ├── Click "Pay with Card"                               │
+│     ├── Redirect to Stripe Checkout                         │
+│     ├── Enter card details → Pay                            │
+│     ├── Stripe webhook: checkout.session.completed          │
+│     └── Subscription created → PRO tier unlocked            │
 │                                                             │
-│  7. Create Payment                                          │
-│     ├── Call /api/payments/dlocal/create                   │
-│     └── Redirect to dLocal payment page                    │
+│     OPTION B: dLocal (Local Payment Methods)                │
+│     ├── Select country, plan, payment method                │
+│     ├── Click "Pay with Local Method"                       │
+│     ├── Redirect to dLocal payment page                     │
+│     ├── Complete payment with local method                  │
+│     ├── dLocal webhook: payment.paid                        │
+│     └── Subscription created → PRO tier unlocked            │
 │                                                             │
-│  8. Complete Payment (on dLocal)                            │
-│     └── User completes payment with selected method        │
-│                                                             │
-│  9. Webhook Processing                                      │
-│     ├── dLocal sends payment.paid webhook                  │
-│     ├── Create subscription                                │
-│     └── Send confirmation email                            │
-│                                                             │
-│  10. User receives PRO access                               │
-│      └── Features unlocked immediately                     │
+│  4. Success → Dashboard with PRO features unlocked          │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
