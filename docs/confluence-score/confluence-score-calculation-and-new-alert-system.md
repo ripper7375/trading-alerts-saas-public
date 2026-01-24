@@ -1,6 +1,16 @@
+**UPDATED: 2026-01-24 - Migrated to NEW 57-column flat schema**
+
 Currently, Alert system is designed according to nearness (touch) between market price and trendlines. After confluence score is completed (timescaleDB), Alert system under PRO plan will have Alert function based on confluence score threshold in addition to trendlines based alerts in FREE plan.
 
 Could you provide me recommendation on this new alert design ?
+
+===================================================
+
+**NOTE:** This document has been updated to use the NEW 57-column flat database schema.
+- OLD schema used nested structures like `indicators.fractals.peaks`
+- NEW schema uses flat columns like `horiz_peak_line_1`, `horiz_bottom_line_1`, etc.
+- Indicator IDs updated: `fractals` → `fractal_horizontal`
+- See `docs/57-column-schema-update-guide.md` for full migration details
 
 ===================================================
 
@@ -248,11 +258,12 @@ smma: { weight: 0.30, type: 'ma_position' }, // Price vs SMMA
 },
 
 // Category 2: Structure (25% of score)
+// NOTE: Using NEW 57-column schema indicator names
 STRUCTURE: {
 weight: 0.25,
 indicators: {
 zigzag: { weight: 0.40, type: 'swing_direction' }, // Last swing direction
-fractals: { weight: 0.30, type: 'fractal_break' }, // Recent fractal break
+fractal_horizontal: { weight: 0.30, type: 'fractal_break' }, // Recent fractal break (horiz_peak_line_*, horiz_bottom_line_*)
 horizontal_trendlines: { weight: 0.15, type: 'sr_proximity' },
 diagonal_trendlines: { weight: 0.15, type: 'sr_proximity' },
 }
@@ -354,16 +365,19 @@ confidence: 0.8 // ZigZag is generally reliable
 // ============================================
 // FRACTALS (Break Detection)
 // ============================================
+// NOTE: Using NEW 57-column schema with flat structure
+// Fractal data comes from columns: horiz_peak_line_1-8, horiz_bottom_line_1-8
 function getFractalSignal(
 price: number,
-fractals: Fractals | null,
-prevFractals: Fractals | null
+fractalData: { peaks: number[], bottoms: number[] } | null,
+prevFractalData: { peaks: number[], bottoms: number[] } | null
 ): IndicatorSignal {
-if (!fractals) return { direction: 0, confidence: 0 };
+if (!fractalData) return { direction: 0, confidence: 0 };
 
 // Check if price broke above recent fractal high
-const recentHigh = fractals.peaks?.[fractals.peaks.length - 1]?.price;
-const recentLow = fractals.bottoms?.[fractals.bottoms.length - 1]?.price;
+// In NEW schema, peaks/bottoms are arrays of prices from horiz_peak_line_* columns
+const recentHigh = fractalData.peaks?.filter(p => p !== null).slice(-1)[0];
+const recentLow = fractalData.bottoms?.filter(b => b !== null).slice(-1)[0];
 
 if (recentHigh && price > recentHigh) {
 return { direction: 1, confidence: 0.9 }; // Bullish breakout
@@ -535,14 +549,19 @@ const signals: Record<string, IndicatorSignal> = {};
     const structCat = INDICATOR_CATEGORIES.STRUCTURE;
     let structScore = 0;
 
+    // NOTE: Using NEW 57-column schema field names
+    // - zigzag data from: zigzag_peak_1, zigzag_bottom_1, zigzag_swing_1 columns
+    // - fractal data from: horiz_peak_line_1-8, horiz_bottom_line_1-8 columns
+    // - horizontal lines from: horiz_peak_line_*, horiz_bottom_line_* columns
+    // - diagonal lines from: diag_asc_line_1-8, diag_desc_line_1-8 columns
     signals.zigzag = getZigZagSignal(tfData.zigzag);
-    signals.fractals = getFractalSignal(tfData.ohlc.close, tfData.fractals, null);
+    signals.fractal_horizontal = getFractalSignal(tfData.ohlc.close, tfData.fractal_horizontal, null);
     signals.h_lines = getSRProximitySignal(tfData.ohlc.close, tfData.horizontal_trendlines);
     signals.d_lines = getSRProximitySignal(tfData.ohlc.close, tfData.diagonal_trendlines);
 
     structScore = (
       signals.zigzag.direction * signals.zigzag.confidence * structCat.indicators.zigzag.weight +
-      signals.fractals.direction * signals.fractals.confidence * structCat.indicators.fractals.weight +
+      signals.fractal_horizontal.direction * signals.fractal_horizontal.confidence * structCat.indicators.fractal_horizontal.weight +
       signals.h_lines.direction * signals.h_lines.confidence * structCat.indicators.horizontal_trendlines.weight +
       signals.d_lines.direction * signals.d_lines.confidence * structCat.indicators.diagonal_trendlines.weight
     );
