@@ -196,56 +196,82 @@ e2e/
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │              SUBSCRIPTION UPGRADE FLOW                       │
+│           (Flow B: Unified Payment Flow)                     │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
 │  Entry: FREE user on dashboard                               │
 │                                                              │
-│  Flow A: Stripe (US/EU users)                                │
-│    Dashboard → "Upgrade to PRO" button                       │
-│       ↓                                                      │
-│    /pricing → Select PRO plan                                │
-│       ↓                                                      │
-│    [Optional: Enter discount code] → Apply                   │
-│       ↓                                                      │
-│    Stripe Checkout session created                           │
-│       ↓                                                      │
-│    Redirect to Stripe hosted checkout                        │
-│       ↓                                                      │
-│    Enter card details → Pay                                  │
-│       ↓                                                      │
-│    Stripe webhook: checkout.session.completed                │
-│       ↓                                                      │
-│    Subscription created → User tier = PRO                    │
-│       ↓                                                      │
-│    Success page → Dashboard (PRO features unlocked)          │
+│  Dashboard → "Upgrade to PRO" button                         │
+│     ↓                                                        │
+│  /pricing → Select PRO plan                                  │
+│     ↓                                                        │
+│  [Optional: Enter discount code] → Apply                     │
+│     ↓                                                        │
+│  Country detected (Cloudflare headers)                       │
+│     ↓                                                        │
+│  /checkout → Unified Checkout Page                           │
 │                                                              │
-│  Flow B: dLocal (Emerging markets: IN, NG, PK, etc.)         │
-│    Dashboard → "Upgrade to PRO"                              │
-│       ↓                                                      │
-│    Country detected (Cloudflare headers)                     │
-│       ↓                                                      │
-│    dLocal checkout shown (local payment methods)             │
-│       ↓                                                      │
-│    Select plan: 3-Day Trial ($1.99) or Monthly ($29)         │
-│       ↓                                                      │
-│    Select payment method (UPI, Paytm, Bank Transfer, etc.)   │
-│       ↓                                                      │
-│    [Optional: Enter discount code] → Apply (monthly only)    │
-│       ↓                                                      │
-│    Create dLocal payment → Redirect to payment               │
-│       ↓                                                      │
-│    Complete payment on provider                              │
-│       ↓                                                      │
-│    dLocal webhook: PAID status                               │
-│       ↓                                                      │
-│    Subscription created → User tier = PRO                    │
-│       ↓                                                      │
-│    Success page → Dashboard (PRO features unlocked)          │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │  PRIMARY: Stripe International Payment                 │  │
+│  │  ──────────────────────────────────────────────────    │  │
+│  │  • PRO Monthly: $29/mo                                 │  │
+│  │  • Cards (Visa, Mastercard, Amex)                      │  │
+│  │  • Wallets (Apple Pay, Google Pay, PayPal)             │  │
+│  │  • [Continue to Payment] button                        │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐  │
+│  │  SECONDARY: dLocal Local Payment Methods               │  │
+│  │  ──────────────────────────────────────────────────    │  │
+│  │  • 8 countries: IN, NG, PK, VN, ID, TH, ZA, TR         │  │
+│  │  • Select plan: 3-Day ($1.99) or Monthly ($29)         │  │
+│  │  • Select local payment method (UPI, Paytm, etc.)      │  │
+│  │  • View price in local currency                        │  │
+│  │  • [Pay with Local Method] button                      │  │
+│  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘  │
+│                                                              │
+│  User chooses payment option:                                │
+│                                                              │
+│  OPTION A: Stripe (International Payments)                   │
+│     Click "Continue to Payment"                              │
+│        ↓                                                     │
+│     Redirect to Stripe hosted checkout                       │
+│        ↓                                                     │
+│     Select: Card / Apple Pay / Google Pay / PayPal           │
+│        ↓                                                     │
+│     Complete payment                                         │
+│        ↓                                                     │
+│     Stripe webhook: checkout.session.completed               │
+│        ↓                                                     │
+│     Subscription created → User tier = PRO                   │
+│        ↓                                                     │
+│     Success page → Dashboard (PRO features unlocked)         │
+│                                                              │
+│  OPTION B: dLocal (Local Payment Methods)                    │
+│     Select country (auto-detected or manual)                 │
+│        ↓                                                     │
+│     Select plan: 3-Day Trial ($1.99) or Monthly ($29)        │
+│        ↓                                                     │
+│     Select payment method (UPI, Paytm, Bank Transfer, etc.)  │
+│        ↓                                                     │
+│     [Optional: Enter discount code] → Apply (monthly only)   │
+│        ↓                                                     │
+│     Click "Pay with Local Method"                            │
+│        ↓                                                     │
+│     Create dLocal payment → Redirect to payment provider     │
+│        ↓                                                     │
+│     Complete payment on provider                             │
+│        ↓                                                     │
+│     dLocal webhook: PAID status                              │
+│        ↓                                                     │
+│     Subscription created → User tier = PRO                   │
+│        ↓                                                     │
+│     Success page → Dashboard (PRO features unlocked)         │
 │                                                              │
 │  Exit Points:                                                │
-│    ✓ PRO tier active, all features unlocked                  │
-│    ✗ Payment failed → Remain FREE                            │
-│    ✗ User cancels checkout → Remain FREE                     │
+│     ✓ PRO tier active, all features unlocked                 │
+│     ✗ Payment failed → Remain FREE                           │
+│     ✗ User cancels checkout → Remain FREE                    │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```
