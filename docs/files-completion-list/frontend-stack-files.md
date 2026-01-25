@@ -93,11 +93,11 @@ According to the Modular Monolith Migration (Step 4 in architecture diagram), fr
 
 ### Security
 
-| #   | File Path                                                  | Type                    | Description                                 | Source      |
-| --- | ---------------------------------------------------------- | ----------------------- | ------------------------------------------- | ----------- |
-| 28  | `app/(dashboard)/settings/security/page.tsx`               | 🔘 Interactive (Client) | Two-Factor Authentication with setup wizard | 2FA Feature |
-| 29  | `app/(dashboard)/settings/security/login-history/page.tsx` | 📖 Readable (Server)    | Login History display                       | 2FA Feature |
-| 30  | `app/(dashboard)/settings/security/alerts/page.tsx`        | 🔘 Interactive (Client) | Security Alerts with toggles                | 2FA Feature |
+| #   | File Path                                                  | Type                    | Description                                 | Source  |
+| --- | ---------------------------------------------------------- | ----------------------- | ------------------------------------------- | ------- |
+| 28  | `app/(dashboard)/settings/security/page.tsx`               | 🔘 Interactive (Client) | Two-Factor Authentication with setup wizard | Part 13 |
+| 29  | `app/(dashboard)/settings/security/login-history/page.tsx` | 📖 Readable (Server)    | Login History display                       | Part 13 |
+| 30  | `app/(dashboard)/settings/security/alerts/page.tsx`        | 🔘 Interactive (Client) | Security Alerts with toggles                | Part 13 |
 
 ---
 
@@ -194,6 +194,27 @@ According to the Modular Monolith Migration (Step 4 in architecture diagram), fr
 
 ---
 
+## Summary by Part
+
+| Part       | Description                     | Frontend Files |
+| ---------- | ------------------------------- | -------------- |
+| Part 5     | Authentication                  | 7              |
+| Part 8     | Dashboard                       | 2              |
+| Part 9     | Charts                          | 2              |
+| Part 10    | Watchlist                       | 1              |
+| Part 11    | Alerts                          | 2              |
+| Part 12    | E-commerce                      | 1              |
+| Part 13    | Settings                        | 11             |
+| Part 14    | Admin Dashboard                 | 5              |
+| Part 16    | Utilities & Infrastructure      | 4              |
+| Part 17A-2 | Affiliate Frontend              | 8              |
+| Part 17B-1 | Admin Affiliate Management      | 6              |
+| Part 18C   | dLocal UI & Fraud Detection     | 4              |
+| Part 19D   | RiseWorks Admin UI              | 9              |
+| **Total**  |                                 | **62**         |
+
+---
+
 ## Notes
 
 1. **Route Groups**: Files in `(auth)`, `(dashboard)`, and `(marketing)` directories use Next.js route groups for layout organization without affecting URL paths.
@@ -233,13 +254,13 @@ According to the migration architecture (Step 4):
 
 **Key Benefits:**
 
-- ✅ **Reduced JS Bundle**: ~20KB (down from ~150KB in monolith)
-- ✅ **Faster TTI**: <1 second (down from 3-5 seconds)
-- ✅ **Better SEO**: Server-rendered content indexed immediately
-- ✅ **Improved Performance**: Less JavaScript parsing and execution
+- Reduced JS Bundle: ~20KB (down from ~150KB in monolith)
+- Faster TTI: <1 second (down from 3-5 seconds)
+- Better SEO: Server-rendered content indexed immediately
+- Improved Performance: Less JavaScript parsing and execution
 
 ---
 
-_Last Updated: 2026-01-09_
-_Generated from: docs/files-completion-list/_
+_Last Updated: 2026-01-25_
+_Generated from: docs/files-completion-list/files-inventory/_
 _Architecture: Modular Monolith Migration_
