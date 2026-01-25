@@ -259,18 +259,18 @@ Backend logic includes:
 
 **Total:** 10 files
 
-| #   | File Path                              | Description                        | Source  |
-| --- | -------------------------------------- | ---------------------------------- | ------- |
-| 103 | `lib/auth/auth-options.ts`             | NextAuth configuration             | Part 16 |
-| 104 | `lib/auth/session.ts`                  | Session management utilities       | Part 16 |
-| 105 | `lib/auth/session-tracker.ts`          | Track active user sessions         | Part 16 |
-| 106 | `lib/auth/permissions.ts`              | Permission checking utilities      | Part 16 |
-| 107 | `lib/auth/errors.ts`                   | Authentication error classes       | Part 16 |
-| 108 | `lib/auth/two-factor.ts`               | 2FA utilities (TOTP, backup codes) | Part 16 |
-| 109 | `lib/security/device-detection.ts`     | Device fingerprinting              | Part 16 |
-| 110 | `lib/csrf.ts`                          | CSRF protection utilities          | Part 16 |
-| 111 | `lib/rate-limit.ts`                    | Rate limiting middleware           | Part 16 |
-| 112 | `lib/tokens.ts`                        | Token generation and validation    | Part 16 |
+| #   | File Path                          | Description                        | Source  |
+| --- | ---------------------------------- | ---------------------------------- | ------- |
+| 103 | `lib/auth/auth-options.ts`         | NextAuth configuration             | Part 16 |
+| 104 | `lib/auth/session.ts`              | Session management utilities       | Part 16 |
+| 105 | `lib/auth/session-tracker.ts`      | Track active user sessions         | Part 16 |
+| 106 | `lib/auth/permissions.ts`          | Permission checking utilities      | Part 16 |
+| 107 | `lib/auth/errors.ts`               | Authentication error classes       | Part 16 |
+| 108 | `lib/auth/two-factor.ts`           | 2FA utilities (TOTP, backup codes) | Part 16 |
+| 109 | `lib/security/device-detection.ts` | Device fingerprinting              | Part 16 |
+| 110 | `lib/csrf.ts`                      | CSRF protection utilities          | Part 16 |
+| 111 | `lib/rate-limit.ts`                | Rate limiting middleware           | Part 16 |
+| 112 | `lib/tokens.ts`                    | Token generation and validation    | Part 16 |
 
 ---
 
@@ -399,23 +399,23 @@ Backend logic includes:
 
 **Total:** 15 files
 
-| #   | File Path                            | Description                 | Source  |
-| --- | ------------------------------------ | --------------------------- | ------- |
-| 171 | `lib/utils.ts`                       | General utility functions   | Part 16 |
-| 172 | `lib/utils/helpers.ts`               | Helper functions            | Part 16 |
-| 173 | `lib/utils/formatters.ts`            | Data formatting utilities   | Part 16 |
-| 174 | `lib/utils/constants.ts`             | General constants           | Part 16 |
-| 175 | `lib/logger.ts`                      | Logging utilities           | Part 16 |
-| 176 | `lib/errors/api-error.ts`            | API error classes           | Part 16 |
-| 177 | `lib/errors/error-handler.ts`        | Error handling middleware   | Part 16 |
-| 178 | `lib/errors/error-logger.ts`         | Error logging utilities     | Part 16 |
-| 179 | `lib/monitoring/system-monitor.ts`   | System health monitoring    | Part 15 |
-| 180 | `lib/constants/business-rules.ts`    | Business rule constants     | Part 16 |
-| 181 | `lib/preferences/defaults.ts`        | User preference defaults    | Part 16 |
-| 182 | `lib/candle-data-helpers.ts`         | Candle data formatting      | Part 16 |
-| 183 | `lib/websocket/server.ts`            | WebSocket server            | Part 15 |
-| 184 | `lib/websocket/use-mt5-websocket.ts` | MT5 WebSocket hook          | Part 16 |
-| 185 | `lib/hooks/useAffiliateConfig.ts`    | Affiliate config hook       | Part 16 |
+| #   | File Path                            | Description               | Source  |
+| --- | ------------------------------------ | ------------------------- | ------- |
+| 171 | `lib/utils.ts`                       | General utility functions | Part 16 |
+| 172 | `lib/utils/helpers.ts`               | Helper functions          | Part 16 |
+| 173 | `lib/utils/formatters.ts`            | Data formatting utilities | Part 16 |
+| 174 | `lib/utils/constants.ts`             | General constants         | Part 16 |
+| 175 | `lib/logger.ts`                      | Logging utilities         | Part 16 |
+| 176 | `lib/errors/api-error.ts`            | API error classes         | Part 16 |
+| 177 | `lib/errors/error-handler.ts`        | Error handling middleware | Part 16 |
+| 178 | `lib/errors/error-logger.ts`         | Error logging utilities   | Part 16 |
+| 179 | `lib/monitoring/system-monitor.ts`   | System health monitoring  | Part 15 |
+| 180 | `lib/constants/business-rules.ts`    | Business rule constants   | Part 16 |
+| 181 | `lib/preferences/defaults.ts`        | User preference defaults  | Part 16 |
+| 182 | `lib/candle-data-helpers.ts`         | Candle data formatting    | Part 16 |
+| 183 | `lib/websocket/server.ts`            | WebSocket server          | Part 15 |
+| 184 | `lib/websocket/use-mt5-websocket.ts` | MT5 WebSocket hook        | Part 16 |
+| 185 | `lib/hooks/useAffiliateConfig.ts`    | Affiliate config hook     | Part 16 |
 
 ---
 
@@ -485,27 +485,27 @@ Backend logic includes:
 
 ## Summary by Part
 
-| Part     | Description                        | Backend Files |
-| -------- | ---------------------------------- | ------------- |
-| Part 4   | Tier System                        | 3             |
-| Part 5   | Authentication                     | 6             |
-| Part 10  | Watchlist                          | 3             |
-| Part 11  | Alerts                             | 2             |
-| Part 12  | Payments & Stripe                  | 6             |
-| Part 13  | User Settings                      | 10            |
-| Part 14  | Admin Dashboard                    | 5             |
-| Part 15  | Notifications & WebSocket          | 5             |
-| Part 16  | Utilities & Infrastructure         | 72            |
-| Part 17A | Affiliate Registration & Portal    | 16            |
-| Part 17B | Admin Affiliate Management         | 14            |
-| Part 18A | dLocal Payment Creation            | 7             |
-| Part 18B | dLocal Subscription Lifecycle      | 3             |
-| Part 18C | dLocal UI & Fraud Detection        | 9             |
-| Part 19A | RiseWorks Foundation               | 12            |
-| Part 19B | RiseWorks Execution                | 14            |
-| Part 19C | RiseWorks Automation               | 12            |
-| Part 19D | RiseWorks Admin UI                 | 0             |
-| **Total** |                                   | **203**       |
+| Part      | Description                     | Backend Files |
+| --------- | ------------------------------- | ------------- |
+| Part 4    | Tier System                     | 3             |
+| Part 5    | Authentication                  | 6             |
+| Part 10   | Watchlist                       | 3             |
+| Part 11   | Alerts                          | 2             |
+| Part 12   | Payments & Stripe               | 6             |
+| Part 13   | User Settings                   | 10            |
+| Part 14   | Admin Dashboard                 | 5             |
+| Part 15   | Notifications & WebSocket       | 5             |
+| Part 16   | Utilities & Infrastructure      | 72            |
+| Part 17A  | Affiliate Registration & Portal | 16            |
+| Part 17B  | Admin Affiliate Management      | 14            |
+| Part 18A  | dLocal Payment Creation         | 7             |
+| Part 18B  | dLocal Subscription Lifecycle   | 3             |
+| Part 18C  | dLocal UI & Fraud Detection     | 9             |
+| Part 19A  | RiseWorks Foundation            | 12            |
+| Part 19B  | RiseWorks Execution             | 14            |
+| Part 19C  | RiseWorks Automation            | 12            |
+| Part 19D  | RiseWorks Admin UI              | 0             |
+| **Total** |                                 | **203**       |
 
 ---
 
