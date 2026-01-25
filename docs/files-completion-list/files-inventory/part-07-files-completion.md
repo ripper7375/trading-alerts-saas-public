@@ -1,6 +1,7 @@
 # Part 7: Tier Routes API - List of files completion
 
 ⚠️ **IMPORTANT ARCHITECTURAL CHANGE (v2.0.0):**
+
 - All custom indicator endpoints have been REMOVED from Part 07
 - Part 07 now contains ONLY tier-based access control routes
 - OHLCV (candlestick) data is fetched from Part 20 (SQLite-Sync) via `/api/candles/{symbol}`
@@ -11,18 +12,21 @@
 ## Production Files
 
 **File 1/3:** ✅ `app/api/tier/symbols/route.ts`
+
 - GET endpoint returning accessible symbols for user's tier
 - Includes symbol metadata (name, category, proOnly flag)
 - Authentication required
 - Returns list of symbols with counts and tier information
 
 **File 2/3:** ✅ `app/api/tier/check/[symbol]/route.ts`
+
 - GET endpoint checking if user's tier can access a specific symbol
 - Dynamic route with symbol parameter
 - Returns access status and upgrade information if denied
 - Validates symbol existence and tier permissions
 
 **File 3/3:** ✅ `app/api/tier/combinations/route.ts`
+
 - GET endpoint returning all allowed symbol+timeframe combinations
 - Used by frontend to populate dropdowns and validate selections
 - Returns combinations with limits and upgrade information
@@ -33,6 +37,7 @@
 ## Test Files
 
 Currently no dedicated test files for Part 07. Related tier functionality is tested in:
+
 - `__tests__/api/tier.test.ts` - General tier API tests
 - `__tests__/lib/tier-config.test.ts` - Tier configuration tests
 - `__tests__/lib/tier-validation.test.ts` - Tier validation tests
@@ -45,14 +50,17 @@ Currently no dedicated test files for Part 07. Related tier functionality is tes
 The following files were part of Part 07 in v1.x but have been REMOVED:
 
 **❌ `app/api/indicators/route.ts`** - REMOVED
+
 - Previously: GET endpoint returning available indicator types
 - Reason: Custom indicators no longer supported
 
 **❌ `app/api/indicators/[symbol]/[timeframe]/route.ts`** - REMOVED
+
 - Previously: GET endpoint fetching indicator data from Flask MT5 service
 - Reason: Custom indicators no longer supported
 
 **❌ `lib/api/mt5-client.ts`** - REMOVED FROM PART 07 (moved to archive)
+
 - Previously: Client library for MT5 service communication
 - Reason: Part 07 no longer communicates with MT5 service
 - Note: MT5 communication now handled by Part 20 (SQLite-Sync) for OHLCV data only

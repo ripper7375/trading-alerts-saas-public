@@ -24,14 +24,14 @@
 
 ## Phase B: Services (3 production + 3 test = 6 files)
 
-| #   | File Path                                            | Type | Lines | Description                          |
-| --- | ---------------------------------------------------- | ---- | ----- | ------------------------------------ |
-| 2   | `lib/dlocal/three-day-validator.service.ts`          | NEW  | 177   | Anti-abuse validation for 3-day plan |
-| 3   | `lib/cron/check-expiring-subscriptions.ts`           | NEW  | -     | Send renewal reminders               |
-| 4   | `lib/cron/downgrade-expired-subscriptions.ts`        | NEW  | -     | Downgrade expired users to FREE      |
-| T1  | `__tests__/lib/dlocal/three-day-validator.test.ts`   | TEST | -     | TDD: 3-day plan validation           |
-| T2  | `__tests__/lib/cron/check-expiring-subscriptions.test.ts` | TEST | -  | TDD: Expiring subscription logic     |
-| T3  | `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts` | TEST | - | TDD: Downgrade logic                 |
+| #   | File Path                                                    | Type | Lines | Description                          |
+| --- | ------------------------------------------------------------ | ---- | ----- | ------------------------------------ |
+| 2   | `lib/dlocal/three-day-validator.service.ts`                  | NEW  | 177   | Anti-abuse validation for 3-day plan |
+| 3   | `lib/cron/check-expiring-subscriptions.ts`                   | NEW  | -     | Send renewal reminders               |
+| 4   | `lib/cron/downgrade-expired-subscriptions.ts`                | NEW  | -     | Downgrade expired users to FREE      |
+| T1  | `__tests__/lib/dlocal/three-day-validator.test.ts`           | TEST | -     | TDD: 3-day plan validation           |
+| T2  | `__tests__/lib/cron/check-expiring-subscriptions.test.ts`    | TEST | -     | TDD: Expiring subscription logic     |
+| T3  | `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts` | TEST | -     | TDD: Downgrade logic                 |
 
 ### Three-Day Validator Service Capabilities
 
@@ -44,11 +44,13 @@
 ### Cron Job Capabilities
 
 **Check Expiring Subscriptions:**
+
 - Find subscriptions expiring in 3 days
 - Send renewal reminder emails
 - Log processing results
 
 **Downgrade Expired Subscriptions:**
+
 - Find expired subscriptions (past expiresAt date)
 - Update subscription status to EXPIRED
 - Downgrade user tier to FREE
@@ -66,11 +68,13 @@
 ### Webhook Enhancements
 
 **Events Handled:**
+
 - `payment.paid` - Payment successful → Create subscription, upgrade to PRO
 - `payment.rejected` - Payment failed → Update status, send failure email
 - `payment.cancelled` - Payment cancelled → Update status
 
 **Process Flow (payment.paid):**
+
 1. Verify webhook signature (HMAC-SHA256)
 2. Find payment in database
 3. Update payment status to COMPLETED
@@ -90,17 +94,17 @@
 
 ### Cron Endpoints
 
-| Method | Endpoint                                      | Schedule       | Description               |
-| ------ | --------------------------------------------- | -------------- | ------------------------- |
-| GET    | `/api/cron/check-expiring-subscriptions`      | Daily 00:00 UTC | Send renewal reminders    |
-| GET    | `/api/cron/downgrade-expired-subscriptions`   | Daily 01:00 UTC | Downgrade expired users   |
+| Method | Endpoint                                    | Schedule        | Description             |
+| ------ | ------------------------------------------- | --------------- | ----------------------- |
+| GET    | `/api/cron/check-expiring-subscriptions`    | Daily 00:00 UTC | Send renewal reminders  |
+| GET    | `/api/cron/downgrade-expired-subscriptions` | Daily 01:00 UTC | Downgrade expired users |
 
 ---
 
 ## Phase E: 3-Day Eligibility API (1 production + 0 test = 1 file)
 
-| #   | File Path                                                    | Type | Lines | Description                 |
-| --- | ------------------------------------------------------------ | ---- | ----- | --------------------------- |
+| #   | File Path                                                      | Type | Lines | Description                 |
+| --- | -------------------------------------------------------------- | ---- | ----- | --------------------------- |
 | 8   | `app/api/payments/dlocal/check-three-day-eligibility/route.ts` | NEW  | 64    | GET check 3-day eligibility |
 
 ### Eligibility Check Response
@@ -136,20 +140,24 @@ Or if not eligible:
 ### Integration Details
 
 **Subscription API Changes:**
+
 - Return `paymentProvider` field (STRIPE or DLOCAL)
 - Handle both provider types in subscription queries
 - Support manual renewal status for dLocal subscriptions
 
 **Invoice API Changes:**
+
 - Include dLocal payments in invoice listing
 - Merge payment records from both providers
 - Sort by date across providers
 
 **Stripe Integration:**
+
 - Export `PaymentProvider` constants
 - Add `paymentProvider: 'STRIPE'` to subscription creation
 
 **Email Templates:**
+
 - Provider-specific email content
 - Different renewal instructions for dLocal (manual) vs Stripe (auto)
 
@@ -224,26 +232,26 @@ Or if not eligible:
 
 ## Anti-Abuse Measures
 
-| Measure                    | Implementation                          |
-| -------------------------- | --------------------------------------- |
-| 3-Day Plan Lifetime Limit  | One 3-day plan per user account         |
-| Active Subscription Check  | Prevent purchase if already PRO         |
-| Payment History Tracking   | Track all dLocal payments per user      |
-| Webhook Signature Verify   | HMAC-SHA256 signature validation        |
-| Idempotent Processing      | Prevent duplicate subscription creation |
+| Measure                   | Implementation                          |
+| ------------------------- | --------------------------------------- |
+| 3-Day Plan Lifetime Limit | One 3-day plan per user account         |
+| Active Subscription Check | Prevent purchase if already PRO         |
+| Payment History Tracking  | Track all dLocal payments per user      |
+| Webhook Signature Verify  | HMAC-SHA256 signature validation        |
+| Idempotent Processing     | Prevent duplicate subscription creation |
 
 ---
 
 ## Total File Count
 
-| Category                    | Production | Test | Total |
-| --------------------------- | ---------- | ---- | ----- |
-| Phase A: Database           | 1          | 0    | 1     |
-| Phase B: Services           | 3          | 3    | 6     |
-| Phase C: Enhanced Webhook   | 1          | 1    | 2     |
-| Phase D: Cron API Routes    | 2          | 0    | 2     |
-| Phase E: Eligibility API    | 1          | 0    | 1     |
-| Phase F: Part 12 Integration| 5          | 0    | 5     |
-| Phase G: Configuration      | 1          | 0    | 1     |
-| Phase H: Documentation      | 1          | 0    | 1     |
-| **Total**                   | **15**     | **4**| **19**|
+| Category                     | Production | Test  | Total  |
+| ---------------------------- | ---------- | ----- | ------ |
+| Phase A: Database            | 1          | 0     | 1      |
+| Phase B: Services            | 3          | 3     | 6      |
+| Phase C: Enhanced Webhook    | 1          | 1     | 2      |
+| Phase D: Cron API Routes     | 2          | 0     | 2      |
+| Phase E: Eligibility API     | 1          | 0     | 1      |
+| Phase F: Part 12 Integration | 5          | 0     | 5      |
+| Phase G: Configuration       | 1          | 0     | 1      |
+| Phase H: Documentation       | 1          | 0     | 1      |
+| **Total**                    | **15**     | **4** | **19** |

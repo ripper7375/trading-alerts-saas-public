@@ -11,6 +11,7 @@
 ## 📊 Database Schema
 
 **File 1/23:** ✅ `prisma/schema.prisma` (Alert model)
+
 - **Alert Model (10 columns):**
   - `id` (String, CUID, Primary Key)
   - `userId` (String, Foreign Key to User)
@@ -32,6 +33,7 @@
 ## 📋 Type Definitions & Validation
 
 **File 2/23:** ✅ `types/alert.ts`
+
 - Alert interface (all 10 fields)
 - AlertStatus type: 'ACTIVE' | 'TRIGGERED' | 'EXPIRED' | 'DISABLED'
 - AlertConditionType: price_above | price_below | price_cross_above | price_cross_below | indicator_signal
@@ -41,6 +43,7 @@
 - AlertNotification interface
 
 **File 3/23:** ✅ `lib/validations/alert.ts`
+
 - Zod validation schemas for alert creation/updates
 - Tier-based validation helpers:
   - `isSymbolValidForTier(symbol, tier)` - Symbol access validation
@@ -55,6 +58,7 @@
 ## 🌐 API Routes (Backend)
 
 **File 4/23:** ✅ `app/api/alerts/route.ts`
+
 - **GET /api/alerts** (lines 61-127)
   - List all user's alerts
   - Optional filters: status (active/paused/triggered), symbol
@@ -74,6 +78,7 @@
   - Error codes: 400 (validation), 401 (unauthorized), 403 (tier restriction), 500 (server error)
 
 **File 5/23:** ✅ `app/api/alerts/[id]/route.ts`
+
 - **GET /api/alerts/[id]** (lines 38-98)
   - Fetch single alert by ID
   - Ownership validation (userId check)
@@ -98,6 +103,7 @@
 ## 🎨 Frontend Components
 
 **File 6/23:** ✅ `components/alerts/alert-card.tsx`
+
 - Individual alert display card
 - Features:
   - Status badges (Active/Paused/Triggered) with color coding
@@ -111,6 +117,7 @@
 - Alternative: SimpleAlertCard (simplified dashboard widget version)
 
 **File 7/23:** ✅ `components/alerts/alert-form.tsx`
+
 - Create/edit alert form
 - Features:
   - Symbol selector (tier-filtered dropdown)
@@ -125,6 +132,7 @@
 - Props: availableSymbols, availableTimeframes, userTier, currentCount, limit, initialData, isEditing, onSubmit, onCancel
 
 **File 8/23:** ✅ `components/alerts/alert-list.tsx`
+
 - Alert list with bulk actions
 - Features:
   - Grid layout of AlertCard components
@@ -136,6 +144,7 @@
 - Props: alerts, onViewChart, onEdit, onPause, onResume, onDelete
 
 **File 9/23:** ✅ `components/dashboard/recent-alerts.tsx`
+
 - Dashboard widget for recent alerts
 - Features:
   - Displays last 5 alerts (configurable)
@@ -152,6 +161,7 @@
 ## 🪝 React Hooks
 
 **File 10/23:** ✅ `hooks/use-alerts.ts`
+
 - **useAlerts hook** (lines 114-293)
   - Main CRUD hook for alerts management
   - Fetches all alerts with optional status filter
@@ -175,6 +185,7 @@
 ## 📄 Page Components
 
 **File 11/23:** ✅ `app/(dashboard)/alerts/page.tsx`
+
 - Server component wrapper for alerts list page
 - Fetches initial alerts data from database
 - Computes alert status (active/paused/triggered)
@@ -184,6 +195,7 @@
 - Dynamic rendering enabled
 
 **File 12/23:** ✅ `app/(dashboard)/alerts/alerts-client.tsx`
+
 - Client component for alerts list page
 - Features:
   - Summary cards (Active, Paused, Triggered counts)
@@ -197,6 +209,7 @@
 - State tracking: tab filter, symbol filter, search query, pending operations, undo state
 
 **File 13/23:** ✅ `app/(dashboard)/alerts/new/page.tsx`
+
 - Server component wrapper for create alert page
 - Fetches active alert count
 - Validates tier limits before rendering form
@@ -206,6 +219,7 @@
 - Dynamic rendering enabled
 
 **File 14/23:** ✅ `app/(dashboard)/alerts/new/create-alert-client.tsx`
+
 - Client component for create alert page
 - Features:
   - Full create alert form
@@ -222,6 +236,7 @@
 ## ⚙️ Background Jobs & Utilities
 
 **File 15/23:** ✅ `lib/jobs/alert-checker.ts`
+
 - Background job for monitoring and triggering alerts
 - Core functions:
   1. `checkAlertCondition(currentPrice, conditionType, targetValue)`
@@ -248,6 +263,7 @@
 - Logging: Console.log with `[AlertChecker]` prefix
 
 **File 16/23:** ✅ `lib/jobs/queue.ts`
+
 - Job queue management system
 - Handles background job scheduling and execution
 - Used by alert-checker for periodic monitoring
@@ -257,6 +273,7 @@
 ## 🔧 Configuration & Shared Utilities
 
 **File 17/23:** ✅ `lib/tier-config.ts`
+
 - Centralized tier configuration
 - **FREE Tier:**
   - Max Alerts: 5
@@ -312,30 +329,35 @@ The following files exist in `/frontend/` directory as mirrors of the main imple
 ## 🔑 Key Implementation Notes
 
 ### Database Schema
+
 - **Alert Model:** 10-column flat structure (NOT 57 columns)
 - **57-column structure:** Refers to MarketData model, not Alert model
 - **Condition Storage:** JSON string format `{"type":"price_above","targetValue":2000.50}`
 - **Indexes:** Optimized for userId, symbol+timeframe, and isActive queries
 
 ### Tier System
+
 - **FREE Tier:** 5 alerts max, 5 symbols, 3 timeframes
 - **PRO Tier:** 20 alerts max, 15 symbols, 9 timeframes
 - **Validation:** Enforced at creation (symbol, timeframe, limit)
 - **Trial:** 7-day free trial with full PRO access
 
 ### CRUD Operations
+
 - **CREATE:** POST /api/alerts (with tier validation)
 - **READ:** GET /api/alerts, GET /api/alerts/[id]
 - **UPDATE:** PATCH /api/alerts/[id] (isActive, name, targetValue)
 - **DELETE:** DELETE /api/alerts/[id] (hard delete)
 
 ### Alert Triggering
+
 - **Background Job:** lib/jobs/alert-checker.ts
 - **External API:** Flask MT5 API for price data
 - **Trigger Behavior:** Sets isActive=false, updates lastTriggered, increments triggerCount
 - **Notifications:** TODO (email, WebSocket currently commented out)
 
 ### Frontend Features
+
 - **Optimistic UI:** Updates with rollback on error
 - **Bulk Actions:** Select multiple, pause/delete
 - **Undo Delete:** 5-second undo window
@@ -348,6 +370,7 @@ The following files exist in `/frontend/` directory as mirrors of the main imple
 ## ✅ Completion Status: 100%
 
 All Part 11 (Alerts System) files are complete and fully implemented with:
+
 - ✅ Comprehensive tier-based validation
 - ✅ Full CRUD API endpoints
 - ✅ Rich frontend UI with optimistic updates

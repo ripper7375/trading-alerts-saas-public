@@ -10,6 +10,7 @@
 ### Core Database Files
 
 **File 1/8:** ✅ `prisma/schema.prisma`
+
 - **Status:** Complete
 - **Description:** Complete Prisma schema with 30+ models, 57-column MarketData schema
 - **Models:** User, Subscription, Alert, Watchlist, MarketData, Affiliate, Disbursement, etc.
@@ -24,6 +25,7 @@
   - Security and fraud detection models
 
 **File 2/8:** ✅ `lib/db/prisma.ts`
+
 - **Status:** Complete
 - **Description:** Prisma Client singleton for Next.js
 - **Features:**
@@ -33,6 +35,7 @@
   - Type-safe database access
 
 **File 3/8:** ✅ `lib/db/seed.ts`
+
 - **Status:** Complete
 - **Description:** Database seeding helper functions
 - **Functions:**
@@ -44,11 +47,13 @@
   - `cleanupTestData()` - Test data cleanup
 
 **File 4/8:** ✅ `prisma/seed.ts`
+
 - **Status:** Complete
 - **Description:** Prisma seed script entry point
 - **Uses:** Functions from `lib/db/seed.ts`
 
 **File 5/8:** ✅ `prisma/migrations/20251227000000_init/migration.sql`
+
 - **Status:** Complete
 - **Description:** Initial database migration
 - **Contents:** SQL schema creation statements for all models
@@ -56,11 +61,13 @@
 ### Test Files
 
 **File 6/8:** ✅ `__tests__/lib/db/prisma.test.ts`
+
 - **Status:** Complete
 - **Description:** Prisma client singleton tests
 - **Coverage:** Client instantiation, development mode logging
 
 **File 7/8:** ✅ `__tests__/lib/db/seed.test.ts`
+
 - **Status:** Complete
 - **Description:** Comprehensive seed function tests
 - **Coverage:**
@@ -73,6 +80,7 @@
 ### Documentation
 
 **File 8/8:** ✅ `docs/open-api-documents/part-02-database-schema-openapi.yaml`
+
 - **Status:** ✅ **NEW** - Created 2026-01-24
 - **Description:** Complete OpenAPI 3.0 specification for database schema
 - **Contents:**
@@ -98,6 +106,7 @@
 ## 🗄️ Database Models Overview
 
 ### User Management (7 models)
+
 1. **User** - Core user model with authentication and tier management
 2. **Account** - OAuth account linking (NextAuth)
 3. **Session** - NextAuth session management
@@ -107,32 +116,38 @@
 7. **AccountDeletionRequest** - Account deletion workflow
 
 ### Security (3 models)
+
 1. **LoginHistory** - Login attempt tracking
 2. **SecurityAlert** - Security notifications
 3. **FraudAlert** - Fraud detection and prevention
 
 ### Subscription & Payment (2 models)
+
 1. **Subscription** - User subscriptions (Stripe + dLocal)
 2. **Payment** - Payment transaction records
 
 ### Alerts & Watchlists (4 models)
+
 1. **Alert** - Price and indicator alerts
 2. **Watchlist** - User watchlist containers
 3. **WatchlistItem** - Watchlist items (symbol + timeframe)
 4. **Notification** - User notifications
 
 ### Market Data (1 model)
+
 1. **MarketData** - 57-column schema for FREE and PRO tier indicators
    - 8 system columns (OHLCV + metadata)
    - 16 FREE tier columns (fractal_diagonal, fractal_horizontal)
    - 33 PRO tier columns (6 indicator groups)
 
 ### Affiliate Marketing (3 models)
+
 1. **AffiliateProfile** - Affiliate account information
 2. **AffiliateCode** - Discount codes and tracking
 3. **Commission** - Commission tracking and payments
 
 ### Disbursement System (5 models)
+
 1. **AffiliateRiseAccount** - RiseWorks account integration
 2. **PaymentBatch** - Batch payment processing
 3. **DisbursementTransaction** - Individual payout transactions
@@ -140,6 +155,7 @@
 5. **DisbursementAuditLog** - Audit trail for disbursements
 
 ### System Configuration (2 models)
+
 1. **SystemConfig** - Dynamic system settings
 2. **SystemConfigHistory** - Config change audit trail
 
@@ -154,11 +170,13 @@
 - **Migration Strategy:** Prisma Migrate
 
 ### MarketData Schema Details
+
 - **Total Columns:** 57
 - **FREE Tier Access:** 24 columns (8 system + 16 FREE indicators)
 - **PRO Tier Access:** 57 columns (8 system + 16 FREE + 33 PRO indicators)
 
 **Indicator Groups:**
+
 1. fractal_diagonal (8 columns) - FREE
 2. fractal_horizontal (8 columns) - FREE
 3. moving_averages (3 columns) - PRO
@@ -173,11 +191,13 @@
 ## 🎯 Key Features
 
 ### Multi-Provider Support
+
 - **Stripe:** Primary payment provider (monthly subscriptions)
 - **dLocal:** Emerging markets (3-day plans, local payment methods)
 - **RiseWorks:** Crypto disbursements for affiliates
 
 ### Security Features
+
 - **Two-Factor Authentication (TOTP)** with backup codes
 - **Device Tracking:** Browser, OS, geolocation
 - **Login History:** Complete audit trail
@@ -185,6 +205,7 @@
 - **Session Management:** Extended tracking separate from NextAuth
 
 ### Trial System
+
 - **7-Day PRO Trial:** General trial period management
 - **Anti-Abuse Protection:**
   - Stripe trial tracking (`hasUsedStripeTrial`)
@@ -193,6 +214,7 @@
   - IP tracking
 
 ### Affiliate System
+
 - **Unified Authentication:** Users can be both SaaS users AND affiliates
 - **Code Distribution:** Initial, monthly, admin bonus
 - **Commission Tracking:** Pending, approved, paid, cancelled

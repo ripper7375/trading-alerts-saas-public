@@ -29,6 +29,7 @@
 **File 13/13:** ✅ `docs/open-api-documents/part-04-tier-system-openapi.yaml` - OpenAPI specification
 
 ## Status Summary
+
 - **Completed:** 13/13 files (100%)
 - **Missing:** None
 - **Library Files:** 6
@@ -41,6 +42,7 @@
 ### Two-Tier Subscription Model
 
 **FREE Tier:**
+
 - 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
 - 3 timeframes (H1, H4, D1)
 - 15 chart combinations (5 × 3)
@@ -53,6 +55,7 @@
 - $0/month
 
 **PRO Tier:**
+
 - 15 symbols (all FREE + 10 additional)
 - 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
 - 135 chart combinations (15 × 9)
@@ -70,10 +73,12 @@
 **System Columns (8):** timestamp, open, high, low, close, volume, timeframe, collected_at
 
 **FREE Indicators (16 columns):**
+
 - fractal_diagonal (8): diag_asc_line_1-3, diag_desc_line_1-3, diag_high/low_map
 - fractal_horizontal (8): horiz_peak_line_1-3, horiz_bottom_line_1-3, horiz_high/low_map
 
 **PRO-Only Indicators (33 columns):**
+
 - moving_averages (3): tema, hrma, smma
 - body_momentum (2): z_score_of_body_size, candle_classification
 - heiken_ashi (7): ha_open, ha_high, ha_low, ha_close, ha_classification, ha_body_size, ha_body_zscore
@@ -90,21 +95,25 @@
 ## Access Control Functions
 
 **Symbol & Timeframe Validation:**
+
 - `canAccessSymbol(tier, symbol)` - Check symbol access
 - `canAccessTimeframe(timeframe, tier)` - Check timeframe access
 - `validateChartAccess(tier, symbol, timeframe)` - Validate chart combination
 
 **Alert & Watchlist Validation:**
+
 - `canCreateAlert(tier, currentAlerts)` - Check alert limit
 - `canCreateWatchlist(currentCount, tier)` - Check watchlist limit
 - `canAddWatchlistItem(tier, currentItems)` - Check watchlist item limit
 
 **Indicator Validation:**
+
 - `canAccessIndicator(indicator, tier)` - Check indicator access
 - `canAccessColumn(tier, columnName)` - Check database column access
 - `filterDataByTier(tier, data)` - Filter API response data by tier
 
 **Comprehensive Validation:**
+
 - `validateFullTierAccess(params)` - Validate all tier restrictions in one call
 
 ## Notes
