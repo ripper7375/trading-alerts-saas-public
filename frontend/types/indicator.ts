@@ -10,9 +10,24 @@ import type { Symbol, Timeframe } from './tier';
 // 3. Optional fields use ?: syntax
 
 /**
- * Indicator types from MT5
+ * Indicator types for the 57-column schema
+ * FREE tier: fractal_diagonal, fractal_horizontal
+ * PRO tier: moving_averages, body_momentum, heiken_ashi, keltner_channels, support_resistance, zigzag
  */
-export type IndicatorType = 'FRACTAL_HORIZONTAL' | 'FRACTAL_DIAGONAL';
+export type IndicatorType =
+  | 'fractal_diagonal'
+  | 'fractal_horizontal'
+  | 'moving_averages'
+  | 'body_momentum'
+  | 'heiken_ashi'
+  | 'keltner_channels'
+  | 'support_resistance'
+  | 'zigzag';
+
+/**
+ * @deprecated Use IndicatorType instead - kept for backward compatibility
+ */
+export type LegacyIndicatorType = 'FRACTAL_HORIZONTAL' | 'FRACTAL_DIAGONAL';
 
 /**
  * Candlestick data point
@@ -190,17 +205,19 @@ export interface MT5ProIndicators {
 }
 
 /**
- * Fractal data from MT5
+ * @deprecated Use FractalDiagonalData or FractalHorizontalData from 57-column schema instead
+ * Legacy fractal data from old 14-column JSON structure
  */
-export interface FractalData {
+export interface LegacyFractalData {
   peaks: Array<{ time: number; price: number }>;
   bottoms: Array<{ time: number; price: number }>;
 }
 
 /**
- * Trendline data from MT5
+ * @deprecated Use FractalDiagonalData instead - old nested trendline structure
+ * Legacy trendline data from old 14-column JSON structure
  */
-export interface TrendlineData {
+export interface LegacyTrendlineData {
   ascending: Array<{
     startTime: number;
     endTime: number;
@@ -214,6 +231,12 @@ export interface TrendlineData {
     endPrice: number;
   }>;
 }
+
+// Legacy type aliases for backward compatibility
+/** @deprecated Use LegacyFractalData */
+export type FractalData = LegacyFractalData;
+/** @deprecated Use LegacyTrendlineData */
+export type TrendlineData = LegacyTrendlineData;
 
 /**
  * Helper type for chart rendering

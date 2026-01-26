@@ -4,45 +4,151 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { Tier } from '@/lib/tier-config';
 
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 57-COLUMN SCHEMA DATA STRUCTURES
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 /**
- * Candlestick data structure
+ * OHLCV candlestick data (from system columns)
  */
 interface CandleData {
-  time: number;
+  time: number; // timestamp
   open: number;
   high: number;
   low: number;
   close: number;
+  volume?: number | null;
 }
 
 /**
- * Line point data structure
+ * FREE tier: Fractal Diagonal Lines data (8 columns)
  */
-interface LinePoint {
-  time: number;
-  value: number;
+interface FractalDiagonalData {
+  diag_asc_line_1: number | null;
+  diag_asc_line_2: number | null;
+  diag_asc_line_3: number | null;
+  diag_desc_line_1: number | null;
+  diag_desc_line_2: number | null;
+  diag_desc_line_3: number | null;
+  diag_high_map: number | null;
+  diag_low_map: number | null;
 }
 
 /**
- * Fractal data structure
+ * FREE tier: Fractal Horizontal Lines data (8 columns)
  */
-interface FractalData {
-  peaks: LinePoint[];
-  bottoms: LinePoint[];
+interface FractalHorizontalData {
+  horiz_peak_line_1: number | null;
+  horiz_peak_line_2: number | null;
+  horiz_peak_line_3: number | null;
+  horiz_bottom_line_1: number | null;
+  horiz_bottom_line_2: number | null;
+  horiz_bottom_line_3: number | null;
+  horiz_high_map: number | null;
+  horiz_low_map: number | null;
 }
 
 /**
- * Indicator data structure from API
+ * PRO tier: Moving Averages data (3 columns)
+ */
+interface MovingAveragesData {
+  tema: number | null;
+  hrma: number | null;
+  smma: number | null;
+}
+
+/**
+ * PRO tier: Body Momentum data (2 columns)
+ */
+interface BodyMomentumData {
+  z_score_of_body_size: number | null;
+  candle_classification: number | null;
+}
+
+/**
+ * PRO tier: Heiken Ashi data (7 columns)
+ */
+interface HeikenAshiData {
+  ha_open: number | null;
+  ha_high: number | null;
+  ha_low: number | null;
+  ha_close: number | null;
+  ha_classification: number | null;
+  ha_body_size: number | null;
+  ha_body_zscore: number | null;
+}
+
+/**
+ * PRO tier: Keltner Channels data (10 columns)
+ */
+interface KeltnerChannelsData {
+  kc_ultra_extreme_upper: number | null;
+  kc_extreme_upper: number | null;
+  kc_uppermost: number | null;
+  kc_upper: number | null;
+  kc_upper_middle: number | null;
+  kc_lower_middle: number | null;
+  kc_lower: number | null;
+  kc_lowermost: number | null;
+  kc_extreme_lower: number | null;
+  kc_ultra_extreme_lower: number | null;
+}
+
+/**
+ * PRO tier: Support & Resistance data (8 columns)
+ */
+interface SupportResistanceData {
+  sr_support_1: number | null;
+  sr_support_2: number | null;
+  sr_support_3: number | null;
+  sr_support_4: number | null;
+  sr_resistance_1: number | null;
+  sr_resistance_2: number | null;
+  sr_resistance_3: number | null;
+  sr_resistance_4: number | null;
+}
+
+/**
+ * PRO tier: ZigZag + EMA data (3 columns)
+ */
+interface ZigZagData {
+  zigzag_peak: number | null;
+  zigzag_bottom: number | null;
+  ema_26: number | null;
+}
+
+/**
+ * Single market data row from 57-column schema
+ */
+export interface MarketDataRow extends CandleData {
+  // FREE tier indicators (16 columns)
+  fractal_diagonal?: FractalDiagonalData;
+  fractal_horizontal?: FractalHorizontalData;
+  // PRO tier indicators (33 columns)
+  moving_averages?: MovingAveragesData;
+  body_momentum?: BodyMomentumData;
+  heiken_ashi?: HeikenAshiData;
+  keltner_channels?: KeltnerChannelsData;
+  support_resistance?: SupportResistanceData;
+  zigzag?: ZigZagData;
+}
+
+/**
+ * Indicator data structure from API (57-column schema)
+ * Replaces old nested JSON structure with flat column data
  */
 export interface IndicatorData {
+  /** OHLCV candlestick data */
   ohlc: CandleData[];
-  horizontal: Record<string, LinePoint[]>;
-  diagonal: Record<string, LinePoint[]>;
-  fractals: FractalData;
+  /** Market data rows with indicator columns based on tier */
+  rows: MarketDataRow[];
+  /** Metadata about the response */
   metadata?: {
     symbol: string;
     timeframe: string;
     bars: number;
+    tier: Tier;
+    columns: string[]; // List of columns included based on tier
   };
 }
 
@@ -81,11 +187,16 @@ interface UseIndicatorsResult {
 /**
  * useIndicators Hook
  *
- * React hook for fetching indicator data from the API.
+ * React hook for fetching indicator data from the 57-column schema API.
  * Handles loading, error, and success states with automatic refetch.
  *
+ * 57-Column Schema Structure:
+ * - System columns (8): timestamp, open, high, low, close, volume, timeframe, collected_at
+ * - FREE tier indicators (16 columns): fractal_diagonal (8) + fractal_horizontal (8)
+ * - PRO tier indicators (33 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3)
+ *
  * Features:
- * - Fetches OHLC data, horizontal lines, diagonal lines, and fractals
+ * - Fetches OHLC data and tier-appropriate indicator columns
  * - Auto-refetch based on tier (FREE: 60s, PRO: 30s)
  * - Error handling with user-friendly messages
  * - Tier validation before fetch
@@ -97,6 +208,8 @@ interface UseIndicatorsResult {
  *
  * @example
  * const { data, isLoading, error, refetch } = useIndicators('XAUUSD', 'H1', 'FREE');
+ * // FREE tier: data.rows includes fractal_diagonal & fractal_horizontal
+ * // PRO tier: data.rows includes all indicator groups
  */
 export function useIndicators(
   symbol: string,
@@ -186,6 +299,26 @@ export function useIndicators(
  */
 export function hasValidOHLC(data: IndicatorData | null): boolean {
   return Boolean(data?.ohlc && data.ohlc.length > 0);
+}
+
+/**
+ * Helper function to check if indicator data has valid rows
+ */
+export function hasValidRows(data: IndicatorData | null): boolean {
+  return Boolean(data?.rows && data.rows.length > 0);
+}
+
+/**
+ * Helper function to get specific indicator data from rows
+ * @param data - The indicator data response
+ * @param indicator - The indicator group to extract (e.g., 'fractal_diagonal')
+ */
+export function getIndicatorFromRows<K extends keyof MarketDataRow>(
+  data: IndicatorData | null,
+  indicator: K
+): Array<MarketDataRow[K]> {
+  if (!data?.rows) return [];
+  return data.rows.map((row) => row[indicator]).filter((v) => v !== undefined);
 }
 
 /**
