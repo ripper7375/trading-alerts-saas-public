@@ -1,8 +1,9 @@
 # Backend vs Frontend File Categorization
 
 **Generated:** 2026-01-26
+**Updated:** 2026-01-26 (Added MT5 Service)
 **Purpose:** Separate monolith files into Backend (Nest.js/Railway) and Frontend (Next.js/Vercel)
-**Total Files:** 458 files (302 non-TSX + 156 TSX)
+**Total Files:** 483 files (327 non-TSX + 156 TSX)
 
 ---
 
@@ -11,9 +12,10 @@
 | Category | Deploy To | Framework | File Count |
 |----------|-----------|-----------|------------|
 | **Backend** | Railway | Nest.js | ~215 files |
+| **Backend** | Railway | Python (MT5 Service) | ~19 files |
 | **Frontend** | Vercel | Next.js | ~159 files |
 | **Shared** | Both (npm package) | TypeScript | ~12 files |
-| **Tests** | CI/CD only | Jest | ~84 files |
+| **Tests** | CI/CD only | Jest/Pytest | ~90 files |
 
 ---
 
@@ -367,6 +369,79 @@ All files in this directory → `disbursement/*.service.ts`
 
 ---
 
+### 6. MT5 Service → Python Microservice (Railway) (25 files)
+
+**Status:** ✅ Already a separate microservice (Python/Flask)
+**Deploy:** Railway (separate service from Nest.js backend)
+**Purpose:** Handles MT5 terminal connections, real-time indicator data, and WebSocket streaming
+
+This service is already microservice-ready and runs independently from the main backend.
+
+#### Application Core (4 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/run.py` | Application entry point |
+| `mt5-service/app/__init__.py` | Flask app initialization |
+| `mt5-service/app/websocket.py` | WebSocket server for real-time data streaming |
+| `mt5-service/requirements.txt` | Python dependencies |
+
+#### API Routes (3 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/app/routes/__init__.py` | Routes module initialization |
+| `mt5-service/app/routes/admin.py` | Admin endpoints (health checks, terminal status) |
+| `mt5-service/app/routes/indicators.py` | Indicator data endpoints (OHLC, RSI, MA, etc.) |
+
+#### Services Layer (5 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/app/services/__init__.py` | Services module initialization |
+| `mt5-service/app/services/health_monitor.py` | MT5 terminal health monitoring |
+| `mt5-service/app/services/indicator_reader.py` | Reads indicator data from MT5 terminals |
+| `mt5-service/app/services/mt5_connection_pool.py` | Connection pool manager for MT5 terminals |
+| `mt5-service/app/services/tier_service.py` | Tier-based access validation |
+
+#### Utilities (3 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/app/utils/__init__.py` | Utils module initialization |
+| `mt5-service/app/utils/constants.py` | Constants (indicators, timeframes, symbols) |
+| `mt5-service/app/utils/symbol_resolver.py` | Symbol name resolution (Forex/Crypto mapping) |
+
+#### Configuration (4 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/.env.example` | Environment variables template |
+| `mt5-service/Dockerfile` | Docker container configuration |
+| `mt5-service/config/mt5_terminals.json` | MT5 terminal connection configs |
+| `mt5-service/config/mt5_terminals_test.json` | Test terminal configs |
+
+#### Development (2 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/requirements-dev.txt` | Development Python dependencies |
+| `mt5-service/.dockerignore` | Docker build exclusions |
+
+#### Tests (6 files)
+| File | Description |
+|------|-------------|
+| `mt5-service/tests/conftest.py` | Pytest configuration and fixtures |
+| `mt5-service/tests/mock_mt5_server.py` | Mock MT5 server for testing |
+| `mt5-service/tests/test_connection_pool.py` | Connection pool tests |
+| `mt5-service/tests/test_indicators.py` | Indicator data tests |
+| `mt5-service/tests/test_mt5_integration.py` | Integration tests |
+| `mt5-service/tests/test_symbol_resolver.py` | Symbol resolver tests |
+
+**Integration Points:**
+- Nest.js backend calls MT5 service via HTTP REST API
+- Frontend connects to MT5 service WebSocket for real-time chart data
+- Both services communicate through shared tier validation logic
+
+**Deployment Note:**
+This service requires Windows environment with MT5 terminals installed. Deploy to Railway with Windows containers or dedicated Windows VPS.
+
+---
+
 ## FRONTEND FILES (Next.js → Vercel)
 
 These files run in the browser or handle UI rendering. They stay in Next.js.
@@ -497,15 +572,23 @@ These files need to be available in both frontend and backend.
 
 ## TEST FILES (CI/CD only)
 
-All `__tests__/**/*.ts` files (84 files) run in CI/CD pipelines.
+All test files (107 files total) run in CI/CD pipelines.
 
-### Backend Tests → Move to Nest.js
+### Backend Tests → Move to Nest.js (77 files)
 - `__tests__/api/**/*.ts` (22 files)
 - `__tests__/lib/**/*.ts` (47 files)
 - `__tests__/integration/**/*.ts` (7 files)
 - `__tests__/e2e/**/*.ts` (1 file)
 
-### Frontend Tests → Keep in Next.js
+### MT5 Service Tests → Python/Pytest (6 files)
+- `mt5-service/tests/conftest.py` (Pytest configuration)
+- `mt5-service/tests/mock_mt5_server.py` (Mock server for testing)
+- `mt5-service/tests/test_connection_pool.py` (Connection pool tests)
+- `mt5-service/tests/test_indicators.py` (Indicator data tests)
+- `mt5-service/tests/test_mt5_integration.py` (Integration tests)
+- `mt5-service/tests/test_symbol_resolver.py` (Symbol resolver tests)
+
+### Frontend Tests → Keep in Next.js (24 files)
 - `__tests__/components/**/*.tsx` (22 files)
 - `__tests__/hooks/**/*.ts` (2 files)
 
@@ -520,70 +603,83 @@ All `__tests__/**/*.ts` files (84 files) run in CI/CD pipelines.
 | Database (prisma/) | 3 | Railway | Nest.js + Prisma |
 | Middleware | 1 | Railway | Nest.js Guards |
 | Email Templates | 6 | Railway | Nest.js + React Email |
-| **Backend Total** | **197** | **Railway** | **Nest.js** |
+| **Nest.js Backend Subtotal** | **197** | **Railway** | **Nest.js** |
+| MT5 Service (Core) | 4 | Railway | Python/Flask |
+| MT5 Service (Routes) | 3 | Railway | Python/Flask |
+| MT5 Service (Services) | 5 | Railway | Python/Flask |
+| MT5 Service (Utils) | 3 | Railway | Python/Flask |
+| MT5 Service (Config) | 4 | Railway | Python/Flask |
+| **MT5 Service Subtotal** | **19** | **Railway** | **Python/Flask** |
+| **Backend Total** | **216** | **Railway** | **Nest.js + Python** |
 | Pages/Layouts | 74 | Vercel | Next.js |
 | Components | 77 | Vercel | Next.js |
 | React Hooks | 10 | Vercel | Next.js |
 | Styles | 1 | Vercel | Next.js |
 | **Frontend Total** | **162** | **Vercel** | **Next.js** |
 | Shared Types | 12 | npm package | TypeScript |
-| Backend Tests | 77 | CI/CD | Jest |
+| Backend Tests (Nest.js) | 77 | CI/CD | Jest |
+| Backend Tests (MT5) | 6 | CI/CD | Pytest |
 | Frontend Tests | 24 | CI/CD | Jest + RTL |
-| **Total** | **472** | - | - |
+| **Total** | **497** | - | - |
 
 ---
 
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    VERCEL (Frontend)                         │
-│                      Next.js 14                              │
-├─────────────────────────────────────────────────────────────┤
-│  app/                    │  components/                      │
-│  ├── (auth)/            │  ├── admin/                       │
-│  ├── (dashboard)/       │  ├── affiliate/                   │
-│  ├── (marketing)/       │  ├── auth/                        │
-│  ├── admin/             │  ├── charts/                      │
-│  ├── affiliate/         │  ├── ui/                          │
-│  └── checkout/          │  └── ...                          │
-│                         │                                    │
-│  hooks/                 │  styles/                           │
-│  ├── use-indicators.ts  │  └── globals.css                  │
-│  ├── use-alerts.ts      │                                    │
-│  └── ...                │                                    │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                    HTTP/REST API calls
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    RAILWAY (Backend)                         │
-│                      Nest.js                                 │
-├─────────────────────────────────────────────────────────────┤
-│  src/                                                        │
-│  ├── admin/            (AdminModule)                        │
-│  ├── affiliate/        (AffiliateModule)                    │
-│  ├── alerts/           (AlertsModule)                       │
-│  ├── auth/             (AuthModule + Passport.js)           │
-│  ├── cron/             (CronModule + @nestjs/schedule)      │
-│  ├── disbursement/     (DisbursementModule)                 │
-│  ├── dlocal/           (DLocalModule)                       │
-│  ├── email/            (EmailModule + React Email)          │
-│  ├── payments/         (PaymentsModule)                     │
-│  ├── stripe/           (StripeModule)                       │
-│  ├── tier/             (TierModule)                         │
-│  ├── user/             (UserModule)                         │
-│  ├── watchlist/        (WatchlistModule)                    │
-│  ├── webhooks/         (WebhooksModule)                     │
-│  ├── websocket/        (WebSocketGateway)                   │
-│  ├── database/         (PrismaModule)                       │
-│  └── shared/           (Guards, Filters, Pipes)             │
-│                                                              │
-│  prisma/                                                     │
-│  ├── schema.prisma                                          │
-│  └── migrations/                                            │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                    VERCEL (Frontend)                              │
+│                      Next.js 14                                   │
+├───────────────────────────────────────────────────────────────────┤
+│  app/                    │  components/                           │
+│  ├── (auth)/            │  ├── admin/                            │
+│  ├── (dashboard)/       │  ├── affiliate/                        │
+│  ├── (marketing)/       │  ├── auth/                             │
+│  ├── admin/             │  ├── charts/                           │
+│  ├── affiliate/         │  ├── ui/                               │
+│  └── checkout/          │  └── ...                               │
+│                         │                                         │
+│  hooks/                 │  styles/                                │
+│  ├── use-indicators.ts  │  └── globals.css                       │
+│  ├── use-alerts.ts      │                                         │
+│  └── ...                │                                         │
+└─────────────┬──────────────────────────┬────────────────────────┘
+              │                          │
+     HTTP/REST API calls          WebSocket (Chart Data)
+              │                          │
+              ▼                          ▼
+┌─────────────────────────┐  ┌──────────────────────────────────┐
+│   RAILWAY (Backend #1)   │  │   RAILWAY (Backend #2)          │
+│      Nest.js API         │  │   MT5 Service (Python)          │
+├─────────────────────────┤  ├──────────────────────────────────┤
+│  src/                   │  │  app/                            │
+│  ├── admin/             │  │  ├── routes/                     │
+│  ├── affiliate/         │  │  │   ├── admin.py               │
+│  ├── alerts/            │  │  │   └── indicators.py          │
+│  ├── auth/              │  │  ├── services/                   │
+│  ├── cron/              │  │  │   ├── health_monitor.py      │
+│  ├── disbursement/      │  │  │   ├── indicator_reader.py    │
+│  ├── dlocal/            │  │  │   ├── mt5_connection_pool.py │
+│  ├── email/             │  │  │   └── tier_service.py        │
+│  ├── payments/          │  │  ├── utils/                      │
+│  ├── stripe/            │  │  │   ├── constants.py           │
+│  ├── tier/              │  │  │   └── symbol_resolver.py     │
+│  ├── user/              │  │  └── websocket.py               │
+│  ├── watchlist/         │  │                                  │
+│  ├── webhooks/          │  │  config/                         │
+│  ├── websocket/         │  │  └── mt5_terminals.json         │
+│  ├── database/          │  │                                  │
+│  └── shared/            │  │  tests/                          │
+│                         │  │  └── test_*.py                   │
+│  prisma/                │  └──────────────────────────────────┘
+│  ├── schema.prisma      │              │
+│  └── migrations/        │     Connects to MT5 Terminals
+└─────────────────────────┘              │
+                                         ▼
+                              ┌─────────────────────┐
+                              │  Windows MT5 Server │
+                              │  (Forex/Crypto)     │
+                              └─────────────────────┘
 ```
 
 ---
