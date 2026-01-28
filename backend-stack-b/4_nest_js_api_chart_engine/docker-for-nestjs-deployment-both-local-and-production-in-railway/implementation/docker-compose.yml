@@ -1,0 +1,165 @@
+# Docker Compose for LOCAL DEVELOPMENT
+# Run entire stack on localhost
+# Usage: docker-compose up -d
+
+version: '3.8'
+
+services:
+  #---------------------------------------------------------------------------
+  # PostgreSQL with TimescaleDB Extension
+  # Accessible at: localhost:5432
+  #---------------------------------------------------------------------------
+  postgres:
+    image: timescale/timescaledb:latest-pg14
+    container_name: trading-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trading_db
+    ports:
+      - '5432:5432'
+    volumes:
+      # Persist data
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: Init script for creating hypertables
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - trading-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #---------------------------------------------------------------------------
+  # Redis Cache
+  # Accessible at: localhost:6379
+  #---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: trading-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - trading-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  #---------------------------------------------------------------------------
+  # Nest.js API
+  # Accessible at: localhost:3001
+  #---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev # Use dev Dockerfile with hot-reload
+    container_name: trading-api
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database connection (internal Docker network)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/trading_db
+
+      # Redis connection (internal Docker network)
+      REDIS_URL: redis://redis:6379
+
+      # MT5 Flask Service (external - your Contabo VPS)
+      MT5_FLASK_WS_URL: ws://your-contabo-ip:5000
+
+      # JWT Authentication
+      JWT_SECRET: local-dev-secret-change-in-production
+      JWT_EXPIRATION: 7d
+
+      # Frontend URL (local Next.js)
+      FRONTEND_URL: http://localhost:3000
+
+      # Application
+      NODE_ENV: development
+      PORT: 3001
+
+      # Caching
+      CACHE_TTL_OHLCV: 3600
+      CACHE_TTL_INDICATORS: 360
+
+      # Features
+      ENABLE_COMPRESSION: true
+      ENABLE_CORS: true
+    volumes:
+      # Hot-reload: Mount source code
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./tsconfig.json:/app/tsconfig.json
+      # Don't mount node_modules
+      - /app/node_modules
+    networks:
+      - trading-network
+    command: npm run start:dev # Hot-reload with Nest.js
+
+  #---------------------------------------------------------------------------
+  # Optional: pgAdmin for Database Management
+  # Accessible at: localhost:5050
+  #---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: trading-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@trading.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+    networks:
+      - trading-network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  #---------------------------------------------------------------------------
+  # Optional: Redis Commander for Redis Management
+  # Accessible at: localhost:8081
+  #---------------------------------------------------------------------------
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: trading-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - '8081:8081'
+    depends_on:
+      - redis
+    networks:
+      - trading-network
+
+#-----------------------------------------------------------------------------
+# Networks
+#-----------------------------------------------------------------------------
+networks:
+  trading-network:
+    driver: bridge
+
+#-----------------------------------------------------------------------------
+# Volumes (Persist data between restarts)
+#-----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
