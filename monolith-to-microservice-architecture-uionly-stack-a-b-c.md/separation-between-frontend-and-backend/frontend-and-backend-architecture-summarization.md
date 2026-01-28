@@ -177,3 +177,65 @@ npm test __tests__/e2e
 ```
 
 ---
+
+---
+
+## Architecture Diagram
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                    VERCEL (Frontend)                              │
+│                      Next.js 15                                   │
+├───────────────────────────────────────────────────────────────────┤
+│  app/                    │  components/                           │
+│  ├── (auth)/            │  ├── admin/                            │
+│  ├── (dashboard)/       │  ├── affiliate/                        │
+│  ├── (marketing)/       │  ├── auth/                             │
+│  ├── admin/             │  ├── charts/                           │
+│  ├── affiliate/         │  ├── ui/                               │
+│  └── checkout/          │  └── ...                               │
+│                         │                                         │
+│  hooks/                 │  styles/                                │
+│  ├── use-indicators.ts  │  └── globals.css                       │
+│  ├── use-alerts.ts      │                                         │
+│  └── ...                │                                         │
+└─────────────┬──────────────────────────┬────────────────────────┘
+              │                          │
+     HTTP/REST API calls          WebSocket (Chart Data)
+              │                          │
+              ▼                          ▼
+┌─────────────────────────┐  ┌──────────────────────────────────┐
+│   RAILWAY (Backend #1)   │  │   RAILWAY (Backend #2)          │
+│      Nest.js API         │  │   MT5 Service (Python)          │
+├─────────────────────────┤  ├──────────────────────────────────┤
+│  src/                   │  │  app/                            │
+│  ├── admin/             │  │  ├── routes/                     │
+│  ├── affiliate/         │  │  │   ├── admin.py               │
+│  ├── alerts/            │  │  │   └── indicators.py          │
+│  ├── auth/              │  │  ├── services/                   │
+│  ├── cron/              │  │  │   ├── health_monitor.py      │
+│  ├── disbursement/      │  │  │   ├── indicator_reader.py    │
+│  ├── dlocal/            │  │  │   ├── mt5_connection_pool.py │
+│  ├── email/             │  │  │   └── tier_service.py        │
+│  ├── payments/          │  │  ├── utils/                      │
+│  ├── stripe/            │  │  │   ├── constants.py           │
+│  ├── tier/              │  │  │   └── symbol_resolver.py     │
+│  ├── user/              │  │  └── websocket.py               │
+│  ├── watchlist/         │  │                                  │
+│  ├── webhooks/          │  │  config/                         │
+│  ├── websocket/         │  │  └── mt5_terminals.json         │
+│  ├── database/          │  │                                  │
+│  └── shared/            │  │  tests/                          │
+│                         │  │  └── test_*.py                   │
+│  prisma/                │  └──────────────────────────────────┘
+│  ├── schema.prisma      │              │
+│  └── migrations/        │     Connects to MT5 Terminals
+└─────────────────────────┘              │
+                                         ▼
+                              ┌─────────────────────┐
+                              │  Windows MT5 Server │
+                              │  (Forex/Crypto)     │
+                              └─────────────────────┘
+```
+
+---

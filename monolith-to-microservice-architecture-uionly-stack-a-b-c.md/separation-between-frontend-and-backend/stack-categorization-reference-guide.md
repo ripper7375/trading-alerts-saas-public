@@ -415,6 +415,9 @@ SHARING/
 ├── tsconfig.json                           # TypeScript config
 ├── .env.example                            # Environment template
 └── package.json                            # Dependencies (monorepo)
+
+**Recommendation:** Create a shared `@trading-alerts/types` npm package.
+
 ```
 
 ### Special Cases
