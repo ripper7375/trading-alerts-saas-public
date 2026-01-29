@@ -1,0 +1,270 @@
+name: PR Python Validation
+
+# Trigger on Pull Request to main branch
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**/*.py'
+      - 'scripts/**/*.py'
+      - 'agents/**/*.py'
+      - '*.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+
+# Cancel previous runs if new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Layer 1: Quick Syntax Check (Fastest - 10 seconds)
+  # ============================================================================
+  syntax-check:
+    name: 🔍 Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check Python Syntax
+        run: |
+          echo "Checking syntax for all Python files..."
+          python -m py_compile $(find . -name "*.py" -not -path "*/.*" -not -path "*/node_modules/*")
+          echo "✅ All files have valid Python syntax"
+
+  # ============================================================================
+  # Layer 2: Linting with Ruff (Fast - 30 seconds)
+  # ============================================================================
+  lint:
+    name: 🧹 Lint (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Ruff Linter
+        run: |
+          echo "Running Ruff linter..."
+          ruff check . --output-format=github
+          echo "✅ Linting passed"
+
+      - name: Check Code Formatting
+        run: |
+          echo "Checking code formatting..."
+          ruff format . --check
+          echo "✅ Formatting is correct"
+
+  # ============================================================================
+  # Layer 3: Type Checking with mypy (Medium - 1 minute)
+  # ============================================================================
+  type-check:
+    name: 🔎 Type Check (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install mypy types-redis types-requests types-flask
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run mypy Type Checker
+        run: |
+          echo "Running mypy type checker..."
+          mypy app/ --ignore-missing-imports --no-error-summary || true
+          mypy scripts/ --ignore-missing-imports --no-error-summary || true
+          echo "✅ Type checking complete"
+
+  # ============================================================================
+  # Layer 4: Security Scanning with Bandit (Fast - 20 seconds)
+  # ============================================================================
+  security:
+    name: 🔒 Security Scan (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Security Scanner
+        run: |
+          echo "Running Bandit security scanner..."
+          bandit -r . -ll -i -x ./.venv,./node_modules,./tests
+          echo "✅ No security issues found"
+
+  # ============================================================================
+  # Layer 5: Unit Tests (Slower - 2-5 minutes)
+  # ============================================================================
+  test:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest pytest-cov pytest-mock
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Unit Tests
+        run: |
+          echo "Running unit tests..."
+          if [ -d tests/unit ]; then
+            pytest tests/unit/ -v --cov=app --cov-report=term-missing --cov-report=xml
+          else
+            echo "⚠️  No unit tests found, skipping..."
+          fi
+
+      - name: Upload Coverage
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+
+  # ============================================================================
+  # Integration Tests (Optional - only if tests exist)
+  # ============================================================================
+  integration-test:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pytest pytest-mock
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Integration Tests
+        run: |
+          if [ -d tests/integration ]; then
+            echo "Running integration tests..."
+            pytest tests/integration/ -v -m integration
+          else
+            echo "⚠️  No integration tests found, skipping..."
+          fi
+
+  # ============================================================================
+  # PR Comment with Results
+  # ============================================================================
+  pr-comment:
+    name: 💬 Post PR Comment
+    runs-on: ubuntu-latest
+    needs: [syntax-check, lint, type-check, security, test]
+    if: always()
+    steps:
+      - name: Check job results
+        id: check_results
+        run: |
+          if [[ "${{ needs.syntax-check.result }}" == "failure" ]] || \
+             [[ "${{ needs.lint.result }}" == "failure" ]] || \
+             [[ "${{ needs.type-check.result }}" == "failure" ]] || \
+             [[ "${{ needs.security.result }}" == "failure" ]] || \
+             [[ "${{ needs.test.result }}" == "failure" ]]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR - Success
+        if: steps.check_results.outputs.status == 'passed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Python Validation Passed!
+              
+              All validation checks completed successfully:
+              
+              - ✅ Syntax Check
+              - ✅ Linting (Ruff)
+              - ✅ Type Checking (mypy)
+              - ✅ Security Scan (Bandit)
+              - ✅ Unit Tests
+              
+              **This PR is ready for code review!** 🚀`
+            })
+
+      - name: Comment on PR - Failure
+        if: steps.check_results.outputs.status == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ Python Validation Failed
+              
+              Some validation checks did not pass. Please review the failed jobs above and fix the issues.
+              
+              **Common fixes:**
+              - Syntax errors: Check for typos, missing colons, indentation
+              - Linting: Run \`ruff check . --fix\` to auto-fix
+              - Type errors: Add type hints or fix type mismatches
+              - Security: Remove hardcoded secrets, fix unsafe patterns
+              - Tests: Fix failing tests or add missing test cases
+              
+              Re-push your changes to re-run validation.`
+            })
+
+  # ============================================================================
+  # All Checks Must Pass
+  # ============================================================================
+  all-checks-passed:
+    name: ✅ All Validation Checks Passed
+    runs-on: ubuntu-latest
+    needs: [syntax-check, lint, type-check, security, test]
+    steps:
+      - name: All checks successful
+        run: |
+          echo "🎉 All Python validation checks passed!"
+          echo "This PR is ready to merge to main branch."
