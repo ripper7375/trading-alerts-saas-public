@@ -5,47 +5,33 @@ PRODUCTION FILES NEED
 EA (v2.24) ---> we have completed "SimpleDataCollector_v2_24_API_GATEWAY.mq5" (DONE)
 
 ├─ Collects 57 columns
-
 ├─ 9 timeframes
-
 ├─ HTTP POST capability
-
 └─ SQLite fallback
 
 backfill_worker ----> we have completed "backfill_worker_api_gateway.py" (DONE)
 
 ├─ Reads SQLite
-
 ├─ Can post to HTTP endpoint
-
 └─ Ready to send to API Gateway
 
 ✅ What I Need To Build for API Gateway approach:
 
 (a) Railway NestJS API Gateway (BACKEND BUILD)
-
 └─ Receives HTTP POST from EA
-
 └─ 8-layer validation
-
 └─ Adds to Bull Queue
 
 (b) Railway Redis (Message Broker) (SETUP)
-
 └─ Bull Queue storage
-
 └─ Sessions, rate limits, cache
 
 (c) Railway NestJS Workers (BUILD)
-
 └─ Process queue jobs
-
 └─ Batch insert to PostgreSQL
 
 (d) Basic Observability (BUILD)
-
 └─ Structured logging
-
 └─ Error tracking
 
 Based on workflow above + I will upload these 2 documents below to Claude Code (web)
