@@ -776,6 +776,7 @@ fi
    ```
 
 4. **frontend/SYNC-WORKFLOW.md**:
+
    ```markdown
    ### Sync is NOT required for:
 

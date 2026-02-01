@@ -2,15 +2,15 @@
 
 ## Change Summary
 
-| Change Type | Count | Description |
-|-------------|-------|-------------|
-| BACKEND → FRONTEND | 22 | `__tests__/api/**/*.test.ts` (API route tests follow their FRONTEND endpoints) |
-| TEST → BACKEND | 44 | `__tests__/lib/**/*.test.ts` (per methodology: lib tests → BACKEND) |
-| TEST → FRONTEND | 2 | `__tests__/hooks/**/*.test.ts` (hooks are FRONTEND) |
-| BACKEND → FRONTEND | 1 | `lib/websocket/use-mt5-websocket.ts` (React hook) |
-| FRONTEND → BACKEND | 4 | `emails/*.tsx` (server-side email rendering) |
-| FRONTEND → BACKEND | 5 | `lib/email/templates/affiliate/*.tsx` (server-side templates) |
-| (none) → SHARING | 1 | `scripts/verify-auth-config.js` |
+| Change Type        | Count | Description                                                                    |
+| ------------------ | ----- | ------------------------------------------------------------------------------ |
+| BACKEND → FRONTEND | 22    | `__tests__/api/**/*.test.ts` (API route tests follow their FRONTEND endpoints) |
+| TEST → BACKEND     | 44    | `__tests__/lib/**/*.test.ts` (per methodology: lib tests → BACKEND)            |
+| TEST → FRONTEND    | 2     | `__tests__/hooks/**/*.test.ts` (hooks are FRONTEND)                            |
+| BACKEND → FRONTEND | 1     | `lib/websocket/use-mt5-websocket.ts` (React hook)                              |
+| FRONTEND → BACKEND | 4     | `emails/*.tsx` (server-side email rendering)                                   |
+| FRONTEND → BACKEND | 5     | `lib/email/templates/affiliate/*.tsx` (server-side templates)                  |
+| (none) → SHARING   | 1     | `scripts/verify-auth-config.js`                                                |
 
 **Total changes: 79 files**
 
