@@ -5,7 +5,6 @@
   // IMPORTANT: STRICT MODE ENABLED - All type safety features are ON
   // This is intentional and MANDATORY for production code quality
   // Changes here affect CI/CD pipeline - update shift-left-testing docs if modified
-
   "compilerOptions": {
     // ==========================================================================
     // Language and Environment
@@ -16,9 +15,8 @@
       "DOM", // Browser DOM APIs
       "DOM.Iterable" // Iterable DOM collections
     ],
-    "jsx": "preserve", // Keep JSX as-is for Next.js to handle
+    "jsx": "react-jsx", // Keep JSX as-is for Next.js to handle
     "module": "esnext", // Use latest ES modules
-
     // ==========================================================================
     // Module Resolution (Path Aliases)
     // ==========================================================================
@@ -27,72 +25,58 @@
     "allowImportingTsExtensions": false, // Don't allow .ts/.tsx in imports
     "baseUrl": ".", // Base directory for module resolution
     "paths": {
-      "@/*": ["./*"] // @ alias maps to project root
+      "@/*": [
+        "./*"
+      ] // @ alias maps to project root
     },
-
     // ==========================================================================
     // Type Checking - STRICT MODE (CRITICAL QUALITY GATES)
     // ==========================================================================
     // MASTER SWITCH: Enables all strict type checking below
     "strict": true,
-
     // CRITICAL: Forbids implicit 'any' - all variables must be typed
     // Impact: Catches type errors at compile time instead of runtime
     "noImplicitAny": true,
-
     // CRITICAL: Enforces null/undefined checks
     // Impact: Prevents "Cannot read property of undefined" errors
     // Example: Must use user?.name instead of user.name
     "strictNullChecks": true,
-
     // CRITICAL: Strict checking of function types
     // Impact: Function parameters and return types must match exactly
     "strictFunctionTypes": true,
-
     // CRITICAL: Strict checking of bind/call/apply
     // Impact: Ensures 'this' context is typed correctly
     "strictBindCallApply": true,
-
     // CRITICAL: Class properties must be initialized
     // Impact: Prevents undefined class properties
     "strictPropertyInitialization": true,
-
     // CRITICAL: 'this' must have explicit type
     // Impact: Prevents errors from unknown 'this' context
     "noImplicitThis": true,
-
     // CRITICAL: Adds "use strict" to all JavaScript output
     // Impact: Prevents common JavaScript gotchas
     "alwaysStrict": true,
-
     // IMPORTANT: Prevents unused local variables
     // Impact: Cleaner code, no dead code
     "noUnusedLocals": true,
-
     // IMPORTANT: Prevents unused function parameters
     // Impact: Cleaner code, prefix with _ if intentionally unused
     "noUnusedParameters": true,
-
     // CRITICAL: All code paths must return a value
     // Impact: Prevents accidental undefined returns
     "noImplicitReturns": true,
-
     // IMPORTANT: Switch cases must break or return
     // Impact: Prevents fall-through bugs
     "noFallthroughCasesInSwitch": true,
-
     // CRITICAL: Index access returns T | undefined
     // Impact: Must check array[i] before using (prevents out-of-bounds errors)
     "noUncheckedIndexedAccess": true,
-
     // IMPORTANT: Override methods must use 'override' keyword
     // Impact: Prevents accidental method shadowing
     "noImplicitOverride": true,
-
     // CRITICAL: Must use bracket notation for dynamic property access
     // Impact: obj['prop'] instead of obj.prop for computed properties
     "noPropertyAccessFromIndexSignature": true,
-
     // ==========================================================================
     // Emit (Output Configuration)
     // ==========================================================================
@@ -101,7 +85,6 @@
     "sourceMap": true, // Generate .js.map for debugging
     "removeComments": false, // Keep comments in output (helpful for debugging)
     "noEmit": true, // Don't emit JS (Next.js handles compilation)
-
     // ==========================================================================
     // Interop Constraints (Module System Compatibility)
     // ==========================================================================
@@ -109,17 +92,14 @@
     "allowSyntheticDefaultImports": true, // Allow 'import React from "react"'
     "esModuleInterop": true, // Enable ES module interoperability
     "forceConsistentCasingInFileNames": true, // Enforce consistent file name casing
-
     // ==========================================================================
     // Type Checking Performance
     // ==========================================================================
     "skipLibCheck": true, // Skip type checking of .d.ts files (faster builds)
-
     // ==========================================================================
     // Build Performance
     // ==========================================================================
     "incremental": true, // Enable incremental compilation (faster rebuilds)
-
     // ==========================================================================
     // Next.js Specific Configuration
     // ==========================================================================
@@ -130,7 +110,6 @@
     ],
     "allowJs": true // Allow importing .js files
   },
-
   // ============================================================================
   // Files to Include in Type Checking
   // ============================================================================
@@ -139,8 +118,9 @@
     "**/*.ts", // All TypeScript files
     "**/*.tsx", // All TypeScript React files
     ".next/types/**/*.ts" // Generated Next.js types
+    ,
+    ".next/dev/types/**/*.ts"
   ],
-
   // ============================================================================
   // Files to Exclude from Type Checking
   // ============================================================================

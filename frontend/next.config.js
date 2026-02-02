@@ -53,6 +53,9 @@ const nextConfig = {
     },
   },
 
+  // Turbopack configuration (Next.js bundler)
+  turbopack: {},
+
   // Production optimizations
   ...(process.env.NODE_ENV === 'production' && {
     // Disable x-powered-by header for security
