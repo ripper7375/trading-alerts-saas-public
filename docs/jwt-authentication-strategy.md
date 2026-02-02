@@ -668,6 +668,112 @@ const userId = request.headers['x-user-id']; // From API Gateway
 
 ---
 
+## 📐 OpenAPI Documentation Scope
+
+### **JWT Authentication Scope = OpenAPI Documentation Scope**
+
+**The same PUBLIC/INTERNAL distinction applies to OpenAPI documentation:**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  What goes in OpenAPI Document?                          │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ✅ INCLUDE: PUBLIC HTTP Endpoints (JWT authenticated)  │
+│                                                          │
+│     POST   /auth/login                                   │
+│     POST   /auth/register                                │
+│     POST   /auth/refresh                                 │
+│     GET    /alerts                                       │
+│     POST   /alerts                                       │
+│     GET    /market-data/ohlcv                           │
+│     POST   /rag/query                                    │
+│                                                          │
+│  ❌ EXCLUDE: Internal Implementation (No JWT)           │
+│                                                          │
+│     authService.generateTokens()                         │
+│     authService.validateUser()                           │
+│     alertsService.findByUser()                           │
+│     prisma.user.findUnique()                            │
+│     redis.get('key')                                     │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### **Why This Matters:**
+
+1. **Consistent Architecture**
+   - JWT verifies at PUBLIC endpoints → Document PUBLIC endpoints in OpenAPI
+   - No JWT internally → No internal methods in OpenAPI
+   - One-to-one mapping between JWT scope and OpenAPI scope
+
+2. **Accurate API Contract**
+   - OpenAPI shows what's actually accessible via HTTP
+   - Frontend/Backend know exactly what endpoints exist
+   - No confusion between public APIs and internal implementation
+
+3. **Type Generation Accuracy**
+   - Generated types match actual HTTP API calls
+   - No types generated for internal methods (as it should be)
+   - Frontend gets exact types for what it can call
+
+4. **Clear Boundaries**
+   - OpenAPI = External interface (PUBLIC)
+   - Internal code = Implementation details (INTERNAL)
+   - Easy to understand service boundaries
+
+### **Authentication Stack OpenAPI Example:**
+
+```yaml
+# openapi-system-wide.yaml
+
+paths:
+  # ✅ These are PUBLIC HTTP endpoints (in OpenAPI)
+  /auth/login:
+    post:
+      summary: Login with email and password
+      security: []  # Public endpoint (no JWT required)
+      # ...
+
+  /auth/register:
+    post:
+      summary: Register new user
+      security: []  # Public endpoint
+      # ...
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      security:
+        - CookieAuth: []  # JWT required
+      # ...
+
+  /alerts:
+    get:
+      summary: List user alerts
+      security:
+        - BearerAuth: []  # JWT required
+      # ...
+
+# ❌ These are NOT in OpenAPI (internal implementation)
+#
+# - authService.generateTokens(user): Promise<Tokens>
+# - authService.validateUser(userId): Promise<User>
+# - authService.createRefreshToken(userId): Promise<string>
+# - alertsService.findByUser(userId): Promise<Alert[]>
+# - prisma.user.findUnique({ where: { id } })
+# - redis.get('session:' + userId)
+```
+
+### **Key Principle:**
+
+> **"If it's not callable via HTTP from outside the service, it's NOT in OpenAPI."**
+>
+> - PUBLIC HTTP endpoint → In OpenAPI → JWT authenticated
+> - Internal method → NOT in OpenAPI → No JWT (typed context)
+
+---
+
 ## 📝 Summary
 
 ### ✅ **Recommended Approach:**

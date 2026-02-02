@@ -202,6 +202,42 @@ You've identified the **correct API-first microservices design pattern**:
 - Auto-generated server stubs
 - Documentation generated automatically
 
+---
+
+#### **🎯 CRITICAL: OpenAPI Scope Definition**
+
+**✅ INCLUDE in OpenAPI:** PUBLIC HTTP Endpoints Only
+
+These are endpoints exposed via HTTP/HTTPS and called by other services:
+
+```yaml
+✅ POST   /auth/login           # Frontend → Backend A (PUBLIC)
+✅ POST   /auth/register        # Frontend → Backend A (PUBLIC)
+✅ GET    /alerts               # Frontend → Backend A (PUBLIC)
+✅ GET    /market-data/ohlcv    # Backend A → Backend B (PUBLIC)
+✅ POST   /rag/query            # Backend A → Backend D (PUBLIC)
+```
+
+**❌ EXCLUDE from OpenAPI:** Internal Implementation Details
+
+These are TypeScript/JavaScript methods used only within the service:
+
+```typescript
+❌ authService.generateTokens()     // Internal service method
+❌ authService.validateUser()       // Internal service method
+❌ alertsService.findByUser()       // Internal service method
+❌ prisma.user.findUnique()         // Database query
+❌ redis.get('key')                 // Cache operation
+❌ validateTierAccess()             // Helper function
+```
+
+**Key Principle:**
+> OpenAPI documents the **API contract** (external interface), not the **implementation** (internal methods).
+>
+> If it's not callable via HTTP from outside the service, it's NOT in OpenAPI.
+
+---
+
 **Deliverables:**
 
 #### **3.1 OpenAPI Document Structure**
