@@ -26,15 +26,16 @@ Better Auth is fundamentally a **session-based authentication system** that stor
 
 ```typescript
 export const sessionSchema = coreSchema.extend({
-  userId: z.coerce.string(),        // Links to user
-  expiresAt: z.date(),              // Session expiration
-  token: z.string(),                // Unique session identifier (primary key)
-  ipAddress: z.string().nullish(),  // Security tracking
-  userAgent: z.string().nullish(),  // Security tracking
+  userId: z.coerce.string(), // Links to user
+  expiresAt: z.date(), // Session expiration
+  token: z.string(), // Unique session identifier (primary key)
+  ipAddress: z.string().nullish(), // Security tracking
+  userAgent: z.string().nullish(), // Security tracking
 });
 ```
 
 **Key Characteristics:**
+
 - Sessions persist in database (PostgreSQL, MySQL, SQLite, etc.)
 - Each session has a unique `token` identifier
 - Sessions track IP address and User Agent for security
@@ -119,19 +120,23 @@ Better Auth includes JWT/JWE capabilities for **cookie caching**, not primary au
 **From `packages/better-auth/src/crypto/jwt.ts`:**
 
 **HS256 JWT (Signed, not encrypted):**
+
 ```typescript
-signJWT(payload, secret, expiresIn)
-verifyJWT(token, secret)
+signJWT(payload, secret, expiresIn);
+verifyJWT(token, secret);
 ```
+
 - Uses HMAC-SHA256 for signing
 - Includes standard JWT claims (iat, exp)
 - Used when `session.cookieCache.strategy = "jwt"`
 
 **JWE (Encrypted):**
+
 ```typescript
-symmetricEncodeJWT(payload, secret, salt, expiresIn)
-symmetricDecodeJWT(token, secret, salt)
+symmetricEncodeJWT(payload, secret, salt, expiresIn);
+symmetricDecodeJWT(token, secret, salt);
 ```
+
 - Uses A256CBC-HS512 encryption
 - HKDF key derivation from secret + salt
 - 15-second clock tolerance
@@ -206,6 +211,7 @@ if (shouldUpdateExpiration && !ctx.query.disableRefresh) {
 ```
 
 **Example:**
+
 - Session expires in 7 days (168 hours)
 - `updateAge` = 1 day (24 hours)
 - Session is only refreshed if within last 24 hours before expiration
@@ -216,23 +222,27 @@ if (shouldUpdateExpiration && !ctx.query.disableRefresh) {
 ## 7. Security Features
 
 ### CSRF Protection
+
 - SameSite=Lax on all cookies
 - Origin checking via middleware
 - State parameters for OAuth flows
 
 ### Session Security
+
 - Signed cookies prevent tampering (HMAC-SHA256)
 - HttpOnly prevents XSS access
 - Secure flag in production
 - IP & User Agent tracking for anomaly detection
 
 ### Token Security (for cache)
+
 - JWT with HS256 signing
 - JWE with A256CBC-HS512 encryption
 - HKDF key derivation for symmetric keys
 - Version hashing for cache invalidation
 
 ### Fresh Session Enforcement
+
 - Sensitive operations require fresh sessions
 - `freshAge` configuration (default 1 day)
 - Can force database validation bypassing cache
@@ -252,6 +262,7 @@ interface SecondaryStorage {
 ```
 
 **Use Cases:**
+
 - Replace database with Redis for session storage
 - Rate limiting storage
 - Still session-based architecture, just different storage backend
@@ -263,6 +274,7 @@ interface SecondaryStorage {
 ### What Better Auth IS
 
 ✅ **Session-Based Authentication with:**
+
 - Database-stored sessions as source of truth
 - Signed cookies for session token transport
 - Optional JWT/JWE caching for performance
@@ -271,6 +283,7 @@ interface SecondaryStorage {
 ### What Better Auth IS NOT
 
 ❌ **Pure JWT Authentication:**
+
 - No stateless JWT as primary authentication
 - JWT is only used for optional cookie caching
 - Cannot operate without session storage (DB or Redis)
@@ -283,6 +296,7 @@ interface SecondaryStorage {
 ### Why Session-Based?
 
 **Advantages:**
+
 1. **Instant Revocation:** Delete session from DB = immediate logout
 2. **Security:** Can track active sessions, detect anomalies
 3. **Control:** Can force logout all devices, single device, etc.
@@ -290,6 +304,7 @@ interface SecondaryStorage {
 5. **No Token Refresh Complexity:** Just update expiresAt
 
 **Cookie Cache Enhancement:**
+
 1. **Performance:** Reduce DB queries by 80-95%
 2. **Scalability:** Offload read traffic from database
 3. **Flexibility:** Choose security vs performance trade-off
@@ -300,19 +315,23 @@ interface SecondaryStorage {
 ## 11. Key Files Reference
 
 ### Core Authentication
+
 - `packages/core/src/db/schema/session.ts` - Session data model
 - `packages/better-auth/src/api/routes/session.ts` - Session endpoints
 - `packages/better-auth/src/cookies/index.ts` - Cookie management
 
 ### Cryptography
+
 - `packages/better-auth/src/crypto/jwt.ts` - JWT/JWE implementation
 - `packages/better-auth/src/crypto/` - Crypto utilities
 
 ### Configuration
+
 - `packages/core/src/types/init-options.ts` - All configuration types
 - `packages/core/src/types/cookie.ts` - Cookie type definitions
 
 ### Middleware
+
 - `packages/better-auth/src/api/middlewares/origin-check.ts` - CSRF protection
 - Session middlewares in session.ts (sessionMiddleware, sensitiveSessionMiddleware)
 
@@ -323,6 +342,7 @@ interface SecondaryStorage {
 **Better Auth Authentication Type: SESSION-BASED**
 
 **Summary:**
+
 - Primary authentication method is **database-backed sessions**
 - Sessions stored with unique tokens as identifiers
 - Cookies transport session tokens (signed for integrity)
