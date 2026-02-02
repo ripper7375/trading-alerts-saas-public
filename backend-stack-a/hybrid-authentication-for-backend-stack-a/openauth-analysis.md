@@ -37,6 +37,7 @@ OpenAuth is fundamentally a **JWT-based OAuth 2.0 authentication system** with s
 ```
 
 **Key Characteristics:**
+
 - Signed with **ES256** (ECDSA with SHA-256)
 - **Stateless**: No database lookup needed for validation
 - Default TTL: **30 days** (configurable)
@@ -50,6 +51,7 @@ OpenAuth is fundamentally a **JWT-based OAuth 2.0 authentication system** with s
 ### Dual Token Strategy
 
 **1. Access Tokens (JWT)**
+
 - **Purpose:** API authentication
 - **Storage:** Client-side (cookies, localStorage, or memory)
 - **Validation:** Cryptographic signature verification
@@ -57,6 +59,7 @@ OpenAuth is fundamentally a **JWT-based OAuth 2.0 authentication system** with s
 - **Format:** Standard JWT (header.payload.signature)
 
 **2. Refresh Tokens (Opaque)**
+
 - **Purpose:** Obtain new access tokens
 - **Storage:** Server-side backend storage
 - **Validation:** Database lookup
@@ -64,6 +67,7 @@ OpenAuth is fundamentally a **JWT-based OAuth 2.0 authentication system** with s
 - **Format:** `subject:uuid` pair
 
 **From `issuer.ts` lines 649-711:**
+
 ```typescript
 // Generate refresh token
 const refresh = uuid();
@@ -75,14 +79,17 @@ await storage.set(`oauth:refresh:${subject}:${refresh}`, {
 });
 
 // Create access JWT
-const accessToken = await jwt.create({
-  mode: "access",
-  type: subject.type,
-  properties: subject.properties,
-  aud: client.id,
-  iss: issuer,
-  sub: subjectID,
-}, accessTTL);
+const accessToken = await jwt.create(
+  {
+    mode: 'access',
+    type: subject.type,
+    properties: subject.properties,
+    aud: client.id,
+    iss: issuer,
+    sub: subjectID,
+  },
+  accessTTL
+);
 
 return { access_token: accessToken, refresh_token: refresh };
 ```
@@ -108,12 +115,14 @@ async set(ctx, key, maxAge, value) {
 ```
 
 **Cookie Security Features:**
+
 - ✅ **HttpOnly**: Prevents XSS attacks
 - ✅ **Secure**: HTTPS-only in production
 - ✅ **SameSite**: CSRF protection (None for cross-domain)
 - ✅ **Encrypted**: RSA-OAEP-512 encryption for sensitive data
 
 **Cookie Types:**
+
 1. Authorization state cookies (OAuth flow)
 2. Access token cookies (SSR apps)
 3. Refresh token cookies (optional, for SSR)
@@ -144,6 +153,7 @@ OpenAuth supports multiple storage backends for refresh tokens and authorization
    - Best for: Cloudflare Workers
 
 **Storage Operations:**
+
 ```typescript
 interface Storage {
   get(key: string): Promise<any | undefined>;
@@ -154,6 +164,7 @@ interface Storage {
 ```
 
 **Stored Data Types:**
+
 ```
 oauth:code:[code]                - Authorization codes (60s TTL)
 oauth:refresh:[subject]:[token]  - Refresh token data (1y TTL)
@@ -170,22 +181,27 @@ encryption:key:[id]              - Cookie encryption keys
 **From `keys.ts` and `issuer.ts`:**
 
 **1. Signing Keys (JWT):**
+
 - Algorithm: **ES256** (ECDSA with P-256 curve)
 - Purpose: Sign access tokens
 - Rotation: Automatic with timestamp tracking
 - Legacy support: RS512 (RSA with SHA-512)
 
 **2. Encryption Keys (Cookies):**
+
 - Algorithm: **RSA-OAEP-512**
 - Purpose: Encrypt cookie values
 - Key size: 4096-bit RSA
 - Rotation: Supported with key versioning
 
 **JWKS Endpoint:**
+
 ```
 GET /.well-known/jwks.json
 ```
+
 Returns public keys for JWT verification:
+
 ```json
 {
   "keys": [
@@ -209,6 +225,7 @@ Returns public keys for JWT verification:
 ### Authorization Flows
 
 **1. Authorization Code Flow** (SSR Apps)
+
 ```
 GET  /authorize?client_id=...&redirect_uri=...&scope=...
   → User authenticates via provider
@@ -219,6 +236,7 @@ POST /token
 ```
 
 **2. Authorization Code + PKCE** (SPAs, Mobile)
+
 ```
 code_challenge = base64url(sha256(code_verifier))
 GET  /authorize?...&code_challenge=...&code_challenge_method=S256
@@ -229,6 +247,7 @@ POST /token
 ```
 
 **3. Client Credentials Flow** (Service-to-Service)
+
 ```
 POST /token
   Body: grant_type=client_credentials&client_id=...&client_secret=...
@@ -236,6 +255,7 @@ POST /token
 ```
 
 **4. Refresh Token Flow**
+
 ```
 POST /token
   Body: grant_type=refresh_token&refresh_token=...
@@ -262,7 +282,7 @@ async function verified(token: string, refresh?: string) {
       const newTokens = await exchangeRefresh(refresh);
       return verified(newTokens.access, newTokens.refresh);
     }
-    throw new Error("Token expired");
+    throw new Error('Token expired');
   }
 }
 ```
@@ -277,6 +297,7 @@ async function verified(token: string, refresh?: string) {
 4. Reuse window: **60 seconds** (configurable)
 
 **Protects against:**
+
 - Token theft and replay attacks
 - Concurrent refresh token usage
 - Stolen refresh token exploitation
@@ -288,19 +309,23 @@ async function verified(token: string, refresh?: string) {
 ### 20+ Pre-Built OAuth Providers
 
 **Social Providers:**
+
 - Google, GitHub, Discord, Facebook
 - Apple, Microsoft, Twitter/X, LinkedIn
 - Slack, Spotify, Twitch, Reddit
 
 **Enterprise Providers:**
+
 - Okta, Auth0, Azure AD
 - Generic OAuth2/OIDC support
 
 **Built-In Providers:**
+
 - Password (with UI)
 - Email/Code (passwordless)
 
 **Provider Implementation** (`provider/` directory):
+
 ```typescript
 interface Provider {
   type: string;
@@ -352,31 +377,37 @@ GET   /.well-known/oauth-authorization-server
 ### Multi-Layer Security
 
 **1. PKCE (Proof Key for Code Exchange)**
+
 - Required for SPAs and native apps
 - Prevents authorization code interception
 - SHA-256 code challenge/verifier
 
 **2. State Parameter**
+
 - CSRF protection for OAuth flows
 - Cryptographically random
 - Validated on callback
 
 **3. Token Reuse Detection**
+
 - Tracks refresh token usage
 - Invalidates on suspicious reuse
 - 60-second reuse window
 
 **4. Key Rotation**
+
 - Automatic signing key rotation
 - Multiple active keys supported
 - Backward compatibility during rotation
 
 **5. Schema Validation**
+
 - Subject payload validation (Valibot)
 - Type-safe user properties
 - Prevents malformed data
 
 **6. HTTP-Only Cookies**
+
 - XSS protection
 - Encrypted values
 - Secure flag in production
@@ -390,20 +421,20 @@ GET   /.well-known/oauth-authorization-server
 **From `client.ts`:**
 
 ```typescript
-import { createClient } from "openauth/client";
+import { createClient } from 'openauth/client';
 
 const client = createClient({
-  issuer: "https://auth.example.com",
-  clientID: "my-app",
-  clientSecret: "secret",
+  issuer: 'https://auth.example.com',
+  clientID: 'my-app',
+  clientSecret: 'secret',
 });
 
 // In Next.js API route
 export async function GET(req: Request) {
-  const token = req.headers.get("authorization")?.split(" ")[1];
+  const token = req.headers.get('authorization')?.split(' ')[1];
 
   // Verify and auto-refresh
-  const subject = await client.verify(token, req.cookies.get("refresh"));
+  const subject = await client.verify(token, req.cookies.get('refresh'));
 
   return Response.json({ user: subject.properties });
 }
@@ -414,19 +445,19 @@ export async function GET(req: Request) {
 ```typescript
 // PKCE flow for SPAs
 const { url, verifier } = await client.authorize({
-  provider: "google",
+  provider: 'google',
   pkce: true,
-  redirectURI: "https://app.example.com/callback",
+  redirectURI: 'https://app.example.com/callback',
 });
 
 // Store PKCE verifier temporarily and redirect user
-sessionStorage.setItem("pkce_verifier", verifier);
+sessionStorage.setItem('pkce_verifier', verifier);
 window.location.href = url;
 
 // After callback
 const tokens = await client.exchange({
-  code: urlParams.get("code"),
-  verifier: sessionStorage.getItem("pkce_verifier"),
+  code: urlParams.get('code'),
+  verifier: sessionStorage.getItem('pkce_verifier'),
 });
 
 // Store access token in memory; refresh token is managed via httpOnly cookies/server-side state
@@ -440,6 +471,7 @@ let accessToken = tokens.access;
 ### What OpenAuth IS
 
 ✅ **JWT-Based OAuth 2.0 System with:**
+
 - Stateless JWT access tokens (self-contained)
 - Stateful refresh tokens (server-stored)
 - Multi-provider OAuth/OIDC support
@@ -450,6 +482,7 @@ let accessToken = tokens.access;
 ### What OpenAuth IS NOT
 
 ❌ **Traditional Session-Based Auth:**
+
 - No session IDs in cookies
 - No server-side session lookup for every request
 - Not database-dependent for access token validation
@@ -462,6 +495,7 @@ let accessToken = tokens.access;
 ### Why JWT-Based?
 
 **Advantages:**
+
 1. **Stateless Authentication:** No database lookup for every API request
 2. **Scalability:** Horizontal scaling without session store
 3. **Multi-Service:** Share authentication across microservices
@@ -470,6 +504,7 @@ let accessToken = tokens.access;
 6. **Performance:** Fast signature verification vs database queries
 
 **Refresh Token Addition:**
+
 1. **Revocation Control:** Can invalidate user sessions
 2. **Security:** Shorter access token lifetime reduces risk
 3. **Reuse Detection:** Protects against token theft
@@ -480,22 +515,26 @@ let accessToken = tokens.access;
 ## 14. Key Files Reference
 
 ### Core Authentication
+
 - `packages/openauth/src/issuer.ts` (1,156 lines) - Auth server
 - `packages/openauth/src/client.ts` (750 lines) - Client SDK
 - `packages/openauth/src/jwt.ts` - JWT operations
 - `packages/openauth/src/keys.ts` - Key management
 
 ### Storage
+
 - `packages/openauth/src/storage/storage.ts` - Interface
 - `packages/openauth/src/storage/memory.ts` - Memory adapter
 - `packages/openauth/src/storage/dynamo.ts` - DynamoDB adapter
 - `packages/openauth/src/storage/cloudflare.ts` - Cloudflare KV adapter
 
 ### Providers
+
 - `packages/openauth/src/provider/` - 30+ provider implementations
 - Each provider has: authorize(), token(), userinfo() methods
 
 ### Framework
+
 - Built on **Hono** (v4.6.9) - Fast web framework
 - Uses **jose** (v5.9.6) - JWT/JWE/JWK operations
 
@@ -504,12 +543,14 @@ let accessToken = tokens.access;
 ## 15. Dependencies
 
 **Core:**
+
 - `jose` (5.9.6) - JWT operations
 - `hono` (4.6.9) - Web framework
 - `@standard-schema/spec` - Schema validation
 - `arctic` (2.2.2) - OAuth provider helpers
 
 **Optional:**
+
 - `valibot` - Runtime schema validation
 - `aws-sdk` - DynamoDB integration
 - `@cloudflare/workers-types` - Cloudflare Workers types
@@ -521,6 +562,7 @@ let accessToken = tokens.access;
 **OpenAuth Authentication Type: JWT-BASED (Hybrid)**
 
 **Summary:**
+
 - Primary authentication method is **JWT access tokens** (stateless)
 - Refresh tokens stored server-side for revocation control (stateful)
 - Full OAuth 2.0 + OIDC compliance with 20+ providers
@@ -530,6 +572,7 @@ let accessToken = tokens.access;
 - Token reuse detection and automatic rotation
 
 **Best Suited For:**
+
 1. **Multi-tenant SaaS applications** - OAuth 2.0 provider for customers
 2. **Microservices architectures** - Stateless JWTs for service-to-service
 3. **SSR + SPA hybrid apps** - Cookie and Bearer token support
@@ -537,6 +580,7 @@ let accessToken = tokens.access;
 5. **API-first applications** - Standards-compliant OAuth 2.0 APIs
 
 **Comparison to Better Auth:**
+
 - **Better Auth:** Session-based with optional JWT caching (stateful primary)
 - **OpenAuth:** JWT-based with refresh token storage (stateless primary)
 - **Better Auth:** Single application focus, simpler setup

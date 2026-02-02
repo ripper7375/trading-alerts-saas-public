@@ -1,4 +1,5 @@
 # System-Wide Microservices Implementation Roadmap
+
 ## Monolith → Microservices Architecture Migration
 
 **Date:** 2026-02-02
@@ -103,43 +104,44 @@ You've identified the **correct API-first microservices design pattern**:
 
 ### Service Breakdown (From Your Diagram)
 
-| Part | Domain/Function | Stack | Tech | Notes |
-|------|----------------|-------|------|-------|
-| **Part 2** | Database (Prisma) | Backend A | Prisma V6 | Shared by all services |
-| **Part 3** | Types | Sharing Stack | NPM package | Generated from OpenAPI |
-| **Part 4** | Tree-shaking | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 5** | **Authentication** | **Frontend A + Backend A** | **Next.js V16 + NestJS V11** | **Current focus** |
-| **Part 6** | Flask MT5 Service | Backend A | Python Flask | Existing Flask service |
-| **Part 7** | OHLCV data API | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 8** | Dashboard & Layout | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 9** | Charts & Visualization | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 10** | Watchlist System | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 11** | Alerts System | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 12** | E-commerce & Billing | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 13** | Settings System | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 14** | Admin Dashboard | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 15** | Notifications & Real-time | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 16** | Utilities & Infrastructure | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 17A** | Affiliate Marketing - Portal | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 17B** | Affiliate Marketing - Admin | Backend A | NestJS V11 | Refactored from Next.js |
-| **Part 18** | dLocal Payments | Backend A | NestJS V11 | Fresh built |
-| **Part 19** | Riseworks Disbursements | Backend A | NestJS V11 | Fresh built |
-| **Part 20** | Market Data Collection | Backend C | MQL5 + Python | Not applicable |
-| **Part 21** | Market Data Processing | Backend B | NestJS V11 | Fresh built |
-| **Part 22** | Confluence Scores | Backend B | NestJS V11 | Fresh built |
-| **Part 23** | Symbols/Timeframes Leaderboard | Backend B | NestJS V11 | Fresh built |
-| **Part 24** | Symbols/Timeframes Surveillance | Backend B | NestJS V11 | Fresh built |
-| **Part 25** | Advance Alert System | Backend B | NestJS V11 | Fresh built |
-| **Part 26** | MT5 Data Collection | Backend C | Python | Plain Python |
-| **Part 27** | Frontend UI Only | Frontend A | Next.js V16 | Modification/separation |
-| **Part 28** | RAG & Vector Database | Backend D | Python Tarai | Only for PRO plan |
-| **Part 29** | Chat UI for RAG | Frontend E | Next.js V16 | Only for PRO plan |
+| Part         | Domain/Function                 | Stack                      | Tech                         | Notes                   |
+| ------------ | ------------------------------- | -------------------------- | ---------------------------- | ----------------------- |
+| **Part 2**   | Database (Prisma)               | Backend A                  | Prisma V6                    | Shared by all services  |
+| **Part 3**   | Types                           | Sharing Stack              | NPM package                  | Generated from OpenAPI  |
+| **Part 4**   | Tree-shaking                    | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 5**   | **Authentication**              | **Frontend A + Backend A** | **Next.js V16 + NestJS V11** | **Current focus**       |
+| **Part 6**   | Flask MT5 Service               | Backend A                  | Python Flask                 | Existing Flask service  |
+| **Part 7**   | OHLCV data API                  | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 8**   | Dashboard & Layout              | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 9**   | Charts & Visualization          | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 10**  | Watchlist System                | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 11**  | Alerts System                   | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 12**  | E-commerce & Billing            | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 13**  | Settings System                 | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 14**  | Admin Dashboard                 | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 15**  | Notifications & Real-time       | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 16**  | Utilities & Infrastructure      | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 17A** | Affiliate Marketing - Portal    | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 17B** | Affiliate Marketing - Admin     | Backend A                  | NestJS V11                   | Refactored from Next.js |
+| **Part 18**  | dLocal Payments                 | Backend A                  | NestJS V11                   | Fresh built             |
+| **Part 19**  | Riseworks Disbursements         | Backend A                  | NestJS V11                   | Fresh built             |
+| **Part 20**  | Market Data Collection          | Backend C                  | MQL5 + Python                | Not applicable          |
+| **Part 21**  | Market Data Processing          | Backend B                  | NestJS V11                   | Fresh built             |
+| **Part 22**  | Confluence Scores               | Backend B                  | NestJS V11                   | Fresh built             |
+| **Part 23**  | Symbols/Timeframes Leaderboard  | Backend B                  | NestJS V11                   | Fresh built             |
+| **Part 24**  | Symbols/Timeframes Surveillance | Backend B                  | NestJS V11                   | Fresh built             |
+| **Part 25**  | Advance Alert System            | Backend B                  | NestJS V11                   | Fresh built             |
+| **Part 26**  | MT5 Data Collection             | Backend C                  | Python                       | Plain Python            |
+| **Part 27**  | Frontend UI Only                | Frontend A                 | Next.js V16                  | Modification/separation |
+| **Part 28**  | RAG & Vector Database           | Backend D                  | Python Tarai                 | Only for PRO plan       |
+| **Part 29**  | Chat UI for RAG                 | Frontend E                 | Next.js V16                  | Only for PRO plan       |
 
 ---
 
 ## 🎯 Corrected Implementation Sequence
 
 ### **Phase 1: Database Foundation** (2-3 days)
+
 **Goal:** Upgrade Prisma V5.22 → V6.xx for all services
 
 ✅ Shared database schema
@@ -149,9 +151,11 @@ You've identified the **correct API-first microservices design pattern**:
 ---
 
 ### **Phase 2: PUBLIC API Redesign** (3-4 days) ← **CRITICAL PHASE YOU IDENTIFIED**
+
 **Goal:** Design inter-service communication patterns
 
 **Why This Phase is Critical:**
+
 - Defines how Frontend Stack A calls Backend Stack A
 - Defines how Backend Stack A calls Backend Stack B/C/D
 - Defines authentication propagation across services
@@ -159,6 +163,7 @@ You've identified the **correct API-first microservices design pattern**:
 - Defines rate limiting and versioning
 
 **Deliverables:**
+
 1. **Authentication API contract:**
    - `/api/auth/login` - Returns JWT + refresh token
    - `/api/auth/refresh` - Rotates tokens
@@ -176,6 +181,7 @@ You've identified the **correct API-first microservices design pattern**:
    - Different authentication mechanisms
 
 4. **Error response standards:**
+
    ```json
    {
      "error": "string",
@@ -193,9 +199,11 @@ You've identified the **correct API-first microservices design pattern**:
 ---
 
 ### **Phase 3: System-Wide OpenAPI Specification** (5-7 days) ← **CRITICAL PHASE YOU IDENTIFIED**
+
 **Goal:** Create single source of truth for ALL services (A, B, C, D, E)
 
 **Why This Phase is Critical:**
+
 - All services (Frontend + Backend) implement the SAME contract
 - Type safety across entire system
 - Auto-generated client SDKs
@@ -232,6 +240,7 @@ These are TypeScript/JavaScript methods used only within the service:
 ```
 
 **Key Principle:**
+
 > OpenAPI documents the **API contract** (external interface), not the **implementation** (internal methods).
 >
 > If it's not callable via HTTP from outside the service, it's NOT in OpenAPI.
@@ -403,7 +412,7 @@ paths:
                   valid: { type: boolean }
                   user: { $ref: '#/components/schemas/User' }
 
-# Dashboard API (Backend Stack A)
+  # Dashboard API (Backend Stack A)
   /dashboard/stats:
     get:
       summary: Get dashboard statistics
@@ -423,7 +432,7 @@ paths:
                   activeAlerts: { type: integer }
                   # ... more stats
 
-# Alerts API (Backend Stack A)
+  # Alerts API (Backend Stack A)
   /alerts:
     get:
       summary: List user alerts
@@ -473,7 +482,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Alert'
 
-# Market Data API (Backend Stack B)
+  # Market Data API (Backend Stack B)
   /market-data/ohlcv:
     get:
       summary: Get OHLCV data
@@ -489,7 +498,8 @@ paths:
         - name: timeframe
           in: query
           required: true
-          schema: { type: string, enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1] }
+          schema:
+            { type: string, enum: [M1, M5, M15, M30, H1, H4, D1, W1, MN1] }
         - name: start
           in: query
           schema: { type: string, format: date-time }
@@ -513,7 +523,7 @@ paths:
                     close: { type: number }
                     volume: { type: integer }
 
-# Confluence Scores API (Backend Stack B)
+  # Confluence Scores API (Backend Stack B)
   /confluence/scores:
     get:
       summary: Get confluence scores
@@ -526,7 +536,7 @@ paths:
           description: Confluence scores
           # ... schema
 
-# RAG API (Backend Stack D - PRO only)
+  # RAG API (Backend Stack D - PRO only)
   /rag/query:
     post:
       summary: Query RAG system
@@ -576,20 +586,22 @@ npx openapi-typescript openapi-system-wide.yaml -o types/api-types.ts
 ```
 
 **Generated types will be shared across:**
+
 - Frontend Stack A (Next.js 16)
 - Backend Stack A (NestJS 11)
 - Backend Stack B (NestJS 11)
 - Frontend Stack E (Next.js 16)
 
 **Result:**
+
 ```typescript
 // types/api-types.ts (auto-generated)
 export interface paths {
-  "/auth/login": {
-    post: operations["login"];
+  '/auth/login': {
+    post: operations['login'];
   };
-  "/auth/refresh": {
-    post: operations["refreshToken"];
+  '/auth/refresh': {
+    post: operations['refreshToken'];
   };
   // ... all endpoints
 }
@@ -600,8 +612,8 @@ export interface components {
       id: string;
       email: string;
       name?: string;
-      tier: "FREE" | "PRO";
-      role: "USER" | "ADMIN";
+      tier: 'FREE' | 'PRO';
+      role: 'USER' | 'ADMIN';
       isAffiliate: boolean;
     };
     // ... all schemas
@@ -646,6 +658,7 @@ npm publish
 ```
 
 **Install in all services:**
+
 ```bash
 # Frontend Stack A
 cd frontend
@@ -663,11 +676,13 @@ npm install @trading-alerts/types
 ---
 
 ### **Phase 4: Backend Stack A - NestJS Implementation** (4-5 days)
+
 **Goal:** Build authentication authority according to OpenAPI spec
 
 **Implementation follows the OpenAPI specification created in Phase 3.**
 
 All endpoints MUST match the OpenAPI contract:
+
 - `/api/auth/login` - Matches `POST /auth/login` in OpenAPI
 - `/api/auth/refresh` - Matches `POST /auth/refresh` in OpenAPI
 - `/api/auth/logout` - Matches `POST /auth/logout` in OpenAPI
@@ -710,6 +725,7 @@ type Error = components['schemas']['Error'];
 ---
 
 ### **Phase 5: Frontend Stack A - Next.js 16 Implementation** (2-3 days)
+
 **Goal:** Build frontend according to OpenAPI spec
 
 **Use `openapi-fetch` for type-safe API calls:**
@@ -764,6 +780,7 @@ export function LoginForm() {
 ```
 
 **Benefits:**
+
 - ✅ Type safety: All API calls are typed
 - ✅ Auto-completion: IDE suggests available endpoints
 - ✅ Validation: TypeScript catches mismatches
@@ -773,17 +790,17 @@ export function LoginForm() {
 
 ## 📊 Complete System-Wide Timeline
 
-| Phase | Task | Duration | Risk | Deliverable |
-|-------|------|----------|------|-------------|
-| **Phase 1** | Prisma V5 → V6 upgrade | 2-3 days | Low | Upgraded database schema |
-| **Phase 2** | PUBLIC API redesign | 3-4 days | Medium | API design document |
-| **Phase 3** | System-wide OpenAPI spec | 5-7 days | High | `openapi-system-wide.yaml` |
-| **Phase 3.1** | Generate TypeScript types | 1 day | Low | `@trading-alerts/types` package |
-| **Phase 4** | Backend Stack A (NestJS) | 4-5 days | High | Authentication service |
-| **Phase 5** | Frontend Stack A (Next.js 16) | 2-3 days | Medium | Frontend UI |
-| **Phase 6** | Integration testing | 2-3 days | High | End-to-end tests |
-| **Phase 7** | Deployment | 1-2 days | Medium | Production deployment |
-| **TOTAL** | **Full migration** | **20-30 days** | **High** | **Microservices architecture** |
+| Phase         | Task                          | Duration       | Risk     | Deliverable                     |
+| ------------- | ----------------------------- | -------------- | -------- | ------------------------------- |
+| **Phase 1**   | Prisma V5 → V6 upgrade        | 2-3 days       | Low      | Upgraded database schema        |
+| **Phase 2**   | PUBLIC API redesign           | 3-4 days       | Medium   | API design document             |
+| **Phase 3**   | System-wide OpenAPI spec      | 5-7 days       | High     | `openapi-system-wide.yaml`      |
+| **Phase 3.1** | Generate TypeScript types     | 1 day          | Low      | `@trading-alerts/types` package |
+| **Phase 4**   | Backend Stack A (NestJS)      | 4-5 days       | High     | Authentication service          |
+| **Phase 5**   | Frontend Stack A (Next.js 16) | 2-3 days       | Medium   | Frontend UI                     |
+| **Phase 6**   | Integration testing           | 2-3 days       | High     | End-to-end tests                |
+| **Phase 7**   | Deployment                    | 1-2 days       | Medium   | Production deployment           |
+| **TOTAL**     | **Full migration**            | **20-30 days** | **High** | **Microservices architecture**  |
 
 ---
 
@@ -796,6 +813,7 @@ Build Backend → Build Frontend → Discover mismatches → Fix both → Repeat
 ```
 
 **Problems:**
+
 - Frontend and backend develop independently
 - API contracts implicit, not documented
 - Type mismatches discovered at runtime
@@ -811,6 +829,7 @@ Design OpenAPI → Generate types → Build Backend (follows spec) → Build Fro
 ```
 
 **Benefits:**
+
 - ✅ Contract defined upfront
 - ✅ Backend implements contract
 - ✅ Frontend consumes contract
@@ -830,6 +849,7 @@ Design OpenAPI → Generate types → Build Backend (follows spec) → Build Fro
 **Define:**
 
 1. **Authentication Endpoints:**
+
    ```
    POST   /api/auth/login        - Login with email/password
    POST   /api/auth/register     - Register new user
@@ -840,6 +860,7 @@ Design OpenAPI → Generate types → Build Backend (follows spec) → Build Fro
    ```
 
 2. **Inter-Service Authentication:**
+
    ```
    How does Frontend Stack A authenticate with Backend Stack A?
    → JWT in httpOnly cookie (for browser requests)
@@ -851,6 +872,7 @@ Design OpenAPI → Generate types → Build Backend (follows spec) → Build Fro
    ```
 
 3. **Error Handling:**
+
    ```json
    {
      "error": "UNAUTHORIZED",
@@ -862,6 +884,7 @@ Design OpenAPI → Generate types → Build Backend (follows spec) → Build Fro
    ```
 
 4. **Rate Limiting:**
+
    ```
    X-RateLimit-Limit: 100
    X-RateLimit-Remaining: 95
@@ -919,6 +942,7 @@ Your sequence is the **optimal microservices migration approach**:
 ```
 
 **Why this works:**
+
 - ✅ API-first design prevents integration issues
 - ✅ Type safety across entire system
 - ✅ All services follow same contract
@@ -933,6 +957,7 @@ Your sequence is the **optimal microservices migration approach**:
 ## 📝 Checklist
 
 ### Phase 1: Prisma V6 Upgrade ✅
+
 - [ ] Backup production database
 - [ ] Update Prisma dependencies
 - [ ] Add RefreshToken model
@@ -940,6 +965,7 @@ Your sequence is the **optimal microservices migration approach**:
 - [ ] Test database connection
 
 ### Phase 2: PUBLIC API Redesign ← **START HERE**
+
 - [ ] Define authentication endpoints
 - [ ] Define inter-service authentication
 - [ ] Define error response format
@@ -948,6 +974,7 @@ Your sequence is the **optimal microservices migration approach**:
 - [ ] Document all decisions in `docs/public-api-design.md`
 
 ### Phase 3: System-Wide OpenAPI
+
 - [ ] Create `openapi-system-wide.yaml`
 - [ ] Define authentication schemas
 - [ ] Define all Stack A endpoints (Parts 4-17)
@@ -958,6 +985,7 @@ Your sequence is the **optimal microservices migration approach**:
 - [ ] Publish `@trading-alerts/types` package
 
 ### Phase 4: Backend Stack A
+
 - [ ] Create NestJS project
 - [ ] Import OpenAPI spec
 - [ ] Implement authentication service
@@ -965,6 +993,7 @@ Your sequence is the **optimal microservices migration approach**:
 - [ ] Write tests
 
 ### Phase 5: Frontend Stack A
+
 - [ ] Upgrade Next.js 15 → 16
 - [ ] Install `@trading-alerts/types`
 - [ ] Create API client

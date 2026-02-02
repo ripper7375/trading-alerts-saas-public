@@ -12,6 +12,7 @@
 **ANSWER: You DO NOT need to abandon most of your authentication files!**
 
 **Migration Scope:**
+
 - ✅ **70% REUSABLE** - Keep most UI, pages, and business logic
 - ⚠️ **25% ADAPTABLE** - Modify API routes and auth configuration
 - ❌ **5% REPLACE** - Replace NextAuth core with custom JWT system
@@ -27,6 +28,7 @@
 ### 1.1 What You Have Now
 
 **Authentication System:**
+
 ```typescript
 // Current: NextAuth.js with JWT Session Strategy
 {
@@ -40,6 +42,7 @@
 ```
 
 **Session Structure:**
+
 ```typescript
 // Stored in httpOnly cookie
 interface Session {
@@ -51,11 +54,12 @@ interface Session {
     tier: 'FREE' | 'PRO';
     role: 'USER' | 'ADMIN';
     isAffiliate: boolean;
-  }
+  };
 }
 ```
 
 **Authentication Flow:**
+
 ```
 1. Login → NextAuth credentials provider
 2. OAuth → NextAuth providers (Google, Twitter, LinkedIn)
@@ -65,6 +69,7 @@ interface Session {
 ```
 
 **Key Features Implemented:**
+
 - ✅ Email/password authentication (bcrypt)
 - ✅ Google, Twitter, LinkedIn OAuth
 - ✅ Email verification (crypto tokens)
@@ -82,6 +87,7 @@ interface Session {
 ### 1.2 What You Need (Target Architecture)
 
 **Target System:**
+
 ```typescript
 // Target: Hybrid JWT with Refresh Tokens
 {
@@ -95,6 +101,7 @@ interface Session {
 ```
 
 **Token Structure:**
+
 ```typescript
 // Access Token (JWT)
 {
@@ -121,6 +128,7 @@ interface Session {
 ```
 
 **Authentication Flow:**
+
 ```
 1. Login → Issue JWT access token (7 days) + refresh token (1 year)
 2. OAuth → OAuth 2.0 Authorization Code flow with PKCE
@@ -136,6 +144,7 @@ interface Session {
 ### 2.1 Files to KEEP (No Changes Required)
 
 **✅ Frontend Pages (6 files) - 100% reusable:**
+
 ```
 app/(auth)/login/page.tsx                    → ✅ Keep (just wrapper, no logic)
 app/(auth)/register/page.tsx                 → ✅ Keep (just wrapper)
@@ -150,6 +159,7 @@ app/(auth)/verify-email/page.tsx             → ✅ Keep (UI only)
 ---
 
 **✅ Auth Components (3 files) - 95% reusable:**
+
 ```
 components/auth/login-form.tsx               → ✅ Keep (modify signIn call)
 components/auth/register-form.tsx            → ✅ Keep (modify API endpoint)
@@ -160,6 +170,7 @@ components/auth/login-tracker.tsx            → ✅ Keep (no changes)
 **Required Changes:**
 
 **login-form.tsx** (lines 55-60):
+
 ```typescript
 // BEFORE: NextAuth signIn
 const result = await signIn('credentials', {
@@ -185,12 +196,14 @@ sessionStorage.setItem('accessToken', accessToken);
 ```
 
 **register-form.tsx** (line 148):
+
 ```typescript
 // No changes needed! Already calls /api/auth/register
 // Just ensure the endpoint returns { accessToken, refreshToken } after verification
 ```
 
 **social-auth-buttons.tsx** (lines 46-77):
+
 ```typescript
 // BEFORE: NextAuth signIn
 await signIn('google', { callbackUrl: '/dashboard' });
@@ -204,6 +217,7 @@ window.location.href = url;
 ---
 
 **✅ Utility Files (4 files) - 80% reusable:**
+
 ```
 lib/auth/two-factor.ts                       → ✅ Keep (100% reusable)
 lib/auth/email-verification.ts               → ✅ Keep (100% reusable)
@@ -219,6 +233,7 @@ lib/auth/permissions.ts                      → ✅ Keep (100% reusable)
 ### 2.2 Files to ADAPT (Modifications Required)
 
 **⚠️ Session Helpers (1 file) - 60% reusable:**
+
 ```
 lib/auth/session.ts                          → ⚠️ MODIFY SIGNIFICANTLY
 ```
@@ -255,7 +270,7 @@ export async function getSession(): Promise<Session | null> {
         tier: payload.tier,
         role: payload.role,
         isAffiliate: payload.isAffiliate,
-      }
+      },
     };
   } catch (error) {
     // Token expired or invalid
@@ -265,6 +280,7 @@ export async function getSession(): Promise<Session | null> {
 ```
 
 **Keep all other helper functions:**
+
 - ✅ `requireAuth()` - Just update to use new `getSession()`
 - ✅ `getUserTier()` - No changes
 - ✅ `isAffiliate()` - No changes
@@ -277,6 +293,7 @@ export async function getSession(): Promise<Session | null> {
 ---
 
 **⚠️ API Routes (9 files) - 40% reusable:**
+
 ```
 app/api/auth/[...nextauth]/route.ts          → ❌ REPLACE with OAuth endpoints
 app/api/auth/register/route.ts               → ⚠️ MODIFY (add token issuance)
@@ -290,6 +307,7 @@ app/api/auth/disable-2fa/route.ts            → ⚠️ MODIFY (use new session)
 ```
 
 **New API Routes to CREATE:**
+
 ```
 app/api/auth/login/route.ts                  → ❌ CREATE (credentials auth + JWT)
 app/api/auth/refresh/route.ts                → ❌ CREATE (refresh token exchange)
@@ -306,12 +324,14 @@ app/api/auth/oauth/token/route.ts            → ❌ CREATE (OAuth 2.0 token exc
 ### 2.3 Files to REPLACE (Complete Rewrite)
 
 **❌ NextAuth Configuration (2 files):**
+
 ```
 app/api/auth/[...nextauth]/route.ts          → ❌ REPLACE
 lib/auth/auth-options.ts                     → ❌ REPLACE
 ```
 
 **Replace with:**
+
 ```
 lib/auth/jwt.ts                              → ❌ CREATE (ES256 JWT signing/verification)
 lib/auth/oauth.ts                            → ❌ CREATE (OAuth 2.0 flows)
@@ -326,6 +346,7 @@ lib/auth/config.ts                           → ❌ CREATE (auth configuration)
 ### 2.4 Files to IGNORE (Test Files)
 
 **🟢 Test Files (3 files) - Update after migration:**
+
 ```
 __tests__/integration/auth.test.ts           → 🔄 UPDATE (after migration)
 __tests__/unit/auth/login.test.tsx           → 🔄 UPDATE (after migration)
@@ -345,6 +366,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
 **Tasks:**
 
 1. **Create JWT utilities** (`lib/auth/jwt.ts`):
+
    ```typescript
    import * as jose from 'jose';
 
@@ -376,6 +398,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    ```
 
 2. **Create refresh token management** (`lib/auth/refresh-tokens.ts`):
+
    ```typescript
    import { prisma } from '@/lib/db/prisma';
    import crypto from 'crypto';
@@ -394,7 +417,9 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
      return token;
    }
 
-   export async function verifyRefreshToken(token: string): Promise<string | null> {
+   export async function verifyRefreshToken(
+     token: string
+   ): Promise<string | null> {
      const refreshToken = await prisma.refreshToken.findUnique({
        where: { token },
        include: { user: true },
@@ -413,6 +438,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    ```
 
 3. **Add database schema** (`prisma/schema.prisma`):
+
    ```prisma
    model RefreshToken {
      id        String   @id @default(cuid())
@@ -447,6 +473,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
 **Tasks:**
 
 1. **Create login endpoint** (`app/api/auth/login/route.ts`):
+
    ```typescript
    import { NextResponse } from 'next/server';
    import bcrypt from 'bcryptjs';
@@ -461,29 +488,41 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
      const user = await prisma.user.findUnique({ where: { email } });
 
      if (!user || !user.password) {
-       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+       return NextResponse.json(
+         { error: 'Invalid credentials' },
+         { status: 401 }
+       );
      }
 
      // Verify password
      const isValid = await bcrypt.compare(password, user.password);
 
      if (!isValid) {
-       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+       return NextResponse.json(
+         { error: 'Invalid credentials' },
+         { status: 401 }
+       );
      }
 
      // Check email verification
      if (!user.emailVerified) {
-       return NextResponse.json({ error: 'Email not verified' }, { status: 403 });
+       return NextResponse.json(
+         { error: 'Email not verified' },
+         { status: 403 }
+       );
      }
 
      // Check 2FA
      if (user.twoFactorEnabled) {
        // Generate temporary token and return 2FA required
        const tempToken = await signJWT({ userId: user.id, purpose: '2fa' });
-       return NextResponse.json({
-         requires2FA: true,
-         tempToken
-       }, { status: 200 });
+       return NextResponse.json(
+         {
+           requires2FA: true,
+           tempToken,
+         },
+         { status: 200 }
+       );
      }
 
      // Generate tokens
@@ -518,10 +557,15 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    ```
 
 2. **Create refresh endpoint** (`app/api/auth/refresh/route.ts`):
+
    ```typescript
    import { NextResponse } from 'next/server';
    import { cookies } from 'next/headers';
-   import { verifyRefreshToken, createRefreshToken, revokeRefreshToken } from '@/lib/auth/refresh-tokens';
+   import {
+     verifyRefreshToken,
+     createRefreshToken,
+     revokeRefreshToken,
+   } from '@/lib/auth/refresh-tokens';
    import { signJWT } from '@/lib/auth/jwt';
    import { prisma } from '@/lib/db/prisma';
 
@@ -536,7 +580,10 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
      const userId = await verifyRefreshToken(refreshToken);
 
      if (!userId) {
-       return NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 });
+       return NextResponse.json(
+         { error: 'Invalid refresh token' },
+         { status: 401 }
+       );
      }
 
      // Fetch user
@@ -581,6 +628,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    ```
 
 3. **Create logout endpoint** (`app/api/auth/logout/route.ts`):
+
    ```typescript
    import { NextResponse } from 'next/server';
    import { cookies } from 'next/headers';
@@ -603,6 +651,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    ```
 
 4. **Update register endpoint** (`app/api/auth/register/route.ts`):
+
    ```typescript
    // After user creation and email verification (lines 68-94)
    // ADD: Issue tokens if auto-verified (development)
@@ -619,7 +668,10 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
 
      const refreshToken = await createRefreshToken(user.id);
 
-     const response = NextResponse.json({ success: true, userId: user.id }, { status: 201 });
+     const response = NextResponse.json(
+       { success: true, userId: user.id },
+       { status: 201 }
+     );
      response.cookies.set('accessToken', accessToken, { ...cookieOptions });
      response.cookies.set('refreshToken', refreshToken, { ...cookieOptions });
 
@@ -652,6 +704,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    - Keep all business logic helpers unchanged
 
 5. **Add client-side auth provider** (`app/providers/auth-provider.tsx`):
+
    ```typescript
    'use client';
 
@@ -733,17 +786,20 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
    - API endpoints with JWT verification
 
 3. **Remove NextAuth dependencies:**
+
    ```bash
    npm uninstall next-auth @next-auth/prisma-adapter
    ```
 
 4. **Remove NextAuth files:**
+
    ```bash
    rm app/api/auth/[...nextauth]/route.ts
    rm lib/auth/auth-options.ts
    ```
 
 5. **Update Prisma schema:**
+
    ```prisma
    // Remove NextAuth tables
    // model Account { ... }  → DELETE
@@ -763,6 +819,7 @@ __tests__/unit/auth/register.test.tsx        → 🔄 UPDATE (after migration)
 ### 4.1 New Tables to ADD
 
 **RefreshToken table:**
+
 ```prisma
 model RefreshToken {
   id        String   @id @default(cuid())
@@ -784,6 +841,7 @@ model RefreshToken {
 ### 4.2 Tables to REMOVE (After Migration)
 
 **NextAuth tables (created by PrismaAdapter):**
+
 ```prisma
 model Account { ... }           → ❌ DELETE
 model Session { ... }           → ❌ DELETE
@@ -797,6 +855,7 @@ model VerificationToken { ... } → ❌ DELETE
 ### 4.3 Tables to KEEP (No Changes)
 
 **User table:**
+
 ```prisma
 model User {
   id                String    @id @default(cuid())
@@ -831,16 +890,16 @@ model User {
 
 ### Summary Table
 
-| Category | Files | Keep | Adapt | Replace | Reusability |
-|----------|-------|------|-------|---------|-------------|
-| **UI Pages** | 6 | 6 | 0 | 0 | 100% |
-| **Components** | 4 | 3 | 1 | 0 | 95% |
-| **Utilities** | 5 | 5 | 0 | 0 | 100% |
-| **Session Helpers** | 1 | 0 | 1 | 0 | 60% |
-| **API Routes** | 9 | 2 | 5 | 2 | 40% |
-| **Config** | 2 | 0 | 0 | 2 | 0% |
-| **Tests** | 3 | 0 | 3 | 0 | 0% (rewrite) |
-| **TOTAL** | **30** | **16** | **10** | **4** | **70%** |
+| Category            | Files  | Keep   | Adapt  | Replace | Reusability  |
+| ------------------- | ------ | ------ | ------ | ------- | ------------ |
+| **UI Pages**        | 6      | 6      | 0      | 0       | 100%         |
+| **Components**      | 4      | 3      | 1      | 0       | 95%          |
+| **Utilities**       | 5      | 5      | 0      | 0       | 100%         |
+| **Session Helpers** | 1      | 0      | 1      | 0       | 60%          |
+| **API Routes**      | 9      | 2      | 5      | 2       | 40%          |
+| **Config**          | 2      | 0      | 0      | 2       | 0%           |
+| **Tests**           | 3      | 0      | 3      | 0       | 0% (rewrite) |
+| **TOTAL**           | **30** | **16** | **10** | **4**   | **70%**      |
 
 ---
 
@@ -851,8 +910,10 @@ model User {
 **Risk:** Existing users with NextAuth JWT tokens will be logged out after migration.
 
 **Mitigation:**
+
 1. Add banner warning: "Authentication system upgrading. You may need to log in again."
 2. Implement dual authentication during transition:
+
    ```typescript
    // Support both NextAuth and new JWT for 1 week
    export async function getSession() {
@@ -879,6 +940,7 @@ model User {
 **Risk:** OAuth providers require callback URL changes.
 
 **Mitigation:**
+
 1. Update OAuth app configurations:
    - Google Cloud Console → Add new redirect URI: `https://yourdomain.com/api/auth/oauth/callback`
    - Twitter Developer Portal → Same
@@ -893,12 +955,14 @@ model User {
 **Risk:** NestJS Stack B needs to verify JWTs from Next.js Stack A.
 
 **Mitigation:**
+
 1. Share JWT public key across all stacks via environment variable
 2. Use RS256 or ES256 (public/private key pairs) instead of HS256 (shared secret)
 3. Set up JWKS endpoint: `GET /api/auth/.well-known/jwks.json`
 4. NestJS uses JWKS to fetch public keys for verification
 
 **Example:**
+
 ```typescript
 // Stack A (Next.js) - Sign with private key
 const privateKey = process.env.JWT_PRIVATE_KEY;
@@ -922,7 +986,7 @@ Implement automatic token rotation for enhanced security:
 // Auto-refresh access token 5 minutes before expiry
 useEffect(() => {
   const tokenExpiryTime = decodeJWT(accessToken).exp * 1000;
-  const timeUntilRefresh = tokenExpiryTime - Date.now() - (5 * 60 * 1000);
+  const timeUntilRefresh = tokenExpiryTime - Date.now() - 5 * 60 * 1000;
 
   const timeout = setTimeout(async () => {
     await fetch('/api/auth/refresh', { method: 'POST' });
@@ -996,22 +1060,26 @@ await prisma.refreshToken.update({
 ## 8. Migration Timeline
 
 ### Week 1: Foundation
+
 - ✅ Day 1-2: Create JWT utilities and refresh token management
 - ✅ Day 3: Add database schema and run migrations
 - ✅ Day 4-5: Create core API endpoints (login, refresh, logout)
 
 ### Week 2: Integration
+
 - ✅ Day 1-2: Update existing API routes (register, verify-email, 2FA)
 - ✅ Day 3-4: Update frontend components (login-form, social-auth)
 - ✅ Day 5: Update session helpers and add auth provider
 
 ### Week 3: Testing & Cutover
+
 - ✅ Day 1-2: Integration testing (all auth flows)
 - ✅ Day 3: Load testing (JWT verification performance)
 - ✅ Day 4: Deploy to staging and test OAuth flows
 - ✅ Day 5: Production deployment and monitoring
 
 ### Week 4: Cleanup (Optional)
+
 - ✅ Remove NextAuth dependencies
 - ✅ Delete NextAuth database tables
 - ✅ Update tests
@@ -1044,13 +1112,13 @@ await prisma.refreshToken.update({
 
 ### 🎯 Migration Effort Estimate
 
-| Phase | Effort | Risk | Dependencies |
-|-------|--------|------|--------------|
-| Phase 1: Foundation | 2 days | Low | Database access |
-| Phase 2: API Routes | 3-4 days | Medium | Phase 1 complete |
-| Phase 3: Frontend | 3-4 days | Medium | Phase 2 complete |
-| Phase 4: Testing | 2-3 days | High | All phases complete |
-| **TOTAL** | **10-13 days** | **Medium** | Phased approach |
+| Phase               | Effort         | Risk       | Dependencies        |
+| ------------------- | -------------- | ---------- | ------------------- |
+| Phase 1: Foundation | 2 days         | Low        | Database access     |
+| Phase 2: API Routes | 3-4 days       | Medium     | Phase 1 complete    |
+| Phase 3: Frontend   | 3-4 days       | Medium     | Phase 2 complete    |
+| Phase 4: Testing    | 2-3 days       | High       | All phases complete |
+| **TOTAL**           | **10-13 days** | **Medium** | Phased approach     |
 
 **Recommended team:** 1-2 senior engineers
 **Timeline:** 2-3 weeks (with testing)
@@ -1084,6 +1152,7 @@ await prisma.refreshToken.update({
 ### ✅ **PROCEED WITH MIGRATION**
 
 **Rationale:**
+
 1. You're already 70% of the way there (NextAuth with JWT)
 2. Your microservices architecture requires cross-stack authentication
 3. The performance and cost benefits are significant
@@ -1091,6 +1160,7 @@ await prisma.refreshToken.update({
 5. The migration risk is manageable with proper planning
 
 **Strategy:**
+
 - **Phased rollout** with dual authentication support during transition
 - **Comprehensive testing** before production deployment
 - **User communication** about temporary session invalidation

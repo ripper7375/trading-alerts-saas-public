@@ -17,6 +17,7 @@ For your hybrid JWT-based authentication architecture during microservices migra
 - 🎯 **Implementation:** Custom hybrid combining patterns from both
 
 **Why OpenAuth:**
+
 - Native JWT-based architecture (matches your requirement)
 - Built for microservices and distributed systems
 - Stateless access tokens + stateful refresh tokens
@@ -24,6 +25,7 @@ For your hybrid JWT-based authentication architecture during microservices migra
 - OAuth 2.0 compliant (future-proof for multi-client scenarios)
 
 **Why Not Better Auth Alone:**
+
 - Primarily session-based (opposite of your goal)
 - Requires database lookup on every request
 - Not optimized for microservices architecture
@@ -36,6 +38,7 @@ For your hybrid JWT-based authentication architecture during microservices migra
 ### From Your Architecture Diagram:
 
 **Monolith → Microservice Migration:**
+
 ```
 BEFORE (Monolith):
 - Frontend Stack A: Authentication in Next.js
@@ -53,6 +56,7 @@ AFTER (Microservices):
 ### From Your JWT Documents:
 
 **Key Requirements:**
+
 1. ✅ JWT-based authentication (not session-based)
 2. ✅ Hybrid architecture (Next.js + NestJS)
 3. ✅ Microservices support (Stack A, B, C, D, E)
@@ -68,13 +72,13 @@ AFTER (Microservices):
 
 ### Architecture Type
 
-| Aspect | Better Auth | OpenAuth | Your Requirement |
-|--------|-------------|----------|------------------|
-| **Primary Method** | Session-based | JWT-based | ✅ JWT-based |
-| **Access Tokens** | Optional JWT cache | Primary JWT | ✅ Primary JWT |
-| **Storage** | Database sessions | Refresh tokens only | ✅ Minimal storage |
-| **Validation** | DB lookup every request | Signature verification | ✅ No DB lookup |
-| **Microservices** | Requires shared session store | Stateless tokens | ✅ Stateless |
+| Aspect             | Better Auth                   | OpenAuth               | Your Requirement   |
+| ------------------ | ----------------------------- | ---------------------- | ------------------ |
+| **Primary Method** | Session-based                 | JWT-based              | ✅ JWT-based       |
+| **Access Tokens**  | Optional JWT cache            | Primary JWT            | ✅ Primary JWT     |
+| **Storage**        | Database sessions             | Refresh tokens only    | ✅ Minimal storage |
+| **Validation**     | DB lookup every request       | Signature verification | ✅ No DB lookup    |
+| **Microservices**  | Requires shared session store | Stateless tokens       | ✅ Stateless       |
 
 **Winner:** OpenAuth ✅
 
@@ -82,13 +86,13 @@ AFTER (Microservices):
 
 ### Token Management
 
-| Feature | Better Auth | OpenAuth | Your Requirement |
-|---------|-------------|----------|------------------|
-| **Access Token Type** | Session ID or cached JWT | Standard JWT (ES256) | ✅ JWT |
-| **Refresh Tokens** | Not primary feature | Built-in with rotation | ✅ Refresh tokens |
-| **Token Storage** | Database sessions | Server-side refresh only | ✅ Stateless access |
-| **Expiration** | Session-based | Configurable (30d default) | ✅ 7-day tokens |
-| **Revocation** | Delete session | Refresh token invalidation | ✅ Acceptable |
+| Feature               | Better Auth              | OpenAuth                   | Your Requirement    |
+| --------------------- | ------------------------ | -------------------------- | ------------------- |
+| **Access Token Type** | Session ID or cached JWT | Standard JWT (ES256)       | ✅ JWT              |
+| **Refresh Tokens**    | Not primary feature      | Built-in with rotation     | ✅ Refresh tokens   |
+| **Token Storage**     | Database sessions        | Server-side refresh only   | ✅ Stateless access |
+| **Expiration**        | Session-based            | Configurable (30d default) | ✅ 7-day tokens     |
+| **Revocation**        | Delete session           | Refresh token invalidation | ✅ Acceptable       |
 
 **Winner:** OpenAuth ✅
 
@@ -96,13 +100,13 @@ AFTER (Microservices):
 
 ### Microservices Compatibility
 
-| Scenario | Better Auth | OpenAuth | Your Requirement |
-|----------|-------------|----------|------------------|
-| **Stack A → Stack B** | Shared session store needed | JWT verification only | ✅ Stateless |
-| **Stack A → Stack C** | Complex (cross-provider) | JWT signature check | ✅ Works cross-cloud |
-| **Frontend E → Stack A** | Session cookies limited | JWT in Authorization header | ✅ Cross-domain |
-| **Horizontal Scaling** | Sticky sessions required | No sticky sessions | ✅ True load balancing |
-| **Service-to-Service** | Not designed for this | Native support | ✅ Microservices |
+| Scenario                 | Better Auth                 | OpenAuth                    | Your Requirement       |
+| ------------------------ | --------------------------- | --------------------------- | ---------------------- |
+| **Stack A → Stack B**    | Shared session store needed | JWT verification only       | ✅ Stateless           |
+| **Stack A → Stack C**    | Complex (cross-provider)    | JWT signature check         | ✅ Works cross-cloud   |
+| **Frontend E → Stack A** | Session cookies limited     | JWT in Authorization header | ✅ Cross-domain        |
+| **Horizontal Scaling**   | Sticky sessions required    | No sticky sessions          | ✅ True load balancing |
+| **Service-to-Service**   | Not designed for this       | Native support              | ✅ Microservices       |
 
 **Winner:** OpenAuth ✅
 
@@ -110,13 +114,13 @@ AFTER (Microservices):
 
 ### Hybrid Next.js + NestJS Support
 
-| Pattern | Better Auth | OpenAuth | Your Requirement |
-|---------|-------------|----------|------------------|
-| **SSR (Next.js server → NestJS)** | Session cookie + lookup | JWT in cookie → verify | ✅ JWT pattern |
-| **Client-side (Browser → NestJS)** | Session cookie + lookup | Same JWT, no lookup | ✅ Same token |
-| **Cookie Management** | Excellent (built-in) | Good (requires implementation) | ⚠️ Need custom |
-| **NextAuth.js Integration** | Direct support | Custom integration | ⚠️ Manual work |
-| **Token in Cookie** | Session ID | JWT (requires custom) | ✅ JWT storage |
+| Pattern                            | Better Auth             | OpenAuth                       | Your Requirement |
+| ---------------------------------- | ----------------------- | ------------------------------ | ---------------- |
+| **SSR (Next.js server → NestJS)**  | Session cookie + lookup | JWT in cookie → verify         | ✅ JWT pattern   |
+| **Client-side (Browser → NestJS)** | Session cookie + lookup | Same JWT, no lookup            | ✅ Same token    |
+| **Cookie Management**              | Excellent (built-in)    | Good (requires implementation) | ⚠️ Need custom   |
+| **NextAuth.js Integration**        | Direct support          | Custom integration             | ⚠️ Manual work   |
+| **Token in Cookie**                | Session ID              | JWT (requires custom)          | ✅ JWT storage   |
 
 **Winner:** Tie (OpenAuth for architecture, Better Auth for Next.js patterns) ⚖️
 
@@ -124,14 +128,14 @@ AFTER (Microservices):
 
 ### Security Features
 
-| Feature | Better Auth | OpenAuth | Your Need |
-|---------|-------------|----------|-----------|
-| **CSRF Protection** | SameSite cookies | State parameter + CORS | ✅ Both |
-| **XSS Protection** | HttpOnly cookies | HttpOnly cookies (custom) | ✅ Both |
-| **Token Reuse Detection** | Not applicable | Built-in (60s window) | ✅ Excellent |
-| **Key Rotation** | Not emphasized | Automatic rotation | ✅ Future-proof |
-| **Instant Revocation** | Delete session (instant) | Refresh token only | ⚠️ Acceptable |
-| **PKCE Support** | Via adapters | Native | ✅ Future mobile |
+| Feature                   | Better Auth              | OpenAuth                  | Your Need        |
+| ------------------------- | ------------------------ | ------------------------- | ---------------- |
+| **CSRF Protection**       | SameSite cookies         | State parameter + CORS    | ✅ Both          |
+| **XSS Protection**        | HttpOnly cookies         | HttpOnly cookies (custom) | ✅ Both          |
+| **Token Reuse Detection** | Not applicable           | Built-in (60s window)     | ✅ Excellent     |
+| **Key Rotation**          | Not emphasized           | Automatic rotation        | ✅ Future-proof  |
+| **Instant Revocation**    | Delete session (instant) | Refresh token only        | ⚠️ Acceptable    |
+| **PKCE Support**          | Via adapters             | Native                    | ✅ Future mobile |
 
 **Winner:** OpenAuth for JWT-based security ✅
 
@@ -139,14 +143,14 @@ AFTER (Microservices):
 
 ### Implementation Complexity
 
-| Task | Better Auth | OpenAuth | Your Situation |
-|------|-------------|----------|----------------|
-| **Initial Setup** | Simple | Moderate | ⚠️ More work |
-| **JWT Configuration** | Optional, secondary | Core configuration | ✅ Primary focus |
-| **Database Integration** | Prisma native | Custom adapters | ⚠️ Need adapter |
-| **Next.js Integration** | Excellent docs | Limited docs | ⚠️ Custom code |
-| **NestJS Integration** | Manual | Good patterns | ✅ Reference available |
-| **Learning Curve** | Low | Medium-High | ⚠️ More study |
+| Task                     | Better Auth         | OpenAuth           | Your Situation         |
+| ------------------------ | ------------------- | ------------------ | ---------------------- |
+| **Initial Setup**        | Simple              | Moderate           | ⚠️ More work           |
+| **JWT Configuration**    | Optional, secondary | Core configuration | ✅ Primary focus       |
+| **Database Integration** | Prisma native       | Custom adapters    | ⚠️ Need adapter        |
+| **Next.js Integration**  | Excellent docs      | Limited docs       | ⚠️ Custom code         |
+| **NestJS Integration**   | Manual              | Good patterns      | ✅ Reference available |
+| **Learning Curve**       | Low                 | Medium-High        | ⚠️ More study          |
 
 **Winner:** Better Auth for simplicity ✅
 
@@ -183,6 +187,7 @@ const jwt = await new SignJWT(payload)
 ```
 
 **Why this pattern:**
+
 - Self-contained: User data in token
 - No database lookup needed
 - Works across all microservices
@@ -212,6 +217,7 @@ const jwt = await new SignJWT(payload)
 ```
 
 **Why this pattern:**
+
 - **Security:** Token reuse detection prevents theft
 - **Revocation:** Can invalidate refresh tokens
 - **Performance:** Access token still stateless
@@ -239,7 +245,11 @@ class PrismaTokenStorage implements Storage {
     await prisma.refreshToken.upsert({
       where: { id: key },
       update: { ...value, expiresAt: new Date(Date.now() + ttl * 1000) },
-      create: { id: key, ...value, expiresAt: new Date(Date.now() + ttl * 1000) }
+      create: {
+        id: key,
+        ...value,
+        expiresAt: new Date(Date.now() + ttl * 1000),
+      },
     });
   }
 
@@ -248,6 +258,7 @@ class PrismaTokenStorage implements Storage {
 ```
 
 **Why this pattern:**
+
 - Pluggable storage (matches your Prisma)
 - Only stores refresh tokens, not access
 - TTL support for automatic cleanup
@@ -282,6 +293,7 @@ fetchMT5Data(user.tier);
 ```
 
 **Why this pattern:**
+
 - Same JWT works everywhere
 - No session sharing between clouds
 - Each service independently verifies
@@ -298,15 +310,16 @@ Even though Better Auth is session-based, some patterns are valuable:
 ```typescript
 // Secure cookie handling for JWT
 setCookie(ctx, 'access_token', jwt, {
-  httpOnly: true,           // XSS protection
-  secure: true,             // HTTPS only
-  sameSite: 'Lax',          // CSRF protection
+  httpOnly: true, // XSS protection
+  secure: true, // HTTPS only
+  sameSite: 'Lax', // CSRF protection
   maxAge: 7 * 24 * 60 * 60, // 7 days
-  path: '/'
+  path: '/',
 });
 ```
 
 **Why this pattern:**
+
 - Better Auth has excellent cookie security
 - Use for storing JWT in Next.js
 - Prevents XSS attacks
@@ -318,9 +331,7 @@ setCookie(ctx, 'access_token', jwt, {
 
 ```typescript
 // Throttled refresh to avoid spam
-const shouldRefresh = (
-  tokenExpiresAt - maxAge + updateAge <= Date.now()
-);
+const shouldRefresh = tokenExpiresAt - maxAge + updateAge <= Date.now();
 
 // Example: 7-day token, refresh if within last day
 if (shouldRefresh && !ctx.query.disableRefresh) {
@@ -331,6 +342,7 @@ if (shouldRefresh && !ctx.query.disableRefresh) {
 ```
 
 **Why this pattern:**
+
 - Prevents unnecessary token refreshes
 - Better UX (less token updates)
 - Use with your refresh token flow
@@ -361,6 +373,7 @@ export function middleware(request: NextRequest) {
 ```
 
 **Why this pattern:**
+
 - Better Auth has great Next.js integration
 - Use for protecting routes
 - JWT verification in middleware
@@ -386,15 +399,18 @@ export class AuthService {
     const user = await this.validateUser(email, password);
 
     // Generate access JWT (OpenAuth pattern)
-    const accessToken = await this.jwtService.signAsync({
-      sub: user.id,
-      email: user.email,
-      tier: user.tier,
-      type: 'user'
-    }, {
-      expiresIn: '7d',  // Your requirement
-      algorithm: 'ES256' // OpenAuth uses ES256
-    });
+    const accessToken = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        email: user.email,
+        tier: user.tier,
+        type: 'user',
+      },
+      {
+        expiresIn: '7d', // Your requirement
+        algorithm: 'ES256', // OpenAuth uses ES256
+      }
+    );
 
     // Generate refresh token (OpenAuth pattern)
     const refreshToken = randomUUID();
@@ -414,8 +430,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        tier: user.tier
-      }
+        tier: user.tier,
+      },
     };
   }
 
@@ -457,7 +473,7 @@ export async function POST(request: NextRequest) {
   const response = await fetch(`${process.env.BACKEND_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password }),
   });
 
   if (!response.ok) {
@@ -471,17 +487,17 @@ export async function POST(request: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax' as const,
-    path: '/'
+    path: '/',
   };
 
   cookies().set('access_token', accessToken, {
     ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 // 7 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   });
 
   cookies().set('refresh_token', refreshToken, {
     ...cookieOptions,
-    maxAge: 365 * 24 * 60 * 60 // 1 year
+    maxAge: 365 * 24 * 60 * 60, // 1 year
   });
 
   return NextResponse.json({ user });
@@ -573,7 +589,7 @@ async function processAlert(job: Job) {
 export async function verifyJWT(token: string) {
   try {
     const decoded = jwt.verify(token, PUBLIC_KEY, {
-      algorithms: ['ES256']
+      algorithms: ['ES256'],
     });
     return decoded;
   } catch {
@@ -659,6 +675,7 @@ def get_mt5_data():
 ### Step 1: Backend Stack A (NestJS)
 
 1. ✅ Install JWT dependencies
+
    ```bash
    npm install @nestjs/jwt @nestjs/passport passport-jwt
    ```
@@ -725,6 +742,7 @@ def get_mt5_data():
 ### Based on Your Requirements
 
 **With JWT (OpenAuth pattern):**
+
 ```
 ✅ No Redis for sessions: Save $15-30/month
 ✅ No database queries for auth: 29x faster (per your doc)
@@ -734,6 +752,7 @@ def get_mt5_data():
 ```
 
 **With Sessions (Better Auth):**
+
 ```
 ❌ Redis required: +$15-30/month
 ❌ DB query every request: 30-50ms overhead
@@ -802,6 +821,7 @@ Custom Hybrid (100%):
 **A: OpenAuth (80% match) > Better Auth (40% match)**
 
 **Why:**
+
 - OpenAuth IS JWT-based (your requirement)
 - Better Auth IS session-based (opposite of your requirement)
 - OpenAuth designed for microservices (your architecture)
@@ -810,11 +830,13 @@ Custom Hybrid (100%):
 - Better Auth focuses on session storage (not your need)
 
 **However:** Combine both:
+
 - Use OpenAuth architecture and patterns (primary)
 - Use Better Auth Next.js integration (secondary)
 - Build custom hybrid NestJS + Next.js implementation
 
 **Expected Effort:**
+
 - OpenAuth: 70% reference value (learn architecture)
 - Better Auth: 30% reference value (learn Next.js patterns)
 - Custom code: 40% (adapt to your specific stack)
