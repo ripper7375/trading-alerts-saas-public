@@ -15,7 +15,7 @@
       "DOM", // Browser DOM APIs
       "DOM.Iterable" // Iterable DOM collections
     ],
-    "jsx": "react-jsx", // Keep JSX as-is for Next.js to handle
+    "jsx": "preserve", // Keep JSX as-is for Next.js to handle
     "module": "esnext", // Use latest ES modules
     // ==========================================================================
     // Module Resolution (Path Aliases)
