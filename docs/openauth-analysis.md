@@ -419,19 +419,18 @@ const { url, verifier } = await client.authorize({
   redirectURI: "https://app.example.com/callback",
 });
 
-// Store verifier, redirect user
-localStorage.setItem("verifier", verifier);
+// Store PKCE verifier temporarily and redirect user
+sessionStorage.setItem("pkce_verifier", verifier);
 window.location.href = url;
 
 // After callback
 const tokens = await client.exchange({
   code: urlParams.get("code"),
-  verifier: localStorage.getItem("verifier"),
+  verifier: sessionStorage.getItem("pkce_verifier"),
 });
 
-// Store tokens
-localStorage.setItem("access_token", tokens.access);
-localStorage.setItem("refresh_token", tokens.refresh);
+// Store access token in memory; refresh token is managed via httpOnly cookies/server-side state
+let accessToken = tokens.access;
 ```
 
 ---
