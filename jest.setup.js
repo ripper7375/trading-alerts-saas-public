@@ -25,11 +25,23 @@ if (typeof global.ReadableStream === 'undefined') {
 // Required by next/server and other packages that use Web APIs
 // Note: These are available in Node.js 18+ but not exposed to jsdom by default
 if (typeof global.Request === 'undefined') {
-  const { Request, Response, Headers, fetch } = require('undici');
-  global.Request = Request;
-  global.Response = Response;
-  global.Headers = Headers;
-  global.fetch = fetch;
+  try {
+    // Try to use native Node.js undici (Node 18+)
+    const { Request, Response, Headers, fetch, FormData } = require('node:undici');
+    global.Request = Request;
+    global.Response = Response;
+    global.Headers = Headers;
+    global.fetch = fetch;
+    global.FormData = FormData;
+  } catch (e) {
+    // Fallback: use undici package if node:undici is not available
+    const { Request, Response, Headers, fetch, FormData } = require('undici');
+    global.Request = Request;
+    global.Response = Response;
+    global.Headers = Headers;
+    global.fetch = fetch;
+    global.FormData = FormData;
+  }
 }
 
 // Extend Jest matchers with @testing-library/jest-dom
