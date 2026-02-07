@@ -42,6 +42,7 @@
 The architecture blueprint (`Agentic_AI_Trading_Model_Architecture_Blueprint_v2.md`) specifies a LangGraph-based state machine for orchestrating trade evaluation cycles. We are using **txtai** instead of LangGraph as the AI framework.
 
 txtai provides native support for:
+
 - Vector search and embeddings (Knowledge Retriever)
 - RAG pipeline (retrieval + LLM generation)
 - LLM integration via LiteLLM (Claude API)
@@ -51,17 +52,18 @@ txtai provides native support for:
 - FastAPI web API layer
 
 txtai does **not** provide:
+
 - Graph-based state machine with conditional node routing
 - Persistent agent state across evaluation cycles
 - Structured state transitions with validation
 
 This document specifies three modifications to bridge this gap:
 
-| Modification | Replaces (from LangGraph) | Complexity | Effort |
-|---|---|---|---|
-| **Mod 1**: Custom State Machine Engine | `StateGraph`, `add_conditional_edges()` | Low | 2-3 days |
-| **Mod 2**: Simplified Routing (no execution) | Removes EXECUTING/ENTERED states | Very Low | 1 day |
-| **Mod 3**: PostgreSQL State Persistence | `MemorySaver` with PostgreSQL backend | Medium | 3-5 days |
+| Modification                                 | Replaces (from LangGraph)               | Complexity | Effort   |
+| -------------------------------------------- | --------------------------------------- | ---------- | -------- |
+| **Mod 1**: Custom State Machine Engine       | `StateGraph`, `add_conditional_edges()` | Low        | 2-3 days |
+| **Mod 2**: Simplified Routing (no execution) | Removes EXECUTING/ENTERED states        | Very Low   | 1 day    |
+| **Mod 3**: PostgreSQL State Persistence      | `MemorySaver` with PostgreSQL backend   | Medium     | 3-5 days |
 
 ### What This Document Covers
 
@@ -170,31 +172,32 @@ This document specifies three modifications to bridge this gap:
 
 ### 3.1 Which txtai Components We Use (Unmodified)
 
-| Component | txtai Class | How We Use It |
-|---|---|---|
-| Vector Search | `Embeddings` | Knowledge retriever — search methodology chunks |
-| RAG | `RAG` | Optional — retrieve + generate in single call |
-| LLM | `LLM` (via LiteLLM) | Call Claude API for evaluation and response generation |
-| Database | `database.rdbms` | PostgreSQL queries for market data and state persistence |
-| Agent | `Agent` | Tool-calling agent for conversational interface |
-| Workflow | `Workflow` | Cron-scheduled evaluation cycle orchestration |
-| API | `api` (FastAPI) | Web endpoints for chat and state queries |
-| Application | `Application` | Wires everything together from YAML config |
+| Component     | txtai Class         | How We Use It                                            |
+| ------------- | ------------------- | -------------------------------------------------------- |
+| Vector Search | `Embeddings`        | Knowledge retriever — search methodology chunks          |
+| RAG           | `RAG`               | Optional — retrieve + generate in single call            |
+| LLM           | `LLM` (via LiteLLM) | Call Claude API for evaluation and response generation   |
+| Database      | `database.rdbms`    | PostgreSQL queries for market data and state persistence |
+| Agent         | `Agent`             | Tool-calling agent for conversational interface          |
+| Workflow      | `Workflow`          | Cron-scheduled evaluation cycle orchestration            |
+| API           | `api` (FastAPI)     | Web endpoints for chat and state queries                 |
+| Application   | `Application`       | Wires everything together from YAML config               |
 
 ### 3.2 What We Add (Custom Code)
 
-| Custom Component | Purpose | Integrates With |
-|---|---|---|
-| `StateMachine` class | State transitions and validation | Called by Workflow tasks |
-| `AgentStateManager` class | PostgreSQL persistence for AgentState | Uses SQLAlchemy directly |
-| `ConvergenceScorer` class | Rule-based 5-factor scoring | Called during evaluation |
-| `EvaluationPipeline` class | Orchestrates the full evaluation cycle | Calls txtai Agent tools + LLM |
-| `LLMOutputParser` class | Parses structured JSON from Claude | Post-processes LLM pipeline output |
-| Custom txtai Tools | `market_data_retriever`, `knowledge_retriever`, `evaluate_trade` | Registered with txtai Agent |
+| Custom Component           | Purpose                                                          | Integrates With                    |
+| -------------------------- | ---------------------------------------------------------------- | ---------------------------------- |
+| `StateMachine` class       | State transitions and validation                                 | Called by Workflow tasks           |
+| `AgentStateManager` class  | PostgreSQL persistence for AgentState                            | Uses SQLAlchemy directly           |
+| `ConvergenceScorer` class  | Rule-based 5-factor scoring                                      | Called during evaluation           |
+| `EvaluationPipeline` class | Orchestrates the full evaluation cycle                           | Calls txtai Agent tools + LLM      |
+| `LLMOutputParser` class    | Parses structured JSON from Claude                               | Post-processes LLM pipeline output |
+| Custom txtai Tools         | `market_data_retriever`, `knowledge_retriever`, `evaluate_trade` | Registered with txtai Agent        |
 
 ### 3.3 txtai Agent Extension Pattern
 
 txtai agents use a `ToolFactory` that accepts:
+
 - **Functions/callables** → wrapped as `FunctionTool`
 - **Dicts with "target"** → resolved to `EmbeddingsTool` or `FunctionTool`
 - **Tool instances** → passed through directly
@@ -233,7 +236,7 @@ workflow:
       - action: fetch_and_evaluate
       - action: generate_response
     schedule:
-      cron: "0 * * * *"  # Every hour (H1 bar close)
+      cron: '0 * * * *' # Every hour (H1 bar close)
 ```
 
 ---
@@ -561,20 +564,22 @@ class StateMachine:
 
 From the blueprint's original 9 states, we remove 2:
 
-| Removed State | Original Purpose | Advisory Replacement |
-|---|---|---|
-| `EXECUTING` | Place orders via Flask MT5 Service | Generate recommendation text |
-| `ENTERED` | Position live, handoff to management | N/A — advisory delivered |
+| Removed State | Original Purpose                     | Advisory Replacement         |
+| ------------- | ------------------------------------ | ---------------------------- |
+| `EXECUTING`   | Place orders via Flask MT5 Service   | Generate recommendation text |
+| `ENTERED`     | Position live, handoff to management | N/A — advisory delivered     |
 
 ### 5.2 Modified Transition: PULLBACK_TESTING Exit
 
 **Original (blueprint)**:
+
 ```
 PULLBACK_TESTING → EXECUTING
   Condition: bounce confirmed AND score >= ENTER threshold
 ```
 
 **Modified (advisory-only)**:
+
 ```
 PULLBACK_TESTING → IDLE (via respond)
   Condition: bounce confirmed AND score >= ENTER threshold
@@ -637,16 +642,16 @@ def route_after_evaluation(agent_state: dict) -> str:
 
 ### 5.4 What the "Respond" Step Produces Per State
 
-| State at Respond Time | Response Type | Content |
-|---|---|---|
-| IDLE | Market overview | "No active setup. Market is [regime]. Monitoring for opportunities." |
-| SCANNING | Setup developing | "Watching for breakout on [trendline]. Convergence at [score]." |
-| BREAKOUT_DETECTED | Alert | "Breakout detected on [instrument] [TF]. Evaluating quality..." |
-| AWAITING_PULLBACK | Update | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining." |
-| PULLBACK_TESTING (score >= 5.0) | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence. |
-| PULLBACK_TESTING (score < 5.0) | Caution | "Pullback at zone but convergence insufficient ([score]). Monitoring." |
-| MISSED | Missed opportunity | "Valid breakout but entry window expired. Cooldown [X] bars." |
-| INVALIDATED | Invalidation report | "Setup invalidated: [reason]. Cooldown [X] bars." |
+| State at Respond Time           | Response Type            | Content                                                                    |
+| ------------------------------- | ------------------------ | -------------------------------------------------------------------------- |
+| IDLE                            | Market overview          | "No active setup. Market is [regime]. Monitoring for opportunities."       |
+| SCANNING                        | Setup developing         | "Watching for breakout on [trendline]. Convergence at [score]."            |
+| BREAKOUT_DETECTED               | Alert                    | "Breakout detected on [instrument] [TF]. Evaluating quality..."            |
+| AWAITING_PULLBACK               | Update                   | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining." |
+| PULLBACK_TESTING (score >= 5.0) | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence.    |
+| PULLBACK_TESTING (score < 5.0)  | Caution                  | "Pullback at zone but convergence insufficient ([score]). Monitoring."     |
+| MISSED                          | Missed opportunity       | "Valid breakout but entry window expired. Cooldown [X] bars."              |
+| INVALIDATED                     | Invalidation report      | "Setup invalidated: [reason]. Cooldown [X] bars."                          |
 
 ---
 
@@ -1084,14 +1089,14 @@ class AgentState(TypedDict, total=False):
 
 ### 7.2 Fields Removed from Blueprint (Execution-Related)
 
-| Removed Field | Original Purpose | Why Removed |
-|---|---|---|
-| `execution_trendlines` | Execution Layer TF trendlines | No execution layer |
-| `execution_tema_hrma` | Execution Layer TF indicators | No execution layer |
-| `fill_status` | Per-lot fill tracking | No order placement |
-| `order_ids` | MT5 order references | No order placement |
-| `position_id` | Live position reference | No positions |
-| `chat_history` | Full conversation history | Handled by txtai Agent memory |
+| Removed Field          | Original Purpose              | Why Removed                   |
+| ---------------------- | ----------------------------- | ----------------------------- |
+| `execution_trendlines` | Execution Layer TF trendlines | No execution layer            |
+| `execution_tema_hrma`  | Execution Layer TF indicators | No execution layer            |
+| `fill_status`          | Per-lot fill tracking         | No order placement            |
+| `order_ids`            | MT5 order references          | No order placement            |
+| `position_id`          | Live position reference       | No positions                  |
+| `chat_history`         | Full conversation history     | Handled by txtai Agent memory |
 
 ---
 
@@ -1099,28 +1104,28 @@ class AgentState(TypedDict, total=False):
 
 ### 8.1 Transition Table
 
-| # | From | Condition | To | Trigger | Hard Rule? |
-|---|---|---|---|---|---|
-| 1 | IDLE | `new_bar` | NAVIGATING | Cron / new bar close | No |
-| 2 | IDLE | `user_trigger` | NAVIGATING | User requests evaluation | No |
-| 3 | NAVIGATING | `regime_valid` | SCANNING | Regime classification complete | No |
-| 4 | NAVIGATING | `regime_incompatible` | IDLE | No viable trade conditions | No |
-| 5 | SCANNING | `breakout_found` | BREAKOUT_DETECTED | Candle closes beyond trendline | No |
-| 6 | SCANNING | `structure_deteriorated` | IDLE | Key S/R breaks against direction | No |
-| 7 | SCANNING | `no_setup` | IDLE | LLM judges no setup developing | No |
-| 8 | BREAKOUT_DETECTED | `quality_sufficient` | AWAITING_PULLBACK | LLM + score >= WAIT threshold | No |
-| 9 | BREAKOUT_DETECTED | `quality_insufficient` | INVALIDATED | LLM judges poor breakout | No |
-| 10 | BREAKOUT_DETECTED | `instant_fakeout` | INVALIDATED | Price reverses through trendline | **Yes** |
-| 11 | BREAKOUT_DETECTED | `timeout` | INVALIDATED | 3 bars without confirmation | **Yes** |
-| 12 | AWAITING_PULLBACK | `pullback_arrived` | PULLBACK_TESTING | Price enters tolerance zone | No |
-| 13 | AWAITING_PULLBACK | `window_expired` | MISSED | 8-12 bars without pullback | **Yes** |
-| 14 | AWAITING_PULLBACK | `failed_breakout` | INVALIDATED | Price closes back through trendline | **Yes** |
-| 15 | PULLBACK_TESTING | `bounce_confirmed` | IDLE (via respond) | Active bounce + score >= ENTER | No |
-| 16 | PULLBACK_TESTING | `level_broken` | INVALIDATED | Price breaks zone decisively | **Yes** |
-| 17 | PULLBACK_TESTING | `inconclusive` | SCANNING | No clear rejection/bounce | No |
-| 18 | PULLBACK_TESTING | `timeout` | INVALIDATED | 3-8 bars lingering | **Yes** |
-| 19 | MISSED | `cooldown_expired` | IDLE | 4 bars elapsed | **Yes** |
-| 20 | INVALIDATED | `cooldown_expired` | IDLE | 4 bars elapsed | **Yes** |
+| #   | From              | Condition                | To                 | Trigger                             | Hard Rule? |
+| --- | ----------------- | ------------------------ | ------------------ | ----------------------------------- | ---------- |
+| 1   | IDLE              | `new_bar`                | NAVIGATING         | Cron / new bar close                | No         |
+| 2   | IDLE              | `user_trigger`           | NAVIGATING         | User requests evaluation            | No         |
+| 3   | NAVIGATING        | `regime_valid`           | SCANNING           | Regime classification complete      | No         |
+| 4   | NAVIGATING        | `regime_incompatible`    | IDLE               | No viable trade conditions          | No         |
+| 5   | SCANNING          | `breakout_found`         | BREAKOUT_DETECTED  | Candle closes beyond trendline      | No         |
+| 6   | SCANNING          | `structure_deteriorated` | IDLE               | Key S/R breaks against direction    | No         |
+| 7   | SCANNING          | `no_setup`               | IDLE               | LLM judges no setup developing      | No         |
+| 8   | BREAKOUT_DETECTED | `quality_sufficient`     | AWAITING_PULLBACK  | LLM + score >= WAIT threshold       | No         |
+| 9   | BREAKOUT_DETECTED | `quality_insufficient`   | INVALIDATED        | LLM judges poor breakout            | No         |
+| 10  | BREAKOUT_DETECTED | `instant_fakeout`        | INVALIDATED        | Price reverses through trendline    | **Yes**    |
+| 11  | BREAKOUT_DETECTED | `timeout`                | INVALIDATED        | 3 bars without confirmation         | **Yes**    |
+| 12  | AWAITING_PULLBACK | `pullback_arrived`       | PULLBACK_TESTING   | Price enters tolerance zone         | No         |
+| 13  | AWAITING_PULLBACK | `window_expired`         | MISSED             | 8-12 bars without pullback          | **Yes**    |
+| 14  | AWAITING_PULLBACK | `failed_breakout`        | INVALIDATED        | Price closes back through trendline | **Yes**    |
+| 15  | PULLBACK_TESTING  | `bounce_confirmed`       | IDLE (via respond) | Active bounce + score >= ENTER      | No         |
+| 16  | PULLBACK_TESTING  | `level_broken`           | INVALIDATED        | Price breaks zone decisively        | **Yes**    |
+| 17  | PULLBACK_TESTING  | `inconclusive`           | SCANNING           | No clear rejection/bounce           | No         |
+| 18  | PULLBACK_TESTING  | `timeout`                | INVALIDATED        | 3-8 bars lingering                  | **Yes**    |
+| 19  | MISSED            | `cooldown_expired`       | IDLE               | 4 bars elapsed                      | **Yes**    |
+| 20  | INVALIDATED       | `cooldown_expired`       | IDLE               | 4 bars elapsed                      | **Yes**    |
 
 ### 8.2 Hard Rules (Enforced by Code, Not LLM)
 
@@ -1232,7 +1237,7 @@ agent:
     - target: services.agent.tools.evaluate_trade_setup
   llm:
     path: litellm/anthropic/claude-sonnet-4-5-20250929
-  memory: 10  # Keep last 10 exchanges in context
+  memory: 10 # Keep last 10 exchanges in context
 
 # Workflow for scheduled evaluation cycles
 workflow:
@@ -1240,7 +1245,7 @@ workflow:
     tasks:
       - action: services.agent.pipeline.run_evaluation_cycle
     schedule:
-      cron: "0 * * * *"  # H1 bar close
+      cron: '0 * * * *' # H1 bar close
 ```
 
 ### 9.2 Agent Usage Pattern
@@ -1875,13 +1880,13 @@ def evaluate_trade_setup(instrument: str, tf_config: str) -> str:
 
 ### 12.1 Processing Flow Per State
 
-| State | What Gets Computed | Data Sources | LLM Needed? |
-|---|---|---|---|
-| NAVIGATING | Slope score, regime, counter-trend modifier | Navigation TF OHLCV | No (rule-based) |
-| SCANNING | Breakout detection on primary Decision TF | Decision TF trendlines + OHLCV | No (rule-based detection), Yes (quality pre-assessment) |
-| BREAKOUT_DETECTED | Breakout quality evaluation | Momentum, TEMA/HRMA, trendline score | Yes (holistic quality judgment) |
-| AWAITING_PULLBACK | Pullback distance monitoring | Close price vs projected trendline | No (distance calculation) |
-| PULLBACK_TESTING | Bounce quality, zone construction, pattern detection | All Decision TF data, S/R zones | Yes (bounce quality judgment) |
+| State             | What Gets Computed                                   | Data Sources                         | LLM Needed?                                             |
+| ----------------- | ---------------------------------------------------- | ------------------------------------ | ------------------------------------------------------- |
+| NAVIGATING        | Slope score, regime, counter-trend modifier          | Navigation TF OHLCV                  | No (rule-based)                                         |
+| SCANNING          | Breakout detection on primary Decision TF            | Decision TF trendlines + OHLCV       | No (rule-based detection), Yes (quality pre-assessment) |
+| BREAKOUT_DETECTED | Breakout quality evaluation                          | Momentum, TEMA/HRMA, trendline score | Yes (holistic quality judgment)                         |
+| AWAITING_PULLBACK | Pullback distance monitoring                         | Close price vs projected trendline   | No (distance calculation)                               |
+| PULLBACK_TESTING  | Bounce quality, zone construction, pattern detection | All Decision TF data, S/R zones      | Yes (bounce quality judgment)                           |
 
 ### 12.2 State-Specific LLM Prompts
 
@@ -2369,14 +2374,14 @@ def generate_response(agent_state: dict, market_data: dict,
 
 ### 16.1 Error Categories and Responses
 
-| Error Category | Example | Handling |
-|---|---|---|
-| PostgreSQL connection failure | State load/save fails | Retry 3x with backoff; skip cycle if persistent |
-| VectorDB search failure | Knowledge retrieval returns empty | Proceed without knowledge context (degraded mode) |
-| LLM API failure | Claude API timeout/error | Use rule-based score only (no LLM adjustment); log degraded evaluation |
-| Invalid LLM output | Malformed JSON, invalid condition | Use regex fallback parser; if still invalid, default to no transition |
-| State corruption | Invalid state value in DB | Recovery: reset to IDLE with logging |
-| Stale state | No update for >2 hours | Cron job resets to IDLE (see recovery.py) |
+| Error Category                | Example                           | Handling                                                               |
+| ----------------------------- | --------------------------------- | ---------------------------------------------------------------------- |
+| PostgreSQL connection failure | State load/save fails             | Retry 3x with backoff; skip cycle if persistent                        |
+| VectorDB search failure       | Knowledge retrieval returns empty | Proceed without knowledge context (degraded mode)                      |
+| LLM API failure               | Claude API timeout/error          | Use rule-based score only (no LLM adjustment); log degraded evaluation |
+| Invalid LLM output            | Malformed JSON, invalid condition | Use regex fallback parser; if still invalid, default to no transition  |
+| State corruption              | Invalid state value in DB         | Recovery: reset to IDLE with logging                                   |
+| Stale state                   | No update for >2 hours            | Cron job resets to IDLE (see recovery.py)                              |
 
 ### 16.2 Graceful Degradation
 
@@ -2462,7 +2467,7 @@ workflow:
     tasks:
       - action: services.agent.pipeline.run_evaluation_cycle
     schedule:
-      cron: "0 * * * *"
+      cron: '0 * * * *'
 ```
 
 ---
@@ -2788,74 +2793,74 @@ tests/
 
 ### Phase 1: Foundation (Days 1-3)
 
-| Step | File | What to Build | Dependencies |
-|---|---|---|---|
-| 1 | `schema.py` | AgentState TypedDict | None |
-| 2 | `state_machine.py` | StateMachine class with all transitions | schema.py |
-| 3 | `migrations/001_create_agent_state.sql` | PostgreSQL table | None |
-| 4 | `state_persistence.py` | AgentStateManager (load/save) | schema.py, migration |
-| 5 | `tests/test_state_machine.py` | All unit tests for state machine | state_machine.py |
+| Step | File                                    | What to Build                           | Dependencies         |
+| ---- | --------------------------------------- | --------------------------------------- | -------------------- |
+| 1    | `schema.py`                             | AgentState TypedDict                    | None                 |
+| 2    | `state_machine.py`                      | StateMachine class with all transitions | schema.py            |
+| 3    | `migrations/001_create_agent_state.sql` | PostgreSQL table                        | None                 |
+| 4    | `state_persistence.py`                  | AgentStateManager (load/save)           | schema.py, migration |
+| 5    | `tests/test_state_machine.py`           | All unit tests for state machine        | state_machine.py     |
 
 ### Phase 2: Scoring & Rules (Days 4-5)
 
-| Step | File | What to Build | Dependencies |
-|---|---|---|---|
-| 6 | `convergence.py` | ConvergenceScorer (5 factors) | schema.py |
-| 7 | `hard_rules.py` | Hard rule checks | state_machine.py |
-| 8 | `routing.py` | Simplified routing logic | state_machine.py |
-| 9 | `tests/test_convergence.py` | Scoring unit tests | convergence.py |
+| Step | File                        | What to Build                 | Dependencies     |
+| ---- | --------------------------- | ----------------------------- | ---------------- |
+| 6    | `convergence.py`            | ConvergenceScorer (5 factors) | schema.py        |
+| 7    | `hard_rules.py`             | Hard rule checks              | state_machine.py |
+| 8    | `routing.py`                | Simplified routing logic      | state_machine.py |
+| 9    | `tests/test_convergence.py` | Scoring unit tests            | convergence.py   |
 
 ### Phase 3: LLM Integration (Days 6-7)
 
-| Step | File | What to Build | Dependencies |
-|---|---|---|---|
-| 10 | `llm_interface.py` | Prompt template + LLM calling | txtai LLM pipeline |
-| 11 | `llm_parser.py` | JSON parsing + fallback | None |
-| 12 | `tests/test_llm_parser.py` | Parser unit tests | llm_parser.py |
+| Step | File                       | What to Build                 | Dependencies       |
+| ---- | -------------------------- | ----------------------------- | ------------------ |
+| 10   | `llm_interface.py`         | Prompt template + LLM calling | txtai LLM pipeline |
+| 11   | `llm_parser.py`            | JSON parsing + fallback       | None               |
+| 12   | `tests/test_llm_parser.py` | Parser unit tests             | llm_parser.py      |
 
 ### Phase 4: Pipeline & Tools (Days 8-9)
 
-| Step | File | What to Build | Dependencies |
-|---|---|---|---|
-| 13 | `tools.py` | Custom txtai Agent tools | PostgreSQL, Embeddings |
-| 14 | `pipeline.py` | Full evaluation cycle orchestrator | All above |
-| 15 | `recovery.py` | Stale state detection | state_persistence.py |
-| 16 | `config/txtai_app.yml` | txtai Application config | All above |
+| Step | File                   | What to Build                      | Dependencies           |
+| ---- | ---------------------- | ---------------------------------- | ---------------------- |
+| 13   | `tools.py`             | Custom txtai Agent tools           | PostgreSQL, Embeddings |
+| 14   | `pipeline.py`          | Full evaluation cycle orchestrator | All above              |
+| 15   | `recovery.py`          | Stale state detection              | state_persistence.py   |
+| 16   | `config/txtai_app.yml` | txtai Application config           | All above              |
 
 ### Phase 5: Integration Testing (Days 10-11)
 
-| Step | File | What to Build | Dependencies |
-|---|---|---|---|
-| 17 | `tests/test_integration.py` | End-to-end tests | All above + PostgreSQL |
-| 18 | Manual testing | Run evaluation cycles, verify state transitions | Running system |
+| Step | File                        | What to Build                                   | Dependencies           |
+| ---- | --------------------------- | ----------------------------------------------- | ---------------------- |
+| 17   | `tests/test_integration.py` | End-to-end tests                                | All above + PostgreSQL |
+| 18   | Manual testing              | Run evaluation cycles, verify state transitions | Running system         |
 
 ---
 
 ## Appendix A: Mapping to Blueprint Sections
 
-| Blueprint Section | This Document Section | Coverage |
-|---|---|---|
-| Section 7.1 (States) | Section 4.1, 8.1 | Full (minus EXECUTING/ENTERED) |
-| Section 7.2 (Transition Map) | Section 8.1, 8.2 | Full (minus execution transitions) |
-| Section 7.3 (State Persistence) | Section 6, 7 | Full |
-| Section 8.1 (Rule-Principle Spectrum) | Section 8.2, 14 | Full |
-| Section 8.2 (Hard Rules) | Section 8.2 | Full (rule 6 excluded — no position sizing) |
-| Section 8.3 (Soft Principles) | Section 14 (LLM prompts) | Full |
-| Section 5 (Convergence Scoring) | Section 13 | Full |
-| Section 6 (Entry Zone Model) | Section 5.4 (respond only) | Modified (advisory, no orders) |
+| Blueprint Section                     | This Document Section      | Coverage                                    |
+| ------------------------------------- | -------------------------- | ------------------------------------------- |
+| Section 7.1 (States)                  | Section 4.1, 8.1           | Full (minus EXECUTING/ENTERED)              |
+| Section 7.2 (Transition Map)          | Section 8.1, 8.2           | Full (minus execution transitions)          |
+| Section 7.3 (State Persistence)       | Section 6, 7               | Full                                        |
+| Section 8.1 (Rule-Principle Spectrum) | Section 8.2, 14            | Full                                        |
+| Section 8.2 (Hard Rules)              | Section 8.2                | Full (rule 6 excluded — no position sizing) |
+| Section 8.3 (Soft Principles)         | Section 14 (LLM prompts)   | Full                                        |
+| Section 5 (Convergence Scoring)       | Section 13                 | Full                                        |
+| Section 6 (Entry Zone Model)          | Section 5.4 (respond only) | Modified (advisory, no orders)              |
 
 ## Appendix B: Key Differences from LangGraph Implementation
 
-| Aspect | LangGraph Approach | txtai + Custom Code Approach |
-|---|---|---|
-| State machine | `StateGraph` with `add_node()`, `add_conditional_edges()` | Python class with dict-based transitions |
-| State persistence | `MemorySaver` checkpoint backend | Direct PostgreSQL with `SELECT FOR UPDATE` |
-| Node routing | `add_conditional_edges(func)` | if/else in `route_after_evaluation()` |
-| Tool calling | `@tool` decorator → LangChain tool | Python function → txtai `FunctionTool` |
-| LLM integration | `ChatAnthropic` message classes | txtai `LLM` pipeline via LiteLLM |
-| Knowledge retrieval | LangChain VectorStore interface | txtai `Embeddings.search()` with SQL filtering |
-| Workflow scheduling | External scheduler + webhook | txtai `Workflow.schedule(cron)` |
-| State schema | LangGraph `TypedDict` passed through nodes | Python `TypedDict` + PostgreSQL JSONB |
+| Aspect              | LangGraph Approach                                        | txtai + Custom Code Approach                   |
+| ------------------- | --------------------------------------------------------- | ---------------------------------------------- |
+| State machine       | `StateGraph` with `add_node()`, `add_conditional_edges()` | Python class with dict-based transitions       |
+| State persistence   | `MemorySaver` checkpoint backend                          | Direct PostgreSQL with `SELECT FOR UPDATE`     |
+| Node routing        | `add_conditional_edges(func)`                             | if/else in `route_after_evaluation()`          |
+| Tool calling        | `@tool` decorator → LangChain tool                        | Python function → txtai `FunctionTool`         |
+| LLM integration     | `ChatAnthropic` message classes                           | txtai `LLM` pipeline via LiteLLM               |
+| Knowledge retrieval | LangChain VectorStore interface                           | txtai `Embeddings.search()` with SQL filtering |
+| Workflow scheduling | External scheduler + webhook                              | txtai `Workflow.schedule(cron)`                |
+| State schema        | LangGraph `TypedDict` passed through nodes                | Python `TypedDict` + PostgreSQL JSONB          |
 
 ---
 
