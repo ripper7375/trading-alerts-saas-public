@@ -422,257 +422,131 @@ This creates:
 
 ## 7. State Machine → Incoming Chat Integration
 
-### Which State Transitions Generate Incoming Chat Messages?
+### Design Principle: Notify Once, Let the User Lead
 
-Not every transition produces a user-facing message. The routing logic:
+The State Machine runs an evaluation cycle on **every bar close**. But the user should **not** receive a message on every cycle. The incoming chat is an invitation to start a conversation — not a stream of automated status updates.
+
+**Rule: Only `BREAKOUT_DETECTED` generates an incoming chat message.**
+
+All subsequent states (AWAITING_PULLBACK, PULLBACK_TESTING, etc.) are **silent**. The user has already been notified. The breakout message sits in their sidebar with an unread badge and a time-ago label. When the user is ready, they open the thread and chat with the AI to get the latest status — on their own terms.
+
+**Why this works:**
+1. BREAKOUT_DETECTED is the **first actionable event** — it's the only state worth interrupting the user for
+2. The user has **time** between breakout detection and the eventual pullback/recommendation — time to open the chat, ask questions, and make decisions
+3. All subsequent state data is **available on demand** when the user opens the thread and asks the AI
+4. The thread stays in the sidebar with `unread badge + "X Min Ago"` — visible but not intrusive
+5. Zero notification spam — the user is in control of when they engage
+
+### Which States Generate Messages
 
 ```python
 # File: services/agent/chat_dispatcher.py
 
-# ============================================================================
-# MESSAGE FREQUENCY RULES
-# ============================================================================
-#
-# Problem: The State Machine runs an evaluation cycle on EVERY bar close.
-# If we sent an incoming chat on every cycle, a user subscribed to 3
-# instruments could receive 50+ messages over a few days — mostly saying
-# "still waiting." That's notification spam, not a vibrant experience.
-#
-# Solution: Each state has a SEND POLICY that controls when messages fire.
-#
-#   "on_enter"     → Send ONE message when the state is first entered.
-#                    No repeat messages while staying in this state.
-#                    This is the default for most states.
-#
-#   "on_change"    → Send a message only when something MATERIAL changes
-#                    within the state (e.g., convergence score crosses a
-#                    threshold, a new bar confirms a pattern). The
-#                    `material_change_detector` function evaluates whether
-#                    the current evaluation differs meaningfully from the
-#                    last sent message.
-#
-#   "on_exit"      → Send a message when LEAVING the state (transition to
-#                    next state). Used for final status of the state.
-#
-# These policies can be combined. For example, AWAITING_PULLBACK uses
-# "on_enter" + "on_exit": one message when entering ("watching for
-# pullback"), one message when leaving ("pullback arrived!" or "window
-# expired"). No messages for the 8-10 bars in between.
-#
-# ============================================================================
-
-# Transitions that generate Incoming Chat messages
-CHAT_TRIGGERS = {
-
-    # ─── BREAKOUT_DETECTED ───────────────────────────────────────────
-    # User needs to know IMMEDIATELY when a breakout is found.
-    # But while we're confirming quality (1-3 bars), no repeat messages.
-    # If quality_sufficient → AWAITING_PULLBACK (on_enter handles it).
-    # If timeout/fakeout → INVALIDATED (on_enter handles it).
+# ONLY breakout detection triggers an incoming chat.
+# Everything else is available on-demand when the user opens the thread.
+CHAT_TRIGGER = {
     State.BREAKOUT_DETECTED: {
-        "send_policy": "on_enter",      # ONE message when breakout detected
         "priority": "high",
         "message_type": "breakout_alert",
         "sound": True,
         "badge_style": "urgent",
     },
-
-    # ─── AWAITING_PULLBACK ───────────────────────────────────────────
-    # User knows a breakout was confirmed. Now we're waiting for pullback.
-    # This can take 8-12 bars (e.g., 8-12 hours on H1, 32-48 hours on H4).
-    # Sending "still waiting" every bar is spam.
-    #
-    # Send policy: on_enter + on_exit
-    #   - on_enter: "Breakout confirmed. Waiting for pullback to zone X."
-    #   - on_exit:  "Pullback arrived!" or "Window expired (MISSED)."
-    #   - NO messages for the 8-10 bars in between.
-    State.AWAITING_PULLBACK: {
-        "send_policy": ["on_enter", "on_exit"],
-        "priority": "medium",
-        "message_type": "pullback_watch",
-        "sound": False,
-        "badge_style": "standard",
-    },
-
-    # ─── PULLBACK_TESTING ────────────────────────────────────────────
-    # Critical phase — price is at the zone, testing the bounce.
-    # This lasts 3-8 bars. The convergence score is actively evolving.
-    #
-    # Send policy: on_enter + on_change + on_exit
-    #   - on_enter:  "Pullback at zone. Testing bounce. Score: X/10."
-    #   - on_change: ONLY if convergence score crosses the 5.0 ENTER
-    #                threshold (either direction). This is the MATERIAL
-    #                change — the score crossing 5.0 means the difference
-    #                between "recommendation incoming" and "not yet."
-    #   - on_exit:   "Trade recommendation!" (bounce_confirmed) or
-    #                "Setup invalidated" (level_broken/timeout).
-    State.PULLBACK_TESTING: {
-        "send_policy": ["on_enter", "on_change", "on_exit"],
-        "priority": "high",
-        "message_type": "zone_testing",
-        "sound": False,           # Sound only on final recommendation
-        "badge_style": "standard",
-        "material_change_rules": {
-            "convergence_threshold_cross": 5.0,  # Alert when score crosses 5.0
-            "direction_change": True,             # Alert if trade_direction flips
-        },
-        "exit_overrides": {
-            "bounce_confirmed": {
-                "priority": "high",
-                "message_type": "trade_recommendation",
-                "sound": True,          # THIS is the big one — play sound
-                "badge_style": "urgent",
-            },
-            "level_broken": {
-                "priority": "medium",
-                "message_type": "invalidation_report",
-                "sound": False,
-                "badge_style": "standard",
-            },
-        },
-    },
-
-    # ─── SCANNING ────────────────────────────────────────────────────
-    # Background monitoring. Can last many bars.
-    # DO NOT send every-bar updates. Only notify on enter (new scan
-    # started after cooldown) — the user knows monitoring is active.
-    State.SCANNING: {
-        "send_policy": "on_enter",     # ONE message when scan begins
-        "priority": "low",
-        "message_type": "market_scan",
-        "sound": False,
-        "badge_style": "subtle",
-    },
-
-    # ─── MISSED ──────────────────────────────────────────────────────
-    # One message explaining what was missed. No repeats during cooldown.
-    State.MISSED: {
-        "send_policy": "on_enter",     # ONE message
-        "priority": "low",
-        "message_type": "missed_opportunity",
-        "sound": False,
-        "badge_style": "subtle",
-    },
-
-    # ─── INVALIDATED ─────────────────────────────────────────────────
-    # One message explaining why the setup failed. No repeats during cooldown.
-    State.INVALIDATED: {
-        "send_policy": "on_enter",     # ONE message
-        "priority": "medium",
-        "message_type": "setup_invalidated",
-        "sound": False,
-        "badge_style": "standard",
-    },
-
-    # ─── IDLE ────────────────────────────────────────────────────────
-    # No message. IDLE is the resting state — nothing to report.
-
-    # ─── NAVIGATING ──────────────────────────────────────────────────
-    # No message. Internal regime assessment — user doesn't need to know.
 }
+
+# These states do NOT send incoming chat messages:
+#   IDLE              → Nothing to report
+#   NAVIGATING        → Internal regime assessment
+#   SCANNING          → Background monitoring (silent)
+#   AWAITING_PULLBACK → User already notified at breakout
+#   PULLBACK_TESTING  → User already notified at breakout
+#   MISSED            → User can see status when they open thread
+#   INVALIDATED       → User can see status when they open thread
 ```
 
-### Message Frequency Per State — Summary
-
-| State | Send Policy | Messages Sent | Rationale |
-|---|---|---|---|
-| **BREAKOUT_DETECTED** | `on_enter` | **1** | User needs the breakout alert immediately. Quality confirmation (1-3 bars) is internal — no updates needed until the outcome is known. |
-| **AWAITING_PULLBACK** | `on_enter` + `on_exit` | **2** | "Watching for pullback" (enter) + "Pullback arrived!" or "Window expired" (exit). The 8-10 bars in between have no new information for the user. |
-| **PULLBACK_TESTING** | `on_enter` + `on_change` + `on_exit` | **2-4** | "Testing bounce" (enter) + optional score threshold cross (change) + "Trade recommendation!" or "Invalidated" (exit). Typically 2-3 messages over 3-8 bars. |
-| **SCANNING** | `on_enter` | **1** | "Monitoring for breakout." No per-bar updates. |
-| **MISSED** | `on_enter` | **1** | "Entry window expired." |
-| **INVALIDATED** | `on_enter` | **1** | "Setup failed: [reason]." |
-| **IDLE** | none | **0** | Nothing to report. |
-| **NAVIGATING** | none | **0** | Internal regime check. |
-
-### Total Messages Per Complete Setup Lifecycle
+### What Happens After the Breakout Message
 
 ```
-Best case (breakout → recommendation):
-  BREAKOUT_DETECTED:   1  (on_enter: "Breakout detected!")
-  AWAITING_PULLBACK:   2  (on_enter + on_exit: "Watching..." + "Pullback arrived!")
-  PULLBACK_TESTING:    2  (on_enter + on_exit: "Testing..." + "Trade recommendation!")
-  ──────────────────────
-  Total:               5 messages                          ← manageable
-
-Worst case (breakout → invalidated):
-  BREAKOUT_DETECTED:   1  (on_enter)
-  AWAITING_PULLBACK:   2  (on_enter + on_exit)
-  PULLBACK_TESTING:    3  (on_enter + score threshold cross + on_exit: invalidated)
-  INVALIDATED:         1  (on_enter)
-  ──────────────────────
-  Total:               7 messages                          ← still manageable
-
-Quick invalidation (breakout → instant fakeout):
-  BREAKOUT_DETECTED:   1  (on_enter)
-  INVALIDATED:         1  (on_enter: "Instant fakeout")
-  ──────────────────────
-  Total:               2 messages                          ← minimal
-```
-
-Compare this to the un-throttled version: **5-7 messages vs. 18+ messages** for the same setup lifecycle. The throttled version sends **only messages with new information**.
-
-### Material Change Detection Logic
-
-For states using `on_change`, the ChatDispatcher compares the current evaluation against the last sent message:
-
-```python
-def has_material_change(self, agent_state: dict, last_sent_metadata: dict) -> bool:
-    """Determine if the current state has changed materially since last message.
-
-    Called on every bar when send_policy includes 'on_change'.
-    Returns True only if something worth notifying about has changed.
-    """
-    rules = CHAT_TRIGGERS.get(
-        State(agent_state["current_state"]), {}
-    ).get("material_change_rules", {})
-
-    # Rule 1: Convergence score crossed the ENTER threshold (5.0)
-    threshold = rules.get("convergence_threshold_cross")
-    if threshold:
-        current_score = agent_state.get("convergence_score", 0)
-        previous_score = last_sent_metadata.get("convergence_score", 0)
-        if (previous_score < threshold <= current_score) or \
-           (current_score < threshold <= previous_score):
-            return True  # Score crossed the threshold — material change
-
-    # Rule 2: Trade direction changed
-    if rules.get("direction_change"):
-        current_dir = agent_state.get("trade_direction")
-        previous_dir = last_sent_metadata.get("trade_direction")
-        if current_dir != previous_dir and current_dir is not None:
-            return True  # Direction flipped — material change
-
-    return False  # No material change — suppress message
-```
-
-### Dispatch Decision Flow
-
-```
-EvaluationPipeline completes for (instrument, tf_config)
+State Machine detects BREAKOUT_DETECTED for (XAUUSD, H4, direction=short)
        │
        ▼
-ChatDispatcher.should_send(agent_state) ?
+ChatDispatcher sends ONE incoming chat message:
+  ─ "Breakout detected on XAUUSD H4. Price closed below ascending
+     trendline at 2672.08. Direction: SHORT (SELL). Convergence
+     score: 4.2/10. Momentum confirming with Z-score -1.4."
+  ─ Appears in sidebar: "→ XAUUSD H4 SELL  10 Min Ago  (1)"
        │
-       ├── Is this a STATE TRANSITION? (current_state != previous check)
-       │   ├── YES → Is there a CHAT_TRIGGER for the NEW state?
-       │   │         ├── YES → Does send_policy include "on_enter"?
-       │   │         │         ├── YES → SEND (on_enter message)
-       │   │         │         └── NO  → SKIP
-       │   │         └── NO  → SKIP (no trigger defined, e.g., IDLE)
-       │   │
-       │   └── Also: Was there a trigger for the OLD state with "on_exit"?
-       │             ├── YES → SEND (on_exit message for previous state)
-       │             └── NO  → SKIP
+       ▼
+State Machine progresses silently through subsequent states:
+  AWAITING_PULLBACK (8-12 bars) → no message
+  PULLBACK_TESTING (3-8 bars)   → no message
        │
-       └── Is this a SAME-STATE bar? (no transition occurred)
-           ├── Does send_policy include "on_change"?
-           │   ├── YES → has_material_change()?
-           │   │         ├── YES → SEND (material change message)
-           │   │         └── NO  → SKIP (suppress — nothing new)
-           │   └── NO  → SKIP (this state only sends on enter/exit)
-           │
-           └── SKIP (default — no message for same-state bars)
+       ▼
+User opens the thread whenever they're ready:
+  ─ Sees the breakout message
+  ─ Asks: "What's the current status?"
+  ─ AI responds with LIVE state: "Pullback arrived at zone 2662-2669.
+     Testing bounce. Score now 6.2/10. Bounce pattern forming."
+  ─ Asks: "Break down the 5 factors"
+  ─ AI responds with full convergence breakdown
+  ─ User makes their own trade decision
+```
+
+### Why Not Notify on AWAITING_PULLBACK or PULLBACK_TESTING?
+
+| Reason | Explanation |
+|---|---|
+| **No new actionable information** | "Still waiting for pullback" is not actionable. The user already knows a breakout happened. |
+| **User has time** | Pullback windows are 8-12 bars (8-48 hours depending on TF). No urgency to send updates every bar. |
+| **On-demand is better** | When the user opens the thread, the AI gives the LIVE state — always current, always accurate. A cached notification from 3 bars ago is stale. |
+| **Prevents spam** | A user with 3 subscriptions would get 18+ messages per setup lifecycle without throttling. With breakout-only: 3 messages total. |
+| **Chat UI already shows status** | The thread's `currentState` and `tradeDirection` are visible in the sidebar without opening. The permanent instrument badge shows which instrument this is about. |
+
+### Messages Per Setup Lifecycle
+
+```
+Entire lifecycle (breakout → recommendation or invalidation):
+
+  BREAKOUT_DETECTED:   1 message  (the ONLY incoming chat)
+  AWAITING_PULLBACK:   0 messages (silent)
+  PULLBACK_TESTING:    0 messages (silent)
+  MISSED/INVALIDATED:  0 messages (silent)
+  ─────────────────────────────
+  Total:               1 message per setup
+
+User with 3 subscriptions, all active setups:
+  Total incoming chats: 3 messages (one per breakout)
+  Compare to previous design: 15-21 messages ← spam
+```
+
+### Thread State Sync (Without Sending Messages)
+
+Even though no new messages are sent after BREAKOUT_DETECTED, the thread metadata is still updated on each evaluation cycle so the sidebar shows current state:
+
+```python
+# On every evaluation cycle (even when no message is sent):
+# Update thread metadata via BullMQ worker (silent — no WebSocket push)
+
+chat_thread.current_state = agent_state["current_state"]      # e.g., "AWAITING_PULLBACK"
+chat_thread.trade_direction = agent_state["trade_direction"]   # e.g., "short"
+chat_thread.convergence_score = agent_state["convergence_score"]
+
+# The sidebar can optionally reflect the current state via periodic REST poll
+# or a lightweight WebSocket 'thread_state_update' event (no sound, no badge increment)
+```
+
+### Dispatch Logic (Simplified)
+
+```python
+def should_send(self, agent_state: dict) -> bool:
+    """Only send an incoming chat when entering BREAKOUT_DETECTED."""
+    current = State(agent_state["current_state"])
+    previous = agent_state.get("previous_state")
+
+    # Only send on state TRANSITION into BREAKOUT_DETECTED
+    if current == State.BREAKOUT_DETECTED and previous != "BREAKOUT_DETECTED":
+        return True
+
+    return False
 ```
 
 ### Transition → Message Pipeline
@@ -681,39 +555,39 @@ ChatDispatcher.should_send(agent_state) ?
 StateMachine.transition(agent_state, condition)
        │
        ▼
-EvaluationPipeline.generate_response(agent_state)
-       │ ← Uses LLM (Claude) to generate natural-language advisory
-       │ ← Includes: convergence score, reasoning, confidence, regime context
+ChatDispatcher.should_send(agent_state)?
        │
-       ▼
-agent_state["pending_response"] = "Breakout detected on EURUSD H1..."
+       ├── current_state == BREAKOUT_DETECTED AND is new transition?
+       │   ├── YES → Continue to dispatch
+       │   └── NO  → STOP (no message)
+       │
+       ▼ (only for BREAKOUT_DETECTED)
+EvaluationPipeline.generate_response(agent_state)
+       │ ← LLM generates breakout advisory text
        │
        ▼
 ChatDispatcher.dispatch(agent_state)
        │
-       ├── 1. Look up CHAT_TRIGGERS for current state
-       │      → Determines priority, message_type, delivery options
+       ├── 1. Find the user's EXISTING chat thread for this instrument
+       │      (instrument badge lookup — see Trading Instrument Chat
+       │       Management document for thread resolution logic)
        │
-       ├── 2. Query instrument_subscriptions for this (symbol, timeframe)
-       │      → Returns list of user_ids
+       ├── 2. INSERT into chat_messages:
+       │         role: 'assistant'
+       │         content: breakout advisory text
+       │         message_type: 'breakout_alert'
+       │         metadata: {convergence_score, state, confidence, ...}
        │
-       ├── 3. For each subscribed user:
-       │      ├── Find or create chat_thread for (user_id, symbol, timeframe)
-       │      ├── INSERT into chat_messages:
-       │      │     role: 'assistant'
-       │      │     content: agent_state["pending_response"]
-       │      │     message_type: from CHAT_TRIGGERS
-       │      │     metadata: {convergence_score, state, confidence, ...}
-       │      ├── UPDATE chat_thread:
-       │      │     last_message_at = now()
-       │      │     last_message_preview = first 100 chars
-       │      │     unread_count += 1
-       │      │     current_state = agent_state["current_state"]
-       │      │     trade_direction = agent_state["trade_direction"]  ← for BUY/SELL sidebar label
-       │      │     convergence_score = agent_state["convergence_score"]
-       │      └── EMIT WebSocket: 'incoming_chat' → user's room
+       ├── 3. UPDATE chat_thread:
+       │         last_message_at = now()
+       │         last_message_preview = first 100 chars
+       │         unread_count += 1
+       │         current_state = 'BREAKOUT_DETECTED'
+       │         trade_direction = agent_state["trade_direction"]
        │
-       └── 4. Log to audit table
+       ├── 4. PUBLISH to Redis Pub/Sub → NestJS → WebSocket → User
+       │
+       └── 5. Log to audit table
 ```
 
 ---
