@@ -45,19 +45,19 @@ The original architecture documents specify Python (txtai/LangGraph) for the bac
 
 ### 1.2 Component Map — Python to NestJS Translation
 
-| Python Component (Original Docs) | NestJS Replacement | Module |
-|---|---|---|
-| `StateMachine` class (state_machine.py) | `StateMachineService` | `AgentModule` |
-| `AgentStateManager` class (state_persistence.py) | `AgentStateEntity` + `AgentStateRepository` | `AgentModule` |
-| `ConvergenceScorer` class | `ConvergenceScoringService` | `AgentModule` |
-| `EvaluationPipeline` class | `AgentOrchestratorService` | `AgentModule` |
-| `LLMOutputParser` class | `LlmService` (includes parsing) | `LlmModule` |
-| LangGraph `StateGraph` + nodes | `AgentOrchestratorService.runEvaluationCycle()` | `AgentModule` |
-| `market_data_retriever` tool | `MarketDataService` | `MarketDataModule` |
-| `knowledge_retriever` tool | `KnowledgeRetrieverService` | `KnowledgeModule` |
-| Flask MT5 `/api/bars/fetch` | `MarketDataService` (reads pre-computed data from PostgreSQL) | `MarketDataModule` |
-| FastAPI WebSocket endpoints | `TradingGateway` (NestJS WebSocket Gateway) | `GatewayModule` |
-| txtai Workflow cron | `CronEvaluationService` with `@Cron()` decorator | `SchedulerModule` |
+| Python Component (Original Docs)                 | NestJS Replacement                                            | Module             |
+| ------------------------------------------------ | ------------------------------------------------------------- | ------------------ |
+| `StateMachine` class (state_machine.py)          | `StateMachineService`                                         | `AgentModule`      |
+| `AgentStateManager` class (state_persistence.py) | `AgentStateEntity` + `AgentStateRepository`                   | `AgentModule`      |
+| `ConvergenceScorer` class                        | `ConvergenceScoringService`                                   | `AgentModule`      |
+| `EvaluationPipeline` class                       | `AgentOrchestratorService`                                    | `AgentModule`      |
+| `LLMOutputParser` class                          | `LlmService` (includes parsing)                               | `LlmModule`        |
+| LangGraph `StateGraph` + nodes                   | `AgentOrchestratorService.runEvaluationCycle()`               | `AgentModule`      |
+| `market_data_retriever` tool                     | `MarketDataService`                                           | `MarketDataModule` |
+| `knowledge_retriever` tool                       | `KnowledgeRetrieverService`                                   | `KnowledgeModule`  |
+| Flask MT5 `/api/bars/fetch`                      | `MarketDataService` (reads pre-computed data from PostgreSQL) | `MarketDataModule` |
+| FastAPI WebSocket endpoints                      | `TradingGateway` (NestJS WebSocket Gateway)                   | `GatewayModule`    |
+| txtai Workflow cron                              | `CronEvaluationService` with `@Cron()` decorator              | `SchedulerModule`  |
 
 ### 1.3 High-Level Architecture
 
@@ -149,18 +149,18 @@ AppModule
 
 ### 2.2 Module Responsibilities
 
-| Module | Responsibility | External Dependencies |
-|---|---|---|
-| `DatabaseModule` | TypeORM connection, entity registration, migrations | PostgreSQL |
-| `AgentModule` | Core business logic: state machine, evaluation pipeline, convergence scoring | None (internal) |
-| `LlmModule` | Claude API calls, prompt templates, response parsing | Anthropic API |
-| `MarketDataModule` | Read pre-computed indicator data from PostgreSQL | PostgreSQL |
-| `KnowledgeModule` | Semantic search over methodology documents | ChromaDB / pgvector |
-| `ChatModule` | Conversation CRUD, message persistence | PostgreSQL |
-| `GatewayModule` | WebSocket event handling, room management, event emission | Socket.IO |
-| `InstrumentContextModule` | Assembles full instrument data packages (chart + cards) for frontend | PostgreSQL |
-| `SchedulerModule` | Cron triggers for automated evaluation cycles | NestJS Schedule |
-| `AuthModule` | JWT validation for both REST and WebSocket connections | JWT |
+| Module                    | Responsibility                                                               | External Dependencies |
+| ------------------------- | ---------------------------------------------------------------------------- | --------------------- |
+| `DatabaseModule`          | TypeORM connection, entity registration, migrations                          | PostgreSQL            |
+| `AgentModule`             | Core business logic: state machine, evaluation pipeline, convergence scoring | None (internal)       |
+| `LlmModule`               | Claude API calls, prompt templates, response parsing                         | Anthropic API         |
+| `MarketDataModule`        | Read pre-computed indicator data from PostgreSQL                             | PostgreSQL            |
+| `KnowledgeModule`         | Semantic search over methodology documents                                   | ChromaDB / pgvector   |
+| `ChatModule`              | Conversation CRUD, message persistence                                       | PostgreSQL            |
+| `GatewayModule`           | WebSocket event handling, room management, event emission                    | Socket.IO             |
+| `InstrumentContextModule` | Assembles full instrument data packages (chart + cards) for frontend         | PostgreSQL            |
+| `SchedulerModule`         | Cron triggers for automated evaluation cycles                                | NestJS Schedule       |
+| `AuthModule`              | JWT validation for both REST and WebSocket connections                       | JWT                   |
 
 ---
 
@@ -187,10 +187,20 @@ export class AgentStateEntity {
   tfConfig: string;
 
   // State machine
-  @Column({ type: 'varchar', length: 30, default: 'IDLE', name: 'current_state' })
+  @Column({
+    type: 'varchar',
+    length: 30,
+    default: 'IDLE',
+    name: 'current_state',
+  })
   currentState: string;
 
-  @Column({ type: 'varchar', length: 30, nullable: true, name: 'previous_state' })
+  @Column({
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+    name: 'previous_state',
+  })
   previousState: string | null;
 
   @Column({ type: 'int', default: 0, name: 'bars_in_state' })
@@ -203,16 +213,33 @@ export class AgentStateEntity {
   lastTransitionTime: Date | null;
 
   // Navigation layer
-  @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true, name: 'aggregate_slope_score' })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 4,
+    nullable: true,
+    name: 'aggregate_slope_score',
+  })
   aggregateSlopeScore: number | null;
 
-  @Column({ type: 'varchar', length: 30, nullable: true, name: 'regime_classification' })
+  @Column({
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+    name: 'regime_classification',
+  })
   regimeClassification: string | null;
 
   @Column({ type: 'boolean', default: false, name: 'counter_trend_flag' })
   counterTrendFlag: boolean;
 
-  @Column({ type: 'decimal', precision: 4, scale: 2, default: 1.0, name: 'counter_trend_modifier' })
+  @Column({
+    type: 'decimal',
+    precision: 4,
+    scale: 2,
+    default: 1.0,
+    name: 'counter_trend_modifier',
+  })
   counterTrendModifier: number;
 
   @Column({ type: 'jsonb', nullable: true, name: 'navigation_trendlines' })
@@ -228,21 +255,39 @@ export class AgentStateEntity {
   @Column({ type: 'jsonb', nullable: true, name: 'decision_tema_hrma' })
   decisionTemaHrma: any | null;
 
-  @Column({ type: 'decimal', precision: 20, scale: 5, nullable: true, name: 'current_price' })
+  @Column({
+    type: 'decimal',
+    precision: 20,
+    scale: 5,
+    nullable: true,
+    name: 'current_price',
+  })
   currentPrice: number | null;
 
   // Decision layer — zone
   @Column({ type: 'jsonb', nullable: true, name: 'sr_zone' })
   srZone: any | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true, name: 'zone_density_score' })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 4,
+    nullable: true,
+    name: 'zone_density_score',
+  })
   zoneDensityScore: number | null;
 
   @Column({ type: 'jsonb', nullable: true, name: 'lot_allocations' })
   lotAllocations: any | null;
 
   // Decision layer — scoring
-  @Column({ type: 'decimal', precision: 6, scale: 2, nullable: true, name: 'convergence_score' })
+  @Column({
+    type: 'decimal',
+    precision: 6,
+    scale: 2,
+    nullable: true,
+    name: 'convergence_score',
+  })
   convergenceScore: number | null;
 
   @Column({ type: 'jsonb', nullable: true, name: 'convergence_breakdown' })
@@ -262,23 +307,46 @@ export class AgentStateEntity {
   @Column({ type: 'int', nullable: true, name: 'breakout_bar_index' })
   breakoutBarIndex: number | null;
 
-  @Column({ type: 'decimal', precision: 20, scale: 5, nullable: true, name: 'breakout_bar_price' })
+  @Column({
+    type: 'decimal',
+    precision: 20,
+    scale: 5,
+    nullable: true,
+    name: 'breakout_bar_price',
+  })
   breakoutBarPrice: number | null;
 
   @Column({ type: 'jsonb', nullable: true, name: 'breakout_trendline' })
   breakoutTrendline: any | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true, name: 'trade_direction' })
+  @Column({
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+    name: 'trade_direction',
+  })
   tradeDirection: string | null;
 
   // LLM outputs
   @Column({ type: 'text', nullable: true, name: 'llm_assessment' })
   llmAssessment: string | null;
 
-  @Column({ type: 'decimal', precision: 4, scale: 2, nullable: true, name: 'llm_confidence' })
+  @Column({
+    type: 'decimal',
+    precision: 4,
+    scale: 2,
+    nullable: true,
+    name: 'llm_confidence',
+  })
   llmConfidence: number | null;
 
-  @Column({ type: 'decimal', precision: 4, scale: 2, nullable: true, name: 'llm_score_adjustment' })
+  @Column({
+    type: 'decimal',
+    precision: 4,
+    scale: 2,
+    nullable: true,
+    name: 'llm_score_adjustment',
+  })
   llmScoreAdjustment: number | null;
 
   @Column({ type: 'boolean', default: false, name: 'llm_override_flag' })
@@ -329,7 +397,7 @@ export class TrendlineDataEntity {
   barTime: Date;
 
   @Column({ type: 'varchar', length: 20, name: 'line_type' })
-  lineType: string;        // 'peak' (resistance) or 'bottom' (support)
+  lineType: string; // 'peak' (resistance) or 'bottom' (support)
 
   @Column({ type: 'float', name: 'slope_degrees' })
   slopeDegrees: number;
@@ -397,7 +465,7 @@ export class ConversationEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => MessageEntity, message => message.conversation)
+  @OneToMany(() => MessageEntity, (message) => message.conversation)
   messages: MessageEntity[];
 }
 ```
@@ -416,18 +484,18 @@ export class MessageEntity {
   conversationId: string;
 
   @Column({ type: 'varchar', length: 20 })
-  role: string;            // 'user' | 'agent' | 'system' | 'alert'
+  role: string; // 'user' | 'agent' | 'system' | 'alert'
 
   @Column({ type: 'text' })
   content: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata: any | null;   // convergence breakdown, state snapshot, etc.
+  metadata: any | null; // convergence breakdown, state snapshot, etc.
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => ConversationEntity, conv => conv.messages)
+  @ManyToOne(() => ConversationEntity, (conv) => conv.messages)
   @JoinColumn({ name: 'conversation_id' })
   conversation: ConversationEntity;
 }
@@ -467,7 +535,12 @@ export class AuditLogEntity {
   @Column({ type: 'text', nullable: true, name: 'llm_assessment' })
   llmAssessment: string | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true, name: 'llm_confidence' })
+  @Column({
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+    name: 'llm_confidence',
+  })
   llmConfidence: string | null;
 
   @Column({ type: 'boolean', default: false, name: 'llm_override_flag' })
@@ -476,7 +549,12 @@ export class AuditLogEntity {
   @Column({ type: 'text', nullable: true, name: 'llm_override_reason' })
   llmOverrideReason: string | null;
 
-  @Column({ type: 'varchar', length: 30, nullable: true, name: 'regime_classification' })
+  @Column({
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+    name: 'regime_classification',
+  })
   regimeClassification: string | null;
 
   @Column({ type: 'float', nullable: true, name: 'counter_trend_modifier' })
@@ -485,7 +563,12 @@ export class AuditLogEntity {
   @Column({ type: 'float', nullable: true, name: 'zone_density_score' })
   zoneDensityScore: number | null;
 
-  @Column({ type: 'varchar', length: 30, nullable: true, name: 'price_pattern_type' })
+  @Column({
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+    name: 'price_pattern_type',
+  })
   pricePatternType: string | null;
 
   @Column({ type: 'jsonb', nullable: true, name: 'sr_zone_json' })
@@ -545,7 +628,7 @@ export const TRANSITIONS: Record<AgentState, Record<string, AgentState>> = {
     failed_breakout: AgentState.INVALIDATED,
   },
   [AgentState.PULLBACK_TESTING]: {
-    bounce_confirmed: AgentState.IDLE,   // Advisory: respond then IDLE
+    bounce_confirmed: AgentState.IDLE, // Advisory: respond then IDLE
     level_broken: AgentState.INVALIDATED,
     inconclusive: AgentState.SCANNING,
     timeout: AgentState.INVALIDATED,
@@ -568,7 +651,9 @@ export const TRANSITIONS: Record<AgentState, Record<string, AgentState>> = {
 export class StateMachineService {
   private readonly config: StateMachineConfig;
 
-  constructor(@Inject('STATE_MACHINE_CONFIG') config?: Partial<StateMachineConfig>) {
+  constructor(
+    @Inject('STATE_MACHINE_CONFIG') config?: Partial<StateMachineConfig>
+  ) {
     this.config = {
       breakoutConfirmationWindow: 3,
       pullbackTimeWindow: 10,
@@ -584,7 +669,7 @@ export class StateMachineService {
     if (!target) {
       throw new TransitionError(
         `Invalid transition: ${currentState} --(${condition})--> ???. ` +
-        `Allowed: ${Object.keys(allowed).join(', ')}`
+          `Allowed: ${Object.keys(allowed).join(', ')}`
       );
     }
     return target;
@@ -605,7 +690,10 @@ export class StateMachineService {
     if (target === AgentState.MISSED || target === AgentState.INVALIDATED) {
       state.cooldownRemaining = this.config.cooldownBars;
     }
-    if (target === AgentState.SCANNING && current === AgentState.PULLBACK_TESTING) {
+    if (
+      target === AgentState.SCANNING &&
+      current === AgentState.PULLBACK_TESTING
+    ) {
       this.clearZoneContext(state);
     }
 
@@ -616,17 +704,28 @@ export class StateMachineService {
     const current = state.currentState as AgentState;
     const bars = state.barsInState || 0;
 
-    if (current === AgentState.BREAKOUT_DETECTED && bars >= this.config.breakoutConfirmationWindow) {
+    if (
+      current === AgentState.BREAKOUT_DETECTED &&
+      bars >= this.config.breakoutConfirmationWindow
+    ) {
       return 'timeout';
     }
-    if (current === AgentState.AWAITING_PULLBACK && bars >= this.config.pullbackTimeWindow) {
+    if (
+      current === AgentState.AWAITING_PULLBACK &&
+      bars >= this.config.pullbackTimeWindow
+    ) {
       return 'window_expired';
     }
-    if (current === AgentState.PULLBACK_TESTING && bars >= this.config.pullbackTestingWindow) {
+    if (
+      current === AgentState.PULLBACK_TESTING &&
+      bars >= this.config.pullbackTestingWindow
+    ) {
       return 'timeout';
     }
-    if ((current === AgentState.MISSED || current === AgentState.INVALIDATED) &&
-        (state.cooldownRemaining || 0) <= 0) {
+    if (
+      (current === AgentState.MISSED || current === AgentState.INVALIDATED) &&
+      (state.cooldownRemaining || 0) <= 0
+    ) {
       return 'cooldown_expired';
     }
     return null;
@@ -679,6 +778,7 @@ The central service that replaces the LangGraph `StateGraph`. Instead of a graph
 ### 5.1 Design Rationale
 
 LangGraph's value is graph-based state management with persistence. In NestJS, we achieve the same with:
+
 - **TypeORM** for state persistence (replaces `MemorySaver`)
 - **Procedural methods** for the evaluation pipeline (replaces graph nodes/edges)
 - **`StateMachineService`** for transition validation (replaces `add_conditional_edges`)
@@ -699,7 +799,7 @@ export class AgentOrchestratorService {
     private readonly convergence: ConvergenceScoringService,
     private readonly llm: LlmService,
     private readonly agentStateRepo: Repository<AgentStateEntity>,
-    private readonly auditLogRepo: Repository<AuditLogEntity>,
+    private readonly auditLogRepo: Repository<AuditLogEntity>
   ) {}
 
   /**
@@ -713,7 +813,7 @@ export class AgentOrchestratorService {
   async runEvaluationCycle(
     instrument: string,
     tfConfig: string,
-    trigger: 'new_bar' | 'user_trigger',
+    trigger: 'new_bar' | 'user_trigger'
   ): Promise<EvaluationResult> {
     // 1. Load state from PostgreSQL
     let state = await this.loadOrCreateState(instrument, tfConfig);
@@ -738,7 +838,8 @@ export class AgentOrchestratorService {
 
     // 5. FETCH DATA (Market Data Retriever)
     const marketSnapshot = await this.marketData.fetchFullSnapshot(
-      instrument, tfConfig
+      instrument,
+      tfConfig
     );
     state = this.applyMarketDataToState(state, marketSnapshot);
 
@@ -758,24 +859,38 @@ export class AgentOrchestratorService {
 
     // 8. FETCH KNOWLEDGE (VectorDB Retriever)
     const knowledgeContext = await this.knowledge.retrieve(
-      state.currentState, instrument, tfConfig
+      state.currentState,
+      instrument,
+      tfConfig
     );
 
     // 9. EVALUATE — Compute convergence + LLM judgment
-    const convergenceResult = this.convergence.computeScore(state, marketSnapshot);
+    const convergenceResult = this.convergence.computeScore(
+      state,
+      marketSnapshot
+    );
     state.convergenceScore = convergenceResult.adjustedTotal;
     state.convergenceBreakdown = convergenceResult;
 
     // 10. LLM evaluation
-    const llmResult = await this.llm.evaluate(state, marketSnapshot, knowledgeContext);
+    const llmResult = await this.llm.evaluate(
+      state,
+      marketSnapshot,
+      knowledgeContext
+    );
     state.llmAssessment = llmResult.assessment;
     state.llmConfidence = llmResult.confidence;
     state.llmScoreAdjustment = llmResult.scoreAdjustment;
 
-    const finalScore = convergenceResult.adjustedTotal + llmResult.scoreAdjustment;
+    const finalScore =
+      convergenceResult.adjustedTotal + llmResult.scoreAdjustment;
 
     // 11. Determine state transition from LLM output
-    const condition = this.determineTransitionCondition(state, llmResult, finalScore);
+    const condition = this.determineTransitionCondition(
+      state,
+      llmResult,
+      finalScore
+    );
     if (condition) {
       state = this.stateMachine.applyTransition(state, condition);
     }
@@ -815,7 +930,7 @@ export class AgentOrchestratorService {
     conversationId: string,
     message: string,
     currentInstrument: string | null,
-    currentTfConfig: string | null,
+    currentTfConfig: string | null
   ): Promise<UserQueryResult> {
     // Extract instrument and intent from user message
     const parsed = await this.llm.parseUserIntent(message, currentInstrument);
@@ -834,7 +949,11 @@ export class AgentOrchestratorService {
 
     // Determine if this requires a full evaluation cycle
     if (parsed.intent === 'analyze' || parsed.intent === 'evaluate') {
-      const result = await this.runEvaluationCycle(instrument, tfConfig, 'user_trigger');
+      const result = await this.runEvaluationCycle(
+        instrument,
+        tfConfig,
+        'user_trigger'
+      );
       return {
         ...result,
         instrumentChanged,
@@ -847,7 +966,9 @@ export class AgentOrchestratorService {
     if (parsed.intent === 'status' || parsed.intent === 'score') {
       const state = await this.loadOrCreateState(instrument, tfConfig);
       const response = await this.llm.generateConversationalResponse(
-        message, state, parsed.intent
+        message,
+        state,
+        parsed.intent
       );
       return {
         message: response,
@@ -861,7 +982,9 @@ export class AgentOrchestratorService {
     // Default: conversational response
     const state = await this.loadOrCreateState(instrument, tfConfig);
     const response = await this.llm.generateConversationalResponse(
-      message, state, 'general'
+      message,
+      state,
+      'general'
     );
     return {
       message: response,
@@ -886,7 +1009,7 @@ Reads pre-computed indicator data from PostgreSQL. This replaces the Python `mar
 export class MarketDataService {
   constructor(
     @InjectRepository(TrendlineDataEntity)
-    private readonly trendlineRepo: Repository<TrendlineDataEntity>,
+    private readonly trendlineRepo: Repository<TrendlineDataEntity>
     // ... other entity repositories
   ) {}
 
@@ -896,14 +1019,11 @@ export class MarketDataService {
    */
   async fetchFullSnapshot(
     instrument: string,
-    tfConfig: string,
+    tfConfig: string
   ): Promise<MarketDataSnapshot> {
     const config = TF_CONFIGS[tfConfig];
 
-    const allTimeframes = [
-      ...config.navigation,
-      ...config.decision,
-    ];
+    const allTimeframes = [...config.navigation, ...config.decision];
     // Deduplicate (H2 appears in both nav and decision for Config A)
     const uniqueTimeframes = [...new Set(allTimeframes)];
 
@@ -931,7 +1051,7 @@ export class MarketDataService {
    */
   async fetchTrendlines(
     instrument: string,
-    timeframes: string[],
+    timeframes: string[]
   ): Promise<TrendlineData[]> {
     return this.trendlineRepo.find({
       where: {
@@ -950,7 +1070,7 @@ export class MarketDataService {
   async fetchCandles(
     instrument: string,
     timeframe: string,
-    lookback: number = 300,
+    lookback: number = 300
   ): Promise<CandleData[]> {
     // Query OHLC + momentum classification from PostgreSQL
     // Returns data formatted for TradingView Lightweight Charts
@@ -963,7 +1083,7 @@ export class MarketDataService {
   async fetchCardData(
     instrument: string,
     timeframe: string,
-    lineType: 'resistance' | 'support',
+    lineType: 'resistance' | 'support'
   ): Promise<CardData> {
     // Aggregates trendline, TEMA/HRMA, and momentum data
     // into the card display format
@@ -995,7 +1115,7 @@ export class KnowledgeRetrieverService {
   async retrieve(
     currentState: string,
     instrument: string,
-    tfConfig: string,
+    tfConfig: string
   ): Promise<string> {
     const query = this.constructRetrievalQuery(currentState);
     const filter = { state_relevance: { $contains: currentState } };
@@ -1013,9 +1133,11 @@ export class KnowledgeRetrieverService {
     const queries: Record<string, string> = {
       NAVIGATING: 'regime classification trendline slope navigation timeframes',
       SCANNING: 'breakout detection trendline resistance support momentum',
-      BREAKOUT_DETECTED: 'breakout quality body close momentum TEMA HRMA navigation alignment',
+      BREAKOUT_DETECTED:
+        'breakout quality body close momentum TEMA HRMA navigation alignment',
       AWAITING_PULLBACK: 'pullback retracement trendline zone tolerance window',
-      PULLBACK_TESTING: 'pullback confirmation active bounce zone density price pattern convergence',
+      PULLBACK_TESTING:
+        'pullback confirmation active bounce zone density price pattern convergence',
       MISSED: 'missed entry window expired cooldown',
       INVALIDATED: 'invalidation failed breakout disqualifying conditions',
     };
@@ -1045,7 +1167,7 @@ export class ConvergenceScoringService {
    */
   computeScore(
     state: AgentStateDict,
-    marketData: MarketDataSnapshot,
+    marketData: MarketDataSnapshot
   ): ConvergenceScore {
     const direction = state.tradeDirection || 'long';
 
@@ -1055,7 +1177,8 @@ export class ConvergenceScoringService {
     const navigation = this.scoreNavigation(state, direction);
     const pricePattern = this.scorePricePattern(state);
 
-    const rawTotal = trendline + momentum + temaHrma + navigation + pricePattern;
+    const rawTotal =
+      trendline + momentum + temaHrma + navigation + pricePattern;
     const modifier = state.counterTrendModifier || 1.0;
     const adjustedTotal = rawTotal * modifier;
 
@@ -1068,21 +1191,33 @@ export class ConvergenceScoringService {
       rawTotal,
       counterTrendModifier: modifier,
       adjustedTotal,
-      llmAdjustment: 0,       // Set later by LlmService
+      llmAdjustment: 0, // Set later by LlmService
       finalScore: adjustedTotal, // Updated after LLM overlay
     };
   }
 
-  private scoreTrendline(state: AgentStateDict, data: MarketDataSnapshot, direction: string): number {
+  private scoreTrendline(
+    state: AgentStateDict,
+    data: MarketDataSnapshot,
+    direction: string
+  ): number {
     // Implementation based on Blueprint Section 5.3 trendline scoring table
     // Returns -2 to +2
   }
 
-  private scoreMomentum(state: AgentStateDict, data: MarketDataSnapshot, direction: string): number {
+  private scoreMomentum(
+    state: AgentStateDict,
+    data: MarketDataSnapshot,
+    direction: string
+  ): number {
     // Implementation based on Blueprint Section 5.3 momentum scoring table
   }
 
-  private scoreTemaHrma(state: AgentStateDict, data: MarketDataSnapshot, direction: string): number {
+  private scoreTemaHrma(
+    state: AgentStateDict,
+    data: MarketDataSnapshot,
+    direction: string
+  ): number {
     // Implementation based on Blueprint Section 5.3 TEMA/HRMA scoring table
   }
 
@@ -1122,9 +1257,13 @@ export class LlmService {
   async evaluate(
     state: AgentStateDict,
     marketData: MarketDataSnapshot,
-    knowledgeContext: string,
+    knowledgeContext: string
   ): Promise<LlmEvaluationResult> {
-    const prompt = this.constructEvaluationPrompt(state, marketData, knowledgeContext);
+    const prompt = this.constructEvaluationPrompt(
+      state,
+      marketData,
+      knowledgeContext
+    );
     const response = await this.callClaude(prompt, TRADING_AGENT_SYSTEM_PROMPT);
     return this.parseEvaluationResponse(response);
   }
@@ -1135,7 +1274,7 @@ export class LlmService {
    */
   async generateResponse(
     state: AgentStateDict,
-    finalScore: number,
+    finalScore: number
   ): Promise<string> {
     const prompt = this.constructResponsePrompt(state, finalScore);
     const response = await this.callClaude(prompt, RESPONSE_SYSTEM_PROMPT);
@@ -1147,15 +1286,21 @@ export class LlmService {
    */
   async parseUserIntent(
     message: string,
-    currentInstrument: string | null,
+    currentInstrument: string | null
   ): Promise<ParsedUserIntent> {
     // Uses a lightweight Claude call to extract structured intent
     // Returns: { instrument, tfConfig, intent: 'analyze'|'status'|'score'|'general' }
   }
 
-  private async callClaude(prompt: string, systemPrompt: string): Promise<string> {
+  private async callClaude(
+    prompt: string,
+    systemPrompt: string
+  ): Promise<string> {
     const response = await this.client.messages.create({
-      model: this.configService.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
+      model: this.configService.get(
+        'CLAUDE_MODEL',
+        'claude-sonnet-4-5-20250929'
+      ),
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: 'user', content: prompt }],
@@ -1166,7 +1311,7 @@ export class LlmService {
   private constructEvaluationPrompt(
     state: AgentStateDict,
     marketData: MarketDataSnapshot,
-    knowledge: string,
+    knowledge: string
   ): string {
     // Builds the evaluation prompt following Blueprint Section 8.5 template
     // Includes: state machine context, navigation output, convergence breakdown,
@@ -1229,7 +1374,9 @@ Current state: {currentState}
   namespace: '/trading',
   transports: ['websocket'],
 })
-export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class TradingGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -1237,7 +1384,7 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     private readonly orchestrator: AgentOrchestratorService,
     private readonly chat: ChatService,
     private readonly instrumentContext: InstrumentContextService,
-    private readonly auth: AuthService,
+    private readonly auth: AuthService
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -1254,7 +1401,7 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   @SubscribeMessage('chat_message')
   async handleChatMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: ChatMessagePayload,
+    @MessageBody() payload: ChatMessagePayload
   ): Promise<void> {
     const { conversationId, message, instrument, tfConfig } = payload;
 
@@ -1263,19 +1410,27 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
 
     // Process through agent orchestrator
     const result = await this.orchestrator.handleUserQuery(
-      conversationId, message, instrument, tfConfig
+      conversationId,
+      message,
+      instrument,
+      tfConfig
     );
 
     // If instrument changed, send full instrument context
     if (result.instrumentChanged && result.newInstrument) {
       const context = await this.instrumentContext.assembleFullContext(
-        result.newInstrument, result.newTfConfig || 'A'
+        result.newInstrument,
+        result.newTfConfig || 'A'
       );
-      this.server.to(`conversation:${conversationId}`).emit('instrument_context', context);
+      this.server
+        .to(`conversation:${conversationId}`)
+        .emit('instrument_context', context);
 
       // Update conversation's instrument
       await this.chat.updateConversationInstrument(
-        conversationId, result.newInstrument, result.newTfConfig
+        conversationId,
+        result.newInstrument,
+        result.newTfConfig
       );
     }
 
@@ -1296,20 +1451,25 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   @SubscribeMessage('join_conversation')
   async handleJoinConversation(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: { conversationId: string }
   ): Promise<void> {
     // Leave all previous conversation rooms
-    const rooms = Array.from(client.rooms).filter(r => r.startsWith('conversation:'));
-    rooms.forEach(r => client.leave(r));
+    const rooms = Array.from(client.rooms).filter((r) =>
+      r.startsWith('conversation:')
+    );
+    rooms.forEach((r) => client.leave(r));
 
     // Join new conversation room
     client.join(`conversation:${payload.conversationId}`);
 
     // Send the conversation's current instrument context
-    const conversation = await this.chat.getConversation(payload.conversationId);
+    const conversation = await this.chat.getConversation(
+      payload.conversationId
+    );
     if (conversation?.instrument) {
       const context = await this.instrumentContext.assembleFullContext(
-        conversation.instrument, conversation.tfConfig || 'A'
+        conversation.instrument,
+        conversation.tfConfig || 'A'
       );
       client.emit('instrument_context', context);
     }
@@ -1318,7 +1478,7 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   @SubscribeMessage('leave_conversation')
   handleLeaveConversation(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { conversationId: string },
+    @MessageBody() payload: { conversationId: string }
   ): void {
     client.leave(`conversation:${payload.conversationId}`);
   }
@@ -1326,10 +1486,13 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   @SubscribeMessage('request_chart_data')
   async handleRequestChartData(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { instrument: string; timeframe: string; lookback: number },
+    @MessageBody()
+    payload: { instrument: string; timeframe: string; lookback: number }
   ): Promise<void> {
     const chartData = await this.instrumentContext.assembleChartData(
-      payload.instrument, payload.timeframe, payload.lookback
+      payload.instrument,
+      payload.timeframe,
+      payload.lookback
     );
     client.emit('chart_data_update', chartData);
   }
@@ -1337,10 +1500,11 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   @SubscribeMessage('request_card_data')
   async handleRequestCardData(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { instrument: string; tfConfig: string },
+    @MessageBody() payload: { instrument: string; tfConfig: string }
   ): Promise<void> {
     const cardData = await this.instrumentContext.assembleCardData(
-      payload.instrument, payload.tfConfig
+      payload.instrument,
+      payload.tfConfig
     );
     client.emit('card_data_update', cardData);
   }
@@ -1358,7 +1522,11 @@ export class TradingGateway implements OnGatewayInit, OnGatewayConnection, OnGat
    * Called by CronEvaluationService to push bar-close data
    * to clients with active charts.
    */
-  pushBarClose(instrument: string, timeframe: string, candle: CandleData): void {
+  pushBarClose(
+    instrument: string,
+    timeframe: string,
+    candle: CandleData
+  ): void {
     this.server.emit('bar_close', { instrument, timeframe, candle });
   }
 }
@@ -1377,10 +1545,14 @@ export class ChatService {
     @InjectRepository(ConversationEntity)
     private readonly conversationRepo: Repository<ConversationEntity>,
     @InjectRepository(MessageEntity)
-    private readonly messageRepo: Repository<MessageEntity>,
+    private readonly messageRepo: Repository<MessageEntity>
   ) {}
 
-  async createConversation(userId: string, instrument?: string, tfConfig?: string): Promise<ConversationEntity> {
+  async createConversation(
+    userId: string,
+    instrument?: string,
+    tfConfig?: string
+  ): Promise<ConversationEntity> {
     const conversation = this.conversationRepo.create({
       userId,
       instrument,
@@ -1396,7 +1568,7 @@ export class ChatService {
   async updateConversationInstrument(
     id: string,
     instrument: string,
-    tfConfig?: string,
+    tfConfig?: string
   ): Promise<void> {
     await this.conversationRepo.update(id, {
       instrument,
@@ -1409,7 +1581,7 @@ export class ChatService {
     conversationId: string,
     role: string,
     content: string,
-    metadata?: any,
+    metadata?: any
   ): Promise<MessageEntity> {
     const message = this.messageRepo.create({
       conversationId,
@@ -1420,7 +1592,10 @@ export class ChatService {
     return this.messageRepo.save(message);
   }
 
-  async getMessages(conversationId: string, limit = 50): Promise<MessageEntity[]> {
+  async getMessages(
+    conversationId: string,
+    limit = 50
+  ): Promise<MessageEntity[]> {
     return this.messageRepo.find({
       where: { conversationId },
       order: { createdAt: 'ASC' },
@@ -1428,7 +1603,10 @@ export class ChatService {
     });
   }
 
-  async getRecentConversations(userId: string, limit = 10): Promise<ConversationEntity[]> {
+  async getRecentConversations(
+    userId: string,
+    limit = 10
+  ): Promise<ConversationEntity[]> {
     return this.conversationRepo.find({
       where: { userId, isArchived: false },
       order: { updatedAt: 'DESC' },
@@ -1464,7 +1642,7 @@ export class InstrumentContextService {
    */
   async assembleFullContext(
     instrument: string,
-    tfConfig: string,
+    tfConfig: string
   ): Promise<InstrumentContextPayload> {
     const config = TF_CONFIGS[tfConfig];
     const primaryDecisionTf = config.decision[1]; // H1 for Config A, H2 for Config B
@@ -1483,7 +1661,7 @@ export class InstrumentContextService {
   async assembleChartData(
     instrument: string,
     timeframe: string,
-    lookback: number,
+    lookback: number
   ): Promise<ChartData> {
     const [candles, trendlines] = await Promise.all([
       this.marketData.fetchCandles(instrument, timeframe, lookback),
@@ -1504,16 +1682,28 @@ export class InstrumentContextService {
    */
   async assembleCardData(
     instrument: string,
-    tfConfig: string,
+    tfConfig: string
   ): Promise<CardPanelData> {
     const config = TF_CONFIGS[tfConfig];
 
     const [navigation, decisionResistance, decisionSupport, lowerDecision] =
       await Promise.all([
         this.assembleNavigationCard(instrument, config),
-        this.marketData.fetchCardData(instrument, config.decision[1], 'resistance'),
-        this.marketData.fetchCardData(instrument, config.decision[1], 'support'),
-        this.marketData.fetchCardData(instrument, config.decision[2], 'support'),
+        this.marketData.fetchCardData(
+          instrument,
+          config.decision[1],
+          'resistance'
+        ),
+        this.marketData.fetchCardData(
+          instrument,
+          config.decision[1],
+          'support'
+        ),
+        this.marketData.fetchCardData(
+          instrument,
+          config.decision[2],
+          'support'
+        ),
       ]);
 
     return { navigation, decisionResistance, decisionSupport, lowerDecision };
@@ -1521,22 +1711,28 @@ export class InstrumentContextService {
 
   private async assembleNavigationCard(
     instrument: string,
-    config: TfConfigMapping,
+    config: TfConfigMapping
   ): Promise<NavigationCardData> {
     const upperTf = config.navigation[0]; // H4 for Config A
     const lowerTf = config.navigation[1]; // H2 for Config A
 
     // Fetch navigation trendline data for the card display
-    const trendlines = await this.marketData.fetchTrendlines(instrument, [lowerTf]);
-    const resistance = trendlines.find(t => t.lineType === 'peak' && t.rank === 1);
-    const support = trendlines.find(t => t.lineType === 'bottom' && t.rank === 1);
+    const trendlines = await this.marketData.fetchTrendlines(instrument, [
+      lowerTf,
+    ]);
+    const resistance = trendlines.find(
+      (t) => t.lineType === 'peak' && t.rank === 1
+    );
+    const support = trendlines.find(
+      (t) => t.lineType === 'bottom' && t.rank === 1
+    );
 
     return {
       instrument,
       timeframe: lowerTf,
       price: resistance?.projectedPrice || support?.projectedPrice || 0,
       priceType: resistance ? 'resistance' : 'support',
-      upperTfKcZone: 0,    // Fetched from additional indicator data
+      upperTfKcZone: 0, // Fetched from additional indicator data
       upperTfSrZone: 0,
       rTrendlineSlope: resistance?.slopeDegrees || 0,
       sTrendlineSlope: support?.slopeDegrees || 0,
@@ -1559,7 +1755,7 @@ export class CronEvaluationService {
   constructor(
     private readonly orchestrator: AgentOrchestratorService,
     private readonly gateway: TradingGateway,
-    private readonly agentStateRepo: Repository<AgentStateEntity>,
+    private readonly agentStateRepo: Repository<AgentStateEntity>
   ) {}
 
   /**
@@ -1574,7 +1770,9 @@ export class CronEvaluationService {
 
     for (const state of activeStates) {
       const result = await this.orchestrator.runEvaluationCycle(
-        state.instrument, state.tfConfig, 'new_bar'
+        state.instrument,
+        state.tfConfig,
+        'new_bar'
       );
 
       // Push state change alert if state transitioned
@@ -1605,7 +1803,9 @@ export class CronEvaluationService {
 
     for (const state of activeStates) {
       const result = await this.orchestrator.runEvaluationCycle(
-        state.instrument, state.tfConfig, 'new_bar'
+        state.instrument,
+        state.tfConfig,
+        'new_bar'
       );
 
       if (result.previousState !== result.state) {
@@ -1624,8 +1824,10 @@ export class CronEvaluationService {
   }
 
   private determineUrgency(state: string): 'low' | 'medium' | 'high' {
-    if (state === 'BREAKOUT_DETECTED' || state === 'PULLBACK_TESTING') return 'high';
-    if (state === 'AWAITING_PULLBACK' || state === 'INVALIDATED') return 'medium';
+    if (state === 'BREAKOUT_DETECTED' || state === 'PULLBACK_TESTING')
+      return 'high';
+    if (state === 'AWAITING_PULLBACK' || state === 'INVALIDATED')
+      return 'medium';
     return 'low';
   }
 }
@@ -1831,14 +2033,14 @@ src/
 
 ### Cost Estimate
 
-| Service | Estimated Monthly Cost | Notes |
-|---|---|---|
-| Railway (NestJS) | $10-20 | Small-medium instance |
-| Railway (PostgreSQL) | Already provisioned | Existing infrastructure |
-| Railway (ChromaDB) | $5-10 | Small container, or use pgvector for free |
-| Claude API (Sonnet) | $20-50 | ~500-1000 evaluations/month |
-| Vercel (Next.js) | $20 | Already provisioned |
-| **Total incremental** | **$35-80/month** | |
+| Service               | Estimated Monthly Cost | Notes                                     |
+| --------------------- | ---------------------- | ----------------------------------------- |
+| Railway (NestJS)      | $10-20                 | Small-medium instance                     |
+| Railway (PostgreSQL)  | Already provisioned    | Existing infrastructure                   |
+| Railway (ChromaDB)    | $5-10                  | Small container, or use pgvector for free |
+| Claude API (Sonnet)   | $20-50                 | ~500-1000 evaluations/month               |
+| Vercel (Next.js)      | $20                    | Already provisioned                       |
+| **Total incremental** | **$35-80/month**       |                                           |
 
 ---
 

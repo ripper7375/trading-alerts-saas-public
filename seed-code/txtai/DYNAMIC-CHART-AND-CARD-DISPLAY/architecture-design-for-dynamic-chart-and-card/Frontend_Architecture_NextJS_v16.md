@@ -119,16 +119,16 @@ app/
 
 ### 2.2 Client vs. Server Component Boundary
 
-| Component | Type | Reason |
-|---|---|---|
-| `layout.tsx` | Server | Static shell, no interactivity |
-| `Sidebar` | Server | Static links, no real-time data |
-| `InstrumentSelector` | Client | Dropdown interaction, updates store |
-| `PinnedChats` / `RecentChats` | Client | Real-time updates via WebSocket |
-| `DashboardLayout` | Client | Orchestrates all interactive panels |
-| `ChatPanel` + children | Client | User input, real-time messages |
-| `ChartPanel` + children | Client | TradingView chart requires DOM |
-| `CardPanel` + children | Client | Real-time card data updates |
+| Component                     | Type   | Reason                              |
+| ----------------------------- | ------ | ----------------------------------- |
+| `layout.tsx`                  | Server | Static shell, no interactivity      |
+| `Sidebar`                     | Server | Static links, no real-time data     |
+| `InstrumentSelector`          | Client | Dropdown interaction, updates store |
+| `PinnedChats` / `RecentChats` | Client | Real-time updates via WebSocket     |
+| `DashboardLayout`             | Client | Orchestrates all interactive panels |
+| `ChatPanel` + children        | Client | User input, real-time messages      |
+| `ChartPanel` + children       | Client | TradingView chart requires DOM      |
+| `CardPanel` + children        | Client | Real-time card data updates         |
 
 ---
 
@@ -151,10 +151,10 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware';
 
 interface TradingStore {
   // === Active Context ===
-  activeInstrument: string | null;          // "XAUUSD", "BTCUSD", etc.
-  activeTfConfig: TfConfig | null;          // "A" or "B"
+  activeInstrument: string | null; // "XAUUSD", "BTCUSD", etc.
+  activeTfConfig: TfConfig | null; // "A" or "B"
   activeConversationId: string | null;
-  activeTimeframeTab: string;               // Currently selected TF tab for chart display
+  activeTimeframeTab: string; // Currently selected TF tab for chart display
 
   // === Agent State (from backend) ===
   agentState: AgentStateSnapshot | null;
@@ -198,13 +198,13 @@ interface TradingStore {
 
 ```typescript
 // ChartPanel only re-renders when chartData changes
-const chartData = useTradingStore(state => state.chartData);
+const chartData = useTradingStore((state) => state.chartData);
 
 // CardPanel only re-renders when cardData changes
-const cardData = useTradingStore(state => state.cardData);
+const cardData = useTradingStore((state) => state.cardData);
 
 // ChatMessages only re-renders when messages change
-const messages = useTradingStore(state => state.chatMessages);
+const messages = useTradingStore((state) => state.chatMessages);
 ```
 
 **WebSocket handler updates store directly**: The Socket.IO client event handlers call store actions directly (Zustand stores are accessible outside React). This avoids the React render cycle for processing WebSocket events — the store updates atomically, and only subscribed components re-render.
@@ -349,12 +349,13 @@ The backend provides structured data. Here's how it maps to Lightweight Charts s
 ```typescript
 // Backend provides:
 interface CandleData {
-  time: number;       // Unix timestamp (seconds)
+  time: number; // Unix timestamp (seconds)
   open: number;
   high: number;
   low: number;
   close: number;
-  momentum?: {        // Optional momentum classification
+  momentum?: {
+    // Optional momentum classification
     zScore: number;
     classification: 'normal' | 'large' | 'extreme';
     direction: 'bullish' | 'bearish';
@@ -362,26 +363,32 @@ interface CandleData {
 }
 
 // Mapped to Lightweight Charts:
-candleSeries.setData(candles.map(c => ({
-  time: c.time as UTCTimestamp,
-  open: c.open,
-  high: c.high,
-  low: c.low,
-  close: c.close,
-  // Color override for momentum candles
-  ...(c.momentum?.classification === 'extreme' && c.momentum.direction === 'bullish'
-    ? { color: '#006400', wickColor: '#006400' }   // Dark green
-    : {}),
-  ...(c.momentum?.classification === 'extreme' && c.momentum.direction === 'bearish'
-    ? { color: '#8B0000', wickColor: '#8B0000' }   // Dark red
-    : {}),
-  ...(c.momentum?.classification === 'large' && c.momentum.direction === 'bullish'
-    ? { color: '#90EE90', wickColor: '#90EE90' }   // Light green
-    : {}),
-  ...(c.momentum?.classification === 'large' && c.momentum.direction === 'bearish'
-    ? { color: '#FF69B4', wickColor: '#FF69B4' }   // Hot pink
-    : {}),
-})));
+candleSeries.setData(
+  candles.map((c) => ({
+    time: c.time as UTCTimestamp,
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    close: c.close,
+    // Color override for momentum candles
+    ...(c.momentum?.classification === 'extreme' &&
+    c.momentum.direction === 'bullish'
+      ? { color: '#006400', wickColor: '#006400' } // Dark green
+      : {}),
+    ...(c.momentum?.classification === 'extreme' &&
+    c.momentum.direction === 'bearish'
+      ? { color: '#8B0000', wickColor: '#8B0000' } // Dark red
+      : {}),
+    ...(c.momentum?.classification === 'large' &&
+    c.momentum.direction === 'bullish'
+      ? { color: '#90EE90', wickColor: '#90EE90' } // Light green
+      : {}),
+    ...(c.momentum?.classification === 'large' &&
+    c.momentum.direction === 'bearish'
+      ? { color: '#FF69B4', wickColor: '#FF69B4' } // Hot pink
+      : {}),
+  }))
+);
 ```
 
 **Trendlines → LineSeries (one per trendline)**
@@ -391,7 +398,7 @@ interface TrendlineOverlay {
   id: string;
   type: 'resistance' | 'support';
   status: 'intact' | 'broken' | 'role_reversed';
-  points: Array<{ time: number; value: number }>;  // Start + end projected points
+  points: Array<{ time: number; value: number }>; // Start + end projected points
   touchCount: number;
   slopeDegrees: number;
 }
@@ -399,16 +406,18 @@ interface TrendlineOverlay {
 // Each trendline becomes a separate LineSeries:
 for (const tl of chartData.trendlines) {
   const series = chart.addLineSeries({
-    color: tl.type === 'resistance' ? '#EF4444' : '#22C55E',  // Red / Green
+    color: tl.type === 'resistance' ? '#EF4444' : '#22C55E', // Red / Green
     lineWidth: tl.touchCount >= 4 ? 2 : 1,
     lineStyle: tl.status === 'broken' ? LineStyle.Dashed : LineStyle.Solid,
     priceLineVisible: false,
     lastValueVisible: false,
   });
-  series.setData(tl.points.map(p => ({
-    time: p.time as UTCTimestamp,
-    value: p.value,
-  })));
+  series.setData(
+    tl.points.map((p) => ({
+      time: p.time as UTCTimestamp,
+      value: p.value,
+    }))
+  );
   trendlineSeriesRefs.current.set(tl.id, series);
 }
 ```
@@ -428,7 +437,7 @@ interface SRZoneOverlay {
 // Using horizontal price lines for zone boundaries
 for (const zone of chartData.srZones) {
   const upperLine = chart.addLineSeries({
-    color: 'rgba(59, 130, 246, 0.5)',  // Blue
+    color: 'rgba(59, 130, 246, 0.5)', // Blue
     lineWidth: 1,
     lineStyle: LineStyle.Dotted,
     priceLineVisible: false,
@@ -485,21 +494,21 @@ The cards on the right side of the dashboard map directly to the 2-3-2 architect
 
 **Config A (H1 Primary Decision TF)**
 
-| Card Position | Layer | Timeframe | Content |
-|---|---|---|---|
-| Top | Navigation | H2 | Price, H4 KC Zone, H4 S&R Zone, H2 R/S Trendline Slopes |
-| Upper Middle | Decision (Resistance) | H1 | Keltner Zone, S&R Zone, Slope, Trend, Touches, % Breakout |
-| Lower Middle | Decision (Support) | H1 | Same fields, support side |
-| Bottom | Decision (Lower) | M30 | Same fields |
+| Card Position | Layer                 | Timeframe | Content                                                   |
+| ------------- | --------------------- | --------- | --------------------------------------------------------- |
+| Top           | Navigation            | H2        | Price, H4 KC Zone, H4 S&R Zone, H2 R/S Trendline Slopes   |
+| Upper Middle  | Decision (Resistance) | H1        | Keltner Zone, S&R Zone, Slope, Trend, Touches, % Breakout |
+| Lower Middle  | Decision (Support)    | H1        | Same fields, support side                                 |
+| Bottom        | Decision (Lower)      | M30       | Same fields                                               |
 
 **Config B (H2 Primary Decision TF)**
 
-| Card Position | Layer | Timeframe | Content |
-|---|---|---|---|
-| Top | Navigation | H4 | Price, H8 KC Zone, H8 S&R Zone, H4 R/S Trendline Slopes |
-| Upper Middle | Decision (Resistance) | H2 | Keltner Zone, S&R Zone, Slope, Trend, Touches, % Breakout |
-| Lower Middle | Decision (Support) | H2 | Same fields, support side |
-| Bottom | Decision (Lower) | H1 | Same fields |
+| Card Position | Layer                 | Timeframe | Content                                                   |
+| ------------- | --------------------- | --------- | --------------------------------------------------------- |
+| Top           | Navigation            | H4        | Price, H8 KC Zone, H8 S&R Zone, H4 R/S Trendline Slopes   |
+| Upper Middle  | Decision (Resistance) | H2        | Keltner Zone, S&R Zone, Slope, Trend, Touches, % Breakout |
+| Lower Middle  | Decision (Support)    | H2        | Same fields, support side                                 |
+| Bottom        | Decision (Lower)      | H1        | Same fields                                               |
 
 ### 6.2 Card Component Structure
 
@@ -532,12 +541,12 @@ interface CardData {
   timeframe: string;
   type: 'resistance' | 'support';
   projectedPrice: number;
-  keltnerZone: number;         // 1-5 scale
-  srZone: number;              // Count of S&R levels
+  keltnerZone: number; // 1-5 scale
+  srZone: number; // Count of S&R levels
   slopeDegrees: number;
   trend: 'Uptrend' | 'Downtrend' | 'Ranging';
   touches: number;
-  breakoutPct: number | null;  // null = N/A
+  breakoutPct: number | null; // null = N/A
   breakoutType: 'Continuation' | 'Reversal' | null;
 }
 ```
@@ -566,13 +575,13 @@ The navigation card has a different structure — it shows the Navigation layer'
 
 Cards use color coding to convey information at a glance:
 
-| Element | Red | Green |
-|---|---|---|
-| Type badge | Resistance | Support |
-| Price badge background | Resistance price | Support price |
-| Trend label | Downtrend | Uptrend |
-| Slope text | Negative slope | Positive slope |
-| Breakout % | Reversal | Continuation |
+| Element                | Red              | Green          |
+| ---------------------- | ---------------- | -------------- |
+| Type badge             | Resistance       | Support        |
+| Price badge background | Resistance price | Support price  |
+| Trend label            | Downtrend        | Uptrend        |
+| Slope text             | Negative slope   | Positive slope |
+| Breakout %             | Reversal         | Continuation   |
 
 ---
 
@@ -584,10 +593,10 @@ The chat panel renders four message types:
 
 ```typescript
 type ChatMessage =
-  | UserMessage          // User typed text
-  | AgentAnalysis        // Agent evaluation response with structured data
-  | StateChangeAlert     // Auto-pushed state transition alert
-  | SystemNotification;  // Connection status, errors, etc.
+  | UserMessage // User typed text
+  | AgentAnalysis // Agent evaluation response with structured data
+  | StateChangeAlert // Auto-pushed state transition alert
+  | SystemNotification; // Connection status, errors, etc.
 
 interface UserMessage {
   type: 'user';
@@ -599,9 +608,9 @@ interface UserMessage {
 interface AgentAnalysis {
   type: 'agent_analysis';
   id: string;
-  text: string;                             // Markdown-formatted analysis text
-  agentState?: AgentStateSnapshot;          // Optional inline state display
-  convergence?: ConvergenceBreakdown;       // Optional inline score card
+  text: string; // Markdown-formatted analysis text
+  agentState?: AgentStateSnapshot; // Optional inline state display
+  convergence?: ConvergenceBreakdown; // Optional inline score card
   timestamp: string;
 }
 
@@ -661,12 +670,14 @@ type ModelOption = 'claude-sonnet-4-5-20250929' | 'claude-opus-4-6';
 ### 7.4 Chat Message Rendering
 
 Agent messages are rendered as Markdown with support for:
+
 - Inline convergence score tables
 - Code blocks for structured data
 - Bold/italic for emphasis
 - Emoji for alert urgency levels (only when received from backend)
 
 State change alerts have colored borders based on urgency:
+
 - `high`: Red left border + red background tint
 - `medium`: Yellow left border
 - `low`: Gray left border
@@ -719,9 +730,12 @@ class TradingSocketClient {
     });
 
     // Trading events
-    this.socket!.on('instrument_context', (payload: InstrumentContextPayload) => {
-      store.handleInstrumentContext(payload);
-    });
+    this.socket!.on(
+      'instrument_context',
+      (payload: InstrumentContextPayload) => {
+        store.handleInstrumentContext(payload);
+      }
+    );
 
     this.socket!.on('agent_response', (payload: AgentResponsePayload) => {
       store.handleChatMessage({
@@ -751,7 +765,12 @@ class TradingSocketClient {
   }
 
   // Emit methods
-  sendChatMessage(conversationId: string, message: string, instrument: string | null, tfConfig: string | null): void {
+  sendChatMessage(
+    conversationId: string,
+    message: string,
+    instrument: string | null,
+    tfConfig: string | null
+  ): void {
     this.socket?.emit('chat_message', {
       conversationId,
       message,
@@ -768,7 +787,11 @@ class TradingSocketClient {
     this.socket?.emit('leave_conversation', { conversationId });
   }
 
-  requestChartData(instrument: string, timeframe: string, lookback: number): void {
+  requestChartData(
+    instrument: string,
+    timeframe: string,
+    lookback: number
+  ): void {
     this.socket?.emit('request_chart_data', {
       instrument,
       timeframe,
@@ -789,25 +812,25 @@ export const tradingSocket = new TradingSocketClient();
 
 **Client → Server Events**
 
-| Event | Payload | Purpose |
-|---|---|---|
-| `chat_message` | `{ conversationId, message, instrument?, tfConfig? }` | User sends a chat message |
-| `join_conversation` | `{ conversationId }` | Join a conversation room |
-| `leave_conversation` | `{ conversationId }` | Leave a conversation room |
-| `request_chart_data` | `{ instrument, timeframe, lookback }` | Request candle data for a specific TF |
-| `request_card_data` | `{ instrument, tfConfig }` | Request card data refresh |
+| Event                | Payload                                               | Purpose                               |
+| -------------------- | ----------------------------------------------------- | ------------------------------------- |
+| `chat_message`       | `{ conversationId, message, instrument?, tfConfig? }` | User sends a chat message             |
+| `join_conversation`  | `{ conversationId }`                                  | Join a conversation room              |
+| `leave_conversation` | `{ conversationId }`                                  | Leave a conversation room             |
+| `request_chart_data` | `{ instrument, timeframe, lookback }`                 | Request candle data for a specific TF |
+| `request_card_data`  | `{ instrument, tfConfig }`                            | Request card data refresh             |
 
 **Server → Client Events**
 
-| Event | Payload | Purpose |
-|---|---|---|
-| `instrument_context` | `{ instrument, tfConfig, chart, cards }` | Full instrument data bundle (on instrument change) |
-| `agent_response` | `{ message, agentState?, convergence?, alerts? }` | Response to a user chat message |
-| `state_change_alert` | `{ previousState, newState, instrument, message, urgency }` | Auto-pushed state transition |
-| `chart_data_update` | `{ candles, trendlines, srZones }` | Chart data for requested TF |
-| `card_data_update` | `{ navigation, decisionResistance, decisionSupport, lowerDecision }` | Card data refresh |
-| `bar_close` | `{ instrument, timeframe, candle }` | New bar close notification for live chart updates |
-| `error` | `{ code, message }` | Server-side error |
+| Event                | Payload                                                              | Purpose                                            |
+| -------------------- | -------------------------------------------------------------------- | -------------------------------------------------- |
+| `instrument_context` | `{ instrument, tfConfig, chart, cards }`                             | Full instrument data bundle (on instrument change) |
+| `agent_response`     | `{ message, agentState?, convergence?, alerts? }`                    | Response to a user chat message                    |
+| `state_change_alert` | `{ previousState, newState, instrument, message, urgency }`          | Auto-pushed state transition                       |
+| `chart_data_update`  | `{ candles, trendlines, srZones }`                                   | Chart data for requested TF                        |
+| `card_data_update`   | `{ navigation, decisionResistance, decisionSupport, lowerDecision }` | Card data refresh                                  |
+| `bar_close`          | `{ instrument, timeframe, candle }`                                  | New bar close notification for live chart updates  |
+| `error`              | `{ code, message }`                                                  | Server-side error                                  |
 
 ### 8.3 Room Architecture
 
@@ -866,11 +889,11 @@ Behavior:
 
 ### 9.2 Responsive Breakpoints
 
-| Breakpoint | Layout |
-|---|---|
-| Desktop (≥1280px) | 3-column: Sidebar + Chart/Chat + Cards |
+| Breakpoint          | Layout                                                            |
+| ------------------- | ----------------------------------------------------------------- |
+| Desktop (≥1280px)   | 3-column: Sidebar + Chart/Chat + Cards                            |
 | Tablet (768–1279px) | 2-column: Sidebar collapsed + Chart/Chat + Cards as overlay panel |
-| Mobile (<768px) | Single column with tab navigation between Chat, Chart, Cards |
+| Mobile (<768px)     | Single column with tab navigation between Chat, Chart, Cards      |
 
 ### 9.3 Route Structure
 
@@ -900,9 +923,9 @@ Behavior:
 type TfConfig = 'A' | 'B';
 
 interface TfConfigMapping {
-  navigation: [string, string];       // [upper, lower] e.g., ["H4", "H2"]
+  navigation: [string, string]; // [upper, lower] e.g., ["H4", "H2"]
   decision: [string, string, string]; // [upper, primary, lower] e.g., ["H2", "H1", "M30"]
-  execution: [string, string];        // [upper, lower] e.g., ["M15", "M5"]
+  execution: [string, string]; // [upper, lower] e.g., ["M15", "M5"]
 }
 
 const TF_CONFIGS: Record<TfConfig, TfConfigMapping> = {
@@ -922,7 +945,7 @@ const TF_CONFIGS: Record<TfConfig, TfConfigMapping> = {
 interface AgentStateSnapshot {
   instrument: string;
   tfConfig: TfConfig;
-  currentState: string;       // IDLE, NAVIGATING, SCANNING, etc.
+  currentState: string; // IDLE, NAVIGATING, SCANNING, etc.
   previousState: string | null;
   barsInState: number;
   tradeDirection: 'long' | 'short' | null;
@@ -936,12 +959,12 @@ interface AgentStateSnapshot {
 
 // === Convergence Score ===
 interface ConvergenceBreakdown {
-  trendline: number;       // -2 to +2
-  momentum: number;        // -2 to +2
-  temaHrma: number;        // -2 to +2
-  navigation: number;      // -2 to +2
-  pricePattern: number;    // -2 to +2
-  rawTotal: number;        // -10 to +10
+  trendline: number; // -2 to +2
+  momentum: number; // -2 to +2
+  temaHrma: number; // -2 to +2
+  navigation: number; // -2 to +2
+  pricePattern: number; // -2 to +2
+  rawTotal: number; // -10 to +10
   counterTrendModifier: number;
   adjustedTotal: number;
   llmAdjustment: number;
@@ -960,7 +983,14 @@ interface SRZoneData {
 
 // === Price Pattern ===
 interface PricePatternData {
-  patternType: 'double_bottom' | 'double_top' | 'higher_low' | 'lower_high' | 'hammer' | 'engulfing' | null;
+  patternType:
+    | 'double_bottom'
+    | 'double_top'
+    | 'higher_low'
+    | 'lower_high'
+    | 'hammer'
+    | 'engulfing'
+    | null;
   developmentStatus: 'none' | 'forming' | 'completed';
   evidenceNotes: string;
 }
@@ -1019,10 +1049,10 @@ interface CardPanelData {
 
 interface NavigationCardData {
   instrument: string;
-  timeframe: string;             // "H2" (Config A) or "H4" (Config B)
+  timeframe: string; // "H2" (Config A) or "H4" (Config B)
   price: number;
   priceType: 'resistance' | 'support';
-  upperTfKcZone: number;         // H4 KC Zone (Config A) or H8 KC Zone (Config B)
+  upperTfKcZone: number; // H4 KC Zone (Config A) or H8 KC Zone (Config B)
   upperTfSrZone: number;
   rTrendlineSlope: number;
   sTrendlineSlope: number;
@@ -1076,6 +1106,7 @@ interface StateChangeAlert {
 ### 11.1 WebSocket Disconnection
 
 When the WebSocket disconnects:
+
 1. Store sets `wsStatus = 'disconnected'`
 2. A banner appears at the top of the dashboard: "Connection lost. Reconnecting..."
 3. Socket.IO's built-in reconnection handles automatic retry
@@ -1084,21 +1115,21 @@ When the WebSocket disconnects:
 
 ### 11.2 Loading States
 
-| State | UI Behavior |
-|---|---|
-| Initial page load | Skeleton loaders for chart, cards, and chat |
-| Waiting for agent response | Typing indicator in chat panel + pulsing border on cards |
-| Chart timeframe switching | Skeleton overlay on chart while new data loads |
-| Instrument switching | All panels show skeleton loaders until `instrument_context` arrives |
+| State                      | UI Behavior                                                         |
+| -------------------------- | ------------------------------------------------------------------- |
+| Initial page load          | Skeleton loaders for chart, cards, and chat                         |
+| Waiting for agent response | Typing indicator in chat panel + pulsing border on cards            |
+| Chart timeframe switching  | Skeleton overlay on chart while new data loads                      |
+| Instrument switching       | All panels show skeleton loaders until `instrument_context` arrives |
 
 ### 11.3 Error States
 
-| Error | UI Behavior |
-|---|---|
-| WebSocket connection failed | Banner + retry countdown |
-| Agent response error | Error message in chat with retry button |
-| Chart data load failed | "Failed to load chart data" message in chart panel |
-| Invalid instrument | Toast notification: "Instrument not supported" |
+| Error                       | UI Behavior                                        |
+| --------------------------- | -------------------------------------------------- |
+| WebSocket connection failed | Banner + retry countdown                           |
+| Agent response error        | Error message in chat with retry button            |
+| Chart data load failed      | "Failed to load chart data" message in chart panel |
+| Invalid instrument          | Toast notification: "Instrument not supported"     |
 
 ---
 

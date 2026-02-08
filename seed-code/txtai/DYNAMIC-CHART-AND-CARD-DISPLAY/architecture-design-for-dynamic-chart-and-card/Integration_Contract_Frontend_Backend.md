@@ -28,10 +28,10 @@
 
 ### 1.1 Communication Channels
 
-| Channel | Protocol | Purpose | When to Use |
-|---|---|---|---|
-| **WebSocket** | Socket.IO over WSS | Real-time bidirectional communication | Chat messages, agent responses, state alerts, live chart updates |
-| **REST API** | HTTPS JSON | Request-response for CRUD operations | Auth, conversation list, message history, settings, initial page load |
+| Channel       | Protocol           | Purpose                               | When to Use                                                           |
+| ------------- | ------------------ | ------------------------------------- | --------------------------------------------------------------------- |
+| **WebSocket** | Socket.IO over WSS | Real-time bidirectional communication | Chat messages, agent responses, state alerts, live chart updates      |
+| **REST API**  | HTTPS JSON         | Request-response for CRUD operations  | Auth, conversation list, message history, settings, initial page load |
 
 ### 1.2 Design Rule
 
@@ -116,24 +116,25 @@ The server validates the JWT on `handleConnection`. Invalid or expired tokens re
 
 ### 3.2 Room Architecture
 
-| Room Pattern | Joined By | Purpose |
-|---|---|---|
-| `user:{userId}` | Auto on connect | Cross-conversation alerts (state changes for any instrument) |
-| `conversation:{conversationId}` | On `join_conversation` event | Conversation-scoped messages and instrument context |
+| Room Pattern                    | Joined By                    | Purpose                                                      |
+| ------------------------------- | ---------------------------- | ------------------------------------------------------------ |
+| `user:{userId}`                 | Auto on connect              | Cross-conversation alerts (state changes for any instrument) |
+| `conversation:{conversationId}` | On `join_conversation` event | Conversation-scoped messages and instrument context          |
 
 **Rules:**
+
 - A client is in exactly one `conversation:` room at a time
 - A client is always in their `user:` room
 - Joining a new conversation automatically leaves the previous conversation room
 
 ### 3.3 Connection Lifecycle Events
 
-| Event | Direction | Payload | Description |
-|---|---|---|---|
-| `connect` | Socket.IO built-in | — | Connection established |
-| `disconnect` | Socket.IO built-in | — | Connection lost |
+| Event           | Direction          | Payload               | Description                                 |
+| --------------- | ------------------ | --------------------- | ------------------------------------------- |
+| `connect`       | Socket.IO built-in | —                     | Connection established                      |
+| `disconnect`    | Socket.IO built-in | —                     | Connection lost                             |
 | `connect_error` | Socket.IO built-in | `{ message: string }` | Connection failed (auth error, server down) |
-| `reconnect` | Socket.IO built-in | — | Successfully reconnected |
+| `reconnect`     | Socket.IO built-in | —                     | Successfully reconnected                    |
 
 ---
 
@@ -165,6 +166,7 @@ interface ChatMessagePayload {
 ```
 
 **Server behavior:**
+
 1. Persists user message to DB
 2. Extracts instrument from message (may differ from `payload.instrument`)
 3. Runs agent orchestrator
@@ -184,11 +186,12 @@ socket.emit('join_conversation', payload);
 
 // Payload
 interface JoinConversationPayload {
-  conversationId: string;       // UUID of the conversation to join
+  conversationId: string; // UUID of the conversation to join
 }
 ```
 
 **Server behavior:**
+
 1. Removes client from all previous `conversation:*` rooms
 2. Adds client to `conversation:{conversationId}`
 3. If conversation has a persisted instrument → emits `instrument_context`
@@ -210,6 +213,7 @@ interface LeaveConversationPayload {
 ```
 
 **Server behavior:**
+
 1. Removes client from `conversation:{conversationId}`
 
 ---
@@ -224,13 +228,14 @@ socket.emit('request_chart_data', payload);
 
 // Payload
 interface RequestChartDataPayload {
-  instrument: string;           // e.g., "XAUUSD"
-  timeframe: string;            // e.g., "H2", "M30"
-  lookback: number;             // Number of candles, default 300
+  instrument: string; // e.g., "XAUUSD"
+  timeframe: string; // e.g., "H2", "M30"
+  lookback: number; // Number of candles, default 300
 }
 ```
 
 **Server behavior:**
+
 1. Queries PostgreSQL for candle data + trendlines for the requested timeframe
 2. Emits `chart_data_update` to the requesting client only (not the room)
 
@@ -247,11 +252,12 @@ socket.emit('request_card_data', payload);
 // Payload
 interface RequestCardDataPayload {
   instrument: string;
-  tfConfig: string;             // "A" or "B"
+  tfConfig: string; // "A" or "B"
 }
 ```
 
 **Server behavior:**
+
 1. Assembles card data for all timeframes in the config
 2. Emits `card_data_update` to the requesting client only
 
@@ -358,11 +364,13 @@ interface DecisionCardData {
 ```
 
 **When sent:**
+
 - User sends a message that references a different instrument
 - User joins a conversation that has a persisted instrument
 - Client reconnects and re-joins a conversation
 
 **Frontend action:**
+
 - Update `activeInstrument` and `activeTfConfig` in Zustand store
 - Update chart data → TradingView re-renders with new candles + overlays
 - Update card data → all four cards re-render
@@ -430,10 +438,12 @@ interface PricePatternSnapshot {
 ```
 
 **When sent:**
+
 - In response to every `chat_message` from the client
 - Sent to the `conversation:{conversationId}` room
 
 **Frontend action:**
+
 - Append `AgentAnalysis` message to chat panel
 - Update agent state snapshot in Zustand store
 - Set `chatLoading = false`
@@ -465,21 +475,23 @@ interface StateChangeAlertPayload {
 
 **Urgency mapping:**
 
-| New State | Urgency | Rationale |
-|---|---|---|
-| `BREAKOUT_DETECTED` | `high` | Actionable: breakout just occurred |
-| `PULLBACK_TESTING` | `high` | Actionable: zone being tested |
-| `AWAITING_PULLBACK` | `medium` | Setup developing, monitor |
-| `INVALIDATED` | `medium` | Setup failed, notable event |
-| `MISSED` | `medium` | Entry window expired |
-| `SCANNING` | `low` | Watching for setups |
-| `IDLE` | `low` | No active setup |
+| New State           | Urgency  | Rationale                          |
+| ------------------- | -------- | ---------------------------------- |
+| `BREAKOUT_DETECTED` | `high`   | Actionable: breakout just occurred |
+| `PULLBACK_TESTING`  | `high`   | Actionable: zone being tested      |
+| `AWAITING_PULLBACK` | `medium` | Setup developing, monitor          |
+| `INVALIDATED`       | `medium` | Setup failed, notable event        |
+| `MISSED`            | `medium` | Entry window expired               |
+| `SCANNING`          | `low`    | Watching for setups                |
+| `IDLE`              | `low`    | No active setup                    |
 
 **When sent:**
+
 - After every cron-triggered evaluation that produces a state transition
 - Sent to the `user:{userId}` room (crosses conversation boundaries)
 
 **Frontend action:**
+
 - Append `AlertMessage` to the chat panel if the instrument matches the active conversation
 - Show notification badge in the sidebar for the relevant conversation
 - Play audio notification for `high` urgency (if user has notifications enabled)
@@ -498,10 +510,12 @@ socket.on('chart_data_update', (payload: ChartData) => { ... });
 ```
 
 **When sent:**
+
 - In response to `request_chart_data` (timeframe tab switch)
 - Sent to the requesting client only (not the room)
 
 **Frontend action:**
+
 - Update `chartData` in Zustand store
 - TradingView chart re-renders with new timeframe's data
 
@@ -519,6 +533,7 @@ socket.on('card_data_update', (payload: CardPanelData) => { ... });
 ```
 
 **When sent:**
+
 - In response to `request_card_data`
 - After a cron evaluation updates indicator data
 - Sent to the requesting client only
@@ -543,10 +558,12 @@ interface BarClosePayload {
 ```
 
 **When sent:**
+
 - After the data pipeline writes a new bar's data to PostgreSQL
 - Sent to all clients (filtered client-side by active instrument + timeframe)
 
 **Frontend action:**
+
 - If `instrument` and `timeframe` match the active chart → append candle to chart
 - If `updatedTrendlines` is present → update trendline overlays
 
@@ -578,39 +595,73 @@ interface WSErrorPayload {
 
 ```typescript
 // Request
-{ email: string; password: string }
+{
+  email: string;
+  password: string;
+}
 
 // Response 200
-{ accessToken: string; refreshToken: string; user: { id: string; email: string; name: string } }
+{
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+  }
+}
 
 // Response 401
-{ error: 'Invalid credentials' }
+{
+  error: 'Invalid credentials';
+}
 ```
 
 **POST `/auth/register`**
 
 ```typescript
 // Request
-{ email: string; password: string; name: string }
+{
+  email: string;
+  password: string;
+  name: string;
+}
 
 // Response 201
-{ accessToken: string; refreshToken: string; user: { id: string; email: string; name: string } }
+{
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+  }
+}
 
 // Response 409
-{ error: 'Email already exists' }
+{
+  error: 'Email already exists';
+}
 ```
 
 **POST `/auth/refresh`**
 
 ```typescript
 // Request
-{ refreshToken: string }
+{
+  refreshToken: string;
+}
 
 // Response 200
-{ accessToken: string; refreshToken: string }
+{
+  accessToken: string;
+  refreshToken: string;
+}
 
 // Response 401
-{ error: 'Invalid refresh token' }
+{
+  error: 'Invalid refresh token';
+}
 ```
 
 ---
@@ -707,11 +758,11 @@ List supported instruments with their default configurations.
 // Response 200
 {
   instruments: Array<{
-    symbol: string;               // "XAUUSD"
-    name: string;                 // "Gold"
-    category: string;             // "commodity", "forex_major", "crypto"
-    defaultTfConfig: string;      // "A" or "B"
-    isActive: boolean;            // Whether data pipeline is running for this instrument
+    symbol: string; // "XAUUSD"
+    name: string; // "Gold"
+    category: string; // "commodity", "forex_major", "crypto"
+    defaultTfConfig: string; // "A" or "B"
+    isActive: boolean; // Whether data pipeline is running for this instrument
   }>;
 }
 ```
@@ -726,10 +777,12 @@ Get the current agent state for an instrument.
 
 ```typescript
 // Response 200
-AgentStateSnapshot
+AgentStateSnapshot;
 
 // Response 404
-{ error: 'No agent state for this instrument/config' }
+{
+  error: 'No agent state for this instrument/config';
+}
 ```
 
 ---
@@ -761,15 +814,27 @@ These types should be published as a shared package or copied identically betwee
 // === Enums ===
 export type TfConfig = 'A' | 'B';
 export type AgentStateName =
-  | 'IDLE' | 'NAVIGATING' | 'SCANNING' | 'BREAKOUT_DETECTED'
-  | 'AWAITING_PULLBACK' | 'PULLBACK_TESTING' | 'MISSED' | 'INVALIDATED';
+  | 'IDLE'
+  | 'NAVIGATING'
+  | 'SCANNING'
+  | 'BREAKOUT_DETECTED'
+  | 'AWAITING_PULLBACK'
+  | 'PULLBACK_TESTING'
+  | 'MISSED'
+  | 'INVALIDATED';
 export type TradeDirection = 'long' | 'short';
 export type TrendlineType = 'resistance' | 'support';
 export type TrendlineStatus = 'intact' | 'broken' | 'role_reversed';
 export type MomentumClassification = 'normal' | 'large' | 'extreme';
 export type MomentumDirection = 'bullish' | 'bearish';
 export type TrendLabel = 'Uptrend' | 'Downtrend' | 'Ranging';
-export type PatternType = 'double_bottom' | 'double_top' | 'higher_low' | 'lower_high' | 'hammer' | 'engulfing';
+export type PatternType =
+  | 'double_bottom'
+  | 'double_top'
+  | 'higher_low'
+  | 'lower_high'
+  | 'hammer'
+  | 'engulfing';
 export type PatternStatus = 'none' | 'forming' | 'completed';
 export type Urgency = 'low' | 'medium' | 'high';
 export type MessageRole = 'user' | 'agent' | 'system' | 'alert';
@@ -805,41 +870,41 @@ export const TF_CONFIGS: Record<TfConfig, TfConfigMapping> = {
 
 ### 8.1 WebSocket Error Codes
 
-| Code | Description | Client Action |
-|---|---|---|
-| `AUTH_INVALID` | JWT token is invalid or expired | Refresh token, reconnect |
-| `AUTH_EXPIRED` | JWT token expired during session | Refresh token, reconnect |
-| `CONVERSATION_NOT_FOUND` | Requested conversation does not exist | Show error, redirect to new chat |
-| `INSTRUMENT_NOT_SUPPORTED` | Requested instrument is not in the system | Show toast notification |
-| `INSTRUMENT_NO_DATA` | Instrument exists but no data available | Show warning in chat |
-| `AGENT_EVALUATION_FAILED` | Agent evaluation cycle threw an error | Show error message in chat with retry |
-| `LLM_API_ERROR` | Claude API call failed | Show error, suggest retry |
-| `LLM_RATE_LIMITED` | Claude API rate limit hit | Show message: "Please wait a moment" |
-| `RATE_LIMITED` | Client is sending messages too frequently | Show throttle message |
-| `INTERNAL_ERROR` | Unexpected server error | Show generic error |
+| Code                       | Description                               | Client Action                         |
+| -------------------------- | ----------------------------------------- | ------------------------------------- |
+| `AUTH_INVALID`             | JWT token is invalid or expired           | Refresh token, reconnect              |
+| `AUTH_EXPIRED`             | JWT token expired during session          | Refresh token, reconnect              |
+| `CONVERSATION_NOT_FOUND`   | Requested conversation does not exist     | Show error, redirect to new chat      |
+| `INSTRUMENT_NOT_SUPPORTED` | Requested instrument is not in the system | Show toast notification               |
+| `INSTRUMENT_NO_DATA`       | Instrument exists but no data available   | Show warning in chat                  |
+| `AGENT_EVALUATION_FAILED`  | Agent evaluation cycle threw an error     | Show error message in chat with retry |
+| `LLM_API_ERROR`            | Claude API call failed                    | Show error, suggest retry             |
+| `LLM_RATE_LIMITED`         | Claude API rate limit hit                 | Show message: "Please wait a moment"  |
+| `RATE_LIMITED`             | Client is sending messages too frequently | Show throttle message                 |
+| `INTERNAL_ERROR`           | Unexpected server error                   | Show generic error                    |
 
 ### 8.2 REST HTTP Status Codes
 
-| Status | Usage |
-|---|---|
-| 200 | Successful GET/PATCH |
-| 201 | Successful POST (resource created) |
-| 204 | Successful DELETE (no content) |
-| 400 | Bad request (invalid payload, missing fields) |
-| 401 | Authentication required or token invalid |
-| 403 | Forbidden (not authorized for this resource) |
-| 404 | Resource not found |
-| 409 | Conflict (e.g., duplicate email) |
-| 429 | Rate limited |
-| 500 | Internal server error |
+| Status | Usage                                         |
+| ------ | --------------------------------------------- |
+| 200    | Successful GET/PATCH                          |
+| 201    | Successful POST (resource created)            |
+| 204    | Successful DELETE (no content)                |
+| 400    | Bad request (invalid payload, missing fields) |
+| 401    | Authentication required or token invalid      |
+| 403    | Forbidden (not authorized for this resource)  |
+| 404    | Resource not found                            |
+| 409    | Conflict (e.g., duplicate email)              |
+| 429    | Rate limited                                  |
+| 500    | Internal server error                         |
 
 ### 8.3 Error Response Format (REST)
 
 ```typescript
 interface ErrorResponse {
-  error: string;          // Machine-readable error code
-  message: string;        // Human-readable message
-  details?: any;          // Optional additional context
+  error: string; // Machine-readable error code
+  message: string; // Human-readable message
+  details?: any; // Optional additional context
 }
 ```
 
@@ -1010,21 +1075,21 @@ Frontend                            Backend
 
 ### 10.1 WebSocket Rate Limits
 
-| Event | Limit | Window | Behavior on Exceed |
-|---|---|---|---|
-| `chat_message` | 10 messages | 60 seconds | Emit `error` with code `RATE_LIMITED` |
-| `request_chart_data` | 20 requests | 60 seconds | Silently drop |
-| `request_card_data` | 10 requests | 60 seconds | Silently drop |
-| `join_conversation` | 30 joins | 60 seconds | Silently drop |
+| Event                | Limit       | Window     | Behavior on Exceed                    |
+| -------------------- | ----------- | ---------- | ------------------------------------- |
+| `chat_message`       | 10 messages | 60 seconds | Emit `error` with code `RATE_LIMITED` |
+| `request_chart_data` | 20 requests | 60 seconds | Silently drop                         |
+| `request_card_data`  | 10 requests | 60 seconds | Silently drop                         |
+| `join_conversation`  | 30 joins    | 60 seconds | Silently drop                         |
 
 ### 10.2 REST Rate Limits
 
-| Endpoint Group | Limit | Window |
-|---|---|---|
-| `/auth/*` | 10 requests | 60 seconds |
-| `/conversations` (GET) | 60 requests | 60 seconds |
+| Endpoint Group                       | Limit       | Window     |
+| ------------------------------------ | ----------- | ---------- |
+| `/auth/*`                            | 10 requests | 60 seconds |
+| `/conversations` (GET)               | 60 requests | 60 seconds |
 | `/conversations` (POST/PATCH/DELETE) | 20 requests | 60 seconds |
-| `/agent-state/*` | 30 requests | 60 seconds |
+| `/agent-state/*`                     | 30 requests | 60 seconds |
 
 ### 10.3 Claude API Throttling
 
