@@ -429,21 +429,98 @@ Not every transition produces a user-facing message. The routing logic:
 ```python
 # File: services/agent/chat_dispatcher.py
 
+# ============================================================================
+# MESSAGE FREQUENCY RULES
+# ============================================================================
+#
+# Problem: The State Machine runs an evaluation cycle on EVERY bar close.
+# If we sent an incoming chat on every cycle, a user subscribed to 3
+# instruments could receive 50+ messages over a few days — mostly saying
+# "still waiting." That's notification spam, not a vibrant experience.
+#
+# Solution: Each state has a SEND POLICY that controls when messages fire.
+#
+#   "on_enter"     → Send ONE message when the state is first entered.
+#                    No repeat messages while staying in this state.
+#                    This is the default for most states.
+#
+#   "on_change"    → Send a message only when something MATERIAL changes
+#                    within the state (e.g., convergence score crosses a
+#                    threshold, a new bar confirms a pattern). The
+#                    `material_change_detector` function evaluates whether
+#                    the current evaluation differs meaningfully from the
+#                    last sent message.
+#
+#   "on_exit"      → Send a message when LEAVING the state (transition to
+#                    next state). Used for final status of the state.
+#
+# These policies can be combined. For example, AWAITING_PULLBACK uses
+# "on_enter" + "on_exit": one message when entering ("watching for
+# pullback"), one message when leaving ("pullback arrived!" or "window
+# expired"). No messages for the 8-10 bars in between.
+#
+# ============================================================================
+
 # Transitions that generate Incoming Chat messages
 CHAT_TRIGGERS = {
-    # HIGH PRIORITY — immediate delivery, prominent styling
+
+    # ─── BREAKOUT_DETECTED ───────────────────────────────────────────
+    # User needs to know IMMEDIATELY when a breakout is found.
+    # But while we're confirming quality (1-3 bars), no repeat messages.
+    # If quality_sufficient → AWAITING_PULLBACK (on_enter handles it).
+    # If timeout/fakeout → INVALIDATED (on_enter handles it).
     State.BREAKOUT_DETECTED: {
+        "send_policy": "on_enter",      # ONE message when breakout detected
         "priority": "high",
         "message_type": "breakout_alert",
-        "sound": True,          # Play notification sound
-        "badge_style": "urgent", # Red badge indicator
+        "sound": True,
+        "badge_style": "urgent",
     },
+
+    # ─── AWAITING_PULLBACK ───────────────────────────────────────────
+    # User knows a breakout was confirmed. Now we're waiting for pullback.
+    # This can take 8-12 bars (e.g., 8-12 hours on H1, 32-48 hours on H4).
+    # Sending "still waiting" every bar is spam.
+    #
+    # Send policy: on_enter + on_exit
+    #   - on_enter: "Breakout confirmed. Waiting for pullback to zone X."
+    #   - on_exit:  "Pullback arrived!" or "Window expired (MISSED)."
+    #   - NO messages for the 8-10 bars in between.
+    State.AWAITING_PULLBACK: {
+        "send_policy": ["on_enter", "on_exit"],
+        "priority": "medium",
+        "message_type": "pullback_watch",
+        "sound": False,
+        "badge_style": "standard",
+    },
+
+    # ─── PULLBACK_TESTING ────────────────────────────────────────────
+    # Critical phase — price is at the zone, testing the bounce.
+    # This lasts 3-8 bars. The convergence score is actively evolving.
+    #
+    # Send policy: on_enter + on_change + on_exit
+    #   - on_enter:  "Pullback at zone. Testing bounce. Score: X/10."
+    #   - on_change: ONLY if convergence score crosses the 5.0 ENTER
+    #                threshold (either direction). This is the MATERIAL
+    #                change — the score crossing 5.0 means the difference
+    #                between "recommendation incoming" and "not yet."
+    #   - on_exit:   "Trade recommendation!" (bounce_confirmed) or
+    #                "Setup invalidated" (level_broken/timeout).
     State.PULLBACK_TESTING: {
-        "conditions": {
+        "send_policy": ["on_enter", "on_change", "on_exit"],
+        "priority": "high",
+        "message_type": "zone_testing",
+        "sound": False,           # Sound only on final recommendation
+        "badge_style": "standard",
+        "material_change_rules": {
+            "convergence_threshold_cross": 5.0,  # Alert when score crosses 5.0
+            "direction_change": True,             # Alert if trade_direction flips
+        },
+        "exit_overrides": {
             "bounce_confirmed": {
                 "priority": "high",
                 "message_type": "trade_recommendation",
-                "sound": True,
+                "sound": True,          # THIS is the big one — play sound
                 "badge_style": "urgent",
             },
             "level_broken": {
@@ -452,41 +529,150 @@ CHAT_TRIGGERS = {
                 "sound": False,
                 "badge_style": "standard",
             },
-        }
+        },
     },
 
-    # MEDIUM PRIORITY — standard delivery
-    State.AWAITING_PULLBACK: {
-        "priority": "medium",
-        "message_type": "pullback_watch",
-        "sound": False,
-        "badge_style": "standard",
-    },
-
-    # LOW PRIORITY — background updates (delivered but not intrusive)
+    # ─── SCANNING ────────────────────────────────────────────────────
+    # Background monitoring. Can last many bars.
+    # DO NOT send every-bar updates. Only notify on enter (new scan
+    # started after cooldown) — the user knows monitoring is active.
     State.SCANNING: {
+        "send_policy": "on_enter",     # ONE message when scan begins
         "priority": "low",
         "message_type": "market_scan",
         "sound": False,
         "badge_style": "subtle",
     },
+
+    # ─── MISSED ──────────────────────────────────────────────────────
+    # One message explaining what was missed. No repeats during cooldown.
     State.MISSED: {
+        "send_policy": "on_enter",     # ONE message
         "priority": "low",
         "message_type": "missed_opportunity",
         "sound": False,
         "badge_style": "subtle",
     },
+
+    # ─── INVALIDATED ─────────────────────────────────────────────────
+    # One message explaining why the setup failed. No repeats during cooldown.
     State.INVALIDATED: {
+        "send_policy": "on_enter",     # ONE message
         "priority": "medium",
         "message_type": "setup_invalidated",
         "sound": False,
         "badge_style": "standard",
     },
 
-    # NO MESSAGE — internal transitions
-    # State.IDLE: no message (nothing to report)
-    # State.NAVIGATING: no message (internal regime assessment)
+    # ─── IDLE ────────────────────────────────────────────────────────
+    # No message. IDLE is the resting state — nothing to report.
+
+    # ─── NAVIGATING ──────────────────────────────────────────────────
+    # No message. Internal regime assessment — user doesn't need to know.
 }
+```
+
+### Message Frequency Per State — Summary
+
+| State | Send Policy | Messages Sent | Rationale |
+|---|---|---|---|
+| **BREAKOUT_DETECTED** | `on_enter` | **1** | User needs the breakout alert immediately. Quality confirmation (1-3 bars) is internal — no updates needed until the outcome is known. |
+| **AWAITING_PULLBACK** | `on_enter` + `on_exit` | **2** | "Watching for pullback" (enter) + "Pullback arrived!" or "Window expired" (exit). The 8-10 bars in between have no new information for the user. |
+| **PULLBACK_TESTING** | `on_enter` + `on_change` + `on_exit` | **2-4** | "Testing bounce" (enter) + optional score threshold cross (change) + "Trade recommendation!" or "Invalidated" (exit). Typically 2-3 messages over 3-8 bars. |
+| **SCANNING** | `on_enter` | **1** | "Monitoring for breakout." No per-bar updates. |
+| **MISSED** | `on_enter` | **1** | "Entry window expired." |
+| **INVALIDATED** | `on_enter` | **1** | "Setup failed: [reason]." |
+| **IDLE** | none | **0** | Nothing to report. |
+| **NAVIGATING** | none | **0** | Internal regime check. |
+
+### Total Messages Per Complete Setup Lifecycle
+
+```
+Best case (breakout → recommendation):
+  BREAKOUT_DETECTED:   1  (on_enter: "Breakout detected!")
+  AWAITING_PULLBACK:   2  (on_enter + on_exit: "Watching..." + "Pullback arrived!")
+  PULLBACK_TESTING:    2  (on_enter + on_exit: "Testing..." + "Trade recommendation!")
+  ──────────────────────
+  Total:               5 messages                          ← manageable
+
+Worst case (breakout → invalidated):
+  BREAKOUT_DETECTED:   1  (on_enter)
+  AWAITING_PULLBACK:   2  (on_enter + on_exit)
+  PULLBACK_TESTING:    3  (on_enter + score threshold cross + on_exit: invalidated)
+  INVALIDATED:         1  (on_enter)
+  ──────────────────────
+  Total:               7 messages                          ← still manageable
+
+Quick invalidation (breakout → instant fakeout):
+  BREAKOUT_DETECTED:   1  (on_enter)
+  INVALIDATED:         1  (on_enter: "Instant fakeout")
+  ──────────────────────
+  Total:               2 messages                          ← minimal
+```
+
+Compare this to the un-throttled version: **5-7 messages vs. 18+ messages** for the same setup lifecycle. The throttled version sends **only messages with new information**.
+
+### Material Change Detection Logic
+
+For states using `on_change`, the ChatDispatcher compares the current evaluation against the last sent message:
+
+```python
+def has_material_change(self, agent_state: dict, last_sent_metadata: dict) -> bool:
+    """Determine if the current state has changed materially since last message.
+
+    Called on every bar when send_policy includes 'on_change'.
+    Returns True only if something worth notifying about has changed.
+    """
+    rules = CHAT_TRIGGERS.get(
+        State(agent_state["current_state"]), {}
+    ).get("material_change_rules", {})
+
+    # Rule 1: Convergence score crossed the ENTER threshold (5.0)
+    threshold = rules.get("convergence_threshold_cross")
+    if threshold:
+        current_score = agent_state.get("convergence_score", 0)
+        previous_score = last_sent_metadata.get("convergence_score", 0)
+        if (previous_score < threshold <= current_score) or \
+           (current_score < threshold <= previous_score):
+            return True  # Score crossed the threshold — material change
+
+    # Rule 2: Trade direction changed
+    if rules.get("direction_change"):
+        current_dir = agent_state.get("trade_direction")
+        previous_dir = last_sent_metadata.get("trade_direction")
+        if current_dir != previous_dir and current_dir is not None:
+            return True  # Direction flipped — material change
+
+    return False  # No material change — suppress message
+```
+
+### Dispatch Decision Flow
+
+```
+EvaluationPipeline completes for (instrument, tf_config)
+       │
+       ▼
+ChatDispatcher.should_send(agent_state) ?
+       │
+       ├── Is this a STATE TRANSITION? (current_state != previous check)
+       │   ├── YES → Is there a CHAT_TRIGGER for the NEW state?
+       │   │         ├── YES → Does send_policy include "on_enter"?
+       │   │         │         ├── YES → SEND (on_enter message)
+       │   │         │         └── NO  → SKIP
+       │   │         └── NO  → SKIP (no trigger defined, e.g., IDLE)
+       │   │
+       │   └── Also: Was there a trigger for the OLD state with "on_exit"?
+       │             ├── YES → SEND (on_exit message for previous state)
+       │             └── NO  → SKIP
+       │
+       └── Is this a SAME-STATE bar? (no transition occurred)
+           ├── Does send_policy include "on_change"?
+           │   ├── YES → has_material_change()?
+           │   │         ├── YES → SEND (material change message)
+           │   │         └── NO  → SKIP (suppress — nothing new)
+           │   └── NO  → SKIP (this state only sends on enter/exit)
+           │
+           └── SKIP (default — no message for same-state bars)
 ```
 
 ### Transition → Message Pipeline
