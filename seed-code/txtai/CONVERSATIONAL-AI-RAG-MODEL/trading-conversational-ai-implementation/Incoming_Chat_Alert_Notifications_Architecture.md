@@ -422,71 +422,131 @@ This creates:
 
 ## 7. State Machine → Incoming Chat Integration
 
-### Which State Transitions Generate Incoming Chat Messages?
+### Design Principle: Notify Once, Let the User Lead
 
-Not every transition produces a user-facing message. The routing logic:
+The State Machine runs an evaluation cycle on **every bar close**. But the user should **not** receive a message on every cycle. The incoming chat is an invitation to start a conversation — not a stream of automated status updates.
+
+**Rule: Only `BREAKOUT_DETECTED` generates an incoming chat message.**
+
+All subsequent states (AWAITING_PULLBACK, PULLBACK_TESTING, etc.) are **silent**. The user has already been notified. The breakout message sits in their sidebar with an unread badge and a time-ago label. When the user is ready, they open the thread and chat with the AI to get the latest status — on their own terms.
+
+**Why this works:**
+1. BREAKOUT_DETECTED is the **first actionable event** — it's the only state worth interrupting the user for
+2. The user has **time** between breakout detection and the eventual pullback/recommendation — time to open the chat, ask questions, and make decisions
+3. All subsequent state data is **available on demand** when the user opens the thread and asks the AI
+4. The thread stays in the sidebar with `unread badge + "X Min Ago"` — visible but not intrusive
+5. Zero notification spam — the user is in control of when they engage
+
+### Which States Generate Messages
 
 ```python
 # File: services/agent/chat_dispatcher.py
 
-# Transitions that generate Incoming Chat messages
-CHAT_TRIGGERS = {
-    # HIGH PRIORITY — immediate delivery, prominent styling
+# ONLY breakout detection triggers an incoming chat.
+# Everything else is available on-demand when the user opens the thread.
+CHAT_TRIGGER = {
     State.BREAKOUT_DETECTED: {
         "priority": "high",
         "message_type": "breakout_alert",
-        "sound": True,          # Play notification sound
-        "badge_style": "urgent", # Red badge indicator
+        "sound": True,
+        "badge_style": "urgent",
     },
-    State.PULLBACK_TESTING: {
-        "conditions": {
-            "bounce_confirmed": {
-                "priority": "high",
-                "message_type": "trade_recommendation",
-                "sound": True,
-                "badge_style": "urgent",
-            },
-            "level_broken": {
-                "priority": "medium",
-                "message_type": "invalidation_report",
-                "sound": False,
-                "badge_style": "standard",
-            },
-        }
-    },
-
-    # MEDIUM PRIORITY — standard delivery
-    State.AWAITING_PULLBACK: {
-        "priority": "medium",
-        "message_type": "pullback_watch",
-        "sound": False,
-        "badge_style": "standard",
-    },
-
-    # LOW PRIORITY — background updates (delivered but not intrusive)
-    State.SCANNING: {
-        "priority": "low",
-        "message_type": "market_scan",
-        "sound": False,
-        "badge_style": "subtle",
-    },
-    State.MISSED: {
-        "priority": "low",
-        "message_type": "missed_opportunity",
-        "sound": False,
-        "badge_style": "subtle",
-    },
-    State.INVALIDATED: {
-        "priority": "medium",
-        "message_type": "setup_invalidated",
-        "sound": False,
-        "badge_style": "standard",
-    },
-
-    # NO MESSAGE — internal transitions
-    # State.IDLE: no message (nothing to report)
-    # State.NAVIGATING: no message (internal regime assessment)
 }
+
+# These states do NOT send incoming chat messages:
+#   IDLE              → Nothing to report
+#   NAVIGATING        → Internal regime assessment
+#   SCANNING          → Background monitoring (silent)
+#   AWAITING_PULLBACK → User already notified at breakout
+#   PULLBACK_TESTING  → User already notified at breakout
+#   MISSED            → User can see status when they open thread
+#   INVALIDATED       → User can see status when they open thread
+```
+
+### What Happens After the Breakout Message
+
+```
+State Machine detects BREAKOUT_DETECTED for (XAUUSD, H4, direction=short)
+       │
+       ▼
+ChatDispatcher sends ONE incoming chat message:
+  ─ "Breakout detected on XAUUSD H4. Price closed below ascending
+     trendline at 2672.08. Direction: SHORT (SELL). Convergence
+     score: 4.2/10. Momentum confirming with Z-score -1.4."
+  ─ Appears in sidebar: "→ XAUUSD H4 SELL  10 Min Ago  (1)"
+       │
+       ▼
+State Machine progresses silently through subsequent states:
+  AWAITING_PULLBACK (8-12 bars) → no message
+  PULLBACK_TESTING (3-8 bars)   → no message
+       │
+       ▼
+User opens the thread whenever they're ready:
+  ─ Sees the breakout message
+  ─ Asks: "What's the current status?"
+  ─ AI responds with LIVE state: "Pullback arrived at zone 2662-2669.
+     Testing bounce. Score now 6.2/10. Bounce pattern forming."
+  ─ Asks: "Break down the 5 factors"
+  ─ AI responds with full convergence breakdown
+  ─ User makes their own trade decision
+```
+
+### Why Not Notify on AWAITING_PULLBACK or PULLBACK_TESTING?
+
+| Reason | Explanation |
+|---|---|
+| **No new actionable information** | "Still waiting for pullback" is not actionable. The user already knows a breakout happened. |
+| **User has time** | Pullback windows are 8-12 bars (8-48 hours depending on TF). No urgency to send updates every bar. |
+| **On-demand is better** | When the user opens the thread, the AI gives the LIVE state — always current, always accurate. A cached notification from 3 bars ago is stale. |
+| **Prevents spam** | A user with 3 subscriptions would get 18+ messages per setup lifecycle without throttling. With breakout-only: 3 messages total. |
+| **Chat UI already shows status** | The thread's `currentState` and `tradeDirection` are visible in the sidebar without opening. The permanent instrument badge shows which instrument this is about. |
+
+### Messages Per Setup Lifecycle
+
+```
+Entire lifecycle (breakout → recommendation or invalidation):
+
+  BREAKOUT_DETECTED:   1 message  (the ONLY incoming chat)
+  AWAITING_PULLBACK:   0 messages (silent)
+  PULLBACK_TESTING:    0 messages (silent)
+  MISSED/INVALIDATED:  0 messages (silent)
+  ─────────────────────────────
+  Total:               1 message per setup
+
+User with 3 subscriptions, all active setups:
+  Total incoming chats: 3 messages (one per breakout)
+  Compare to previous design: 15-21 messages ← spam
+```
+
+### Thread State Sync (Without Sending Messages)
+
+Even though no new messages are sent after BREAKOUT_DETECTED, the thread metadata is still updated on each evaluation cycle so the sidebar shows current state:
+
+```python
+# On every evaluation cycle (even when no message is sent):
+# Update thread metadata via BullMQ worker (silent — no WebSocket push)
+
+chat_thread.current_state = agent_state["current_state"]      # e.g., "AWAITING_PULLBACK"
+chat_thread.trade_direction = agent_state["trade_direction"]   # e.g., "short"
+chat_thread.convergence_score = agent_state["convergence_score"]
+
+# The sidebar can optionally reflect the current state via periodic REST poll
+# or a lightweight WebSocket 'thread_state_update' event (no sound, no badge increment)
+```
+
+### Dispatch Logic (Simplified)
+
+```python
+def should_send(self, agent_state: dict) -> bool:
+    """Only send an incoming chat when entering BREAKOUT_DETECTED."""
+    current = State(agent_state["current_state"])
+    previous = agent_state.get("previous_state")
+
+    # Only send on state TRANSITION into BREAKOUT_DETECTED
+    if current == State.BREAKOUT_DETECTED and previous != "BREAKOUT_DETECTED":
+        return True
+
+    return False
 ```
 
 ### Transition → Message Pipeline
@@ -495,39 +555,39 @@ CHAT_TRIGGERS = {
 StateMachine.transition(agent_state, condition)
        │
        ▼
-EvaluationPipeline.generate_response(agent_state)
-       │ ← Uses LLM (Claude) to generate natural-language advisory
-       │ ← Includes: convergence score, reasoning, confidence, regime context
+ChatDispatcher.should_send(agent_state)?
        │
-       ▼
-agent_state["pending_response"] = "Breakout detected on EURUSD H1..."
+       ├── current_state == BREAKOUT_DETECTED AND is new transition?
+       │   ├── YES → Continue to dispatch
+       │   └── NO  → STOP (no message)
+       │
+       ▼ (only for BREAKOUT_DETECTED)
+EvaluationPipeline.generate_response(agent_state)
+       │ ← LLM generates breakout advisory text
        │
        ▼
 ChatDispatcher.dispatch(agent_state)
        │
-       ├── 1. Look up CHAT_TRIGGERS for current state
-       │      → Determines priority, message_type, delivery options
+       ├── 1. Find the user's EXISTING chat thread for this instrument
+       │      (instrument badge lookup — see Trading Instrument Chat
+       │       Management document for thread resolution logic)
        │
-       ├── 2. Query instrument_subscriptions for this (symbol, timeframe)
-       │      → Returns list of user_ids
+       ├── 2. INSERT into chat_messages:
+       │         role: 'assistant'
+       │         content: breakout advisory text
+       │         message_type: 'breakout_alert'
+       │         metadata: {convergence_score, state, confidence, ...}
        │
-       ├── 3. For each subscribed user:
-       │      ├── Find or create chat_thread for (user_id, symbol, timeframe)
-       │      ├── INSERT into chat_messages:
-       │      │     role: 'assistant'
-       │      │     content: agent_state["pending_response"]
-       │      │     message_type: from CHAT_TRIGGERS
-       │      │     metadata: {convergence_score, state, confidence, ...}
-       │      ├── UPDATE chat_thread:
-       │      │     last_message_at = now()
-       │      │     last_message_preview = first 100 chars
-       │      │     unread_count += 1
-       │      │     current_state = agent_state["current_state"]
-       │      │     trade_direction = agent_state["trade_direction"]  ← for BUY/SELL sidebar label
-       │      │     convergence_score = agent_state["convergence_score"]
-       │      └── EMIT WebSocket: 'incoming_chat' → user's room
+       ├── 3. UPDATE chat_thread:
+       │         last_message_at = now()
+       │         last_message_preview = first 100 chars
+       │         unread_count += 1
+       │         current_state = 'BREAKOUT_DETECTED'
+       │         trade_direction = agent_state["trade_direction"]
        │
-       └── 4. Log to audit table
+       ├── 4. PUBLISH to Redis Pub/Sub → NestJS → WebSocket → User
+       │
+       └── 5. Log to audit table
 ```
 
 ---
