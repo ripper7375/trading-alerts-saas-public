@@ -5,6 +5,7 @@
 **Purpose**: Specification for how chats are flagged, grouped, and managed by trading instrument — ensuring 1 instrument = 1 chat, with permanent instrument badges, flag migration on new chat creation, and incoming alert message routing to existing threads.
 **UI Reference**: DavinTrade screenshot — permanent "XAUUSD H4" / "EURUSD H1" badges on both sidebar chat entries and chat panel header.
 **Related Documents**:
+
 - `Incoming_Chat_Alert_Notifications_Architecture.md` (incoming chat delivery pipeline)
 - `State_Machine_Modification_for_txtai_Framework.md` (State Machine states and transitions)
 
@@ -111,14 +112,14 @@ Every chat flagged with a trading instrument displays a **permanent, non-editabl
 
 ### Badge Properties
 
-| Property | Value |
-|---|---|
-| **Content** | `{SYMBOL} {TIMEFRAME}` (e.g., "XAUUSD H4", "EURUSD H1") |
-| **Editable** | No — permanent, cannot be renamed or removed by user |
-| **Removable** | No — badge persists for the lifetime of the chat |
-| **Visual style** | Pill/tag shape, distinct background color, monospace font for symbol |
-| **Placement: Sidebar** | Below the chat title line, left-aligned |
-| **Placement: Header** | Right of the chat title in the conversation panel header |
+| Property               | Value                                                                |
+| ---------------------- | -------------------------------------------------------------------- |
+| **Content**            | `{SYMBOL} {TIMEFRAME}` (e.g., "XAUUSD H4", "EURUSD H1")              |
+| **Editable**           | No — permanent, cannot be renamed or removed by user                 |
+| **Removable**          | No — badge persists for the lifetime of the chat                     |
+| **Visual style**       | Pill/tag shape, distinct background color, monospace font for symbol |
+| **Placement: Sidebar** | Below the chat title line, left-aligned                              |
+| **Placement: Header**  | Right of the chat title in the conversation panel header             |
 
 ### Chats WITHOUT a Badge
 
@@ -174,6 +175,7 @@ System detects instrument in message:
 ```
 
 **Detection logic** (backend):
+
 ```python
 # Extract instrument from user's first message in a new (unflagged) chat
 SUPPORTED_SYMBOLS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
@@ -314,13 +316,13 @@ AFTER migration:
 
 ### What Happens to the Old Chat After Migration
 
-| Aspect | Old Chat (After Migration) |
-|---|---|
-| Badge | Removed — no longer shows "XAUUSD H1" |
-| Conversation history | Preserved — user can still read old messages |
-| Incoming alerts | No longer routed here — go to new chat instead |
-| Visibility | Stays in sidebar at its current position (no change) |
-| Deletable | Yes — user can delete it if they want |
+| Aspect               | Old Chat (After Migration)                           |
+| -------------------- | ---------------------------------------------------- |
+| Badge                | Removed — no longer shows "XAUUSD H1"                |
+| Conversation history | Preserved — user can still read old messages         |
+| Incoming alerts      | No longer routed here — go to new chat instead       |
+| Visibility           | Stays in sidebar at its current position (no change) |
+| Deletable            | Yes — user can delete it if they want                |
 
 ---
 
@@ -500,7 +502,6 @@ model ChatThread {
 
 @Injectable()
 export class InstrumentFlagService {
-
   /**
    * Attempt to flag a chat with an instrument detected from a user message.
    * Only applies to UNFLAGGED chats. Once flagged, the flag never changes
@@ -511,9 +512,8 @@ export class InstrumentFlagService {
   async detectAndFlag(
     chatThreadId: string,
     userId: string,
-    messageContent: string,
+    messageContent: string
   ): Promise<{ symbol: string; timeframe: string } | null> {
-
     // 1. Check if this chat is already flagged
     const thread = await this.prisma.chatThread.findUnique({
       where: { id: chatThreadId },
@@ -576,15 +576,39 @@ export class InstrumentFlagService {
     return instrument;
   }
 
-  private detectInstrument(message: string): { symbol: string; timeframe: string } | null {
+  private detectInstrument(
+    message: string
+  ): { symbol: string; timeframe: string } | null {
     const upperMessage = message.toUpperCase();
 
     const SYMBOLS = [
-      'XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD',
-      'BTCUSD', 'ETHUSD', 'XAGUSD', 'NDX100', 'US30',
-      'AUDJPY', 'GBPJPY', 'NZDUSD', 'USDCAD', 'USDCHF',
+      'XAUUSD',
+      'EURUSD',
+      'GBPUSD',
+      'USDJPY',
+      'AUDUSD',
+      'BTCUSD',
+      'ETHUSD',
+      'XAGUSD',
+      'NDX100',
+      'US30',
+      'AUDJPY',
+      'GBPJPY',
+      'NZDUSD',
+      'USDCAD',
+      'USDCHF',
     ];
-    const TIMEFRAMES = ['D1', 'H12', 'H8', 'H4', 'H2', 'H1', 'M30', 'M15', 'M5'];
+    const TIMEFRAMES = [
+      'D1',
+      'H12',
+      'H8',
+      'H4',
+      'H2',
+      'H1',
+      'M30',
+      'M15',
+      'M5',
+    ];
 
     let foundSymbol: string | null = null;
     let foundTimeframe: string | null = null;
@@ -622,7 +646,6 @@ export class InstrumentFlagService {
 
 @Injectable()
 export class AlertThreadRouterService {
-
   /**
    * Find or create the chat thread for an incoming breakout alert.
    *
@@ -634,9 +657,8 @@ export class AlertThreadRouterService {
   async resolveThread(
     userId: string,
     symbol: string,
-    timeframe: string,
+    timeframe: string
   ): Promise<ChatThread> {
-
     // 1. Look for active flagged chat
     const active = await this.prisma.chatThread.findFirst({
       where: {
@@ -720,8 +742,14 @@ Flag migration MUST be atomic (database transaction). If the migration fails mid
 ```typescript
 await this.prisma.$transaction([
   // These two operations happen atomically
-  this.prisma.chatThread.update({ where: { id: oldThread.id }, data: { instrumentSymbol: null, instrumentTimeframe: null } }),
-  this.prisma.chatThread.update({ where: { id: newThread.id }, data: { instrumentSymbol: symbol, instrumentTimeframe: timeframe } }),
+  this.prisma.chatThread.update({
+    where: { id: oldThread.id },
+    data: { instrumentSymbol: null, instrumentTimeframe: null },
+  }),
+  this.prisma.chatThread.update({
+    where: { id: newThread.id },
+    data: { instrumentSymbol: symbol, instrumentTimeframe: timeframe },
+  }),
 ]);
 ```
 
@@ -821,10 +849,11 @@ Response 201:
 interface ChatSidebarEntryProps {
   threadId: string;
   title: string;
-  instrumentBadge: {              // null for unflagged chats
+  instrumentBadge: {
+    // null for unflagged chats
     symbol: string;
     timeframe: string;
-    displayLabel: string;         // "XAUUSD H4"
+    displayLabel: string; // "XAUUSD H4"
   } | null;
   tradeDirection: 'long' | 'short' | null;
   directionLabel: 'BUY' | 'SELL' | null;
@@ -832,7 +861,7 @@ interface ChatSidebarEntryProps {
   unreadCount: number;
   lastMessageAt: string;
   lastMessagePreview: string;
-  isAiInitiated: boolean;         // Shows → arrow icon
+  isAiInitiated: boolean; // Shows → arrow icon
   currentState: string | null;
 }
 ```
@@ -890,14 +919,16 @@ function ChatPanelHeader({ thread }: { thread: ChatThread }) {
   align-items: center;
   padding: 2px 10px;
   border-radius: 12px;
-  background-color: var(--badge-bg);     /* Light gray in light mode, dark gray in dark mode */
+  background-color: var(
+    --badge-bg
+  ); /* Light gray in light mode, dark gray in dark mode */
   color: var(--badge-text);
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  user-select: none;                     /* Cannot be selected/copied */
-  pointer-events: none;                  /* Cannot be clicked/interacted with */
+  user-select: none; /* Cannot be selected/copied */
+  pointer-events: none; /* Cannot be clicked/interacted with */
   white-space: nowrap;
 }
 ```
@@ -906,13 +937,13 @@ function ChatPanelHeader({ thread }: { thread: ChatThread }) {
 
 ## 15. Frontend UI: Badge Rendering Rules
 
-| Scenario | Sidebar Badge | Header Badge | Direction Label |
-|---|---|---|---|
-| AI-initiated chat (breakout alert) | "XAUUSD H4" (permanent) | "XAUUSD H4" (permanent) | "SELL" (red) or "BUY" (green) |
-| User-initiated chat with instrument | "EURUSD H1" (permanent) | "EURUSD H1" (permanent) | None until breakout detected |
-| Unflagged chat | None | None | None |
-| Chat after flag migration (lost flag) | None (badge removed) | None (badge removed) | None |
-| Archived chat (still flagged) | "XAUUSD H4" (in Archive section) | "XAUUSD H4" (if opened from Archive) | Last known direction |
+| Scenario                              | Sidebar Badge                    | Header Badge                         | Direction Label               |
+| ------------------------------------- | -------------------------------- | ------------------------------------ | ----------------------------- |
+| AI-initiated chat (breakout alert)    | "XAUUSD H4" (permanent)          | "XAUUSD H4" (permanent)              | "SELL" (red) or "BUY" (green) |
+| User-initiated chat with instrument   | "EURUSD H1" (permanent)          | "EURUSD H1" (permanent)              | None until breakout detected  |
+| Unflagged chat                        | None                             | None                                 | None                          |
+| Chat after flag migration (lost flag) | None (badge removed)             | None (badge removed)                 | None                          |
+| Archived chat (still flagged)         | "XAUUSD H4" (in Archive section) | "XAUUSD H4" (if opened from Archive) | Last known direction          |
 
 ---
 
@@ -958,27 +989,27 @@ function ChatPanelHeader({ thread }: { thread: ChatThread }) {
 
 ## 17. Implementation Order
 
-| Phase | Task | Stack | Effort |
-|---|---|---|---|
-| **Phase 1: Database** ||||
-| 1.1 | Add `instrument_symbol`, `instrument_timeframe` columns to `chat_thread` | Railway PostgreSQL | 0.5 day |
-| 1.2 | Add `is_ai_initiated`, `status` columns to `chat_thread` | Railway PostgreSQL | 0.5 day |
-| 1.3 | Create indexes for instrument flag lookup | Railway PostgreSQL | 0.5 day |
-| **Phase 2: Backend Services** ||||
-| 2.1 | InstrumentFlagService: detect + flag + migrate | Railway NestJS v11 | 2 days |
-| 2.2 | AlertThreadRouterService: find-or-create for incoming alerts | Railway NestJS v11 | 1 day |
-| 2.3 | Wire flag detection into message send API | Railway NestJS v11 | 1 day |
-| 2.4 | Wire AlertThreadRouter into ChatDispatcher (Python) | Railway txtai | 1 day |
-| **Phase 3: Frontend** ||||
-| 3.1 | InstrumentBadge component (pill shape, non-editable) | Vercel Next.js v16 | 1 day |
-| 3.2 | Update ChatSidebarEntry to show badge | Vercel Next.js v16 | 1 day |
-| 3.3 | Update ChatPanelHeader to show badge | Vercel Next.js v16 | 0.5 day |
-| 3.4 | Handle `instrument_flag_migrated` WebSocket event (move badge in UI) | Vercel Next.js v16 | 1 day |
-| 3.5 | Handle archived chat un-archiving on incoming alert | Vercel Next.js v16 | 0.5 day |
-| **Phase 4: Testing** ||||
-| 4.1 | Test flag migration (atomic transaction, concurrent access) | All | 1 day |
-| 4.2 | Test alert routing (active/archived/deleted scenarios) | All | 1 day |
-| 4.3 | Test badge rendering (flagged, unflagged, direction labels) | Vercel | 0.5 day |
+| Phase                         | Task                                                                     | Stack              | Effort  |
+| ----------------------------- | ------------------------------------------------------------------------ | ------------------ | ------- |
+| **Phase 1: Database**         |                                                                          |                    |         |
+| 1.1                           | Add `instrument_symbol`, `instrument_timeframe` columns to `chat_thread` | Railway PostgreSQL | 0.5 day |
+| 1.2                           | Add `is_ai_initiated`, `status` columns to `chat_thread`                 | Railway PostgreSQL | 0.5 day |
+| 1.3                           | Create indexes for instrument flag lookup                                | Railway PostgreSQL | 0.5 day |
+| **Phase 2: Backend Services** |                                                                          |                    |         |
+| 2.1                           | InstrumentFlagService: detect + flag + migrate                           | Railway NestJS v11 | 2 days  |
+| 2.2                           | AlertThreadRouterService: find-or-create for incoming alerts             | Railway NestJS v11 | 1 day   |
+| 2.3                           | Wire flag detection into message send API                                | Railway NestJS v11 | 1 day   |
+| 2.4                           | Wire AlertThreadRouter into ChatDispatcher (Python)                      | Railway txtai      | 1 day   |
+| **Phase 3: Frontend**         |                                                                          |                    |         |
+| 3.1                           | InstrumentBadge component (pill shape, non-editable)                     | Vercel Next.js v16 | 1 day   |
+| 3.2                           | Update ChatSidebarEntry to show badge                                    | Vercel Next.js v16 | 1 day   |
+| 3.3                           | Update ChatPanelHeader to show badge                                     | Vercel Next.js v16 | 0.5 day |
+| 3.4                           | Handle `instrument_flag_migrated` WebSocket event (move badge in UI)     | Vercel Next.js v16 | 1 day   |
+| 3.5                           | Handle archived chat un-archiving on incoming alert                      | Vercel Next.js v16 | 0.5 day |
+| **Phase 4: Testing**          |                                                                          |                    |         |
+| 4.1                           | Test flag migration (atomic transaction, concurrent access)              | All                | 1 day   |
+| 4.2                           | Test alert routing (active/archived/deleted scenarios)                   | All                | 1 day   |
+| 4.3                           | Test badge rendering (flagged, unflagged, direction labels)              | Vercel             | 0.5 day |
 
 **Total estimated effort: ~13 days**
 

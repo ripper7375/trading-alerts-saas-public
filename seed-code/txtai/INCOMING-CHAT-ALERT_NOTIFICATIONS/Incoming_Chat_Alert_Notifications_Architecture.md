@@ -8,6 +8,7 @@
 **UI Reference**: See `Incoming_Chat_UI_Reference.png` — the DavinTrade chat interface showing incoming chat entries in the sidebar RECENT section with instrument+direction labels, unread badges, and coexistence with TradingView Lightweight Charts and indicator panels.
 **Infrastructure**: Vercel (Next.js v16 — UI) + Railway (NestJS v11 — message broker + WebSocket Gateway + BullMQ workers) + Railway Redis (Pub/Sub + BullMQ queues) + Railway PostgreSQL
 **Prerequisite Documents**:
+
 - `State_Machine_Modification_for_txtai_Framework.md` (State Machine engine, transitions, AgentState)
 - `docs/files-completion-list/files-inventory/part-11-files-completion.md` (Current alert system)
 - `docs/open-api-documents/part-11-alerts-openapi.yaml` (Current alert API)
@@ -51,7 +52,7 @@ This document specifies an architecture where **the AI State Machine itself beco
 
 Each instrument+timeframe pair the user subscribes to (e.g., EURUSD H1, XAUUSD H2) runs its own independent State Machine evaluation cycle. When the State Machine transitions through significant states (BREAKOUT_DETECTED, AWAITING_PULLBACK, bounce confirmed, etc.), it generates a natural-language advisory message and delivers it as an Incoming Chat to the user in real-time.
 
-**Key insight**: The current Part 11 alert system is a *dumb* price-threshold monitor ("notify me when XAUUSD > 2000"). The Incoming Chat replaces this with an *intelligent* AI-driven system that proactively tells the user **what matters and why**, using the full convergence scoring engine and LLM evaluation.
+**Key insight**: The current Part 11 alert system is a _dumb_ price-threshold monitor ("notify me when XAUUSD > 2000"). The Incoming Chat replaces this with an _intelligent_ AI-driven system that proactively tells the user **what matters and why**, using the full convergence scoring engine and LLM evaluation.
 
 ---
 
@@ -59,27 +60,27 @@ Each instrument+timeframe pair the user subscribes to (e.g., EURUSD H1, XAUUSD H
 
 ### Current Alert System (Part 11) — Limitations
 
-| Aspect | Current System | Problem |
-|---|---|---|
-| **Trigger logic** | Simple price threshold (above/below/equals) | No intelligence — user must know what price to watch |
-| **Notification content** | "XAUUSD crossed above 2000.50" | No context, no reasoning, no actionable advice |
-| **User effort** | User must manually create each alert, choose condition type, set target value | High friction — requires user to already know what to watch |
-| **AI involvement** | None | Completely disconnected from the Conversational AI system |
-| **Engagement** | One-shot notification (alert triggers, sets `isActive=false`, done) | No conversation flow — dead end |
-| **Delivery** | Notification bell + toast (Part 15) | Static, non-conversational — doesn't encourage interaction |
-| **State awareness** | None — checks raw price against threshold | Doesn't understand breakouts, pullbacks, convergence, or market regime |
+| Aspect                   | Current System                                                                | Problem                                                                |
+| ------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Trigger logic**        | Simple price threshold (above/below/equals)                                   | No intelligence — user must know what price to watch                   |
+| **Notification content** | "XAUUSD crossed above 2000.50"                                                | No context, no reasoning, no actionable advice                         |
+| **User effort**          | User must manually create each alert, choose condition type, set target value | High friction — requires user to already know what to watch            |
+| **AI involvement**       | None                                                                          | Completely disconnected from the Conversational AI system              |
+| **Engagement**           | One-shot notification (alert triggers, sets `isActive=false`, done)           | No conversation flow — dead end                                        |
+| **Delivery**             | Notification bell + toast (Part 15)                                           | Static, non-conversational — doesn't encourage interaction             |
+| **State awareness**      | None — checks raw price against threshold                                     | Doesn't understand breakouts, pullbacks, convergence, or market regime |
 
 ### Incoming Chat System — What It Solves
 
-| Aspect | Incoming Chat | Improvement |
-|---|---|---|
-| **Trigger logic** | State Machine transitions (breakout detected, pullback testing, etc.) | AI decides what's worth alerting — user doesn't need to guess |
-| **Notification content** | Rich conversational message with reasoning, score breakdown, confidence | User understands *why* this matters |
-| **User effort** | Subscribe to instruments — AI handles the rest | Zero-configuration alerting |
-| **AI involvement** | Full LLM evaluation + convergence scoring + knowledge retrieval | Every message is an AI advisory |
-| **Engagement** | Incoming message in chat thread — user can reply, ask follow-up questions | Natural conversation flow — users *want* to engage |
-| **Delivery** | Chat message with unread badge (like WhatsApp) | Familiar UX pattern — high open rates |
-| **State awareness** | Full State Machine context (regime, momentum, trendlines, zones) | Messages are contextually rich and methodologically sound |
+| Aspect                   | Incoming Chat                                                             | Improvement                                                   |
+| ------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Trigger logic**        | State Machine transitions (breakout detected, pullback testing, etc.)     | AI decides what's worth alerting — user doesn't need to guess |
+| **Notification content** | Rich conversational message with reasoning, score breakdown, confidence   | User understands _why_ this matters                           |
+| **User effort**          | Subscribe to instruments — AI handles the rest                            | Zero-configuration alerting                                   |
+| **AI involvement**       | Full LLM evaluation + convergence scoring + knowledge retrieval           | Every message is an AI advisory                               |
+| **Engagement**           | Incoming message in chat thread — user can reply, ask follow-up questions | Natural conversation flow — users _want_ to engage            |
+| **Delivery**             | Chat message with unread badge (like WhatsApp)                            | Familiar UX pattern — high open rates                         |
+| **State awareness**      | Full State Machine context (regime, momentum, trendlines, zones)          | Messages are contextually rich and methodologically sound     |
 
 ---
 
@@ -169,15 +170,15 @@ As State Machine progresses (AWAITING_PULLBACK, PULLBACK_TESTING, etc.):
 
 ### How It Differs From a Notification
 
-| Aspect | Notification (Current Part 15) | Incoming Chat (Proposed) |
-|---|---|---|
-| Appears in | Bell dropdown / notification list | **Sidebar RECENT section** (primary navigation) |
-| Visual format | Text-only notification card | Chat entry with direction label (BUY/SELL), unread badge, preview |
-| User action | Read → dismiss | Click → **open thread → reply / ask questions** |
-| History | Flat list, no grouping | Grouped by instrument thread with full conversation history |
-| Context | Isolated message | Full conversation + chart + indicator panels visible simultaneously |
-| Engagement | Low (read-and-forget) | High (conversation continues, user asks follow-ups) |
-| Direction signal | None | BUY (green) / SELL (red) label — instant visual cue |
+| Aspect           | Notification (Current Part 15)    | Incoming Chat (Proposed)                                            |
+| ---------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Appears in       | Bell dropdown / notification list | **Sidebar RECENT section** (primary navigation)                     |
+| Visual format    | Text-only notification card       | Chat entry with direction label (BUY/SELL), unread badge, preview   |
+| User action      | Read → dismiss                    | Click → **open thread → reply / ask questions**                     |
+| History          | Flat list, no grouping            | Grouped by instrument thread with full conversation history         |
+| Context          | Isolated message                  | Full conversation + chart + indicator panels visible simultaneously |
+| Engagement       | Low (read-and-forget)             | High (conversation continues, user asks follow-ups)                 |
+| Direction signal | None                              | BUY (green) / SELL (red) label — instant visual cue                 |
 
 ---
 
@@ -189,23 +190,23 @@ The Incoming Chat system **completely subsumes** the current Part 11 alert syste
 
 ### What Part 11 Does vs. What Incoming Chat Covers
 
-| Part 11 Feature | Incoming Chat Replacement | Status |
-|---|---|---|
-| Price-above alerts | State Machine detects breakouts above trendlines — far more intelligent than raw price threshold | **Fully replaced** |
-| Price-below alerts | State Machine detects breakdowns below trendlines | **Fully replaced** |
-| Price-equals alerts | Not directly replaced (edge case — rarely useful in practice) | **Deprecated** — convergence scoring is superior |
-| Alert creation form | Replaced by instrument subscription (simpler UX) | **Fully replaced** |
-| Alert management (pause/resume/delete) | Replaced by subscribe/unsubscribe per instrument | **Fully replaced** |
-| Background checker job (`alert-checker.ts`) | Replaced by State Machine cron-triggered evaluation cycle | **Fully replaced** |
-| Tier-based limits (5 FREE / 20 PRO alerts) | Replaced by instrument subscription limits (see Section 14) | **Fully replaced** |
-| Trigger history | Replaced by chat message history (richer, with full context) | **Fully replaced** |
+| Part 11 Feature                             | Incoming Chat Replacement                                                                        | Status                                           |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| Price-above alerts                          | State Machine detects breakouts above trendlines — far more intelligent than raw price threshold | **Fully replaced**                               |
+| Price-below alerts                          | State Machine detects breakdowns below trendlines                                                | **Fully replaced**                               |
+| Price-equals alerts                         | Not directly replaced (edge case — rarely useful in practice)                                    | **Deprecated** — convergence scoring is superior |
+| Alert creation form                         | Replaced by instrument subscription (simpler UX)                                                 | **Fully replaced**                               |
+| Alert management (pause/resume/delete)      | Replaced by subscribe/unsubscribe per instrument                                                 | **Fully replaced**                               |
+| Background checker job (`alert-checker.ts`) | Replaced by State Machine cron-triggered evaluation cycle                                        | **Fully replaced**                               |
+| Tier-based limits (5 FREE / 20 PRO alerts)  | Replaced by instrument subscription limits (see Section 14)                                      | **Fully replaced**                               |
+| Trigger history                             | Replaced by chat message history (richer, with full context)                                     | **Fully replaced**                               |
 
 ### The One Consideration: Simple Price Alerts as a Convenience Feature
 
 Some users may want a simple "notify me when price hits X" without the full AI evaluation. This is a **convenience feature**, not a core need. Two options:
 
 **Option A: Full replacement (Recommended)**
-Remove Part 11 entirely. Users who want price-level awareness can ask the AI in their chat thread: *"Let me know when EURUSD reaches 1.1000"* — the AI can handle this conversationally within the chat thread context, no separate alert system needed.
+Remove Part 11 entirely. Users who want price-level awareness can ask the AI in their chat thread: _"Let me know when EURUSD reaches 1.1000"_ — the AI can handle this conversationally within the chat thread context, no separate alert system needed.
 
 **Option B: Keep as lightweight add-on**
 Keep a minimal price-alert feature embedded within the chat thread (user types "Watch 2000.50" in the XAUUSD thread). This is a chat command, not a separate system.
@@ -213,6 +214,7 @@ Keep a minimal price-alert feature embedded within the chat thread (user types "
 ### Recommendation: Full Replacement (Option A)
 
 **Reasons:**
+
 1. **Eliminates system duplication** — no need to maintain two notification paths
 2. **Unified UX** — everything happens in the chat, reducing cognitive load
 3. **Stronger engagement** — users interact with AI instead of configuring forms
@@ -390,13 +392,13 @@ Instead of creating individual price alerts, users **subscribe to instruments**.
 
 ### Subscription vs. Alert — Comparison
 
-| Aspect | Part 11 Alert | Instrument Subscription |
-|---|---|---|
-| What user configures | Symbol + Timeframe + Condition type + Target value + Name | Symbol + Timeframe (that's it) |
-| Number of decisions | 5 fields | 2 fields |
-| What triggers | Raw price crossing a threshold | AI State Machine detecting significant market events |
-| What user receives | One notification, then alert deactivates | Ongoing stream of AI messages as market evolves |
-| Lifetime | Single-use (deactivates after trigger) | Continuous until user unsubscribes |
+| Aspect               | Part 11 Alert                                             | Instrument Subscription                              |
+| -------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| What user configures | Symbol + Timeframe + Condition type + Target value + Name | Symbol + Timeframe (that's it)                       |
+| Number of decisions  | 5 fields                                                  | 2 fields                                             |
+| What triggers        | Raw price crossing a threshold                            | AI State Machine detecting significant market events |
+| What user receives   | One notification, then alert deactivates                  | Ongoing stream of AI messages as market evolves      |
+| Lifetime             | Single-use (deactivates after trigger)                    | Continuous until user unsubscribes                   |
 
 ### Subscription Data Model
 
@@ -413,10 +415,10 @@ This creates:
 
 ### Tier Limits (Replaces Alert Limits)
 
-| Tier | Max Subscriptions | Symbols | Timeframes | Rationale |
-|---|---|---|---|---|
-| **FREE** | 3 instruments | 5 symbols | 3 TFs | Lower than Part 11's 5 alerts because each subscription is far more valuable (continuous AI monitoring vs. one-shot price check) |
-| **PRO** | 15 instruments | 15 symbols | 9 TFs | Higher value — each subscription is a dedicated AI analyst for that instrument |
+| Tier     | Max Subscriptions | Symbols    | Timeframes | Rationale                                                                                                                        |
+| -------- | ----------------- | ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **FREE** | 3 instruments     | 5 symbols  | 3 TFs      | Lower than Part 11's 5 alerts because each subscription is far more valuable (continuous AI monitoring vs. one-shot price check) |
+| **PRO**  | 15 instruments    | 15 symbols | 9 TFs      | Higher value — each subscription is a dedicated AI analyst for that instrument                                                   |
 
 ---
 
@@ -431,6 +433,7 @@ The State Machine runs an evaluation cycle on **every bar close**. But the user 
 All subsequent states (AWAITING_PULLBACK, PULLBACK_TESTING, etc.) are **silent**. The user has already been notified. The breakout message sits in their sidebar with an unread badge and a time-ago label. When the user is ready, they open the thread and chat with the AI to get the latest status — on their own terms.
 
 **Why this works:**
+
 1. BREAKOUT_DETECTED is the **first actionable event** — it's the only state worth interrupting the user for
 2. The user has **time** between breakout detection and the eventual pullback/recommendation — time to open the chat, ask questions, and make decisions
 3. All subsequent state data is **available on demand** when the user opens the thread and asks the AI
@@ -493,13 +496,13 @@ User opens the thread whenever they're ready:
 
 ### Why Not Notify on AWAITING_PULLBACK or PULLBACK_TESTING?
 
-| Reason | Explanation |
-|---|---|
-| **No new actionable information** | "Still waiting for pullback" is not actionable. The user already knows a breakout happened. |
-| **User has time** | Pullback windows are 8-12 bars (8-48 hours depending on TF). No urgency to send updates every bar. |
-| **On-demand is better** | When the user opens the thread, the AI gives the LIVE state — always current, always accurate. A cached notification from 3 bars ago is stale. |
-| **Prevents spam** | A user with 3 subscriptions would get 18+ messages per setup lifecycle without throttling. With breakout-only: 3 messages total. |
-| **Chat UI already shows status** | The thread's `currentState` and `tradeDirection` are visible in the sidebar without opening. The permanent instrument badge shows which instrument this is about. |
+| Reason                            | Explanation                                                                                                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No new actionable information** | "Still waiting for pullback" is not actionable. The user already knows a breakout happened.                                                                       |
+| **User has time**                 | Pullback windows are 8-12 bars (8-48 hours depending on TF). No urgency to send updates every bar.                                                                |
+| **On-demand is better**           | When the user opens the thread, the AI gives the LIVE state — always current, always accurate. A cached notification from 3 bars ago is stale.                    |
+| **Prevents spam**                 | A user with 3 subscriptions would get 18+ messages per setup lifecycle without throttling. With breakout-only: 3 messages total.                                  |
+| **Chat UI already shows status**  | The thread's `currentState` and `tradeDirection` are visible in the sidebar without opening. The permanent instrument badge shows which instrument this is about. |
 
 ### Messages Per Setup Lifecycle
 
@@ -596,16 +599,16 @@ ChatDispatcher.dispatch(agent_state)
 
 ### Message Content by State Machine Position
 
-| State & Condition | Message Type | Priority | Example Message |
-|---|---|---|---|
-| **BREAKOUT_DETECTED** (quality_sufficient) | `breakout_alert` | HIGH | "Breakout detected on EURUSD H1. Price has closed above the descending trendline at 1.0892. Convergence score: 4.2/10. Momentum is confirming with Z-score +1.8. Watching for pullback entry..." |
-| **AWAITING_PULLBACK** (update) | `pullback_watch` | MEDIUM | "Breakout holding on EURUSD H1 (3 bars confirmed). Waiting for pullback to the 1.0875–1.0862 zone. 7 bars remaining in window. Will alert when pullback arrives." |
-| **PULLBACK_TESTING** (bounce_confirmed, score >= 5.0) | `trade_recommendation` | HIGH | "Trade recommendation: LONG EURUSD H1. Convergence score: 6.8/10. Entry zone: 1.0862–1.0875 (3 lots staggered). Factors: Regime +1.4, Momentum +1.6, Trendline +1.2, Zone +1.4, Pattern +1.2. Confidence: 78%. Counter-trend modifier: 1.0 (aligned)." |
-| **PULLBACK_TESTING** (score < 5.0) | `caution_update` | MEDIUM | "Pullback at zone on EURUSD H1, but convergence is insufficient (3.8/10). Momentum weakening. Monitoring for improvement or invalidation." |
-| **MISSED** | `missed_opportunity` | LOW | "The EURUSD H1 breakout moved without a pullback entry. Window expired after 10 bars. Cooldown: 4 bars before next scan." |
-| **INVALIDATED** (level_broken) | `setup_invalidated` | MEDIUM | "EURUSD H1 setup invalidated: price broke back below the breakout trendline at 1.0845. Fakeout confirmed. Cooldown: 4 bars." |
-| **INVALIDATED** (instant_fakeout) | `setup_invalidated` | MEDIUM | "Instant fakeout on EURUSD H1. Breakout bar reversed immediately. Setup invalidated." |
-| **SCANNING** (periodic) | `market_scan` | LOW | "EURUSD H1: Strong Bullish regime. Aggregate slope: +2.4. No breakout setup detected. Key trendline at 1.0892. Monitoring." |
+| State & Condition                                     | Message Type           | Priority | Example Message                                                                                                                                                                                                                                        |
+| ----------------------------------------------------- | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **BREAKOUT_DETECTED** (quality_sufficient)            | `breakout_alert`       | HIGH     | "Breakout detected on EURUSD H1. Price has closed above the descending trendline at 1.0892. Convergence score: 4.2/10. Momentum is confirming with Z-score +1.8. Watching for pullback entry..."                                                       |
+| **AWAITING_PULLBACK** (update)                        | `pullback_watch`       | MEDIUM   | "Breakout holding on EURUSD H1 (3 bars confirmed). Waiting for pullback to the 1.0875–1.0862 zone. 7 bars remaining in window. Will alert when pullback arrives."                                                                                      |
+| **PULLBACK_TESTING** (bounce_confirmed, score >= 5.0) | `trade_recommendation` | HIGH     | "Trade recommendation: LONG EURUSD H1. Convergence score: 6.8/10. Entry zone: 1.0862–1.0875 (3 lots staggered). Factors: Regime +1.4, Momentum +1.6, Trendline +1.2, Zone +1.4, Pattern +1.2. Confidence: 78%. Counter-trend modifier: 1.0 (aligned)." |
+| **PULLBACK_TESTING** (score < 5.0)                    | `caution_update`       | MEDIUM   | "Pullback at zone on EURUSD H1, but convergence is insufficient (3.8/10). Momentum weakening. Monitoring for improvement or invalidation."                                                                                                             |
+| **MISSED**                                            | `missed_opportunity`   | LOW      | "The EURUSD H1 breakout moved without a pullback entry. Window expired after 10 bars. Cooldown: 4 bars before next scan."                                                                                                                              |
+| **INVALIDATED** (level_broken)                        | `setup_invalidated`    | MEDIUM   | "EURUSD H1 setup invalidated: price broke back below the breakout trendline at 1.0845. Fakeout confirmed. Cooldown: 4 bars."                                                                                                                           |
+| **INVALIDATED** (instant_fakeout)                     | `setup_invalidated`    | MEDIUM   | "Instant fakeout on EURUSD H1. Breakout bar reversed immediately. Setup invalidated."                                                                                                                                                                  |
+| **SCANNING** (periodic)                               | `market_scan`          | LOW      | "EURUSD H1: Strong Bullish regime. Aggregate slope: +2.4. No breakout setup detected. Key trendline at 1.0892. Monitoring."                                                                                                                            |
 
 ### Message Metadata (Stored with Each Chat Message)
 
@@ -823,7 +826,7 @@ interface IncomingChatEvent {
       id: string;
       role: 'assistant';
       content: string;
-      messageType: string;       // 'breakout_alert', 'trade_recommendation', etc.
+      messageType: string; // 'breakout_alert', 'trade_recommendation', etc.
       priority: 'high' | 'medium' | 'low';
       metadata: Record<string, unknown>;
       createdAt: string;
@@ -831,10 +834,10 @@ interface IncomingChatEvent {
     thread: {
       symbol: string;
       timeframe: string;
-      displayName: string;       // "XAUUSD H4"
+      displayName: string; // "XAUUSD H4"
       currentState: string;
-      tradeDirection: 'long' | 'short' | null;  // Maps to BUY (green) / SELL (red) label
-      unreadCount: number;       // Updated count — shown as badge (2), (3)
+      tradeDirection: 'long' | 'short' | null; // Maps to BUY (green) / SELL (red) label
+      unreadCount: number; // Updated count — shown as badge (2), (3)
     };
   };
 }
@@ -860,11 +863,11 @@ interface MarkThreadReadEvent {
 
 ### Delivery Priority Behavior
 
-| Priority | WebSocket Behavior | UI Behavior |
-|---|---|---|
-| **HIGH** | Immediate emit + optional push notification | Play sound, prominent badge, auto-expand preview if on thread list |
-| **MEDIUM** | Immediate emit | Silent badge increment, standard thread list update |
-| **LOW** | Batch (deliver on next poll or delayed emit) | Badge increment only, no sound, no preview expansion |
+| Priority   | WebSocket Behavior                           | UI Behavior                                                        |
+| ---------- | -------------------------------------------- | ------------------------------------------------------------------ |
+| **HIGH**   | Immediate emit + optional push notification  | Play sound, prominent badge, auto-expand preview if on thread list |
+| **MEDIUM** | Immediate emit                               | Silent badge increment, standard thread list update                |
+| **LOW**    | Batch (deliver on next poll or delayed emit) | Badge increment only, no sound, no preview expansion               |
 
 ---
 
@@ -911,16 +914,16 @@ Threads are sorted by `last_message_at DESC` (most recent activity at top), exac
 
 The thread list shows the State Machine status as a visual indicator:
 
-| State Machine State | Thread Indicator | Color |
-|---|---|---|
-| IDLE | Idle | Gray |
-| NAVIGATING | Analyzing | Blue |
-| SCANNING | Scanning | Blue |
-| BREAKOUT_DETECTED | Breakout! | Orange-red |
-| AWAITING_PULLBACK | Pullback Watch | Yellow |
-| PULLBACK_TESTING | Testing Zone | Orange |
-| MISSED | Missed | Gray |
-| INVALIDATED | Invalidated | Red-muted |
+| State Machine State | Thread Indicator | Color      |
+| ------------------- | ---------------- | ---------- |
+| IDLE                | Idle             | Gray       |
+| NAVIGATING          | Analyzing        | Blue       |
+| SCANNING            | Scanning         | Blue       |
+| BREAKOUT_DETECTED   | Breakout!        | Orange-red |
+| AWAITING_PULLBACK   | Pullback Watch   | Yellow     |
+| PULLBACK_TESTING    | Testing Zone     | Orange     |
+| MISSED              | Missed           | Gray       |
+| INVALIDATED         | Invalidated      | Red-muted  |
 
 ---
 
@@ -1028,15 +1031,15 @@ Decrement:
 
 ### Instrument Subscription Limits
 
-| Feature | FREE | PRO |
-|---|---|---|
-| **Max instrument subscriptions** | 3 | 15 |
-| **Available symbols** | 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) | 15 (all) |
-| **Available timeframes** | 3 (H1, H4, D1) | 9 (all) |
-| **Max possible combinations** | 15 (5 x 3) | 135 (15 x 9) |
-| **Message history retention** | 7 days | Unlimited |
-| **AI conversation replies** | 10/day | Unlimited |
-| **High-priority sound alerts** | Yes | Yes |
+| Feature                          | FREE                                     | PRO          |
+| -------------------------------- | ---------------------------------------- | ------------ |
+| **Max instrument subscriptions** | 3                                        | 15           |
+| **Available symbols**            | 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD) | 15 (all)     |
+| **Available timeframes**         | 3 (H1, H4, D1)                           | 9 (all)      |
+| **Max possible combinations**    | 15 (5 x 3)                               | 135 (15 x 9) |
+| **Message history retention**    | 7 days                                   | Unlimited    |
+| **AI conversation replies**      | 10/day                                   | Unlimited    |
+| **High-priority sound alerts**   | Yes                                      | Yes          |
 
 ### Tier Validation Logic
 
@@ -1076,6 +1079,7 @@ function validateSubscription(
 ## 15. Migration Strategy: From Alerts to Incoming Chat
 
 ### Phase 1: Build Incoming Chat System (New)
+
 - Implement database schema (instrument_subscription, chat_thread, chat_message)
 - Build ChatDispatcher service
 - Build frontend chat thread list and thread view
@@ -1083,12 +1087,14 @@ function validateSubscription(
 - Build instrument subscription management UI
 
 ### Phase 2: Integrate State Machine → Chat
+
 - Wire EvaluationPipeline.generate_response → ChatDispatcher.dispatch
 - Implement message type routing (CHAT_TRIGGERS map)
 - Implement user reply → txtai Agent processing
 - Test end-to-end: cron trigger → state transition → incoming chat → user reply
 
 ### Phase 3: Deprecate Part 11
+
 - Add migration notice to existing alerts page: "Alerts have been upgraded to AI Chat"
 - Auto-convert existing alerts to instrument subscriptions where possible:
   - Alert for EURUSD H1 → instrument_subscription for (EURUSD, H1)
@@ -1097,6 +1103,7 @@ function validateSubscription(
 - Remove Part 11 code (23 files)
 
 ### Phase 4: Adapt Part 15
+
 - Keep WebSocket infrastructure (reused by Incoming Chat)
 - Keep Notification model for system/billing notifications (non-trading)
 - Remove ALERT notification type from Part 15 (replaced by chat messages)
@@ -1108,40 +1115,40 @@ function validateSubscription(
 
 ### Complete Part 11 Removal List
 
-| # | File | Replacement |
-|---|---|---|
-| 1 | `prisma/schema.prisma` (Alert model) | InstrumentSubscription + ChatThread + ChatMessage models |
-| 2 | `types/alert.ts` | `types/chat.ts` (new) |
-| 3 | `lib/validations/alert.ts` | `lib/validations/subscription.ts` (new, simpler) |
-| 4 | `app/api/alerts/route.ts` | `app/api/subscriptions/route.ts` + `app/api/chat/threads/route.ts` |
-| 5 | `app/api/alerts/[id]/route.ts` | `app/api/subscriptions/[id]/route.ts` |
-| 6 | `components/alerts/alert-card.tsx` | `components/chat/thread-card.tsx` (new) |
-| 7 | `components/alerts/alert-form.tsx` | `components/chat/subscribe-form.tsx` (simpler — just symbol + TF) |
-| 8 | `components/alerts/alert-list.tsx` | `components/chat/thread-list.tsx` (new) |
-| 9 | `components/dashboard/recent-alerts.tsx` | `components/dashboard/recent-chats.tsx` (new) |
-| 10 | `hooks/use-alerts.ts` | `hooks/use-chat-threads.ts` + `hooks/use-chat-messages.ts` |
-| 11 | `app/(dashboard)/alerts/page.tsx` | `app/(dashboard)/chat/page.tsx` |
-| 12 | `app/(dashboard)/alerts/alerts-client.tsx` | `app/(dashboard)/chat/chat-client.tsx` |
-| 13 | `app/(dashboard)/alerts/new/page.tsx` | `app/(dashboard)/chat/subscribe/page.tsx` |
-| 14 | `app/(dashboard)/alerts/new/create-alert-client.tsx` | `app/(dashboard)/chat/subscribe/subscribe-client.tsx` |
-| 15 | `lib/jobs/alert-checker.ts` | State Machine evaluation cycle (already exists in txtai) |
-| 16 | `lib/jobs/queue.ts` | Repurpose for State Machine cron scheduling |
-| 17-23 | `frontend/*` mirrors | New frontend mirrors for chat components |
+| #     | File                                                 | Replacement                                                        |
+| ----- | ---------------------------------------------------- | ------------------------------------------------------------------ |
+| 1     | `prisma/schema.prisma` (Alert model)                 | InstrumentSubscription + ChatThread + ChatMessage models           |
+| 2     | `types/alert.ts`                                     | `types/chat.ts` (new)                                              |
+| 3     | `lib/validations/alert.ts`                           | `lib/validations/subscription.ts` (new, simpler)                   |
+| 4     | `app/api/alerts/route.ts`                            | `app/api/subscriptions/route.ts` + `app/api/chat/threads/route.ts` |
+| 5     | `app/api/alerts/[id]/route.ts`                       | `app/api/subscriptions/[id]/route.ts`                              |
+| 6     | `components/alerts/alert-card.tsx`                   | `components/chat/thread-card.tsx` (new)                            |
+| 7     | `components/alerts/alert-form.tsx`                   | `components/chat/subscribe-form.tsx` (simpler — just symbol + TF)  |
+| 8     | `components/alerts/alert-list.tsx`                   | `components/chat/thread-list.tsx` (new)                            |
+| 9     | `components/dashboard/recent-alerts.tsx`             | `components/dashboard/recent-chats.tsx` (new)                      |
+| 10    | `hooks/use-alerts.ts`                                | `hooks/use-chat-threads.ts` + `hooks/use-chat-messages.ts`         |
+| 11    | `app/(dashboard)/alerts/page.tsx`                    | `app/(dashboard)/chat/page.tsx`                                    |
+| 12    | `app/(dashboard)/alerts/alerts-client.tsx`           | `app/(dashboard)/chat/chat-client.tsx`                             |
+| 13    | `app/(dashboard)/alerts/new/page.tsx`                | `app/(dashboard)/chat/subscribe/page.tsx`                          |
+| 14    | `app/(dashboard)/alerts/new/create-alert-client.tsx` | `app/(dashboard)/chat/subscribe/subscribe-client.tsx`              |
+| 15    | `lib/jobs/alert-checker.ts`                          | State Machine evaluation cycle (already exists in txtai)           |
+| 16    | `lib/jobs/queue.ts`                                  | Repurpose for State Machine cron scheduling                        |
+| 17-23 | `frontend/*` mirrors                                 | New frontend mirrors for chat components                           |
 
 ---
 
 ## 17. What Gets Kept and Adapted (Part 15)
 
-| Part 15 Component | Action | Reason |
-|---|---|---|
-| `lib/websocket/server.ts` | **Keep + Extend** | Add `incoming_chat`, `thread_state_update`, `mark_thread_read` events |
-| `components/providers/websocket-provider.tsx` | **Keep + Extend** | Add chat message subscription handlers |
-| `hooks/use-websocket.ts` | **Keep** | Reused as-is for WebSocket connection management |
-| `app/api/notifications/route.ts` | **Keep** | Still needed for System/Billing/Payment notifications |
-| `components/notifications/notification-bell.tsx` | **Keep + Modify** | Remove "Alerts" tab, keep System/Billing/Payment |
-| `lib/email/email.ts` | **Keep** | Email notifications for high-priority trade recommendations (optional) |
-| `hooks/use-toast.ts` | **Keep** | Toast for inline feedback (not for chat messages) |
-| Notification model (Prisma) | **Keep + Modify** | Remove `ALERT` type from enum, keep other types |
+| Part 15 Component                                | Action            | Reason                                                                 |
+| ------------------------------------------------ | ----------------- | ---------------------------------------------------------------------- |
+| `lib/websocket/server.ts`                        | **Keep + Extend** | Add `incoming_chat`, `thread_state_update`, `mark_thread_read` events  |
+| `components/providers/websocket-provider.tsx`    | **Keep + Extend** | Add chat message subscription handlers                                 |
+| `hooks/use-websocket.ts`                         | **Keep**          | Reused as-is for WebSocket connection management                       |
+| `app/api/notifications/route.ts`                 | **Keep**          | Still needed for System/Billing/Payment notifications                  |
+| `components/notifications/notification-bell.tsx` | **Keep + Modify** | Remove "Alerts" tab, keep System/Billing/Payment                       |
+| `lib/email/email.ts`                             | **Keep**          | Email notifications for high-priority trade recommendations (optional) |
+| `hooks/use-toast.ts`                             | **Keep**          | Toast for inline feedback (not for chat messages)                      |
+| Notification model (Prisma)                      | **Keep + Modify** | Remove `ALERT` type from enum, keep other types                        |
 
 ---
 
@@ -1242,10 +1249,10 @@ Response 200:
 
 The trading platform is split across two hosting providers, each optimized for its role:
 
-| Stack | Host | Technology | Role |
-|---|---|---|---|
-| **Stack A** (Frontend) | **Vercel** | Next.js v16 | UI rendering, TradingView Lightweight Charts, chat sidebar, SSR, API routes for user-facing CRUD |
-| **Stack B** (Backend) | **Railway** | NestJS v11 + txtai (Python) | WebSocket Gateway, Redis message broker, BullMQ workers, State Machine, PostgreSQL, TimescaleDB |
+| Stack                  | Host        | Technology                  | Role                                                                                             |
+| ---------------------- | ----------- | --------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Stack A** (Frontend) | **Vercel**  | Next.js v16                 | UI rendering, TradingView Lightweight Charts, chat sidebar, SSR, API routes for user-facing CRUD |
+| **Stack B** (Backend)  | **Railway** | NestJS v11 + txtai (Python) | WebSocket Gateway, Redis message broker, BullMQ workers, State Machine, PostgreSQL, TimescaleDB  |
 
 ### Why This Split Matters for Incoming Chat
 
@@ -1315,12 +1322,12 @@ Railway Private Network (redis.railway.internal)
 
 ### Latency Profile
 
-| Hop | Path | Expected Latency |
-|---|---|---|
-| 1 | txtai → Redis PUBLISH (Railway internal) | <1ms |
-| 2 | Redis → NestJS SUBSCRIBE (Railway internal) | <1ms |
-| 3 | NestJS WebSocket → Vercel (internet) | 20-80ms |
-| **Total** | State Machine transition → UI update | **~25-85ms** |
+| Hop       | Path                                        | Expected Latency |
+| --------- | ------------------------------------------- | ---------------- |
+| 1         | txtai → Redis PUBLISH (Railway internal)    | <1ms             |
+| 2         | Redis → NestJS SUBSCRIBE (Railway internal) | <1ms             |
+| 3         | NestJS WebSocket → Vercel (internet)        | 20-80ms          |
+| **Total** | State Machine transition → UI update        | **~25-85ms**     |
 
 This is fast enough for "incoming message" UX — WhatsApp messages typically take 100-300ms.
 
@@ -1332,12 +1339,13 @@ This is fast enough for "incoming message" UX — WhatsApp messages typically ta
 
 The system uses **both** Redis Pub/Sub and BullMQ, for different purposes:
 
-| Mechanism | Purpose | Delivery | Latency | Durability |
-|---|---|---|---|---|
-| **Redis Pub/Sub** | Real-time WebSocket delivery | Fire-and-forget to connected users | <2ms | No persistence — if user is offline, message is missed via Pub/Sub |
-| **BullMQ Queue** | Reliable message processing | Guaranteed at-least-once delivery | 10-100ms | Persisted in Redis — survives restarts, retries on failure |
+| Mechanism         | Purpose                      | Delivery                           | Latency  | Durability                                                         |
+| ----------------- | ---------------------------- | ---------------------------------- | -------- | ------------------------------------------------------------------ |
+| **Redis Pub/Sub** | Real-time WebSocket delivery | Fire-and-forget to connected users | <2ms     | No persistence — if user is offline, message is missed via Pub/Sub |
+| **BullMQ Queue**  | Reliable message processing  | Guaranteed at-least-once delivery  | 10-100ms | Persisted in Redis — survives restarts, retries on failure         |
 
 **Both are needed** because:
+
 - Pub/Sub gives **instant** delivery to connected users (the "WhatsApp feel")
 - BullMQ gives **reliable** processing for database writes, thread metadata updates, push notifications, and email delivery
 
@@ -1448,7 +1456,7 @@ export class IncomingChatListener implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatGateway: ChatGateway
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -1469,7 +1477,10 @@ export class IncomingChatListener implements OnModuleInit, OnModuleDestroy {
     await this.subscriber.quit();
   }
 
-  private handleIncomingChat(channel: string, payload: IncomingChatPayload): void {
+  private handleIncomingChat(
+    channel: string,
+    payload: IncomingChatPayload
+  ): void {
     const { subscriber_thread_map, ...messageData } = payload;
 
     // Fan-out to each subscriber's WebSocket room
@@ -1494,7 +1505,7 @@ export class IncomingChatListener implements OnModuleInit, OnModuleDestroy {
           displayName: `${messageData.symbol} ${messageData.timeframe}`,
           currentState: messageData.current_state,
           tradeDirection: messageData.direction,
-          unreadCount: -1,  // Client increments locally; actual count from REST
+          unreadCount: -1, // Client increments locally; actual count from REST
         },
       });
     }
@@ -1510,7 +1521,10 @@ interface IncomingChatPayload {
   priority: 'high' | 'medium' | 'low';
   current_state: string;
   convergence_score: number | null;
-  subscriber_thread_map: Record<string, { thread_id: string; message_id: string }>;
+  subscriber_thread_map: Record<
+    string,
+    { thread_id: string; message_id: string }
+  >;
   timestamp: string;
 }
 ```
@@ -1531,7 +1545,7 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL,  // Vercel URL
+    origin: process.env.FRONTEND_URL, // Vercel URL
   },
   namespace: '/chat',
 })
@@ -1569,7 +1583,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('mark_thread_read')
   async handleMarkThreadRead(
     client: Socket,
-    payload: { threadId: string },
+    payload: { threadId: string }
   ): Promise<void> {
     // Update DB, then broadcast to all user's tabs
     this.server
@@ -1606,11 +1620,7 @@ import { ChatMessageProcessor } from './chat-message.processor';
       name: 'chat-notification-delivery',
     }),
   ],
-  providers: [
-    ChatGateway,
-    IncomingChatListener,
-    ChatMessageProcessor,
-  ],
+  providers: [ChatGateway, IncomingChatListener, ChatMessageProcessor],
   exports: [ChatGateway],
 })
 export class ChatModule {}
@@ -1665,7 +1675,8 @@ export class ChatMessageProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
-    const { symbol, timeframe, message_type, priority, subscriber_thread_map } = job.data;
+    const { symbol, timeframe, message_type, priority, subscriber_thread_map } =
+      job.data;
 
     const threadMap = JSON.parse(subscriber_thread_map).subscriber_thread_map;
 
@@ -1776,17 +1787,17 @@ ChatDispatcher.dispatch()
 
 ### Timing Breakdown
 
-| Step | Operation | Latency |
-|---|---|---|
-| 1 | State Machine evaluation + LLM call | 2-8 seconds (Claude API) |
-| 2 | PostgreSQL INSERT (chat_message) | 5-15ms |
-| 3 | Redis PUBLISH (internal network) | <1ms |
-| 4 | NestJS receives Pub/Sub message | <1ms |
-| 5 | NestJS resolves subscribers + emits WebSocket | 1-5ms |
-| 6 | WebSocket transit (Railway → Vercel) | 20-80ms |
-| 7 | Next.js renders sidebar update | 5-15ms |
-| **Total (from PUBLISH to UI)** | | **~30-100ms** |
-| **Total (from bar close to UI)** | | **~2-9 seconds** (dominated by LLM) |
+| Step                             | Operation                                     | Latency                             |
+| -------------------------------- | --------------------------------------------- | ----------------------------------- |
+| 1                                | State Machine evaluation + LLM call           | 2-8 seconds (Claude API)            |
+| 2                                | PostgreSQL INSERT (chat_message)              | 5-15ms                              |
+| 3                                | Redis PUBLISH (internal network)              | <1ms                                |
+| 4                                | NestJS receives Pub/Sub message               | <1ms                                |
+| 5                                | NestJS resolves subscribers + emits WebSocket | 1-5ms                               |
+| 6                                | WebSocket transit (Railway → Vercel)          | 20-80ms                             |
+| 7                                | Next.js renders sidebar update                | 5-15ms                              |
+| **Total (from PUBLISH to UI)**   |                                               | **~30-100ms**                       |
+| **Total (from bar close to UI)** |                                               | **~2-9 seconds** (dominated by LLM) |
 
 ---
 
@@ -1904,14 +1915,14 @@ Based on the UI screenshot, each incoming chat entry in the sidebar shows:
 ```typescript
 interface IncomingChatEntryProps {
   threadId: string;
-  symbol: string;                    // "XAUUSD"
-  timeframe: string;                 // "H4"
-  direction: 'BUY' | 'SELL';        // From State Machine trade_direction
-  directionColor: 'green' | 'red';  // BUY=green, SELL=red
-  unreadCount: number;               // Badge: (2), (3)
-  timeAgo: string;                   // "10 Min Ago"
-  previewText: string;               // "I'll help you with that analysis..."
-  isIncoming: true;                  // Always true (→ arrow icon)
+  symbol: string; // "XAUUSD"
+  timeframe: string; // "H4"
+  direction: 'BUY' | 'SELL'; // From State Machine trade_direction
+  directionColor: 'green' | 'red'; // BUY=green, SELL=red
+  unreadCount: number; // Badge: (2), (3)
+  timeAgo: string; // "10 Min Ago"
+  previewText: string; // "I'll help you with that analysis..."
+  isIncoming: true; // Always true (→ arrow icon)
 }
 ```
 
@@ -2008,32 +2019,32 @@ The indicator panel on the right **stays visible** — the user can see the char
 
 ## 25. Implementation Order
 
-| Phase | Task | Stack | Depends On | Effort |
-|---|---|---|---|---|
-| **Phase 1: Database + Core Services** |||||
-| 1.1 | Database schema: `instrument_subscription`, `chat_thread`, `chat_message` | Railway PostgreSQL | — | 1 day |
-| 1.2 | ChatDispatcher service (Python, txtai → Redis PUBLISH + BullMQ) | Railway txtai | 1.1 | 2 days |
-| 1.3 | NestJS ChatModule: IncomingChatListener (Redis SUBSCRIBE) | Railway NestJS v11 | 1.1 | 2 days |
-| 1.4 | NestJS ChatGateway: WebSocket namespace `/chat` | Railway NestJS v11 | 1.3 | 1 day |
-| 1.5 | NestJS ChatMessageProcessor (BullMQ worker) | Railway NestJS v11 | 1.3 | 2 days |
-| **Phase 2: API Endpoints** |||||
-| 2.1 | API: Subscription CRUD (`/api/subscriptions`) | Railway NestJS v11 | 1.1 | 1 day |
-| 2.2 | API: Chat threads and messages (`/api/chat/threads`, `/api/chat/threads/[id]/messages`) | Railway NestJS v11 | 1.1 | 2 days |
-| **Phase 3: Frontend (Next.js v16 on Vercel)** |||||
-| 3.1 | Socket.IO client connection to NestJS `/chat` namespace | Vercel Next.js v16 | 1.4 | 1 day |
-| 3.2 | Sidebar: IncomingChatEntry component (→ icon, BUY/SELL, badge) | Vercel Next.js v16 | 3.1 | 2 days |
-| 3.3 | Thread view: message history + chat input | Vercel Next.js v16 | 2.2 | 2 days |
-| 3.4 | Subscribe form: instrument subscription picker | Vercel Next.js v16 | 2.1 | 1 day |
-| 3.5 | Unread badge integration in sidebar nav | Vercel Next.js v16 | 3.1, 3.2 | 1 day |
-| 3.6 | Dashboard recent-chats widget | Vercel Next.js v16 | 3.2 | 1 day |
-| **Phase 4: Integration + Testing** |||||
-| 4.1 | Wire EvaluationPipeline → ChatDispatcher → Redis → NestJS → WebSocket | All stacks | 1.2, 1.3, 1.4, 3.1 | 2 days |
-| 4.2 | User reply → NestJS → txtai Agent processing | Railway | 2.2, txtai Agent | 2 days |
-| 4.3 | End-to-end testing (cross-stack) | All | All above | 3 days |
-| **Phase 5: Migration** |||||
-| 5.1 | Auto-convert existing Part 11 alerts to subscriptions | Railway | 4.3 | 1 day |
-| 5.2 | Remove Part 11 code (23 files from Next.js) | Vercel | 5.1 | 1 day |
-| 5.3 | Adapt Part 15 (remove ALERT notification type) | Both | 5.2 | 0.5 day |
+| Phase                                         | Task                                                                                    | Stack              | Depends On         | Effort  |
+| --------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------ | ------------------ | ------- |
+| **Phase 1: Database + Core Services**         |                                                                                         |                    |                    |         |
+| 1.1                                           | Database schema: `instrument_subscription`, `chat_thread`, `chat_message`               | Railway PostgreSQL | —                  | 1 day   |
+| 1.2                                           | ChatDispatcher service (Python, txtai → Redis PUBLISH + BullMQ)                         | Railway txtai      | 1.1                | 2 days  |
+| 1.3                                           | NestJS ChatModule: IncomingChatListener (Redis SUBSCRIBE)                               | Railway NestJS v11 | 1.1                | 2 days  |
+| 1.4                                           | NestJS ChatGateway: WebSocket namespace `/chat`                                         | Railway NestJS v11 | 1.3                | 1 day   |
+| 1.5                                           | NestJS ChatMessageProcessor (BullMQ worker)                                             | Railway NestJS v11 | 1.3                | 2 days  |
+| **Phase 2: API Endpoints**                    |                                                                                         |                    |                    |         |
+| 2.1                                           | API: Subscription CRUD (`/api/subscriptions`)                                           | Railway NestJS v11 | 1.1                | 1 day   |
+| 2.2                                           | API: Chat threads and messages (`/api/chat/threads`, `/api/chat/threads/[id]/messages`) | Railway NestJS v11 | 1.1                | 2 days  |
+| **Phase 3: Frontend (Next.js v16 on Vercel)** |                                                                                         |                    |                    |         |
+| 3.1                                           | Socket.IO client connection to NestJS `/chat` namespace                                 | Vercel Next.js v16 | 1.4                | 1 day   |
+| 3.2                                           | Sidebar: IncomingChatEntry component (→ icon, BUY/SELL, badge)                          | Vercel Next.js v16 | 3.1                | 2 days  |
+| 3.3                                           | Thread view: message history + chat input                                               | Vercel Next.js v16 | 2.2                | 2 days  |
+| 3.4                                           | Subscribe form: instrument subscription picker                                          | Vercel Next.js v16 | 2.1                | 1 day   |
+| 3.5                                           | Unread badge integration in sidebar nav                                                 | Vercel Next.js v16 | 3.1, 3.2           | 1 day   |
+| 3.6                                           | Dashboard recent-chats widget                                                           | Vercel Next.js v16 | 3.2                | 1 day   |
+| **Phase 4: Integration + Testing**            |                                                                                         |                    |                    |         |
+| 4.1                                           | Wire EvaluationPipeline → ChatDispatcher → Redis → NestJS → WebSocket                   | All stacks         | 1.2, 1.3, 1.4, 3.1 | 2 days  |
+| 4.2                                           | User reply → NestJS → txtai Agent processing                                            | Railway            | 2.2, txtai Agent   | 2 days  |
+| 4.3                                           | End-to-end testing (cross-stack)                                                        | All                | All above          | 3 days  |
+| **Phase 5: Migration**                        |                                                                                         |                    |                    |         |
+| 5.1                                           | Auto-convert existing Part 11 alerts to subscriptions                                   | Railway            | 4.3                | 1 day   |
+| 5.2                                           | Remove Part 11 code (23 files from Next.js)                                             | Vercel             | 5.1                | 1 day   |
+| 5.3                                           | Adapt Part 15 (remove ALERT notification type)                                          | Both               | 5.2                | 0.5 day |
 
 **Total estimated effort: ~26 days** (increased from 20 due to cross-stack Redis Pub/Sub + NestJS broker layer)
 
@@ -2045,13 +2056,13 @@ The Incoming Chat system transforms the trading advisory SaaS from a passive ale
 
 ### Architecture Stack
 
-| Component | Technology | Deployment |
-|---|---|---|
-| State Machine + AI Evaluation | txtai (Python) + Claude API | Railway |
-| Message Broker | Redis Pub/Sub + BullMQ | Railway (internal network) |
-| WebSocket Gateway + Workers | NestJS v11 | Railway |
-| Chat UI + TradingView Charts | Next.js v16 | Vercel |
-| Database | PostgreSQL / TimescaleDB | Railway |
+| Component                     | Technology                  | Deployment                 |
+| ----------------------------- | --------------------------- | -------------------------- |
+| State Machine + AI Evaluation | txtai (Python) + Claude API | Railway                    |
+| Message Broker                | Redis Pub/Sub + BullMQ      | Railway (internal network) |
+| WebSocket Gateway + Workers   | NestJS v11                  | Railway                    |
+| Chat UI + TradingView Charts  | Next.js v16                 | Vercel                     |
+| Database                      | PostgreSQL / TimescaleDB    | Railway                    |
 
 ### Key Design Decisions
 
