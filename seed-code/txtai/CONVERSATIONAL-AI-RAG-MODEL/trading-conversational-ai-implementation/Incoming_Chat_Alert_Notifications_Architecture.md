@@ -2,10 +2,11 @@
 
 ## Trading Advisory Conversational AI — Incoming Chat Notifications
 
-**Document Version**: 1.1
+**Document Version**: 1.2
 **Date**: February 8, 2026
-**Purpose**: Architecture specification for replacing the traditional alert notification system with AI-driven Incoming Chat messages triggered by State Machine transitions, delivering trade advisories as conversational messages that appear directly in the chat sidebar.
-**UI Reference**: See `Incoming_Chat_UI_Reference.png` — the DavinTrade chat interface showing incoming chat entries in the sidebar RECENT section with instrument+direction labels, unread badges, and coexistence with TradingView charts and indicator panels.
+**Purpose**: Architecture specification for replacing the traditional alert notification system with AI-driven Incoming Chat messages triggered by State Machine transitions, delivered via Redis Pub/Sub message broker (NestJS v11 on Railway) to Next.js v16 frontend on Vercel.
+**UI Reference**: See `Incoming_Chat_UI_Reference.png` — the DavinTrade chat interface showing incoming chat entries in the sidebar RECENT section with instrument+direction labels, unread badges, and coexistence with TradingView Lightweight Charts and indicator panels.
+**Infrastructure**: Vercel (Next.js v16 — UI) + Railway (NestJS v11 — message broker + WebSocket Gateway + BullMQ workers) + Railway Redis (Pub/Sub + BullMQ queues) + Railway PostgreSQL
 **Prerequisite Documents**:
 - `State_Machine_Modification_for_txtai_Framework.md` (State Machine engine, transitions, AgentState)
 - `docs/files-completion-list/files-inventory/part-11-files-completion.md` (Current alert system)
@@ -34,9 +35,13 @@
 16. [What Gets Removed (Part 11 Deprecation)](#16-what-gets-removed-part-11-deprecation)
 17. [What Gets Kept and Adapted (Part 15)](#17-what-gets-kept-and-adapted-part-15)
 18. [API Design](#18-api-design)
-19. [Frontend Architecture](#19-frontend-architecture)
-20. [Error Handling & Edge Cases](#20-error-handling--edge-cases)
-21. [Implementation Order](#21-implementation-order)
+19. [Deployment Topology: Vercel + Railway Two-Stack Split](#19-deployment-topology-vercel--railway-two-stack-split)
+20. [Redis Pub/Sub Message Broker via NestJS v11 on Railway](#20-redis-pubsub-message-broker-via-nestjs-v11-on-railway)
+21. [BullMQ Job Queue for Chat Message Processing](#21-bullmq-job-queue-for-chat-message-processing)
+22. [End-to-End Data Flow: State Machine → Redis Pub/Sub → NestJS → WebSocket → Next.js](#22-end-to-end-data-flow-state-machine--redis-pubsub--nestjs--websocket--nextjs)
+23. [Frontend Architecture (Next.js v16 on Vercel)](#23-frontend-architecture-nextjs-v16-on-vercel)
+24. [Error Handling & Edge Cases](#24-error-handling--edge-cases)
+25. [Implementation Order](#25-implementation-order)
 
 ---
 
@@ -245,75 +250,134 @@ REMOVE:
 
 ## 5. Architecture Overview
 
-### System Diagram
+### Deployment Topology
+
+The system spans **two deployment stacks** with Redis as the message bridge:
+
+- **Vercel**: Next.js v16 frontend (TradingView Lightweight Charts, chat UI, sidebar)
+- **Railway**: NestJS v11 API (WebSocket Gateway, message broker, BullMQ workers) + Redis + PostgreSQL + txtai State Machine (Python)
+
+### System Diagram (Two-Stack with Redis Pub/Sub)
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        txtai Application                              │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │  Per-Instrument State Machine Instances                        │  │
-│  │                                                                │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │  │
-│  │  │ EURUSD H1    │  │ XAUUSD H2    │  │ USDJPY H1    │  ...   │  │
-│  │  │ StateMachine │  │ StateMachine │  │ StateMachine │        │  │
-│  │  │ AgentState   │  │ AgentState   │  │ AgentState   │        │  │
-│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘        │  │
-│  │         │                 │                 │                  │  │
-│  │         ▼                 ▼                 ▼                  │  │
-│  │  ┌─────────────────────────────────────────────────────────┐  │  │
-│  │  │  Incoming Chat Dispatcher                                │  │  │
-│  │  │  ─ Receives state transition events                      │  │  │
-│  │  │  ─ Determines which users subscribe to this instrument   │  │  │
-│  │  │  ─ Generates chat message from AgentState                │  │  │
-│  │  │  ─ Persists message to chat_messages table               │  │  │
-│  │  │  ─ Pushes via WebSocket to connected users               │  │  │
-│  │  └──────────────────────┬──────────────────────────────────┘  │  │
-│  └─────────────────────────┼─────────────────────────────────────┘  │
-│                            │                                        │
-│  ┌─────────────────────────▼──────────────────────────────────────┐ │
-│  │                     Delivery Layer                              │ │
-│  │  ┌─────────────┐  ┌──────────────┐  ┌───────────────────────┐ │ │
-│  │  │ PostgreSQL  │  │ WebSocket    │  │ Push Notifications    │ │ │
-│  │  │ (persist)   │  │ (real-time)  │  │ (mobile/browser PWA) │ │ │
-│  │  └─────────────┘  └──────────────┘  └───────────────────────┘ │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-│                            │                                        │
-│  ┌─────────────────────────▼──────────────────────────────────────┐ │
-│  │                   Frontend (Next.js)                            │ │
-│  │  ┌──────────────┐  ┌────────────────┐  ┌───────────────────┐  │ │
-│  │  │ Chat Thread  │  │ Thread List    │  │ Unread Badge      │  │ │
-│  │  │ (per instr.) │  │ (all instrs.) │  │ (nav indicator)   │  │ │
-│  │  └──────────────┘  └────────────────┘  └───────────────────┘  │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RAILWAY (Backend Stack)                                                     │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  txtai Application (Python)                                           │  │
+│  │                                                                       │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │  │
+│  │  │ EURUSD H1    │  │ XAUUSD H2    │  │ USDJPY H1    │  ...          │  │
+│  │  │ StateMachine │  │ StateMachine │  │ StateMachine │               │  │
+│  │  │ AgentState   │  │ AgentState   │  │ AgentState   │               │  │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘               │  │
+│  │         │                 │                 │                         │  │
+│  │         ▼                 ▼                 ▼                         │  │
+│  │  ┌─────────────────────────────────────────────────────────────┐     │  │
+│  │  │  Chat Dispatcher (Python)                                    │     │  │
+│  │  │  ─ Generates advisory text from AgentState via LLM           │     │  │
+│  │  │  ─ Persists chat_message to PostgreSQL                       │     │  │
+│  │  │  ─ PUBLISHES to Redis channel: 'incoming_chat:{instrument}' │     │  │
+│  │  └──────────────────────┬──────────────────────────────────────┘     │  │
+│  └─────────────────────────┼─────────────────────────────────────────────┘  │
+│                            │ Redis PUBLISH                                   │
+│                            ▼                                                 │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Railway Redis (Message Broker)                                       │  │
+│  │  ┌─────────────────────────────────────────────────────────────┐     │  │
+│  │  │  Pub/Sub Channels:                                          │     │  │
+│  │  │    'incoming_chat:{instrument}'  → real-time fan-out        │     │  │
+│  │  │                                                              │     │  │
+│  │  │  BullMQ Queues:                                             │     │  │
+│  │  │    'chat-message-processing'     → reliable delivery        │     │  │
+│  │  │    'chat-notification-delivery'  → push/email notifications │     │  │
+│  │  └─────────────────────────────────────────────────────────────┘     │  │
+│  └──────────────────────┬────────────────┬───────────────────────────────┘  │
+│                         │ SUBSCRIBE      │ BullMQ consume                    │
+│                         ▼                ▼                                    │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  NestJS v11 API (Component B — Chat Gateway)                          │  │
+│  │                                                                       │  │
+│  │  ┌─────────────────────────┐  ┌─────────────────────────────────┐    │  │
+│  │  │  Redis Subscriber       │  │  BullMQ Worker                   │    │  │
+│  │  │  (IncomingChatListener) │  │  (ChatMessageProcessor)          │    │  │
+│  │  │                         │  │                                   │    │  │
+│  │  │  Receives Pub/Sub msg → │  │  Processes jobs:                 │    │  │
+│  │  │  Routes to WebSocket    │  │  - Fan-out to subscribers        │    │  │
+│  │  │  Gateway for real-time  │  │  - Update chat_thread metadata   │    │  │
+│  │  │  delivery               │  │  - Send push/email notifications │    │  │
+│  │  └────────────┬────────────┘  └──────────────────────────────────┘    │  │
+│  │               │                                                       │  │
+│  │  ┌────────────▼──────────────────────────────────────────────────┐    │  │
+│  │  │  WebSocket Gateway (Socket.IO)                                 │    │  │
+│  │  │  ─ JWT authenticated connections                               │    │  │
+│  │  │  ─ User rooms: 'user:{userId}'                                │    │  │
+│  │  │  ─ Emits: 'incoming_chat', 'thread_state_update'              │    │  │
+│  │  │  ─ Receives: 'mark_thread_read', user replies                 │    │  │
+│  │  └────────────┬──────────────────────────────────────────────────┘    │  │
+│  └───────────────┼───────────────────────────────────────────────────────┘  │
+│                  │ WebSocket (Socket.IO over wss://)                         │
+└──────────────────┼──────────────────────────────────────────────────────────┘
+                   │
+         ┌─────────▼─────────┐
+         │    INTERNET        │
+         └─────────┬─────────┘
+                   │
+┌──────────────────┼──────────────────────────────────────────────────────────┐
+│  VERCEL (Frontend Stack)                                                     │
+│                  │ WebSocket client (Socket.IO)                              │
+│  ┌───────────────▼───────────────────────────────────────────────────────┐  │
+│  │  Next.js v16 Frontend                                                 │  │
+│  │                                                                       │  │
+│  │  ┌──────────────┐  ┌────────────────────┐  ┌──────────────────────┐  │  │
+│  │  │ Chat Sidebar │  │ TradingView LW     │  │ Indicator Panels     │  │  │
+│  │  │ (threads,    │  │ Charts (OHLCV,     │  │ (Keltner, S&R,      │  │  │
+│  │  │  incoming)   │  │  trendlines)       │  │  Slope, Trend)      │  │  │
+│  │  └──────────────┘  └────────────────────┘  └──────────────────────┘  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow — Incoming Chat Message
+### Data Flow — Incoming Chat Message (Cross-Stack)
 
 ```
 1. Cron trigger (new bar close for primary Decision TF)
        │
-2. State Machine evaluation cycle runs for (instrument, tf_config)
+       │  ┌─────────────── RAILWAY ───────────────────────────────────┐
+       ▼  │                                                            │
+2. txtai State Machine evaluation cycle runs for (instrument, tf_config)
+       │  │                                                            │
+3. State transition occurs (e.g., SCANNING → BREAKOUT_DETECTED)       │
+       │  │                                                            │
+4. EvaluationPipeline generates `pending_response` via Claude LLM     │
+       │  │                                                            │
+5. Chat Dispatcher (Python):                                           │
+   ├── Persists chat_message to PostgreSQL (durable record)           │
+   ├── PUBLISH to Redis channel: 'incoming_chat:EURUSD_H1'           │
+   │   Payload: {threadId, message, subscribers[], priority}          │
+   └── Enqueue BullMQ job: 'chat-message-processing'                 │
+       │   (for fan-out, thread metadata update, push notifications)  │
+       │  │                                                            │
+       │  └────────────────────────────────────────────────────────────┘
        │
-3. State transition occurs (e.g., SCANNING → BREAKOUT_DETECTED)
+       ▼  ┌─────────────── RAILWAY (NestJS v11) ─────────────────────┐
+6. NestJS IncomingChatListener (Redis SUBSCRIBE):                      │
+   ├── Receives Pub/Sub message in <1ms (Railway internal network)    │
+   ├── Resolves subscriber user_ids for this instrument               │
+   └── Emits WebSocket: 'incoming_chat' → each user's room           │
+       │  │                                                            │
+       │  └────────────────────────────────────────────────────────────┘
        │
-4. EvaluationPipeline generates `pending_response` text in AgentState
+       ▼  ┌─────────────── VERCEL (Next.js v16) ─────────────────────┐
+7. Frontend receives WebSocket event:                                   │
+   ├── Updates sidebar thread list (bumps instrument to top)          │
+   ├── Shows BUY/SELL label + unread badge in RECENT section          │
+   ├── If user is IN the thread: auto-scrolls to new message         │
+   └── If user is NOT in the thread: shows unread indicator           │
+       │  │                                                            │
+       │  └────────────────────────────────────────────────────────────┘
        │
-5. Incoming Chat Dispatcher receives transition event:
-   ├── Queries: which users subscribe to this (instrument, timeframe)?
-   ├── For each subscriber:
-   │   ├── Creates chat_message record (role: 'assistant', type: state-derived)
-   │   ├── Updates chat_thread.last_message_at and unread_count
-   │   └── Emits WebSocket event: 'incoming_chat' to user room
-       │
-6. Frontend receives WebSocket event:
-   ├── Updates thread list (bumps instrument to top, shows preview)
-   ├── Increments unread badge on nav
-   ├── If user is IN the thread: auto-scrolls to new message
-   └── If user is NOT in the thread: shows unread indicator
-       │
-7. User opens thread → reads message → can reply to ask AI questions
+8. User opens thread → reads message → can reply to ask AI questions
 ```
 
 ---
@@ -1112,7 +1176,561 @@ Response 200:
 
 ---
 
-## 19. Frontend Architecture
+## 19. Deployment Topology: Vercel + Railway Two-Stack Split
+
+### Why Two Stacks?
+
+The trading platform is split across two hosting providers, each optimized for its role:
+
+| Stack | Host | Technology | Role |
+|---|---|---|---|
+| **Stack A** (Frontend) | **Vercel** | Next.js v16 | UI rendering, TradingView Lightweight Charts, chat sidebar, SSR, API routes for user-facing CRUD |
+| **Stack B** (Backend) | **Railway** | NestJS v11 + txtai (Python) | WebSocket Gateway, Redis message broker, BullMQ workers, State Machine, PostgreSQL, TimescaleDB |
+
+### Why This Split Matters for Incoming Chat
+
+The State Machine (Python/txtai) runs on **Railway**. The chat UI runs on **Vercel**. They cannot communicate directly. Redis Pub/Sub on Railway is the **real-time bridge** between them:
+
+```
+┌──────────────┐     Redis Pub/Sub      ┌───────────────┐    WebSocket     ┌──────────────┐
+│ txtai State  │  ──────────────────►  │ NestJS v11    │  ───────────►  │ Next.js v16  │
+│ Machine      │   PUBLISH to channel   │ (Railway)     │   Socket.IO     │ (Vercel)     │
+│ (Python)     │   'incoming_chat:...'  │ Subscriber →  │   wss://        │ Chat Sidebar │
+│ (Railway)    │                        │ WS Gateway    │                 │ TradingView  │
+└──────────────┘                        └───────────────┘                 └──────────────┘
+```
+
+Without Redis Pub/Sub, the txtai Python process would have to directly call the NestJS WebSocket Gateway — tight coupling, no buffering, no retry, and fragile cross-service dependency.
+
+### Service Map on Railway
+
+```
+Railway Private Network (redis.railway.internal)
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  ┌──────────────────┐    ┌──────────────────┐                   │
+│  │ txtai Service    │    │ NestJS v11 API   │                   │
+│  │ (Python)         │    │ (Component B)    │                   │
+│  │ - State Machine  │    │ - WebSocket GW   │                   │
+│  │ - Agent + LLM    │    │ - Chat Listener  │                   │
+│  │ - Evaluation     │    │ - BullMQ Workers │                   │
+│  │ - ChatDispatcher │    │ - REST endpoints │                   │
+│  └────────┬─────────┘    └──────┬───────────┘                   │
+│           │                     │                                │
+│           │ PUBLISH             │ SUBSCRIBE + BullMQ consume     │
+│           ▼                     ▼                                │
+│  ┌──────────────────────────────────────────┐                   │
+│  │ Redis 7 (Railway Internal)               │                   │
+│  │ - Pub/Sub channels (incoming chat)       │                   │
+│  │ - BullMQ queues (chat processing)        │                   │
+│  │ - Cache (hot data, 500 bars)             │                   │
+│  │ - Rate limiting (sorted sets)            │                   │
+│  │ redis.railway.internal:6379              │                   │
+│  └──────────────────────────────────────────┘                   │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────────────────────────────┐                   │
+│  │ PostgreSQL / TimescaleDB (Railway)       │                   │
+│  │ - agent_state (State Machine)            │                   │
+│  │ - instrument_subscription                │                   │
+│  │ - chat_thread, chat_message              │                   │
+│  │ - OHLCV data (15 symbol tables)          │                   │
+│  └──────────────────────────────────────────┘                   │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+         │
+         │ WebSocket (wss:// to internet)
+         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  Vercel Edge Network                                             │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Next.js v16                                               │   │
+│  │ - Chat sidebar + thread view                              │   │
+│  │ - TradingView Lightweight Charts                          │   │
+│  │ - Socket.IO client → NestJS WebSocket Gateway             │   │
+│  │ - REST calls → NestJS API (subscriptions, messages)       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Latency Profile
+
+| Hop | Path | Expected Latency |
+|---|---|---|
+| 1 | txtai → Redis PUBLISH (Railway internal) | <1ms |
+| 2 | Redis → NestJS SUBSCRIBE (Railway internal) | <1ms |
+| 3 | NestJS WebSocket → Vercel (internet) | 20-80ms |
+| **Total** | State Machine transition → UI update | **~25-85ms** |
+
+This is fast enough for "incoming message" UX — WhatsApp messages typically take 100-300ms.
+
+---
+
+## 20. Redis Pub/Sub Message Broker via NestJS v11 on Railway
+
+### Why Redis Pub/Sub (Not Just BullMQ)
+
+The system uses **both** Redis Pub/Sub and BullMQ, for different purposes:
+
+| Mechanism | Purpose | Delivery | Latency | Durability |
+|---|---|---|---|---|
+| **Redis Pub/Sub** | Real-time WebSocket delivery | Fire-and-forget to connected users | <2ms | No persistence — if user is offline, message is missed via Pub/Sub |
+| **BullMQ Queue** | Reliable message processing | Guaranteed at-least-once delivery | 10-100ms | Persisted in Redis — survives restarts, retries on failure |
+
+**Both are needed** because:
+- Pub/Sub gives **instant** delivery to connected users (the "WhatsApp feel")
+- BullMQ gives **reliable** processing for database writes, thread metadata updates, push notifications, and email delivery
+
+### Redis Pub/Sub Channel Design
+
+```
+Channel naming convention:
+  incoming_chat:{symbol}_{timeframe}
+
+Examples:
+  incoming_chat:EURUSD_H1
+  incoming_chat:XAUUSD_H2
+  incoming_chat:USDJPY_H1
+```
+
+### Publisher: txtai ChatDispatcher (Python)
+
+```python
+# File: services/agent/chat_dispatcher.py
+
+import redis
+import json
+from datetime import datetime
+
+
+class ChatDispatcher:
+    """Dispatches incoming chat messages from State Machine to Redis Pub/Sub.
+
+    Runs within the txtai Python process on Railway.
+    Publishes to Redis on the Railway internal network for <1ms latency.
+    """
+
+    def __init__(self, redis_url: str, db_engine):
+        self.redis = redis.Redis.from_url(redis_url)
+        self.db = db_engine
+
+    def dispatch(self, agent_state: dict, message_type: str, priority: str) -> None:
+        """Dispatch a chat message after State Machine transition.
+
+        1. Persist to PostgreSQL (durable record)
+        2. PUBLISH to Redis Pub/Sub (real-time delivery)
+        3. Enqueue BullMQ job (reliable fan-out + notifications)
+        """
+        symbol = agent_state["instrument"]
+        timeframe = agent_state["tf_config"]   # Mapped: config_a → H1, config_b → H2
+        content = agent_state["pending_response"]
+        direction = agent_state.get("trade_direction")  # 'long' or 'short'
+
+        # 1. Query subscribers
+        subscribers = self._get_subscribers(symbol, timeframe)
+        if not subscribers:
+            return  # No subscribers — skip
+
+        # 2. Persist chat messages to PostgreSQL (batch insert)
+        message_records = self._persist_messages(
+            subscribers, symbol, timeframe, content,
+            message_type, priority, direction, agent_state
+        )
+
+        # 3. PUBLISH to Redis Pub/Sub channel (real-time)
+        channel = f"incoming_chat:{symbol}_{timeframe}"
+        payload = json.dumps({
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "direction": direction,
+            "content": content,
+            "message_type": message_type,
+            "priority": priority,
+            "current_state": agent_state["current_state"],
+            "convergence_score": agent_state.get("convergence_score"),
+            "subscriber_thread_map": {
+                sub["user_id"]: {
+                    "thread_id": sub["thread_id"],
+                    "message_id": msg["id"],
+                }
+                for sub, msg in zip(subscribers, message_records)
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+        self.redis.publish(channel, payload)
+
+        # 4. Enqueue BullMQ job for reliable processing
+        #    (thread metadata update, push notifications, email)
+        bullmq_payload = json.dumps({
+            "type": "chat_message_fanout",
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "message_type": message_type,
+            "priority": priority,
+            "subscriber_thread_map": payload,  # Same data
+        })
+        self.redis.lpush("bull:chat-message-processing:wait", bullmq_payload)
+```
+
+### Subscriber: NestJS v11 IncomingChatListener
+
+```typescript
+// File: src/chat/incoming-chat.listener.ts (NestJS v11 on Railway)
+
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { ChatGateway } from './chat.gateway';
+
+@Injectable()
+export class IncomingChatListener implements OnModuleInit, OnModuleDestroy {
+  private subscriber: Redis;
+
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    private readonly chatGateway: ChatGateway,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    // Create a dedicated subscriber connection
+    // (Redis requires separate connections for Pub/Sub)
+    this.subscriber = this.redis.duplicate();
+
+    // Subscribe to all incoming chat channels via pattern
+    await this.subscriber.psubscribe('incoming_chat:*');
+
+    this.subscriber.on('pmessage', (pattern, channel, message) => {
+      this.handleIncomingChat(channel, JSON.parse(message));
+    });
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.subscriber.punsubscribe('incoming_chat:*');
+    await this.subscriber.quit();
+  }
+
+  private handleIncomingChat(channel: string, payload: IncomingChatPayload): void {
+    const { subscriber_thread_map, ...messageData } = payload;
+
+    // Fan-out to each subscriber's WebSocket room
+    for (const [userId, threadInfo] of Object.entries(subscriber_thread_map)) {
+      this.chatGateway.emitToUser(userId, 'incoming_chat', {
+        threadId: threadInfo.thread_id,
+        message: {
+          id: threadInfo.message_id,
+          role: 'assistant',
+          content: messageData.content,
+          messageType: messageData.message_type,
+          priority: messageData.priority,
+          metadata: {
+            state: messageData.current_state,
+            convergenceScore: messageData.convergence_score,
+          },
+          createdAt: messageData.timestamp,
+        },
+        thread: {
+          symbol: messageData.symbol,
+          timeframe: messageData.timeframe,
+          displayName: `${messageData.symbol} ${messageData.timeframe}`,
+          currentState: messageData.current_state,
+          tradeDirection: messageData.direction,
+          unreadCount: -1,  // Client increments locally; actual count from REST
+        },
+      });
+    }
+  }
+}
+
+interface IncomingChatPayload {
+  symbol: string;
+  timeframe: string;
+  direction: 'long' | 'short' | null;
+  content: string;
+  message_type: string;
+  priority: 'high' | 'medium' | 'low';
+  current_state: string;
+  convergence_score: number | null;
+  subscriber_thread_map: Record<string, { thread_id: string; message_id: string }>;
+  timestamp: string;
+}
+```
+
+### NestJS WebSocket Gateway (Chat Extension)
+
+```typescript
+// File: src/chat/chat.gateway.ts (NestJS v11 on Railway)
+
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+
+@WebSocketGateway({
+  cors: {
+    origin: process.env.FRONTEND_URL,  // Vercel URL
+  },
+  namespace: '/chat',
+})
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+
+  async handleConnection(client: Socket): Promise<void> {
+    // JWT authentication (reuses existing Component B auth)
+    const userId = await this.authenticateClient(client);
+    if (!userId) {
+      client.disconnect();
+      return;
+    }
+    // Join user-specific room
+    client.join(`user:${userId}`);
+    client.data.userId = userId;
+  }
+
+  handleDisconnect(client: Socket): void {
+    // Cleanup handled by Socket.IO room auto-leave
+  }
+
+  /**
+   * Emit an incoming chat message to a specific user.
+   * Called by IncomingChatListener when Redis Pub/Sub message arrives.
+   */
+  emitToUser(userId: string, event: string, data: unknown): void {
+    this.server.to(`user:${userId}`).emit(event, data);
+  }
+
+  /**
+   * Client marks a thread as read.
+   */
+  @SubscribeMessage('mark_thread_read')
+  async handleMarkThreadRead(
+    client: Socket,
+    payload: { threadId: string },
+  ): Promise<void> {
+    // Update DB, then broadcast to all user's tabs
+    this.server
+      .to(`user:${client.data.userId}`)
+      .emit('thread_read', { threadId: payload.threadId });
+  }
+
+  private async authenticateClient(client: Socket): Promise<string | null> {
+    // Verify JWT from handshake auth header
+    // Returns userId or null
+    // (Reuses existing Component B JWT verification)
+    return null; // Implementation per existing auth module
+  }
+}
+```
+
+### NestJS Chat Module Registration
+
+```typescript
+// File: src/chat/chat.module.ts (NestJS v11)
+
+import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
+import { ChatGateway } from './chat.gateway';
+import { IncomingChatListener } from './incoming-chat.listener';
+import { ChatMessageProcessor } from './chat-message.processor';
+
+@Module({
+  imports: [
+    BullModule.registerQueue({
+      name: 'chat-message-processing',
+    }),
+    BullModule.registerQueue({
+      name: 'chat-notification-delivery',
+    }),
+  ],
+  providers: [
+    ChatGateway,
+    IncomingChatListener,
+    ChatMessageProcessor,
+  ],
+  exports: [ChatGateway],
+})
+export class ChatModule {}
+```
+
+---
+
+## 21. BullMQ Job Queue for Chat Message Processing
+
+### Why BullMQ in Addition to Pub/Sub
+
+Redis Pub/Sub is fire-and-forget — if the NestJS subscriber crashes mid-processing, the message is lost. BullMQ provides:
+
+- **At-least-once delivery**: Jobs persist in Redis until acknowledged
+- **Retry with backoff**: Failed jobs retry automatically
+- **Priority queues**: HIGH priority breakout alerts processed before LOW market scans
+- **Rate limiting**: Prevent email/push notification flooding
+- **Dead letter queue**: Failed jobs captured for debugging
+
+### Queue Design
+
+```
+Queue: 'chat-message-processing'
+├── Job: chat_message_fanout
+│   ├── Update chat_thread metadata (last_message_at, unread_count, etc.)
+│   ├── Update chat_thread.current_state and trade_direction
+│   └── Trigger downstream notification jobs
+│
+Queue: 'chat-notification-delivery'
+├── Job: push_notification
+│   ├── Send browser push notification (for HIGH priority)
+│   └── Send mobile PWA push (if registered)
+│
+├── Job: email_notification
+│   ├── Send email for trade_recommendation messages (HIGH priority)
+│   └── Rate limited: max 1 email per instrument per hour
+```
+
+### BullMQ Worker (NestJS v11)
+
+```typescript
+// File: src/chat/chat-message.processor.ts
+
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Processor('chat-message-processing')
+export class ChatMessageProcessor extends WorkerHost {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
+
+  async process(job: Job): Promise<void> {
+    const { symbol, timeframe, message_type, priority, subscriber_thread_map } = job.data;
+
+    const threadMap = JSON.parse(subscriber_thread_map).subscriber_thread_map;
+
+    // 1. Batch update chat_thread metadata for all subscribers
+    for (const [userId, threadInfo] of Object.entries(threadMap)) {
+      await this.prisma.chatThread.update({
+        where: { id: (threadInfo as any).thread_id },
+        data: {
+          lastMessageAt: new Date(),
+          lastMessagePreview: job.data.content?.substring(0, 200),
+          unreadCount: { increment: 1 },
+          currentState: job.data.current_state,
+          tradeDirection: job.data.direction,
+          convergenceScore: job.data.convergence_score,
+        },
+      });
+    }
+
+    // 2. For HIGH priority: enqueue push notification jobs
+    if (priority === 'high') {
+      // Add to notification delivery queue
+      // (push notifications, email for trade recommendations)
+    }
+  }
+}
+```
+
+### Dual-Write Pattern: Pub/Sub + BullMQ
+
+The ChatDispatcher in txtai (Python) performs a **dual write** to Redis:
+
+```
+ChatDispatcher.dispatch()
+    │
+    ├── 1. INSERT chat_message → PostgreSQL  (durable record)
+    │
+    ├── 2. PUBLISH → Redis Pub/Sub           (instant WebSocket delivery)
+    │      Channel: 'incoming_chat:EURUSD_H1'
+    │      → NestJS subscriber picks up in <1ms
+    │      → Emits to WebSocket instantly
+    │      → User sees message in sidebar
+    │
+    └── 3. LPUSH → BullMQ queue              (reliable processing)
+           Queue: 'chat-message-processing'
+           → NestJS worker picks up in 10-50ms
+           → Updates thread metadata (unread count, state, direction)
+           → Sends push/email notifications if HIGH priority
+```
+
+**Why dual write?** If Pub/Sub message is lost (NestJS restart, network blip), the BullMQ job still processes the message and updates metadata. The WebSocket delivery is best-effort (optimistic), while database consistency is guaranteed by BullMQ.
+
+---
+
+## 22. End-to-End Data Flow: State Machine → Redis Pub/Sub → NestJS → WebSocket → Next.js
+
+### Complete Sequence Diagram
+
+```
+   txtai (Railway)     Redis (Railway)     NestJS v11 (Railway)     Next.js v16 (Vercel)
+        │                    │                     │                       │
+   [Bar close]               │                     │                       │
+        │                    │                     │                       │
+   State Machine             │                     │                       │
+   evaluates...              │                     │                       │
+        │                    │                     │                       │
+   BREAKOUT_DETECTED         │                     │                       │
+        │                    │                     │                       │
+   LLM generates             │                     │                       │
+   advisory text             │                     │                       │
+        │                    │                     │                       │
+   ─── INSERT chat_message ──┼──────────── PostgreSQL (Railway) ───────────│
+        │                    │                     │                       │
+   ─── PUBLISH ──────────────►                     │                       │
+        │          'incoming_chat:EURUSD_H1'       │                       │
+        │                    │                     │                       │
+        │                    ├── pmessage ─────────►                       │
+        │                    │                     │                       │
+        │                    │              IncomingChatListener            │
+        │                    │              resolves subscribers            │
+        │                    │                     │                       │
+        │                    │              WebSocket Gateway               │
+        │                    │              emitToUser()                    │
+        │                    │                     │                       │
+        │                    │                     ├── 'incoming_chat' ────►
+        │                    │                     │      (wss://)          │
+        │                    │                     │                       │
+        │                    │                     │                Socket.IO client
+        │                    │                     │                receives event
+        │                    │                     │                       │
+        │                    │                     │                Sidebar updates:
+        │                    │                     │                → EURUSD H1 BUY (1)
+        │                    │                     │                → 'Breakout detected...'
+        │                    │                     │                       │
+   ─── LPUSH ────────────────►                     │                       │
+        │          bull:chat-message-processing     │                       │
+        │                    │                     │                       │
+        │                    ├── BullMQ consume ───►                       │
+        │                    │                     │                       │
+        │                    │              ChatMessageProcessor            │
+        │                    │              updates thread metadata         │
+        │                    │              (unread_count, state, etc.)     │
+        │                    │                     │                       │
+        │                    │              [If HIGH priority]              │
+        │                    │              → Push notification             │
+        │                    │              → Email (trade recommendation) │
+        │                    │                     │                       │
+```
+
+### Timing Breakdown
+
+| Step | Operation | Latency |
+|---|---|---|
+| 1 | State Machine evaluation + LLM call | 2-8 seconds (Claude API) |
+| 2 | PostgreSQL INSERT (chat_message) | 5-15ms |
+| 3 | Redis PUBLISH (internal network) | <1ms |
+| 4 | NestJS receives Pub/Sub message | <1ms |
+| 5 | NestJS resolves subscribers + emits WebSocket | 1-5ms |
+| 6 | WebSocket transit (Railway → Vercel) | 20-80ms |
+| 7 | Next.js renders sidebar update | 5-15ms |
+| **Total (from PUBLISH to UI)** | | **~30-100ms** |
+| **Total (from bar close to UI)** | | **~2-9 seconds** (dominated by LLM) |
+
+---
+
+## 23. Frontend Architecture (Next.js v16 on Vercel)
 
 ### UI Layout (Matching DavinTrade Screenshot)
 
@@ -1293,7 +1911,7 @@ The indicator panel on the right **stays visible** — the user can see the char
 
 ---
 
-## 20. Error Handling & Edge Cases
+## 24. Error Handling & Edge Cases
 
 ### Edge Case 1: User Not Connected via WebSocket
 
@@ -1328,49 +1946,76 @@ The indicator panel on the right **stays visible** — the user can see the char
 
 ---
 
-## 21. Implementation Order
+## 25. Implementation Order
 
-| Phase | Task | Depends On | Effort |
-|---|---|---|---|
-| 1.1 | Database schema: `instrument_subscription`, `chat_thread`, `chat_message` | — | 1 day |
-| 1.2 | API: Subscription CRUD (`/api/subscriptions`) | 1.1 | 1 day |
-| 1.3 | API: Chat threads and messages (`/api/chat/threads`, `/api/chat/threads/[id]/messages`) | 1.1 | 2 days |
-| 1.4 | ChatDispatcher service (State Machine → chat message pipeline) | 1.1 | 2 days |
-| 1.5 | WebSocket extension (new event types) | Part 15 existing | 1 day |
-| 2.1 | Frontend: Thread list component | 1.3 | 2 days |
-| 2.2 | Frontend: Thread view (message history + input) | 1.3 | 2 days |
-| 2.3 | Frontend: Subscribe form | 1.2 | 1 day |
-| 2.4 | Frontend: Unread badge integration | 1.5, 2.1 | 1 day |
-| 2.5 | Frontend: Dashboard recent-chats widget | 2.1 | 1 day |
-| 3.1 | Integration: Wire EvaluationPipeline → ChatDispatcher | 1.4, State Machine doc | 2 days |
-| 3.2 | Integration: User reply → txtai Agent processing | 1.3, txtai Agent | 2 days |
-| 3.3 | End-to-end testing | All above | 2 days |
-| 4.1 | Migration: Auto-convert existing alerts to subscriptions | 3.3 | 1 day |
-| 4.2 | Remove Part 11 code (23 files) | 4.1 | 1 day |
-| 4.3 | Adapt Part 15 (remove ALERT notification type) | 4.2 | 0.5 day |
+| Phase | Task | Stack | Depends On | Effort |
+|---|---|---|---|---|
+| **Phase 1: Database + Core Services** |||||
+| 1.1 | Database schema: `instrument_subscription`, `chat_thread`, `chat_message` | Railway PostgreSQL | — | 1 day |
+| 1.2 | ChatDispatcher service (Python, txtai → Redis PUBLISH + BullMQ) | Railway txtai | 1.1 | 2 days |
+| 1.3 | NestJS ChatModule: IncomingChatListener (Redis SUBSCRIBE) | Railway NestJS v11 | 1.1 | 2 days |
+| 1.4 | NestJS ChatGateway: WebSocket namespace `/chat` | Railway NestJS v11 | 1.3 | 1 day |
+| 1.5 | NestJS ChatMessageProcessor (BullMQ worker) | Railway NestJS v11 | 1.3 | 2 days |
+| **Phase 2: API Endpoints** |||||
+| 2.1 | API: Subscription CRUD (`/api/subscriptions`) | Railway NestJS v11 | 1.1 | 1 day |
+| 2.2 | API: Chat threads and messages (`/api/chat/threads`, `/api/chat/threads/[id]/messages`) | Railway NestJS v11 | 1.1 | 2 days |
+| **Phase 3: Frontend (Next.js v16 on Vercel)** |||||
+| 3.1 | Socket.IO client connection to NestJS `/chat` namespace | Vercel Next.js v16 | 1.4 | 1 day |
+| 3.2 | Sidebar: IncomingChatEntry component (→ icon, BUY/SELL, badge) | Vercel Next.js v16 | 3.1 | 2 days |
+| 3.3 | Thread view: message history + chat input | Vercel Next.js v16 | 2.2 | 2 days |
+| 3.4 | Subscribe form: instrument subscription picker | Vercel Next.js v16 | 2.1 | 1 day |
+| 3.5 | Unread badge integration in sidebar nav | Vercel Next.js v16 | 3.1, 3.2 | 1 day |
+| 3.6 | Dashboard recent-chats widget | Vercel Next.js v16 | 3.2 | 1 day |
+| **Phase 4: Integration + Testing** |||||
+| 4.1 | Wire EvaluationPipeline → ChatDispatcher → Redis → NestJS → WebSocket | All stacks | 1.2, 1.3, 1.4, 3.1 | 2 days |
+| 4.2 | User reply → NestJS → txtai Agent processing | Railway | 2.2, txtai Agent | 2 days |
+| 4.3 | End-to-end testing (cross-stack) | All | All above | 3 days |
+| **Phase 5: Migration** |||||
+| 5.1 | Auto-convert existing Part 11 alerts to subscriptions | Railway | 4.3 | 1 day |
+| 5.2 | Remove Part 11 code (23 files from Next.js) | Vercel | 5.1 | 1 day |
+| 5.3 | Adapt Part 15 (remove ALERT notification type) | Both | 5.2 | 0.5 day |
 
-**Total estimated effort: ~20 days**
+**Total estimated effort: ~26 days** (increased from 20 due to cross-stack Redis Pub/Sub + NestJS broker layer)
 
 ---
 
 ## Summary
 
-The Incoming Chat system transforms the trading advisory SaaS from a passive alert platform into an **active conversational AI experience**. By replacing Part 11's manual price-threshold alerts with State Machine-driven Incoming Chat messages:
+The Incoming Chat system transforms the trading advisory SaaS from a passive alert platform into an **active conversational AI experience**, built on a **two-stack architecture** with Redis Pub/Sub as the real-time bridge:
 
-1. **Users subscribe to instruments** instead of configuring individual alerts
-2. **The AI proactively messages users** when significant market events occur
-3. **Messages are conversational** — users can reply, ask questions, get deeper analysis
-4. **The State Machine is the notification engine** — no separate alert-checking background job
-5. **Part 11 is fully replaced** — 23 files removed, replaced by a more capable system
-6. **Part 15 WebSocket infrastructure is reused** — extended with new chat-specific event types
-7. **The UX follows familiar messaging patterns** (WhatsApp-like) — high engagement, low learning curve
+### Architecture Stack
 
-The current Part 11 alert system can be **completely abandoned** in favor of Incoming Chat. The AI-driven approach is strictly superior: it requires less user configuration, delivers richer content, enables follow-up conversation, and creates the engagement loop that turns notifications into active AI-assisted trading analysis sessions.
+| Component | Technology | Deployment |
+|---|---|---|
+| State Machine + AI Evaluation | txtai (Python) + Claude API | Railway |
+| Message Broker | Redis Pub/Sub + BullMQ | Railway (internal network) |
+| WebSocket Gateway + Workers | NestJS v11 | Railway |
+| Chat UI + TradingView Charts | Next.js v16 | Vercel |
+| Database | PostgreSQL / TimescaleDB | Railway |
+
+### Key Design Decisions
+
+1. **Redis Pub/Sub** for <2ms real-time delivery from State Machine → NestJS WebSocket Gateway (Railway internal network)
+2. **BullMQ queues** for guaranteed-delivery processing (thread metadata updates, push/email notifications)
+3. **Dual-write pattern**: PostgreSQL (durable) + Redis PUBLISH (instant) + BullMQ (reliable) — each serves a different durability/latency need
+4. **NestJS v11 ChatModule** as the central broker: subscribes to Redis channels, fans out to WebSocket rooms, processes BullMQ jobs
+5. **Next.js v16 on Vercel** connects to NestJS WebSocket via Socket.IO over `wss://` — no direct Redis or PostgreSQL access from frontend
+
+### What Gets Replaced
+
+- **Part 11 alert system**: 23 files completely removed — replaced by instrument subscriptions + AI-driven incoming chat
+- **Part 11 background checker** (`alert-checker.ts`): Replaced by State Machine evaluation cycle + ChatDispatcher + Redis Pub/Sub pipeline
+- **Part 15 ALERT notification type**: Removed — trading alerts now live in chat threads, not the notification bell
+
+### The Result
+
+Users subscribe to instruments (EURUSD H1, XAUUSD H4). The AI State Machine monitors them continuously. When a breakout is detected, the advisory arrives as an **incoming chat message** in the sidebar — with BUY/SELL direction, unread badge, and the ability to reply and ask the AI follow-up questions. The full pipeline (State Machine → Redis Pub/Sub → NestJS → WebSocket → Next.js sidebar) delivers in under 100ms from PUBLISH to UI render.
 
 ---
 
-**Document Version**: 1.1
+**Document Version**: 1.2
 **Date**: February 8, 2026
 **Author**: Architecture Design — Incoming Chat Alert Notifications
 **UI Reference**: DavinTrade screenshot — sidebar with incoming chat entries showing instrument+direction+unread badges
+**Infrastructure**: Vercel (Next.js v16) + Railway (NestJS v11 + Redis + PostgreSQL + txtai)
 **Status**: Design Specification — Ready for Review
