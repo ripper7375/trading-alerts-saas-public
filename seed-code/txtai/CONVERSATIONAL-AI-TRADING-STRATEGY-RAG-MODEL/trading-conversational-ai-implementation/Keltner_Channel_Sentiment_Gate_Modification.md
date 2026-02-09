@@ -262,32 +262,32 @@ def determine_keltner_band_position(close_price: float, bands: dict) -> int:
 
 The band position has different implications depending on the **direction of the breakout relative to the prior trend**. A bullish reversal breakout (long entry from bearish regime) requires price to be in the upper bands to confirm sentiment has shifted. A bearish reversal breakout (short entry from bullish regime) requires price to be in the lower bands.
 
-**Bullish Reversal (Long Entry) — Prior trend was Bearish, breakout is upward:**
+**Bullish Breakout (Long Entry) — Price pierces through negative slope trendline (resistance):**
 
 | Keltner Band Position | Sentiment Zone | Interpretation | State Machine Action |
 |---|---|---|---|
-| > 6 (bands 7-10) | **Fakeout Zone** | Price is still in the lower bands. Bearish sentiment is overwhelmingly dominant. The upward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bullish push that will be absorbed by the dominant bearish structure. | → **INVALIDATED** (fakeout_detected) |
-| 5 or 6 (bands 5-6) | **Normal Pullback Zone** | Price is near the Keltner center (the mean). Momentum is moderate — sufficient to break through the trendline but not sufficient to prevent a retrace. There is enough counter-sentiment to produce a normal pullback to the broken level. Standard breakout-pullback-confirmation flow applies. | → **AWAITING_PULLBACK** (normal flow) |
-| 3 or 4 (bands 3-4) | **Momentum Confirmed Zone** | Price has pushed significantly above the mean into the strong deviation zone. Bullish sentiment is confirmed — price deviation from the mean indicates genuine directional conviction. A pullback to the broken trendline would require a large counter-move against this sentiment, which is unlikely while price is this extended above the mean. | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
-| < 3 (bands 1-2) | **Overbought Zone** | Price is at the ultra extreme/extreme upper bands — maximum deviation from the mean. While the bullish sentiment is real, the breakout is real, the entry NOW would be chasing into overextension. Mean reversion pressure is building at these extremes. The smart entry is to wait for the inevitable retracement from this overextended position. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion) |
+| <1, 1-2 | **Pullback is likely** (overextended) | Price is at the ultra extreme/extreme upper bands — maximum deviation from the mean. While the bullish sentiment is real and the breakout is real, the entry NOW would be chasing into overextension. Mean reversion pressure is building at these extremes. The smart entry is to wait for the inevitable retracement from this overextended position. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion) |
+| 2-3, 3-4 | **Pullback is unlikely** (momentum confirmed) | Price has pushed significantly above the mean into the strong deviation zone. Bullish sentiment is confirmed — price deviation from the mean indicates genuine directional conviction. A pullback to the broken trendline would require a large counter-move against this sentiment, which is unlikely while price is this extended above the mean. | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
+| 4-5, 5-6 | **Pullback is likely** (normal) | Price is near the Keltner center (the mean). Momentum is moderate — sufficient to break through the trendline but not sufficient to prevent a retrace. There is enough counter-sentiment to produce a normal pullback to the broken level. Standard breakout-pullback-confirmation flow applies. | → **AWAITING_PULLBACK** (normal flow) |
+| 6-7 through >10 | **Fakeout is likely** | Price is still in the lower bands. Bearish sentiment is overwhelmingly dominant. The upward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bullish push that will be absorbed by the dominant bearish structure. | → **INVALIDATED** (fakeout_detected) |
 
-**Bearish Reversal (Short Entry) — Prior trend was Bullish, breakout is downward:**
+**Bearish Breakout (Short Entry) — Price pierces through positive slope trendline (support):**
 
 | Keltner Band Position | Sentiment Zone | Interpretation | State Machine Action |
 |---|---|---|---|
-| < 4 (bands 1-3) | **Fakeout Zone** | Price is still in the upper bands. Bullish sentiment is overwhelmingly dominant. The downward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bearish push that will be absorbed by the dominant bullish structure. | → **INVALIDATED** (fakeout_detected) |
-| 5 or 6 (bands 5-6) | **Normal Pullback Zone** | Price is near the Keltner center (the mean). Same logic as bullish case — moderate momentum, pullback expected. | → **AWAITING_PULLBACK** (normal flow) |
-| 7 or 8 (bands 7-8) | **Momentum Confirmed Zone** | Price has pushed significantly below the mean into the strong deviation zone. Bearish sentiment is confirmed. A pullback to the broken trendline would require a large counter-move against this sentiment. | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
-| > 8 (bands 9-10) | **Oversold Zone** | Price is at the ultra extreme/extreme lower bands — maximum deviation from the mean. Bearish sentiment is real but entry would be chasing into overextension. Mean reversion pressure building. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion) |
+| <1 through 4-5 | **Fakeout is likely** | Price is still in the upper bands. Bullish sentiment is overwhelmingly dominant. The downward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bearish push that will be absorbed by the dominant bullish structure. | → **INVALIDATED** (fakeout_detected) |
+| 5-6, 6-7 | **Pullback is likely** (normal) | Price is near or just below the Keltner center (the mean). Moderate bearish momentum — sufficient to break through the trendline but not sufficient to prevent a retrace. Standard breakout-pullback-confirmation flow applies. | → **AWAITING_PULLBACK** (normal flow) |
+| 7-8, 8-9 | **Pullback is unlikely** (momentum confirmed) | Price has pushed significantly below the mean into the strong deviation zone. Bearish sentiment is confirmed. A pullback to the broken trendline would require a large counter-move against this sentiment. | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
+| 9-10, >10 | **Pullback is likely** (overextended) | Price is at the ultra extreme/extreme lower bands — maximum deviation from the mean. Bearish sentiment is real but entry would be chasing into overextension. Mean reversion pressure building. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion) |
 
 ### Sentiment Zone Summary Table
 
-| Zone | Long (Bullish Reversal) | Short (Bearish Reversal) | Outcome |
+| Zone | Long (Bullish Breakout) | Short (Bearish Breakout) | Outcome |
 |---|---|---|---|
-| **Fakeout** | Bands > 6 | Bands < 4 | INVALIDATED |
-| **Normal Pullback** | Bands 5-6 | Bands 5-6 | AWAITING_PULLBACK |
-| **Momentum Confirmed** | Bands 3-4 | Bands 7-8 | Advisory immediately |
-| **Overextended** | Bands < 3 | Bands > 8 | AWAITING_PULLBACK |
+| **Fakeout is likely** | Bands 6-7 through >10 | Bands <1 through 4-5 | INVALIDATED |
+| **Pullback is likely** (normal) | Bands 4-5, 5-6 | Bands 5-6, 6-7 | AWAITING_PULLBACK |
+| **Pullback is unlikely** (momentum confirmed) | Bands 2-3, 3-4 | Bands 7-8, 8-9 | Advisory immediately |
+| **Pullback is likely** (overextended) | Bands <1, 1-2 | Bands 9-10, >10 | AWAITING_PULLBACK |
 
 ---
 
@@ -495,45 +495,46 @@ def classify_sentiment_zone(
 
     This function implements the 4-zone directional sentiment model.
     Band position is an integer from 1 (ultra extreme upper) to 10
-    (ultra extreme lower).
+    (ultra extreme lower). Positions outside 1-10 are represented as
+    <1 (above band 1) and >10 (below band 10).
 
-    For LONG (bullish reversal from bearish trend):
-      Bands > 6  → FAKEOUT (bearish sentiment still dominant)
-      Bands 5-6  → NORMAL_PULLBACK (moderate momentum, pullback expected)
-      Bands 3-4  → MOMENTUM_CONFIRMED (strong bullish, skip pullback)
-      Bands < 3  → OVEREXTENDED (overbought, wait for retracement)
+    For LONG (bullish breakout — price pierces negative slope trendline):
+      Bands 6-7 through >10  → FAKEOUT (bearish sentiment still dominant)
+      Bands 4-5, 5-6         → NORMAL_PULLBACK (moderate momentum, pullback expected)
+      Bands 2-3, 3-4         → MOMENTUM_CONFIRMED (strong bullish, skip pullback)
+      Bands <1, 1-2          → OVEREXTENDED (overbought, wait for retracement)
 
-    For SHORT (bearish reversal from bullish trend):
-      Bands < 4  → FAKEOUT (bullish sentiment still dominant)
-      Bands 5-6  → NORMAL_PULLBACK (moderate momentum, pullback expected)
-      Bands 7-8  → MOMENTUM_CONFIRMED (strong bearish, skip pullback)
-      Bands > 8  → OVEREXTENDED (oversold, wait for retracement)
+    For SHORT (bearish breakout — price pierces positive slope trendline):
+      Bands <1 through 4-5   → FAKEOUT (bullish sentiment still dominant)
+      Bands 5-6, 6-7         → NORMAL_PULLBACK (moderate momentum, pullback expected)
+      Bands 7-8, 8-9         → MOMENTUM_CONFIRMED (strong bearish, skip pullback)
+      Bands 9-10, >10        → OVEREXTENDED (oversold, wait for retracement)
 
     Args:
         keltner_band_position: Integer 1-10 from determine_keltner_band_position().
-        trade_direction: "long" for bullish reversal, "short" for bearish reversal.
+        trade_direction: "long" for bullish breakout, "short" for bearish breakout.
 
     Returns:
         SentimentZone classification.
     """
     if trade_direction == "long":
-        if keltner_band_position > 6:
+        if keltner_band_position >= 7:
             return SentimentZone.FAKEOUT
         elif keltner_band_position in (5, 6):
             return SentimentZone.NORMAL_PULLBACK
         elif keltner_band_position in (3, 4):
             return SentimentZone.MOMENTUM_CONFIRMED
-        else:  # bands 1-2
+        else:  # bands 1-2 (<1 maps to 1)
             return SentimentZone.OVEREXTENDED
 
     else:  # short
-        if keltner_band_position < 4:
+        if keltner_band_position <= 5:
             return SentimentZone.FAKEOUT
-        elif keltner_band_position in (5, 6):
+        elif keltner_band_position in (6, 7):
             return SentimentZone.NORMAL_PULLBACK
-        elif keltner_band_position in (7, 8):
+        elif keltner_band_position in (8, 9):
             return SentimentZone.MOMENTUM_CONFIRMED
-        else:  # bands 9-10
+        else:  # bands 10 (>10 maps to 10)
             return SentimentZone.OVEREXTENDED
 
 
@@ -1261,15 +1262,17 @@ KELTNER_CONFIG = {
     "sentiment_tf_config_b": "H4",        # For H2 primary Decision TF
 
     # Sentiment zone thresholds (band positions)
-    # Long (bullish reversal):
-    "long_fakeout_threshold": 6,          # Bands > 6 → fakeout
+    # Long (bullish breakout — price pierces negative slope trendline):
+    "long_fakeout_threshold": 7,          # Bands >= 7 → fakeout
+    "long_normal_bands": [5, 6],          # Bands 5-6 → normal pullback
     "long_momentum_bands": [3, 4],        # Bands 3-4 → momentum confirmed
     "long_overextended_threshold": 3,     # Bands < 3 → overextended
 
-    # Short (bearish reversal):
-    "short_fakeout_threshold": 4,         # Bands < 4 → fakeout
-    "short_momentum_bands": [7, 8],       # Bands 7-8 → momentum confirmed
-    "short_overextended_threshold": 8,    # Bands > 8 → overextended
+    # Short (bearish breakout — price pierces positive slope trendline):
+    "short_fakeout_threshold": 5,         # Bands <= 5 → fakeout
+    "short_normal_bands": [6, 7],         # Bands 6-7 → normal pullback
+    "short_momentum_bands": [8, 9],       # Bands 8-9 → momentum confirmed
+    "short_overextended_threshold": 9,    # Bands > 9 → overextended
 }
 ```
 
@@ -1292,13 +1295,15 @@ keltner:
     upper: 1.0
   sentiment_zones:
     long:
-      fakeout_above: 6
+      fakeout_above_or_equal: 7
+      normal_bands: [5, 6]
       momentum_bands: [3, 4]
       overextended_below: 3
     short:
-      fakeout_below: 4
-      momentum_bands: [7, 8]
-      overextended_above: 8
+      fakeout_below_or_equal: 5
+      normal_bands: [6, 7]
+      momentum_bands: [8, 9]
+      overextended_above: 9
 ```
 
 ---
@@ -1372,10 +1377,13 @@ class TestKeltnerBandPosition:
 class TestSentimentZoneClassification:
     """Test directional sentiment zone classification."""
 
-    # ── Long (Bullish Reversal) ──
+    # ── Long (Bullish Breakout — price pierces negative slope trendline) ──
 
     def test_long_fakeout_band_7(self):
         assert classify_sentiment_zone(7, "long") == SentimentZone.FAKEOUT
+
+    def test_long_fakeout_band_8(self):
+        assert classify_sentiment_zone(8, "long") == SentimentZone.FAKEOUT
 
     def test_long_fakeout_band_10(self):
         assert classify_sentiment_zone(10, "long") == SentimentZone.FAKEOUT
@@ -1398,28 +1406,28 @@ class TestSentimentZoneClassification:
     def test_long_overextended_band_2(self):
         assert classify_sentiment_zone(2, "long") == SentimentZone.OVEREXTENDED
 
-    # ── Short (Bearish Reversal) ──
-
-    def test_short_fakeout_band_3(self):
-        assert classify_sentiment_zone(3, "short") == SentimentZone.FAKEOUT
+    # ── Short (Bearish Breakout — price pierces positive slope trendline) ──
 
     def test_short_fakeout_band_1(self):
         assert classify_sentiment_zone(1, "short") == SentimentZone.FAKEOUT
 
-    def test_short_normal_band_5(self):
-        assert classify_sentiment_zone(5, "short") == SentimentZone.NORMAL_PULLBACK
+    def test_short_fakeout_band_3(self):
+        assert classify_sentiment_zone(3, "short") == SentimentZone.FAKEOUT
+
+    def test_short_fakeout_band_5(self):
+        assert classify_sentiment_zone(5, "short") == SentimentZone.FAKEOUT
 
     def test_short_normal_band_6(self):
         assert classify_sentiment_zone(6, "short") == SentimentZone.NORMAL_PULLBACK
 
-    def test_short_momentum_band_7(self):
-        assert classify_sentiment_zone(7, "short") == SentimentZone.MOMENTUM_CONFIRMED
+    def test_short_normal_band_7(self):
+        assert classify_sentiment_zone(7, "short") == SentimentZone.NORMAL_PULLBACK
 
     def test_short_momentum_band_8(self):
         assert classify_sentiment_zone(8, "short") == SentimentZone.MOMENTUM_CONFIRMED
 
-    def test_short_overextended_band_9(self):
-        assert classify_sentiment_zone(9, "short") == SentimentZone.OVEREXTENDED
+    def test_short_momentum_band_9(self):
+        assert classify_sentiment_zone(9, "short") == SentimentZone.MOMENTUM_CONFIRMED
 
     def test_short_overextended_band_10(self):
         assert classify_sentiment_zone(10, "short") == SentimentZone.OVEREXTENDED
@@ -1456,7 +1464,7 @@ class TestSentimentGateEvaluation:
         }
 
     def test_long_momentum_confirmed(self, base_agent_state, sample_keltner_data):
-        # Price at 72000 is in band 4 → but let's test band 3-4
+        # Price at 75000 is in band 3 (between uppermost=74000 and extreme_upper=77000)
         sample_keltner_data["close_price"] = 75000.0  # Band 3
         result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
         assert result == "momentum_confirmed"
@@ -1464,18 +1472,36 @@ class TestSentimentGateEvaluation:
         assert base_agent_state["keltner_sentiment_zone"] == "MOMENTUM_CONFIRMED"
 
     def test_long_fakeout(self, base_agent_state, sample_keltner_data):
+        # Price at 62000 is in band 8 (between extreme_lower=58000 and lowermost=61000)
         sample_keltner_data["close_price"] = 62000.0  # Band 8
         result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
         assert result == "sentiment_fakeout"
         assert base_agent_state["keltner_sentiment_zone"] == "FAKEOUT"
 
+    def test_long_fakeout_band_7(self, base_agent_state, sample_keltner_data):
+        # Price at 65000 is in band 7 (between lowermost=61000 and lower=64000)
+        sample_keltner_data["close_price"] = 65000.0  # Band 7
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "sentiment_fakeout"
+        assert base_agent_state["keltner_sentiment_zone"] == "FAKEOUT"
+
     def test_long_normal_pullback(self, base_agent_state, sample_keltner_data):
+        # Price at 68500 is in band 5 (between upper_middle=68000 and upper=71000)
         sample_keltner_data["close_price"] = 68500.0  # Band 5
         result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
         assert result is None  # Continue to LLM evaluation
         assert base_agent_state["keltner_sentiment_zone"] == "NORMAL_PULLBACK"
 
+    def test_long_normal_pullback_band_6(self, base_agent_state, sample_keltner_data):
+        # Price at 67500 is in band 6 (between lower_middle=67000 and upper_middle=68000)
+        # Note: band 6 is still normal pullback for long
+        sample_keltner_data["close_price"] = 67500.0  # Band 6
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result is None
+        assert base_agent_state["keltner_sentiment_zone"] == "NORMAL_PULLBACK"
+
     def test_long_overextended(self, base_agent_state, sample_keltner_data):
+        # Price at 85000 is in band 1 (above ultra_extreme_upper=80000)
         sample_keltner_data["close_price"] = 85000.0  # Band 1
         result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
         assert result is None  # Continue to LLM (wait for pullback from extreme)
@@ -1483,15 +1509,55 @@ class TestSentimentGateEvaluation:
 
     def test_short_momentum_confirmed(self, base_agent_state, sample_keltner_data):
         base_agent_state["trade_direction"] = "short"
+        # Price at 59000 is in band 9 (between ultra_extreme_lower=55000 and extreme_lower=58000)
+        sample_keltner_data["close_price"] = 59000.0  # Band 9
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "momentum_confirmed"
+
+    def test_short_momentum_confirmed_band_8(self, base_agent_state, sample_keltner_data):
+        base_agent_state["trade_direction"] = "short"
+        # Price at 62000 is in band 8 (between extreme_lower=58000 and lowermost=61000)
         sample_keltner_data["close_price"] = 62000.0  # Band 8
         result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
         assert result == "momentum_confirmed"
 
     def test_short_fakeout(self, base_agent_state, sample_keltner_data):
         base_agent_state["trade_direction"] = "short"
+        # Price at 75000 is in band 3 — fakeout for short
         sample_keltner_data["close_price"] = 75000.0  # Band 3
         result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
         assert result == "sentiment_fakeout"
+
+    def test_short_fakeout_band_5(self, base_agent_state, sample_keltner_data):
+        base_agent_state["trade_direction"] = "short"
+        # Price at 68500 is in band 5 — still fakeout for short (bands <= 5)
+        sample_keltner_data["close_price"] = 68500.0  # Band 5
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "sentiment_fakeout"
+
+    def test_short_normal_pullback_band_6(self, base_agent_state, sample_keltner_data):
+        base_agent_state["trade_direction"] = "short"
+        # Price at 67500 is in band 6 — normal pullback for short
+        sample_keltner_data["close_price"] = 67500.0  # Band 6
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result is None
+        assert base_agent_state["keltner_sentiment_zone"] == "NORMAL_PULLBACK"
+
+    def test_short_normal_pullback_band_7(self, base_agent_state, sample_keltner_data):
+        base_agent_state["trade_direction"] = "short"
+        # Price at 65000 is in band 7 — normal pullback for short
+        sample_keltner_data["close_price"] = 65000.0  # Band 7
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result is None
+        assert base_agent_state["keltner_sentiment_zone"] == "NORMAL_PULLBACK"
+
+    def test_short_overextended(self, base_agent_state, sample_keltner_data):
+        base_agent_state["trade_direction"] = "short"
+        # Price at 50000 is in band 10 (below ultra_extreme_lower=55000)
+        sample_keltner_data["close_price"] = 50000.0  # Band 10
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result is None  # Continue to LLM (wait for pullback from extreme)
+        assert base_agent_state["keltner_sentiment_zone"] == "OVEREXTENDED"
 
 
 class TestStateMachineIntegration:
@@ -1665,7 +1731,7 @@ The following real-world scenario from BTCUSD (January-February 2026) validates 
 
 - Price broke through a support trendline (drawn from H1) around 69,000-70,000
 - At the time of breakout, price was trading between Keltner bands 5 and 6 (near the center)
-- Keltner band position: ~6 → Sentiment Zone: **NORMAL_PULLBACK**
+- Keltner band position: ~5-6 → Sentiment Zone: **NORMAL_PULLBACK** (pullback is likely)
 - State machine action: `quality_sufficient → AWAITING_PULLBACK`
 - Result: Pullback occurred as expected. Price retraced to the broken trendline zone, tested it as resistance, and confirmed the breakout. Standard pullback-confirmation flow completed successfully.
 
@@ -1673,7 +1739,7 @@ The following real-world scenario from BTCUSD (January-February 2026) validates 
 
 - After the pullback completed, price resumed its upward move and broke through a higher trendline around 71,000-72,000
 - At the time of this second breakout, price was trading between Keltner bands 3 and 4 (strong bullish deviation from mean)
-- Keltner band position: ~3-4 → Sentiment Zone: **MOMENTUM_CONFIRMED**
+- Keltner band position: ~3-4 → Sentiment Zone: **MOMENTUM_CONFIRMED** (pullback is unlikely)
 - State machine action (with sentiment gate): `momentum_confirmed → generate advisory immediately → IDLE`
 - Result: Price continued upward or moved sideways without a deep pullback to the broken trendline. The sentiment gate correctly identified that strong bullish momentum made a traditional pullback entry impractical.
 
