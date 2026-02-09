@@ -2,11 +2,12 @@
 
 ## Trading Advisory Conversational AI — Implementation Specification
 
-**Document Version**: 1.0
-**Date**: February 7, 2026
+**Document Version**: 2.0
+**Date**: February 9, 2026
 **Purpose**: Complete specification for implementing graph-based state machine orchestration on top of txtai framework for a conversational trading advisory SaaS (no trade execution).
 **Target Audience**: Claude Code (web) for implementation
 **Scope**: State machine only — excludes Trade Execution Manager, Markdown/JSONL memory systems, and storage/retrieval modifications (covered in separate documents)
+**Integrated Modifications**: Keltner Channel Sentiment Gate (from `Keltner_Channel_Sentiment_Gate_Modification.md`) — adds a sentiment-based gate at `BREAKOUT_DETECTED` using H4 Keltner Channel band position to determine pullback likelihood. Source indicator: `Keltner Channel ATF_10 Bands_V2.mq5`.
 
 ---
 
@@ -32,6 +33,11 @@
 18. [Testing Strategy](#18-testing-strategy)
 19. [File Structure](#19-file-structure)
 20. [Implementation Order](#20-implementation-order)
+21. [Keltner Channel Sentiment Gate](#21-keltner-channel-sentiment-gate)
+22. [Keltner Indicator Specification](#22-keltner-indicator-specification)
+23. [Sentiment Zone Model](#23-sentiment-zone-model)
+24. [Keltner Data Retrieval](#24-keltner-data-retrieval)
+25. [VectorDB Knowledge Chunks — Keltner](#25-vectordb-knowledge-chunks--keltner)
 
 ---
 
@@ -303,6 +309,8 @@ class StateMachine:
             "no_setup": State.IDLE,
         },
         State.BREAKOUT_DETECTED: {
+            "sentiment_fakeout": State.INVALIDATED,       # Keltner gate: band contradicts breakout direction
+            "momentum_confirmed": State.IDLE,              # Keltner gate: strong sentiment, skip pullback (advisory generated before transition)
             "quality_sufficient": State.AWAITING_PULLBACK,
             "quality_insufficient": State.INVALIDATED,
             "instant_fakeout": State.INVALIDATED,
@@ -489,6 +497,10 @@ class StateMachine:
         agent_state["price_pattern_state"] = None
         agent_state["broken_levels"] = None
         agent_state["cooldown_remaining"] = 0
+        # Keltner Sentiment Gate fields
+        agent_state["keltner_band_position"] = None
+        agent_state["keltner_sentiment_zone"] = None
+        agent_state["keltner_bands_snapshot"] = None
         return agent_state
 
     def _clear_zone_context(self, agent_state: dict) -> dict:
@@ -501,60 +513,76 @@ class StateMachine:
         return agent_state
 ```
 
-### 4.2 State Transition Diagram (Advisory-Only)
+### 4.2 State Transition Diagram (Advisory-Only, with Keltner Sentiment Gate)
 
 ```
                          new_bar / user_trigger
                                │
                                ▼
                         ┌──────────┐
-               ┌───────│   IDLE   │◄──── cooldown_expired ────┐
-               │        └────┬─────┘                           │
-               │             │ (automatic)                     │
-               │             ▼                                 │
-               │        ┌──────────────┐                       │
-               │        │  NAVIGATING  │                       │
-               │        └────┬────┬────┘                       │
-               │             │    │ regime_incompatible → IDLE │
-               │             │ regime_valid                    │
-               │             ▼                                 │
-               │        ┌──────────┐                           │
-               │   ┌────│ SCANNING │◄─── inconclusive ──┐     │
-               │   │    └────┬─────┘                     │     │
-               │   │         │ breakout_found             │     │
-               │   │         ▼                            │     │
-               │   │  ┌──────────────────┐                │     │
-               │   │  │ BREAKOUT_DETECTED├──timeout──────►│     │
-               │   │  └────┬─────────────┘                │     │
-               │   │       │ quality_sufficient            │     │
-               │   │       ▼                               │     │
-               │   │  ┌───────────────────┐                │     │
-               │   │  │ AWAITING_PULLBACK ├─window_expired─►MISSED──►│
-               │   │  └────┬──────────────┘                │     │
-               │   │       │ pullback_arrived               │     │
-               │   │       ▼                               │     │
-               │   │  ┌─────────────────┐                  │     │
-               │   │  │PULLBACK_TESTING ├──────────────────┘     │
-               │   │  └────┬────────────┘                        │
-               │   │       │ bounce_confirmed                    │
-               │   │       ▼                                     │
-               │   │  ┌──────────┐                               │
-               │   │  │ RESPOND  │ (generate advisory)           │
-               │   │  └────┬─────┘                               │
-               │   │       │ → auto-transition back to IDLE      │
-               │   │       ▼                                     │
-               │   └──► IDLE                                     │
-               │                                                  │
-               │   quality_insufficient / instant_fakeout /       │
-               │   failed_breakout / level_broken / timeout       │
-               │            │                                     │
-               │            ▼                                     │
-               │     ┌──────────────┐                             │
-               └─────│ INVALIDATED  ├─────────────────────────────┘
-                     └──────────────┘
+               ┌───────│   IDLE   │◄──── cooldown_expired ────────┐
+               │        └────┬─────┘                               │
+               │             │ (automatic)                         │
+               │             ▼                                     │
+               │        ┌──────────────┐                           │
+               │        │  NAVIGATING  │                           │
+               │        └────┬────┬────┘                           │
+               │             │    │ regime_incompatible → IDLE     │
+               │             │ regime_valid                        │
+               │             ▼                                     │
+               │        ┌──────────┐                               │
+               │   ┌────│ SCANNING │◄─── inconclusive ──┐         │
+               │   │    └────┬─────┘                     │         │
+               │   │         │ breakout_found             │         │
+               │   │         ▼                            │         │
+               │   │  ┌──────────────────┐                │         │
+               │   │  │ BREAKOUT_DETECTED│──timeout──────►│         │
+               │   │  │                  │                │         │
+               │   │  │ ★ KELTNER GATE ★ │                │         │
+               │   │  └──┬───┬───┬───────┘                │         │
+               │   │     │   │   │                        │         │
+               │   │     │   │   │ momentum_confirmed     │         │
+               │   │     │   │   ▼                        │         │
+               │   │     │   │  ┌────────────────┐        │         │
+               │   │     │   │  │RESPOND (advise)│→ IDLE  │         │
+               │   │     │   │  └────────────────┘        │         │
+               │   │     │   │                            │         │
+               │   │     │   │ quality_sufficient         │         │
+               │   │     │   │ (bands 5-6 or overextended)│         │
+               │   │     │   ▼                            │         │
+               │   │     │  ┌───────────────────┐         │         │
+               │   │     │  │ AWAITING_PULLBACK ├─window_expired──►MISSED──►│
+               │   │     │  └────┬──────────────┘         │         │
+               │   │     │       │ pullback_arrived        │         │
+               │   │     │       ▼                        │         │
+               │   │     │  ┌─────────────────┐           │         │
+               │   │     │  │PULLBACK_TESTING ├───────────┘         │
+               │   │     │  └────┬────────────┘                     │
+               │   │     │       │ bounce_confirmed                 │
+               │   │     │       ▼                                  │
+               │   │     │  ┌──────────┐                            │
+               │   │     │  │ RESPOND  │ (generate advisory)        │
+               │   │     │  └────┬─────┘                            │
+               │   │     │       │ → auto-transition back to IDLE   │
+               │   │     │       ▼                                  │
+               │   │     │    IDLE                                  │
+               │   │     │                                          │
+               │   │     │ sentiment_fakeout /                      │
+               │   │     │ quality_insufficient / instant_fakeout / │
+               │   │     │ failed_breakout / level_broken / timeout │
+               │   │     │          │                               │
+               │   │     │          ▼                               │
+               │   │     │   ┌──────────────┐                       │
+               │   └─────┴───│ INVALIDATED  ├───────────────────────┘
+                             └──────────────┘
 ```
 
-**Key difference from blueprint**: `PULLBACK_TESTING → bounce_confirmed` goes to **RESPOND → IDLE** instead of EXECUTING → ENTERED. The system generates a trade recommendation advisory rather than placing orders.
+**Key differences from blueprint**:
+1. `PULLBACK_TESTING → bounce_confirmed` goes to **RESPOND → IDLE** instead of EXECUTING → ENTERED. The system generates a trade recommendation advisory rather than placing orders.
+2. `BREAKOUT_DETECTED` now has a **Keltner Sentiment Gate** with three exit paths:
+   - **sentiment_fakeout** → INVALIDATED (Keltner band contradicts breakout direction)
+   - **momentum_confirmed** → RESPOND → IDLE (Keltner confirms strong sentiment, skip pullback)
+   - **quality_sufficient** → AWAITING_PULLBACK (unchanged — for normal pullback and overextended zones)
 
 ---
 
@@ -609,7 +637,8 @@ def route_after_evaluation(agent_state: dict) -> str:
       - PULLBACK_TESTING/EXECUTING → build_zone → execute
       - Everything else → respond
 
-    Simplified (no execution):
+    Simplified (no execution), with Keltner momentum path:
+      - Keltner momentum_confirmed → respond with momentum advisory (no zone/pullback)
       - PULLBACK_TESTING with bounce → build_zone → respond with recommendation
       - Everything else → respond with status update
 
@@ -617,11 +646,18 @@ def route_after_evaluation(agent_state: dict) -> str:
         agent_state: Current agent state after evaluation.
 
     Returns:
-        One of: "build_zone_and_respond", "respond_status", "respond_recommendation"
+        One of: "build_zone_and_respond", "respond_momentum_advisory",
+                "respond_status", "respond_recommendation"
     """
     current = State(agent_state["current_state"])
     score = agent_state.get("convergence_score", 0)
+    sentiment_zone = agent_state.get("keltner_sentiment_zone")
 
+    # Keltner momentum confirmed — generate advisory without zone/pullback
+    if sentiment_zone == "MOMENTUM_CONFIRMED":
+        return "respond_momentum_advisory"
+
+    # Standard pullback-confirmed path
     if current == State.PULLBACK_TESTING and score >= 5.0:
         return "build_zone_and_respond"
 
@@ -642,16 +678,24 @@ def route_after_evaluation(agent_state: dict) -> str:
 
 ### 5.4 What the "Respond" Step Produces Per State
 
-| State at Respond Time           | Response Type            | Content                                                                    |
-| ------------------------------- | ------------------------ | -------------------------------------------------------------------------- |
-| IDLE                            | Market overview          | "No active setup. Market is [regime]. Monitoring for opportunities."       |
-| SCANNING                        | Setup developing         | "Watching for breakout on [trendline]. Convergence at [score]."            |
-| BREAKOUT_DETECTED               | Alert                    | "Breakout detected on [instrument] [TF]. Evaluating quality..."            |
-| AWAITING_PULLBACK               | Update                   | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining." |
-| PULLBACK_TESTING (score >= 5.0) | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence.    |
-| PULLBACK_TESTING (score < 5.0)  | Caution                  | "Pullback at zone but convergence insufficient ([score]). Monitoring."     |
-| MISSED                          | Missed opportunity       | "Valid breakout but entry window expired. Cooldown [X] bars."              |
-| INVALIDATED                     | Invalidation report      | "Setup invalidated: [reason]. Cooldown [X] bars."                          |
+| State at Respond Time | Sentiment Zone | Response Type | Content |
+|---|---|---|---|
+| IDLE | — | Market overview | "No active setup. Market is [regime]. Monitoring for opportunities." |
+| SCANNING | — | Setup developing | "Watching for breakout on [trendline]. Convergence at [score]." |
+| BREAKOUT_DETECTED | — | Alert | "Breakout detected on [instrument] [TF]. Evaluating quality..." |
+| ★ BREAKOUT_DETECTED | FAKEOUT | Invalidation | "Breakout invalidated — Keltner band position [X] indicates [bearish/bullish] sentiment still dominant. Breakout lacks structural support for reversal. Likely fakeout." |
+| ★ BREAKOUT_DETECTED | MOMENTUM_CONFIRMED | **Momentum Advisory** | "**MOMENTUM ENTRY**: [instrument] [direction] breakout confirmed. Keltner band [X] — strong [bullish/bearish] sentiment, pullback unlikely. Convergence: [score]. [Separate workflow needed for precise entry prices.]" |
+| ★ BREAKOUT_DETECTED | OVEREXTENDED | Alert + Caution | "Breakout confirmed but price overextended (Keltner band [X]). Waiting for pullback from extreme — mean reversion expected." |
+| AWAITING_PULLBACK | NORMAL_PULLBACK | Update | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining." |
+| ★ AWAITING_PULLBACK | OVEREXTENDED | Update + Context | "Breakout confirmed. Price overextended (band [X]) — pullback from extreme likely. Monitoring for retracement." |
+| PULLBACK_TESTING (score >= 5.0) | — | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence. |
+| PULLBACK_TESTING (score < 5.0) | — | Caution | "Pullback at zone but convergence insufficient ([score]). Monitoring." |
+| MISSED | — | Missed opportunity | "Valid breakout but entry window expired. Cooldown [X] bars." |
+| INVALIDATED | — | Invalidation report | "Setup invalidated: [reason]. Cooldown [X] bars." |
+
+★ = New or modified rows from the Keltner Sentiment Gate integration.
+
+**Momentum Advisory Response**: The `momentum_confirmed` path produces a distinct advisory format that differs from the standard pullback-confirmed recommendation. It does NOT include entry zone construction or lot allocation (since there is no pullback zone to anchor entries). Precise entry price recommendations are handled by a **separate workflow** (not covered in this document).
 
 ---
 
@@ -711,6 +755,11 @@ CREATE TABLE agent_state (
     breakout_trendline JSONB,                -- Slope, intercept, projected price
     trade_direction VARCHAR(10),             -- 'long' or 'short'
 
+    -- Keltner Sentiment Gate data
+    keltner_band_position INT,                 -- 1-10 band position at breakout
+    keltner_sentiment_zone VARCHAR(30),        -- 'FAKEOUT', 'NORMAL_PULLBACK', 'MOMENTUM_CONFIRMED', 'OVEREXTENDED'
+    keltner_bands_snapshot JSONB,              -- All 10 band values at time of evaluation
+
     -- Knowledge context (from VectorDB retrieval)
     retrieved_knowledge TEXT,                 -- Assembled methodology context string
 
@@ -739,7 +788,15 @@ CREATE TABLE agent_state (
         'AWAITING_PULLBACK', 'PULLBACK_TESTING', 'MISSED', 'INVALIDATED'
     )),
     CONSTRAINT valid_direction CHECK(trade_direction IS NULL OR trade_direction IN ('long', 'short')),
-    CONSTRAINT valid_modifier CHECK(counter_trend_modifier BETWEEN 0.6 AND 1.0)
+    CONSTRAINT valid_modifier CHECK(counter_trend_modifier BETWEEN 0.6 AND 1.0),
+    CONSTRAINT valid_sentiment_zone CHECK(
+        keltner_sentiment_zone IS NULL OR keltner_sentiment_zone IN (
+            'FAKEOUT', 'NORMAL_PULLBACK', 'MOMENTUM_CONFIRMED', 'OVEREXTENDED'
+        )
+    ),
+    CONSTRAINT valid_band_position CHECK(
+        keltner_band_position IS NULL OR (keltner_band_position >= 1 AND keltner_band_position <= 10)
+    )
 );
 
 -- Primary lookup index
@@ -783,6 +840,7 @@ class AgentStateManager:
         "decision_tema_hrma", "sr_zone", "lot_allocations",
         "convergence_breakdown", "convergence_history",
         "price_pattern_state", "broken_levels", "breakout_trendline",
+        "keltner_bands_snapshot",  # Keltner Sentiment Gate
     }
 
     def __init__(self, database_url: str):
@@ -909,6 +967,10 @@ class AgentStateManager:
             "breakout_bar_price": None,
             "breakout_trendline": None,
             "trade_direction": None,
+            # Keltner Sentiment Gate
+            "keltner_band_position": None,
+            "keltner_sentiment_zone": None,
+            "keltner_bands_snapshot": None,
             "retrieved_knowledge": None,
             "llm_assessment": None,
             "llm_confidence": None,
@@ -978,7 +1040,9 @@ def recover_stale_state(state_manager, agent_state: dict) -> dict:
     # Clear evaluation context
     for field in ["breakout_bar_index", "breakout_bar_price", "breakout_trendline",
                   "sr_zone", "zone_density_score", "lot_allocations",
-                  "price_pattern_state", "broken_levels"]:
+                  "price_pattern_state", "broken_levels",
+                  "keltner_band_position", "keltner_sentiment_zone",
+                  "keltner_bands_snapshot"]:
         agent_state[field] = None
 
     state_manager.save(agent_state)
@@ -1067,6 +1131,11 @@ class AgentState(TypedDict, total=False):
     breakout_bar_price: Optional[float]
     breakout_trendline: Optional[dict]       # Slope, intercept, projected price
 
+    # ── Keltner Sentiment Gate ──
+    keltner_band_position: Optional[int]         # 1-10 band position at BREAKOUT_DETECTED
+    keltner_sentiment_zone: Optional[str]        # SentimentZone enum value: 'FAKEOUT', 'NORMAL_PULLBACK', 'MOMENTUM_CONFIRMED', 'OVEREXTENDED'
+    keltner_bands_snapshot: Optional[dict]       # All 10 band values at evaluation time
+
     # ── Knowledge Context ──
     retrieved_knowledge: Optional[str]       # Assembled text from VectorDB
 
@@ -1104,28 +1173,36 @@ class AgentState(TypedDict, total=False):
 
 ### 8.1 Transition Table
 
-| #   | From              | Condition                | To                 | Trigger                             | Hard Rule? |
-| --- | ----------------- | ------------------------ | ------------------ | ----------------------------------- | ---------- |
-| 1   | IDLE              | `new_bar`                | NAVIGATING         | Cron / new bar close                | No         |
-| 2   | IDLE              | `user_trigger`           | NAVIGATING         | User requests evaluation            | No         |
-| 3   | NAVIGATING        | `regime_valid`           | SCANNING           | Regime classification complete      | No         |
-| 4   | NAVIGATING        | `regime_incompatible`    | IDLE               | No viable trade conditions          | No         |
-| 5   | SCANNING          | `breakout_found`         | BREAKOUT_DETECTED  | Candle closes beyond trendline      | No         |
-| 6   | SCANNING          | `structure_deteriorated` | IDLE               | Key S/R breaks against direction    | No         |
-| 7   | SCANNING          | `no_setup`               | IDLE               | LLM judges no setup developing      | No         |
-| 8   | BREAKOUT_DETECTED | `quality_sufficient`     | AWAITING_PULLBACK  | LLM + score >= WAIT threshold       | No         |
-| 9   | BREAKOUT_DETECTED | `quality_insufficient`   | INVALIDATED        | LLM judges poor breakout            | No         |
-| 10  | BREAKOUT_DETECTED | `instant_fakeout`        | INVALIDATED        | Price reverses through trendline    | **Yes**    |
-| 11  | BREAKOUT_DETECTED | `timeout`                | INVALIDATED        | 3 bars without confirmation         | **Yes**    |
-| 12  | AWAITING_PULLBACK | `pullback_arrived`       | PULLBACK_TESTING   | Price enters tolerance zone         | No         |
-| 13  | AWAITING_PULLBACK | `window_expired`         | MISSED             | 8-12 bars without pullback          | **Yes**    |
-| 14  | AWAITING_PULLBACK | `failed_breakout`        | INVALIDATED        | Price closes back through trendline | **Yes**    |
-| 15  | PULLBACK_TESTING  | `bounce_confirmed`       | IDLE (via respond) | Active bounce + score >= ENTER      | No         |
-| 16  | PULLBACK_TESTING  | `level_broken`           | INVALIDATED        | Price breaks zone decisively        | **Yes**    |
-| 17  | PULLBACK_TESTING  | `inconclusive`           | SCANNING           | No clear rejection/bounce           | No         |
-| 18  | PULLBACK_TESTING  | `timeout`                | INVALIDATED        | 3-8 bars lingering                  | **Yes**    |
-| 19  | MISSED            | `cooldown_expired`       | IDLE               | 4 bars elapsed                      | **Yes**    |
-| 20  | INVALIDATED       | `cooldown_expired`       | IDLE               | 4 bars elapsed                      | **Yes**    |
+| #   | From              | Condition                | To                 | Trigger                                    | Hard Rule? |
+| --- | ----------------- | ------------------------ | ------------------ | ------------------------------------------ | ---------- |
+| 1   | IDLE              | `new_bar`                | NAVIGATING         | Cron / new bar close                       | No         |
+| 2   | IDLE              | `user_trigger`           | NAVIGATING         | User requests evaluation                   | No         |
+| 3   | NAVIGATING        | `regime_valid`           | SCANNING           | Regime classification complete             | No         |
+| 4   | NAVIGATING        | `regime_incompatible`    | IDLE               | No viable trade conditions                 | No         |
+| 5   | SCANNING          | `breakout_found`         | BREAKOUT_DETECTED  | Candle closes beyond trendline             | No         |
+| 6   | SCANNING          | `structure_deteriorated` | IDLE               | Key S/R breaks against direction           | No         |
+| 7   | SCANNING          | `no_setup`               | IDLE               | LLM judges no setup developing             | No         |
+| ★8  | BREAKOUT_DETECTED | `sentiment_fakeout`      | INVALIDATED        | Keltner band in fakeout zone               | **Yes**    |
+| ★9  | BREAKOUT_DETECTED | `momentum_confirmed`     | IDLE (via respond) | Keltner band in momentum confirmed zone    | **Yes**    |
+| 10  | BREAKOUT_DETECTED | `quality_sufficient`     | AWAITING_PULLBACK  | LLM + score + Keltner in normal/overextended zone | No   |
+| 11  | BREAKOUT_DETECTED | `quality_insufficient`   | INVALIDATED        | LLM judges poor breakout                   | No         |
+| 12  | BREAKOUT_DETECTED | `instant_fakeout`        | INVALIDATED        | Price reverses through trendline           | **Yes**    |
+| 13  | BREAKOUT_DETECTED | `timeout`                | INVALIDATED        | 3 bars without confirmation                | **Yes**    |
+| 14  | AWAITING_PULLBACK | `pullback_arrived`       | PULLBACK_TESTING   | Price enters tolerance zone                | No         |
+| 15  | AWAITING_PULLBACK | `window_expired`         | MISSED             | 8-12 bars without pullback                 | **Yes**    |
+| 16  | AWAITING_PULLBACK | `failed_breakout`        | INVALIDATED        | Price closes back through trendline        | **Yes**    |
+| 17  | PULLBACK_TESTING  | `bounce_confirmed`       | IDLE (via respond) | Active bounce + score >= ENTER             | No         |
+| 18  | PULLBACK_TESTING  | `level_broken`           | INVALIDATED        | Price breaks zone decisively               | **Yes**    |
+| 19  | PULLBACK_TESTING  | `inconclusive`           | SCANNING           | No clear rejection/bounce                  | No         |
+| 20  | PULLBACK_TESTING  | `timeout`                | INVALIDATED        | 3-8 bars lingering                         | **Yes**    |
+| 21  | MISSED            | `cooldown_expired`       | IDLE               | 4 bars elapsed                             | **Yes**    |
+| 22  | INVALIDATED       | `cooldown_expired`       | IDLE               | 4 bars elapsed                             | **Yes**    |
+
+★ = New rows from Keltner Sentiment Gate integration:
+- ★8 (`sentiment_fakeout`): Hard rule. Keltner gate rejects the breakout before LLM is consulted.
+- ★9 (`momentum_confirmed`): Hard rule. Keltner gate confirms breakout with strong sentiment, generates advisory immediately, transitions to IDLE.
+- Row 10 (`quality_sufficient`): Now only applies when Keltner zone is normal pullback (bands 5-6) or overextended (bands 1-2 for longs, bands 9-10 for shorts).
+- Total transitions increased from 20 to 22.
 
 ### 8.2 Hard Rules (Enforced by Code, Not LLM)
 
@@ -1135,17 +1212,25 @@ These are checked **before** the LLM is called and override any LLM judgment:
 # File: services/agent/hard_rules.py
 
 from .state_machine import State
+from .sentiment_gate import evaluate_sentiment_gate
 
 
-def check_hard_rules(agent_state: dict, market_data: dict) -> str | None:
+def check_hard_rules(agent_state: dict, market_data: dict,
+                     keltner_data: dict = None) -> str | None:
     """Check hard rules that override LLM judgment.
 
     Called before LLM evaluation. If a hard rule fires,
     the returned condition is applied immediately — no LLM needed.
 
+    Evaluation order:
+    1. Failed breakout invalidation (price through trendline)
+    2. Keltner Sentiment Gate (at BREAKOUT_DETECTED only)
+
     Args:
         agent_state: Current agent state.
         market_data: Latest market data from PostgreSQL.
+        keltner_data: Keltner Channel band data from H4. Required when
+                      current_state is BREAKOUT_DETECTED.
 
     Returns:
         Condition string if a hard rule fires, None if LLM should evaluate.
@@ -1163,13 +1248,23 @@ def check_hard_rules(agent_state: dict, market_data: dict) -> str | None:
             elif current == State.PULLBACK_TESTING:
                 return "level_broken"
 
-    # Rule 2: Counter-trend modifier must be applied
+    # Rule 2: Keltner Sentiment Gate (BREAKOUT_DETECTED only)
+    # Determines whether the breakout has sentiment support.
+    # Fires sentiment_fakeout or momentum_confirmed as hard gates.
+    # Returns None for NORMAL_PULLBACK or OVEREXTENDED (continue to LLM).
+    if current == State.BREAKOUT_DETECTED and keltner_data is not None:
+        sentiment_result = evaluate_sentiment_gate(agent_state, keltner_data)
+        if sentiment_result is not None:
+            return sentiment_result
+        # If None: normal pullback or overextended — continue to LLM
+
+    # Rule 3: Counter-trend modifier must be applied
     # (Enforced in convergence scoring, not as a transition)
 
-    # Rule 3: State machine sequential flow
+    # Rule 4: State machine sequential flow
     # (Enforced by StateMachine.validate_transition())
 
-    # Rule 4: Cooldown enforcement
+    # Rule 5: Cooldown enforcement
     # (Enforced by StateMachine.check_time_based_transitions())
 
     return None
@@ -1380,13 +1475,26 @@ def run_evaluation_cycle(element: dict) -> dict:
     market_data = _fetch_market_data(instrument, tf_config, element["database_url"])
     agent_state["current_price"] = market_data.get("latest_close")
 
-    # Step 4 (continued): Check hard rules with market data
-    hard_rule_condition = check_hard_rules(agent_state, market_data)
+    # Step 4a: Fetch Keltner data if in BREAKOUT_DETECTED state
+    keltner_data = None
+    if current == State.BREAKOUT_DETECTED:
+        from .keltner import KeltnerChannel
+        from .tools import fetch_keltner_data
+        keltner_data = fetch_keltner_data(instrument, tf_config)
+        agent_state["keltner_bands_snapshot"] = keltner_data
+
+    # Step 4b (continued): Check hard rules with market data and Keltner data
+    hard_rule_condition = check_hard_rules(agent_state, market_data, keltner_data)
     if hard_rule_condition:
+        # For momentum_confirmed, generate advisory before transitioning
+        if hard_rule_condition == "momentum_confirmed":
+            from .llm_parser import generate_momentum_advisory
+            agent_state["pending_response"] = generate_momentum_advisory(agent_state)
+        else:
+            agent_state["pending_response"] = _generate_hard_rule_response(
+                agent_state, hard_rule_condition, market_data
+            )
         agent_state = state_machine.transition(agent_state, hard_rule_condition)
-        agent_state["pending_response"] = _generate_hard_rule_response(
-            agent_state, hard_rule_condition, market_data
-        )
         state_manager.save(agent_state)
         return {"state": agent_state, "response": agent_state["pending_response"]}
 
@@ -1741,11 +1849,20 @@ def _generate_hard_rule_response(agent_state: dict, condition: str,
     """Generate response text for hard rule transitions."""
     instrument = agent_state["instrument"]
     price = market_data.get("latest_close", "N/A")
+    band = agent_state.get("keltner_band_position", "N/A")
+    direction = agent_state.get("trade_direction", "unknown")
+
+    sentiment_label = "bearish" if direction == "long" else "bullish"
 
     messages = {
         "instant_fakeout": f"{instrument}: INVALIDATED. Price reversed back through trendline (close: {price}). Breakout failed.",
         "failed_breakout": f"{instrument}: INVALIDATED. Price closed back through broken trendline. The breakout has failed.",
         "level_broken": f"{instrument}: INVALIDATED. Support/resistance level broken decisively. Zone test failed.",
+        "sentiment_fakeout": (
+            f"{instrument}: INVALIDATED — Keltner band position {band} indicates "
+            f"{sentiment_label} sentiment still dominant. Breakout lacks structural "
+            f"support for reversal. Likely fakeout."
+        ),
     }
     return messages.get(condition, f"{instrument}: Hard rule triggered: {condition}.")
 ```
@@ -2119,6 +2236,21 @@ EVALUATION_PROMPT_TEMPLATE = """You are a trading analysis engine evaluating a {
 - Breakdown: {convergence_breakdown}
 - Classification: {score_classification}
 
+## Keltner Sentiment Context
+Sentiment Measurement Timeframe: H4
+Keltner Band Position: {keltner_band_position} (1=ultra extreme upper, 10=ultra extreme lower)
+Sentiment Zone: {keltner_sentiment_zone}
+ATR(162): {keltner_atr}
+Upper Middle (HRMA of H4 High): {keltner_upper_middle}
+Lower Middle (HRMA of H4 Low): {keltner_lower_middle}
+
+Band position {keltner_band_position} for a {trade_direction} trade indicates:
+{sentiment_zone_explanation}
+
+Consider this structural sentiment context in your breakout quality evaluation.
+For OVEREXTENDED zone: evaluate whether mean reversion signals are developing
+(narrowing TEMA/HRMA gap, reduced momentum, absorption candles).
+
 ## Methodology Context (from Knowledge Base)
 {retrieved_knowledge}
 
@@ -2182,11 +2314,27 @@ def evaluate_with_llm(agent_state: dict, market_data: dict,
     score = agent_state.get("convergence_score", 0)
     classification = ConvergenceScorer.classify_score(score) if score else "N/A"
 
+    # Build Keltner context for prompt
+    keltner_snapshot = agent_state.get("keltner_bands_snapshot") or {}
+    keltner_zone = agent_state.get("keltner_sentiment_zone", "N/A")
+    keltner_band = agent_state.get("keltner_band_position", "N/A")
+    trade_dir = agent_state.get("trade_direction", "None")
+
+    # Generate sentiment zone explanation for LLM
+    zone_explanations = {
+        "NORMAL_PULLBACK": "Moderate momentum — pullback to broken trendline is expected. Standard breakout-pullback-confirmation flow applies.",
+        "OVEREXTENDED": "Price is at extreme deviation from the mean. Despite real sentiment, entry now would be chasing into overextension. Mean reversion pressure is building — wait for retracement.",
+    }
+    sentiment_explanation = zone_explanations.get(
+        keltner_zone,
+        f"Sentiment zone: {keltner_zone}. Evaluate accordingly."
+    )
+
     prompt = EVALUATION_PROMPT_TEMPLATE.format(
         instrument=agent_state.get("instrument", "Unknown"),
         tf_config=agent_state.get("tf_config", "Unknown"),
         current_state=current.value,
-        trade_direction=agent_state.get("trade_direction", "None"),
+        trade_direction=trade_dir,
         bars_in_state=agent_state.get("bars_in_state", 0),
         regime_classification=agent_state.get("regime_classification", "Unknown"),
         aggregate_slope_score=agent_state.get("aggregate_slope_score", "N/A"),
@@ -2196,6 +2344,12 @@ def evaluate_with_llm(agent_state: dict, market_data: dict,
         convergence_score=score,
         convergence_breakdown=agent_state.get("convergence_breakdown", {}),
         score_classification=classification,
+        keltner_band_position=keltner_band,
+        keltner_sentiment_zone=keltner_zone,
+        keltner_atr=keltner_snapshot.get("atr", "N/A"),
+        keltner_upper_middle=keltner_snapshot.get("upper_middle", "N/A"),
+        keltner_lower_middle=keltner_snapshot.get("lower_middle", "N/A"),
+        sentiment_zone_explanation=sentiment_explanation,
         retrieved_knowledge=knowledge or "No methodology context retrieved.",
         allowed_transitions="\n".join(
             f"- '{cond}' → {target}" for cond, target in allowed.items()
@@ -2320,6 +2474,47 @@ def _regex_fallback_parse(text: str) -> dict:
     return result
 
 
+def generate_momentum_advisory(agent_state: dict) -> str:
+    """Generate advisory for momentum-confirmed breakout (no pullback expected).
+
+    Called when the Keltner Sentiment Gate determines that structural
+    sentiment strongly confirms the breakout direction, making a
+    traditional pullback unlikely.
+
+    This advisory acknowledges that a separate workflow is needed
+    for precise entry price recommendation.
+
+    Args:
+        agent_state: Agent state with breakout and Keltner data.
+
+    Returns:
+        Advisory text for the chat UI.
+    """
+    direction_label = "LONG" if agent_state["trade_direction"] == "long" else "SHORT"
+    band = agent_state["keltner_band_position"]
+    instrument = agent_state["instrument"]
+    score = agent_state.get("convergence_score", "N/A")
+    regime = agent_state.get("regime_classification", "Unknown")
+    breakout_price = agent_state.get("breakout_bar_price", "N/A")
+
+    sentiment_desc = (
+        "strong bullish" if agent_state["trade_direction"] == "long"
+        else "strong bearish"
+    )
+
+    return (
+        f"MOMENTUM ENTRY — {instrument} {direction_label}\n\n"
+        f"Breakout confirmed at {breakout_price}. "
+        f"H4 Keltner band position: {band} — {sentiment_desc} sentiment. "
+        f"Pullback to broken trendline is unlikely at current momentum.\n\n"
+        f"Regime: {regime}\n"
+        f"Convergence: {score}\n"
+        f"Sentiment zone: MOMENTUM CONFIRMED\n\n"
+        f"Precise entry prices require separate analysis "
+        f"(micro-timeframe S/R, consolidation levels within momentum move)."
+    )
+
+
 def generate_response(agent_state: dict, market_data: dict,
                       route: str, llm_instance=None) -> str:
     """Generate conversational response for the chat UI.
@@ -2346,6 +2541,11 @@ def generate_response(agent_state: dict, market_data: dict,
     score = agent_state.get("convergence_score")
     regime = agent_state.get("regime_classification", "Unknown")
     assessment = agent_state.get("llm_assessment", "")
+
+    if route == "respond_momentum_advisory":
+        # Momentum advisory already generated by generate_momentum_advisory()
+        # Optionally use LLM to enhance the response
+        return agent_state.get("pending_response", generate_momentum_advisory(agent_state))
 
     if route == "build_zone_and_respond":
         prompt = (
@@ -2431,6 +2631,44 @@ SM_COOLDOWN_BARS=4          # bars
 # Instruments to monitor
 INSTRUMENTS=EURUSD,XAUUSD,BTCUSD,GBPUSD
 TF_CONFIG=config_a          # or config_b
+
+# Keltner Sentiment Gate
+KELTNER_HRMA_PERIOD=54
+KELTNER_ATR_PERIOD=162
+KELTNER_SENTIMENT_TF=H4
+```
+
+### 17.3 Keltner Configuration
+
+```python
+# Add to services/agent/config.py
+
+KELTNER_CONFIG = {
+    # Indicator parameters
+    "hrma_period": 54,                    # HRMA period (reduced from 72 for responsiveness at HTF)
+    "atr_period": 162,                    # ATR period for band width
+    "multiplier_ultra_extreme": 4.0,      # Bands 1 and 10
+    "multiplier_extreme": 3.0,            # Bands 2 and 9
+    "multiplier_uppermost": 2.0,          # Bands 3 and 8
+    "multiplier_upper": 1.0,              # Bands 4 and 7
+
+    # Sentiment measurement timeframe
+    "sentiment_tf_config_a": "H4",        # For H1 primary Decision TF
+    "sentiment_tf_config_b": "H4",        # For H2 primary Decision TF
+
+    # Sentiment zone thresholds (band positions)
+    # Long (bullish breakout — price pierces negative slope trendline):
+    "long_fakeout_threshold": 7,          # Bands >= 7 → fakeout
+    "long_normal_bands": [5, 6],          # Bands 5-6 → normal pullback
+    "long_momentum_bands": [3, 4],        # Bands 3-4 → momentum confirmed
+    "long_overextended_threshold": 3,     # Bands < 3 → overextended
+
+    # Short (bearish breakout — price pierces positive slope trendline):
+    "short_fakeout_threshold": 5,         # Bands <= 5 → fakeout
+    "short_normal_bands": [6, 7],         # Bands 6-7 → normal pullback
+    "short_momentum_bands": [8, 9],       # Bands 8-9 → momentum confirmed
+    "short_overextended_threshold": 9,    # Bands > 9 → overextended
+}
 ```
 
 ### 17.2 txtai Application Config
@@ -2468,6 +2706,30 @@ workflow:
       - action: services.agent.pipeline.run_evaluation_cycle
     schedule:
       cron: '0 * * * *'
+
+# Keltner Sentiment Gate configuration
+keltner:
+  hrma_period: 54
+  atr_period: 162
+  sentiment_timeframe:
+    config_a: H4
+    config_b: H4
+  multipliers:
+    ultra_extreme: 4.0
+    extreme: 3.0
+    uppermost: 2.0
+    upper: 1.0
+  sentiment_zones:
+    long:
+      fakeout_above_or_equal: 7
+      normal_bands: [5, 6]
+      momentum_bands: [3, 4]
+      overextended_below: 3
+    short:
+      fakeout_below_or_equal: 5
+      normal_bands: [6, 7]
+      momentum_bands: [8, 9]
+      overextended_above: 9
 ```
 
 ---
@@ -2523,6 +2785,20 @@ class TestStateMachine:
         state = {**self.default_state, "current_state": "BREAKOUT_DETECTED"}
         result = self.sm.transition(state, "quality_sufficient")
         assert result["current_state"] == "AWAITING_PULLBACK"
+
+    # --- Keltner Sentiment Gate transitions ---
+
+    def test_breakout_sentiment_fakeout(self):
+        """Keltner gate rejects breakout with sentiment_fakeout."""
+        state = {**self.default_state, "current_state": "BREAKOUT_DETECTED"}
+        result = self.sm.transition(state, "sentiment_fakeout")
+        assert result["current_state"] == "INVALIDATED"
+
+    def test_breakout_momentum_confirmed(self):
+        """Keltner gate confirms strong sentiment — skip pullback."""
+        state = {**self.default_state, "current_state": "BREAKOUT_DETECTED"}
+        result = self.sm.transition(state, "momentum_confirmed")
+        assert result["current_state"] == "IDLE"
 
     def test_awaiting_to_pullback_testing(self):
         state = {**self.default_state, "current_state": "AWAITING_PULLBACK"}
@@ -2615,11 +2891,17 @@ class TestStateMachine:
             "cooldown_remaining": 0,
             "breakout_bar_price": 1.2345,
             "sr_zone": {"levels": [1.23, 1.24]},
+            "keltner_band_position": 3,
+            "keltner_sentiment_zone": "MOMENTUM_CONFIRMED",
+            "keltner_bands_snapshot": {"upper_middle": 68000},
         }
         result = self.sm.transition(state, "cooldown_expired")
         assert result["current_state"] == "IDLE"
         assert result["breakout_bar_price"] is None
         assert result["sr_zone"] is None
+        assert result["keltner_band_position"] is None
+        assert result["keltner_sentiment_zone"] is None
+        assert result["keltner_bands_snapshot"] is None
 
 
 class TestConvergenceScorer:
@@ -2675,6 +2957,208 @@ class TestLLMParser:
         result = parse_llm_output(response)
         # Fallback should still extract some values
         assert result["assessment"] != ""
+
+
+class TestKeltnerBandPosition:
+    """Test band position determination from price and band values."""
+
+    @pytest.fixture
+    def sample_bands(self):
+        """Sample Keltner bands for BTCUSD H4."""
+        return {
+            "ultra_extreme_upper": 80000.0,    # Band 1
+            "extreme_upper": 77000.0,          # Band 2
+            "uppermost": 74000.0,              # Band 3
+            "upper": 71000.0,                  # Band 4
+            "upper_middle": 68000.0,           # Band 5
+            "lower_middle": 67000.0,           # Band 6
+            "lower": 64000.0,                  # Band 7
+            "lowermost": 61000.0,              # Band 8
+            "extreme_lower": 58000.0,          # Band 9
+            "ultra_extreme_lower": 55000.0,    # Band 10
+        }
+
+    def test_price_above_all_bands(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(85000.0, sample_bands) == 1
+
+    def test_price_in_extreme_upper(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(78000.0, sample_bands) == 2
+
+    def test_price_in_uppermost(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(75000.0, sample_bands) == 3
+
+    def test_price_in_upper(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(72000.0, sample_bands) == 4
+
+    def test_price_in_upper_middle(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(68500.0, sample_bands) == 5
+
+    def test_price_in_lower_middle(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(67500.0, sample_bands) == 6
+
+    def test_price_in_lower(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(65000.0, sample_bands) == 7
+
+    def test_price_in_lowermost(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(62000.0, sample_bands) == 8
+
+    def test_price_in_extreme_lower(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(57000.0, sample_bands) == 9
+
+    def test_price_below_all_bands(self, sample_bands):
+        from services.agent.sentiment_gate import determine_keltner_band_position
+        assert determine_keltner_band_position(50000.0, sample_bands) == 10
+
+
+class TestSentimentZoneClassification:
+    """Test directional sentiment zone classification."""
+
+    # ── Long (Bullish Breakout) ──
+
+    def test_long_fakeout_band_7(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(7, "long") == SentimentZone.FAKEOUT
+
+    def test_long_fakeout_band_10(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(10, "long") == SentimentZone.FAKEOUT
+
+    def test_long_normal_band_5(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(5, "long") == SentimentZone.NORMAL_PULLBACK
+
+    def test_long_normal_band_6(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(6, "long") == SentimentZone.NORMAL_PULLBACK
+
+    def test_long_momentum_band_3(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(3, "long") == SentimentZone.MOMENTUM_CONFIRMED
+
+    def test_long_momentum_band_4(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(4, "long") == SentimentZone.MOMENTUM_CONFIRMED
+
+    def test_long_overextended_band_1(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(1, "long") == SentimentZone.OVEREXTENDED
+
+    def test_long_overextended_band_2(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(2, "long") == SentimentZone.OVEREXTENDED
+
+    # ── Short (Bearish Breakout) ──
+
+    def test_short_fakeout_band_1(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(1, "short") == SentimentZone.FAKEOUT
+
+    def test_short_fakeout_band_5(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(5, "short") == SentimentZone.FAKEOUT
+
+    def test_short_normal_band_6(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(6, "short") == SentimentZone.NORMAL_PULLBACK
+
+    def test_short_normal_band_7(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(7, "short") == SentimentZone.NORMAL_PULLBACK
+
+    def test_short_momentum_band_8(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(8, "short") == SentimentZone.MOMENTUM_CONFIRMED
+
+    def test_short_momentum_band_9(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(9, "short") == SentimentZone.MOMENTUM_CONFIRMED
+
+    def test_short_overextended_band_10(self):
+        from services.agent.sentiment_gate import classify_sentiment_zone, SentimentZone
+        assert classify_sentiment_zone(10, "short") == SentimentZone.OVEREXTENDED
+
+
+class TestSentimentGateEvaluation:
+    """Test the full sentiment gate evaluation function."""
+
+    @pytest.fixture
+    def base_agent_state(self):
+        return {
+            "current_state": "BREAKOUT_DETECTED",
+            "trade_direction": "long",
+            "keltner_band_position": None,
+            "keltner_sentiment_zone": None,
+        }
+
+    @pytest.fixture
+    def sample_keltner_data(self):
+        return {
+            "close_price": 72000.0,
+            "bands": {
+                "ultra_extreme_upper": 80000.0,
+                "extreme_upper": 77000.0,
+                "uppermost": 74000.0,
+                "upper": 71000.0,
+                "upper_middle": 68000.0,
+                "lower_middle": 67000.0,
+                "lower": 64000.0,
+                "lowermost": 61000.0,
+                "extreme_lower": 58000.0,
+                "ultra_extreme_lower": 55000.0,
+            }
+        }
+
+    def test_long_momentum_confirmed(self, base_agent_state, sample_keltner_data):
+        from services.agent.sentiment_gate import evaluate_sentiment_gate
+        sample_keltner_data["close_price"] = 75000.0  # Band 3
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "momentum_confirmed"
+        assert base_agent_state["keltner_band_position"] == 3
+        assert base_agent_state["keltner_sentiment_zone"] == "MOMENTUM_CONFIRMED"
+
+    def test_long_fakeout(self, base_agent_state, sample_keltner_data):
+        from services.agent.sentiment_gate import evaluate_sentiment_gate
+        sample_keltner_data["close_price"] = 62000.0  # Band 8
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "sentiment_fakeout"
+        assert base_agent_state["keltner_sentiment_zone"] == "FAKEOUT"
+
+    def test_long_normal_pullback(self, base_agent_state, sample_keltner_data):
+        from services.agent.sentiment_gate import evaluate_sentiment_gate
+        sample_keltner_data["close_price"] = 68500.0  # Band 5
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result is None  # Continue to LLM evaluation
+        assert base_agent_state["keltner_sentiment_zone"] == "NORMAL_PULLBACK"
+
+    def test_long_overextended(self, base_agent_state, sample_keltner_data):
+        from services.agent.sentiment_gate import evaluate_sentiment_gate
+        sample_keltner_data["close_price"] = 85000.0  # Band 1
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result is None  # Continue to LLM (wait for pullback from extreme)
+        assert base_agent_state["keltner_sentiment_zone"] == "OVEREXTENDED"
+
+    def test_short_momentum_confirmed(self, base_agent_state, sample_keltner_data):
+        from services.agent.sentiment_gate import evaluate_sentiment_gate
+        base_agent_state["trade_direction"] = "short"
+        sample_keltner_data["close_price"] = 59000.0  # Band 9
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "momentum_confirmed"
+
+    def test_short_fakeout(self, base_agent_state, sample_keltner_data):
+        from services.agent.sentiment_gate import evaluate_sentiment_gate
+        base_agent_state["trade_direction"] = "short"
+        sample_keltner_data["close_price"] = 75000.0  # Band 3 — fakeout for short
+        result = evaluate_sentiment_gate(base_agent_state, sample_keltner_data)
+        assert result == "sentiment_fakeout"
 ```
 
 ### 18.2 Integration Tests
@@ -2761,27 +3245,31 @@ class TestEvaluationCycle:
 services/
 └── agent/
     ├── __init__.py
-    ├── state_machine.py          # Mod 1: State Machine Engine (StateMachine class)
-    ├── routing.py                # Mod 2: Simplified routing (no execution)
-    ├── state_persistence.py      # Mod 3: PostgreSQL AgentState manager
-    ├── schema.py                 # AgentState TypedDict schema
-    ├── hard_rules.py             # Hard rules checked before LLM
+    ├── state_machine.py          # Mod 1: State Machine Engine (StateMachine class) — MODIFIED (2 new transitions)
+    ├── routing.py                # Mod 2: Simplified routing (no execution) — MODIFIED (momentum_confirmed path)
+    ├── state_persistence.py      # Mod 3: PostgreSQL AgentState manager — MODIFIED (3 new fields)
+    ├── schema.py                 # AgentState TypedDict schema — MODIFIED (3 new fields)
+    ├── hard_rules.py             # Hard rules checked before LLM — MODIFIED (Keltner gate as Rule 2)
+    ├── sentiment_gate.py         # ★ NEW — Keltner sentiment zone classification + gate logic
+    ├── keltner.py                # ★ NEW — Keltner Channel 10-band computation (Python replication of MQL5 indicator)
     ├── convergence.py            # 5-factor convergence scoring
-    ├── pipeline.py               # Main evaluation cycle orchestrator
-    ├── llm_interface.py          # LLM prompt construction and calling
-    ├── llm_parser.py             # LLM output parsing with fallback
+    ├── pipeline.py               # Main evaluation cycle orchestrator — MODIFIED (Keltner data fetch + gate)
+    ├── llm_interface.py          # LLM prompt construction and calling — MODIFIED (Keltner context in prompt)
+    ├── llm_parser.py             # LLM output parsing with fallback — MODIFIED (momentum advisory generator)
     ├── recovery.py               # Stale state detection and recovery
-    ├── tools.py                  # Custom txtai Agent tools
-    └── config.py                 # Configuration constants
+    ├── tools.py                  # Custom txtai Agent tools — MODIFIED (fetch_keltner_data)
+    └── config.py                 # Configuration constants — MODIFIED (KELTNER_CONFIG)
 
 config/
-└── txtai_app.yml                 # txtai Application configuration
+└── txtai_app.yml                 # txtai Application configuration — MODIFIED (keltner section)
 
 migrations/
-└── 001_create_agent_state.sql    # PostgreSQL schema migration
+├── 001_create_agent_state.sql    # PostgreSQL schema migration — MODIFIED (3 Keltner columns + 2 constraints)
+└── 002_create_keltner_data.sql   # ★ NEW (optional) — Pre-computed Keltner Channel data table
 
 tests/
-├── test_state_machine.py         # Unit tests for state machine
+├── test_state_machine.py         # Unit tests for state machine — MODIFIED (2 new transition tests)
+├── test_sentiment_gate.py        # ★ NEW — Comprehensive Keltner sentiment gate tests
 ├── test_convergence.py           # Unit tests for scoring
 ├── test_llm_parser.py            # Unit tests for output parsing
 └── test_integration.py           # Integration tests (requires DB)
@@ -2801,38 +3289,41 @@ tests/
 | 4    | `state_persistence.py`                  | AgentStateManager (load/save)           | schema.py, migration |
 | 5    | `tests/test_state_machine.py`           | All unit tests for state machine        | state_machine.py     |
 
-### Phase 2: Scoring & Rules (Days 4-5)
+### Phase 2: Scoring & Rules (Days 4-6)
 
-| Step | File                        | What to Build                 | Dependencies     |
-| ---- | --------------------------- | ----------------------------- | ---------------- |
-| 6    | `convergence.py`            | ConvergenceScorer (5 factors) | schema.py        |
-| 7    | `hard_rules.py`             | Hard rule checks              | state_machine.py |
-| 8    | `routing.py`                | Simplified routing logic      | state_machine.py |
-| 9    | `tests/test_convergence.py` | Scoring unit tests            | convergence.py   |
+| Step | File                            | What to Build                          | Dependencies     |
+| ---- | ------------------------------- | -------------------------------------- | ---------------- |
+| 6    | `convergence.py`                | ConvergenceScorer (5 factors)          | schema.py        |
+| 7    | `keltner.py`                    | ★ Keltner Channel 10-band computation | config.py        |
+| 8    | `sentiment_gate.py`             | ★ Sentiment zone classification + gate | keltner.py       |
+| 9    | `hard_rules.py`                 | Hard rule checks (incl. Keltner gate)  | state_machine.py, sentiment_gate.py |
+| 10   | `routing.py`                    | Simplified routing logic (incl. momentum) | state_machine.py |
+| 11   | `tests/test_convergence.py`     | Scoring unit tests                     | convergence.py   |
+| 12   | `tests/test_sentiment_gate.py`  | ★ Keltner sentiment gate unit tests   | sentiment_gate.py |
 
-### Phase 3: LLM Integration (Days 6-7)
+### Phase 3: LLM Integration (Days 7-8)
 
-| Step | File                       | What to Build                 | Dependencies       |
-| ---- | -------------------------- | ----------------------------- | ------------------ |
-| 10   | `llm_interface.py`         | Prompt template + LLM calling | txtai LLM pipeline |
-| 11   | `llm_parser.py`            | JSON parsing + fallback       | None               |
-| 12   | `tests/test_llm_parser.py` | Parser unit tests             | llm_parser.py      |
+| Step | File                       | What to Build                         | Dependencies       |
+| ---- | -------------------------- | ------------------------------------- | ------------------ |
+| 13   | `llm_interface.py`         | Prompt template + LLM calling (incl. Keltner context) | txtai LLM pipeline, sentiment_gate.py |
+| 14   | `llm_parser.py`            | JSON parsing + fallback + momentum advisory | None          |
+| 15   | `tests/test_llm_parser.py` | Parser unit tests                     | llm_parser.py      |
 
-### Phase 4: Pipeline & Tools (Days 8-9)
+### Phase 4: Pipeline & Tools (Days 9-10)
 
-| Step | File                   | What to Build                      | Dependencies           |
-| ---- | ---------------------- | ---------------------------------- | ---------------------- |
-| 13   | `tools.py`             | Custom txtai Agent tools           | PostgreSQL, Embeddings |
-| 14   | `pipeline.py`          | Full evaluation cycle orchestrator | All above              |
-| 15   | `recovery.py`          | Stale state detection              | state_persistence.py   |
-| 16   | `config/txtai_app.yml` | txtai Application config           | All above              |
+| Step | File                   | What to Build                              | Dependencies           |
+| ---- | ---------------------- | ------------------------------------------ | ---------------------- |
+| 16   | `tools.py`             | Custom txtai Agent tools (incl. Keltner)   | PostgreSQL, Embeddings, keltner.py |
+| 17   | `pipeline.py`          | Full evaluation cycle orchestrator (incl. Keltner gate) | All above  |
+| 18   | `recovery.py`          | Stale state detection                      | state_persistence.py   |
+| 19   | `config/txtai_app.yml` | txtai Application config (incl. Keltner)   | All above              |
 
-### Phase 5: Integration Testing (Days 10-11)
+### Phase 5: Integration Testing (Days 11-13)
 
 | Step | File                        | What to Build                                   | Dependencies           |
 | ---- | --------------------------- | ----------------------------------------------- | ---------------------- |
-| 17   | `tests/test_integration.py` | End-to-end tests                                | All above + PostgreSQL |
-| 18   | Manual testing              | Run evaluation cycles, verify state transitions | Running system         |
+| 20   | `tests/test_integration.py` | End-to-end tests (incl. Keltner gate scenarios) | All above + PostgreSQL |
+| 21   | Manual testing              | Run evaluation cycles, verify state transitions + Keltner gate paths | Running system |
 
 ---
 
@@ -2864,7 +3355,642 @@ tests/
 
 ---
 
-**Document Status**: Complete — ready for implementation
-**Total Custom Code Estimate**: ~1,200 lines Python + ~50 lines SQL + ~300 lines tests
+---
+
+## 21. Keltner Channel Sentiment Gate
+
+### 21.1 Concept
+
+The Keltner Channel Sentiment Gate is a **hard rule gate** at the `BREAKOUT_DETECTED` state that uses the H4 Keltner Channel band position to assess whether the current market sentiment supports the detected breakout direction.
+
+**Why H4?** The breakout is detected on the primary Decision TF (H1 for config_a, H2 for config_b). The sentiment measurement uses **one level above** the Navigation Layer to capture the broader structural sentiment context. H4 provides the structural backdrop that determines whether a breakout attempt has real sentiment support or is likely a fakeout.
+
+**Source indicator**: `Keltner Channel ATF_10 Bands_V2.mq5` — a custom MetaTrader 5 indicator that computes 10 Keltner Channel bands using an HRMA (Hull-Response Moving Average) center line and ATR-based band width.
+
+### 21.2 Gate Logic
+
+The gate fires **before the LLM** is consulted. It determines one of four outcomes:
+
+```
+BREAKOUT_DETECTED
+    │
+    ├── ★ Keltner Gate (hard rule, runs first)
+    │   │
+    │   ├── FAKEOUT → INVALIDATED (hard rule, no LLM)
+    │   │   Band contradicts breakout direction.
+    │   │   Long breakout + price in lower bands (7-10) = bearish sentiment dominant.
+    │   │   Short breakout + price in upper bands (1-5) = bullish sentiment dominant.
+    │   │
+    │   ├── NORMAL PULLBACK → continue to LLM (bands 5-6 for longs, 6-7 for shorts)
+    │   │   Moderate momentum — standard pullback expected.
+    │   │
+    │   ├── MOMENTUM CONFIRMED → IDLE (via respond) (hard rule, no LLM)
+    │   │   Strong sentiment aligned — pullback unlikely.
+    │   │   Generate momentum advisory immediately.
+    │   │
+    │   └── OVEREXTENDED → continue to LLM (but with caution context)
+    │       Extreme deviation — real sentiment but mean reversion risk.
+    │       Proceed to AWAITING_PULLBACK with expectation of retracement.
+    │
+    ├── Existing hard rules (instant_fakeout, timeout) — unchanged
+    │
+    └── LLM evaluation — for normal_pullback and overextended zones
+```
+
+### 21.3 Sentiment Zone Mapping
+
+#### For Long (Bullish) Breakouts:
+
+| Band | Zone Name | Location | Meaning | Action |
+|------|-----------|----------|---------|--------|
+| 1 | Ultra Extreme Upper | Above all bands | Massively overextended bullish | OVEREXTENDED — wait for pullback from extreme |
+| 2 | Extreme Upper | Above extreme band | Very overextended bullish | OVEREXTENDED — wait for pullback from extreme |
+| 3 | Uppermost | Above uppermost band | Strong bullish momentum | MOMENTUM CONFIRMED — skip pullback |
+| 4 | Upper | Above upper band | Solid bullish momentum | MOMENTUM CONFIRMED — skip pullback |
+| 5 | Upper Middle | Above HRMA of High | Moderate bullish — near center | NORMAL PULLBACK expected |
+| 6 | Lower Middle | Below HRMA of Low | Moderate — slightly below center | NORMAL PULLBACK expected |
+| 7 | Lower | Below lower band | Bearish pressure | FAKEOUT — bearish sentiment dominant |
+| 8 | Lowermost | Below lowermost band | Strong bearish pressure | FAKEOUT — bearish sentiment dominant |
+| 9 | Extreme Lower | Below extreme band | Very bearish | FAKEOUT — bearish sentiment dominant |
+| 10 | Ultra Extreme Lower | Below all bands | Massively bearish | FAKEOUT — bearish sentiment dominant |
+
+#### For Short (Bearish) Breakouts:
+
+| Band | Zone Name | Location | Meaning | Action |
+|------|-----------|----------|---------|--------|
+| 1 | Ultra Extreme Upper | Above all bands | Massively bullish | FAKEOUT — bullish sentiment dominant |
+| 2 | Extreme Upper | Above extreme band | Very bullish | FAKEOUT — bullish sentiment dominant |
+| 3 | Uppermost | Above uppermost band | Strong bullish pressure | FAKEOUT — bullish sentiment dominant |
+| 4 | Upper | Above upper band | Bullish pressure | FAKEOUT — bullish sentiment dominant |
+| 5 | Upper Middle | Above HRMA of High | Moderate — slightly above center | FAKEOUT — bullish sentiment dominant |
+| 6 | Lower Middle | Below HRMA of Low | Moderate bearish — near center | NORMAL PULLBACK expected |
+| 7 | Lower | Below lower band | Moderate bearish momentum | NORMAL PULLBACK expected |
+| 8 | Lowermost | Below lowermost band | Solid bearish momentum | MOMENTUM CONFIRMED — skip pullback |
+| 9 | Extreme Lower | Below extreme band | Strong bearish momentum | MOMENTUM CONFIRMED — skip pullback |
+| 10 | Ultra Extreme Lower | Below all bands | Massively overextended bearish | OVEREXTENDED — wait for pullback from extreme |
+
+### 21.4 Sentiment Gate Implementation
+
+```python
+# File: services/agent/sentiment_gate.py
+
+from enum import Enum
+from typing import Optional
+
+
+class SentimentZone(str, Enum):
+    """Keltner-derived sentiment zone classification."""
+    FAKEOUT = "FAKEOUT"
+    NORMAL_PULLBACK = "NORMAL_PULLBACK"
+    MOMENTUM_CONFIRMED = "MOMENTUM_CONFIRMED"
+    OVEREXTENDED = "OVEREXTENDED"
+
+
+def determine_keltner_band_position(close_price: float, bands: dict) -> int:
+    """Determine which of the 10 Keltner bands the price falls in.
+
+    Band numbering (1-10, top to bottom):
+    1 = Ultra Extreme Upper (above all bands)
+    2 = Extreme Upper
+    3 = Uppermost
+    4 = Upper
+    5 = Upper Middle (above HRMA of H4 High)
+    6 = Lower Middle (below HRMA of H4 Low)
+    7 = Lower
+    8 = Lowermost
+    9 = Extreme Lower
+    10 = Ultra Extreme Lower (below all bands)
+
+    Args:
+        close_price: Current close price on the Keltner timeframe (H4).
+        bands: Dict with band level values (keyed by band name).
+
+    Returns:
+        Integer 1-10 representing the band position.
+    """
+    # Band boundaries from highest to lowest
+    band_levels = [
+        (1, bands["ultra_extreme_upper"]),
+        (2, bands["extreme_upper"]),
+        (3, bands["uppermost"]),
+        (4, bands["upper"]),
+        (5, bands["upper_middle"]),
+        (6, bands["lower_middle"]),
+        (7, bands["lower"]),
+        (8, bands["lowermost"]),
+        (9, bands["extreme_lower"]),
+        (10, bands["ultra_extreme_lower"]),
+    ]
+
+    for band_num, level in band_levels:
+        if close_price >= level:
+            return band_num
+
+    return 10  # Below all bands
+
+
+def classify_sentiment_zone(band_position: int,
+                            trade_direction: str) -> SentimentZone:
+    """Classify the sentiment zone based on band position and trade direction.
+
+    Args:
+        band_position: 1-10 Keltner band position.
+        trade_direction: 'long' or 'short'.
+
+    Returns:
+        SentimentZone enum value.
+    """
+    if trade_direction == "long":
+        if band_position >= 7:
+            return SentimentZone.FAKEOUT
+        elif band_position in (5, 6):
+            return SentimentZone.NORMAL_PULLBACK
+        elif band_position in (3, 4):
+            return SentimentZone.MOMENTUM_CONFIRMED
+        else:  # 1, 2
+            return SentimentZone.OVEREXTENDED
+    else:  # short
+        if band_position <= 5:
+            return SentimentZone.FAKEOUT
+        elif band_position in (6, 7):
+            return SentimentZone.NORMAL_PULLBACK
+        elif band_position in (8, 9):
+            return SentimentZone.MOMENTUM_CONFIRMED
+        else:  # 10
+            return SentimentZone.OVEREXTENDED
+
+
+def evaluate_sentiment_gate(agent_state: dict,
+                            keltner_data: dict) -> Optional[str]:
+    """Evaluate the Keltner Sentiment Gate at BREAKOUT_DETECTED.
+
+    This function:
+    1. Determines the band position from current H4 price and bands.
+    2. Classifies the sentiment zone based on direction.
+    3. Updates agent_state with Keltner fields.
+    4. Returns a hard-rule condition if applicable, or None to continue to LLM.
+
+    Args:
+        agent_state: Current agent state (must be in BREAKOUT_DETECTED).
+                     Modified in-place with Keltner fields.
+        keltner_data: Dict with 'close_price' and 'bands' from H4.
+
+    Returns:
+        'sentiment_fakeout' — hard rule INVALIDATED
+        'momentum_confirmed' — hard rule IDLE via respond
+        None — NORMAL_PULLBACK or OVEREXTENDED, continue to LLM evaluation
+    """
+    close = keltner_data["close_price"]
+    bands = keltner_data["bands"]
+    direction = agent_state["trade_direction"]
+
+    # Step 1: Determine band position
+    band_position = determine_keltner_band_position(close, bands)
+
+    # Step 2: Classify sentiment zone
+    zone = classify_sentiment_zone(band_position, direction)
+
+    # Step 3: Update agent state
+    agent_state["keltner_band_position"] = band_position
+    agent_state["keltner_sentiment_zone"] = zone.value
+    agent_state["keltner_bands_snapshot"] = {
+        **bands,
+        "close_price": close,
+        "atr": keltner_data.get("atr"),
+        "upper_middle": bands.get("upper_middle"),
+        "lower_middle": bands.get("lower_middle"),
+    }
+
+    # Step 4: Return hard-rule condition or None
+    if zone == SentimentZone.FAKEOUT:
+        return "sentiment_fakeout"
+    elif zone == SentimentZone.MOMENTUM_CONFIRMED:
+        return "momentum_confirmed"
+    else:
+        # NORMAL_PULLBACK or OVEREXTENDED → continue to LLM
+        return None
+```
+
+---
+
+## 22. Keltner Indicator Specification
+
+### 22.1 Band Computation (Python Replication)
+
+The Keltner Channel bands are computed from H4 OHLCV data. This is a Python replication of the logic in `Keltner Channel ATF_10 Bands_V2.mq5`.
+
+```python
+# File: services/agent/keltner.py
+
+import numpy as np
+from typing import Dict, Tuple
+
+
+class KeltnerChannel:
+    """Computes 10-band Keltner Channel from OHLCV data.
+
+    Replicates the MQL5 indicator logic:
+    - Center line: HRMA (Hull-Response Moving Average) of H4 close
+    - Band width: ATR(162) at various multipliers
+    - Upper Middle: HRMA of H4 High
+    - Lower Middle: HRMA of H4 Low
+
+    The 10 bands are:
+    1. Ultra Extreme Upper:  HRMA + ATR × 4.0
+    2. Extreme Upper:        HRMA + ATR × 3.0
+    3. Uppermost:            HRMA + ATR × 2.0
+    4. Upper:                HRMA + ATR × 1.0
+    5. Upper Middle:         HRMA of H4 High
+    6. Lower Middle:         HRMA of H4 Low
+    7. Lower:                HRMA - ATR × 1.0
+    8. Lowermost:            HRMA - ATR × 2.0
+    9. Extreme Lower:        HRMA - ATR × 3.0
+    10. Ultra Extreme Lower: HRMA - ATR × 4.0
+    """
+
+    def __init__(self, hrma_period: int = 54, atr_period: int = 162,
+                 multipliers: Dict[str, float] = None):
+        self.hrma_period = hrma_period
+        self.atr_period = atr_period
+        self.multipliers = multipliers or {
+            "ultra_extreme": 4.0,
+            "extreme": 3.0,
+            "uppermost": 2.0,
+            "upper": 1.0,
+        }
+
+    def compute_hrma(self, values: np.ndarray) -> float:
+        """Compute HRMA (Hull-Response Moving Average).
+
+        HRMA is a variant of Hull Moving Average that provides
+        smoother response to price changes. Uses the formula:
+        HRMA = WMA(2 * WMA(n/2) - WMA(n), sqrt(n))
+
+        Args:
+            values: Array of price values (most recent last).
+
+        Returns:
+            Current HRMA value.
+        """
+        n = self.hrma_period
+        if len(values) < n:
+            return float(np.mean(values[-n:]))
+
+        half_n = max(1, n // 2)
+        sqrt_n = max(1, int(np.sqrt(n)))
+
+        wma_half = self._wma(values, half_n)
+        wma_full = self._wma(values, n)
+
+        # Compute the difference series
+        diff_series = 2 * wma_half - wma_full
+
+        # Apply final WMA with sqrt(n) period
+        # For a single point, this simplifies to the weighted average
+        # of the last sqrt_n diff values
+        return float(diff_series)
+
+    def compute_atr(self, highs: np.ndarray, lows: np.ndarray,
+                    closes: np.ndarray) -> float:
+        """Compute ATR (Average True Range).
+
+        Args:
+            highs: Array of high prices.
+            lows: Array of low prices.
+            closes: Array of close prices.
+
+        Returns:
+            Current ATR value.
+        """
+        n = min(self.atr_period, len(highs))
+        if n < 2:
+            return float(highs[-1] - lows[-1])
+
+        tr_values = []
+        for i in range(-n, 0):
+            high = highs[i]
+            low = lows[i]
+            prev_close = closes[i - 1] if i > -n else closes[i]
+            tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
+            tr_values.append(tr)
+
+        return float(np.mean(tr_values))
+
+    def compute_bands(self, ohlcv_data: list) -> Dict[str, float]:
+        """Compute all 10 Keltner Channel bands from OHLCV data.
+
+        Args:
+            ohlcv_data: List of OHLCV dicts (most recent last), each with
+                        keys: 'open', 'high', 'low', 'close'.
+                        Needs at least max(hrma_period, atr_period) bars.
+
+        Returns:
+            Dict with all 10 band values and metadata.
+        """
+        closes = np.array([float(bar["close"]) for bar in ohlcv_data])
+        highs = np.array([float(bar["high"]) for bar in ohlcv_data])
+        lows = np.array([float(bar["low"]) for bar in ohlcv_data])
+
+        # Center line: HRMA of close
+        hrma_close = self.compute_hrma(closes)
+
+        # ATR for band width
+        atr = self.compute_atr(highs, lows, closes)
+
+        # Upper Middle and Lower Middle: HRMA of High and Low
+        hrma_high = self.compute_hrma(highs)
+        hrma_low = self.compute_hrma(lows)
+
+        m = self.multipliers
+        return {
+            "ultra_extreme_upper": hrma_close + atr * m["ultra_extreme"],  # Band 1
+            "extreme_upper": hrma_close + atr * m["extreme"],              # Band 2
+            "uppermost": hrma_close + atr * m["uppermost"],                # Band 3
+            "upper": hrma_close + atr * m["upper"],                        # Band 4
+            "upper_middle": hrma_high,                                     # Band 5
+            "lower_middle": hrma_low,                                      # Band 6
+            "lower": hrma_close - atr * m["upper"],                        # Band 7
+            "lowermost": hrma_close - atr * m["uppermost"],                # Band 8
+            "extreme_lower": hrma_close - atr * m["extreme"],              # Band 9
+            "ultra_extreme_lower": hrma_close - atr * m["ultra_extreme"],  # Band 10
+            # Metadata
+            "hrma_close": hrma_close,
+            "atr": atr,
+        }
+
+    @staticmethod
+    def _wma(values: np.ndarray, period: int) -> float:
+        """Weighted Moving Average."""
+        if len(values) < period:
+            period = len(values)
+        weights = np.arange(1, period + 1, dtype=float)
+        return float(np.average(values[-period:], weights=weights))
+```
+
+### 22.2 Data Retrieval for Keltner
+
+```python
+# Added to services/agent/tools.py
+
+def fetch_keltner_data(instrument: str, tf_config: str) -> dict:
+    """Fetch H4 OHLCV data and compute Keltner Channel bands.
+
+    Args:
+        instrument: Trading instrument (e.g., 'EURUSD').
+        tf_config: Timeframe configuration.
+
+    Returns:
+        Dict with 'close_price', 'bands', and 'atr'.
+    """
+    from .keltner import KeltnerChannel
+    from .config import KELTNER_CONFIG
+    from sqlalchemy import create_engine, text
+
+    sentiment_tf = KELTNER_CONFIG[f"sentiment_tf_{tf_config}"]
+    engine = create_engine(DATABASE_URL)
+
+    # Fetch enough bars for ATR(162) + HRMA(54)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT open, high, low, close
+                FROM ohlcv_15m
+                WHERE symbol = :symbol AND timeframe = :tf
+                ORDER BY timestamp DESC
+                LIMIT 250
+            """),
+            {"symbol": instrument, "tf": sentiment_tf}
+        ).mappings().fetchall()
+
+    if not rows:
+        return None
+
+    # Reverse to chronological order (oldest first)
+    ohlcv_data = [dict(r) for r in reversed(rows)]
+
+    kc = KeltnerChannel(
+        hrma_period=KELTNER_CONFIG["hrma_period"],
+        atr_period=KELTNER_CONFIG["atr_period"],
+    )
+
+    bands = kc.compute_bands(ohlcv_data)
+    close_price = float(ohlcv_data[-1]["close"])
+
+    return {
+        "close_price": close_price,
+        "bands": bands,
+        "atr": bands["atr"],
+    }
+```
+
+---
+
+## 23. Sentiment Zone Model
+
+### 23.1 Core Principle
+
+The Keltner Channel Sentiment Gate operates on a key insight from the trading methodology:
+
+> **Sentiment determines pullback likelihood.** When market sentiment strongly aligns with a breakout direction, the typical pullback-to-trendline pattern becomes unreliable. Conversely, when sentiment contradicts the breakout direction, the breakout itself is structurally unsupported and likely to fail.
+
+### 23.2 Zone Behavior Summary
+
+| Zone | Gate Output | Pullback Likelihood | LLM Consulted? | Advisory Type |
+|------|------------|---------------------|-----------------|---------------|
+| FAKEOUT | Hard reject | N/A — setup invalid | No | Invalidation |
+| NORMAL_PULLBACK | Pass through | High | Yes | Standard flow |
+| MOMENTUM_CONFIRMED | Hard accept | Low | No | Momentum advisory |
+| OVEREXTENDED | Pass through | High (from extreme) | Yes | Cautious — mean reversion expected |
+
+### 23.3 Overextended Zone Behavior
+
+The OVEREXTENDED zone is notable because:
+
+- The breakout direction **is** supported by sentiment (price is beyond the extreme bands in the correct direction)
+- However, the price is at such extreme deviation that **mean reversion pressure** will likely force a pullback
+- This makes the **normal pullback flow** appropriate — the pullback is expected from price overextension, not from trendline physics
+- The LLM receives special context about this zone to evaluate whether mean reversion signals are developing
+
+### 23.4 Integration Touchpoints (Summary)
+
+This table summarizes all changes made to the base State Machine document:
+
+| Section | Component | Change Type | Description |
+|---------|-----------|-------------|-------------|
+| 4.1 | `TRANSITIONS` dict | Modified | Added `sentiment_fakeout` and `momentum_confirmed` to `BREAKOUT_DETECTED` |
+| 4.1 | `_reset_evaluation_context()` | Modified | Added Keltner field clearing |
+| 4.2 | State diagram | Replaced | Added Keltner gate box with three exit paths |
+| 5.3 | `route_after_evaluation()` | Modified | Added `respond_momentum_advisory` route |
+| 5.4 | Response table | Expanded | Added FAKEOUT, MOMENTUM_CONFIRMED, OVEREXTENDED response rows |
+| 6.1 | PostgreSQL schema | Modified | Added 3 columns + 2 constraints |
+| 6.2 | `AgentStateManager` | Modified | Added `keltner_bands_snapshot` to JSONB_FIELDS and default state |
+| 7.1 | `AgentState` TypedDict | Modified | Added 3 Keltner fields |
+| 8.1 | Transition table | Expanded | Added rows ★8 and ★9; modified row 10; total 20→22 |
+| 8.2 | `check_hard_rules()` | Modified | Added Keltner gate as Rule 2 |
+| 10.1 | `run_evaluation_cycle()` | Modified | Added Keltner data fetch and gate evaluation |
+| 10.1 | `_generate_hard_rule_response()` | Modified | Added `sentiment_fakeout` response message |
+| 14 | LLM prompt template | Modified | Added Keltner Sentiment Context block |
+| 14 | Prompt construction | Modified | Added Keltner fields to format() call |
+| 15 | `llm_parser.py` | Modified | Added `generate_momentum_advisory()` function |
+| 15 | `generate_response()` | Modified | Added `respond_momentum_advisory` route handler |
+| 17 | Configuration | Added | `KELTNER_CONFIG` dict + YAML keltner section |
+| 18 | Tests | Added | 3 new test classes (band position, zone classification, gate evaluation) |
+| 19 | File structure | Modified | Added `sentiment_gate.py`, `keltner.py`, `test_sentiment_gate.py` |
+| 20 | Implementation order | Modified | Inserted Keltner steps into Phase 2; renumbered Phases 3-5 |
+| 21-25 | New sections | Added | Full Keltner specification, indicator computation, data retrieval, VectorDB chunks |
+
+---
+
+## 24. Keltner Data Retrieval
+
+### 24.1 Data Source Options
+
+The Keltner Channel data can be sourced in two ways:
+
+**Option A: Compute on-the-fly (implemented above)**
+- Fetch raw H4 OHLCV from PostgreSQL
+- Compute HRMA and ATR in Python
+- Determine band positions
+- No additional infrastructure needed
+
+**Option B: Pre-computed from MT5 (optional optimization)**
+- MT5 runs `Keltner Channel ATF_10 Bands_V2.mq5` indicator
+- EA or script exports band values to PostgreSQL via Python bridge
+- Query pre-computed values directly
+- More accurate (matches live MT5 indicator exactly)
+- Requires MT5 data pipeline
+
+### 24.2 Pre-computed Table Schema (Optional)
+
+```sql
+-- Optional: Migration 002 — pre-computed Keltner Channel data
+-- Only needed if using Option B (MT5 pre-computed values)
+
+CREATE TABLE keltner_channel_data (
+    id BIGSERIAL PRIMARY KEY,
+    symbol VARCHAR(20) NOT NULL,
+    timeframe VARCHAR(10) NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+
+    -- Center line
+    hrma_close DECIMAL(20,5),
+    atr DECIMAL(20,5),
+
+    -- 10 bands
+    ultra_extreme_upper DECIMAL(20,5),    -- Band 1
+    extreme_upper DECIMAL(20,5),          -- Band 2
+    uppermost DECIMAL(20,5),              -- Band 3
+    upper_band DECIMAL(20,5),             -- Band 4
+    upper_middle DECIMAL(20,5),           -- Band 5 (HRMA of High)
+    lower_middle DECIMAL(20,5),           -- Band 6 (HRMA of Low)
+    lower_band DECIMAL(20,5),             -- Band 7
+    lowermost DECIMAL(20,5),              -- Band 8
+    extreme_lower DECIMAL(20,5),          -- Band 9
+    ultra_extreme_lower DECIMAL(20,5),    -- Band 10
+
+    -- Metadata
+    close_price DECIMAL(20,5),
+    band_position INT,                     -- Pre-computed 1-10 position
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT unique_keltner UNIQUE(symbol, timeframe, timestamp)
+);
+
+CREATE INDEX idx_keltner_latest ON keltner_channel_data (symbol, timeframe, timestamp DESC);
+```
+
+---
+
+## 25. VectorDB Knowledge Chunks — Keltner
+
+### 25.1 New Knowledge Chunks for Embeddings
+
+The following knowledge chunks should be added to the VectorDB for state-specific retrieval when the Keltner Sentiment Gate is active:
+
+```python
+KELTNER_KNOWLEDGE_CHUNKS = [
+    {
+        "text": (
+            "Keltner Channel Sentiment Gate: At BREAKOUT_DETECTED, evaluate the H4 "
+            "Keltner Channel band position to determine structural sentiment support. "
+            "Band positions 1-10 map to sentiment zones: FAKEOUT (sentiment contradicts "
+            "breakout), NORMAL_PULLBACK (moderate momentum, pullback expected), "
+            "MOMENTUM_CONFIRMED (strong sentiment, pullback unlikely), OVEREXTENDED "
+            "(extreme deviation, mean reversion expected)."
+        ),
+        "state_relevance": "BREAKOUT_DETECTED",
+        "topic": "keltner_sentiment",
+    },
+    {
+        "text": (
+            "For a long (bullish) breakout: price in lower Keltner bands (7-10) indicates "
+            "bearish sentiment still dominant — the breakout is a fakeout. Price in bands "
+            "3-4 indicates strong bullish momentum — pullback to the broken trendline is "
+            "unlikely; generate momentum advisory. Price in bands 5-6 indicates moderate "
+            "momentum — standard pullback expected. Price in bands 1-2 indicates overextension "
+            "— the bullish move is real but overextended, mean reversion will force a pullback."
+        ),
+        "state_relevance": "BREAKOUT_DETECTED",
+        "topic": "keltner_long",
+    },
+    {
+        "text": (
+            "For a short (bearish) breakout: price in upper Keltner bands (1-5) indicates "
+            "bullish sentiment still dominant — the breakout is a fakeout. Price in bands "
+            "8-9 indicates strong bearish momentum — pullback unlikely; generate momentum "
+            "advisory. Price in bands 6-7 indicates moderate bearish momentum — standard "
+            "pullback expected. Price in band 10 indicates overextension — the bearish move "
+            "is real but overextended, mean reversion will force a pullback."
+        ),
+        "state_relevance": "BREAKOUT_DETECTED",
+        "topic": "keltner_short",
+    },
+    {
+        "text": (
+            "OVEREXTENDED zone at BREAKOUT_DETECTED: Although sentiment confirms the "
+            "breakout direction, extreme price deviation from the HRMA center line creates "
+            "mean reversion pressure. Look for: narrowing TEMA/HRMA gap, reduced bar-by-bar "
+            "momentum, absorption candles (small bodies with wicks), and declining volume. "
+            "These signals suggest the overextended move is exhausting. Proceed to "
+            "AWAITING_PULLBACK with the expectation that retracement will come from "
+            "price overextension rather than trendline physics."
+        ),
+        "state_relevance": "BREAKOUT_DETECTED,AWAITING_PULLBACK",
+        "topic": "keltner_overextended",
+    },
+    {
+        "text": (
+            "MOMENTUM_CONFIRMED zone: When H4 Keltner band position confirms strong "
+            "directional momentum (bands 3-4 for longs, 8-9 for shorts), the traditional "
+            "pullback-to-broken-trendline model does not apply. The market has sufficient "
+            "structural momentum to sustain the move without retracing. In these cases, "
+            "generate a momentum advisory noting that a separate entry-price workflow "
+            "is needed (micro-TF S/R, consolidation levels within the momentum move)."
+        ),
+        "state_relevance": "BREAKOUT_DETECTED",
+        "topic": "keltner_momentum",
+    },
+]
+```
+
+### 25.2 Updated Knowledge Query Map
+
+The existing state-specific query map in `_fetch_knowledge()` (Section 10.1) should include Keltner context for `BREAKOUT_DETECTED`:
+
+```python
+# Updated query_map entry for BREAKOUT_DETECTED:
+State.BREAKOUT_DETECTED: (
+    "How to evaluate breakout quality holistically: body close position, "
+    "momentum Z-score context, TEMA/HRMA gap state, AND Keltner Channel "
+    "sentiment zone for structural momentum assessment"
+),
+```
+
+---
+
+**Document Status**: Complete — ready for implementation (v2.0, with Keltner Sentiment Gate integration)
+**Total Custom Code Estimate**: ~1,600 lines Python + ~80 lines SQL + ~500 lines tests
+**New Files**: `sentiment_gate.py` (~120 lines), `keltner.py` (~100 lines), `test_sentiment_gate.py` (~200 lines)
 **Framework Dependencies**: txtai (with agent, api, database, pipeline-llm extras)
 **External Dependencies**: PostgreSQL, Claude API (Anthropic)
