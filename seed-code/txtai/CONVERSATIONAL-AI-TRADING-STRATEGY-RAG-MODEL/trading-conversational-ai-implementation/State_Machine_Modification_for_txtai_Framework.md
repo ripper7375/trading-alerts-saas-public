@@ -683,14 +683,14 @@ def route_after_evaluation(agent_state: dict) -> str:
 | IDLE | — | Market overview | "No active setup. Market is [regime]. Monitoring for opportunities." |
 | SCANNING | — | Setup developing | "Watching for breakout on [trendline]. Convergence at [score]." |
 | BREAKOUT_DETECTED | — | Alert | "Breakout detected on [instrument] [TF]. Evaluating quality..." |
-| ★ BREAKOUT_DETECTED | FAKEOUT | Invalidation | "Breakout invalidated — Keltner band position [X] indicates [bearish/bullish] sentiment still dominant. Breakout lacks structural support for reversal. Likely fakeout." |
-| ★ BREAKOUT_DETECTED | MOMENTUM_CONFIRMED | **Momentum Advisory** | "**MOMENTUM ENTRY**: [instrument] [direction] breakout confirmed. Keltner band [X] — strong [bullish/bearish] sentiment, pullback unlikely. Convergence: [score]. [Separate workflow needed for precise entry prices.]" |
-| ★ BREAKOUT_DETECTED | OVEREXTENDED | Alert + Caution | "Breakout confirmed but price overextended (Keltner band [X]). Waiting for pullback from extreme — mean reversion expected." |
-| AWAITING_PULLBACK | NORMAL_PULLBACK | Update | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining." |
-| ★ AWAITING_PULLBACK | OVEREXTENDED | Update + Context | "Breakout confirmed. Price overextended (band [X]) — pullback from extreme likely. Monitoring for retracement." |
+| ★ BREAKOUT_DETECTED | FAKEOUT | Invalidation | "Breakout attempt noted but Keltner band position [X] suggests [bearish/bullish] sentiment may still be dominant. Structural conditions appear unfavorable for sustained reversal — elevated risk of fakeout. Setup discontinued." |
+| ★ BREAKOUT_DETECTED | MOMENTUM_CONFIRMED | **Momentum Advisory** | "**MOMENTUM OBSERVATION**: [instrument] [direction] breakout detected. Keltner band [X] suggests elevated [bullish/bearish] sentiment — traditional pullback may be less likely in this environment. Convergence: [score]. This is an observation, not a guarantee. [Separate workflow needed for precise entry prices.]" |
+| ★ BREAKOUT_DETECTED | OVEREXTENDED | Alert + Caution | "Breakout detected but price appears overextended (Keltner band [X]). At this deviation, a retracement toward the mean may develop. Monitoring cautiously." |
+| AWAITING_PULLBACK | NORMAL_PULLBACK | Update | "Breakout detected. Monitoring for potential pullback toward [level]. [X] bars remaining in observation window." |
+| ★ AWAITING_PULLBACK | OVEREXTENDED | Update + Context | "Breakout detected with price appearing overextended (band [X]) — conditions may favor a retracement. Monitoring for potential pullback." |
 | PULLBACK_TESTING (score >= 5.0) | — | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence. |
 | PULLBACK_TESTING (score < 5.0) | — | Caution | "Pullback at zone but convergence insufficient ([score]). Monitoring." |
-| MISSED | — | Missed opportunity | "Valid breakout but entry window expired. Cooldown [X] bars." |
+| MISSED | — | Missed opportunity | "Observation window expired without pullback entry conditions being met. Cooldown [X] bars." |
 | INVALIDATED | — | Invalidation report | "Setup invalidated: [reason]. Cooldown [X] bars." |
 
 ★ = New or modified rows from the Keltner Sentiment Gate integration.
@@ -1838,7 +1838,7 @@ def _generate_time_transition_response(agent_state: dict, condition: str) -> str
 
     messages = {
         "timeout": f"{instrument}: Setup timed out in {state}. Returning to monitoring.",
-        "window_expired": f"{instrument}: Pullback entry window expired. Valid breakout but entry opportunity missed. Cooldown active.",
+        "window_expired": f"{instrument}: Observation window expired. No pullback entry conditions were met within the monitoring period. Cooldown active.",
         "cooldown_expired": f"{instrument}: Cooldown complete. Resuming normal monitoring.",
     }
     return messages.get(condition, f"{instrument}: State transition due to {condition}.")
@@ -1855,13 +1855,14 @@ def _generate_hard_rule_response(agent_state: dict, condition: str,
     sentiment_label = "bearish" if direction == "long" else "bullish"
 
     messages = {
-        "instant_fakeout": f"{instrument}: INVALIDATED. Price reversed back through trendline (close: {price}). Breakout failed.",
-        "failed_breakout": f"{instrument}: INVALIDATED. Price closed back through broken trendline. The breakout has failed.",
-        "level_broken": f"{instrument}: INVALIDATED. Support/resistance level broken decisively. Zone test failed.",
+        "instant_fakeout": f"{instrument}: INVALIDATED. Price reversed back through trendline (close: {price}). Breakout appears to have failed — setup discontinued.",
+        "failed_breakout": f"{instrument}: INVALIDATED. Price closed back through broken trendline. Breakout appears to have failed — setup discontinued.",
+        "level_broken": f"{instrument}: INVALIDATED. Key level appears broken decisively. Zone test conditions no longer favorable — setup discontinued.",
         "sentiment_fakeout": (
-            f"{instrument}: INVALIDATED — Keltner band position {band} indicates "
-            f"{sentiment_label} sentiment still dominant. Breakout lacks structural "
-            f"support for reversal. Likely fakeout."
+            f"{instrument}: INVALIDATED — Keltner band position {band} suggests "
+            f"{sentiment_label} sentiment may still be dominant. Structural conditions "
+            f"appear unfavorable for sustained reversal — elevated fakeout risk. "
+            f"Setup discontinued."
         ),
     }
     return messages.get(condition, f"{instrument}: Hard rule triggered: {condition}.")
@@ -2269,13 +2270,43 @@ For OVEREXTENDED zone: evaluate whether mean reversion signals are developing
 - Counter-trend modifier has already been applied to the score
 - For pullback evaluation: require ACTIVE bounce/rejection, not passive holding
 
+## CRITICAL: Tone & Language Rules for Assessment Text
+Market movement is inherently unpredictable. Your assessment text will be shown to users.
+You MUST follow these language rules strictly:
+
+PROHIBITED — Never use these phrases or equivalents:
+- "breakout confirmed" / "breakout is confirmed"
+- "pullback unlikely" / "pullback will not occur" / "no pullback expected"
+- "pullback expected" / "pullback will occur" / "will pull back"
+- "price will" / "price is going to" / "will move to"
+- "mean reversion expected" / "mean reversion will force"
+- "strong bullish" / "strong bearish" (as absolute characterizations)
+- "the breakout is a fakeout" / "this is a fakeout"
+- "guaranteed" / "certain" / "definitely" / "without doubt"
+- "confirmed direction" / "the move will continue"
+
+REQUIRED — Use hedged, probabilistic language instead:
+- "breakout detected" / "breakout attempt observed"
+- "pullback may be less likely" / "conditions may not favor a traditional pullback"
+- "conditions may favor a pullback" / "pullback conditions appear present"
+- "price may" / "price appears to be" / "conditions suggest"
+- "retracement conditions may develop" / "mean reversion dynamics could emerge"
+- "suggests elevated bullish/bearish sentiment"
+- "elevated fakeout risk" / "conditions appear unfavorable"
+- "appears to" / "suggests" / "may indicate" / "conditions favor"
+
+ALWAYS include one of these disclaimers in your assessment:
+- "Market conditions can change rapidly."
+- "This reflects current structural conditions, not a prediction."
+- "Past patterns do not guarantee future behavior."
+
 ## Response Format
 Respond in JSON:
 {{
     "score_adjustment": <float between -1.5 and 1.5>,
     "recommended_condition": "<one of the allowed transition conditions>",
     "confidence": <float between 0.0 and 1.0>,
-    "assessment": "<2-3 sentence natural language assessment>"
+    "assessment": "<2-3 sentence natural language assessment using ONLY hedged/probabilistic language as specified above>"
 }}
 """
 
@@ -2322,8 +2353,8 @@ def evaluate_with_llm(agent_state: dict, market_data: dict,
 
     # Generate sentiment zone explanation for LLM
     zone_explanations = {
-        "NORMAL_PULLBACK": "Moderate momentum — pullback to broken trendline is expected. Standard breakout-pullback-confirmation flow applies.",
-        "OVEREXTENDED": "Price is at extreme deviation from the mean. Despite real sentiment, entry now would be chasing into overextension. Mean reversion pressure is building — wait for retracement.",
+        "NORMAL_PULLBACK": "Moderate momentum — conditions may favor a pullback to the broken trendline area. Standard breakout-pullback-confirmation flow applies, but outcomes are never certain.",
+        "OVEREXTENDED": "Price appears at elevated deviation from the mean. Despite apparent directional sentiment, chasing at this extension carries risk. Mean reversion conditions may develop — monitor for signs of retracement.",
     }
     sentiment_explanation = zone_explanations.get(
         keltner_zone,
@@ -2475,14 +2506,14 @@ def _regex_fallback_parse(text: str) -> dict:
 
 
 def generate_momentum_advisory(agent_state: dict) -> str:
-    """Generate advisory for momentum-confirmed breakout (no pullback expected).
+    """Generate advisory for momentum-zone breakout where pullback appears less likely.
 
     Called when the Keltner Sentiment Gate determines that structural
-    sentiment strongly confirms the breakout direction, making a
-    traditional pullback unlikely.
+    sentiment appears to favor the breakout direction, suggesting a
+    traditional pullback may be less likely to occur.
 
-    This advisory acknowledges that a separate workflow is needed
-    for precise entry price recommendation.
+    Uses cautious, probabilistic language throughout — never states
+    price direction as certainty.
 
     Args:
         agent_state: Agent state with breakout and Keltner data.
@@ -2498,18 +2529,21 @@ def generate_momentum_advisory(agent_state: dict) -> str:
     breakout_price = agent_state.get("breakout_bar_price", "N/A")
 
     sentiment_desc = (
-        "strong bullish" if agent_state["trade_direction"] == "long"
-        else "strong bearish"
+        "elevated bullish" if agent_state["trade_direction"] == "long"
+        else "elevated bearish"
     )
 
     return (
-        f"MOMENTUM ENTRY — {instrument} {direction_label}\n\n"
-        f"Breakout confirmed at {breakout_price}. "
-        f"H4 Keltner band position: {band} — {sentiment_desc} sentiment. "
-        f"Pullback to broken trendline is unlikely at current momentum.\n\n"
+        f"MOMENTUM OBSERVATION — {instrument} {direction_label}\n\n"
+        f"Breakout detected at {breakout_price}. "
+        f"H4 Keltner band position: {band} — suggests {sentiment_desc} sentiment. "
+        f"In this environment, a traditional pullback to the broken trendline "
+        f"may be less likely to develop — but this is not guaranteed.\n\n"
         f"Regime: {regime}\n"
         f"Convergence: {score}\n"
-        f"Sentiment zone: MOMENTUM CONFIRMED\n\n"
+        f"Sentiment zone: MOMENTUM OBSERVATION\n\n"
+        f"CAUTION: Market conditions can change rapidly. This observation "
+        f"reflects current structural sentiment, not a prediction. "
         f"Precise entry prices require separate analysis "
         f"(micro-timeframe S/R, consolidation levels within momentum move)."
     )
@@ -2549,23 +2583,34 @@ def generate_response(agent_state: dict, market_data: dict,
 
     if route == "build_zone_and_respond":
         prompt = (
-            f"Generate a trade recommendation for {instrument}. "
+            f"Generate a trade observation summary for {instrument}. "
             f"State: {state}. Regime: {regime}. Convergence score: {score}. "
             f"Assessment: {assessment}. "
             f"Zone: {agent_state.get('sr_zone', 'N/A')}. "
-            f"Include: entry zone levels, suggested lot allocation, "
+            f"Include: observed zone levels, suggested lot allocation, "
             f"score breakdown, confidence level, and key risk factors. "
-            f"Be direct and data-driven. Lead with the conclusion."
+            f"TONE RULES: Use probabilistic, hedged language throughout. "
+            f"Say 'conditions suggest' not 'price will'. Say 'appears favorable' "
+            f"not 'confirmed'. Never use 'guaranteed', 'certain', or 'will'. "
+            f"Include a brief risk disclaimer. Lead with the observation, "
+            f"then supporting data."
         )
     else:
         prompt = (
             f"Generate a brief status update for {instrument}. "
             f"State: {state}. Regime: {regime}. Score: {score}. "
             f"Assessment: {assessment}. "
-            f"Be concise — 2-3 sentences. State the key takeaway first."
+            f"TONE RULES: Use cautious, probabilistic language. "
+            f"Say 'appears to' or 'suggests' rather than definitive statements. "
+            f"Never state outcomes as certain. "
+            f"Be concise — 2-3 sentences. State the key observation first."
         )
 
-    return llm_instance(prompt, maxlength=512)
+    raw_response = llm_instance(prompt, maxlength=512)
+
+    # Post-generation tone validation (Section 26)
+    from tone_validator import enforce_tone
+    return enforce_tone(raw_response, llm_instance=llm_instance)
 ```
 
 ---
@@ -3258,7 +3303,8 @@ services/
     ├── llm_parser.py             # LLM output parsing with fallback — MODIFIED (momentum advisory generator)
     ├── recovery.py               # Stale state detection and recovery
     ├── tools.py                  # Custom txtai Agent tools — MODIFIED (fetch_keltner_data)
-    └── config.py                 # Configuration constants — MODIFIED (KELTNER_CONFIG)
+    ├── config.py                 # Configuration constants — MODIFIED (KELTNER_CONFIG)
+    └── tone_validator.py         # ★ NEW — Post-generation tone validation (Section 26)
 
 config/
 └── txtai_app.yml                 # txtai Application configuration — MODIFIED (keltner section)
@@ -3270,6 +3316,7 @@ migrations/
 tests/
 ├── test_state_machine.py         # Unit tests for state machine — MODIFIED (2 new transition tests)
 ├── test_sentiment_gate.py        # ★ NEW — Comprehensive Keltner sentiment gate tests
+├── test_tone_validator.py        # ★ NEW — Tone validation unit tests (Section 26)
 ├── test_convergence.py           # Unit tests for scoring
 ├── test_llm_parser.py            # Unit tests for output parsing
 └── test_integration.py           # Integration tests (requires DB)
@@ -3301,29 +3348,31 @@ tests/
 | 11   | `tests/test_convergence.py`     | Scoring unit tests                     | convergence.py   |
 | 12   | `tests/test_sentiment_gate.py`  | ★ Keltner sentiment gate unit tests   | sentiment_gate.py |
 
-### Phase 3: LLM Integration (Days 7-8)
+### Phase 3: LLM Integration & Tone Regulation (Days 7-9)
 
-| Step | File                       | What to Build                         | Dependencies       |
-| ---- | -------------------------- | ------------------------------------- | ------------------ |
-| 13   | `llm_interface.py`         | Prompt template + LLM calling (incl. Keltner context) | txtai LLM pipeline, sentiment_gate.py |
-| 14   | `llm_parser.py`            | JSON parsing + fallback + momentum advisory | None          |
-| 15   | `tests/test_llm_parser.py` | Parser unit tests                     | llm_parser.py      |
+| Step | File                           | What to Build                         | Dependencies       |
+| ---- | ------------------------------ | ------------------------------------- | ------------------ |
+| 13   | `llm_interface.py`             | Prompt template + LLM calling (incl. Keltner context + tone rules) | txtai LLM pipeline, sentiment_gate.py |
+| 14   | `llm_parser.py`                | JSON parsing + fallback + momentum advisory | None          |
+| 15   | `tone_validator.py`            | ★ Post-generation tone validation (Section 26) | None         |
+| 16   | `tests/test_llm_parser.py`    | Parser unit tests                     | llm_parser.py      |
+| 17   | `tests/test_tone_validator.py` | ★ Tone validation unit tests         | tone_validator.py  |
 
-### Phase 4: Pipeline & Tools (Days 9-10)
+### Phase 4: Pipeline & Tools (Days 10-11)
 
 | Step | File                   | What to Build                              | Dependencies           |
 | ---- | ---------------------- | ------------------------------------------ | ---------------------- |
-| 16   | `tools.py`             | Custom txtai Agent tools (incl. Keltner)   | PostgreSQL, Embeddings, keltner.py |
-| 17   | `pipeline.py`          | Full evaluation cycle orchestrator (incl. Keltner gate) | All above  |
-| 18   | `recovery.py`          | Stale state detection                      | state_persistence.py   |
-| 19   | `config/txtai_app.yml` | txtai Application config (incl. Keltner)   | All above              |
+| 18   | `tools.py`             | Custom txtai Agent tools (incl. Keltner)   | PostgreSQL, Embeddings, keltner.py |
+| 19   | `pipeline.py`          | Full evaluation cycle orchestrator (incl. Keltner gate + tone enforcement) | All above  |
+| 20   | `recovery.py`          | Stale state detection                      | state_persistence.py   |
+| 21   | `config/txtai_app.yml` | txtai Application config (incl. Keltner)   | All above              |
 
-### Phase 5: Integration Testing (Days 11-13)
+### Phase 5: Integration Testing (Days 12-14)
 
 | Step | File                        | What to Build                                   | Dependencies           |
 | ---- | --------------------------- | ----------------------------------------------- | ---------------------- |
-| 20   | `tests/test_integration.py` | End-to-end tests (incl. Keltner gate scenarios) | All above + PostgreSQL |
-| 21   | Manual testing              | Run evaluation cycles, verify state transitions + Keltner gate paths | Running system |
+| 22   | `tests/test_integration.py` | End-to-end tests (incl. Keltner gate scenarios + tone validation) | All above + PostgreSQL |
+| 23   | Manual testing              | Run evaluation cycles, verify state transitions + Keltner gate paths + tone compliance | Running system |
 
 ---
 
@@ -3377,20 +3426,20 @@ BREAKOUT_DETECTED
     ├── ★ Keltner Gate (hard rule, runs first)
     │   │
     │   ├── FAKEOUT → INVALIDATED (hard rule, no LLM)
-    │   │   Band contradicts breakout direction.
-    │   │   Long breakout + price in lower bands (7-10) = bearish sentiment dominant.
-    │   │   Short breakout + price in upper bands (1-5) = bullish sentiment dominant.
+    │   │   Band appears to contradict breakout direction.
+    │   │   Long breakout + price in lower bands (7-10) = bearish sentiment appears dominant.
+    │   │   Short breakout + price in upper bands (1-5) = bullish sentiment appears dominant.
     │   │
     │   ├── NORMAL PULLBACK → continue to LLM (bands 5-6 for longs, 6-7 for shorts)
-    │   │   Moderate momentum — standard pullback expected.
+    │   │   Moderate momentum — conditions may favor a standard pullback.
     │   │
-    │   ├── MOMENTUM CONFIRMED → IDLE (via respond) (hard rule, no LLM)
-    │   │   Strong sentiment aligned — pullback unlikely.
-    │   │   Generate momentum advisory immediately.
+    │   ├── MOMENTUM OBSERVED → IDLE (via respond) (hard rule, no LLM)
+    │   │   Elevated sentiment appears aligned — traditional pullback may be less likely.
+    │   │   Generate momentum observation immediately.
     │   │
     │   └── OVEREXTENDED → continue to LLM (but with caution context)
-    │       Extreme deviation — real sentiment but mean reversion risk.
-    │       Proceed to AWAITING_PULLBACK with expectation of retracement.
+    │       Elevated deviation — directional sentiment appears present but retracement risk elevated.
+    │       Proceed to AWAITING_PULLBACK — monitor for retracement conditions.
     │
     ├── Existing hard rules (instant_fakeout, timeout) — unchanged
     │
@@ -3403,31 +3452,31 @@ BREAKOUT_DETECTED
 
 | Band | Zone Name | Location | Meaning | Action |
 |------|-----------|----------|---------|--------|
-| 1 | Ultra Extreme Upper | Above all bands | Massively overextended bullish | OVEREXTENDED — wait for pullback from extreme |
-| 2 | Extreme Upper | Above extreme band | Very overextended bullish | OVEREXTENDED — wait for pullback from extreme |
-| 3 | Uppermost | Above uppermost band | Strong bullish momentum | MOMENTUM CONFIRMED — skip pullback |
-| 4 | Upper | Above upper band | Solid bullish momentum | MOMENTUM CONFIRMED — skip pullback |
-| 5 | Upper Middle | Above HRMA of High | Moderate bullish — near center | NORMAL PULLBACK expected |
-| 6 | Lower Middle | Below HRMA of Low | Moderate — slightly below center | NORMAL PULLBACK expected |
-| 7 | Lower | Below lower band | Bearish pressure | FAKEOUT — bearish sentiment dominant |
-| 8 | Lowermost | Below lowermost band | Strong bearish pressure | FAKEOUT — bearish sentiment dominant |
-| 9 | Extreme Lower | Below extreme band | Very bearish | FAKEOUT — bearish sentiment dominant |
-| 10 | Ultra Extreme Lower | Below all bands | Massively bearish | FAKEOUT — bearish sentiment dominant |
+| 1 | Ultra Extreme Upper | Above all bands | Appears massively overextended bullish | OVEREXTENDED — retracement conditions may develop |
+| 2 | Extreme Upper | Above extreme band | Appears very overextended bullish | OVEREXTENDED — retracement conditions may develop |
+| 3 | Uppermost | Above uppermost band | Suggests elevated bullish momentum | MOMENTUM OBSERVED — pullback may be less likely |
+| 4 | Upper | Above upper band | Suggests solid bullish momentum | MOMENTUM OBSERVED — pullback may be less likely |
+| 5 | Upper Middle | Above HRMA of High | Moderate bullish — near center | NORMAL PULLBACK — conditions may favor pullback |
+| 6 | Lower Middle | Below HRMA of Low | Moderate — slightly below center | NORMAL PULLBACK — conditions may favor pullback |
+| 7 | Lower | Below lower band | Bearish pressure apparent | FAKEOUT RISK — bearish sentiment appears dominant |
+| 8 | Lowermost | Below lowermost band | Elevated bearish pressure | FAKEOUT RISK — bearish sentiment appears dominant |
+| 9 | Extreme Lower | Below extreme band | Appears very bearish | FAKEOUT RISK — bearish sentiment appears dominant |
+| 10 | Ultra Extreme Lower | Below all bands | Appears massively bearish | FAKEOUT RISK — bearish sentiment appears dominant |
 
 #### For Short (Bearish) Breakouts:
 
 | Band | Zone Name | Location | Meaning | Action |
 |------|-----------|----------|---------|--------|
-| 1 | Ultra Extreme Upper | Above all bands | Massively bullish | FAKEOUT — bullish sentiment dominant |
-| 2 | Extreme Upper | Above extreme band | Very bullish | FAKEOUT — bullish sentiment dominant |
-| 3 | Uppermost | Above uppermost band | Strong bullish pressure | FAKEOUT — bullish sentiment dominant |
-| 4 | Upper | Above upper band | Bullish pressure | FAKEOUT — bullish sentiment dominant |
-| 5 | Upper Middle | Above HRMA of High | Moderate — slightly above center | FAKEOUT — bullish sentiment dominant |
-| 6 | Lower Middle | Below HRMA of Low | Moderate bearish — near center | NORMAL PULLBACK expected |
-| 7 | Lower | Below lower band | Moderate bearish momentum | NORMAL PULLBACK expected |
-| 8 | Lowermost | Below lowermost band | Solid bearish momentum | MOMENTUM CONFIRMED — skip pullback |
-| 9 | Extreme Lower | Below extreme band | Strong bearish momentum | MOMENTUM CONFIRMED — skip pullback |
-| 10 | Ultra Extreme Lower | Below all bands | Massively overextended bearish | OVEREXTENDED — wait for pullback from extreme |
+| 1 | Ultra Extreme Upper | Above all bands | Appears massively bullish | FAKEOUT RISK — bullish sentiment appears dominant |
+| 2 | Extreme Upper | Above extreme band | Appears very bullish | FAKEOUT RISK — bullish sentiment appears dominant |
+| 3 | Uppermost | Above uppermost band | Elevated bullish pressure | FAKEOUT RISK — bullish sentiment appears dominant |
+| 4 | Upper | Above upper band | Bullish pressure apparent | FAKEOUT RISK — bullish sentiment appears dominant |
+| 5 | Upper Middle | Above HRMA of High | Moderate — slightly above center | FAKEOUT RISK — bullish sentiment appears dominant |
+| 6 | Lower Middle | Below HRMA of Low | Moderate bearish — near center | NORMAL PULLBACK — conditions may favor pullback |
+| 7 | Lower | Below lower band | Moderate bearish momentum | NORMAL PULLBACK — conditions may favor pullback |
+| 8 | Lowermost | Below lowermost band | Suggests solid bearish momentum | MOMENTUM OBSERVED — pullback may be less likely |
+| 9 | Extreme Lower | Below extreme band | Suggests elevated bearish momentum | MOMENTUM OBSERVED — pullback may be less likely |
+| 10 | Ultra Extreme Lower | Below all bands | Appears massively overextended bearish | OVEREXTENDED — retracement conditions may develop |
 
 ### 21.4 Sentiment Gate Implementation
 
@@ -3795,21 +3844,22 @@ The Keltner Channel Sentiment Gate operates on a key insight from the trading me
 
 ### 23.2 Zone Behavior Summary
 
-| Zone | Gate Output | Pullback Likelihood | LLM Consulted? | Advisory Type |
-|------|------------|---------------------|-----------------|---------------|
-| FAKEOUT | Hard reject | N/A — setup invalid | No | Invalidation |
-| NORMAL_PULLBACK | Pass through | High | Yes | Standard flow |
-| MOMENTUM_CONFIRMED | Hard accept | Low | No | Momentum advisory |
-| OVEREXTENDED | Pass through | High (from extreme) | Yes | Cautious — mean reversion expected |
+| Zone | Gate Output | Pullback Likelihood Assessment | LLM Consulted? | Advisory Type |
+|------|------------|-------------------------------|-----------------|---------------|
+| FAKEOUT | Hard reject | N/A — setup discontinued | No | Invalidation (cautious tone) |
+| NORMAL_PULLBACK | Pass through | Conditions may favor pullback | Yes | Standard flow (hedged language) |
+| MOMENTUM_CONFIRMED | Hard accept | Pullback appears less likely | No | Momentum observation (cautious tone) |
+| OVEREXTENDED | Pass through | Retracement conditions may develop | Yes | Cautious — monitor for retracement signals |
 
 ### 23.3 Overextended Zone Behavior
 
 The OVEREXTENDED zone is notable because:
 
-- The breakout direction **is** supported by sentiment (price is beyond the extreme bands in the correct direction)
-- However, the price is at such extreme deviation that **mean reversion pressure** will likely force a pullback
-- This makes the **normal pullback flow** appropriate — the pullback is expected from price overextension, not from trendline physics
+- The breakout direction **appears** to be supported by sentiment (price is beyond the extreme bands in the direction consistent with the breakout)
+- However, the price is at such elevated deviation that **conditions may become conducive to mean reversion** — a retracement may develop
+- This makes the **normal pullback flow** appropriate — any pullback may come from price overextension dynamics, not from trendline physics
 - The LLM receives special context about this zone to evaluate whether mean reversion signals are developing
+- **Tone note**: Even though overextension suggests retracement, the system must communicate this as a possibility, not a certainty. Overextended conditions can persist longer than expected.
 
 ### 23.4 Integration Touchpoints (Summary)
 
@@ -3835,9 +3885,18 @@ This table summarizes all changes made to the base State Machine document:
 | 15 | `generate_response()` | Modified | Added `respond_momentum_advisory` route handler |
 | 17 | Configuration | Added | `KELTNER_CONFIG` dict + YAML keltner section |
 | 18 | Tests | Added | 3 new test classes (band position, zone classification, gate evaluation) |
-| 19 | File structure | Modified | Added `sentiment_gate.py`, `keltner.py`, `test_sentiment_gate.py` |
-| 20 | Implementation order | Modified | Inserted Keltner steps into Phase 2; renumbered Phases 3-5 |
+| 19 | File structure | Modified | Added `sentiment_gate.py`, `keltner.py`, `test_sentiment_gate.py`, `tone_validator.py`, `test_tone_validator.py` |
+| 20 | Implementation order | Modified | Inserted Keltner steps into Phase 2; tone validator into Phase 3; renumbered Phases 4-5 |
 | 21-25 | New sections | Added | Full Keltner specification, indicator computation, data retrieval, VectorDB chunks |
+| 26 | New section | Added | Tone & Language Policy — prohibited/required word lists, post-generation tone validator, test cases |
+| 5.4 | Response table | Modified | All Keltner rows rewritten with probabilistic language |
+| 10.1 | `_generate_hard_rule_response()` | Modified | All 4 messages rewritten with hedged tone |
+| 14 | LLM prompt template | Modified | Added PROHIBITED/REQUIRED word lists and disclaimer rules |
+| 15 | `generate_response()` | Modified | Added tone rules to prompts; integrated `enforce_tone()` post-validation |
+| 15 | `generate_momentum_advisory()` | Modified | Rewritten with probabilistic language and disclaimers |
+| 21.3 | Zone mapping tables | Modified | Replaced absolute labels with probabilistic equivalents |
+| 23.2-23.3 | Zone behavior summary | Modified | Replaced decisive language with cautious alternatives |
+| 25 | VectorDB knowledge chunks | Modified | All 5 chunks rewritten with embedded tone rules |
 
 ---
 
@@ -3913,60 +3972,73 @@ KELTNER_KNOWLEDGE_CHUNKS = [
     {
         "text": (
             "Keltner Channel Sentiment Gate: At BREAKOUT_DETECTED, evaluate the H4 "
-            "Keltner Channel band position to determine structural sentiment support. "
-            "Band positions 1-10 map to sentiment zones: FAKEOUT (sentiment contradicts "
-            "breakout), NORMAL_PULLBACK (moderate momentum, pullback expected), "
-            "MOMENTUM_CONFIRMED (strong sentiment, pullback unlikely), OVEREXTENDED "
-            "(extreme deviation, mean reversion expected)."
+            "Keltner Channel band position to assess structural sentiment context. "
+            "Band positions 1-10 map to sentiment zones: FAKEOUT (sentiment appears to "
+            "contradict breakout — elevated risk of failure), NORMAL_PULLBACK (moderate "
+            "momentum — conditions may favor a pullback), MOMENTUM_OBSERVED (elevated "
+            "directional sentiment — traditional pullback may be less likely), OVEREXTENDED "
+            "(extreme deviation — retracement conditions may develop). NOTE: All zone "
+            "assessments are probabilistic observations, not predictions. Market behavior "
+            "remains inherently uncertain."
         ),
         "state_relevance": "BREAKOUT_DETECTED",
         "topic": "keltner_sentiment",
     },
     {
         "text": (
-            "For a long (bullish) breakout: price in lower Keltner bands (7-10) indicates "
-            "bearish sentiment still dominant — the breakout is a fakeout. Price in bands "
-            "3-4 indicates strong bullish momentum — pullback to the broken trendline is "
-            "unlikely; generate momentum advisory. Price in bands 5-6 indicates moderate "
-            "momentum — standard pullback expected. Price in bands 1-2 indicates overextension "
-            "— the bullish move is real but overextended, mean reversion will force a pullback."
+            "For a long (bullish) breakout: price in lower Keltner bands (7-10) suggests "
+            "bearish sentiment may still be dominant — the breakout carries elevated fakeout "
+            "risk. Price in bands 3-4 suggests elevated bullish sentiment — a traditional "
+            "pullback to the broken trendline may be less likely in this environment; generate "
+            "momentum observation. Price in bands 5-6 suggests moderate momentum — conditions "
+            "may favor a standard pullback. Price in bands 1-2 suggests overextension — while "
+            "directional sentiment appears present, elevated deviation from the mean may create "
+            "retracement conditions. IMPORTANT: Use hedged, probabilistic language when "
+            "communicating these observations. Never state pullback or fakeout as certainty."
         ),
         "state_relevance": "BREAKOUT_DETECTED",
         "topic": "keltner_long",
     },
     {
         "text": (
-            "For a short (bearish) breakout: price in upper Keltner bands (1-5) indicates "
-            "bullish sentiment still dominant — the breakout is a fakeout. Price in bands "
-            "8-9 indicates strong bearish momentum — pullback unlikely; generate momentum "
-            "advisory. Price in bands 6-7 indicates moderate bearish momentum — standard "
-            "pullback expected. Price in band 10 indicates overextension — the bearish move "
-            "is real but overextended, mean reversion will force a pullback."
+            "For a short (bearish) breakout: price in upper Keltner bands (1-5) suggests "
+            "bullish sentiment may still be dominant — the breakout carries elevated fakeout "
+            "risk. Price in bands 8-9 suggests elevated bearish sentiment — a traditional "
+            "pullback may be less likely; generate momentum observation. Price in bands 6-7 "
+            "suggests moderate bearish momentum — conditions may favor a standard pullback. "
+            "Price in band 10 suggests overextension — while directional sentiment appears "
+            "present, elevated deviation from the mean may create retracement conditions. "
+            "IMPORTANT: Use hedged, probabilistic language when communicating these "
+            "observations. Never state pullback or fakeout as certainty."
         ),
         "state_relevance": "BREAKOUT_DETECTED",
         "topic": "keltner_short",
     },
     {
         "text": (
-            "OVEREXTENDED zone at BREAKOUT_DETECTED: Although sentiment confirms the "
-            "breakout direction, extreme price deviation from the HRMA center line creates "
-            "mean reversion pressure. Look for: narrowing TEMA/HRMA gap, reduced bar-by-bar "
-            "momentum, absorption candles (small bodies with wicks), and declining volume. "
-            "These signals suggest the overextended move is exhausting. Proceed to "
-            "AWAITING_PULLBACK with the expectation that retracement will come from "
-            "price overextension rather than trendline physics."
+            "OVEREXTENDED zone at BREAKOUT_DETECTED: While sentiment appears to favor the "
+            "breakout direction, elevated price deviation from the HRMA center line may "
+            "create conditions conducive to mean reversion. Watch for: narrowing TEMA/HRMA "
+            "gap, reduced bar-by-bar momentum, absorption candles (small bodies with wicks), "
+            "and declining volume. These signals may suggest the overextended move is losing "
+            "momentum. Proceed to AWAITING_PULLBACK with awareness that retracement "
+            "conditions may develop from price overextension rather than trendline physics. "
+            "Communicate to user with caution — overextension does not guarantee retracement."
         ),
         "state_relevance": "BREAKOUT_DETECTED,AWAITING_PULLBACK",
         "topic": "keltner_overextended",
     },
     {
         "text": (
-            "MOMENTUM_CONFIRMED zone: When H4 Keltner band position confirms strong "
+            "MOMENTUM_OBSERVED zone: When H4 Keltner band position suggests elevated "
             "directional momentum (bands 3-4 for longs, 8-9 for shorts), the traditional "
-            "pullback-to-broken-trendline model does not apply. The market has sufficient "
-            "structural momentum to sustain the move without retracing. In these cases, "
-            "generate a momentum advisory noting that a separate entry-price workflow "
-            "is needed (micro-TF S/R, consolidation levels within the momentum move)."
+            "pullback-to-broken-trendline model may be less applicable. Current structural "
+            "conditions appear to favor sustained directional movement. In these cases, "
+            "generate a momentum observation noting that a separate entry-price workflow "
+            "is needed (micro-TF S/R, consolidation levels within the momentum move). "
+            "CRITICAL TONE RULE: Never state that 'pullback will not occur' or 'breakout "
+            "is confirmed'. Use language like 'pullback appears less likely', 'conditions "
+            "suggest', 'may continue'. Markets remain unpredictable."
         ),
         "state_relevance": "BREAKOUT_DETECTED",
         "topic": "keltner_momentum",
@@ -3989,8 +4061,277 @@ State.BREAKOUT_DETECTED: (
 
 ---
 
-**Document Status**: Complete — ready for implementation (v2.0, with Keltner Sentiment Gate integration)
-**Total Custom Code Estimate**: ~1,600 lines Python + ~80 lines SQL + ~500 lines tests
-**New Files**: `sentiment_gate.py` (~120 lines), `keltner.py` (~100 lines), `test_sentiment_gate.py` (~200 lines)
+## 26. Tone & Language Policy
+
+### 26.1 Purpose
+
+All user-facing text generated by this system — whether from hardcoded response templates, LLM-generated assessments, or momentum advisories — **must** use probabilistic, hedged language. Markets are inherently unpredictable. The system provides observations and analysis of structural conditions, not predictions or guarantees.
+
+This policy applies to:
+- Hardcoded response strings in `_generate_hard_rule_response()`
+- LLM prompt instructions and output in `evaluate_with_llm()`
+- Generated responses in `generate_response()` and `generate_momentum_advisory()`
+- VectorDB knowledge chunks retrieved during evaluation
+- Any other text delivered to end users
+
+### 26.2 Prohibited Language
+
+The following words and phrases (or semantic equivalents) **must never** appear in user-facing output:
+
+| Prohibited Phrase | Why |
+|---|---|
+| "breakout confirmed" | Implies certainty about a market event |
+| "pullback unlikely" / "pullback will not occur" | States a prediction as fact |
+| "price will [rise/fall/reverse]" | Predicts future price movement |
+| "strong bullish" / "strong bearish" | Overly assertive sentiment label |
+| "guaranteed" / "certain" / "definitely" | Absolute certainty claims |
+| "mean reversion expected" | States an outcome as expected |
+| "fakeout detected" / "fakeout confirmed" | Asserts detection as fact |
+| "momentum confirmed" | Implies confirmation of a market condition |
+| "you should buy/sell" | Direct trading instruction (advisory-only system) |
+| "profit target" / "take profit at" | Implies guaranteed profit levels |
+
+### 26.3 Required Language Patterns
+
+Use these probabilistic alternatives instead:
+
+| Instead of... | Use... |
+|---|---|
+| "breakout confirmed" | "breakout detected" / "breakout attempt observed" |
+| "pullback unlikely" | "pullback may be less likely" / "conditions may not favor a traditional pullback" |
+| "price will rise" | "conditions suggest upward pressure" / "price appears to favor..." |
+| "strong bullish" | "elevated bullish sentiment" / "suggests elevated bullish conditions" |
+| "mean reversion expected" | "retracement conditions may develop" / "monitor for retracement signals" |
+| "fakeout detected" | "elevated fakeout risk" / "conditions appear unfavorable for sustained reversal" |
+| "momentum confirmed" | "momentum observed" / "Keltner position suggests elevated sentiment" |
+| Any definitive statement | Prefix with "appears to", "suggests", "may", "conditions favor" |
+
+### 26.4 Required Disclaimers
+
+Every substantive user-facing response (zone assessments, momentum advisories, trade observations) **must** include at least one of the following disclaimers or a semantically equivalent statement:
+
+- "Market conditions can change rapidly."
+- "This reflects current structural conditions, not a prediction."
+- "This is an observation, not a guarantee."
+- "Past structural patterns do not guarantee future outcomes."
+- "Conditions may shift — monitor for updates."
+
+### 26.5 Post-Generation Tone Validator
+
+After any LLM-generated text is produced, it passes through a tone validation function before delivery to the user. This function scans for prohibited phrases and flags violations.
+
+**File**: `tone_validator.py`
+
+```python
+"""
+Post-generation tone validator.
+
+Scans LLM output for prohibited absolute/decisive language
+and flags or rewrites violations before delivery to users.
+"""
+
+import re
+from typing import NamedTuple
+
+# Prohibited patterns — regex patterns that match absolute/decisive language
+PROHIBITED_PATTERNS: list[tuple[str, str]] = [
+    # (regex_pattern, human-readable description)
+    (r"\bbreakout\s+confirmed\b", "breakout confirmed"),
+    (r"\bpullback\s+unlikely\b", "pullback unlikely"),
+    (r"\bpullback\s+will\s+not\b", "pullback will not"),
+    (r"\bprice\s+will\b", "price will"),
+    (r"\bwill\s+(?:rise|fall|drop|crash|surge|reverse|continue)\b", "will [direction]"),
+    (r"\bstrong(?:ly)?\s+(?:bullish|bearish)\b", "strong bullish/bearish"),
+    (r"\bguaranteed?\b", "guaranteed"),
+    (r"\bcertain(?:ly)?\b", "certainly/certain"),
+    (r"\bdefinitely\b", "definitely"),
+    (r"\bmean\s+reversion\s+expected\b", "mean reversion expected"),
+    (r"\bfakeout\s+(?:confirmed|detected)\b", "fakeout confirmed/detected"),
+    (r"\bmomentum\s+confirmed\b", "momentum confirmed"),
+    (r"\byou\s+should\s+(?:buy|sell|enter|exit)\b", "you should buy/sell"),
+    (r"\bprofit\s+target\b", "profit target"),
+    (r"\btake\s+profit\s+at\b", "take profit at"),
+    (r"\bwithout\s+(?:a\s+)?doubt\b", "without doubt"),
+    (r"\b(?:is|are)\s+going\s+to\b", "is going to"),
+]
+
+
+class ToneViolation(NamedTuple):
+    """A single tone violation found in text."""
+    pattern_desc: str
+    matched_text: str
+    position: int
+
+
+def validate_tone(text: str) -> list[ToneViolation]:
+    """
+    Scan text for prohibited absolute/decisive language.
+
+    Args:
+        text: The LLM-generated text to validate.
+
+    Returns:
+        List of ToneViolation instances. Empty list means text passes validation.
+    """
+    violations: list[ToneViolation] = []
+
+    for pattern, description in PROHIBITED_PATTERNS:
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            violations.append(
+                ToneViolation(
+                    pattern_desc=description,
+                    matched_text=match.group(),
+                    position=match.start(),
+                )
+            )
+
+    return violations
+
+
+def enforce_tone(text: str, max_retries: int = 1, llm_instance=None) -> str:
+    """
+    Validate tone and optionally request LLM rewrite if violations found.
+
+    If violations are detected and an LLM instance is provided, requests
+    a rewrite with explicit tone instructions. If no LLM is available,
+    logs a warning and returns the original text with a disclaimer appended.
+
+    Args:
+        text: The LLM-generated text to validate and potentially fix.
+        max_retries: Maximum number of LLM rewrite attempts (default: 1).
+        llm_instance: Optional txtai LLM pipeline instance for rewrites.
+
+    Returns:
+        The validated (and potentially rewritten) text.
+    """
+    import logging
+    logger = logging.getLogger("orchestrator.tone_validator")
+
+    violations = validate_tone(text)
+
+    if not violations:
+        return text
+
+    violation_summary = ", ".join(v.pattern_desc for v in violations)
+    logger.warning(f"Tone violations detected: {violation_summary}")
+
+    if llm_instance is not None and max_retries > 0:
+        rewrite_prompt = (
+            f"The following text contains language that is too absolute or decisive "
+            f"for a market advisory context. Please rewrite it using probabilistic, "
+            f"hedged language. Replace phrases like 'will', 'confirmed', 'guaranteed' "
+            f"with 'may', 'suggests', 'appears to'. Keep the same meaning and data "
+            f"points, but soften all directional claims.\n\n"
+            f"Violations found: {violation_summary}\n\n"
+            f"Original text:\n{text}\n\n"
+            f"Rewritten text:"
+        )
+        rewritten = llm_instance(rewrite_prompt, maxlength=512)
+
+        # Recursively validate the rewrite (with decremented retries)
+        return enforce_tone(rewritten, max_retries=max_retries - 1, llm_instance=llm_instance)
+
+    # No LLM available — append disclaimer and return
+    disclaimer = (
+        "\n\nNote: This analysis reflects current structural conditions "
+        "and is not a prediction of future price movement. "
+        "Market conditions can change rapidly."
+    )
+    return text + disclaimer
+```
+
+### 26.6 Integration Points
+
+The tone validator integrates at these points in the pipeline:
+
+```python
+# In generate_response() — after LLM generates text:
+raw_response = llm_instance(prompt, maxlength=512)
+validated_response = enforce_tone(raw_response, llm_instance=llm_instance)
+return validated_response
+
+# In evaluate_with_llm() — after LLM assessment is extracted:
+assessment = parsed_result.get("assessment", "")
+from tone_validator import validate_tone
+violations = validate_tone(assessment)
+if violations:
+    logger.warning(f"LLM assessment tone violations: {[v.pattern_desc for v in violations]}")
+    # Assessment is internal — log warning but do not block
+    # The user-facing response will be validated separately
+```
+
+### 26.7 Updated File Structure
+
+Add `tone_validator.py` to the project:
+
+```
+trading_alerts/
+├── orchestrator/
+│   ├── tone_validator.py          # NEW — Post-generation tone validation
+│   ├── ...
+```
+
+### 26.8 Test Cases for Tone Validator
+
+```python
+class TestToneValidator:
+    """Tests for post-generation tone validation."""
+
+    def test_clean_text_passes(self):
+        """Text with no violations returns empty list."""
+        text = "Breakout detected. Conditions suggest elevated bullish sentiment. Pullback may be less likely."
+        violations = validate_tone(text)
+        assert len(violations) == 0
+
+    def test_prohibited_breakout_confirmed(self):
+        """Catches 'breakout confirmed' violation."""
+        text = "The breakout confirmed above resistance."
+        violations = validate_tone(text)
+        assert len(violations) == 1
+        assert violations[0].pattern_desc == "breakout confirmed"
+
+    def test_prohibited_price_will(self):
+        """Catches 'price will' violation."""
+        text = "Price will continue rising toward the next level."
+        violations = validate_tone(text)
+        assert any(v.pattern_desc == "price will" for v in violations)
+
+    def test_prohibited_strong_bullish(self):
+        """Catches 'strong bullish' violation."""
+        text = "There is a strong bullish signal on this chart."
+        violations = validate_tone(text)
+        assert any(v.pattern_desc == "strong bullish/bearish" for v in violations)
+
+    def test_multiple_violations(self):
+        """Catches multiple violations in a single text."""
+        text = "Breakout confirmed. Price will rise. Strong bullish momentum confirmed."
+        violations = validate_tone(text)
+        assert len(violations) >= 3
+
+    def test_case_insensitive(self):
+        """Catches violations regardless of case."""
+        text = "BREAKOUT CONFIRMED — Price WILL rise."
+        violations = validate_tone(text)
+        assert len(violations) >= 2
+
+    def test_enforce_tone_clean_text(self):
+        """Clean text passes through unchanged."""
+        text = "Conditions suggest a potential move. Monitor for updates."
+        result = enforce_tone(text)
+        assert result == text
+
+    def test_enforce_tone_adds_disclaimer_without_llm(self):
+        """When no LLM available, appends disclaimer to violated text."""
+        text = "Breakout confirmed above resistance."
+        result = enforce_tone(text, llm_instance=None)
+        assert "not a prediction" in result
+        assert result.startswith(text)
+```
+
+---
+
+**Document Status**: Complete — ready for implementation (v2.1, with Keltner Sentiment Gate integration + Tone & Language Policy)
+**Total Custom Code Estimate**: ~1,750 lines Python + ~80 lines SQL + ~600 lines tests
+**New Files**: `sentiment_gate.py` (~120 lines), `keltner.py` (~100 lines), `test_sentiment_gate.py` (~200 lines), `tone_validator.py` (~90 lines), `test_tone_validator.py` (~100 lines)
 **Framework Dependencies**: txtai (with agent, api, database, pipeline-llm extras)
 **External Dependencies**: PostgreSQL, Claude API (Anthropic)
