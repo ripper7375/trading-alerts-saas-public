@@ -190,20 +190,21 @@ Each outer band is offset from the center by a multiple of ATR:
 
 ### Sentiment Measurement Timeframe
 
-The Keltner Channel is computed on a **fixed higher timeframe** that provides structural sentiment context:
+The Keltner Channel is computed on a **4× multiplier of the Primary Decision TF** to maintain consistent structural context:
 
-| Decision Timeframe Model | Primary Decision TF | Sentiment Measurement TF (Keltner) |
-|---|---|---|
-| Config A (H1 primary) | H1 | **H4** |
-| Config B (H2 primary) | H2 | **H4** |
+| Decision Timeframe Model | Primary Decision TF | Sentiment Measurement TF (Keltner) | Ratio |
+|---|---|---|---|
+| Config A (H1 primary) | H1 | **H4** | H1 × 4 = H4 |
+| Config B (H2 primary) | H2 | **H8** | H2 × 4 = H8 |
 
-**Rationale**: H4 is used for both configurations because:
+**Rationale - The 4× Pattern**:
 
-- It sits above both Decision layer configurations, providing structural context
-- H4 bars represent 4 hours of price action — sufficient granularity to detect sentiment shifts within a trading day
-- The sentiment that determines pullback likelihood is a Navigation-layer force. H4 is the lower Navigation TF for Config A and a structural reference for Config B.
+- **Proportional structural filtering**: Both configs get exactly 4 bars of Primary Decision TF per sentiment reading
+- **Consistent noise reduction**: Same relative filtering depth across both timeframe configurations
+- **Timeframe hierarchy alignment**: Sentiment TF sits one full level above the Navigation Layer for both configs
+- **Trading style coherence**: H4 for intraday (Config A), H8 for swing trading (Config B)
 
-Note: If Config B users require a higher-level sentiment reading, H8 can be substituted. The indicator supports any timeframe via the `AnalysisTimeframe` parameter.
+The 4× ratio ensures that the sentiment measurement provides the same relative structural backdrop regardless of whether you're trading on H1 or H2 primary timeframes.
 
 ---
 
@@ -1257,9 +1258,9 @@ KELTNER_CONFIG = {
     "multiplier_uppermost": 2.0,          # Bands 3 and 8
     "multiplier_upper": 1.0,              # Bands 4 and 7
 
-    # Sentiment measurement timeframe
-    "sentiment_tf_config_a": "H4",        # For H1 primary Decision TF
-    "sentiment_tf_config_b": "H4",        # For H2 primary Decision TF
+    # Sentiment measurement timeframe (4× Primary Decision TF ratio)
+    "sentiment_tf_config_a": "H4",        # For H1 primary: H1 × 4 = H4
+    "sentiment_tf_config_b": "H8",        # For H2 primary: H2 × 4 = H8
 
     # Sentiment zone thresholds (band positions)
     # Long (bullish breakout — price pierces negative slope trendline):
@@ -1286,8 +1287,8 @@ keltner:
   hrma_period: 54
   atr_period: 162
   sentiment_timeframe:
-    config_a: H4
-    config_b: H4
+    config_a: H4  # H1 × 4 = H4
+    config_b: H8  # H2 × 4 = H8
   multipliers:
     ultra_extreme: 4.0
     extreme: 3.0
