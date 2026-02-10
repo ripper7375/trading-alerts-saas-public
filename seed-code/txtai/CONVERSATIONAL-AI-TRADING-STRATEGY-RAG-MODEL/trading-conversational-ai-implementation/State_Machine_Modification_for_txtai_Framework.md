@@ -7,7 +7,7 @@
 **Purpose**: Complete specification for implementing graph-based state machine orchestration on top of txtai framework for a conversational trading advisory SaaS (no trade execution).
 **Target Audience**: Claude Code (web) for implementation
 **Scope**: State machine only — excludes Trade Execution Manager, Markdown/JSONL memory systems, and storage/retrieval modifications (covered in separate documents)
-**Integrated Modifications**: Keltner Channel Sentiment Gate (from `Keltner_Channel_Sentiment_Gate_Modification.md`) — adds a sentiment-based gate at `BREAKOUT_DETECTED` using Keltner Channel band position (H4 for config_a, H8 for config_b) to determine pullback likelihood. Source indicator: `Keltner Channel ATF_10 Bands_V2.mq5`.
+**Integrated Modifications**: Keltner Channel Sentiment Gate (from `Keltner_Channel_Sentiment_Gate_Modification.md`) — adds a sentiment-based gate at `BREAKOUT_DETECTED` using Keltner Channel band position (H4 for config_a, H8 for config_b, H2 for config_c) to determine pullback likelihood. Source indicator: `Keltner Channel ATF_10 Bands_V2.mq5`.
 
 ---
 
@@ -242,7 +242,7 @@ workflow:
       - action: fetch_and_evaluate
       - action: generate_response
     schedule:
-      cron: '0 * * * *' # Every hour (H1 bar close)
+      cron: '0 * * * *'    # H1 bar close (config_a) — change to '0 */2 * * *' for config_b, '*/30 * * * *' for config_c
 ```
 
 ---
@@ -713,7 +713,7 @@ CREATE TABLE agent_state (
 
     -- Identity (composite unique key)
     instrument VARCHAR(20) NOT NULL,         -- e.g., 'EURUSD', 'XAUUSD'
-    tf_config VARCHAR(10) NOT NULL,          -- 'config_a' (H1 primary) or 'config_b' (H2 primary)
+    tf_config VARCHAR(10) NOT NULL,          -- 'config_a' (H1 primary), 'config_b' (H2 primary), or 'config_c' (M30 primary)
 
     -- State machine
     current_state VARCHAR(30) NOT NULL DEFAULT 'IDLE',
@@ -853,7 +853,7 @@ class AgentStateManager:
 
         Args:
             instrument: Trading instrument (e.g., 'EURUSD').
-            tf_config: Timeframe configuration ('config_a' or 'config_b').
+            tf_config: Timeframe configuration ('config_a', 'config_b', or 'config_c').
 
         Returns:
             AgentState as a Python dictionary.
@@ -1089,7 +1089,7 @@ class AgentState(TypedDict, total=False):
 
     # ── Identity ──
     instrument: str                          # e.g., 'EURUSD', 'XAUUSD'
-    tf_config: Literal["config_a", "config_b"]  # H1-primary or H2-primary
+    tf_config: Literal["config_a", "config_b", "config_c"]  # H1-primary, H2-primary, or M30-primary
     trade_direction: Optional[Literal["long", "short"]]
 
     # ── State Machine ──
@@ -1340,7 +1340,7 @@ workflow:
     tasks:
       - action: services.agent.pipeline.run_evaluation_cycle
     schedule:
-      cron: '0 * * * *' # H1 bar close
+      cron: '0 * * * *'    # H1 bar close (config_a) — change to '0 */2 * * *' for config_b, '*/30 * * * *' for config_c
 ```
 
 ### 9.2 Agent Usage Pattern
@@ -1583,6 +1583,11 @@ def _fetch_market_data(instrument: str, tf_config: str, database_url: str) -> di
             "decision": ["H4", "H2", "H1"],
             "primary_decision": "H2",
         },
+        "config_c": {
+            "navigation": ["H2", "H1"],
+            "decision": ["H1", "M30", "M15"],
+            "primary_decision": "M30",
+        },
     }
 
     config = tf_map[tf_config]
@@ -1706,7 +1711,8 @@ def _run_state_evaluation(agent_state: dict, market_data: dict,
 def _evaluate_navigation(agent_state: dict, market_data: dict) -> dict:
     """Compute Navigation Layer outputs: regime, slope score, counter-trend modifier."""
     # Extract navigation TF data
-    nav_tfs = ["H4", "H2"] if agent_state["tf_config"] == "config_a" else ["H8", "H4"]
+    nav_tf_map = {"config_a": ["H4", "H2"], "config_b": ["H8", "H4"], "config_c": ["H2", "H1"]}
+    nav_tfs = nav_tf_map[agent_state["tf_config"]]
 
     slope_scores = []
     for tf in nav_tfs:
@@ -1967,7 +1973,7 @@ def evaluate_trade_setup(instrument: str, tf_config: str) -> str:
 
     Args:
         instrument: Trading instrument (e.g., EURUSD)
-        tf_config: Timeframe configuration (config_a or config_b)
+        tf_config: Timeframe configuration (config_a, config_b, or config_c)
 
     Returns:
         JSON string with evaluation results, current state, and convergence score
@@ -2238,7 +2244,7 @@ EVALUATION_PROMPT_TEMPLATE = """You are a trading analysis engine evaluating a {
 - Classification: {score_classification}
 
 ## Keltner Sentiment Context
-Sentiment Measurement Timeframe: {sentiment_tf} (H4 for config_a, H8 for config_b)
+Sentiment Measurement Timeframe: {sentiment_tf} (H4 for config_a, H8 for config_b, H2 for config_c)
 Keltner Band Position: {keltner_band_position} (1=ultra extreme upper, 10=ultra extreme lower)
 Sentiment Zone: {keltner_sentiment_zone}
 ATR(162): {keltner_atr}
@@ -2528,8 +2534,9 @@ def generate_momentum_advisory(agent_state: dict) -> str:
     regime = agent_state.get("regime_classification", "Unknown")
     breakout_price = agent_state.get("breakout_bar_price", "N/A")
 
-    # Determine sentiment TF based on config
-    sentiment_tf = "H4" if agent_state["tf_config"] == "config_a" else "H8"
+    # Determine sentiment TF based on config (4× Primary Decision TF ratio)
+    sentiment_tf_map = {"config_a": "H4", "config_b": "H8", "config_c": "H2"}
+    sentiment_tf = sentiment_tf_map[agent_state["tf_config"]]
 
     sentiment_desc = (
         "elevated bullish" if agent_state["trade_direction"] == "long"
@@ -2678,13 +2685,14 @@ SM_COOLDOWN_BARS=4          # bars
 
 # Instruments to monitor
 INSTRUMENTS=EURUSD,XAUUSD,BTCUSD,GBPUSD
-TF_CONFIG=config_a          # or config_b
+TF_CONFIG=config_a          # config_a (H1/moderate), config_b (H2/high volatility), config_c (M30/low volatility)
 
 # Keltner Sentiment Gate
 KELTNER_HRMA_PERIOD=54
 KELTNER_ATR_PERIOD=162
 KELTNER_SENTIMENT_TF_CONFIG_A=H4    # H1 × 4 = H4
 KELTNER_SENTIMENT_TF_CONFIG_B=H8    # H2 × 4 = H8
+KELTNER_SENTIMENT_TF_CONFIG_C=H2    # M30 × 4 = H2
 ```
 
 ### 17.3 Keltner Configuration
@@ -2704,6 +2712,7 @@ KELTNER_CONFIG = {
     # Sentiment measurement timeframe (4× Primary Decision TF ratio)
     "sentiment_tf_config_a": "H4",        # For H1 primary: H1 × 4 = H4
     "sentiment_tf_config_b": "H8",        # For H2 primary: H2 × 4 = H8
+    "sentiment_tf_config_c": "H2",        # For M30 primary: M30 × 4 = H2
 
     # Sentiment zone thresholds (band positions)
     # Long (bullish breakout — price pierces negative slope trendline):
@@ -2763,6 +2772,7 @@ keltner:
   sentiment_timeframe:
     config_a: H4  # H1 × 4 = H4
     config_b: H8  # H2 × 4 = H8
+    config_c: H2  # M30 × 4 = H2
   multipliers:
     ultra_extreme: 4.0
     extreme: 3.0
@@ -3414,13 +3424,14 @@ tests/
 
 ### 21.1 Concept
 
-The Keltner Channel Sentiment Gate is a **hard rule gate** at the `BREAKOUT_DETECTED` state that uses the Keltner Channel band position to assess whether the current market sentiment supports the detected breakout direction. The sentiment timeframe is **H4 for config_a** (H1 primary) and **H8 for config_b** (H2 primary).
+The Keltner Channel Sentiment Gate is a **hard rule gate** at the `BREAKOUT_DETECTED` state that uses the Keltner Channel band position to assess whether the current market sentiment supports the detected breakout direction. The sentiment timeframe is **H4 for config_a** (H1 primary), **H8 for config_b** (H2 primary), and **H2 for config_c** (M30 primary).
 
-**Why H4/H8? The 4× Ratio Pattern:** The sentiment measurement timeframe is exactly **4 times the Primary Decision TF** to maintain consistent structural context across both configurations:
-- **Config A**: H1 primary × 4 = **H4 sentiment** (4 H1 bars per sentiment reading)
-- **Config B**: H2 primary × 4 = **H8 sentiment** (4 H2 bars per sentiment reading)
+**Why H4/H8/H2? The 4× Ratio Pattern:** The sentiment measurement timeframe is exactly **4 times the Primary Decision TF** to maintain consistent structural context across all three configurations:
+- **Config A**: H1 primary × 4 = **H4 sentiment** (4 H1 bars per sentiment reading) — Moderate volatility
+- **Config B**: H2 primary × 4 = **H8 sentiment** (4 H2 bars per sentiment reading) — High volatility
+- **Config C**: M30 primary × 4 = **H2 sentiment** (4 M30 bars per sentiment reading) — Low volatility
 
-This 4× ratio ensures that both configurations provide the same relative structural filtering depth. The sentiment timeframe sits above the Navigation Layer, providing the broader structural backdrop that determines whether a breakout attempt has real sentiment support or is likely a fakeout.
+This 4× ratio ensures that all configurations provide the same relative structural filtering depth. The sentiment timeframe sits above the Navigation Layer, providing the broader structural backdrop that determines whether a breakout attempt has real sentiment support or is likely a fakeout.
 
 **Source indicator**: `Keltner Channel ATF_10 Bands_V2.mq5` — a custom MetaTrader 5 indicator that computes 10 Keltner Channel bands using an HRMA (Hull-Response Moving Average) center line and ATR-based band width.
 
@@ -3519,7 +3530,7 @@ def determine_keltner_band_position(close_price: float, bands: dict) -> int:
     10 = Ultra Extreme Lower (below all bands)
 
     Args:
-        close_price: Current close price on the sentiment timeframe (H4 for config_a, H8 for config_b).
+        close_price: Current close price on the sentiment timeframe (H4 for config_a, H8 for config_b, H2 for config_c).
         bands: Dict with band level values (keyed by band name).
 
     Returns:
@@ -3634,7 +3645,7 @@ def evaluate_sentiment_gate(agent_state: dict,
 
 ### 22.1 Band Computation (Python Replication)
 
-The Keltner Channel bands are computed from sentiment timeframe OHLCV data (H4 for config_a, H8 for config_b). This is a Python replication of the logic in `Keltner Channel ATF_10 Bands_V2.mq5`.
+The Keltner Channel bands are computed from sentiment timeframe OHLCV data (H4 for config_a, H8 for config_b, H2 for config_c). This is a Python replication of the logic in `Keltner Channel ATF_10 Bands_V2.mq5`.
 
 ```python
 # File: services/agent/keltner.py
@@ -3651,7 +3662,7 @@ class KeltnerChannel:
     - Band width: ATR(162) at various multipliers
     - Upper Middle: HRMA of sentiment TF High
     - Lower Middle: HRMA of sentiment TF Low
-    - Sentiment TF: H4 for config_a, H8 for config_b
+    - Sentiment TF: H4 for config_a, H8 for config_b, H2 for config_c
 
     The 10 bands are:
     1. Ultra Extreme Upper:  HRMA + ATR × 4.0
@@ -3793,11 +3804,11 @@ class KeltnerChannel:
 def fetch_keltner_data(instrument: str, tf_config: str) -> dict:
     """Fetch sentiment TF OHLCV data and compute Keltner Channel bands.
 
-    Sentiment TF is H4 for config_a (H1 primary) and H8 for config_b (H2 primary).
+    Sentiment TF: H4 for config_a (H1 primary), H8 for config_b (H2 primary), H2 for config_c (M30 primary).
 
     Args:
         instrument: Trading instrument (e.g., 'EURUSD').
-        tf_config: Timeframe configuration ('config_a' or 'config_b').
+        tf_config: Timeframe configuration ('config_a', 'config_b', or 'config_c').
 
     Returns:
         Dict with 'close_price', 'bands', and 'atr'.
@@ -3983,7 +3994,7 @@ KELTNER_KNOWLEDGE_CHUNKS = [
     {
         "text": (
             "Keltner Channel Sentiment Gate: At BREAKOUT_DETECTED, evaluate the "
-            "Keltner Channel band position (computed on H4 for config_a, H8 for config_b) to assess structural sentiment context. "
+            "Keltner Channel band position (computed on H4 for config_a, H8 for config_b, H2 for config_c) to assess structural sentiment context. "
             "Band positions 1-10 map to sentiment zones: FAKEOUT (sentiment appears to "
             "contradict breakout — elevated risk of failure), NORMAL_PULLBACK (moderate "
             "momentum — conditions may favor a pullback), MOMENTUM_OBSERVED (elevated "
@@ -4041,7 +4052,7 @@ KELTNER_KNOWLEDGE_CHUNKS = [
     },
     {
         "text": (
-            "MOMENTUM_OBSERVED zone: When Keltner band position (H4 for config_a, H8 for config_b) suggests elevated "
+            "MOMENTUM_OBSERVED zone: When Keltner band position (H4 for config_a, H8 for config_b, H2 for config_c) suggests elevated "
             "directional momentum (bands 3-4 for longs, 8-9 for shorts), the traditional "
             "pullback-to-broken-trendline model may be less applicable. Current structural "
             "conditions appear to favor sustained directional movement. In these cases, "
