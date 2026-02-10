@@ -29,11 +29,11 @@
 
 Three new PRO-tier columns were added by `SimpleDataCollector_v2_26_API_GATEWAY.mq5`:
 
-| Column           | Type      | Source Indicator                       | Buffer | Description                                   |
-| ---------------- | --------- | -------------------------------------- | ------ | --------------------------------------------- |
-| `dual_tema_high` | `REAL`    | `Dual_TEMA_High_Low.mq5`               | 0      | TEMA of bar highs (Triple EMA of High prices) |
-| `dual_tema_low`  | `REAL`    | `Dual_TEMA_High_Low.mq5`               | 1      | TEMA of bar lows (Triple EMA of Low prices)   |
-| `pinbar`         | `INTEGER` | `Pinbar Detector_Diamond Symbol_V17.mq5` | 0+1  | 1 = pinbar detected (bull or bear), 0 = none  |
+| Column           | Type      | Source Indicator                         | Buffer | Description                                   |
+| ---------------- | --------- | ---------------------------------------- | ------ | --------------------------------------------- |
+| `dual_tema_high` | `REAL`    | `Dual_TEMA_High_Low.mq5`                 | 0      | TEMA of bar highs (Triple EMA of High prices) |
+| `dual_tema_low`  | `REAL`    | `Dual_TEMA_High_Low.mq5`                 | 1      | TEMA of bar lows (Triple EMA of Low prices)   |
+| `pinbar`         | `INTEGER` | `Pinbar Detector_Diamond Symbol_V17.mq5` | 0+1    | 1 = pinbar detected (bull or bear), 0 = none  |
 
 ### Pinbar Detection Logic
 
@@ -62,16 +62,17 @@ The EMA period is configurable via `InpDualTEMA_Period` (default: 9).
 
 ### Column Count Summary
 
-| Category              | v1.0 (57-col) | v2.0 (60-col) | Delta |
-| --------------------- | ------------- | ------------- | ----- |
-| System columns        | 8             | 8             | —     |
-| FREE tier indicators  | 16            | 16            | —     |
-| PRO tier indicators   | 33            | 36            | +3    |
-| **Total**             | **57**        | **60**        | **+3** |
+| Category             | v1.0 (57-col) | v2.0 (60-col) | Delta  |
+| -------------------- | ------------- | ------------- | ------ |
+| System columns       | 8             | 8             | —      |
+| FREE tier indicators | 16            | 16            | —      |
+| PRO tier indicators  | 33            | 36            | +3     |
+| **Total**            | **57**        | **60**        | **+3** |
 
 ### Tier Classification of New Columns
 
 The three new columns are classified as **PRO tier** because:
+
 1. They require additional indicator instances loaded per symbol/timeframe slot
 2. They depend on optional indicators not available in basic data collection
 3. They add analytical depth suited to advanced/algorithmic strategies
@@ -256,13 +257,13 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  timestamp: number;    // Unix timestamp (seconds)
-  open: number;         // OHLC data
+  timestamp: number; // Unix timestamp (seconds)
+  open: number; // OHLC data
   high: number;
   low: number;
   close: number;
-  volume: number;       // Trading volume
-  timeframe: string;    // 'M1', 'M5', 'M15', 'H1', 'H4', 'D1'
+  volume: number; // Trading volume
+  timeframe: string; // 'M1', 'M5', 'M15', 'H1', 'H4', 'D1'
   collected_at: string; // ISO 8601 timestamp
 }
 ```
@@ -273,14 +274,14 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  diag_asc_line_1: number | null;  // Ascending trendline 1
-  diag_asc_line_2: number | null;  // Ascending trendline 2
-  diag_asc_line_3: number | null;  // Ascending trendline 3
+  diag_asc_line_1: number | null; // Ascending trendline 1
+  diag_asc_line_2: number | null; // Ascending trendline 2
+  diag_asc_line_3: number | null; // Ascending trendline 3
   diag_desc_line_1: number | null; // Descending trendline 1
   diag_desc_line_2: number | null; // Descending trendline 2
   diag_desc_line_3: number | null; // Descending trendline 3
-  diag_high_map: number | null;    // High fractal mapping data
-  diag_low_map: number | null;     // Low fractal mapping data
+  diag_high_map: number | null; // High fractal mapping data
+  diag_low_map: number | null; // Low fractal mapping data
 }
 ```
 
@@ -288,14 +289,14 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  horiz_peak_line_1: number | null;   // Peak resistance line 1
-  horiz_peak_line_2: number | null;   // Peak resistance line 2
-  horiz_peak_line_3: number | null;   // Peak resistance line 3
+  horiz_peak_line_1: number | null; // Peak resistance line 1
+  horiz_peak_line_2: number | null; // Peak resistance line 2
+  horiz_peak_line_3: number | null; // Peak resistance line 3
   horiz_bottom_line_1: number | null; // Bottom support line 1
   horiz_bottom_line_2: number | null; // Bottom support line 2
   horiz_bottom_line_3: number | null; // Bottom support line 3
-  horiz_high_map: number | null;      // High fractal mapping data
-  horiz_low_map: number | null;       // Low fractal mapping data
+  horiz_high_map: number | null; // High fractal mapping data
+  horiz_low_map: number | null; // Low fractal mapping data
 }
 ```
 
@@ -315,7 +316,7 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  body_size: number | null;      // Candle body size (0.0 to 1.0)
+  body_size: number | null; // Candle body size (0.0 to 1.0)
   body_direction: number | null; // 1 = bullish, -1 = bearish, 0 = neutral
 }
 ```
@@ -324,12 +325,12 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  ha_open: number | null;     // Heiken Ashi open
-  ha_high: number | null;     // Heiken Ashi high
-  ha_low: number | null;      // Heiken Ashi low
-  ha_close: number | null;    // Heiken Ashi close
-  ha_color: number | null;    // 1 = green, -1 = red
-  ha_trend: number | null;    // 1 = uptrend, -1 = downtrend
+  ha_open: number | null; // Heiken Ashi open
+  ha_high: number | null; // Heiken Ashi high
+  ha_low: number | null; // Heiken Ashi low
+  ha_close: number | null; // Heiken Ashi close
+  ha_color: number | null; // 1 = green, -1 = red
+  ha_trend: number | null; // 1 = uptrend, -1 = downtrend
   ha_strength: number | null; // Trend strength (0.0 to 1.0)
 }
 ```
@@ -338,16 +339,16 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  kc_upper: number | null;       // Upper Keltner Channel
-  kc_middle: number | null;      // Middle line (EMA)
-  kc_lower: number | null;       // Lower Keltner Channel
-  kc_upper_ema: number | null;   // Upper channel EMA
-  kc_middle_ema: number | null;  // Middle EMA
-  kc_lower_ema: number | null;   // Lower channel EMA
-  kc_squeeze: number | null;     // Squeeze indicator (0 or 1)
+  kc_upper: number | null; // Upper Keltner Channel
+  kc_middle: number | null; // Middle line (EMA)
+  kc_lower: number | null; // Lower Keltner Channel
+  kc_upper_ema: number | null; // Upper channel EMA
+  kc_middle_ema: number | null; // Middle EMA
+  kc_lower_ema: number | null; // Lower channel EMA
+  kc_squeeze: number | null; // Squeeze indicator (0 or 1)
   kc_squeeze_pro: number | null; // Pro squeeze (0 or 1)
-  kc_width: number | null;       // Channel width
-  kc_width_ema: number | null;   // Width EMA
+  kc_width: number | null; // Channel width
+  kc_width_ema: number | null; // Width EMA
 }
 ```
 
@@ -370,8 +371,8 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 
 ```typescript
 {
-  zigzag_high: number | null;  // ZigZag swing high
-  zigzag_low: number | null;   // ZigZag swing low
+  zigzag_high: number | null; // ZigZag swing high
+  zigzag_low: number | null; // ZigZag swing low
   zigzag_trend: number | null; // 1 = uptrend, -1 = downtrend
 }
 ```
@@ -381,7 +382,7 @@ SQLite silently ignores `ALTER TABLE ADD COLUMN` if the column already exists, m
 ```typescript
 {
   dual_tema_high: number | null; // TEMA of bar highs (Dual_TEMA_High_Low buffer 0)
-  dual_tema_low: number | null;  // TEMA of bar lows  (Dual_TEMA_High_Low buffer 1)
+  dual_tema_low: number | null; // TEMA of bar lows  (Dual_TEMA_High_Low buffer 1)
 }
 ```
 
@@ -521,8 +522,8 @@ const INDICATOR_TYPES = [
 const INDICATOR_TYPES = [
   { id: 'FRACTAL_HORIZONTAL' },
   { id: 'FRACTAL_DIAGONAL' },
-  { id: 'DUAL_TEMA_HL' },      // ❌ PRO tier — must NOT appear here!
-  { id: 'PINBAR_DETECTION' },  // ❌ PRO tier — must NOT appear here!
+  { id: 'DUAL_TEMA_HL' }, // ❌ PRO tier — must NOT appear here!
+  { id: 'PINBAR_DETECTION' }, // ❌ PRO tier — must NOT appear here!
 ];
 ```
 
@@ -896,19 +897,19 @@ export interface MarketDataRecord {
  * Groups 9-10 are new in v2.0.
  */
 export const FREE_TIER_INDICATORS = [
-  'fractal_diagonal',   // 8 columns
+  'fractal_diagonal', // 8 columns
   'fractal_horizontal', // 8 columns
 ] as const;
 
 export const PRO_ONLY_INDICATORS = [
-  'moving_averages',    // 3 columns
-  'body_momentum',      // 2 columns
-  'heiken_ashi',        // 7 columns
-  'keltner_channels',   // 10 columns
+  'moving_averages', // 3 columns
+  'body_momentum', // 2 columns
+  'heiken_ashi', // 7 columns
+  'keltner_channels', // 10 columns
   'support_resistance', // 8 columns
-  'zigzag',             // 3 columns
-  'dual_tema_hl',       // 2 columns ← NEW in v2.0
-  'pinbar_detection',   // 1 column  ← NEW in v2.0
+  'zigzag', // 3 columns
+  'dual_tema_hl', // 2 columns ← NEW in v2.0
+  'pinbar_detection', // 1 column  ← NEW in v2.0
 ] as const;
 
 export type IndicatorId =
@@ -933,10 +934,11 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     columns: ['dual_tema_high', 'dual_tema_low'],
     colors: {
       high: '#26a69a', // Teal for TEMA high line
-      low: '#ef5350',  // Red for TEMA low line
+      low: '#ef5350', // Red for TEMA low line
     },
     dataPattern: 'continuous',
-    description: 'Separate TEMA lines for bar highs and bar lows, forming a dynamic channel',
+    description:
+      'Separate TEMA lines for bar highs and bar lows, forming a dynamic channel',
     addedInVersion: '2.0',
   },
 
@@ -948,7 +950,8 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
       signal: '#ff9800', // Orange marker for pinbar bars
     },
     dataPattern: 'sparse',
-    description: 'Binary flag indicating a pinbar candle pattern (bullish or bearish)',
+    description:
+      'Binary flag indicating a pinbar candle pattern (bullish or bearish)',
     addedInVersion: '2.0',
   },
 };
@@ -1030,7 +1033,7 @@ export async function GET(
     select:
       tier === 'PRO'
         ? ALL_60_COLUMNS_SELECT // ← was ALL_57_COLUMNS_SELECT
-        : FREE_TIER_SELECT,     // 24 columns — unchanged
+        : FREE_TIER_SELECT, // 24 columns — unchanged
   });
 
   return NextResponse.json({
@@ -1141,8 +1144,8 @@ const mockMarketDataPRO: MarketDataRecord = {
   zigzag_trend: 1,
   // NEW v2.0 fields:
   dual_tema_high: 43285, // TEMA of bar highs
-  dual_tema_low: 43245,  // TEMA of bar lows
-  pinbar: 0,             // No pinbar on this bar
+  dual_tema_low: 43245, // TEMA of bar lows
+  pinbar: 0, // No pinbar on this bar
 };
 
 // Historical row (collected before EA v2.26 upgrade):
@@ -1173,19 +1176,19 @@ ALTER TABLE "MarketData" ADD COLUMN "pinbar" INTEGER;
 
 ### What Requires Changes
 
-| Component                              | Change Required | Notes                                          |
-| -------------------------------------- | --------------- | ---------------------------------------------- |
-| `prisma/schema.prisma`                 | ✅ Yes          | Add 3 new fields                               |
-| `lib/tier/types.ts`                    | ✅ Yes          | Add 3 new properties to `MarketDataRecord`     |
-| `lib/tier/constants.ts`                | ✅ Yes          | Add 2 new indicator groups, update select obj  |
-| `frontend/lib/tier/constants.ts`       | ✅ Yes          | Sync with backend constants                    |
-| `app/api/indicators/route.ts`          | ❌ No           | PRO-only — no change to FREE metadata          |
-| `app/api/indicators/[s]/[tf]/route.ts` | ✅ Yes          | Update select to `ALL_60_COLUMNS_SELECT`       |
-| Test files                             | ✅ Yes          | Update counts, add new column assertions       |
-| `EA (.mq5 file)`                       | ✅ Done         | v2.26 already implemented                      |
-| `backfill_worker.py`                   | ✅ Done         | v3 already implemented                         |
-| SQLite databases                       | ✅ Auto         | `MigrateSymbolTable()` runs on EA startup      |
-| Existing PostgreSQL rows               | ⚠️ NULL values  | Pre-v2.26 rows will have NULL for new columns  |
+| Component                              | Change Required | Notes                                         |
+| -------------------------------------- | --------------- | --------------------------------------------- |
+| `prisma/schema.prisma`                 | ✅ Yes          | Add 3 new fields                              |
+| `lib/tier/types.ts`                    | ✅ Yes          | Add 3 new properties to `MarketDataRecord`    |
+| `lib/tier/constants.ts`                | ✅ Yes          | Add 2 new indicator groups, update select obj |
+| `frontend/lib/tier/constants.ts`       | ✅ Yes          | Sync with backend constants                   |
+| `app/api/indicators/route.ts`          | ❌ No           | PRO-only — no change to FREE metadata         |
+| `app/api/indicators/[s]/[tf]/route.ts` | ✅ Yes          | Update select to `ALL_60_COLUMNS_SELECT`      |
+| Test files                             | ✅ Yes          | Update counts, add new column assertions      |
+| `EA (.mq5 file)`                       | ✅ Done         | v2.26 already implemented                     |
+| `backfill_worker.py`                   | ✅ Done         | v3 already implemented                        |
+| SQLite databases                       | ✅ Auto         | `MigrateSymbolTable()` runs on EA startup     |
+| Existing PostgreSQL rows               | ⚠️ NULL values  | Pre-v2.26 rows will have NULL for new columns |
 
 ### What Does NOT Change
 
@@ -1235,10 +1238,10 @@ To minimize risk, deploy in this order:
 
 ### New Indicator Groups at a Glance
 
-| Group | Name              | Columns         | Pattern    | Tier | EA Indicator                           |
-| ----- | ----------------- | --------------- | ---------- | ---- | -------------------------------------- |
-| 9     | Dual TEMA H/L     | 2               | continuous | PRO  | `Dual_TEMA_High_Low.mq5`               |
-| 10    | Pinbar Detection  | 1               | sparse     | PRO  | `Pinbar Detector_Diamond Symbol_V17.mq5` |
+| Group | Name             | Columns | Pattern    | Tier | EA Indicator                             |
+| ----- | ---------------- | ------- | ---------- | ---- | ---------------------------------------- |
+| 9     | Dual TEMA H/L    | 2       | continuous | PRO  | `Dual_TEMA_High_Low.mq5`                 |
+| 10    | Pinbar Detection | 1       | sparse     | PRO  | `Pinbar Detector_Diamond Symbol_V17.mq5` |
 
 ---
 
