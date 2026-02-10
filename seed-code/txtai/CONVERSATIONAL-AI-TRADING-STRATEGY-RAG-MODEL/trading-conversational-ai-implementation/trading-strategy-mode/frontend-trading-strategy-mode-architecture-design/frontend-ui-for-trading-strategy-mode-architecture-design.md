@@ -31,11 +31,11 @@
 
 Option 3 was selected over simpler approaches for the following reasons:
 
-| Option | Approach | Problem |
-|--------|----------|---------|
-| Option 1 | Reset LLM memory on config switch | Disruptive UX, loses conversation context |
-| Option 2 | Inject config guard into every prompt | LLM still has cross-config history — unreliable |
-| **Option 3** | **Separate conversation thread per config** | **Complete isolation at all layers** |
+| Option       | Approach                                    | Problem                                         |
+| ------------ | ------------------------------------------- | ----------------------------------------------- |
+| Option 1     | Reset LLM memory on config switch           | Disruptive UX, loses conversation context       |
+| Option 2     | Inject config guard into every prompt       | LLM still has cross-config history — unreliable |
+| **Option 3** | **Separate conversation thread per config** | **Complete isolation at all layers**            |
 
 The backend database is already designed around `(instrument, tf_config)` composite keys, making Option 3 the natural architectural fit.
 
@@ -64,11 +64,11 @@ RULE 5: The backend agent_state persists per (instrument, tf_config)
 
 ### 1.3 Three Strategy Modes
 
-| Mode Label (UI) | tf_config | Primary TF | Sentiment TF | Market Condition |
-|-----------------|-----------|------------|--------------|------------------|
-| H1 Trading Strategy Mode | `config_a` | H1 | H4 (H1 × 4) | Moderate volatility |
-| H2 Trading Strategy Mode | `config_b` | H2 | H8 (H2 × 4) | High volatility |
-| M30 Trading Strategy Mode | `config_c` | M30 | H2 (M30 × 4) | Low volatility |
+| Mode Label (UI)           | tf_config  | Primary TF | Sentiment TF | Market Condition    |
+| ------------------------- | ---------- | ---------- | ------------ | ------------------- |
+| H1 Trading Strategy Mode  | `config_a` | H1         | H4 (H1 × 4)  | Moderate volatility |
+| H2 Trading Strategy Mode  | `config_b` | H2         | H8 (H2 × 4)  | High volatility     |
+| M30 Trading Strategy Mode | `config_c` | M30        | H2 (M30 × 4) | Low volatility      |
 
 ---
 
@@ -93,6 +93,7 @@ RULE 5: The backend agent_state persists per (instrument, tf_config)
 ### 2.2 tf_config Is Immutable After Session Creation
 
 Once a session is created with a `tf_config`, that value:
+
 - Is stored in the database (`chat_sessions` table)
 - Is returned with every API response for UI display
 - Is enforced server-side — the API rejects any message that carries a mismatched `tf_config`
@@ -172,6 +173,7 @@ SESSION RESUME (future session, same config)
 ### 3.3 Why a New txtai Agent Instance Per Session
 
 The backend `handle_user_chat()` uses:
+
 ```python
 response = app.agent("trading_agent", augmented_query)
 ```
@@ -234,11 +236,11 @@ States:
 
 #### Mode Option Specification
 
-| Display Label | tf_config | Subtitle | Badge Colour |
-|---------------|-----------|----------|--------------|
-| H1 Trading Strategy Mode | `config_a` | Moderate volatility | Blue |
-| H2 Trading Strategy Mode | `config_b` | High volatility | Orange |
-| M30 Trading Strategy Mode | `config_c` | Low volatility | Green |
+| Display Label             | tf_config  | Subtitle            | Badge Colour |
+| ------------------------- | ---------- | ------------------- | ------------ |
+| H1 Trading Strategy Mode  | `config_a` | Moderate volatility | Blue         |
+| H2 Trading Strategy Mode  | `config_b` | High volatility     | Orange       |
+| M30 Trading Strategy Mode | `config_c` | Low volatility      | Green        |
 
 ---
 
@@ -250,12 +252,12 @@ States:
 // context/SessionContext.tsx
 
 interface SessionContext {
-    session_id:   string | null
-    tf_config:    "config_a" | "config_b" | "config_c" | null
-    mode_label:   string | null        // "H1 Trading Strategy Mode"
-    is_locked:    boolean              // true once session created
-    instrument:   string | null        // currently active symbol
-    setInstrument: (symbol: string) => void
+  session_id: string | null;
+  tf_config: 'config_a' | 'config_b' | 'config_c' | null;
+  mode_label: string | null; // "H1 Trading Strategy Mode"
+  is_locked: boolean; // true once session created
+  instrument: string | null; // currently active symbol
+  setInstrument: (symbol: string) => void;
 }
 ```
 
@@ -306,6 +308,7 @@ Each past and active session is shown in the sidebar with its mode label:
 ```
 
 **Session list item data:**
+
 - Session title (instrument + direction + state)
 - Mode indicator badge (H1 / H2 / M30)
 - Last active timestamp
@@ -340,10 +343,10 @@ Displays the live `agent_state` for the currently selected `(instrument, tf_conf
 **Important:** The timeframes displayed in the state panel are determined by `tf_config`:
 
 | tf_config | Navigation panel TFs | Decision panel TFs |
-|-----------|---------------------|-------------------|
-| config_a  | H4, H2              | H2, H1, M30       |
-| config_b  | H8, H4              | H4, H2, H1        |
-| config_c  | H2, H1              | H1, M30, M15      |
+| --------- | -------------------- | ------------------ |
+| config_a  | H4, H2               | H2, H1, M30        |
+| config_b  | H8, H4               | H4, H2, H1         |
+| config_c  | H2, H1               | H1, M30, M15       |
 
 The state panel component reads `tf_config` from `SessionContext` and renders accordingly.
 
@@ -368,25 +371,28 @@ GET    /api/sessions/{session_id}/state     ← Get current agent_state for (ins
 ### 5.2 POST /api/sessions — Create Session
 
 **Request:**
+
 ```json
 {
-    "tf_config": "config_a",
-    "title": "XAUUSD H1 Analysis"       // optional, auto-generated if omitted
+  "tf_config": "config_a",
+  "title": "XAUUSD H1 Analysis" // optional, auto-generated if omitted
 }
 ```
 
 **Response:**
+
 ```json
 {
-    "session_id": "550e8400-e29b-41d4-a716-446655440000",
-    "tf_config": "config_a",
-    "mode_label": "H1 Trading Strategy Mode",
-    "created_at": "2026-02-10T09:00:00Z",
-    "is_active": true
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "tf_config": "config_a",
+  "mode_label": "H1 Trading Strategy Mode",
+  "created_at": "2026-02-10T09:00:00Z",
+  "is_active": true
 }
 ```
 
 **Server-side actions:**
+
 1. Validate `tf_config` ∈ `{"config_a", "config_b", "config_c"}`
 2. Insert row into `chat_sessions` table
 3. Instantiate a new txtai `Application` / Agent for this `session_id`
@@ -398,34 +404,37 @@ GET    /api/sessions/{session_id}/state     ← Get current agent_state for (ins
 ### 5.3 POST /api/sessions/{session_id}/messages — Send Message
 
 **Request:**
+
 ```json
 {
-    "user_query": "What is the current setup on XAUUSD?",
-    "instrument": "XAUUSD"
+  "user_query": "What is the current setup on XAUUSD?",
+  "instrument": "XAUUSD"
 }
 ```
 
 **Note:** `tf_config` is NOT in the request body. It is read server-side from the session record. This is the enforcement mechanism that prevents any client-side manipulation.
 
 **Response:**
+
 ```json
 {
-    "message_id": "msg_001",
-    "session_id": "550e8400-...",
-    "tf_config": "config_a",
-    "instrument": "XAUUSD",
-    "user_query": "What is the current setup on XAUUSD?",
-    "agent_response": "XAUUSD H1 uptrend in SCANNING state. Monitoring for breakout...",
-    "agent_state_snapshot": {
-        "current_state": "SCANNING",
-        "regime_classification": "Moderate Bullish",
-        "convergence_score": 3.2
-    },
-    "timestamp": "2026-02-10T09:05:00Z"
+  "message_id": "msg_001",
+  "session_id": "550e8400-...",
+  "tf_config": "config_a",
+  "instrument": "XAUUSD",
+  "user_query": "What is the current setup on XAUUSD?",
+  "agent_response": "XAUUSD H1 uptrend in SCANNING state. Monitoring for breakout...",
+  "agent_state_snapshot": {
+    "current_state": "SCANNING",
+    "regime_classification": "Moderate Bullish",
+    "convergence_score": 3.2
+  },
+  "timestamp": "2026-02-10T09:05:00Z"
 }
 ```
 
 **Server-side actions:**
+
 1. Look up `session_id` → retrieve `tf_config` from DB (never trust client)
 2. Retrieve the agent handle from the session registry
 3. Call `handle_user_chat(app=session_agent, user_query, instrument, tf_config)`
@@ -441,17 +450,18 @@ Allows the frontend state panel to poll or refresh the current `agent_state` for
 **Request query params:** `?instrument=XAUUSD`
 
 **Response:**
+
 ```json
 {
-    "instrument": "XAUUSD",
-    "tf_config": "config_a",
-    "current_state": "AWAITING_PULLBACK",
-    "regime_classification": "Moderate Bullish",
-    "convergence_score": 6.8,
-    "keltner_band_position": 5,
-    "keltner_sentiment_zone": "NORMAL_PULLBACK",
-    "bars_in_state": 3,
-    "last_evaluation_time": "2026-02-10T09:00:00Z"
+  "instrument": "XAUUSD",
+  "tf_config": "config_a",
+  "current_state": "AWAITING_PULLBACK",
+  "regime_classification": "Moderate Bullish",
+  "convergence_score": 6.8,
+  "keltner_band_position": 5,
+  "keltner_sentiment_zone": "NORMAL_PULLBACK",
+  "bars_in_state": 3,
+  "last_evaluation_time": "2026-02-10T09:00:00Z"
 }
 ```
 
@@ -561,6 +571,7 @@ session_registry = SessionRegistry(config_path="config/txtai_app.yml")
 ### 6.3 Agent Instance Properties
 
 Each `Application` instance created by `SessionRegistry.create()` has:
+
 - Its own `LLM` pipeline → its own conversation memory
 - Its own `Embeddings` reference (shared read-only VectorDB is fine — no writes)
 - Its own `Workflow` schedule is NOT created per session (cron evaluation runs at server level, not per session)
@@ -583,6 +594,7 @@ Zero memory leak between sessions. ✅
 The backend document (`State_Machine_Modification_for_txtai_Framework.md`) stores `chat_history` inside txtai Agent memory (in-process, RAM). This is appropriate for the live session but does not persist across session restarts.
 
 A separate persistent store is needed for:
+
 - Displaying past conversations when the user reopens a session
 - Audit log
 - Session list preview (last message snippet in sidebar)
@@ -699,6 +711,7 @@ by User B's evaluation cycle on the same instrument.
 ```
 
 **Update to agent_state schema:**
+
 ```sql
 -- Add user_id to existing agent_state table
 ALTER TABLE agent_state ADD COLUMN user_id UUID;
@@ -867,19 +880,19 @@ Mitigation: The existing optimistic locking in the evaluation pipeline
 
 ## 11. Implementation Order
 
-| Step | Component | File | What to Build | Depends On |
-|------|-----------|------|---------------|------------|
-| 1 | DB Migration | `migrations/003_chat_sessions.sql` | `chat_sessions` + `chat_messages` tables, `user_id` on `agent_state` | — |
-| 2 | Session Registry | `services/session_registry.py` | Per-session agent instantiation, eviction | txtai Application |
-| 3 | Session API | `api/routes/sessions.py` | POST/GET sessions, POST messages, GET state | Session Registry, DB |
-| 4 | chat_handler update | `services/agent/chat_handler.py` | Accept per-session agent, save messages to DB | Session API |
-| 5 | Mode Selector | `components/chat/StrategyModeSelector.tsx` | Dropdown + lock behaviour | — |
-| 6 | Session Context | `context/SessionContext.tsx` | React context with tf_config + instrument | Mode Selector |
-| 7 | Instrument Selector | `components/chat/InstrumentSelector.tsx` | Symbol switcher within session | Session Context |
-| 8 | State Panel | `components/chat/StatePanel.tsx` | Config-aware TF display | Session Context, GET state API |
-| 9 | Chat UI | `components/chat/ChatWindow.tsx` | Message thread, session history | Session Context, Messages API |
-| 10 | Session List | `components/chat/SessionList.tsx` | Sidebar with mode badges | Sessions API |
-| 11 | Eviction Task | `services/session_registry.py` | Background eviction of inactive agents | Session Registry |
+| Step | Component           | File                                       | What to Build                                                        | Depends On                     |
+| ---- | ------------------- | ------------------------------------------ | -------------------------------------------------------------------- | ------------------------------ |
+| 1    | DB Migration        | `migrations/003_chat_sessions.sql`         | `chat_sessions` + `chat_messages` tables, `user_id` on `agent_state` | —                              |
+| 2    | Session Registry    | `services/session_registry.py`             | Per-session agent instantiation, eviction                            | txtai Application              |
+| 3    | Session API         | `api/routes/sessions.py`                   | POST/GET sessions, POST messages, GET state                          | Session Registry, DB           |
+| 4    | chat_handler update | `services/agent/chat_handler.py`           | Accept per-session agent, save messages to DB                        | Session API                    |
+| 5    | Mode Selector       | `components/chat/StrategyModeSelector.tsx` | Dropdown + lock behaviour                                            | —                              |
+| 6    | Session Context     | `context/SessionContext.tsx`               | React context with tf_config + instrument                            | Mode Selector                  |
+| 7    | Instrument Selector | `components/chat/InstrumentSelector.tsx`   | Symbol switcher within session                                       | Session Context                |
+| 8    | State Panel         | `components/chat/StatePanel.tsx`           | Config-aware TF display                                              | Session Context, GET state API |
+| 9    | Chat UI             | `components/chat/ChatWindow.tsx`           | Message thread, session history                                      | Session Context, Messages API  |
+| 10   | Session List        | `components/chat/SessionList.tsx`          | Sidebar with mode badges                                             | Sessions API                   |
+| 11   | Eviction Task       | `services/session_registry.py`             | Background eviction of inactive agents                               | Session Registry               |
 
 ---
 
@@ -930,27 +943,27 @@ STRATEGY_MODES = {
 // lib/strategyModeConfig.ts
 
 export const STRATEGY_MODE_CONFIG = {
-    config_a: {
-        label:      "H1 Trading Strategy Mode",
-        navTfs:     ["H4", "H2"],
-        decisionTfs:["H2", "H1", "M30"],
-        sentimentTf:"H4",
-        badgeColour:"blue",
-    },
-    config_b: {
-        label:      "H2 Trading Strategy Mode",
-        navTfs:     ["H8", "H4"],
-        decisionTfs:["H4", "H2", "H1"],
-        sentimentTf:"H8",
-        badgeColour:"orange",
-    },
-    config_c: {
-        label:      "M30 Trading Strategy Mode",
-        navTfs:     ["H2", "H1"],
-        decisionTfs:["H1", "M30", "M15"],
-        sentimentTf:"H2",
-        badgeColour:"green",
-    },
+  config_a: {
+    label: 'H1 Trading Strategy Mode',
+    navTfs: ['H4', 'H2'],
+    decisionTfs: ['H2', 'H1', 'M30'],
+    sentimentTf: 'H4',
+    badgeColour: 'blue',
+  },
+  config_b: {
+    label: 'H2 Trading Strategy Mode',
+    navTfs: ['H8', 'H4'],
+    decisionTfs: ['H4', 'H2', 'H1'],
+    sentimentTf: 'H8',
+    badgeColour: 'orange',
+  },
+  config_c: {
+    label: 'M30 Trading Strategy Mode',
+    navTfs: ['H2', 'H1'],
+    decisionTfs: ['H1', 'M30', 'M15'],
+    sentimentTf: 'H2',
+    badgeColour: 'green',
+  },
 } as const;
 
 export type TfConfig = keyof typeof STRATEGY_MODE_CONFIG;
@@ -958,4 +971,4 @@ export type TfConfig = keyof typeof STRATEGY_MODE_CONFIG;
 
 ---
 
-*This document specifies the complete frontend and session management architecture required to implement Option 3 (Separate conversation threads per config) reliably and coherently with `State_Machine_Modification_for_txtai_Framework.md`.*
+_This document specifies the complete frontend and session management architecture required to implement Option 3 (Separate conversation threads per config) reliably and coherently with `State_Machine_Modification_for_txtai_Framework.md`._

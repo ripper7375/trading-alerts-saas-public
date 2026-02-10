@@ -1456,7 +1456,7 @@ The audit log captures every decision the agent makes with full context. Periodi
 | Flask MT5 Service    | `/services/flask_mt5/`                 | Python           | MT5 data pipeline + order execution       |
 | Database migrations  | `/services/flask_mt5/migrations/`      | SQL/Alembic      | PostgreSQL schema management              |
 | Frontend Chat        | `/apps/web/src/components/Chat/`       | TypeScript/React | DavinTrade Chat UI component              |
-| WebSocket handler    | `/apps/web/src/lib/ws/`                | TypeScript       | Real-time agent ↔ frontend communication |
+| WebSocket handler    | `/apps/web/src/lib/ws/`                | TypeScript       | Real-time agent ↔ frontend communication  |
 
 ---
 

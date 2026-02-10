@@ -164,38 +164,38 @@ This is identical to the HRMA computation used in the existing TEMA/HRMA indicat
 
 Each outer band is offset from the center by a multiple of ATR:
 
-| Band # | Label | Computation | ATR Multiplier |
-|---|---|---|---|
-| 1 | Ultra Extreme Upper | UpperMiddle + multiplier × ATR | 4.0 |
-| 2 | Extreme Upper | UpperMiddle + multiplier × ATR | 3.0 |
-| 3 | UpperMost | UpperMiddle + multiplier × ATR | 2.0 |
-| 4 | Upper | UpperMiddle + multiplier × ATR | 1.0 |
-| 5 | Upper Middle | HRMA(HTF High) | — (center) |
-| 6 | Lower Middle | HRMA(HTF Low) | — (center) |
-| 7 | Lower | LowerMiddle - multiplier × ATR | 1.0 |
-| 8 | LowerMost | LowerMiddle - multiplier × ATR | 2.0 |
-| 9 | Extreme Lower | LowerMiddle - multiplier × ATR | 3.0 |
-| 10 | Ultra Extreme Lower | LowerMiddle - multiplier × ATR | 4.0 |
+| Band # | Label               | Computation                    | ATR Multiplier |
+| ------ | ------------------- | ------------------------------ | -------------- |
+| 1      | Ultra Extreme Upper | UpperMiddle + multiplier × ATR | 4.0            |
+| 2      | Extreme Upper       | UpperMiddle + multiplier × ATR | 3.0            |
+| 3      | UpperMost           | UpperMiddle + multiplier × ATR | 2.0            |
+| 4      | Upper               | UpperMiddle + multiplier × ATR | 1.0            |
+| 5      | Upper Middle        | HRMA(HTF High)                 | — (center)     |
+| 6      | Lower Middle        | HRMA(HTF Low)                  | — (center)     |
+| 7      | Lower               | LowerMiddle - multiplier × ATR | 1.0            |
+| 8      | LowerMost           | LowerMiddle - multiplier × ATR | 2.0            |
+| 9      | Extreme Lower       | LowerMiddle - multiplier × ATR | 3.0            |
+| 10     | Ultra Extreme Lower | LowerMiddle - multiplier × ATR | 4.0            |
 
 ### Parameters
 
-| Parameter | Value | Rationale |
-|---|---|---|
-| HRMA Period | 54 | Reduced from default 72 for greater responsiveness at higher timeframe (H4/H8). The higher the analysis timeframe, the more each bar represents, so a shorter period avoids excessive lag. |
-| ATR Period | 162 | Long ATR window for stable volatility normalization. On H4 this represents ~27 days of context; on H8 this represents ~54 days. |
-| ATR Multiplier (bands 1/10) | 4.0 | Ultra extreme — defines the absolute outer boundary of expected price deviation |
-| ATR Multiplier (bands 2/9) | 3.0 | Extreme deviation zone |
-| ATR Multiplier (bands 3/8) | 2.0 | Strong deviation zone |
-| ATR Multiplier (bands 4/7) | 1.0 | Normal deviation zone |
+| Parameter                   | Value | Rationale                                                                                                                                                                                  |
+| --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| HRMA Period                 | 54    | Reduced from default 72 for greater responsiveness at higher timeframe (H4/H8). The higher the analysis timeframe, the more each bar represents, so a shorter period avoids excessive lag. |
+| ATR Period                  | 162   | Long ATR window for stable volatility normalization. On H4 this represents ~27 days of context; on H8 this represents ~54 days.                                                            |
+| ATR Multiplier (bands 1/10) | 4.0   | Ultra extreme — defines the absolute outer boundary of expected price deviation                                                                                                            |
+| ATR Multiplier (bands 2/9)  | 3.0   | Extreme deviation zone                                                                                                                                                                     |
+| ATR Multiplier (bands 3/8)  | 2.0   | Strong deviation zone                                                                                                                                                                      |
+| ATR Multiplier (bands 4/7)  | 1.0   | Normal deviation zone                                                                                                                                                                      |
 
 ### Sentiment Measurement Timeframe
 
 The Keltner Channel is computed on a **4× multiplier of the Primary Decision TF** to maintain consistent structural context:
 
-| Decision Timeframe Model | Primary Decision TF | Sentiment Measurement TF (Keltner) | Ratio |
-|---|---|---|---|
-| Config A (H1 primary) | H1 | **H4** | H1 × 4 = H4 |
-| Config B (H2 primary) | H2 | **H8** | H2 × 4 = H8 |
+| Decision Timeframe Model | Primary Decision TF | Sentiment Measurement TF (Keltner) | Ratio       |
+| ------------------------ | ------------------- | ---------------------------------- | ----------- |
+| Config A (H1 primary)    | H1                  | **H4**                             | H1 × 4 = H4 |
+| Config B (H2 primary)    | H2                  | **H8**                             | H2 × 4 = H8 |
 
 **Rationale - The 4× Pattern**:
 
@@ -265,30 +265,30 @@ The band position has different implications depending on the **direction of the
 
 **Bullish Breakout (Long Entry) — Price pierces through negative slope trendline (resistance):**
 
-| Keltner Band Position | Sentiment Zone | Interpretation | State Machine Action |
-|---|---|---|---|
-| <1, 1-2 | **Pullback is likely** (overextended) | Price is at the ultra extreme/extreme upper bands — maximum deviation from the mean. While the bullish sentiment is real and the breakout is real, the entry NOW would be chasing into overextension. Mean reversion pressure is building at these extremes. The smart entry is to wait for the inevitable retracement from this overextended position. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion) |
-| 2-3, 3-4 | **Pullback is unlikely** (momentum confirmed) | Price has pushed significantly above the mean into the strong deviation zone. Bullish sentiment is confirmed — price deviation from the mean indicates genuine directional conviction. A pullback to the broken trendline would require a large counter-move against this sentiment, which is unlikely while price is this extended above the mean. | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
-| 4-5, 5-6 | **Pullback is likely** (normal) | Price is near the Keltner center (the mean). Momentum is moderate — sufficient to break through the trendline but not sufficient to prevent a retrace. There is enough counter-sentiment to produce a normal pullback to the broken level. Standard breakout-pullback-confirmation flow applies. | → **AWAITING_PULLBACK** (normal flow) |
-| 6-7 through >10 | **Fakeout is likely** | Price is still in the lower bands. Bearish sentiment is overwhelmingly dominant. The upward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bullish push that will be absorbed by the dominant bearish structure. | → **INVALIDATED** (fakeout_detected) |
+| Keltner Band Position | Sentiment Zone                                | Interpretation                                                                                                                                                                                                                                                                                                                                          | State Machine Action                                                                                                   |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <1, 1-2               | **Pullback is likely** (overextended)         | Price is at the ultra extreme/extreme upper bands — maximum deviation from the mean. While the bullish sentiment is real and the breakout is real, the entry NOW would be chasing into overextension. Mean reversion pressure is building at these extremes. The smart entry is to wait for the inevitable retracement from this overextended position. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion)                                       |
+| 2-3, 3-4              | **Pullback is unlikely** (momentum confirmed) | Price has pushed significantly above the mean into the strong deviation zone. Bullish sentiment is confirmed — price deviation from the mean indicates genuine directional conviction. A pullback to the broken trendline would require a large counter-move against this sentiment, which is unlikely while price is this extended above the mean.     | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
+| 4-5, 5-6              | **Pullback is likely** (normal)               | Price is near the Keltner center (the mean). Momentum is moderate — sufficient to break through the trendline but not sufficient to prevent a retrace. There is enough counter-sentiment to produce a normal pullback to the broken level. Standard breakout-pullback-confirmation flow applies.                                                        | → **AWAITING_PULLBACK** (normal flow)                                                                                  |
+| 6-7 through >10       | **Fakeout is likely**                         | Price is still in the lower bands. Bearish sentiment is overwhelmingly dominant. The upward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bullish push that will be absorbed by the dominant bearish structure.                                               | → **INVALIDATED** (fakeout_detected)                                                                                   |
 
 **Bearish Breakout (Short Entry) — Price pierces through positive slope trendline (support):**
 
-| Keltner Band Position | Sentiment Zone | Interpretation | State Machine Action |
-|---|---|---|---|
-| <1 through 4-5 | **Fakeout is likely** | Price is still in the upper bands. Bullish sentiment is overwhelmingly dominant. The downward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bearish push that will be absorbed by the dominant bullish structure. | → **INVALIDATED** (fakeout_detected) |
-| 5-6, 6-7 | **Pullback is likely** (normal) | Price is near or just below the Keltner center (the mean). Moderate bearish momentum — sufficient to break through the trendline but not sufficient to prevent a retrace. Standard breakout-pullback-confirmation flow applies. | → **AWAITING_PULLBACK** (normal flow) |
-| 7-8, 8-9 | **Pullback is unlikely** (momentum confirmed) | Price has pushed significantly below the mean into the strong deviation zone. Bearish sentiment is confirmed. A pullback to the broken trendline would require a large counter-move against this sentiment. | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
-| 9-10, >10 | **Pullback is likely** (overextended) | Price is at the ultra extreme/extreme lower bands — maximum deviation from the mean. Bearish sentiment is real but entry would be chasing into overextension. Mean reversion pressure building. | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion) |
+| Keltner Band Position | Sentiment Zone                                | Interpretation                                                                                                                                                                                                                                                                                              | State Machine Action                                                                                                   |
+| --------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <1 through 4-5        | **Fakeout is likely**                         | Price is still in the upper bands. Bullish sentiment is overwhelmingly dominant. The downward breakout lacks the momentum/sentiment support needed for a genuine trend reversal. This breakout is most likely a fakeout — a temporary bearish push that will be absorbed by the dominant bullish structure. | → **INVALIDATED** (fakeout_detected)                                                                                   |
+| 5-6, 6-7              | **Pullback is likely** (normal)               | Price is near or just below the Keltner center (the mean). Moderate bearish momentum — sufficient to break through the trendline but not sufficient to prevent a retrace. Standard breakout-pullback-confirmation flow applies.                                                                             | → **AWAITING_PULLBACK** (normal flow)                                                                                  |
+| 7-8, 8-9              | **Pullback is unlikely** (momentum confirmed) | Price has pushed significantly below the mean into the strong deviation zone. Bearish sentiment is confirmed. A pullback to the broken trendline would require a large counter-move against this sentiment.                                                                                                 | → **Generate advisory IMMEDIATELY** (skip pullback). Precise entry price recommendation deferred to separate workflow. |
+| 9-10, >10             | **Pullback is likely** (overextended)         | Price is at the ultra extreme/extreme lower bands — maximum deviation from the mean. Bearish sentiment is real but entry would be chasing into overextension. Mean reversion pressure building.                                                                                                             | → **AWAITING_PULLBACK** (overextended — pullback expected due to mean reversion)                                       |
 
 ### Sentiment Zone Summary Table
 
-| Zone | Long (Bullish Breakout) | Short (Bearish Breakout) | Outcome |
-|---|---|---|---|
-| **Fakeout is likely** | Bands 6-7 through >10 | Bands <1 through 4-5 | INVALIDATED |
-| **Pullback is likely** (normal) | Bands 4-5, 5-6 | Bands 5-6, 6-7 | AWAITING_PULLBACK |
-| **Pullback is unlikely** (momentum confirmed) | Bands 2-3, 3-4 | Bands 7-8, 8-9 | Advisory immediately |
-| **Pullback is likely** (overextended) | Bands <1, 1-2 | Bands 9-10, >10 | AWAITING_PULLBACK |
+| Zone                                          | Long (Bullish Breakout) | Short (Bearish Breakout) | Outcome              |
+| --------------------------------------------- | ----------------------- | ------------------------ | -------------------- |
+| **Fakeout is likely**                         | Bands 6-7 through >10   | Bands <1 through 4-5     | INVALIDATED          |
+| **Pullback is likely** (normal)               | Bands 4-5, 5-6          | Bands 5-6, 6-7           | AWAITING_PULLBACK    |
+| **Pullback is unlikely** (momentum confirmed) | Bands 2-3, 3-4          | Bands 7-8, 8-9           | Advisory immediately |
+| **Pullback is likely** (overextended)         | Bands <1, 1-2           | Bands 9-10, >10          | AWAITING_PULLBACK    |
 
 ---
 
@@ -433,30 +433,30 @@ Replace Section 4.2 of the base document with:
 
 Replace Section 8.1 of the base document with this expanded table. New/modified rows are marked with ★:
 
-| #   | From              | Condition                | To                 | Trigger                                    | Hard Rule? |
-| --- | ----------------- | ------------------------ | ------------------ | ------------------------------------------ | ---------- |
-| 1   | IDLE              | `new_bar`                | NAVIGATING         | Cron / new bar close                       | No         |
-| 2   | IDLE              | `user_trigger`           | NAVIGATING         | User requests evaluation                   | No         |
-| 3   | NAVIGATING        | `regime_valid`           | SCANNING           | Regime classification complete             | No         |
-| 4   | NAVIGATING        | `regime_incompatible`    | IDLE               | No viable trade conditions                 | No         |
-| 5   | SCANNING          | `breakout_found`         | BREAKOUT_DETECTED  | Candle closes beyond trendline             | No         |
-| 6   | SCANNING          | `structure_deteriorated` | IDLE               | Key S/R breaks against direction           | No         |
-| 7   | SCANNING          | `no_setup`               | IDLE               | LLM judges no setup developing             | No         |
-| ★8  | BREAKOUT_DETECTED | `sentiment_fakeout`      | INVALIDATED        | Keltner band in fakeout zone               | **Yes**    |
-| ★9  | BREAKOUT_DETECTED | `momentum_confirmed`     | IDLE (via respond) | Keltner band in momentum confirmed zone    | **Yes**    |
-| 10  | BREAKOUT_DETECTED | `quality_sufficient`     | AWAITING_PULLBACK  | LLM + score + Keltner in normal/overextended zone | No   |
-| 11  | BREAKOUT_DETECTED | `quality_insufficient`   | INVALIDATED        | LLM judges poor breakout                   | No         |
-| 12  | BREAKOUT_DETECTED | `instant_fakeout`        | INVALIDATED        | Price reverses through trendline           | **Yes**    |
-| 13  | BREAKOUT_DETECTED | `timeout`                | INVALIDATED        | 3 bars without confirmation                | **Yes**    |
-| 14  | AWAITING_PULLBACK | `pullback_arrived`       | PULLBACK_TESTING   | Price enters tolerance zone                | No         |
-| 15  | AWAITING_PULLBACK | `window_expired`         | MISSED             | 8-12 bars without pullback                 | **Yes**    |
-| 16  | AWAITING_PULLBACK | `failed_breakout`        | INVALIDATED        | Price closes back through trendline        | **Yes**    |
-| 17  | PULLBACK_TESTING  | `bounce_confirmed`       | IDLE (via respond) | Active bounce + score >= ENTER             | No         |
-| 18  | PULLBACK_TESTING  | `level_broken`           | INVALIDATED        | Price breaks zone decisively               | **Yes**    |
-| 19  | PULLBACK_TESTING  | `inconclusive`           | SCANNING           | No clear rejection/bounce                  | No         |
-| 20  | PULLBACK_TESTING  | `timeout`                | INVALIDATED        | 3-8 bars lingering                         | **Yes**    |
-| 21  | MISSED            | `cooldown_expired`       | IDLE               | 4 bars elapsed                             | **Yes**    |
-| 22  | INVALIDATED       | `cooldown_expired`       | IDLE               | 4 bars elapsed                             | **Yes**    |
+| #   | From              | Condition                | To                 | Trigger                                           | Hard Rule? |
+| --- | ----------------- | ------------------------ | ------------------ | ------------------------------------------------- | ---------- |
+| 1   | IDLE              | `new_bar`                | NAVIGATING         | Cron / new bar close                              | No         |
+| 2   | IDLE              | `user_trigger`           | NAVIGATING         | User requests evaluation                          | No         |
+| 3   | NAVIGATING        | `regime_valid`           | SCANNING           | Regime classification complete                    | No         |
+| 4   | NAVIGATING        | `regime_incompatible`    | IDLE               | No viable trade conditions                        | No         |
+| 5   | SCANNING          | `breakout_found`         | BREAKOUT_DETECTED  | Candle closes beyond trendline                    | No         |
+| 6   | SCANNING          | `structure_deteriorated` | IDLE               | Key S/R breaks against direction                  | No         |
+| 7   | SCANNING          | `no_setup`               | IDLE               | LLM judges no setup developing                    | No         |
+| ★8  | BREAKOUT_DETECTED | `sentiment_fakeout`      | INVALIDATED        | Keltner band in fakeout zone                      | **Yes**    |
+| ★9  | BREAKOUT_DETECTED | `momentum_confirmed`     | IDLE (via respond) | Keltner band in momentum confirmed zone           | **Yes**    |
+| 10  | BREAKOUT_DETECTED | `quality_sufficient`     | AWAITING_PULLBACK  | LLM + score + Keltner in normal/overextended zone | No         |
+| 11  | BREAKOUT_DETECTED | `quality_insufficient`   | INVALIDATED        | LLM judges poor breakout                          | No         |
+| 12  | BREAKOUT_DETECTED | `instant_fakeout`        | INVALIDATED        | Price reverses through trendline                  | **Yes**    |
+| 13  | BREAKOUT_DETECTED | `timeout`                | INVALIDATED        | 3 bars without confirmation                       | **Yes**    |
+| 14  | AWAITING_PULLBACK | `pullback_arrived`       | PULLBACK_TESTING   | Price enters tolerance zone                       | No         |
+| 15  | AWAITING_PULLBACK | `window_expired`         | MISSED             | 8-12 bars without pullback                        | **Yes**    |
+| 16  | AWAITING_PULLBACK | `failed_breakout`        | INVALIDATED        | Price closes back through trendline               | **Yes**    |
+| 17  | PULLBACK_TESTING  | `bounce_confirmed`       | IDLE (via respond) | Active bounce + score >= ENTER                    | No         |
+| 18  | PULLBACK_TESTING  | `level_broken`           | INVALIDATED        | Price breaks zone decisively                      | **Yes**    |
+| 19  | PULLBACK_TESTING  | `inconclusive`           | SCANNING           | No clear rejection/bounce                         | No         |
+| 20  | PULLBACK_TESTING  | `timeout`                | INVALIDATED        | 3-8 bars lingering                                | **Yes**    |
+| 21  | MISSED            | `cooldown_expired`       | IDLE               | 4 bars elapsed                                    | **Yes**    |
+| 22  | INVALIDATED       | `cooldown_expired`       | IDLE               | 4 bars elapsed                                    | **Yes**    |
 
 **Changes from base document:**
 
@@ -1083,20 +1083,20 @@ def route_after_evaluation(agent_state: dict) -> str:
 
 Replace Section 5.4 of the base document with this expanded table:
 
-| State at Respond Time | Sentiment Zone | Response Type | Content |
-|---|---|---|---|
-| IDLE | — | Market overview | "No active setup. Market is [regime]. Monitoring for opportunities." |
-| SCANNING | — | Setup developing | "Watching for breakout on [trendline]. Convergence at [score]." |
-| BREAKOUT_DETECTED | — | Alert | "Breakout detected on [instrument] [TF]. Evaluating quality..." |
-| ★ BREAKOUT_DETECTED | FAKEOUT | Invalidation | "Breakout invalidated — Keltner band position [X] indicates [bearish/bullish] sentiment still dominant. Breakout lacks structural support for reversal. Likely fakeout." |
-| ★ BREAKOUT_DETECTED | MOMENTUM_CONFIRMED | **Momentum Advisory** | "**MOMENTUM ENTRY**: [instrument] [direction] breakout confirmed. Keltner band [X] — strong [bullish/bearish] sentiment, pullback unlikely. Convergence: [score]. [Separate workflow needed for precise entry prices.]" |
-| ★ BREAKOUT_DETECTED | OVEREXTENDED | Alert + Caution | "Breakout confirmed but price overextended (Keltner band [X]). Waiting for pullback from extreme — mean reversion expected." |
-| AWAITING_PULLBACK | NORMAL_PULLBACK | Update | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining." |
-| ★ AWAITING_PULLBACK | OVEREXTENDED | Update + Context | "Breakout confirmed. Price overextended (band [X]) — pullback from extreme likely. Monitoring for retracement." |
-| PULLBACK_TESTING (score >= 5.0) | — | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence. |
-| PULLBACK_TESTING (score < 5.0) | — | Caution | "Pullback at zone but convergence insufficient ([score]). Monitoring." |
-| MISSED | — | Missed opportunity | "Valid breakout but entry window expired. Cooldown [X] bars." |
-| INVALIDATED | — | Invalidation report | "Setup invalidated: [reason]. Cooldown [X] bars." |
+| State at Respond Time           | Sentiment Zone     | Response Type            | Content                                                                                                                                                                                                                 |
+| ------------------------------- | ------------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IDLE                            | —                  | Market overview          | "No active setup. Market is [regime]. Monitoring for opportunities."                                                                                                                                                    |
+| SCANNING                        | —                  | Setup developing         | "Watching for breakout on [trendline]. Convergence at [score]."                                                                                                                                                         |
+| BREAKOUT_DETECTED               | —                  | Alert                    | "Breakout detected on [instrument] [TF]. Evaluating quality..."                                                                                                                                                         |
+| ★ BREAKOUT_DETECTED             | FAKEOUT            | Invalidation             | "Breakout invalidated — Keltner band position [X] indicates [bearish/bullish] sentiment still dominant. Breakout lacks structural support for reversal. Likely fakeout."                                                |
+| ★ BREAKOUT_DETECTED             | MOMENTUM_CONFIRMED | **Momentum Advisory**    | "**MOMENTUM ENTRY**: [instrument] [direction] breakout confirmed. Keltner band [X] — strong [bullish/bearish] sentiment, pullback unlikely. Convergence: [score]. [Separate workflow needed for precise entry prices.]" |
+| ★ BREAKOUT_DETECTED             | OVEREXTENDED       | Alert + Caution          | "Breakout confirmed but price overextended (Keltner band [X]). Waiting for pullback from extreme — mean reversion expected."                                                                                            |
+| AWAITING_PULLBACK               | NORMAL_PULLBACK    | Update                   | "Breakout confirmed. Waiting for pullback to [level]. [X] bars remaining."                                                                                                                                              |
+| ★ AWAITING_PULLBACK             | OVEREXTENDED       | Update + Context         | "Breakout confirmed. Price overextended (band [X]) — pullback from extreme likely. Monitoring for retracement."                                                                                                         |
+| PULLBACK_TESTING (score >= 5.0) | —                  | **Trade Recommendation** | Full recommendation with entry zone, lots, score breakdown, confidence.                                                                                                                                                 |
+| PULLBACK_TESTING (score < 5.0)  | —                  | Caution                  | "Pullback at zone but convergence insufficient ([score]). Monitoring."                                                                                                                                                  |
+| MISSED                          | —                  | Missed opportunity       | "Valid breakout but entry window expired. Cooldown [X] bars."                                                                                                                                                           |
+| INVALIDATED                     | —                  | Invalidation report      | "Setup invalidated: [reason]. Cooldown [X] bars."                                                                                                                                                                       |
 
 ★ = New or modified rows from the Keltner Sentiment Gate addition.
 
@@ -1218,23 +1218,31 @@ When evaluating breakouts:
 
 Add the following chunk to the VectorDB (as specified in Agentic RAG Implementation Architecture Section 2.2):
 
-| Chunk ID | Source Section | Content Summary | Tokens (approx) | Key Metadata Tags |
-|---|---|---|---|---|
-| `sentiment-keltner-gate` | Keltner Sentiment Gate Modification | Keltner Channel 10-band sentiment measurement, 4-zone directional model (fakeout/normal/momentum/overextended), band position interpretation for long and short reversals, interaction with pullback expectation | ~800 | `sentiment`, `keltner`, `momentum`, `pullback`, `breakout`, `state-machine` |
+| Chunk ID                 | Source Section                      | Content Summary                                                                                                                                                                                                  | Tokens (approx) | Key Metadata Tags                                                           |
+| ------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------- |
+| `sentiment-keltner-gate` | Keltner Sentiment Gate Modification | Keltner Channel 10-band sentiment measurement, 4-zone directional model (fakeout/normal/momentum/overextended), band position interpretation for long and short reversals, interaction with pullback expectation | ~800            | `sentiment`, `keltner`, `momentum`, `pullback`, `breakout`, `state-machine` |
 
 **Metadata:**
 
 ```json
 {
-    "chunk_id": "sentiment-keltner-gate",
-    "source_document": "keltner_sentiment_gate_modification",
-    "section_title": "Keltner Channel Sentiment Gate",
-    "layer": "decision",
-    "topic_tags": ["sentiment", "keltner", "momentum", "pullback", "breakout", "fakeout", "overextended"],
-    "state_relevance": ["BREAKOUT_DETECTED", "AWAITING_PULLBACK"],
-    "indicator_relevance": ["keltner", "tema-hrma", "momentum"],
-    "version": "1.0",
-    "last_updated": "2026-02-09"
+  "chunk_id": "sentiment-keltner-gate",
+  "source_document": "keltner_sentiment_gate_modification",
+  "section_title": "Keltner Channel Sentiment Gate",
+  "layer": "decision",
+  "topic_tags": [
+    "sentiment",
+    "keltner",
+    "momentum",
+    "pullback",
+    "breakout",
+    "fakeout",
+    "overextended"
+  ],
+  "state_relevance": ["BREAKOUT_DETECTED", "AWAITING_PULLBACK"],
+  "indicator_relevance": ["keltner", "tema-hrma", "momentum"],
+  "version": "1.0",
+  "last_updated": "2026-02-09"
 }
 ```
 
@@ -1287,8 +1295,8 @@ keltner:
   hrma_period: 54
   atr_period: 162
   sentiment_timeframe:
-    config_a: H4  # H1 × 4 = H4
-    config_b: H8  # H2 × 4 = H8
+    config_a: H4 # H1 × 4 = H4
+    config_b: H8 # H2 × 4 = H8
   multipliers:
     ultra_extreme: 4.0
     extreme: 3.0
@@ -1706,15 +1714,15 @@ tests/
 
 **Key parameters as implemented in MQL5**:
 
-| Parameter | MQL5 Variable | Default Value | Python Equivalent |
-|---|---|---|---|
-| Analysis Timeframe | `AnalysisTimeframe` | PERIOD_CURRENT | `sentiment_tf` (H4) |
-| HRMA Period | `HRMAPeriod` | 54 | `hrma_period` |
-| ATR Period | `ATRPeriod` | 162 | `atr_period` |
-| Ultra Extreme Upper Multiplier | `ATRMultiplier_UltraExtremeUpper` | 4.00 | `multiplier_ultra_extreme` |
-| Extreme Upper Multiplier | `ATRMultiplier_ExtremeUpper` | 3.00 | `multiplier_extreme` |
-| UpperMost Multiplier | `ATRMultiplier_UpperMost` | 2.00 | `multiplier_uppermost` |
-| Upper Multiplier | `ATRMultiplier_Upper` | 1.00 | `multiplier_upper` |
+| Parameter                      | MQL5 Variable                     | Default Value  | Python Equivalent          |
+| ------------------------------ | --------------------------------- | -------------- | -------------------------- |
+| Analysis Timeframe             | `AnalysisTimeframe`               | PERIOD_CURRENT | `sentiment_tf` (H4)        |
+| HRMA Period                    | `HRMAPeriod`                      | 54             | `hrma_period`              |
+| ATR Period                     | `ATRPeriod`                       | 162            | `atr_period`               |
+| Ultra Extreme Upper Multiplier | `ATRMultiplier_UltraExtremeUpper` | 4.00           | `multiplier_ultra_extreme` |
+| Extreme Upper Multiplier       | `ATRMultiplier_ExtremeUpper`      | 3.00           | `multiplier_extreme`       |
+| UpperMost Multiplier           | `ATRMultiplier_UpperMost`         | 2.00           | `multiplier_uppermost`     |
+| Upper Multiplier               | `ATRMultiplier_Upper`             | 1.00           | `multiplier_upper`         |
 
 **Note**: The MQL5 indicator also has separate multiplier inputs for the lower bands (`ATRMultiplier_Lower`, `ATRMultiplier_LowerMost`, `ATRMultiplier_ExtremeLower`, `ATRMultiplier_UltraExtremeLower`). In the Python implementation, these use the same values as the upper bands (symmetric), but the configuration supports asymmetric multipliers if needed in the future.
 
