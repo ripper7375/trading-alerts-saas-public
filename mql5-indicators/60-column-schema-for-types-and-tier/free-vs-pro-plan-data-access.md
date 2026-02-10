@@ -1,5 +1,25 @@
 # FREE and PRO PLAN DATA ACCESSIBILITY
 
+> **Version 2.0.0** — Updated 2026-02-10
+> Supersedes: `57-column-schema-for-types-and-tier/free-vs-pro-plan-data-access.md`
+> Schema change: 57 → 60 columns (PRO tier only; FREE tier unchanged)
+
+---
+
+## What Changed in v2.0 (57 → 60 columns)
+
+| Change | Detail |
+| ------ | ------ |
+| New Indicator #9 | Dual TEMA High/Low — 2 new PRO columns (`dual_tema_high`, `dual_tema_low`) |
+| New Indicator #10 | Pinbar Detection — 1 new PRO column (`pinbar`) |
+| Total columns | 57 → **60** |
+| PRO columns | 33 → **36** |
+| FREE columns | 24 (unchanged) |
+| FREE indicators | 2 (unchanged) |
+| PRO indicator groups | 6 → **8** |
+
+---
+
 ## 🔧 System Columns (8 columns) ---> FREE + PRO
 
 | Column Name    | Data Type       | Nullable | Description              | Notes                        |
@@ -17,8 +37,8 @@
 
 ## 📈 Indicator #1: TEMA_HRMA_SMA-SMMA (3 columns) ---> PRO ONLY
 
-**Indicator Name:** TEMA_HRMA_SMA-SMMA_Modified Buffers  
-**Type:** Moving Averages  
+**Indicator Name:** TEMA_HRMA_SMA-SMMA_Modified Buffers
+**Type:** Moving Averages
 **Data Pattern:** Continuous (values on every bar)
 
 | Column Name | Data Type       | Nullable | Description                       | Buffer   | Parameters |
@@ -37,8 +57,8 @@
 
 ## 📊 Indicator #2: Body Size Momentum (2 columns) ---> PRO ONLY
 
-**Indicator Name:** Body Size Momentum Candle_V2  
-**Type:** Momentum / Volatility  
+**Indicator Name:** Body Size Momentum Candle_V2
+**Type:** Momentum / Volatility
 **Data Pattern:** Continuous (values on every bar)
 
 | Column Name             | Data Type       | Nullable | Description                             | Buffer   | Parameters           |
@@ -60,8 +80,8 @@
 
 ## 📐 Indicator #3: Fractal Diagonal Lines (8 columns) ---> FREE + PRO
 
-**Indicator Name:** Fractal Diagonal Line_V4  
-**Type:** Trendlines / Support/Resistance  
+**Indicator Name:** Fractal Diagonal Line_V4
+**Type:** Trendlines / Support/Resistance
 **Data Pattern:** Sparse (5-15% of bars have values)
 
 ### Ascending Lines (Support)
@@ -101,7 +121,7 @@
 ## 📏 Indicator #4: Fractal Horizontal Lines (8 columns) ---> FREE + PRO
 
 **Indicator Name:** Fractal Horizontal Line_V5
-**Type:** Horizontal S/R Lines  
+**Type:** Horizontal S/R Lines
 **Data Pattern:** Sparse (5-15% of bars have values)
 
 ### Peak Lines (Resistance)
@@ -140,8 +160,8 @@
 
 ## 🕯️ Indicator #5: Heiken Ashi (7 columns) ---> PRO ONLY
 
-**Indicator Name:** Heiken Ashi_Body Size Classification_Doji Detection  
-**Type:** Smoothed Candlesticks  
+**Indicator Name:** Heiken Ashi_Body Size Classification_Doji Detection
+**Type:** Smoothed Candlesticks
 **Data Pattern:** Continuous (values on every bar)
 
 ### OHLC Values
@@ -173,8 +193,8 @@
 
 ## 📊 Indicator #6: Keltner Channel (10 columns) ---> PRO ONLY
 
-**Indicator Name:** Keltner Channel ATF_10 Bands_V2  
-**Type:** Volatility Bands  
+**Indicator Name:** Keltner Channel ATF_10 Bands_V2
+**Type:** Volatility Bands
 **Data Pattern:** Continuous (values on every bar)
 
 ### Upper Resistance Bands
@@ -214,8 +234,8 @@
 
 ## 🎯 Indicator #7: Support & Resistance (8 columns) ---> PRO ONLY
 
-**Indicator Name:** Support and Resistant at Significant Level  
-**Type:** Fractal-Based S/R Levels  
+**Indicator Name:** Support and Resistant at Significant Level
+**Type:** Fractal-Based S/R Levels
 **Data Pattern:** Sparse (10-30% of bars have values)
 
 ### Support Levels (Below Price)
@@ -252,8 +272,8 @@
 
 ## ⚡ Indicator #8: ZigZag + EMA (3 columns) ---> PRO ONLY
 
-**Indicator Name:** ZigZagColor\_\_\_MarketStructure_JSON_Export_V28_FIXED  
-**Type:** Market Structure + Trend  
+**Indicator Name:** ZigZagColor\_\_\_MarketStructure_JSON_Export_V28_FIXED
+**Type:** Market Structure + Trend
 **Data Pattern:** Mixed (peaks/bottoms sparse, EMA continuous)
 
 | Column Name     | Data Type       | Nullable | Description                     | Buffer   | Pattern                |
@@ -278,11 +298,109 @@
 
 ---
 
-## 📊 Complete Column List (Alphabetical)
+## 📈 Indicator #9: Dual TEMA High/Low (2 columns) ---> PRO ONLY ⭐ NEW in v2.0
 
-| #   | Column Name              | Indicator          | Type          | Sparse/Continuous |
+**Indicator Name:** Dual_TEMA_High_Low
+**Type:** Triple Exponential Moving Averages on High/Low
+**Data Pattern:** Continuous (values on every bar)
+
+| Column Name      | Data Type       | Nullable | Description                                | Buffer   | Parameters |
+| ---------------- | --------------- | -------- | ------------------------------------------ | -------- | ---------- |
+| `dual_tema_high` | `DECIMAL(10,5)` | YES      | TEMA calculated on candle High price       | Buffer 0 | Period: 9  |
+| `dual_tema_low`  | `DECIMAL(10,5)` | YES      | TEMA calculated on candle Low price        | Buffer 1 | Period: 9  |
+
+**Buffer Mapping:**
+
+```
+Dual_TEMA_High_Low.mq5
+  Buffer 0 → TEMAHighBuffer  → dual_tema_high
+  Buffer 1 → TEMALowBuffer   → dual_tema_low
+  Buffers 2–7 → INDICATOR_CALCULATIONS (EMA intermediates, not collected)
+```
+
+**Usage:**
+
+- Dynamic support (dual_tema_low) and resistance (dual_tema_high) channels
+- Trend direction with High/Low bias separation
+- Channel width as volatility proxy
+
+**iCustom Parameters:**
+
+```mql5
+iCustom(sym, tf, "Dual_TEMA_High_Low",
+    InpDualTEMA_Period,  // int: EMA period (default 9)
+    0                    // int: Shift (default 0)
+)
+```
+
+---
+
+## 🕯️ Indicator #10: Pinbar Detection (1 column) ---> PRO ONLY ⭐ NEW in v2.0
+
+**Indicator Name:** Pinbar Detector_Diamond Symbol_V17
+**Type:** Candlestick Pattern Detection
+**Data Pattern:** Sparse (only bars where a pinbar is detected)
+
+| Column Name | Data Type | Nullable | Description                                    | Buffers Used           |
+| ----------- | --------- | -------- | ---------------------------------------------- | ---------------------- |
+| `pinbar`    | `INTEGER` | YES      | Combined pinbar flag (1 = pinbar, 0 = no pin)  | Buffer 0 + Buffer 1    |
+
+**Buffer Mapping:**
+
+```
+Pinbar Detector_Diamond Symbol_V17.mq5
+  Buffer 0 → BullishPinbars[]  (arrow value if bullish pinbar, else EMPTY_VALUE/0.0)
+  Buffer 1 → BearishPinbars[]  (arrow value if bearish pinbar, else EMPTY_VALUE/0.0)
+
+Combined logic in EA:
+  pinbar = 1  if (BullishPinbars[0] != EMPTY_VALUE && BullishPinbars[0] != 0.0)
+               OR (BearishPinbars[0] != EMPTY_VALUE && BearishPinbars[0] != 0.0)
+  pinbar = 0  otherwise
+```
+
+**CRITICAL — DisplayMode must be forced to INDICATOR_BUFFERS (0):**
+
+```mql5
+// Default DisplayMode = DRAWING_OBJECTS (1) does NOT populate CopyBuffer()
+// Must override to INDICATOR_BUFFERS (0) as the 2nd iCustom parameter
+iCustom(sym, tf, "Pinbar Detector_Diamond Symbol_V17",
+    InpPinbar_StringencyLevel,
+    0,   // ← DisplayMode = INDICATOR_BUFFERS (required for CopyBuffer to work)
+    InpPinbar_CountBars,
+    ...  // remaining 27 parameters
+)
+```
+
+**Column Values:**
+
+- `1`: Pinbar detected on this bar (bullish OR bearish)
+- `0`: No pinbar on this bar
+- `NULL`: Not yet collected / NULL in DB (maps to 0 in API response)
+
+**Data Pattern Notes:**
+
+- Sparse: most bars return `0` or `NULL`
+- On pinbar bars: returns `1`
+- Direction (bullish vs bearish) is NOT stored — only binary detection
+- Store as `INTEGER` not `FLOAT` (no decimal values)
+
+**Parameters (key settings):**
+
+- Stringency Level: 1
+- Count Bars: 500
+- Use Manual Settings: true
+- Min Wick Size: 0.75
+- Max Body Size: 0.25
+- Body Position: 0.75
+- Protruding: 0.40
+
+---
+
+## 📊 Complete Column List (Alphabetical) — 60 Columns
+
+| #   | Column Name              | Indicator          | Type          | Sparse/Continuous | Access         |
 | --- | ------------------------ | ------------------ | ------------- | ----------------- | -------------- |
-| 1   | `close`                  | System             | DECIMAL(10,5) | Continuous        | -->FREE + PRO  |
+| 1   | `close`                  | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
 | 2   | `collected_at`           | System             | BIGINT        | Continuous        | --> FREE + PRO |
 | 3   | `Candle classification`  | Body Momentum      | INTEGER       | Continuous        | ---> PRO ONLY  |
 | 4   | `diag_asc_line_1`        | Fractal Diagonal   | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
@@ -293,49 +411,52 @@
 | 9   | `diag_desc_line_3`       | Fractal Diagonal   | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
 | 10  | `diag_high_map`          | Fractal Diagonal   | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
 | 11  | `diag_low_map`           | Fractal Diagonal   | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 12  | `ema_26`                 | ZigZag             | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 13  | `ha_body_size`           | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 14  | `ha_body_zscore`         | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 15  | `ha_classification`      | Heiken Ashi        | INTEGER       | Continuous        | ---> PRO ONLY  |
-| 16  | `ha_close`               | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 17  | `ha_high`                | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 18  | `ha_low`                 | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 19  | `ha_open`                | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 20  | `high`                   | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
-| 21  | `horiz_bottom_line_1`    | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 22  | `horiz_bottom_line_2`    | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 23  | `horiz_bottom_line_3`    | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 24  | `horiz_high_map`         | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 25  | `horiz_low_map`          | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 26  | `horiz_peak_line_1`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 27  | `horiz_peak_line_2`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 28  | `horiz_peak_line_3`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 29  | `hrma`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 30  | `kc_extreme_lower`       | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 31  | `kc_extreme_upper`       | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 32  | `kc_lower`               | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 33  | `kc_lower_middle`        | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 34  | `kc_lowermost`           | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 35  | `kc_ultra_extreme_lower` | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 36  | `kc_ultra_extreme_upper` | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 37  | `kc_upper`               | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 38  | `kc_upper_middle`        | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 39  | `kc_uppermost`           | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 40  | `low`                    | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
-| 41  | `open`                   | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
-| 42  | `smma`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 43  | `sr_resistance_1`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 44  | `sr_resistance_2`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 45  | `sr_resistance_3`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 46  | `sr_resistance_4`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 47  | `sr_support_1`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 48  | `sr_support_2`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 49  | `sr_support_3`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 50  | `sr_support_4`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 51  | `tema`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 52  | `timeframe`              | System             | VARCHAR(10)   | Continuous        | --> FREE + PRO |
-| 53  | `timestamp`              | System             | BIGINT        | Continuous        | --> FREE + PRO |
-| 54  | `volume`                 | System             | INTEGER       | Continuous        | --> FREE + PRO |
-| 55  | `Z-Score of body size`   | Body Momentum      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 56  | `zigzag_bottom`          | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 57  | `zigzag_peak`            | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 12  | `dual_tema_high`         | Dual TEMA H/L      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 13  | `dual_tema_low`          | Dual TEMA H/L      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 14  | `ema_26`                 | ZigZag             | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 15  | `ha_body_size`           | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 16  | `ha_body_zscore`         | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 17  | `ha_classification`      | Heiken Ashi        | INTEGER       | Continuous        | ---> PRO ONLY  |
+| 18  | `ha_close`               | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 19  | `ha_high`                | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 20  | `ha_low`                 | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 21  | `ha_open`                | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 22  | `high`                   | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
+| 23  | `horiz_bottom_line_1`    | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 24  | `horiz_bottom_line_2`    | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 25  | `horiz_bottom_line_3`    | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 26  | `horiz_high_map`         | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 27  | `horiz_low_map`          | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 28  | `horiz_peak_line_1`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 29  | `horiz_peak_line_2`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 30  | `horiz_peak_line_3`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
+| 31  | `hrma`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 32  | `kc_extreme_lower`       | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 33  | `kc_extreme_upper`       | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 34  | `kc_lower`               | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 35  | `kc_lower_middle`        | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 36  | `kc_lowermost`           | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 37  | `kc_ultra_extreme_lower` | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 38  | `kc_ultra_extreme_upper` | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 39  | `kc_upper`               | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 40  | `kc_upper_middle`        | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 41  | `kc_uppermost`           | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 42  | `low`                    | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
+| 43  | `open`                   | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
+| 44  | `pinbar`                 | Pinbar Detection   | INTEGER       | Sparse            | ---> PRO ONLY  |
+| 45  | `smma`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 46  | `sr_resistance_1`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 47  | `sr_resistance_2`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 48  | `sr_resistance_3`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 49  | `sr_resistance_4`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 50  | `sr_support_1`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 51  | `sr_support_2`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 52  | `sr_support_3`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 53  | `sr_support_4`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 54  | `tema`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 55  | `timeframe`              | System             | VARCHAR(10)   | Continuous        | --> FREE + PRO |
+| 56  | `timestamp`              | System             | BIGINT        | Continuous        | --> FREE + PRO |
+| 57  | `volume`                 | System             | INTEGER       | Continuous        | --> FREE + PRO |
+| 58  | `Z-Score of body size`   | Body Momentum      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 59  | `zigzag_bottom`          | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 60  | `zigzag_peak`            | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
