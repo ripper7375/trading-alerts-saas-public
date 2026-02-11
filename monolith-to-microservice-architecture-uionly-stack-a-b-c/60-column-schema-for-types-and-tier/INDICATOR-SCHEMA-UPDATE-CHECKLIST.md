@@ -36,12 +36,12 @@ PRO (36):
 
 The codebase has **two distinct** Keltner Channel representations that must NOT be confused:
 
-| Constant / Interface | Location | Keys | Used By |
-|---|---|---|---|
-| `KeltnerChannelData` | `types/indicator.ts` | camelCase: `ultraExtremeUpper`, `extremeUpper`, `upperMost`, `upper`, `upperMiddle`, `lowerMiddle`, `lower`, `lowerMost`, `extremeLower`, `ultraExtremeLower` | Chart rendering: `components/charts/pro-indicator-overlay.tsx` |
-| `KeltnerChannelsData` | `types/indicator.ts` | snake_case DB columns: `kc_upper`, `kc_middle`, `kc_lower`, ... | DB schema, tier system, hooks, tests |
-| `KELTNER_COLORS` | `lib/tier/constants.ts` | Must match `KeltnerChannelData` camelCase keys | Chart rendering only |
-| `INDICATOR_METADATA.keltner_channels.columns[]` | `lib/tier/constants.ts` | Must use DB snake_case column names | Tier validation, column counts |
+| Constant / Interface                            | Location                | Keys                                                                                                                                                          | Used By                                                        |
+| ----------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `KeltnerChannelData`                            | `types/indicator.ts`    | camelCase: `ultraExtremeUpper`, `extremeUpper`, `upperMost`, `upper`, `upperMiddle`, `lowerMiddle`, `lower`, `lowerMost`, `extremeLower`, `ultraExtremeLower` | Chart rendering: `components/charts/pro-indicator-overlay.tsx` |
+| `KeltnerChannelsData`                           | `types/indicator.ts`    | snake_case DB columns: `kc_upper`, `kc_middle`, `kc_lower`, ...                                                                                               | DB schema, tier system, hooks, tests                           |
+| `KELTNER_COLORS`                                | `lib/tier/constants.ts` | Must match `KeltnerChannelData` camelCase keys                                                                                                                | Chart rendering only                                           |
+| `INDICATOR_METADATA.keltner_channels.columns[]` | `lib/tier/constants.ts` | Must use DB snake_case column names                                                                                                                           | Tier validation, column counts                                 |
 
 **Rule:** When renaming Keltner DB columns, update `KeltnerChannelsData` and `INDICATOR_METADATA.keltner_channels.columns[]`. Do **NOT** change `KELTNER_COLORS` or `KeltnerChannelData` — those are MT5 chart format and are independent of the DB schema.
 
@@ -56,6 +56,7 @@ Work through each layer in order. Each layer depends on the one above it.
 ### Layer 1 — Database Schema (Source of Truth)
 
 #### `prisma/schema.prisma`
+
 - [ ] Add/rename/remove columns in the `MarketData` model
 - [ ] Update the model docstring: `/// Structure: 8 system + 16 FREE tier + N PRO tier = N total columns`
 - [ ] Update section header comment: `// MARKET DATA (60-COLUMN SCHEMA)`
@@ -83,10 +84,12 @@ Work through each layer in order. Each layer depends on the one above it.
 ### Layer 2 — Database Client & Seed
 
 #### `lib/db/prisma.ts`
+
 - [ ] Update JSDoc listing of indicator groups and column counts
 - [ ] No logic changes required — client is auto-generated from schema
 
 #### `lib/db/seed.ts` and `prisma/seed.ts`
+
 - [ ] Update JSDoc header: `Schema: 60-column MarketData flat schema`
 - [ ] If seed inserts sample MarketData rows: update field names in `prisma.marketData.create({ data: {...} })`
 - [ ] Update any hardcoded column name strings in seed data
@@ -96,6 +99,7 @@ Work through each layer in order. Each layer depends on the one above it.
 ### Layer 3 — OpenAPI Specification
 
 #### `docs/open-api-documents/part-02-database-schema-openapi.yaml`
+
 - [ ] Add/rename/remove property under `components.schemas.MarketData.properties`
 - [ ] Update description block: column counts, group listings
 - [ ] Verify `required:` array is consistent with non-nullable columns
@@ -106,15 +110,18 @@ Work through each layer in order. Each layer depends on the one above it.
 #### `docs/open-api-documents/part-03-types-openapi.yaml`
 
 **Info description block:**
+
 - [ ] Update `## V7 Architecture` line: `60-Column Database: 8 system + 16 FREE + N PRO indicator columns`
 - [ ] Update `4. **Indicator Types**` bullet: `60-column database schema types`
 
 **`CompleteMarketData` schema** (inline `allOf` properties block):
+
 - [ ] Add/rename/remove properties for changed columns
 - [ ] Update comment `# PRO tier indicators (N additional columns)`
 - [ ] Update description: `PRO tier complete market data (N columns): ... N PRO tier indicator columns`
 
 **`MarketDataResponse` schema:**
+
 - [ ] Update `columnCount` description: `Number of columns (24 for FREE, N for PRO)`
 
 ---
@@ -122,6 +129,7 @@ Work through each layer in order. Each layer depends on the one above it.
 #### `docs/open-api-documents/part-04-tier-system-openapi.yaml`
 
 **Info description block:**
+
 - [ ] Update `Technical indicators (2 for FREE, N for PRO)` in Overview bullet
 - [ ] Update PRO Tier Specifications: `Indicators: N (all FREE + N PRO-only)`, `Indicator Columns: N columns`, `Total Columns: N (8 system + N indicator)`
 - [ ] Update `## N-Column Database Schema` section header
@@ -130,6 +138,7 @@ Work through each layer in order. Each layer depends on the one above it.
 - [ ] Add/remove group entries (with column count and names)
 
 **`IndicatorId` enum:**
+
 - [ ] Add new group id: `- new_group_id`
 - [ ] Remove deleted group id
 - [ ] Update comment: `# PRO-only indicators (N)`
@@ -139,13 +148,16 @@ Work through each layer in order. Each layer depends on the one above it.
 #### `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml`
 
 **Info description block:**
+
 - [ ] Update feature bullet: `N-Column MarketData Integration`
 - [ ] Update migration section: `N-column MarketData schema`, `PRO: all N columns`, `N advanced indicator groups`
 
 **`/dashboard/charts/{symbol}/{timeframe}` path description:**
+
 - [ ] Update: `N-column MarketData`, `PRO users: N columns (all indicators)`
 
 **`MarketData` schema:**
+
 - [ ] Update section comment: `# MarketData Schema (N Columns)`
 - [ ] Update description: `N columns`, `PRO tier indicators (N)`, `PRO users: All N columns`
 - [ ] Add/rename/remove properties for changed columns (with group comment and description)
@@ -156,6 +168,7 @@ Work through each layer in order. Each layer depends on the one above it.
 #### `docs/open-api-documents/part-09-charts-visualization-openapi.yaml`
 
 **Info description block:**
+
 - [ ] Update `## Database Schema: N-Column Flat Schema` section header
 - [ ] Update all group column listings under PRO Tier Indicators
 - [ ] Add/remove groups with full column list, colors, and data pattern
@@ -167,13 +180,16 @@ Work through each layer in order. Each layer depends on the one above it.
 - [ ] Update Implementation Note 4: `NEW N-column flat schema`
 
 **`IndicatorId` enum:**
+
 - [ ] Update description: `N total groups`
 - [ ] Add/remove group ids; update `# PRO Tier (N groups)` comment
 
 **Column data schemas (`BodyMomentumData`, `HeikenAshiData`, `KeltnerChannelsData`, `SupportResistanceData`, `ZigZagColumns`):**
+
 - [ ] Add/rename/remove properties for each affected group
 
 **New group schemas (when adding a new indicator group):**
+
 - [ ] Add new schema block, e.g.:
   ```yaml
   NewGroupData:
@@ -187,15 +203,18 @@ Work through each layer in order. Each layer depends on the one above it.
   ```
 
 **`CompleteMarketData` schema:**
+
 - [ ] Add `$ref: '#/components/schemas/NewGroupData'` to `allOf`
 - [ ] Remove deleted group ref
 - [ ] Update description: `PRO tier market data (N columns total)`
 
 **`ProTierConfig` schema:**
+
 - [ ] Add new group id to `indicators: example: [...]`
 - [ ] Update `databaseColumns: example: N`
 
 **`IndicatorMetadata` example columns:**
+
 - [ ] Update `example: ['kc_upper', ...]` if keltner_channels columns changed
 
 ---
@@ -205,16 +224,19 @@ Work through each layer in order. Each layer depends on the one above it.
 #### `types/indicator.ts`
 
 **Section: `IndicatorType` union (top of file)**
+
 - [ ] Add new indicator group id: `| 'new_group_name'`
 - [ ] Remove deleted group id from union
 
 **Section: `NEW 60-COLUMN DATABASE SCHEMA TYPES` (mid-file)**
 
 For renamed columns within an existing group:
+
 - [ ] Find the group's interface (e.g., `BodyMomentumData`, `HeikenAshiData`)
 - [ ] Rename the field(s) to match new DB column names
 
 For a new indicator group:
+
 - [ ] Add new interface:
   ```typescript
   export interface NewGroupData {
@@ -224,14 +246,17 @@ For a new indicator group:
   ```
 
 For a removed group:
+
 - [ ] Delete the group's interface
 
 **Section: `CompleteMarketData` interface**
+
 - [ ] Extend with new interface: `extends ... NewGroupData ...`
 - [ ] Remove deleted interface from `extends` list
 - [ ] Update docstring column count: `all 60 columns`
 
 **Section: `FreeMarketData` interface** (if FREE tier group added/removed)
+
 - [ ] Add/remove from `extends` list
 
 > **Do NOT change:** `KeltnerChannelData` (camelCase, MT5 chart format) or `MT5ProIndicators` — these are not DB schema types.
@@ -243,15 +268,18 @@ For a removed group:
 This file is the Prisma client fallback for environments where Prisma cannot generate the client.
 
 **`MarketData` interface** (inside `declare module '@prisma/client'`):
+
 - [ ] Add new field: `new_col: number | null;`
 - [ ] Rename field to match DB column name
 - [ ] Remove deleted field
 - [ ] Update group comment block counts
 
 **`PrismaClient` class** (if `MarketData` model is brand new — only once):
+
 - [ ] Add: `marketData: ModelDelegate<MarketData>;`
 
 **`Prisma` namespace** (if `MarketData` model is brand new — only once):
+
 - [ ] Add:
   ```typescript
   export type MarketDataWhereInput = Record<string, unknown>;
@@ -266,18 +294,22 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `lib/tier/constants.ts`
 
 **File header docstring:**
+
 - [ ] Update PRO indicator count: `PRO Indicators (36 columns): ...`
 - [ ] Add/remove group from the listing
 
 **`PRO_ONLY_INDICATORS` array:**
+
 - [ ] Add new group id: `'new_group',  // N columns: col_1, col_2`
 - [ ] Remove deleted group id
 - [ ] Update inline comment with column names
 
 **`ALL_INDICATORS` docstring:**
+
 - [ ] Update: `X groups, Y indicator columns` / `Z total columns`
 
 **`INDICATOR_METADATA` object:**
+
 - [ ] For new group — add full entry:
   ```typescript
   new_group: {
@@ -296,10 +328,12 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 - [ ] Update section header comment: `// PRO TIER INDICATORS (N groups)`
 
 **`getTierColumnCount` docstring:**
+
 - [ ] Update: `PRO: 8 system + N indicator = N total columns`
 - [ ] Update inline comment: `// 8 + N = N`
 
 **`isValidColumnName` docstring:**
+
 - [ ] Update: `60-column schema` (or new total)
 
 > **Do NOT change:** `KELTNER_COLORS` object — its keys must stay as camelCase to match `KeltnerChannelData` (MT5 chart format). See Architecture Notes above.
@@ -317,13 +351,16 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `lib/tier-validation.ts`
 
 **`TIER_LIMITS` docstring:**
+
 - [ ] Update: `all 10 indicators (52 columns)` → new counts
 
 **`TIER_LIMITS.PRO.indicators` array:**
+
 - [ ] Add new group id: `'new_group',`
 - [ ] Remove deleted group id
 
 **`validateFullTierAccess` error message:**
+
 - [ ] Update: `all 10 indicators` → new total count
 
 ---
@@ -333,13 +370,16 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `hooks/use-indicators.ts`
 
 **Section header:**
+
 - [ ] Update: `60-COLUMN SCHEMA DATA STRUCTURES` → new total if column count changes
 
 **For renamed columns in an existing group interface:**
+
 - [ ] Find the group interface (e.g., `BodyMomentumData`, `KeltnerChannelsData`)
 - [ ] Rename the field(s)
 
 **For a new indicator group:**
+
 - [ ] Add new interface:
   ```typescript
   interface NewGroupData {
@@ -353,13 +393,16 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
   ```
 
 **For a removed group:**
+
 - [ ] Delete the group's interface
 - [ ] Remove optional field from `MarketDataRow`
 
 **`MarketDataRow` PRO comment:**
+
 - [ ] Update: `PRO tier indicators (36 columns)` → new count
 
 **`useIndicators` hook JSDoc:**
+
 - [ ] Update column structure breakdown in JSDoc
 - [ ] Update `60-Column Schema Structure:` listing
 
@@ -368,11 +411,13 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 ### Layer 7 — Tests
 
 #### `__tests__/lib/db/prisma.test.ts`
+
 - [ ] Add/remove `marketData` mock CRUD methods if model is brand new
 - [ ] Update `Market Data Model (60-Column Schema)` describe block name if total changes
 - [ ] Add/remove column field assertions
 
 #### `__tests__/lib/db/seed.test.ts`
+
 - [ ] Update JSDoc header with new schema version
 
 ---
@@ -380,17 +425,21 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `lib/tier/__tests__/constants.test.ts`
 
 **Describe block header:**
+
 - [ ] Update: `60-Column Schema` → new total
 
 **`PRO_ONLY_INDICATORS` test:**
+
 - [ ] Update `toHaveLength(8)` → new PRO group count
 - [ ] Add `expect(PRO_ONLY_INDICATORS).toContain('new_group')`
 - [ ] Remove assertion for deleted group
 
 **`ALL_INDICATORS` test:**
+
 - [ ] Update `toHaveLength(10)` → new total group count
 
 **`INDICATOR_METADATA` tests:**
+
 - [ ] Update `toHaveLength(10)` → new total
 - [ ] Add PRO tier check for new group
 - [ ] Remove tier check for deleted group
@@ -404,10 +453,12 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 - [ ] Update/remove column assertion block for renamed/deleted group
 
 **Column Counts section:**
+
 - [ ] PRO total: `toBe(36)` → new PRO column count
 - [ ] All total: `toBe(52)` → new all-indicator column count
 
 **`getTierColumnCount` test:**
+
 - [ ] `toBe(60)` → new PRO total column count
 
 ---
@@ -415,28 +466,35 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `lib/tier/__tests__/validator.test.ts`
 
 **Describe block header:**
+
 - [ ] Update: `60-Column Schema`
 
 **`canAccessIndicator` tests:**
+
 - [ ] FREE CANNOT access: add assertion for new PRO group
 - [ ] FREE CANNOT access: remove assertion for deleted group
 - [ ] PRO CAN access: add/remove assertions to match
 
 **`getAccessibleIndicators` PRO test:**
+
 - [ ] `toHaveLength(10)` → new total group count
 
 **`getLockedIndicators` FREE test:**
+
 - [ ] `toHaveLength(8)` → new PRO-only group count
 - [ ] Add `toContain('new_group')`
 - [ ] Remove `toContain('deleted_group')`
 
 **`getAccessibleColumns` PRO test:**
+
 - [ ] `toHaveLength(60)` → new total column count
 
 **`getLockedColumns` FREE test:**
+
 - [ ] `toHaveLength(36)` → new PRO-only column count
 
 **`mockData` object in Data Filtering section:**
+
 - [ ] Add new PRO columns to mock: `new_col: value,`
 - [ ] Rename any renamed columns
 - [ ] Remove deleted columns
@@ -446,13 +504,16 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `__tests__/components/charts/indicator-toggles.test.tsx`
 
 **File header comment & describe block name:**
+
 - [ ] Update: `60-column database schema` if it changes
 
 **`should render PRO indicators` test:**
+
 - [ ] Add: `expect(screen.getByText('New Group Label')).toBeInTheDocument();`
 - [ ] Remove: assertion for deleted group's label
 
 **`should render PRO indicators` comment:**
+
 - [ ] Update: `// PRO tier indicators (8 groups)` → new count
 
 > **Note:** `label` value must match `INDICATOR_METADATA[id].label` in `lib/tier/constants.ts`.
@@ -462,23 +523,29 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 #### `__tests__/lib/tier-validation.test.ts`
 
 **Indicator Access section comment:**
+
 - [ ] Update: `// Indicator Access Tests (60-Column Schema)`
 
 **`FREE tier cannot access N PRO-only indicators` test:**
+
 - [ ] Update description: `8 PRO-only indicators` → new count
 - [ ] Add/remove `canAccessIndicator` assertions
 
 **`PRO tier can access all N indicators` test:**
+
 - [ ] Update description: `10 indicators (2 FREE + 8 PRO)` → new counts
 - [ ] Add/remove indicators in the array
 
 **`getAccessibleIndicators('PRO')` assertion:**
+
 - [ ] Add/remove group ids from `toEqual([...])` array
 
 **`getLockedIndicators('FREE')` assertion:**
+
 - [ ] Add/remove group ids from `toEqual([...])` array
 
 **`validateFullTierAccess` indicator violation test:**
+
 - [ ] Update: `toContain('10 indicators')` → new total
 
 ---
@@ -486,24 +553,30 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 ### Layer 8 — Documentation
 
 #### `docs/files-completion-list/files-inventory/part-02-files-completion.md`
+
 - [ ] Update column totals: `57` → new total everywhere
 - [ ] Update PRO column count
 - [ ] Add/remove group entries under Group 9, 10, etc.
 - [ ] Update `Last Updated` date
 
 #### OpenAPI Documents — Part 03 (`part-03-types-openapi.yaml`)
+
 - [ ] Follow the checklist under **Layer 3** → `part-03-types-openapi.yaml` above
 
 #### OpenAPI Documents — Part 04 (`part-04-tier-system-openapi.yaml`)
+
 - [ ] Follow the checklist under **Layer 3** → `part-04-tier-system-openapi.yaml` above
 
 #### OpenAPI Documents — Part 08 (`part-08-dashboard-layout-openapi.yaml`)
+
 - [ ] Follow the checklist under **Layer 3** → `part-08-dashboard-layout-openapi.yaml` above
 
 #### OpenAPI Documents — Part 09 (`part-09-charts-visualization-openapi.yaml`)
+
 - [ ] Follow the checklist under **Layer 3** → `part-09-charts-visualization-openapi.yaml` above
 
 #### `docs/INDICATOR-SCHEMA-UPDATE-CHECKLIST.md` ← this file
+
 - [ ] Update `Current Schema Summary` block
 - [ ] Update any counts in this document
 
@@ -513,37 +586,37 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 
 When adding 1 new PRO group with N columns, update these numbers:
 
-| File | What to Change |
-|---|---|
-| `prisma/schema.prisma` | model docstring total count |
-| `part-02-files-completion.md` | PRO count, total count, group list |
-| `types/indicator.ts` | `CompleteMarketData` docstring |
-| `types/prisma-stubs.d.ts` | group comment block |
-| `lib/tier/constants.ts` | file header, `ALL_INDICATORS` docstring, `PRO_ONLY_INDICATORS` count, `getTierColumnCount` comment |
-| `lib/tier/validator.ts` | `PRO tier: N columns` comment |
-| `lib/tier-validation.ts` | TIER_LIMITS docstring, error message |
-| `hooks/use-indicators.ts` | `MarketDataRow` comment, JSDoc listing |
-| `constants.test.ts` | 4 `toHaveLength()` calls, 1 `toBe(36)`, 1 `toBe(52)`, 1 `toBe(60)` |
-| `validator.test.ts` | 4 `toHaveLength()` calls, 1 `toHaveLength(60)`, 1 `toHaveLength(36)` |
-| `indicator-toggles.test.tsx` | 1 group count comment, 1 new `getByText()` assertion |
-| `tier-validation.test.ts` | 2 description strings, 2 `toEqual([...])` arrays, 1 `toContain('N indicators')` |
-| `docs/open-api-documents/part-02-database-schema-openapi.yaml` | description block, new property |
-| `docs/open-api-documents/part-03-types-openapi.yaml` | V7 Architecture line, `CompleteMarketData` properties, `MarketDataResponse` columnCount description |
-| `docs/open-api-documents/part-04-tier-system-openapi.yaml` | PRO Tier Specifications, DB Schema section, PRO-Only Indicators listing, `IndicatorId` enum |
-| `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml` | feature bullet, migration section, chart page description, `MarketData` schema properties |
+| File                                                                | What to Change                                                                                                      |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `prisma/schema.prisma`                                              | model docstring total count                                                                                         |
+| `part-02-files-completion.md`                                       | PRO count, total count, group list                                                                                  |
+| `types/indicator.ts`                                                | `CompleteMarketData` docstring                                                                                      |
+| `types/prisma-stubs.d.ts`                                           | group comment block                                                                                                 |
+| `lib/tier/constants.ts`                                             | file header, `ALL_INDICATORS` docstring, `PRO_ONLY_INDICATORS` count, `getTierColumnCount` comment                  |
+| `lib/tier/validator.ts`                                             | `PRO tier: N columns` comment                                                                                       |
+| `lib/tier-validation.ts`                                            | TIER_LIMITS docstring, error message                                                                                |
+| `hooks/use-indicators.ts`                                           | `MarketDataRow` comment, JSDoc listing                                                                              |
+| `constants.test.ts`                                                 | 4 `toHaveLength()` calls, 1 `toBe(36)`, 1 `toBe(52)`, 1 `toBe(60)`                                                  |
+| `validator.test.ts`                                                 | 4 `toHaveLength()` calls, 1 `toHaveLength(60)`, 1 `toHaveLength(36)`                                                |
+| `indicator-toggles.test.tsx`                                        | 1 group count comment, 1 new `getByText()` assertion                                                                |
+| `tier-validation.test.ts`                                           | 2 description strings, 2 `toEqual([...])` arrays, 1 `toContain('N indicators')`                                     |
+| `docs/open-api-documents/part-02-database-schema-openapi.yaml`      | description block, new property                                                                                     |
+| `docs/open-api-documents/part-03-types-openapi.yaml`                | V7 Architecture line, `CompleteMarketData` properties, `MarketDataResponse` columnCount description                 |
+| `docs/open-api-documents/part-04-tier-system-openapi.yaml`          | PRO Tier Specifications, DB Schema section, PRO-Only Indicators listing, `IndicatorId` enum                         |
+| `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml`     | feature bullet, migration section, chart page description, `MarketData` schema properties                           |
 | `docs/open-api-documents/part-09-charts-visualization-openapi.yaml` | DB Schema description, `IndicatorId` enum, column data schemas, `CompleteMarketData` allOf, `ProTierConfig` example |
 
 ---
 
 ## Files NOT in This Checklist (Separate Concerns)
 
-| File | Reason Excluded |
-|---|---|
+| File                                          | Reason Excluded                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `components/charts/pro-indicator-overlay.tsx` | Uses `KeltnerChannelData` (MT5 camelCase format), updated separately when chart rendering logic changes |
-| `lib/tier/constants.ts > KELTNER_COLORS` | Tied to `KeltnerChannelData` MT5 keys — NOT DB column names. Update only when MT5 buffer layout changes |
-| `lib/api/mt5-transform.ts` | **Orphaned/dead code** in v2.0. MT5 indicator API was removed. Do not update. |
-| `types/indicator.ts > KeltnerChannelData` | MT5 chart format (camelCase), not DB schema |
-| `types/indicator.ts > MT5ProIndicators` | MT5 response format, not DB schema |
+| `lib/tier/constants.ts > KELTNER_COLORS`      | Tied to `KeltnerChannelData` MT5 keys — NOT DB column names. Update only when MT5 buffer layout changes |
+| `lib/api/mt5-transform.ts`                    | **Orphaned/dead code** in v2.0. MT5 indicator API was removed. Do not update.                           |
+| `types/indicator.ts > KeltnerChannelData`     | MT5 chart format (camelCase), not DB schema                                                             |
+| `types/indicator.ts > MT5ProIndicators`       | MT5 response format, not DB schema                                                                      |
 
 ---
 
@@ -613,6 +686,7 @@ When adding 1 new PRO group with N columns, update these numbers:
 ### Adding a FREE Indicator Group
 
 Same as PRO group above, except:
+
 - Add to `FREE_TIER_INDICATORS` instead of `PRO_ONLY_INDICATORS`
 - Set `tier: 'FREE'` in `INDICATOR_METADATA`
 - Do NOT add to `TIER_LIMITS.PRO.indicators` (FREE groups are automatically accessible to both tiers)
@@ -623,4 +697,4 @@ Same as PRO group above, except:
 
 ---
 
-*Last verified against schema version: 60-column (EA v2.26+), PR #347*
+_Last verified against schema version: 60-column (EA v2.26+), PR #347_
