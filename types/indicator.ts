@@ -10,9 +10,9 @@ import type { Symbol, Timeframe } from './tier';
 // 3. Optional fields use ?: syntax
 
 /**
- * Indicator types for the 57-column schema
+ * Indicator types for the 60-column schema
  * FREE tier: fractal_diagonal, fractal_horizontal
- * PRO tier: moving_averages, body_momentum, heiken_ashi, keltner_channels, support_resistance, zigzag
+ * PRO tier: moving_averages, body_momentum, heiken_ashi, keltner_channels, support_resistance, zigzag, dual_tema_hl, pinbar_detection
  */
 export type IndicatorType =
   | 'fractal_diagonal'
@@ -22,7 +22,9 @@ export type IndicatorType =
   | 'heiken_ashi'
   | 'keltner_channels'
   | 'support_resistance'
-  | 'zigzag';
+  | 'zigzag'
+  | 'dual_tema_hl'
+  | 'pinbar_detection';
 
 /**
  * @deprecated Use IndicatorType instead - kept for backward compatibility
@@ -260,7 +262,7 @@ export function isValidChartDataPoint(point: {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// NEW 57-COLUMN DATABASE SCHEMA TYPES
+// NEW 60-COLUMN DATABASE SCHEMA TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
@@ -319,8 +321,8 @@ export interface MovingAveragesColumns {
  * PRO tier indicator: Body Size Momentum (2 columns)
  */
 export interface BodyMomentumData {
-  z_score_of_body_size: number | null;
-  candle_classification: number | null;
+  body_size: number | null;
+  body_direction: number | null;
 }
 
 /**
@@ -331,39 +333,39 @@ export interface HeikenAshiData {
   ha_high: number | null;
   ha_low: number | null;
   ha_close: number | null;
-  ha_classification: number | null;
-  ha_body_size: number | null;
-  ha_body_zscore: number | null;
+  ha_color: number | null;
+  ha_trend: number | null;
+  ha_strength: number | null;
 }
 
 /**
  * PRO tier indicator: Keltner Channels (10 columns)
  */
 export interface KeltnerChannelsData {
-  kc_ultra_extreme_upper: number | null;
-  kc_extreme_upper: number | null;
-  kc_uppermost: number | null;
   kc_upper: number | null;
-  kc_upper_middle: number | null;
-  kc_lower_middle: number | null;
+  kc_middle: number | null;
   kc_lower: number | null;
-  kc_lowermost: number | null;
-  kc_extreme_lower: number | null;
-  kc_ultra_extreme_lower: number | null;
+  kc_upper_ema: number | null;
+  kc_middle_ema: number | null;
+  kc_lower_ema: number | null;
+  kc_squeeze: number | null;
+  kc_squeeze_pro: number | null;
+  kc_width: number | null;
+  kc_width_ema: number | null;
 }
 
 /**
  * PRO tier indicator: Support & Resistance (8 columns)
  */
 export interface SupportResistanceData {
-  sr_support_1: number | null;
-  sr_support_2: number | null;
-  sr_support_3: number | null;
-  sr_support_4: number | null;
-  sr_resistance_1: number | null;
-  sr_resistance_2: number | null;
-  sr_resistance_3: number | null;
-  sr_resistance_4: number | null;
+  sr_1: number | null;
+  sr_2: number | null;
+  sr_3: number | null;
+  sr_4: number | null;
+  sr_5: number | null;
+  sr_6: number | null;
+  sr_7: number | null;
+  sr_8: number | null;
 }
 
 /**
@@ -371,13 +373,28 @@ export interface SupportResistanceData {
  * Database record format (single row)
  */
 export interface ZigZagColumns {
-  zigzag_peak: number | null;
-  zigzag_bottom: number | null;
-  ema_26: number | null;
+  zigzag_high: number | null;
+  zigzag_low: number | null;
+  zigzag_trend: number | null;
 }
 
 /**
- * Complete market data (all 57 columns) - PRO tier
+ * PRO tier indicator: Dual TEMA High/Low (2 columns)
+ */
+export interface DualTemaHighLow {
+  dual_tema_high: number | null;
+  dual_tema_low: number | null;
+}
+
+/**
+ * PRO tier indicator: Pinbar Detection (1 column)
+ */
+export interface PinbarColumns {
+  pinbar: number | null;
+}
+
+/**
+ * Complete market data (all 60 columns) - PRO tier
  */
 export interface CompleteMarketData
   extends SystemColumns,
@@ -388,7 +405,9 @@ export interface CompleteMarketData
     HeikenAshiData,
     KeltnerChannelsData,
     SupportResistanceData,
-    ZigZagColumns {}
+    ZigZagColumns,
+    DualTemaHighLow,
+    PinbarColumns {}
 
 /**
  * FREE tier market data (24 columns)

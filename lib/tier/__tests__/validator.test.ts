@@ -1,5 +1,5 @@
 /**
- * Tests for Indicator Tier Validator - 57-Column Schema
+ * Tests for Indicator Tier Validator - 60-Column Schema
  */
 
 import {
@@ -22,7 +22,7 @@ import {
   isProIndicator,
 } from '../validator';
 
-describe('Indicator Tier Validator - 57-Column Schema', () => {
+describe('Indicator Tier Validator - 60-Column Schema', () => {
   describe('Indicator Access Control', () => {
     describe('canAccessIndicator', () => {
       it('FREE tier can access FREE indicators', () => {
@@ -37,6 +37,8 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
         expect(canAccessIndicator('FREE', 'keltner_channels')).toBe(false);
         expect(canAccessIndicator('FREE', 'support_resistance')).toBe(false);
         expect(canAccessIndicator('FREE', 'zigzag')).toBe(false);
+        expect(canAccessIndicator('FREE', 'dual_tema_hl')).toBe(false);
+        expect(canAccessIndicator('FREE', 'pinbar_detection')).toBe(false);
       });
 
       it('PRO tier can access all indicators', () => {
@@ -48,6 +50,8 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
         expect(canAccessIndicator('PRO', 'keltner_channels')).toBe(true);
         expect(canAccessIndicator('PRO', 'support_resistance')).toBe(true);
         expect(canAccessIndicator('PRO', 'zigzag')).toBe(true);
+        expect(canAccessIndicator('PRO', 'dual_tema_hl')).toBe(true);
+        expect(canAccessIndicator('PRO', 'pinbar_detection')).toBe(true);
       });
 
       it('should return false for invalid indicators', () => {
@@ -76,18 +80,20 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
         expect(indicators).toContain('fractal_horizontal');
       });
 
-      it('PRO tier should get all 8 indicators', () => {
+      it('PRO tier should get all 10 indicators', () => {
         const indicators = getAccessibleIndicators('PRO');
-        expect(indicators).toHaveLength(8);
+        expect(indicators).toHaveLength(10);
       });
     });
 
     describe('getLockedIndicators', () => {
-      it('FREE tier should have 6 locked indicators', () => {
+      it('FREE tier should have 8 locked indicators', () => {
         const locked = getLockedIndicators('FREE');
-        expect(locked).toHaveLength(6);
+        expect(locked).toHaveLength(8);
         expect(locked).toContain('moving_averages');
         expect(locked).toContain('keltner_channels');
+        expect(locked).toContain('dual_tema_hl');
+        expect(locked).toContain('pinbar_detection');
       });
 
       it('PRO tier should have no locked indicators', () => {
@@ -115,14 +121,14 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
         expect(canAccessColumn('FREE', 'tema')).toBe(false);
         expect(canAccessColumn('FREE', 'hrma')).toBe(false);
         expect(canAccessColumn('FREE', 'kc_upper')).toBe(false);
-        expect(canAccessColumn('FREE', 'zigzag_peak')).toBe(false);
+        expect(canAccessColumn('FREE', 'zigzag_high')).toBe(false);
       });
 
       it('PRO tier can access all columns', () => {
         expect(canAccessColumn('PRO', 'timestamp')).toBe(true);
         expect(canAccessColumn('PRO', 'tema')).toBe(true);
         expect(canAccessColumn('PRO', 'kc_upper')).toBe(true);
-        expect(canAccessColumn('PRO', 'zigzag_peak')).toBe(true);
+        expect(canAccessColumn('PRO', 'zigzag_high')).toBe(true);
       });
 
       it('should return false for invalid columns', () => {
@@ -137,9 +143,9 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
         expect(columns).toHaveLength(24); // 8 system + 16 indicator
       });
 
-      it('PRO tier should get 57 columns', () => {
+      it('PRO tier should get 60 columns', () => {
         const columns = getAccessibleColumns('PRO');
-        expect(columns).toHaveLength(57); // 8 system + 49 indicator
+        expect(columns).toHaveLength(60); // 8 system + 52 indicator
       });
 
       it('FREE tier columns should include system and FREE indicators', () => {
@@ -159,9 +165,9 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
     });
 
     describe('getLockedColumns', () => {
-      it('FREE tier should have 33 locked columns', () => {
+      it('FREE tier should have 36 locked columns', () => {
         const locked = getLockedColumns('FREE');
-        expect(locked).toHaveLength(33); // All PRO indicator columns
+        expect(locked).toHaveLength(36); // All PRO indicator columns
       });
 
       it('PRO tier should have no locked columns', () => {
@@ -189,7 +195,7 @@ describe('Indicator Tier Validator - 57-Column Schema', () => {
       tema: 43260,
       hrma: 43258,
       kc_upper: 43300,
-      zigzag_peak: null,
+      zigzag_high: null,
     };
 
     describe('filterDataByTier', () => {
