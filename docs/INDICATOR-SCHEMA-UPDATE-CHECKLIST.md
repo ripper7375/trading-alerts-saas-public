@@ -103,6 +103,103 @@ Work through each layer in order. Each layer depends on the one above it.
 
 ---
 
+#### `docs/open-api-documents/part-03-types-openapi.yaml`
+
+**Info description block:**
+- [ ] Update `## V7 Architecture` line: `60-Column Database: 8 system + 16 FREE + N PRO indicator columns`
+- [ ] Update `4. **Indicator Types**` bullet: `60-column database schema types`
+
+**`CompleteMarketData` schema** (inline `allOf` properties block):
+- [ ] Add/rename/remove properties for changed columns
+- [ ] Update comment `# PRO tier indicators (N additional columns)`
+- [ ] Update description: `PRO tier complete market data (N columns): ... N PRO tier indicator columns`
+
+**`MarketDataResponse` schema:**
+- [ ] Update `columnCount` description: `Number of columns (24 for FREE, N for PRO)`
+
+---
+
+#### `docs/open-api-documents/part-04-tier-system-openapi.yaml`
+
+**Info description block:**
+- [ ] Update `Technical indicators (2 for FREE, N for PRO)` in Overview bullet
+- [ ] Update PRO Tier Specifications: `Indicators: N (all FREE + N PRO-only)`, `Indicator Columns: N columns`, `Total Columns: N (8 system + N indicator)`
+- [ ] Update `## N-Column Database Schema` section header
+- [ ] Update `### PRO-Only Indicators (N columns)` count
+- [ ] Update column name listings for renamed groups
+- [ ] Add/remove group entries (with column count and names)
+
+**`IndicatorId` enum:**
+- [ ] Add new group id: `- new_group_id`
+- [ ] Remove deleted group id
+- [ ] Update comment: `# PRO-only indicators (N)`
+
+---
+
+#### `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml`
+
+**Info description block:**
+- [ ] Update feature bullet: `N-Column MarketData Integration`
+- [ ] Update migration section: `N-column MarketData schema`, `PRO: all N columns`, `N advanced indicator groups`
+
+**`/dashboard/charts/{symbol}/{timeframe}` path description:**
+- [ ] Update: `N-column MarketData`, `PRO users: N columns (all indicators)`
+
+**`MarketData` schema:**
+- [ ] Update section comment: `# MarketData Schema (N Columns)`
+- [ ] Update description: `N columns`, `PRO tier indicators (N)`, `PRO users: All N columns`
+- [ ] Add/rename/remove properties for changed columns (with group comment and description)
+- [ ] Add new groups as new comment blocks with their properties
+
+---
+
+#### `docs/open-api-documents/part-09-charts-visualization-openapi.yaml`
+
+**Info description block:**
+- [ ] Update `## Database Schema: N-Column Flat Schema` section header
+- [ ] Update all group column listings under PRO Tier Indicators
+- [ ] Add/remove groups with full column list, colors, and data pattern
+- [ ] Update `### PRO Tier Indicators (N columns - N groups)` header
+- [ ] Update `**Total Columns:**` block: `PRO Tier: 8 system + N indicator = N columns`
+- [ ] Update `### PRO-Only Indicators (N groups)` in Indicator Groups section
+- [ ] Add/remove group entries in that listing
+- [ ] Update PRO Tier-Based Features: `Indicators: N groups`, `Database Access: N columns`
+- [ ] Update Implementation Note 4: `NEW N-column flat schema`
+
+**`IndicatorId` enum:**
+- [ ] Update description: `N total groups`
+- [ ] Add/remove group ids; update `# PRO Tier (N groups)` comment
+
+**Column data schemas (`BodyMomentumData`, `HeikenAshiData`, `KeltnerChannelsData`, `SupportResistanceData`, `ZigZagColumns`):**
+- [ ] Add/rename/remove properties for each affected group
+
+**New group schemas (when adding a new indicator group):**
+- [ ] Add new schema block, e.g.:
+  ```yaml
+  NewGroupData:
+    type: object
+    description: PRO tier indicator - New Group (N columns)
+    properties:
+      col_1:
+        type: number
+        nullable: true
+        description: Description
+  ```
+
+**`CompleteMarketData` schema:**
+- [ ] Add `$ref: '#/components/schemas/NewGroupData'` to `allOf`
+- [ ] Remove deleted group ref
+- [ ] Update description: `PRO tier market data (N columns total)`
+
+**`ProTierConfig` schema:**
+- [ ] Add new group id to `indicators: example: [...]`
+- [ ] Update `databaseColumns: example: N`
+
+**`IndicatorMetadata` example columns:**
+- [ ] Update `example: ['kc_upper', ...]` if keltner_channels columns changed
+
+---
+
 ### Layer 4 — TypeScript Types
 
 #### `types/indicator.ts`
@@ -394,6 +491,18 @@ This file is the Prisma client fallback for environments where Prisma cannot gen
 - [ ] Add/remove group entries under Group 9, 10, etc.
 - [ ] Update `Last Updated` date
 
+#### OpenAPI Documents — Part 03 (`part-03-types-openapi.yaml`)
+- [ ] Follow the checklist under **Layer 3** → `part-03-types-openapi.yaml` above
+
+#### OpenAPI Documents — Part 04 (`part-04-tier-system-openapi.yaml`)
+- [ ] Follow the checklist under **Layer 3** → `part-04-tier-system-openapi.yaml` above
+
+#### OpenAPI Documents — Part 08 (`part-08-dashboard-layout-openapi.yaml`)
+- [ ] Follow the checklist under **Layer 3** → `part-08-dashboard-layout-openapi.yaml` above
+
+#### OpenAPI Documents — Part 09 (`part-09-charts-visualization-openapi.yaml`)
+- [ ] Follow the checklist under **Layer 3** → `part-09-charts-visualization-openapi.yaml` above
+
 #### `docs/INDICATOR-SCHEMA-UPDATE-CHECKLIST.md` ← this file
 - [ ] Update `Current Schema Summary` block
 - [ ] Update any counts in this document
@@ -419,6 +528,10 @@ When adding 1 new PRO group with N columns, update these numbers:
 | `indicator-toggles.test.tsx` | 1 group count comment, 1 new `getByText()` assertion |
 | `tier-validation.test.ts` | 2 description strings, 2 `toEqual([...])` arrays, 1 `toContain('N indicators')` |
 | `docs/open-api-documents/part-02-database-schema-openapi.yaml` | description block, new property |
+| `docs/open-api-documents/part-03-types-openapi.yaml` | V7 Architecture line, `CompleteMarketData` properties, `MarketDataResponse` columnCount description |
+| `docs/open-api-documents/part-04-tier-system-openapi.yaml` | PRO Tier Specifications, DB Schema section, PRO-Only Indicators listing, `IndicatorId` enum |
+| `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml` | feature bullet, migration section, chart page description, `MarketData` schema properties |
+| `docs/open-api-documents/part-09-charts-visualization-openapi.yaml` | DB Schema description, `IndicatorId` enum, column data schemas, `CompleteMarketData` allOf, `ProTierConfig` example |
 
 ---
 
@@ -453,7 +566,11 @@ When adding 1 new PRO group with N columns, update these numbers:
 13. `indicator-toggles.test.tsx` — add label assertion
 14. `tier-validation.test.ts` — add to indicator lists, update counts
 15. `part-02-files-completion.md` — update group list and totals
-16. **This file** — update Current Schema Summary
+16. `docs/open-api-documents/part-03-types-openapi.yaml` — add property to `CompleteMarketData`, update column counts
+17. `docs/open-api-documents/part-04-tier-system-openapi.yaml` — add group to PRO-Only Indicators listing, add to `IndicatorId` enum, update all counts
+18. `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml` — add property block to `MarketData` schema, update counts in description
+19. `docs/open-api-documents/part-09-charts-visualization-openapi.yaml` — add new schema, add `$ref` to `CompleteMarketData`, add to `IndicatorId` enum, add to `ProTierConfig` example, update all counts in description
+20. **This file** — update Current Schema Summary
 
 ### Renaming Columns Within an Existing Group
 
@@ -468,6 +585,10 @@ When adding 1 new PRO group with N columns, update these numbers:
 9. `constants.test.ts` — update `.toContain()` and `.toEqual([...])` assertions
 10. `validator.test.ts` — update any `canAccessColumn` assertions using old name
 11. `tier-validation.test.ts` — update if old column name appears in tests
+12. `docs/open-api-documents/part-03-types-openapi.yaml` — rename property in `CompleteMarketData`
+13. `docs/open-api-documents/part-04-tier-system-openapi.yaml` — rename column in PRO-Only Indicators description
+14. `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml` — rename property in `MarketData` schema
+15. `docs/open-api-documents/part-09-charts-visualization-openapi.yaml` — rename property in the group's schema (e.g., `BodyMomentumData`), update column listing in description
 
 > **Keltner-specific:** Renaming DB Keltner columns only affects `KeltnerChannelsData` and `INDICATOR_METADATA.keltner_channels.columns[]`. Do NOT touch `KeltnerChannelData` (camelCase) or `KELTNER_COLORS`.
 
@@ -484,6 +605,10 @@ When adding 1 new PRO group with N columns, update these numbers:
 9. `lib/tier-validation.ts` — remove from `TIER_LIMITS.PRO.indicators` + update error message
 10. `hooks/use-indicators.ts` — delete interface + remove from `MarketDataRow`
 11. All 4 test files — remove all assertions for the deleted group, update counts
+12. `docs/open-api-documents/part-03-types-openapi.yaml` — remove property from `CompleteMarketData`, update counts
+13. `docs/open-api-documents/part-04-tier-system-openapi.yaml` — remove group from PRO-Only Indicators listing, remove from `IndicatorId` enum, update all counts
+14. `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml` — remove property block from `MarketData` schema, update counts
+15. `docs/open-api-documents/part-09-charts-visualization-openapi.yaml` — delete schema, remove `$ref` from `CompleteMarketData`, remove from `IndicatorId` enum and `ProTierConfig`, update all counts
 
 ### Adding a FREE Indicator Group
 
@@ -493,6 +618,8 @@ Same as PRO group above, except:
 - Do NOT add to `TIER_LIMITS.PRO.indicators` (FREE groups are automatically accessible to both tiers)
 - Extend `FreeMarketData` instead of (or in addition to) `CompleteMarketData` in `types/indicator.ts`
 - Update FREE column count in all tests: `freeColumns.toBe(16)` → new count; `getAccessibleColumns('FREE').toHaveLength(24)` → new count
+- For OpenAPI docs (parts 03, 08, 09): add properties to `FreeMarketData` schema in addition to system columns; update FREE Tier column counts throughout
+- For OpenAPI doc part-04: update FREE Tier Specifications `Indicator Columns` and `Total Columns`
 
 ---
 
