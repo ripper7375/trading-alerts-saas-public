@@ -1,6 +1,6 @@
 # Part 02: Database Schema & Migrations - Files Completion List
 
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-02-11
 **Status:** ✅ Complete (100%)
 
 ---
@@ -12,14 +12,14 @@
 **File 1/8:** ✅ `prisma/schema.prisma`
 
 - **Status:** Complete
-- **Description:** Complete Prisma schema with 30+ models, 57-column MarketData schema
+- **Description:** Complete Prisma schema with 30+ models, 60-column MarketData schema
 - **Models:** User, Subscription, Alert, Watchlist, MarketData, Affiliate, Disbursement, etc.
 - **Features:**
   - 15 enums (UserTier, SubscriptionStatus, etc.)
   - 30+ database models
   - Complete indexes and relationships
   - Support for Stripe and dLocal payments
-  - 57-column market data schema (8 system + 16 FREE + 33 PRO indicators)
+  - 60-column market data schema (8 system + 16 FREE + 36 PRO indicators)
   - Affiliate marketing system
   - RiseWorks disbursement integration
   - Security and fraud detection models
@@ -89,7 +89,7 @@
   - Relationship documentation
   - Index specifications
   - Tier access rules (FREE vs PRO)
-  - 57-column MarketData schema detailed
+  - 60-column MarketData schema detailed
   - Security, affiliate, and disbursement models
 
 ---
@@ -135,10 +135,10 @@
 
 ### Market Data (1 model)
 
-1. **MarketData** - 57-column schema for FREE and PRO tier indicators
+1. **MarketData** - 60-column schema for FREE and PRO tier indicators
    - 8 system columns (OHLCV + metadata)
    - 16 FREE tier columns (fractal_diagonal, fractal_horizontal)
-   - 33 PRO tier columns (6 indicator groups)
+   - 36 PRO tier columns (8 indicator groups)
 
 ### Affiliate Marketing (3 models)
 
@@ -171,9 +171,9 @@
 
 ### MarketData Schema Details
 
-- **Total Columns:** 57
+- **Total Columns:** 60
 - **FREE Tier Access:** 24 columns (8 system + 16 FREE indicators)
-- **PRO Tier Access:** 57 columns (8 system + 16 FREE + 33 PRO indicators)
+- **PRO Tier Access:** 60 columns (8 system + 16 FREE + 36 PRO indicators)
 
 **Indicator Groups:**
 
@@ -185,6 +185,8 @@
 6. keltner_channels (10 columns) - PRO
 7. support_resistance (8 columns) - PRO
 8. zigzag (3 columns) - PRO
+9. dual_tema_hl (2 columns) - PRO *(NEW — EA v2.26+)*
+10. pinbar_detection (1 column) - PRO *(NEW — EA v2.26+)*
 
 ---
 
