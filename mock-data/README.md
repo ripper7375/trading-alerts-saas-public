@@ -22,7 +22,7 @@ This directory contains hypothetical/mock market data for XAUUSD (Gold vs USD) t
 
 The data follows the schema defined in `SimpleDataCollector_v2_26_API_GATEWAY.mq5` and `prisma/schema.prisma`:
 
-### System Columns (7)
+### System Columns (8 total: columns 1-7, 60)
 1. `timestamp` - Unix timestamp (seconds)
 2. `open` - Opening price
 3. `high` - Highest price
@@ -30,6 +30,7 @@ The data follows the schema defined in `SimpleDataCollector_v2_26_API_GATEWAY.mq
 5. `close` - Closing price
 6. `volume` - Trading volume
 7. `timeframe` - Timeframe identifier (M5, M15, etc.)
+60. `collected_at` - Data collection timestamp (Unix epoch) **[at position 60]**
 
 ### Moving Averages (3)
 8. `tema` - Triple Exponential Moving Average
@@ -74,9 +75,6 @@ The data follows the schema defined in `SimpleDataCollector_v2_26_API_GATEWAY.mq
 
 ### Pinbar Detection (1) - NEW in v2.26
 59. `pinbar` - Pinbar detection flag (1 = detected, 0 = none)
-
-### Collection Timestamp (1)
-60. `collected_at` - Data collection timestamp (Unix epoch)
 
 ## How to Import into Excel
 
