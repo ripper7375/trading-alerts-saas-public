@@ -4,7 +4,7 @@
  * Tests for components/charts/indicator-toggles.tsx
  * UI component for toggling chart indicators with tier access control
  *
- * Part 9: Charts & Visualization - Updated for 57-column database schema
+ * Part 9: Charts & Visualization - Updated for 60-column database schema
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
@@ -33,7 +33,7 @@ jest.mock('next/link', () => {
 // Import after mocks
 import { IndicatorToggles } from '@/components/charts/indicator-toggles';
 
-describe('IndicatorToggles Component - 57-Column Schema', () => {
+describe('IndicatorToggles Component - 60-Column Schema', () => {
   const mockOnToggle = jest.fn();
 
   beforeEach(() => {
@@ -105,7 +105,7 @@ describe('IndicatorToggles Component - 57-Column Schema', () => {
         />
       );
 
-      // PRO tier indicators (6 groups)
+      // PRO tier indicators (8 groups)
       expect(
         screen.getByText('Moving Averages (TEMA/HRMA/SMMA)')
       ).toBeInTheDocument();
@@ -114,6 +114,8 @@ describe('IndicatorToggles Component - 57-Column Schema', () => {
       expect(screen.getByText('Keltner Channels')).toBeInTheDocument();
       expect(screen.getByText('Support & Resistance')).toBeInTheDocument();
       expect(screen.getByText('ZigZag + EMA')).toBeInTheDocument();
+      expect(screen.getByText('Dual TEMA High/Low')).toBeInTheDocument();
+      expect(screen.getByText('Pinbar Detection')).toBeInTheDocument();
     });
   });
 

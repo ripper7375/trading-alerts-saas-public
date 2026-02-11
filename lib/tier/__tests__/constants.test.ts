@@ -1,5 +1,5 @@
 /**
- * Tests for Indicator Tier Constants - 57-Column Schema
+ * Tests for Indicator Tier Constants - 60-Column Schema
  */
 
 import {
@@ -14,7 +14,7 @@ import {
   getTierColumnCount,
 } from '../constants';
 
-describe('Indicator Constants - 57-Column Schema', () => {
+describe('Indicator Constants - 60-Column Schema', () => {
   describe('Indicator Arrays', () => {
     it('FREE_TIER_INDICATORS should have exactly 2 indicators', () => {
       expect(FREE_TIER_INDICATORS).toHaveLength(2);
@@ -22,18 +22,20 @@ describe('Indicator Constants - 57-Column Schema', () => {
       expect(FREE_TIER_INDICATORS).toContain('fractal_horizontal');
     });
 
-    it('PRO_ONLY_INDICATORS should have exactly 6 indicators', () => {
-      expect(PRO_ONLY_INDICATORS).toHaveLength(6);
+    it('PRO_ONLY_INDICATORS should have exactly 8 indicators', () => {
+      expect(PRO_ONLY_INDICATORS).toHaveLength(8);
       expect(PRO_ONLY_INDICATORS).toContain('moving_averages');
       expect(PRO_ONLY_INDICATORS).toContain('body_momentum');
       expect(PRO_ONLY_INDICATORS).toContain('heiken_ashi');
       expect(PRO_ONLY_INDICATORS).toContain('keltner_channels');
       expect(PRO_ONLY_INDICATORS).toContain('support_resistance');
       expect(PRO_ONLY_INDICATORS).toContain('zigzag');
+      expect(PRO_ONLY_INDICATORS).toContain('dual_tema_hl');
+      expect(PRO_ONLY_INDICATORS).toContain('pinbar_detection');
     });
 
-    it('ALL_INDICATORS should have exactly 8 indicators', () => {
-      expect(ALL_INDICATORS).toHaveLength(8);
+    it('ALL_INDICATORS should have exactly 10 indicators', () => {
+      expect(ALL_INDICATORS).toHaveLength(10);
     });
 
     it('ALL_INDICATORS should be combination of FREE + PRO', () => {
@@ -60,8 +62,8 @@ describe('Indicator Constants - 57-Column Schema', () => {
   });
 
   describe('Indicator Metadata', () => {
-    it('should have metadata for all 8 indicators', () => {
-      expect(Object.keys(INDICATOR_METADATA)).toHaveLength(8);
+    it('should have metadata for all 10 indicators', () => {
+      expect(Object.keys(INDICATOR_METADATA)).toHaveLength(10);
     });
 
     it('FREE tier indicators should have correct tier', () => {
@@ -76,6 +78,8 @@ describe('Indicator Constants - 57-Column Schema', () => {
       expect(INDICATOR_METADATA.keltner_channels.tier).toBe('PRO');
       expect(INDICATOR_METADATA.support_resistance.tier).toBe('PRO');
       expect(INDICATOR_METADATA.zigzag.tier).toBe('PRO');
+      expect(INDICATOR_METADATA.dual_tema_hl.tier).toBe('PRO');
+      expect(INDICATOR_METADATA.pinbar_detection.tier).toBe('PRO');
     });
 
     it('fractal_diagonal should have exactly 8 columns', () => {
@@ -110,44 +114,51 @@ describe('Indicator Constants - 57-Column Schema', () => {
     it('body_momentum should have exactly 2 columns', () => {
       expect(INDICATOR_METADATA.body_momentum.columns).toHaveLength(2);
       expect(INDICATOR_METADATA.body_momentum.columns).toEqual([
-        'z_score_of_body_size',
-        'candle_classification',
+        'body_size',
+        'body_direction',
       ]);
     });
 
     it('heiken_ashi should have exactly 7 columns', () => {
       expect(INDICATOR_METADATA.heiken_ashi.columns).toHaveLength(7);
       expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_open');
-      expect(INDICATOR_METADATA.heiken_ashi.columns).toContain(
-        'ha_classification'
-      );
+      expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_color');
     });
 
     it('keltner_channels should have exactly 10 columns', () => {
       expect(INDICATOR_METADATA.keltner_channels.columns).toHaveLength(10);
       expect(INDICATOR_METADATA.keltner_channels.columns).toContain(
-        'kc_ultra_extreme_upper'
+        'kc_upper_ema'
       );
       expect(INDICATOR_METADATA.keltner_channels.columns).toContain('kc_upper');
     });
 
     it('support_resistance should have exactly 8 columns', () => {
       expect(INDICATOR_METADATA.support_resistance.columns).toHaveLength(8);
-      expect(INDICATOR_METADATA.support_resistance.columns).toContain(
-        'sr_support_1'
-      );
-      expect(INDICATOR_METADATA.support_resistance.columns).toContain(
-        'sr_resistance_1'
-      );
+      expect(INDICATOR_METADATA.support_resistance.columns).toContain('sr_1');
+      expect(INDICATOR_METADATA.support_resistance.columns).toContain('sr_5');
     });
 
     it('zigzag should have exactly 3 columns', () => {
       expect(INDICATOR_METADATA.zigzag.columns).toHaveLength(3);
       expect(INDICATOR_METADATA.zigzag.columns).toEqual([
-        'zigzag_peak',
-        'zigzag_bottom',
-        'ema_26',
+        'zigzag_high',
+        'zigzag_low',
+        'zigzag_trend',
       ]);
+    });
+
+    it('dual_tema_hl should have exactly 2 columns', () => {
+      expect(INDICATOR_METADATA.dual_tema_hl.columns).toHaveLength(2);
+      expect(INDICATOR_METADATA.dual_tema_hl.columns).toEqual([
+        'dual_tema_high',
+        'dual_tema_low',
+      ]);
+    });
+
+    it('pinbar_detection should have exactly 1 column', () => {
+      expect(INDICATOR_METADATA.pinbar_detection.columns).toHaveLength(1);
+      expect(INDICATOR_METADATA.pinbar_detection.columns).toEqual(['pinbar']);
     });
   });
 
@@ -160,20 +171,20 @@ describe('Indicator Constants - 57-Column Schema', () => {
       expect(freeColumns).toBe(16); // 8 + 8
     });
 
-    it('PRO tier indicators should have 33 columns total', () => {
+    it('PRO tier indicators should have 36 columns total', () => {
       const proColumns = PRO_ONLY_INDICATORS.reduce(
         (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
         0
       );
-      expect(proColumns).toBe(33); // 3 + 2 + 7 + 10 + 8 + 3
+      expect(proColumns).toBe(36); // 3 + 2 + 7 + 10 + 8 + 3 + 2 + 1
     });
 
-    it('All indicators should have 49 columns total', () => {
+    it('All indicators should have 52 columns total', () => {
       const allColumns = ALL_INDICATORS.reduce(
         (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
         0
       );
-      expect(allColumns).toBe(49); // 16 + 33
+      expect(allColumns).toBe(52); // 16 + 36
     });
   });
 
@@ -226,7 +237,7 @@ describe('Indicator Constants - 57-Column Schema', () => {
       it('should return true for PRO indicator columns', () => {
         expect(isValidColumnName('tema')).toBe(true);
         expect(isValidColumnName('kc_upper')).toBe(true);
-        expect(isValidColumnName('zigzag_peak')).toBe(true);
+        expect(isValidColumnName('zigzag_high')).toBe(true);
       });
 
       it('should return false for invalid columns', () => {
@@ -240,8 +251,8 @@ describe('Indicator Constants - 57-Column Schema', () => {
         expect(getTierColumnCount('FREE')).toBe(24); // 8 system + 16 indicator
       });
 
-      it('should return 57 for PRO tier', () => {
-        expect(getTierColumnCount('PRO')).toBe(57); // 8 system + 49 indicator
+      it('should return 60 for PRO tier', () => {
+        expect(getTierColumnCount('PRO')).toBe(60); // 8 system + 52 indicator
       });
     });
   });

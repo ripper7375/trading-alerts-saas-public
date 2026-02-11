@@ -92,9 +92,9 @@ info:
         - Returns: session, tier, userId, userEmail, isAuthenticated, logout
         - Additional hooks: useRequireAuth (redirect if not authenticated), useRequireTier (tier validation)
 
-    ## Database Schema: 57-Column Flat Schema
+    ## Database Schema: 60-Column Flat Schema
 
-    The system uses a NEW 57-column flat database schema (replacing the old 14-column JSON structure):
+    The system uses a NEW 60-column flat database schema (replacing the old 14-column JSON structure):
 
     ### System Columns (8 - accessible to all tiers):
     - `timestamp`, `open`, `high`, `low`, `close`, `volume`, `timeframe`, `collected_at`
@@ -114,44 +114,54 @@ info:
        - Colors: peaks (#f23645), bottoms (#00c853)
        - Data Pattern: sparse (5-15% of bars)
 
-    ### PRO Tier Indicators (33 columns - 6 groups):
+    ### PRO Tier Indicators (36 columns - 8 groups):
     3. **Moving Averages (3 columns):**
        - `tema`, `hrma`, `smma`
        - Colors: TEMA (#808080), HRMA (#00CED1), SMMA (#0000FF)
        - Data Pattern: continuous (every bar)
 
     4. **Body Size Momentum (2 columns):**
-       - `z_score_of_body_size`, `candle_classification`
+       - `body_size`, `body_direction`
        - Classification: 0=UP_NORMAL, 1=UP_LARGE, 2=UP_EXTREME, 3=DOWN_NORMAL, 4=DOWN_LARGE, 5=DOWN_EXTREME
        - Colors: 6 different colors based on classification
        - Data Pattern: continuous (every bar)
 
     5. **Heiken Ashi (7 columns):**
        - `ha_open`, `ha_high`, `ha_low`, `ha_close`
-       - `ha_classification`, `ha_body_size`, `ha_body_zscore`
+       - `ha_color`, `ha_trend`, `ha_strength`
        - Colors: bullish (#00c853), bearish (#f23645)
        - Data Pattern: continuous (every bar)
 
     6. **Keltner Channels (10 columns):**
-       - `kc_ultra_extreme_upper`, `kc_extreme_upper`, `kc_uppermost`, `kc_upper`, `kc_upper_middle`
-       - `kc_lower_middle`, `kc_lower`, `kc_lowermost`, `kc_extreme_lower`, `kc_ultra_extreme_lower`
+       - `kc_upper`, `kc_middle`, `kc_lower`
+       - `kc_upper_ema`, `kc_middle_ema`, `kc_lower_ema`
+       - `kc_squeeze`, `kc_squeeze_pro`, `kc_width`, `kc_width_ema`
        - Colors: Purple gradient (#9C27B0 to #CE93D8) with orange middle bands
        - Data Pattern: continuous (every bar)
 
     7. **Support & Resistance (8 columns):**
-       - `sr_support_1`, `sr_support_2`, `sr_support_3`, `sr_support_4`
-       - `sr_resistance_1`, `sr_resistance_2`, `sr_resistance_3`, `sr_resistance_4`
+       - `sr_1`, `sr_2`, `sr_3`, `sr_4`, `sr_5`, `sr_6`, `sr_7`, `sr_8`
        - Colors: support (#00c853), resistance (#f23645)
        - Data Pattern: sparse (10-30% of bars)
 
     8. **ZigZag + EMA (3 columns):**
-       - `zigzag_peak`, `zigzag_bottom`, `ema_26`
+       - `zigzag_high`, `zigzag_low`, `zigzag_trend`
        - Colors: peaks (#f23645), bottoms (#00c853), EMA (#ffa726)
        - Data Pattern: peaks/bottoms sparse (2-5%), EMA continuous
 
+    9. **Dual TEMA High/Low (2 columns):**
+       - `dual_tema_high`, `dual_tema_low`
+       - Colors: high (#00CED1), low (#FF6B6B)
+       - Data Pattern: continuous (every bar)
+
+    10. **Pinbar Detection (1 column):**
+        - `pinbar`
+        - Colors: bullish (#00c853), bearish (#f23645)
+        - Data Pattern: sparse (only bars with pinbar patterns)
+
     **Total Columns:**
     - FREE Tier: 8 system + 16 indicator = **24 columns**
-    - PRO Tier: 8 system + 49 indicator = **57 columns**
+    - PRO Tier: 8 system + 52 indicator = **60 columns**
 
     ## Indicator Groups (lib/tier/constants.ts):
 
@@ -159,13 +169,15 @@ info:
     - `fractal_diagonal` - Dynamic trendlines based on fractal analysis
     - `fractal_horizontal` - Horizontal support/resistance levels from fractals
 
-    ### PRO-Only Indicators (6 groups):
+    ### PRO-Only Indicators (8 groups):
     - `moving_averages` - TEMA, HRMA, SMMA trend indicators
     - `body_momentum` - Candle body size Z-score classification
     - `heiken_ashi` - Smoothed candlesticks with classification
     - `keltner_channels` - 10-band volatility channel system
     - `support_resistance` - Fractal-based S/R levels
     - `zigzag` - Market structure with EMA trend
+    - `dual_tema_hl` - Dual TEMA applied to highs and lows
+    - `pinbar_detection` - Pinbar reversal pattern detection
 
     ## Tier-Based Features:
 
@@ -182,8 +194,8 @@ info:
     - **Timeframes:** 9 (adds M5, M15, M30, H2, H8, H12)
     - **Chart Combinations:** 135 (15 × 9)
     - **Refresh Rate:** 30 seconds
-    - **Indicators:** 8 groups (all FREE + 6 PRO groups)
-    - **Database Access:** 57 columns
+    - **Indicators:** 10 groups (all FREE + 8 PRO groups)
+    - **Database Access:** 60 columns
 
     ## Data Flow:
     1. User navigates to `/charts` or `/charts/{symbol}/{timeframe}`
@@ -220,7 +232,7 @@ info:
        - Component-level: Disabled states and lock icons
        - API-level: Backend validates tier before returning data
 
-    4. The system uses the NEW 57-column flat schema (introduced in recent migration):
+    4. The system uses the NEW 60-column flat schema (introduced in recent migration):
        - Replaces old 14-column JSON structure
        - All indicator data stored as individual columns (no JSON parsing)
        - Better query performance with column-specific indexes
@@ -281,23 +293,25 @@ components:
             - 'hooks/use-auth.ts'
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # INDICATOR TYPES (NEW 57-COLUMN SCHEMA)
+    # INDICATOR TYPES (NEW 60-COLUMN SCHEMA)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     IndicatorId:
       type: string
-      description: Indicator group identifier (8 total groups)
+      description: Indicator group identifier (10 total groups)
       enum:
         # FREE Tier (2 groups)
         - fractal_diagonal
         - fractal_horizontal
-        # PRO Tier (6 groups)
+        # PRO Tier (8 groups)
         - moving_averages
         - body_momentum
         - heiken_ashi
         - keltner_channels
         - support_resistance
         - zigzag
+        - dual_tema_hl
+        - pinbar_detection
 
     IndicatorCategory:
       type: string
@@ -342,7 +356,7 @@ components:
           items:
             type: string
           description: Database column names for this indicator
-          example: ['kc_ultra_extreme_upper', 'kc_extreme_upper', 'kc_uppermost']
+          example: ['kc_upper', 'kc_middle', 'kc_lower']
         colors:
           type: object
           additionalProperties:
@@ -358,7 +372,7 @@ components:
           description: Data density pattern (sparse = 5-30% of bars, continuous = every bar)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # DATABASE SCHEMA TYPES (57-COLUMN FLAT SCHEMA)
+    # DATABASE SCHEMA TYPES (60-COLUMN FLAT SCHEMA)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     SystemColumns:
@@ -484,11 +498,11 @@ components:
       type: object
       description: PRO tier indicator - Body Size Momentum (2 columns)
       properties:
-        z_score_of_body_size:
+        body_size:
           type: number
           nullable: true
           description: Z-score of candle body size
-        candle_classification:
+        body_direction:
           type: integer
           nullable: true
           description: 0=UP_NORMAL, 1=UP_LARGE, 2=UP_EXTREME, 3=DOWN_NORMAL, 4=DOWN_LARGE, 5=DOWN_EXTREME
@@ -510,13 +524,13 @@ components:
         ha_close:
           type: number
           nullable: true
-        ha_classification:
+        ha_color:
           type: integer
           nullable: true
-        ha_body_size:
+        ha_trend:
           type: number
           nullable: true
-        ha_body_zscore:
+        ha_strength:
           type: number
           nullable: true
 
@@ -524,34 +538,34 @@ components:
       type: object
       description: PRO tier indicator - Keltner Channels (10 columns)
       properties:
-        kc_ultra_extreme_upper:
-          type: number
-          nullable: true
-        kc_extreme_upper:
-          type: number
-          nullable: true
-        kc_uppermost:
-          type: number
-          nullable: true
         kc_upper:
           type: number
           nullable: true
-        kc_upper_middle:
-          type: number
-          nullable: true
-        kc_lower_middle:
+        kc_middle:
           type: number
           nullable: true
         kc_lower:
           type: number
           nullable: true
-        kc_lowermost:
+        kc_upper_ema:
           type: number
           nullable: true
-        kc_extreme_lower:
+        kc_middle_ema:
           type: number
           nullable: true
-        kc_ultra_extreme_lower:
+        kc_lower_ema:
+          type: number
+          nullable: true
+        kc_squeeze:
+          type: number
+          nullable: true
+        kc_squeeze_pro:
+          type: number
+          nullable: true
+        kc_width:
+          type: number
+          nullable: true
+        kc_width_ema:
           type: number
           nullable: true
 
@@ -559,28 +573,28 @@ components:
       type: object
       description: PRO tier indicator - Support & Resistance (8 columns)
       properties:
-        sr_support_1:
+        sr_1:
           type: number
           nullable: true
-        sr_support_2:
+        sr_2:
           type: number
           nullable: true
-        sr_support_3:
+        sr_3:
           type: number
           nullable: true
-        sr_support_4:
+        sr_4:
           type: number
           nullable: true
-        sr_resistance_1:
+        sr_5:
           type: number
           nullable: true
-        sr_resistance_2:
+        sr_6:
           type: number
           nullable: true
-        sr_resistance_3:
+        sr_7:
           type: number
           nullable: true
-        sr_resistance_4:
+        sr_8:
           type: number
           nullable: true
 
@@ -588,18 +602,40 @@ components:
       type: object
       description: PRO tier indicator - ZigZag + EMA (3 columns)
       properties:
-        zigzag_peak:
+        zigzag_high:
           type: number
           nullable: true
-          description: Peak price level (sparse data)
-        zigzag_bottom:
+          description: Swing high price level (sparse data)
+        zigzag_low:
           type: number
           nullable: true
-          description: Bottom price level (sparse data)
-        ema_26:
+          description: Swing low price level (sparse data)
+        zigzag_trend:
           type: number
           nullable: true
-          description: 26-period EMA (continuous data)
+          description: ZigZag EMA trend direction (continuous data)
+
+    DualTemaHLData:
+      type: object
+      description: PRO tier indicator - Dual TEMA High/Low (2 columns)
+      properties:
+        dual_tema_high:
+          type: number
+          nullable: true
+          description: Dual TEMA applied to highs (continuous data)
+        dual_tema_low:
+          type: number
+          nullable: true
+          description: Dual TEMA applied to lows (continuous data)
+
+    PinbarData:
+      type: object
+      description: PRO tier indicator - Pinbar Detection (1 column)
+      properties:
+        pinbar:
+          type: number
+          nullable: true
+          description: Pinbar reversal pattern detection (sparse data)
 
     FreeMarketData:
       allOf:
@@ -619,7 +655,9 @@ components:
         - $ref: '#/components/schemas/KeltnerChannelsData'
         - $ref: '#/components/schemas/SupportResistanceData'
         - $ref: '#/components/schemas/ZigZagColumns'
-      description: PRO tier market data (57 columns total)
+        - $ref: '#/components/schemas/DualTemaHLData'
+        - $ref: '#/components/schemas/PinbarData'
+      description: PRO tier market data (60 columns total)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # TIER CONFIGURATION
@@ -721,9 +759,11 @@ components:
                   'keltner_channels',
                   'support_resistance',
                   'zigzag',
+                  'dual_tema_hl',
+                  'pinbar_detection',
                 ]
             databaseColumns:
-              example: 57
+              example: 60
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # COLOR CONSTANTS

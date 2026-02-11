@@ -841,6 +841,84 @@ declare module '@prisma/client' {
     createdAt: Date;
   }
 
+  export interface MarketData {
+    id: string;
+    symbol: string;
+    // System columns (8)
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number | null;
+    timeframe: string;
+    collected_at: number | null;
+    // FREE tier: fractal_diagonal (8 columns)
+    diag_asc_line_1: number | null;
+    diag_asc_line_2: number | null;
+    diag_asc_line_3: number | null;
+    diag_desc_line_1: number | null;
+    diag_desc_line_2: number | null;
+    diag_desc_line_3: number | null;
+    diag_high_map: number | null;
+    diag_low_map: number | null;
+    // FREE tier: fractal_horizontal (8 columns)
+    horiz_peak_line_1: number | null;
+    horiz_peak_line_2: number | null;
+    horiz_peak_line_3: number | null;
+    horiz_bottom_line_1: number | null;
+    horiz_bottom_line_2: number | null;
+    horiz_bottom_line_3: number | null;
+    horiz_high_map: number | null;
+    horiz_low_map: number | null;
+    // PRO tier: moving_averages (3 columns)
+    tema: number | null;
+    hrma: number | null;
+    smma: number | null;
+    // PRO tier: body_momentum (2 columns)
+    body_size: number | null;
+    body_direction: number | null;
+    // PRO tier: heiken_ashi (7 columns)
+    ha_open: number | null;
+    ha_high: number | null;
+    ha_low: number | null;
+    ha_close: number | null;
+    ha_color: number | null;
+    ha_trend: number | null;
+    ha_strength: number | null;
+    // PRO tier: keltner_channels (10 columns)
+    kc_upper: number | null;
+    kc_middle: number | null;
+    kc_lower: number | null;
+    kc_upper_ema: number | null;
+    kc_middle_ema: number | null;
+    kc_lower_ema: number | null;
+    kc_squeeze: number | null;
+    kc_squeeze_pro: number | null;
+    kc_width: number | null;
+    kc_width_ema: number | null;
+    // PRO tier: support_resistance (8 columns)
+    sr_1: number | null;
+    sr_2: number | null;
+    sr_3: number | null;
+    sr_4: number | null;
+    sr_5: number | null;
+    sr_6: number | null;
+    sr_7: number | null;
+    sr_8: number | null;
+    // PRO tier: zigzag (3 columns)
+    zigzag_high: number | null;
+    zigzag_low: number | null;
+    zigzag_trend: number | null;
+    // PRO tier: dual_tema_hl (2 columns)
+    dual_tema_high: number | null;
+    dual_tema_low: number | null;
+    // PRO tier: pinbar_detection (1 column)
+    pinbar: number | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -994,6 +1072,9 @@ declare module '@prisma/client' {
     export type SystemConfigHistoryWhereInput = Record<string, unknown>;
     export type SystemConfigHistoryCreateInput = Record<string, unknown>;
     export type SystemConfigHistoryUpdateInput = Record<string, unknown>;
+    export type MarketDataWhereInput = Record<string, unknown>;
+    export type MarketDataCreateInput = Record<string, unknown>;
+    export type MarketDataUpdateInput = Record<string, unknown>;
   }
 
   // ============================================================
@@ -1114,6 +1195,7 @@ declare module '@prisma/client' {
     userSession: ModelDelegate<UserSession>;
     loginHistory: ModelDelegate<LoginHistory>;
     securityAlert: ModelDelegate<SecurityAlert>;
+    marketData: ModelDelegate<MarketData>;
   }
 }
 
