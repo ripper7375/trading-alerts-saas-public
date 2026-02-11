@@ -4,7 +4,6 @@
 
 - All custom indicator endpoints have been REMOVED from Part 07
 - Part 07 now contains ONLY tier-based access control routes
-- OHLCV (candlestick) data is fetched from Part 20 (SQLite-Sync) via `/api/candles/{symbol}`
 - Custom indicators are NOT supported due to MT5 Python API limitations with iCustom()
 
 ---
