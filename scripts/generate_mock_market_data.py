@@ -128,9 +128,9 @@ def generate_market_data(symbol, timeframe, start_date, end_date, interval_minut
         diag_desc_2 = generate_indicator_value(high, 0.4)
         diag_desc_3 = generate_indicator_value(high, 0.6)
 
-        # Maps
-        diag_high_map = round(high + random.uniform(0, 2), 5)
-        diag_low_map = round(low - random.uniform(0, 2), 5)
+        # Maps (0.0 for most bars, only set when fractal detected)
+        diag_high_map = round(high + random.uniform(0, 2), 5) if random.random() > 0.8 else 0.0
+        diag_low_map = round(low - random.uniform(0, 2), 5) if random.random() > 0.8 else 0.0
 
         # Horizontal lines (peaks)
         horiz_peak_1 = generate_indicator_value(high, 0.1)
@@ -142,9 +142,9 @@ def generate_market_data(symbol, timeframe, start_date, end_date, interval_minut
         horiz_bottom_2 = generate_indicator_value(low, 0.2)
         horiz_bottom_3 = generate_indicator_value(low, 0.3)
 
-        # Horizontal maps
-        horiz_high_map = round(high + random.uniform(0, 1), 5)
-        horiz_low_map = round(low - random.uniform(0, 1), 5)
+        # Horizontal maps (0.0 for most bars, only set when fractal detected)
+        horiz_high_map = round(high + random.uniform(0, 1), 5) if random.random() > 0.75 else 0.0
+        horiz_low_map = round(low - random.uniform(0, 1), 5) if random.random() > 0.75 else 0.0
 
         # Heiken Ashi
         ha_open = round((open_price + close) / 2, 5)
