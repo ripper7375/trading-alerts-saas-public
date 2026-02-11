@@ -1,30 +1,32 @@
 # FREE and PRO PLAN DATA ACCESSIBILITY
 
-> **Version 2.0.0** — Updated 2026-02-10
-> Supersedes: `57-column-schema-for-types-and-tier/free-vs-pro-plan-data-access.md`
-> Schema change: 57 → 60 columns (PRO tier only; FREE tier unchanged)
+> **Version 3.0.0** — Updated 2026-02-11
+> Supersedes: v2.0.0 (60-column schema, 2026-02-10)
+> Schema change: 60 → 61 columns (symbol column added to system, ema_26 renamed to ema)
 
 ---
 
-## What Changed in v2.0 (57 → 60 columns)
+## What Changed in v3.0 (60 → 61 columns)
 
 | Change | Detail |
 | ------ | ------ |
-| New Indicator #9 | Dual TEMA High/Low — 2 new PRO columns (`dual_tema_high`, `dual_tema_low`) |
-| New Indicator #10 | Pinbar Detection — 1 new PRO column (`pinbar`) |
-| Total columns | 57 → **60** |
-| PRO columns | 33 → **36** |
-| FREE columns | 24 (unchanged) |
+| **Symbol column added** | NEW system column at position 2 (after timestamp) |
+| **EMA renamed** | `ema_26` → `ema` for consistency with tema/hrma/smma |
+| Total columns | 60 → **61** |
+| System columns | 8 → **9** |
+| FREE columns | 24 → **25** |
+| PRO columns | 60 → **61** |
 | FREE indicators | 2 (unchanged) |
-| PRO indicator groups | 6 → **8** |
+| PRO indicator groups | 8 (unchanged) |
 
 ---
 
-## 🔧 System Columns (8 columns) ---> FREE + PRO
+## 🔧 System Columns (9 columns) ---> FREE + PRO
 
 | Column Name    | Data Type       | Nullable | Description              | Notes                        |
 | -------------- | --------------- | -------- | ------------------------ | ---------------------------- |
 | `timestamp`    | `BIGINT`        | NO       | Unix timestamp (seconds) | Primary Key (with timeframe) |
+| `symbol`       | `VARCHAR(20)`   | NO       | Trading symbol           | NEW in v3.0 (e.g., "xauusd") |
 | `open`         | `DECIMAL(10,5)` | NO       | Open price               | OHLC data                    |
 | `high`         | `DECIMAL(10,5)` | NO       | High price               | OHLC data                    |
 | `low`          | `DECIMAL(10,5)` | NO       | Low price                | OHLC data                    |
@@ -35,9 +37,9 @@
 
 ---
 
-## 📈 Indicator #1: TEMA_HRMA_SMA-SMMA (3 columns) ---> PRO ONLY
+## 📈 Indicator #1: TEMA_HRMA_SMA-SMMA (4 columns) ---> PRO ONLY
 
-**Indicator Name:** TEMA_HRMA_SMA-SMMA_Modified Buffers
+**Indicator Name:** TEMA_HRMA_SMA-SMMA_Modified Buffers + EMA
 **Type:** Moving Averages
 **Data Pattern:** Continuous (values on every bar)
 
@@ -46,6 +48,9 @@
 | `tema`      | `DECIMAL(10,5)` | YES      | Triple Exponential Moving Average | Buffer 3 | Period: 9  |
 | `hrma`      | `DECIMAL(10,5)` | YES      | Hull-like RMA                     | Buffer 2 | Period: 18 |
 | `smma`      | `DECIMAL(10,5)` | YES      | Smoothed Moving Average           | Buffer 1 | Period: 36 |
+| `ema`       | `DECIMAL(10,5)` | YES      | Exponential Moving Average        | Buffer 4 | Period: 26 |
+
+> **Note:** `ema` was renamed from `ema_26` in v3.0 to match the naming convention of other moving averages (tema, hrma, smma). The period is configurable in the EA.
 
 **Usage:**
 
@@ -270,25 +275,24 @@
 
 ---
 
-## ⚡ Indicator #8: ZigZag + EMA (3 columns) ---> PRO ONLY
+## ⚡ Indicator #8: ZigZag (2 columns) ---> PRO ONLY
 
-**Indicator Name:** ZigZagColor\_\_\_MarketStructure_JSON_Export_V28_FIXED
-**Type:** Market Structure + Trend
-**Data Pattern:** Mixed (peaks/bottoms sparse, EMA continuous)
+**Indicator Name:** ZigZagColor___MarketStructure_JSON_Export_V28_FIXED
+**Type:** Market Structure
+**Data Pattern:** Sparse (peaks/bottoms 2-5% of bars)
 
-| Column Name     | Data Type       | Nullable | Description                     | Buffer   | Pattern                |
-| --------------- | --------------- | -------- | ------------------------------- | -------- | ---------------------- |
-| `zigzag_peak`   | `DECIMAL(10,5)` | YES      | ZigZag swing high (peak)        | Buffer 0 | Sparse (2-5% of bars)  |
-| `zigzag_bottom` | `DECIMAL(10,5)` | YES      | ZigZag swing low (bottom)       | Buffer 1 | Sparse (2-5% of bars)  |
-| `ema_26`        | `DECIMAL(10,5)` | YES      | Exponential Moving Average (26) | Buffer 4 | Continuous (every bar) |
+| Column Name     | Data Type       | Nullable | Description                  | Buffer   | Pattern               |
+| --------------- | --------------- | -------- | ---------------------------- | -------- | --------------------- |
+| `zigzag_peak`   | `DECIMAL(10,5)` | YES      | ZigZag swing high (peak)     | Buffer 0 | Sparse (2-5% of bars) |
+| `zigzag_bottom` | `DECIMAL(10,5)` | YES      | ZigZag swing low (bottom)    | Buffer 1 | Sparse (2-5% of bars) |
+
+> **Note:** EMA column was moved to Indicator #1 (Moving Averages group) in v3.0 and renamed from `ema_26` to `ema`.
 
 **Parameters:**
 
 - Depth: 12 bars
 - Deviation: 5 points
 - Backstep: 3 bars
-- EMA Period: 26
-- EMA Applied Price: Typical
 
 **Important:**
 
@@ -298,7 +302,7 @@
 
 ---
 
-## 📈 Indicator #9: Dual TEMA High/Low (2 columns) ---> PRO ONLY ⭐ NEW in v2.0
+## 📈 Indicator #9: Dual TEMA High/Low (2 columns) ---> PRO ONLY
 
 **Indicator Name:** Dual_TEMA_High_Low
 **Type:** Triple Exponential Moving Averages on High/Low
@@ -335,7 +339,7 @@ iCustom(sym, tf, "Dual_TEMA_High_Low",
 
 ---
 
-## 🕯️ Indicator #10: Pinbar Detection (1 column) ---> PRO ONLY ⭐ NEW in v2.0
+## 🕯️ Indicator #10: Pinbar Detection (1 column) ---> PRO ONLY
 
 **Indicator Name:** Pinbar Detector_Diamond Symbol_V17
 **Type:** Candlestick Pattern Detection
@@ -396,7 +400,7 @@ iCustom(sym, tf, "Pinbar Detector_Diamond Symbol_V17",
 
 ---
 
-## 📊 Complete Column List (Alphabetical) — 60 Columns
+## 📊 Complete Column List (Alphabetical) — 61 Columns
 
 | #   | Column Name              | Indicator          | Type          | Sparse/Continuous | Access         |
 | --- | ------------------------ | ------------------ | ------------- | ----------------- | -------------- |
@@ -413,7 +417,7 @@ iCustom(sym, tf, "Pinbar Detector_Diamond Symbol_V17",
 | 11  | `diag_low_map`           | Fractal Diagonal   | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
 | 12  | `dual_tema_high`         | Dual TEMA H/L      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 13  | `dual_tema_low`          | Dual TEMA H/L      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 14  | `ema_26`                 | ZigZag             | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 14  | `ema`                    | Moving Averages    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 15  | `ha_body_size`           | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 16  | `ha_body_zscore`         | Heiken Ashi        | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 17  | `ha_classification`      | Heiken Ashi        | INTEGER       | Continuous        | ---> PRO ONLY  |
@@ -430,7 +434,7 @@ iCustom(sym, tf, "Pinbar Detector_Diamond Symbol_V17",
 | 28  | `horiz_peak_line_1`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
 | 29  | `horiz_peak_line_2`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
 | 30  | `horiz_peak_line_3`      | Fractal Horizontal | DECIMAL(10,5) | Sparse            | --> FREE + PRO |
-| 31  | `hrma`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 31  | `hrma`                   | Moving Averages    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 32  | `kc_extreme_lower`       | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 33  | `kc_extreme_upper`       | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 34  | `kc_lower`               | Keltner Channel    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
@@ -444,7 +448,7 @@ iCustom(sym, tf, "Pinbar Detector_Diamond Symbol_V17",
 | 42  | `low`                    | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
 | 43  | `open`                   | System             | DECIMAL(10,5) | Continuous        | --> FREE + PRO |
 | 44  | `pinbar`                 | Pinbar Detection   | INTEGER       | Sparse            | ---> PRO ONLY  |
-| 45  | `smma`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 45  | `smma`                   | Moving Averages    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
 | 46  | `sr_resistance_1`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
 | 47  | `sr_resistance_2`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
 | 48  | `sr_resistance_3`        | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
@@ -453,10 +457,48 @@ iCustom(sym, tf, "Pinbar Detector_Diamond Symbol_V17",
 | 51  | `sr_support_2`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
 | 52  | `sr_support_3`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
 | 53  | `sr_support_4`           | Support/Resistance | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 54  | `tema`                   | TEMA_HRMA          | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 55  | `timeframe`              | System             | VARCHAR(10)   | Continuous        | --> FREE + PRO |
-| 56  | `timestamp`              | System             | BIGINT        | Continuous        | --> FREE + PRO |
-| 57  | `volume`                 | System             | INTEGER       | Continuous        | --> FREE + PRO |
-| 58  | `Z-Score of body size`   | Body Momentum      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
-| 59  | `zigzag_bottom`          | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
-| 60  | `zigzag_peak`            | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 54  | `symbol`                 | System             | VARCHAR(20)   | Continuous        | --> FREE + PRO |
+| 55  | `tema`                   | Moving Averages    | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 56  | `timeframe`              | System             | VARCHAR(10)   | Continuous        | --> FREE + PRO |
+| 57  | `timestamp`              | System             | BIGINT        | Continuous        | --> FREE + PRO |
+| 58  | `volume`                 | System             | INTEGER       | Continuous        | --> FREE + PRO |
+| 59  | `Z-Score of body size`   | Body Momentum      | DECIMAL(10,5) | Continuous        | ---> PRO ONLY  |
+| 60  | `zigzag_bottom`          | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+| 61  | `zigzag_peak`            | ZigZag             | DECIMAL(10,5) | Sparse            | ---> PRO ONLY  |
+
+---
+
+## 📊 Summary Statistics
+
+### Column Distribution
+
+| Category         | Count | Details                                     |
+| ---------------- | ----- | ------------------------------------------- |
+| **Total**        | 61    | All columns in schema                       |
+| **System**       | 9     | timestamp, symbol, OHLCV, timeframe, collected_at |
+| **FREE access**  | 25    | 9 system + 16 FREE indicators               |
+| **PRO access**   | 61    | All columns (9 system + 16 FREE + 36 PRO)   |
+| **FREE-only**    | 16    | Fractal Diagonal (8) + Fractal Horizontal (8) |
+| **PRO-only**     | 36    | All other indicators                        |
+
+### Indicator Groups
+
+| # | Indicator Group | Columns | Type | Access |
+|---|----------------|---------|------|--------|
+| 1 | Moving Averages | 4 | Continuous | PRO |
+| 2 | Body Momentum | 2 | Continuous | PRO |
+| 3 | Fractal Diagonal | 8 | Sparse | FREE + PRO |
+| 4 | Fractal Horizontal | 8 | Sparse | FREE + PRO |
+| 5 | Heiken Ashi | 7 | Continuous | PRO |
+| 6 | Keltner Channel | 10 | Continuous | PRO |
+| 7 | Support/Resistance | 8 | Sparse | PRO |
+| 8 | ZigZag | 2 | Sparse | PRO |
+| 9 | Dual TEMA H/L | 2 | Continuous | PRO |
+| 10 | Pinbar Detection | 1 | Sparse | PRO |
+
+---
+
+**Document Version:** 3.0.0
+**Last Updated:** 2026-02-11
+**Replaces:** v2.0.0 (60-column schema)
+**Schema Version:** EA v2.27 / Backfill Worker v4
