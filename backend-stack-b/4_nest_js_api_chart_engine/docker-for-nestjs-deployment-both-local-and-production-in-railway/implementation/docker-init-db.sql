@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS eurusd (
     sr_resistance_3 NUMERIC(10, 5),
     sr_resistance_4 NUMERIC(10, 5),
     
-    -- Indicator #8: ZigZag (3) - PRO ONLY
-    zigzag_peak NUMERIC(10, 5),
-    zigzag_bottom NUMERIC(10, 5),
-    ema_26 NUMERIC(10, 5),
+    -- Indicator #8: ZigZag + EMA (3) - PRO ONLY (v3.0: zigzag_high/zigzag_low/ema)
+    zigzag_high NUMERIC(10, 5),
+    zigzag_low NUMERIC(10, 5),
+    ema NUMERIC(10, 5),  -- renamed from ema_26 in v3.0 (EA v2.27+)
     
     -- Primary Key
     PRIMARY KEY (timestamp, timeframe)

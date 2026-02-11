@@ -2,7 +2,8 @@
 """
 Generate mock market data for XAUUSD M5 and M15 timeframes
 Date range: 09/02/2026 - 10/02/2026
-Format: 60 columns with | delimiter (Excel-compatible)
+Format: 61 columns with | delimiter (Excel-compatible)
+Schema: v3.0 — EA v2.27+ (9 system + 16 FREE + 36 PRO = 61 columns)
 """
 
 import random
@@ -32,9 +33,10 @@ def generate_market_data(symbol, timeframe, start_date, end_date, interval_minut
     current_time = start_date
     base_price = 2650.00  # XAUUSD typical price
 
-    # Column headers matching MQ5 schema
+    # Column headers matching MQ5 schema (61-column v3.0 — EA v2.27+)
     headers = [
         "timestamp",
+        "symbol",
         "open",
         "high",
         "low",
@@ -87,9 +89,9 @@ def generate_market_data(symbol, timeframe, start_date, end_date, interval_minut
         "sr_resistance_2",
         "sr_resistance_3",
         "sr_resistance_4",
-        "zigzag_peak",
-        "zigzag_bottom",
-        "ema_26",
+        "zigzag_high",
+        "zigzag_low",
+        "ema",
         "dual_tema_high",
         "dual_tema_low",
         "pinbar",
@@ -179,21 +181,22 @@ def generate_market_data(symbol, timeframe, start_date, end_date, interval_minut
         sr_resistance_3 = round(high + atr * 1.5, 5)
         sr_resistance_4 = round(high + atr * 2.0, 5)
 
-        # ZigZag
-        zigzag_peak = round(high + random.uniform(0, 5), 5) if random.random() > 0.7 else 0.0
-        zigzag_bottom = round(low - random.uniform(0, 5), 5) if random.random() > 0.7 else 0.0
-        ema_26 = generate_indicator_value(close, 0.6)
+        # ZigZag + EMA (3 columns — v3.0: zigzag_high/zigzag_low/ema)
+        zigzag_high = round(high + random.uniform(0, 5), 5) if random.random() > 0.7 else 0.0
+        zigzag_low = round(low - random.uniform(0, 5), 5) if random.random() > 0.7 else 0.0
+        ema = generate_indicator_value(close, 0.6)  # renamed from ema_26 in v3.0
 
-        # Dual TEMA (v2.26)
+        # Dual TEMA (v2.27)
         dual_tema_high = round(high + random.uniform(-1, 1), 5)
         dual_tema_low = round(low + random.uniform(-1, 1), 5)
 
-        # Pinbar detection (v2.26)
+        # Pinbar detection (v2.27)
         pinbar = 1 if random.random() > 0.9 else 0
 
-        # Build row
+        # Build row (61 columns: 9 system + 16 FREE + 36 PRO)
         row = [
             str(timestamp),
+            symbol,
             str(open_price),
             str(high),
             str(low),
@@ -246,9 +249,9 @@ def generate_market_data(symbol, timeframe, start_date, end_date, interval_minut
             str(sr_resistance_2),
             str(sr_resistance_3),
             str(sr_resistance_4),
-            str(zigzag_peak),
-            str(zigzag_bottom),
-            str(ema_26),
+            str(zigzag_high),
+            str(zigzag_low),
+            str(ema),
             str(dual_tema_high),
             str(dual_tema_low),
             str(pinbar),
