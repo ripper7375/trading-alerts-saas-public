@@ -451,13 +451,13 @@ CREATE TABLE "DisbursementAuditLog" (
 );
 
 -- CreateTable
--- MarketData: 60-column flat schema (v2.0 — EA v2.26+)
--- Structure: 8 system + 16 FREE tier + 36 PRO tier = 60 columns
+-- MarketData: 61-column flat schema (v3.0 — EA v2.27+)
+-- Structure: 9 system + 16 FREE tier + 36 PRO tier = 61 columns
 CREATE TABLE "MarketData" (
     "id" TEXT NOT NULL,
     "symbol" TEXT NOT NULL,
 
-    -- System columns (8)
+    -- System columns (9) - includes symbol above
     "timestamp" INTEGER NOT NULL,
     "open" DOUBLE PRECISION NOT NULL,
     "high" DOUBLE PRECISION NOT NULL,
@@ -527,10 +527,10 @@ CREATE TABLE "MarketData" (
     "sr_7" DOUBLE PRECISION,
     "sr_8" DOUBLE PRECISION,
 
-    -- PRO tier indicators - Group 8: ZigZag (3 columns)
+    -- PRO tier indicators - Group 8: ZigZag + EMA (3 columns)
     "zigzag_high" DOUBLE PRECISION,
     "zigzag_low" DOUBLE PRECISION,
-    "zigzag_trend" DOUBLE PRECISION,
+    "ema" DOUBLE PRECISION,
 
     -- PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW v2.0 / EA v2.26
     "dual_tema_high" DOUBLE PRECISION,

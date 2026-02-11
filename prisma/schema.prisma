@@ -921,17 +921,17 @@ model DisbursementAuditLog {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MARKET DATA (60-COLUMN SCHEMA)
+// MARKET DATA (61-COLUMN SCHEMA)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/// Market data with 60-column flat schema
-/// Structure: 8 system + 16 FREE tier + 36 PRO tier = 60 columns
-/// Updated: v2.0 — adds dual_tema_high, dual_tema_low, pinbar (EA v2.26+)
+/// Market data with 61-column flat schema
+/// Structure: 9 system + 16 FREE tier + 36 PRO tier = 61 columns
+/// Updated: v3.0 — adds symbol to system columns, renames ema_26 to ema (EA v2.27+)
 model MarketData {
   id           String   @id @default(cuid())
   symbol       String
 
-  // System columns (8) - Always accessible to all tiers
+  // System columns (9) - Always accessible to all tiers (includes symbol above)
   timestamp    Int      // Unix timestamp (seconds)
   open         Float
   high         Float
@@ -1001,10 +1001,10 @@ model MarketData {
   sr_7                 Float?
   sr_8                 Float?  // Support/Resistance level 8 (weakest)
 
-  // PRO tier indicators - Group 8: ZigZag (3 columns)
+  // PRO tier indicators - Group 8: ZigZag + EMA (3 columns)
   zigzag_high          Float?
   zigzag_low           Float?
-  zigzag_trend         Float?  // 1 = uptrend, -1 = downtrend
+  ema                  Float?  // Exponential Moving Average (renamed from ema_26 in v3.0)
 
   // PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW in v2.0 / EA v2.26
   dual_tema_high       Float?  // TEMA of bar highs (Dual_TEMA_High_Low buffer 0)

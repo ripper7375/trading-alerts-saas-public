@@ -1,11 +1,11 @@
 /**
- * Indicator Tier Constants - 60-Column Database Schema
+ * Indicator Tier Constants - 61-Column Database Schema
  *
  * Defines which indicators are available for each tier level based on
- * the new 60-column flat schema (replacing old 14-column JSON structure).
+ * the new 61-column flat schema (replacing old 14-column JSON structure).
  *
  * Database Structure:
- * - System Columns (8): timestamp, open, high, low, close, volume, timeframe, collected_at
+ * - System Columns (9): timestamp, symbol, open, high, low, close, volume, timeframe, collected_at
  * - FREE Indicators (16 columns): fractal_diagonal (8) + fractal_horizontal (8)
  * - PRO Indicators (36 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
  *
@@ -15,7 +15,7 @@
 import type { Tier } from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// INDICATOR TYPE CONSTANTS (NEW 60-COLUMN SCHEMA)
+// INDICATOR TYPE CONSTANTS (NEW 61-COLUMN SCHEMA)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
@@ -39,7 +39,7 @@ export const PRO_ONLY_INDICATORS = [
   'heiken_ashi', // 7 columns: ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength
   'keltner_channels', // 10 columns: kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema
   'support_resistance', // 8 columns: sr_1, sr_2, sr_3, sr_4, sr_5, sr_6, sr_7, sr_8
-  'zigzag', // 3 columns: zigzag_high, zigzag_low, zigzag_trend
+  'zigzag', // 3 columns: zigzag_high, zigzag_low, ema
   'dual_tema_hl', // 2 columns: dual_tema_high, dual_tema_low
   'pinbar_detection', // 1 column: pinbar
 ] as const;
@@ -48,7 +48,7 @@ export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
 
 /**
  * All available indicators (FREE + PRO = 10 groups, 52 indicator columns)
- * System columns (8) + Indicator columns (52) = 60 total columns
+ * System columns (9) + Indicator columns (52) = 61 total columns
  */
 export const ALL_INDICATORS = [
   ...FREE_TIER_INDICATORS,
@@ -258,7 +258,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     description: 'Market structure with swing highs/lows and EMA trend',
     category: 'trend',
     tier: 'PRO',
-    columns: ['zigzag_high', 'zigzag_low', 'zigzag_trend'],
+    columns: ['zigzag_high', 'zigzag_low', 'ema'],
     colors: {
       peaks: '#f23645',
       bottoms: '#00c853',
@@ -352,10 +352,12 @@ export const ZIGZAG_COLORS = {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * System columns - always accessible by both FREE and PRO tiers
+ * System columns (9) - always accessible by both FREE and PRO tiers
+ * Symbol column added in v3.0 (EA v2.27+)
  */
 export const SYSTEM_COLUMNS = [
   'timestamp',
+  'symbol',
   'open',
   'high',
   'low',
@@ -391,7 +393,7 @@ export function getIndicatorByColumn(columnName: string): IndicatorId | null {
 }
 
 /**
- * Check if a column name is valid in the 60-column schema
+ * Check if a column name is valid in the 61-column schema
  */
 export function isValidColumnName(columnName: string): boolean {
   // Check system columns
@@ -411,8 +413,8 @@ export function isValidColumnName(columnName: string): boolean {
 
 /**
  * Get total column count for a tier
- * FREE: 8 system + 16 indicator = 24 columns
- * PRO: 8 system + 52 indicator = 60 columns
+ * FREE: 9 system + 16 indicator = 25 columns
+ * PRO: 9 system + 52 indicator = 61 columns
  */
 export function getTierColumnCount(tier: Tier): number {
   if (tier === 'FREE') {
@@ -420,7 +422,7 @@ export function getTierColumnCount(tier: Tier): number {
       (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
       0
     );
-    return SYSTEM_COLUMNS.length + freeIndicatorColumns; // 8 + 16 = 24
+    return SYSTEM_COLUMNS.length + freeIndicatorColumns; // 9 + 16 = 25
   }
 
   // PRO tier
@@ -428,5 +430,5 @@ export function getTierColumnCount(tier: Tier): number {
     (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
     0
   );
-  return SYSTEM_COLUMNS.length + allIndicatorColumns; // 8 + 52 = 60
+  return SYSTEM_COLUMNS.length + allIndicatorColumns; // 9 + 52 = 61
 }

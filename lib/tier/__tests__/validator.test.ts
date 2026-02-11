@@ -1,5 +1,5 @@
 /**
- * Tests for Indicator Tier Validator - 60-Column Schema
+ * Tests for Indicator Tier Validator - 61-Column Schema
  */
 
 import {
@@ -22,7 +22,7 @@ import {
   isProIndicator,
 } from '../validator';
 
-describe('Indicator Tier Validator - 60-Column Schema', () => {
+describe('Indicator Tier Validator - 61-Column Schema', () => {
   describe('Indicator Access Control', () => {
     describe('canAccessIndicator', () => {
       it('FREE tier can access FREE indicators', () => {
@@ -107,6 +107,7 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
     describe('canAccessColumn', () => {
       it('FREE tier can access system columns', () => {
         expect(canAccessColumn('FREE', 'timestamp')).toBe(true);
+        expect(canAccessColumn('FREE', 'symbol')).toBe(true);
         expect(canAccessColumn('FREE', 'open')).toBe(true);
         expect(canAccessColumn('FREE', 'close')).toBe(true);
         expect(canAccessColumn('FREE', 'volume')).toBe(true);
@@ -122,13 +123,16 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
         expect(canAccessColumn('FREE', 'hrma')).toBe(false);
         expect(canAccessColumn('FREE', 'kc_upper')).toBe(false);
         expect(canAccessColumn('FREE', 'zigzag_high')).toBe(false);
+        expect(canAccessColumn('FREE', 'ema')).toBe(false);
       });
 
       it('PRO tier can access all columns', () => {
         expect(canAccessColumn('PRO', 'timestamp')).toBe(true);
+        expect(canAccessColumn('PRO', 'symbol')).toBe(true);
         expect(canAccessColumn('PRO', 'tema')).toBe(true);
         expect(canAccessColumn('PRO', 'kc_upper')).toBe(true);
         expect(canAccessColumn('PRO', 'zigzag_high')).toBe(true);
+        expect(canAccessColumn('PRO', 'ema')).toBe(true);
       });
 
       it('should return false for invalid columns', () => {
@@ -138,14 +142,14 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
     });
 
     describe('getAccessibleColumns', () => {
-      it('FREE tier should get 24 columns', () => {
+      it('FREE tier should get 25 columns', () => {
         const columns = getAccessibleColumns('FREE');
-        expect(columns).toHaveLength(24); // 8 system + 16 indicator
+        expect(columns).toHaveLength(25); // 9 system + 16 indicator
       });
 
-      it('PRO tier should get 60 columns', () => {
+      it('PRO tier should get 61 columns', () => {
         const columns = getAccessibleColumns('PRO');
-        expect(columns).toHaveLength(60); // 8 system + 52 indicator
+        expect(columns).toHaveLength(61); // 9 system + 52 indicator
       });
 
       it('FREE tier columns should include system and FREE indicators', () => {
@@ -180,6 +184,7 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
   describe('Data Filtering', () => {
     const mockData = {
       timestamp: 1705324800,
+      symbol: 'XAUUSD',
       open: 43250,
       high: 43280,
       low: 43240,
@@ -196,6 +201,7 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
       hrma: 43258,
       kc_upper: 43300,
       zigzag_high: null,
+      ema: 43255,
     };
 
     describe('filterDataByTier', () => {
@@ -204,6 +210,7 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
 
         // Should have system columns
         expect(filtered.timestamp).toBe(1705324800);
+        expect(filtered.symbol).toBe('XAUUSD');
         expect(filtered.close).toBe(43265);
 
         // Should have FREE indicator columns
@@ -214,14 +221,17 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
         expect(filtered.tema).toBeUndefined();
         expect(filtered.hrma).toBeUndefined();
         expect(filtered.kc_upper).toBeUndefined();
+        expect(filtered.ema).toBeUndefined();
       });
 
       it('PRO tier gets all columns', () => {
         const filtered = filterDataByTier('PRO', mockData);
 
         expect(filtered.timestamp).toBe(1705324800);
+        expect(filtered.symbol).toBe('XAUUSD');
         expect(filtered.tema).toBe(43260);
         expect(filtered.kc_upper).toBe(43300);
+        expect(filtered.ema).toBe(43255);
       });
     });
 
@@ -261,11 +271,12 @@ describe('Indicator Tier Validator - 60-Column Schema', () => {
 
     describe('filterAccessibleColumns', () => {
       it('should filter columns for FREE tier', () => {
-        const requested = ['timestamp', 'tema', 'diag_asc_line_1'];
+        const requested = ['timestamp', 'symbol', 'tema', 'diag_asc_line_1'];
         const filtered = filterAccessibleColumns('FREE', requested);
 
-        expect(filtered).toHaveLength(2);
+        expect(filtered).toHaveLength(3);
         expect(filtered).toContain('timestamp');
+        expect(filtered).toContain('symbol');
         expect(filtered).toContain('diag_asc_line_1');
         expect(filtered).not.toContain('tema');
       });

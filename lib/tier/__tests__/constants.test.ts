@@ -1,5 +1,5 @@
 /**
- * Tests for Indicator Tier Constants - 60-Column Schema
+ * Tests for Indicator Tier Constants - 61-Column Schema
  */
 
 import {
@@ -14,7 +14,7 @@ import {
   getTierColumnCount,
 } from '../constants';
 
-describe('Indicator Constants - 60-Column Schema', () => {
+describe('Indicator Constants - 61-Column Schema', () => {
   describe('Indicator Arrays', () => {
     it('FREE_TIER_INDICATORS should have exactly 2 indicators', () => {
       expect(FREE_TIER_INDICATORS).toHaveLength(2);
@@ -45,12 +45,13 @@ describe('Indicator Constants - 60-Column Schema', () => {
   });
 
   describe('System Columns', () => {
-    it('should have exactly 8 system columns', () => {
-      expect(SYSTEM_COLUMNS).toHaveLength(8);
+    it('should have exactly 9 system columns', () => {
+      expect(SYSTEM_COLUMNS).toHaveLength(9);
     });
 
     it('should include all required system columns', () => {
       expect(SYSTEM_COLUMNS).toContain('timestamp');
+      expect(SYSTEM_COLUMNS).toContain('symbol');
       expect(SYSTEM_COLUMNS).toContain('open');
       expect(SYSTEM_COLUMNS).toContain('high');
       expect(SYSTEM_COLUMNS).toContain('low');
@@ -111,6 +112,14 @@ describe('Indicator Constants - 60-Column Schema', () => {
       ]);
     });
 
+    it('zigzag should have exactly 3 columns with ema (renamed from ema_26)', () => {
+      expect(INDICATOR_METADATA.zigzag.columns).toHaveLength(3);
+      expect(INDICATOR_METADATA.zigzag.columns).toContain('zigzag_high');
+      expect(INDICATOR_METADATA.zigzag.columns).toContain('zigzag_low');
+      expect(INDICATOR_METADATA.zigzag.columns).toContain('ema');
+      expect(INDICATOR_METADATA.zigzag.columns).not.toContain('zigzag_trend');
+    });
+
     it('body_momentum should have exactly 2 columns', () => {
       expect(INDICATOR_METADATA.body_momentum.columns).toHaveLength(2);
       expect(INDICATOR_METADATA.body_momentum.columns).toEqual([
@@ -144,7 +153,7 @@ describe('Indicator Constants - 60-Column Schema', () => {
       expect(INDICATOR_METADATA.zigzag.columns).toEqual([
         'zigzag_high',
         'zigzag_low',
-        'zigzag_trend',
+        'ema',
       ]);
     });
 
@@ -200,6 +209,11 @@ describe('Indicator Constants - 60-Column Schema', () => {
         const columns = getIndicatorColumns('moving_averages');
         expect(columns).toEqual(['tema', 'hrma', 'smma']);
       });
+
+      it('should return correct columns for zigzag', () => {
+        const columns = getIndicatorColumns('zigzag');
+        expect(columns).toEqual(['zigzag_high', 'zigzag_low', 'ema']);
+      });
     });
 
     describe('getIndicatorByColumn', () => {
@@ -234,10 +248,15 @@ describe('Indicator Constants - 60-Column Schema', () => {
         expect(isValidColumnName('horiz_peak_line_1')).toBe(true);
       });
 
+      it('should return true for system columns including symbol', () => {
+        expect(isValidColumnName('symbol')).toBe(true);
+      });
+
       it('should return true for PRO indicator columns', () => {
         expect(isValidColumnName('tema')).toBe(true);
         expect(isValidColumnName('kc_upper')).toBe(true);
         expect(isValidColumnName('zigzag_high')).toBe(true);
+        expect(isValidColumnName('ema')).toBe(true);
       });
 
       it('should return false for invalid columns', () => {
@@ -247,12 +266,12 @@ describe('Indicator Constants - 60-Column Schema', () => {
     });
 
     describe('getTierColumnCount', () => {
-      it('should return 24 for FREE tier', () => {
-        expect(getTierColumnCount('FREE')).toBe(24); // 8 system + 16 indicator
+      it('should return 25 for FREE tier', () => {
+        expect(getTierColumnCount('FREE')).toBe(25); // 9 system + 16 indicator
       });
 
-      it('should return 60 for PRO tier', () => {
-        expect(getTierColumnCount('PRO')).toBe(60); // 8 system + 52 indicator
+      it('should return 61 for PRO tier', () => {
+        expect(getTierColumnCount('PRO')).toBe(61); // 9 system + 52 indicator
       });
     });
   });
