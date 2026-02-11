@@ -921,11 +921,12 @@ model DisbursementAuditLog {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MARKET DATA (57-COLUMN SCHEMA)
+// MARKET DATA (60-COLUMN SCHEMA)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/// Market data with 57-column flat schema
-/// Structure: 8 system + 16 FREE tier + 33 PRO tier = 57 columns
+/// Market data with 60-column flat schema
+/// Structure: 8 system + 16 FREE tier + 36 PRO tier = 60 columns
+/// Updated: v2.0 — adds dual_tema_high, dual_tema_low, pinbar (EA v2.26+)
 model MarketData {
   id           String   @id @default(cuid())
   symbol       String
@@ -966,44 +967,51 @@ model MarketData {
   smma                 Float?
 
   // PRO tier indicators - Group 4: Body Size Momentum (2 columns)
-  z_score_of_body_size Float?
-  candle_classification Float?
+  body_size            Float?  // Candle body size (0.0 to 1.0)
+  body_direction       Float?  // 1 = bullish, -1 = bearish, 0 = neutral
 
   // PRO tier indicators - Group 5: Heiken Ashi (7 columns)
   ha_open              Float?
   ha_high              Float?
   ha_low               Float?
   ha_close             Float?
-  ha_classification    Float?
-  ha_body_size         Float?
-  ha_body_zscore       Float?
+  ha_color             Float?  // 1 = green, -1 = red
+  ha_trend             Float?  // 1 = uptrend, -1 = downtrend
+  ha_strength          Float?  // Trend strength (0.0 to 1.0)
 
   // PRO tier indicators - Group 6: Keltner Channels (10 columns)
-  kc_ultra_extreme_upper Float?
-  kc_extreme_upper     Float?
-  kc_uppermost         Float?
   kc_upper             Float?
-  kc_upper_middle      Float?
-  kc_lower_middle      Float?
+  kc_middle            Float?
   kc_lower             Float?
-  kc_lowermost         Float?
-  kc_extreme_lower     Float?
-  kc_ultra_extreme_lower Float?
+  kc_upper_ema         Float?
+  kc_middle_ema        Float?
+  kc_lower_ema         Float?
+  kc_squeeze           Float?  // Squeeze indicator (0 or 1)
+  kc_squeeze_pro       Float?  // Pro squeeze (0 or 1)
+  kc_width             Float?
+  kc_width_ema         Float?
 
   // PRO tier indicators - Group 7: Support/Resistance (8 columns)
-  sr_support_1         Float?
-  sr_support_2         Float?
-  sr_support_3         Float?
-  sr_support_4         Float?
-  sr_resistance_1      Float?
-  sr_resistance_2      Float?
-  sr_resistance_3      Float?
-  sr_resistance_4      Float?
+  sr_1                 Float?  // Support/Resistance level 1 (strongest)
+  sr_2                 Float?
+  sr_3                 Float?
+  sr_4                 Float?
+  sr_5                 Float?
+  sr_6                 Float?
+  sr_7                 Float?
+  sr_8                 Float?  // Support/Resistance level 8 (weakest)
 
   // PRO tier indicators - Group 8: ZigZag (3 columns)
-  zigzag_peak          Float?
-  zigzag_bottom        Float?
-  ema_26               Float?
+  zigzag_high          Float?
+  zigzag_low           Float?
+  zigzag_trend         Float?  // 1 = uptrend, -1 = downtrend
+
+  // PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW in v2.0 / EA v2.26
+  dual_tema_high       Float?  // TEMA of bar highs (Dual_TEMA_High_Low buffer 0)
+  dual_tema_low        Float?  // TEMA of bar lows  (Dual_TEMA_High_Low buffer 1)
+
+  // PRO tier indicators - Group 10: Pinbar Detection (1 column) — NEW in v2.0 / EA v2.26
+  pinbar               Int?    // 1 = any pinbar on this bar (bull or bear), 0 = none
 
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

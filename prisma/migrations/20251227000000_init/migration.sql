@@ -451,6 +451,116 @@ CREATE TABLE "DisbursementAuditLog" (
 );
 
 -- CreateTable
+-- MarketData: 60-column flat schema (v2.0 — EA v2.26+)
+-- Structure: 8 system + 16 FREE tier + 36 PRO tier = 60 columns
+CREATE TABLE "MarketData" (
+    "id" TEXT NOT NULL,
+    "symbol" TEXT NOT NULL,
+
+    -- System columns (8)
+    "timestamp" INTEGER NOT NULL,
+    "open" DOUBLE PRECISION NOT NULL,
+    "high" DOUBLE PRECISION NOT NULL,
+    "low" DOUBLE PRECISION NOT NULL,
+    "close" DOUBLE PRECISION NOT NULL,
+    "volume" DOUBLE PRECISION NOT NULL,
+    "timeframe" TEXT NOT NULL,
+    "collected_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- FREE tier indicators - Group 1: Fractal Diagonal Lines (8 columns)
+    "diag_asc_line_1" DOUBLE PRECISION,
+    "diag_asc_line_2" DOUBLE PRECISION,
+    "diag_asc_line_3" DOUBLE PRECISION,
+    "diag_desc_line_1" DOUBLE PRECISION,
+    "diag_desc_line_2" DOUBLE PRECISION,
+    "diag_desc_line_3" DOUBLE PRECISION,
+    "diag_high_map" DOUBLE PRECISION,
+    "diag_low_map" DOUBLE PRECISION,
+
+    -- FREE tier indicators - Group 2: Fractal Horizontal Lines (8 columns)
+    "horiz_peak_line_1" DOUBLE PRECISION,
+    "horiz_peak_line_2" DOUBLE PRECISION,
+    "horiz_peak_line_3" DOUBLE PRECISION,
+    "horiz_bottom_line_1" DOUBLE PRECISION,
+    "horiz_bottom_line_2" DOUBLE PRECISION,
+    "horiz_bottom_line_3" DOUBLE PRECISION,
+    "horiz_high_map" DOUBLE PRECISION,
+    "horiz_low_map" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 3: Moving Averages (3 columns)
+    "tema" DOUBLE PRECISION,
+    "hrma" DOUBLE PRECISION,
+    "smma" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 4: Body Size Momentum (2 columns)
+    "body_size" DOUBLE PRECISION,
+    "body_direction" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 5: Heiken Ashi (7 columns)
+    "ha_open" DOUBLE PRECISION,
+    "ha_high" DOUBLE PRECISION,
+    "ha_low" DOUBLE PRECISION,
+    "ha_close" DOUBLE PRECISION,
+    "ha_color" DOUBLE PRECISION,
+    "ha_trend" DOUBLE PRECISION,
+    "ha_strength" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 6: Keltner Channels (10 columns)
+    "kc_upper" DOUBLE PRECISION,
+    "kc_middle" DOUBLE PRECISION,
+    "kc_lower" DOUBLE PRECISION,
+    "kc_upper_ema" DOUBLE PRECISION,
+    "kc_middle_ema" DOUBLE PRECISION,
+    "kc_lower_ema" DOUBLE PRECISION,
+    "kc_squeeze" DOUBLE PRECISION,
+    "kc_squeeze_pro" DOUBLE PRECISION,
+    "kc_width" DOUBLE PRECISION,
+    "kc_width_ema" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 7: Support/Resistance (8 columns)
+    "sr_1" DOUBLE PRECISION,
+    "sr_2" DOUBLE PRECISION,
+    "sr_3" DOUBLE PRECISION,
+    "sr_4" DOUBLE PRECISION,
+    "sr_5" DOUBLE PRECISION,
+    "sr_6" DOUBLE PRECISION,
+    "sr_7" DOUBLE PRECISION,
+    "sr_8" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 8: ZigZag (3 columns)
+    "zigzag_high" DOUBLE PRECISION,
+    "zigzag_low" DOUBLE PRECISION,
+    "zigzag_trend" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW v2.0 / EA v2.26
+    "dual_tema_high" DOUBLE PRECISION,
+    "dual_tema_low" DOUBLE PRECISION,
+
+    -- PRO tier indicators - Group 10: Pinbar Detection (1 column) — NEW v2.0 / EA v2.26
+    "pinbar" INTEGER,
+
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MarketData_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MarketData_symbol_timeframe_timestamp_key" ON "MarketData"("symbol", "timeframe", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "MarketData_symbol_timeframe_timestamp_idx" ON "MarketData"("symbol", "timeframe", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "MarketData_symbol_idx" ON "MarketData"("symbol");
+
+-- CreateIndex
+CREATE INDEX "MarketData_timeframe_idx" ON "MarketData"("timeframe");
+
+-- CreateIndex
+CREATE INDEX "MarketData_timestamp_idx" ON "MarketData"("timestamp");
+
+-- CreateTable
 CREATE TABLE "SystemConfig" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,

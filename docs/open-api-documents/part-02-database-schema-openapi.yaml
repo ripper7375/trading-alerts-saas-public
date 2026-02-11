@@ -19,7 +19,7 @@ info:
     1. **User Management**: Authentication, authorization, tier management
     2. **Subscription System**: Stripe and dLocal payment integration
     3. **Affiliate Marketing**: Complete affiliate tracking and commission system
-    4. **Market Data**: 57-column schema for FREE and PRO tier indicators
+    4. **Market Data**: 60-column schema for FREE and PRO tier indicators (v2.0 — EA v2.26+)
     5. **Security**: 2FA, fraud detection, session tracking
     6. **Notifications**: Alert and notification management
     7. **Disbursement**: RiseWorks integration for affiliate payouts
@@ -50,7 +50,7 @@ tags:
   - name: Affiliate Models
     description: Affiliate marketing system models
   - name: Market Data Models
-    description: Market data and indicators (57-column schema)
+    description: Market data and indicators (60-column schema)
   - name: Security Models
     description: Security, fraud detection, and audit models
   - name: Notification Models
@@ -1034,7 +1034,7 @@ components:
         - providerPaymentId (unique)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # MARKET DATA MODEL (57-COLUMN SCHEMA)
+    # MARKET DATA MODEL (60-COLUMN SCHEMA — v2.0 / EA v2.26+)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     MarketData:
@@ -1094,68 +1094,84 @@ components:
           type: number
           format: float
           nullable: true
+          description: Ascending trendline 1
         diag_asc_line_2:
           type: number
           format: float
           nullable: true
+          description: Ascending trendline 2
         diag_asc_line_3:
           type: number
           format: float
           nullable: true
+          description: Ascending trendline 3
         diag_desc_line_1:
           type: number
           format: float
           nullable: true
+          description: Descending trendline 1
         diag_desc_line_2:
           type: number
           format: float
           nullable: true
+          description: Descending trendline 2
         diag_desc_line_3:
           type: number
           format: float
           nullable: true
+          description: Descending trendline 3
         diag_high_map:
           type: number
           format: float
           nullable: true
+          description: High fractal mapping data
         diag_low_map:
           type: number
           format: float
           nullable: true
+          description: Low fractal mapping data
 
         # FREE tier indicators - Group 2: Fractal Horizontal Lines (8 columns)
         horiz_peak_line_1:
           type: number
           format: float
           nullable: true
+          description: Peak resistance line 1
         horiz_peak_line_2:
           type: number
           format: float
           nullable: true
+          description: Peak resistance line 2
         horiz_peak_line_3:
           type: number
           format: float
           nullable: true
+          description: Peak resistance line 3
         horiz_bottom_line_1:
           type: number
           format: float
           nullable: true
+          description: Bottom support line 1
         horiz_bottom_line_2:
           type: number
           format: float
           nullable: true
+          description: Bottom support line 2
         horiz_bottom_line_3:
           type: number
           format: float
           nullable: true
+          description: Bottom support line 3
         horiz_high_map:
           type: number
           format: float
           nullable: true
+          description: High fractal mapping data
         horiz_low_map:
           type: number
           format: float
           nullable: true
+          description: Low fractal mapping data
 
         # PRO tier indicators - Group 3: Moving Averages (3 columns)
         tema:
@@ -1167,7 +1183,7 @@ components:
           type: number
           format: float
           nullable: true
-          description: Hull-like Moving Average
+          description: Hull Moving Average
         smma:
           type: number
           format: float
@@ -1175,137 +1191,189 @@ components:
           description: Smoothed Moving Average
 
         # PRO tier indicators - Group 4: Body Size Momentum (2 columns)
-        z_score_of_body_size:
+        body_size:
           type: number
           format: float
           nullable: true
-          description: Z-score of candle body size
-        candle_classification:
+          description: Candle body size (0.0 to 1.0)
+        body_direction:
           type: number
           format: float
           nullable: true
-          description: Candle classification (0-5)
+          description: "1 = bullish, -1 = bearish, 0 = neutral"
 
         # PRO tier indicators - Group 5: Heiken Ashi (7 columns)
         ha_open:
           type: number
           format: float
           nullable: true
+          description: Heiken Ashi open
         ha_high:
           type: number
           format: float
           nullable: true
+          description: Heiken Ashi high
         ha_low:
           type: number
           format: float
           nullable: true
+          description: Heiken Ashi low
         ha_close:
           type: number
           format: float
           nullable: true
-        ha_classification:
+          description: Heiken Ashi close
+        ha_color:
           type: number
           format: float
           nullable: true
-        ha_body_size:
+          description: "1 = green, -1 = red"
+        ha_trend:
           type: number
           format: float
           nullable: true
-        ha_body_zscore:
+          description: "1 = uptrend, -1 = downtrend"
+        ha_strength:
           type: number
           format: float
           nullable: true
+          description: Trend strength (0.0 to 1.0)
 
         # PRO tier indicators - Group 6: Keltner Channels (10 columns)
-        kc_ultra_extreme_upper:
-          type: number
-          format: float
-          nullable: true
-        kc_extreme_upper:
-          type: number
-          format: float
-          nullable: true
-        kc_uppermost:
-          type: number
-          format: float
-          nullable: true
         kc_upper:
           type: number
           format: float
           nullable: true
-        kc_upper_middle:
+          description: Upper Keltner Channel
+        kc_middle:
           type: number
           format: float
           nullable: true
-        kc_lower_middle:
-          type: number
-          format: float
-          nullable: true
+          description: Middle line (EMA)
         kc_lower:
           type: number
           format: float
           nullable: true
-        kc_lowermost:
+          description: Lower Keltner Channel
+        kc_upper_ema:
           type: number
           format: float
           nullable: true
-        kc_extreme_lower:
+          description: Upper channel EMA
+        kc_middle_ema:
           type: number
           format: float
           nullable: true
-        kc_ultra_extreme_lower:
+          description: Middle EMA
+        kc_lower_ema:
           type: number
           format: float
           nullable: true
+          description: Lower channel EMA
+        kc_squeeze:
+          type: number
+          format: float
+          nullable: true
+          description: Squeeze indicator (0 or 1)
+        kc_squeeze_pro:
+          type: number
+          format: float
+          nullable: true
+          description: Pro squeeze (0 or 1)
+        kc_width:
+          type: number
+          format: float
+          nullable: true
+          description: Channel width
+        kc_width_ema:
+          type: number
+          format: float
+          nullable: true
+          description: Width EMA
 
         # PRO tier indicators - Group 7: Support/Resistance (8 columns)
-        sr_support_1:
+        sr_1:
           type: number
           format: float
           nullable: true
-        sr_support_2:
+          description: Support/Resistance level 1 (strongest)
+        sr_2:
           type: number
           format: float
           nullable: true
-        sr_support_3:
+          description: Support/Resistance level 2
+        sr_3:
           type: number
           format: float
           nullable: true
-        sr_support_4:
+          description: Support/Resistance level 3
+        sr_4:
           type: number
           format: float
           nullable: true
-        sr_resistance_1:
+          description: Support/Resistance level 4
+        sr_5:
           type: number
           format: float
           nullable: true
-        sr_resistance_2:
+          description: Support/Resistance level 5
+        sr_6:
           type: number
           format: float
           nullable: true
-        sr_resistance_3:
+          description: Support/Resistance level 6
+        sr_7:
           type: number
           format: float
           nullable: true
-        sr_resistance_4:
+          description: Support/Resistance level 7
+        sr_8:
           type: number
           format: float
           nullable: true
+          description: Support/Resistance level 8 (weakest)
 
         # PRO tier indicators - Group 8: ZigZag (3 columns)
-        zigzag_peak:
+        zigzag_high:
           type: number
           format: float
           nullable: true
-        zigzag_bottom:
+          description: ZigZag swing high
+        zigzag_low:
           type: number
           format: float
           nullable: true
-        ema_26:
+          description: ZigZag swing low
+        zigzag_trend:
           type: number
           format: float
           nullable: true
-          description: EMA 26 period
+          description: "1 = uptrend, -1 = downtrend"
+
+        # PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW v2.0 / EA v2.26
+        dual_tema_high:
+          type: number
+          format: float
+          nullable: true
+          description: >
+            TEMA of bar highs from Dual_TEMA_High_Low indicator (buffer 0).
+            Requires EA v2.26+. Null for rows collected before upgrade.
+        dual_tema_low:
+          type: number
+          format: float
+          nullable: true
+          description: >
+            TEMA of bar lows from Dual_TEMA_High_Low indicator (buffer 1).
+            Requires EA v2.26+. Null for rows collected before upgrade.
+
+        # PRO tier indicators - Group 10: Pinbar Detection (1 column) — NEW v2.0 / EA v2.26
+        pinbar:
+          type: integer
+          nullable: true
+          enum: [0, 1]
+          description: >
+            Pinbar detection flag: 1 = any pinbar on this bar (bull or bear),
+            0 = no pinbar. Requires EA v2.26+. Null for pre-upgrade rows.
 
         createdAt:
           type: string
@@ -1315,18 +1383,33 @@ components:
           format: date-time
 
       description: |
-        Market data with 57-column flat schema.
+        Market data with 60-column flat schema (v2.0 — EA v2.26+).
 
         **Structure:**
         - 8 system columns (OHLCV + metadata)
         - 16 FREE tier indicator columns (2 groups)
-        - 33 PRO tier indicator columns (6 groups)
+        - 36 PRO tier indicator columns (10 groups total, 8 unchanged + 2 new)
 
-        **Total:** 57 columns
+        **Total:** 60 columns
 
         **Tier Access:**
-        - FREE tier: 24 columns (8 system + 16 FREE indicators)
-        - PRO tier: 57 columns (8 system + 16 FREE + 33 PRO indicators)
+        - FREE tier: 24 columns (8 system + 16 FREE indicators) — unchanged
+        - PRO tier: 60 columns (8 system + 16 FREE + 36 PRO indicators) — was 57
+
+        **PRO Indicator Groups:**
+        1. fractal_diagonal (8 cols — FREE)
+        2. fractal_horizontal (8 cols — FREE)
+        3. moving_averages (3 cols — PRO)
+        4. body_momentum (2 cols — PRO)
+        5. heiken_ashi (7 cols — PRO)
+        6. keltner_channels (10 cols — PRO)
+        7. support_resistance (8 cols — PRO)
+        8. zigzag (3 cols — PRO)
+        9. dual_tema_hl (2 cols — PRO, NEW v2.0)
+        10. pinbar_detection (1 col — PRO, NEW v2.0)
+
+        **New in v2.0 (EA v2.26):** `dual_tema_high`, `dual_tema_low`, `pinbar`
+        Pre-v2.26 rows retain NULL for these three columns.
 
         **Indexes:**
         - symbol + timeframe + timestamp (unique)
