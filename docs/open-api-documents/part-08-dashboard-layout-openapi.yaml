@@ -20,15 +20,15 @@ info:
     - **Server-Side Authentication** - Protected routes with session management
     - **Interactive Widgets** - Alerts, watchlist, and stats cards
     - **Admin Dashboard** - System management and monitoring
-    - **57-Column MarketData Integration** - Optimized market data schema
+    - **60-Column MarketData Integration** - Optimized market data schema
 
     ## Database Schema Migration
 
     **Important:** The system recently migrated from a 14-column JSON structure to a flat
-    57-column MarketData schema. This provides:
+    60-column MarketData schema. This provides:
     - Better query performance via indexed columns
-    - Tier-aware data access (FREE: 16 columns, PRO: all 57 columns)
-    - Support for 8 advanced indicator groups
+    - Tier-aware data access (FREE: 24 columns, PRO: all 60 columns)
+    - Support for 10 advanced indicator groups
 
     ## Components Structure
 
@@ -218,14 +218,14 @@ paths:
         - Dashboard Pages
       summary: Individual chart page
       description: |
-        Displays trading chart for specific symbol and timeframe with 57-column MarketData.
+        Displays trading chart for specific symbol and timeframe with 60-column MarketData.
 
         **Backend Operations:**
         - Authenticates user session
         - Validates tier access to symbol and timeframe
         - Queries MarketData with tier-appropriate column selection
         - FREE users: 24 columns (8 system + 16 FREE indicators)
-        - PRO users: 57 columns (all indicators)
+        - PRO users: 60 columns (all indicators)
       security:
         - SessionAuth: []
       parameters:
@@ -636,22 +636,22 @@ components:
           description: User ID for filtering watchlist
 
     # ==========================================
-    # MarketData Schema (57 Columns)
+    # MarketData Schema (60 Columns)
     # ==========================================
 
     MarketData:
       type: object
       description: |
-        Market candle data with 57 columns optimized for tier-aware access.
+        Market candle data with 60 columns optimized for tier-aware access.
 
         **Schema Structure:**
         - System columns (8): timestamp, OHLCV, timeframe, collected_at
         - FREE tier indicators (16): Fractal diagonal and horizontal lines
-        - PRO tier indicators (33): Advanced indicators (8 groups)
+        - PRO tier indicators (36): Advanced indicators (10 groups)
 
         **Tier Access:**
         - FREE users: Columns 1-24 (8 system + 16 FREE indicators)
-        - PRO users: All 57 columns
+        - PRO users: All 60 columns
       required:
         - timestamp
         - symbol
@@ -782,15 +782,16 @@ components:
           description: Smoothed Moving Average (PRO only)
 
         # PRO Tier Group 4: Body Size Momentum (2 columns)
-        z_score_of_body_size:
+        body_size:
           type: number
           format: float
           nullable: true
           description: Z-score of candle body size (PRO only)
-        candle_classification:
-          type: string
+        body_direction:
+          type: number
+          format: float
           nullable: true
-          description: Candle classification based on body size (PRO only)
+          description: Candle body direction classification (PRO only)
 
         # PRO Tier Group 5: Heiken Ashi (7 columns)
         ha_open:
@@ -813,119 +814,145 @@ components:
           format: float
           nullable: true
           description: Heiken Ashi close (PRO only)
-        ha_classification:
-          type: string
-          nullable: true
-          description: Heiken Ashi candle classification (PRO only)
-        ha_body_size:
+        ha_color:
           type: number
           format: float
           nullable: true
-          description: Heiken Ashi body size (PRO only)
-        ha_body_zscore:
+          description: Heiken Ashi candle color (PRO only)
+        ha_trend:
           type: number
           format: float
           nullable: true
-          description: Heiken Ashi body Z-score (PRO only)
+          description: Heiken Ashi trend direction (PRO only)
+        ha_strength:
+          type: number
+          format: float
+          nullable: true
+          description: Heiken Ashi body strength Z-score (PRO only)
 
         # PRO Tier Group 6: Keltner Channels (10 columns)
-        kc_upper_4:
+        kc_upper:
           type: number
           format: float
           nullable: true
-          description: Keltner Channel upper band (4 ATR) (PRO only)
-        kc_upper_3:
-          type: number
-          format: float
-          nullable: true
-        kc_upper_2:
-          type: number
-          format: float
-          nullable: true
-        kc_upper_1:
-          type: number
-          format: float
-          nullable: true
+          description: Keltner Channel upper band (PRO only)
         kc_middle:
           type: number
           format: float
           nullable: true
           description: Keltner Channel middle line (PRO only)
-        kc_lower_1:
+        kc_lower:
           type: number
           format: float
           nullable: true
-        kc_lower_2:
+          description: Keltner Channel lower band (PRO only)
+        kc_upper_ema:
           type: number
           format: float
           nullable: true
-        kc_lower_3:
+          description: Keltner Channel upper EMA band (PRO only)
+        kc_middle_ema:
           type: number
           format: float
           nullable: true
-        kc_lower_4:
+          description: Keltner Channel middle EMA (PRO only)
+        kc_lower_ema:
           type: number
           format: float
           nullable: true
-          description: Keltner Channel lower band (4 ATR) (PRO only)
+          description: Keltner Channel lower EMA band (PRO only)
+        kc_squeeze:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel squeeze signal (PRO only)
+        kc_squeeze_pro:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel pro squeeze signal (PRO only)
         kc_width:
           type: number
           format: float
           nullable: true
           description: Keltner Channel width (PRO only)
+        kc_width_ema:
+          type: number
+          format: float
+          nullable: true
+          description: Keltner Channel width EMA (PRO only)
 
         # PRO Tier Group 7: Support/Resistance (8 columns)
-        sr_support_1:
+        sr_1:
           type: number
           format: float
           nullable: true
-          description: First support level (PRO only)
-        sr_support_2:
+          description: Support/Resistance level 1 (PRO only)
+        sr_2:
           type: number
           format: float
           nullable: true
-        sr_support_3:
+        sr_3:
           type: number
           format: float
           nullable: true
-        sr_support_4:
+        sr_4:
           type: number
           format: float
           nullable: true
-        sr_resistance_1:
+        sr_5:
           type: number
           format: float
           nullable: true
-          description: First resistance level (PRO only)
-        sr_resistance_2:
+          description: Support/Resistance level 5 (PRO only)
+        sr_6:
           type: number
           format: float
           nullable: true
-        sr_resistance_3:
+        sr_7:
           type: number
           format: float
           nullable: true
-        sr_resistance_4:
+        sr_8:
           type: number
           format: float
           nullable: true
 
         # PRO Tier Group 8: ZigZag (3 columns)
-        zigzag_peak:
+        zigzag_high:
           type: number
           format: float
           nullable: true
-          description: ZigZag peak value (PRO only)
-        zigzag_bottom:
+          description: ZigZag swing high value (PRO only)
+        zigzag_low:
           type: number
           format: float
           nullable: true
-          description: ZigZag bottom value (PRO only)
-        ema_26:
+          description: ZigZag swing low value (PRO only)
+        zigzag_trend:
           type: number
           format: float
           nullable: true
-          description: 26-period EMA (PRO only)
+          description: ZigZag EMA trend direction (PRO only)
+
+        # PRO Tier Group 9: Dual TEMA High/Low (2 columns)
+        dual_tema_high:
+          type: number
+          format: float
+          nullable: true
+          description: Dual TEMA applied to highs (PRO only)
+        dual_tema_low:
+          type: number
+          format: float
+          nullable: true
+          description: Dual TEMA applied to lows (PRO only)
+
+        # PRO Tier Group 10: Pinbar Detection (1 column)
+        pinbar:
+          type: number
+          format: float
+          nullable: true
+          description: Pinbar reversal pattern detection (PRO only)
 
     # ==========================================
     # User & Session Models
