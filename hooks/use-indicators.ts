@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Tier } from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 60-COLUMN SCHEMA DATA STRUCTURES
+// 61-COLUMN SCHEMA DATA STRUCTURES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
@@ -56,6 +56,7 @@ interface MovingAveragesData {
   hrma: number | null;
   smma: number | null;
 }
+
 
 /**
  * PRO tier: Body Momentum data (2 columns)
@@ -114,7 +115,8 @@ interface SupportResistanceData {
 interface ZigZagData {
   zigzag_high: number | null;
   zigzag_low: number | null;
-  zigzag_trend: number | null;
+  /** Exponential Moving Average (renamed from ema_26 in v3.0) */
+  ema: number | null;
 }
 
 /**
@@ -133,7 +135,7 @@ interface PinbarData {
 }
 
 /**
- * Single market data row from 60-column schema
+ * Single market data row from 61-column schema
  */
 export interface MarketDataRow extends CandleData {
   // FREE tier indicators (16 columns)
@@ -151,7 +153,7 @@ export interface MarketDataRow extends CandleData {
 }
 
 /**
- * Indicator data structure from API (60-column schema)
+ * Indicator data structure from API (61-column schema)
  * Replaces old nested JSON structure with flat column data
  */
 export interface IndicatorData {
@@ -204,11 +206,11 @@ interface UseIndicatorsResult {
 /**
  * useIndicators Hook
  *
- * React hook for fetching indicator data from the 60-column schema API.
+ * React hook for fetching indicator data from the 61-column schema API.
  * Handles loading, error, and success states with automatic refetch.
  *
- * 60-Column Schema Structure:
- * - System columns (8): timestamp, open, high, low, close, volume, timeframe, collected_at
+ * 61-Column Schema Structure:
+ * - System columns (9): timestamp, symbol, open, high, low, close, volume, timeframe, collected_at
  * - FREE tier indicators (16 columns): fractal_diagonal (8) + fractal_horizontal (8)
  * - PRO tier indicators (36 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
  *

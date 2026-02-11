@@ -10,7 +10,7 @@ import type { Symbol, Timeframe } from './tier';
 // 3. Optional fields use ?: syntax
 
 /**
- * Indicator types for the 60-column schema
+ * Indicator types for the 61-column schema
  * FREE tier: fractal_diagonal, fractal_horizontal
  * PRO tier: moving_averages, body_momentum, heiken_ashi, keltner_channels, support_resistance, zigzag, dual_tema_hl, pinbar_detection
  */
@@ -262,14 +262,17 @@ export function isValidChartDataPoint(point: {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// NEW 60-COLUMN DATABASE SCHEMA TYPES
+// NEW 61-COLUMN DATABASE SCHEMA TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * System columns - accessible by FREE + PRO
+ * System columns (9) - accessible by FREE + PRO
+ * Includes symbol column added in v3.0 (EA v2.27+)
  */
 export interface SystemColumns {
   timestamp: number;
+  /** Trading symbol (e.g., 'xauusd', 'eurusd'). Added in v3.0. */
+  symbol: string;
   open: number;
   high: number;
   low: number;
@@ -375,7 +378,8 @@ export interface SupportResistanceData {
 export interface ZigZagColumns {
   zigzag_high: number | null;
   zigzag_low: number | null;
-  zigzag_trend: number | null;
+  /** Exponential Moving Average (renamed from ema_26 in v3.0) */
+  ema: number | null;
 }
 
 /**
@@ -394,7 +398,7 @@ export interface PinbarColumns {
 }
 
 /**
- * Complete market data (all 60 columns) - PRO tier
+ * Complete market data (all 61 columns) - PRO tier
  */
 export interface CompleteMarketData
   extends SystemColumns,
@@ -410,8 +414,8 @@ export interface CompleteMarketData
     PinbarColumns {}
 
 /**
- * FREE tier market data (24 columns)
- * 8 system columns + 16 FREE indicator columns
+ * FREE tier market data (25 columns)
+ * 9 system columns + 16 FREE indicator columns
  */
 export interface FreeMarketData
   extends SystemColumns,

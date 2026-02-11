@@ -10,8 +10,8 @@ const prisma = new PrismaClient();
  * Uses environment variables for configuration
  * Follows security best practices with bcrypt hashing
  *
- * Schema: 60-column MarketData flat schema (v2.0 — EA v2.26+)
- * MarketData columns: 8 system + 16 FREE + 36 PRO = 60 total
+ * Schema: 61-column MarketData flat schema (v3.0 — EA v2.27+)
+ * MarketData columns: 9 system + 16 FREE + 36 PRO = 61 total
  */
 
 async function main() {

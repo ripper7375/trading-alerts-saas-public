@@ -844,7 +844,7 @@ declare module '@prisma/client' {
   export interface MarketData {
     id: string;
     symbol: string;
-    // System columns (8)
+    // System columns (9) - includes symbol above
     timestamp: number;
     open: number;
     high: number;
@@ -906,10 +906,10 @@ declare module '@prisma/client' {
     sr_6: number | null;
     sr_7: number | null;
     sr_8: number | null;
-    // PRO tier: zigzag (3 columns)
+    // PRO tier: zigzag (3 columns) — ema renamed from ema_26 in v3.0
     zigzag_high: number | null;
     zigzag_low: number | null;
-    zigzag_trend: number | null;
+    ema: number | null;
     // PRO tier: dual_tema_hl (2 columns)
     dual_tema_high: number | null;
     dual_tema_low: number | null;
