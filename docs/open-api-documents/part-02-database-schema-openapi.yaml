@@ -19,7 +19,7 @@ info:
     1. **User Management**: Authentication, authorization, tier management
     2. **Subscription System**: Stripe and dLocal payment integration
     3. **Affiliate Marketing**: Complete affiliate tracking and commission system
-    4. **Market Data**: 60-column schema for FREE and PRO tier indicators (v2.0 — EA v2.26+)
+    4. **Market Data**: 61-column schema for FREE and PRO tier indicators (v3.0 — EA v2.26+)
     5. **Security**: 2FA, fraud detection, session tracking
     6. **Notifications**: Alert and notification management
     7. **Disbursement**: RiseWorks integration for affiliate payouts
@@ -50,7 +50,7 @@ tags:
   - name: Affiliate Models
     description: Affiliate marketing system models
   - name: Market Data Models
-    description: Market data and indicators (60-column schema)
+    description: Market data and indicators (61-column schema)
   - name: Security Models
     description: Security, fraud detection, and audit models
   - name: Notification Models
@@ -1034,7 +1034,7 @@ components:
         - providerPaymentId (unique)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # MARKET DATA MODEL (60-COLUMN SCHEMA — v2.0 / EA v2.26+)
+    # MARKET DATA MODEL (61-COLUMN SCHEMA — v3.0 / EA v2.26+)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     MarketData:
@@ -1057,7 +1057,7 @@ components:
           type: string
           description: Trading symbol (BTCUSD, EURUSD, etc.)
 
-        # System columns (8) - Always accessible to all tiers
+        # System columns (9) - Always accessible to all tiers (includes symbol above)
         timestamp:
           type: integer
           description: Unix timestamp (seconds)
@@ -1333,7 +1333,7 @@ components:
           nullable: true
           description: Support/Resistance level 8 (weakest)
 
-        # PRO tier indicators - Group 8: ZigZag (3 columns)
+        # PRO tier indicators - Group 8: ZigZag + EMA (3 columns)
         zigzag_high:
           type: number
           format: float
@@ -1344,11 +1344,11 @@ components:
           format: float
           nullable: true
           description: ZigZag swing low
-        zigzag_trend:
+        ema:
           type: number
           format: float
           nullable: true
-          description: "1 = uptrend, -1 = downtrend"
+          description: Exponential Moving Average (renamed from ema_26 in v3.0)
 
         # PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW v2.0 / EA v2.26
         dual_tema_high:
@@ -1383,18 +1383,18 @@ components:
           format: date-time
 
       description: |
-        Market data with 60-column flat schema (v2.0 — EA v2.26+).
+        Market data with 61-column flat schema (v3.0 — EA v2.26+).
 
         **Structure:**
-        - 8 system columns (OHLCV + metadata)
+        - 9 system columns (OHLCV + symbol + metadata)
         - 16 FREE tier indicator columns (2 groups)
-        - 36 PRO tier indicator columns (10 groups total, 8 unchanged + 2 new)
+        - 36 PRO tier indicator columns (10 groups total)
 
-        **Total:** 60 columns
+        **Total:** 61 columns
 
         **Tier Access:**
-        - FREE tier: 24 columns (8 system + 16 FREE indicators) — unchanged
-        - PRO tier: 60 columns (8 system + 16 FREE + 36 PRO indicators) — was 57
+        - FREE tier: 25 columns (9 system + 16 FREE indicators)
+        - PRO tier: 61 columns (9 system + 16 FREE + 36 PRO indicators)
 
         **PRO Indicator Groups:**
         1. fractal_diagonal (8 cols — FREE)

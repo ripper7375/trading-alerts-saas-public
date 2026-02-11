@@ -92,12 +92,12 @@ info:
         - Returns: session, tier, userId, userEmail, isAuthenticated, logout
         - Additional hooks: useRequireAuth (redirect if not authenticated), useRequireTier (tier validation)
 
-    ## Database Schema: 60-Column Flat Schema
+    ## Database Schema: 61-Column Flat Schema
 
-    The system uses a NEW 60-column flat database schema (replacing the old 14-column JSON structure):
+    The system uses a NEW 61-column flat database schema (replacing the old 14-column JSON structure):
 
-    ### System Columns (8 - accessible to all tiers):
-    - `timestamp`, `open`, `high`, `low`, `close`, `volume`, `timeframe`, `collected_at`
+    ### System Columns (9 - accessible to all tiers):
+    - `symbol`, `timestamp`, `open`, `high`, `low`, `close`, `volume`, `timeframe`, `collected_at`
 
     ### FREE Tier Indicators (16 columns - 2 groups):
     1. **Fractal Diagonal Lines (8 columns):**
@@ -145,7 +145,7 @@ info:
        - Data Pattern: sparse (10-30% of bars)
 
     8. **ZigZag + EMA (3 columns):**
-       - `zigzag_high`, `zigzag_low`, `zigzag_trend`
+       - `zigzag_high`, `zigzag_low`, `ema`
        - Colors: peaks (#f23645), bottoms (#00c853), EMA (#ffa726)
        - Data Pattern: peaks/bottoms sparse (2-5%), EMA continuous
 
@@ -160,8 +160,8 @@ info:
         - Data Pattern: sparse (only bars with pinbar patterns)
 
     **Total Columns:**
-    - FREE Tier: 8 system + 16 indicator = **24 columns**
-    - PRO Tier: 8 system + 52 indicator = **60 columns**
+    - FREE Tier: 9 system + 16 indicator = **25 columns**
+    - PRO Tier: 9 system + 52 indicator = **61 columns**
 
     ## Indicator Groups (lib/tier/constants.ts):
 
@@ -187,7 +187,7 @@ info:
     - **Chart Combinations:** 15 (5 × 3)
     - **Refresh Rate:** 60 seconds
     - **Indicators:** 2 groups (fractal_diagonal, fractal_horizontal)
-    - **Database Access:** 24 columns
+    - **Database Access:** 25 columns
 
     ### PRO Tier:
     - **Symbols:** 15 (adds AUDJPY, AUDUSD, ETHUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, USDCAD, USDCHF, XAGUSD)
@@ -195,7 +195,7 @@ info:
     - **Chart Combinations:** 135 (15 × 9)
     - **Refresh Rate:** 30 seconds
     - **Indicators:** 10 groups (all FREE + 8 PRO groups)
-    - **Database Access:** 60 columns
+    - **Database Access:** 61 columns
 
     ## Data Flow:
     1. User navigates to `/charts` or `/charts/{symbol}/{timeframe}`
@@ -232,7 +232,7 @@ info:
        - Component-level: Disabled states and lock icons
        - API-level: Backend validates tier before returning data
 
-    4. The system uses the NEW 60-column flat schema (introduced in recent migration):
+    4. The system uses the NEW 61-column flat schema (introduced in recent migration):
        - Replaces old 14-column JSON structure
        - All indicator data stored as individual columns (no JSON parsing)
        - Better query performance with column-specific indexes
@@ -293,7 +293,7 @@ components:
             - 'hooks/use-auth.ts'
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # INDICATOR TYPES (NEW 60-COLUMN SCHEMA)
+    # INDICATOR TYPES (NEW 61-COLUMN SCHEMA)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     IndicatorId:
@@ -372,19 +372,24 @@ components:
           description: Data density pattern (sparse = 5-30% of bars, continuous = every bar)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # DATABASE SCHEMA TYPES (60-COLUMN FLAT SCHEMA)
+    # DATABASE SCHEMA TYPES (61-COLUMN FLAT SCHEMA)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     SystemColumns:
       type: object
-      description: System columns - accessible by FREE + PRO (8 columns)
+      description: System columns - accessible by FREE + PRO (9 columns)
       required:
+        - symbol
         - timestamp
         - open
         - high
         - low
         - close
       properties:
+        symbol:
+          type: string
+          description: Trading symbol (BTCUSD, EURUSD, etc.)
+          example: XAUUSD
         timestamp:
           type: integer
           description: Unix timestamp in seconds
@@ -610,10 +615,10 @@ components:
           type: number
           nullable: true
           description: Swing low price level (sparse data)
-        zigzag_trend:
+        ema:
           type: number
           nullable: true
-          description: ZigZag EMA trend direction (continuous data)
+          description: Exponential Moving Average (renamed from ema_26 in v3.0, continuous data)
 
     DualTemaHLData:
       type: object
@@ -657,7 +662,7 @@ components:
         - $ref: '#/components/schemas/ZigZagColumns'
         - $ref: '#/components/schemas/DualTemaHLData'
         - $ref: '#/components/schemas/PinbarData'
-      description: PRO tier market data (60 columns total)
+      description: PRO tier market data (61 columns total)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # TIER CONFIGURATION
@@ -698,7 +703,7 @@ components:
         databaseColumns:
           type: integer
           description: Total accessible database columns
-          example: 24
+          example: 25
 
     FreeTierConfig:
       allOf:
@@ -716,7 +721,7 @@ components:
             indicators:
               example: ['fractal_diagonal', 'fractal_horizontal']
             databaseColumns:
-              example: 24
+              example: 25
 
     ProTierConfig:
       allOf:
@@ -763,7 +768,7 @@ components:
                   'pinbar_detection',
                 ]
             databaseColumns:
-              example: 60
+              example: 61
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # COLOR CONSTANTS

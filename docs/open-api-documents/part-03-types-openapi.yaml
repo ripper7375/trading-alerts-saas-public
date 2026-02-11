@@ -31,7 +31,7 @@ info:
     4. **Indicator Types** (`types/indicator.ts`)
        - Candlestick data structures
        - PRO indicator types (Keltner, ZigZag, Momentum, etc.)
-       - 60-column database schema types
+       - 61-column database schema types
        - Chart data structures
 
     5. **API Types** (`types/api.ts`)
@@ -70,7 +70,7 @@ info:
     - **FREE Tier**: 5 symbols × 3 timeframes (H1, H4, D1) = 15 combinations
     - **PRO Tier**: 15 symbols × 9 timeframes = 135 combinations
     - **7-Day Free Trial**: Available for PRO tier
-    - **60-Column Database**: 8 system + 16 FREE + 36 PRO indicator columns
+    - **61-Column Database**: 9 system + 16 FREE + 36 PRO indicator columns
 
   contact:
     name: Trading Alerts SaaS Development Team
@@ -974,11 +974,12 @@ components:
           $ref: '#/components/schemas/ZigZagData'
       description: Complete PRO indicators response
 
-    # 60-Column Database Schema Types
+    # 61-Column Database Schema Types
 
     SystemColumns:
       type: object
       required:
+        - symbol
         - timestamp
         - open
         - high
@@ -988,6 +989,9 @@ components:
         - timeframe
         - collected_at
       properties:
+        symbol:
+          type: string
+          description: Trading symbol (BTCUSD, EURUSD, etc.)
         timestamp:
           type: integer
           description: Unix timestamp
@@ -1179,9 +1183,10 @@ components:
             zigzag_low:
               type: number
               nullable: true
-            zigzag_trend:
+            ema:
               type: number
               nullable: true
+              description: Exponential Moving Average (renamed from ema_26 in v3.0)
             dual_tema_high:
               type: number
               nullable: true
@@ -1192,8 +1197,8 @@ components:
               type: number
               nullable: true
       description: |
-        PRO tier complete market data (60 columns):
-        - 8 system columns
+        PRO tier complete market data (61 columns):
+        - 9 system columns
         - 16 FREE tier indicator columns
         - 36 PRO tier indicator columns
 
@@ -1378,8 +1383,8 @@ components:
               example: 100
             columnCount:
               type: integer
-              description: Number of columns (24 for FREE, 60 for PRO)
-              example: 24
+              description: Number of columns (25 for FREE, 61 for PRO)
+              example: 25
 
     #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # PAYMENT TYPES (types/dlocal.ts)
