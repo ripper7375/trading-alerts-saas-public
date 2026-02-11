@@ -22,7 +22,7 @@ This directory contains hypothetical/mock market data for XAUUSD (Gold vs USD) t
 
 The data follows the schema defined in `SimpleDataCollector_v2_26_API_GATEWAY.mq5` and `prisma/schema.prisma`:
 
-### System Columns (8)
+### System Columns (7)
 1. `timestamp` - Unix timestamp (seconds)
 2. `open` - Opening price
 3. `high` - Highest price
@@ -30,51 +30,53 @@ The data follows the schema defined in `SimpleDataCollector_v2_26_API_GATEWAY.mq
 5. `close` - Closing price
 6. `volume` - Trading volume
 7. `timeframe` - Timeframe identifier (M5, M15, etc.)
-8. `collected_at` - Data collection timestamp
 
 ### Moving Averages (3)
-9. `tema` - Triple Exponential Moving Average
-10. `hrma` - Hull Moving Average
-11. `smma` - Smoothed Moving Average
+8. `tema` - Triple Exponential Moving Average
+9. `hrma` - Hull Moving Average
+10. `smma` - Smoothed Moving Average
 
 ### Body Size Analysis (2)
-12. `Z-Score of body size` - Statistical measure of candle body size
-13. `Candle classification` - Classification value (-2 to +2)
+11. `Z-Score of body size` - Statistical measure of candle body size
+12. `Candle classification` - Classification value (-2 to +2)
 
 ### Fractal Diagonal Lines (8)
-14-16. `diag_asc_line_1/2/3` - Ascending diagonal support/resistance
-17-19. `diag_desc_line_1/2/3` - Descending diagonal support/resistance
-20-21. `diag_high_map`, `diag_low_map` - Diagonal extremes
+13-15. `diag_asc_line_1/2/3` - Ascending diagonal support/resistance
+16-18. `diag_desc_line_1/2/3` - Descending diagonal support/resistance
+19-20. `diag_high_map`, `diag_low_map` - Diagonal fractal maps (**0.0 when no fractal, non-zero when fractal detected**)
 
 ### Fractal Horizontal Lines (8)
-22-24. `horiz_peak_line_1/2/3` - Horizontal resistance peaks
-25-27. `horiz_bottom_line_1/2/3` - Horizontal support bottoms
-28-29. `horiz_high_map`, `horiz_low_map` - Horizontal extremes
+21-23. `horiz_peak_line_1/2/3` - Horizontal resistance peaks
+24-26. `horiz_bottom_line_1/2/3` - Horizontal support bottoms
+27-28. `horiz_high_map`, `horiz_low_map` - Horizontal fractal maps (**0.0 when no fractal, non-zero when fractal detected**)
 
 ### Heiken Ashi (7)
-30-33. `ha_open`, `ha_high`, `ha_low`, `ha_close` - Heiken Ashi OHLC
-34. `ha_classification` - Heiken Ashi direction
-35. `ha_body_size` - Heiken Ashi body size
-36. `ha_body_zscore` - Z-score of HA body size
+29-32. `ha_open`, `ha_high`, `ha_low`, `ha_close` - Heiken Ashi OHLC
+33. `ha_classification` - Heiken Ashi direction
+34. `ha_body_size` - Heiken Ashi body size
+35. `ha_body_zscore` - Z-score of HA body size
 
 ### Keltner Channels (10)
-37-46. `kc_ultra_extreme_upper/lower`, `kc_extreme_upper/lower`, `kc_uppermost/lowermost`, `kc_upper/lower`, `kc_upper_middle/lower_middle` - Multi-level Keltner channels
+36-45. `kc_ultra_extreme_upper/lower`, `kc_extreme_upper/lower`, `kc_uppermost/lowermost`, `kc_upper/lower`, `kc_upper_middle/lower_middle` - Multi-level Keltner channels
 
 ### Support/Resistance (8)
-47-50. `sr_support_4/3/2/1` - Support levels (strongest to weakest)
-51-54. `sr_resistance_1/2/3/4` - Resistance levels (strongest to weakest)
+46-49. `sr_support_4/3/2/1` - Support levels (strongest to weakest)
+50-53. `sr_resistance_1/2/3/4` - Resistance levels (strongest to weakest)
 
 ### ZigZag Analysis (3)
-55. `zigzag_peak` - ZigZag peak points
-56. `zigzag_bottom` - ZigZag bottom points
-57. `ema_26` - 26-period EMA
+54. `zigzag_peak` - ZigZag peak points
+55. `zigzag_bottom` - ZigZag bottom points
+56. `ema_26` - 26-period EMA
 
 ### Dual TEMA High/Low (2) - NEW in v2.26
-58. `dual_tema_high` - TEMA of bar highs
-59. `dual_tema_low` - TEMA of bar lows
+57. `dual_tema_high` - TEMA of bar highs
+58. `dual_tema_low` - TEMA of bar lows
 
 ### Pinbar Detection (1) - NEW in v2.26
-60. `pinbar` - Pinbar detection flag (1 = detected, 0 = none)
+59. `pinbar` - Pinbar detection flag (1 = detected, 0 = none)
+
+### Collection Timestamp (1)
+60. `collected_at` - Data collection timestamp (Unix epoch)
 
 ## How to Import into Excel
 
@@ -91,6 +93,10 @@ The data follows the schema defined in `SimpleDataCollector_v2_26_API_GATEWAY.mq
 - **Price Range**: Realistic XAUUSD prices (~$2,640-$2,660 per ounce)
 - **Volatility**: Simulated realistic intraday volatility
 - **Indicators**: All 60 columns populated with plausible values
+- **Fractal Maps**:
+  - `diag_high_map`, `diag_low_map`: ~20% of bars have values (0.0 otherwise)
+  - `horiz_high_map`, `horiz_low_map`: ~25% of bars have values (0.0 otherwise)
+  - This matches real indicator behavior where fractals are only detected at specific bars
 - **Pinbar Detection**: ~10% of bars show pinbar patterns
 - **ZigZag**: ~30% of bars show peaks/bottoms
 
