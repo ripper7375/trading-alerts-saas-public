@@ -29,7 +29,7 @@ info:
     - **Max Watchlist Items:** 5
     - **Indicators:** 2 (fractal_diagonal, fractal_horizontal)
     - **Indicator Columns:** 16 columns
-    - **Total Columns:** 24 (8 system + 16 indicator)
+    - **Total Columns:** 25 (9 system + 16 indicator)
     - **API Rate Limit:** 60 requests/hour
     - **Price:** $0/month
 
@@ -42,16 +42,16 @@ info:
     - **Max Watchlist Items:** 50
     - **Indicators:** 10 (all FREE + 8 PRO-only)
     - **Indicator Columns:** 52 columns
-    - **Total Columns:** 60 (8 system + 52 indicator)
+    - **Total Columns:** 61 (9 system + 52 indicator)
     - **API Rate Limit:** 300 requests/hour
     - **Price:** $29/month
     - **Trial:** 7-day free trial with full PRO access
 
-    ## 60-Column Database Schema
+    ## 61-Column Database Schema
 
-    ### System Columns (8)
+    ### System Columns (9)
     Always accessible to both FREE and PRO tiers:
-    - timestamp, open, high, low, close, volume, timeframe, collected_at
+    - symbol, timestamp, open, high, low, close, volume, timeframe, collected_at
 
     ### FREE Tier Indicators (16 columns)
     - **fractal_diagonal** (8 columns): diag_asc_line_1-3, diag_desc_line_1-3, diag_high/low_map

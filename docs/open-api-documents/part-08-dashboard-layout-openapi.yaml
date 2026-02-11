@@ -20,14 +20,14 @@ info:
     - **Server-Side Authentication** - Protected routes with session management
     - **Interactive Widgets** - Alerts, watchlist, and stats cards
     - **Admin Dashboard** - System management and monitoring
-    - **60-Column MarketData Integration** - Optimized market data schema
+    - **61-Column MarketData Integration** - Optimized market data schema
 
     ## Database Schema Migration
 
     **Important:** The system recently migrated from a 14-column JSON structure to a flat
-    60-column MarketData schema. This provides:
+    61-column MarketData schema. This provides:
     - Better query performance via indexed columns
-    - Tier-aware data access (FREE: 24 columns, PRO: all 60 columns)
+    - Tier-aware data access (FREE: 25 columns, PRO: all 61 columns)
     - Support for 10 advanced indicator groups
 
     ## Components Structure
@@ -218,14 +218,14 @@ paths:
         - Dashboard Pages
       summary: Individual chart page
       description: |
-        Displays trading chart for specific symbol and timeframe with 60-column MarketData.
+        Displays trading chart for specific symbol and timeframe with 61-column MarketData.
 
         **Backend Operations:**
         - Authenticates user session
         - Validates tier access to symbol and timeframe
         - Queries MarketData with tier-appropriate column selection
-        - FREE users: 24 columns (8 system + 16 FREE indicators)
-        - PRO users: 60 columns (all indicators)
+        - FREE users: 25 columns (9 system + 16 FREE indicators)
+        - PRO users: 61 columns (all indicators)
       security:
         - SessionAuth: []
       parameters:
@@ -636,22 +636,22 @@ components:
           description: User ID for filtering watchlist
 
     # ==========================================
-    # MarketData Schema (60 Columns)
+    # MarketData Schema (61 Columns)
     # ==========================================
 
     MarketData:
       type: object
       description: |
-        Market candle data with 60 columns optimized for tier-aware access.
+        Market candle data with 61 columns optimized for tier-aware access.
 
         **Schema Structure:**
-        - System columns (8): timestamp, OHLCV, timeframe, collected_at
+        - System columns (9): symbol, timestamp, OHLCV, timeframe, collected_at
         - FREE tier indicators (16): Fractal diagonal and horizontal lines
         - PRO tier indicators (36): Advanced indicators (10 groups)
 
         **Tier Access:**
-        - FREE users: Columns 1-24 (8 system + 16 FREE indicators)
-        - PRO users: All 60 columns
+        - FREE users: Columns 1-25 (9 system + 16 FREE indicators)
+        - PRO users: All 61 columns
       required:
         - timestamp
         - symbol
@@ -662,14 +662,15 @@ components:
         - close
         - volume
       properties:
-        # System Columns (8)
+        # System Columns (9)
+        symbol:
+          type: string
+          example: BTCUSDT
+          description: Trading symbol (BTCUSDT, EURUSD, etc.)
         timestamp:
           type: string
           format: date-time
           description: Candle timestamp
-        symbol:
-          type: string
-          example: BTCUSDT
         timeframe:
           type: string
           enum: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
@@ -929,11 +930,11 @@ components:
           format: float
           nullable: true
           description: ZigZag swing low value (PRO only)
-        zigzag_trend:
+        ema:
           type: number
           format: float
           nullable: true
-          description: ZigZag EMA trend direction (PRO only)
+          description: Exponential Moving Average (renamed from ema_26 in v3.0, PRO only)
 
         # PRO Tier Group 9: Dual TEMA High/Low (2 columns)
         dual_tema_high:
