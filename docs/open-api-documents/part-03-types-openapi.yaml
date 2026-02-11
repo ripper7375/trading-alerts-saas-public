@@ -31,7 +31,7 @@ info:
     4. **Indicator Types** (`types/indicator.ts`)
        - Candlestick data structures
        - PRO indicator types (Keltner, ZigZag, Momentum, etc.)
-       - 57-column database schema types
+       - 60-column database schema types
        - Chart data structures
 
     5. **API Types** (`types/api.ts`)
@@ -70,7 +70,7 @@ info:
     - **FREE Tier**: 5 symbols × 3 timeframes (H1, H4, D1) = 15 combinations
     - **PRO Tier**: 15 symbols × 9 timeframes = 135 combinations
     - **7-Day Free Trial**: Available for PRO tier
-    - **57-Column Database**: 8 system + 16 FREE + 33 PRO indicator columns
+    - **60-Column Database**: 8 system + 16 FREE + 36 PRO indicator columns
 
   contact:
     name: Trading Alerts SaaS Development Team
@@ -974,7 +974,7 @@ components:
           $ref: '#/components/schemas/ZigZagData'
       description: Complete PRO indicators response
 
-    # 57-Column Database Schema Types
+    # 60-Column Database Schema Types
 
     SystemColumns:
       type: object
@@ -1082,7 +1082,7 @@ components:
         - $ref: '#/components/schemas/FreeMarketData'
         - type: object
           properties:
-            # PRO tier indicators (33 additional columns)
+            # PRO tier indicators (36 additional columns)
             tema:
               type: number
               nullable: true
@@ -1092,10 +1092,10 @@ components:
             smma:
               type: number
               nullable: true
-            z_score_of_body_size:
+            body_size:
               type: number
               nullable: true
-            candle_classification:
+            body_direction:
               type: number
               nullable: true
             ha_open:
@@ -1110,83 +1110,92 @@ components:
             ha_close:
               type: number
               nullable: true
-            ha_classification:
+            ha_color:
               type: number
               nullable: true
-            ha_body_size:
+            ha_trend:
               type: number
               nullable: true
-            ha_body_zscore:
-              type: number
-              nullable: true
-            kc_ultra_extreme_upper:
-              type: number
-              nullable: true
-            kc_extreme_upper:
-              type: number
-              nullable: true
-            kc_uppermost:
+            ha_strength:
               type: number
               nullable: true
             kc_upper:
               type: number
               nullable: true
-            kc_upper_middle:
-              type: number
-              nullable: true
-            kc_lower_middle:
+            kc_middle:
               type: number
               nullable: true
             kc_lower:
               type: number
               nullable: true
-            kc_lowermost:
+            kc_upper_ema:
               type: number
               nullable: true
-            kc_extreme_lower:
+            kc_middle_ema:
               type: number
               nullable: true
-            kc_ultra_extreme_lower:
+            kc_lower_ema:
               type: number
               nullable: true
-            sr_support_1:
+            kc_squeeze:
               type: number
               nullable: true
-            sr_support_2:
+            kc_squeeze_pro:
               type: number
               nullable: true
-            sr_support_3:
+            kc_width:
               type: number
               nullable: true
-            sr_support_4:
+            kc_width_ema:
               type: number
               nullable: true
-            sr_resistance_1:
+            sr_1:
               type: number
               nullable: true
-            sr_resistance_2:
+            sr_2:
               type: number
               nullable: true
-            sr_resistance_3:
+            sr_3:
               type: number
               nullable: true
-            sr_resistance_4:
+            sr_4:
               type: number
               nullable: true
-            zigzag_peak:
+            sr_5:
               type: number
               nullable: true
-            zigzag_bottom:
+            sr_6:
               type: number
               nullable: true
-            ema_26:
+            sr_7:
+              type: number
+              nullable: true
+            sr_8:
+              type: number
+              nullable: true
+            zigzag_high:
+              type: number
+              nullable: true
+            zigzag_low:
+              type: number
+              nullable: true
+            zigzag_trend:
+              type: number
+              nullable: true
+            dual_tema_high:
+              type: number
+              nullable: true
+            dual_tema_low:
+              type: number
+              nullable: true
+            pinbar:
               type: number
               nullable: true
       description: |
-        PRO tier complete market data (57 columns):
+        PRO tier complete market data (60 columns):
         - 8 system columns
         - 16 FREE tier indicator columns
-        - 33 PRO tier indicator columns
+        - 36 PRO tier indicator columns
 
     #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # API TYPES (types/api.ts)
@@ -1369,7 +1378,7 @@ components:
               example: 100
             columnCount:
               type: integer
-              description: Number of columns (24 for FREE, 57 for PRO)
+              description: Number of columns (24 for FREE, 60 for PRO)
               example: 24
 
     #━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

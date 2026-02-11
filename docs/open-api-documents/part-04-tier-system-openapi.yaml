@@ -14,7 +14,7 @@ info:
     with access control for:
     - Trading symbols (5 for FREE, 15 for PRO)
     - Chart timeframes (3 for FREE, 9 for PRO)
-    - Technical indicators (2 for FREE, 8 for PRO)
+    - Technical indicators (2 for FREE, 10 for PRO)
     - Alerts and watchlists
     - API rate limits
 
@@ -40,14 +40,14 @@ info:
     - **Max Alerts:** 20
     - **Max Watchlists:** 5
     - **Max Watchlist Items:** 50
-    - **Indicators:** 8 (all FREE + 6 PRO-only)
-    - **Indicator Columns:** 49 columns
-    - **Total Columns:** 57 (8 system + 49 indicator)
+    - **Indicators:** 10 (all FREE + 8 PRO-only)
+    - **Indicator Columns:** 52 columns
+    - **Total Columns:** 60 (8 system + 52 indicator)
     - **API Rate Limit:** 300 requests/hour
     - **Price:** $29/month
     - **Trial:** 7-day free trial with full PRO access
 
-    ## 57-Column Database Schema
+    ## 60-Column Database Schema
 
     ### System Columns (8)
     Always accessible to both FREE and PRO tiers:
@@ -57,13 +57,15 @@ info:
     - **fractal_diagonal** (8 columns): diag_asc_line_1-3, diag_desc_line_1-3, diag_high/low_map
     - **fractal_horizontal** (8 columns): horiz_peak_line_1-3, horiz_bottom_line_1-3, horiz_high/low_map
 
-    ### PRO-Only Indicators (33 columns)
+    ### PRO-Only Indicators (36 columns)
     - **moving_averages** (3 columns): tema, hrma, smma
-    - **body_momentum** (2 columns): z_score_of_body_size, candle_classification
-    - **heiken_ashi** (7 columns): ha_open, ha_high, ha_low, ha_close, ha_classification, ha_body_size, ha_body_zscore
-    - **keltner_channels** (10 columns): kc_ultra_extreme_upper → kc_ultra_extreme_lower
-    - **support_resistance** (8 columns): sr_support_1-4, sr_resistance_1-4
-    - **zigzag** (3 columns): zigzag_peak, zigzag_bottom, ema_26
+    - **body_momentum** (2 columns): body_size, body_direction
+    - **heiken_ashi** (7 columns): ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength
+    - **keltner_channels** (10 columns): kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema
+    - **support_resistance** (8 columns): sr_1, sr_2, sr_3, sr_4, sr_5, sr_6, sr_7, sr_8
+    - **zigzag** (3 columns): zigzag_high, zigzag_low, zigzag_trend
+    - **dual_tema_hl** (2 columns): dual_tema_high, dual_tema_low
+    - **pinbar_detection** (1 column): pinbar
 
     ## Implementation Files
 
@@ -433,13 +435,15 @@ components:
         # FREE tier indicators (2)
         - fractal_diagonal
         - fractal_horizontal
-        # PRO-only indicators (6)
+        # PRO-only indicators (8)
         - moving_averages
         - body_momentum
         - heiken_ashi
         - keltner_channels
         - support_resistance
         - zigzag
+        - dual_tema_hl
+        - pinbar_detection
       description: Technical indicator identifier
       example: fractal_diagonal
 
