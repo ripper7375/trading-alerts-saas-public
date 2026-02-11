@@ -835,12 +835,9 @@ describe('Prisma Client Singleton', () => {
       expect(typeof prismaModule.prisma.$on).toBe('function');
     });
 
-    it('should have $use method for middleware', () => {
-      expect(typeof prismaModule.prisma.$use).toBe('function');
-    });
   });
 
-  describe('Prisma 5.x Features', () => {
+  describe('Prisma 6.x Features', () => {
     beforeEach(async () => {
       prismaModule = await import('@/lib/db/prisma');
     });
