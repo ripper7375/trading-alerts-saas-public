@@ -165,7 +165,7 @@ describe('Tier Validation', () => {
   });
 
   // =============================================
-  // Indicator Access Tests (57-Column Schema)
+  // Indicator Access Tests (60-Column Schema)
   // =============================================
   describe('Indicator Access', () => {
     it('FREE tier can access 2 FREE tier indicators', () => {
@@ -173,16 +173,18 @@ describe('Tier Validation', () => {
       expect(canAccessIndicator('fractal_horizontal', 'FREE')).toBe(true);
     });
 
-    it('FREE tier cannot access 6 PRO-only indicators', () => {
+    it('FREE tier cannot access 8 PRO-only indicators', () => {
       expect(canAccessIndicator('moving_averages', 'FREE')).toBe(false);
       expect(canAccessIndicator('body_momentum', 'FREE')).toBe(false);
       expect(canAccessIndicator('heiken_ashi', 'FREE')).toBe(false);
       expect(canAccessIndicator('keltner_channels', 'FREE')).toBe(false);
       expect(canAccessIndicator('support_resistance', 'FREE')).toBe(false);
       expect(canAccessIndicator('zigzag', 'FREE')).toBe(false);
+      expect(canAccessIndicator('dual_tema_hl', 'FREE')).toBe(false);
+      expect(canAccessIndicator('pinbar_detection', 'FREE')).toBe(false);
     });
 
-    it('PRO tier can access all 8 indicators (2 FREE + 6 PRO)', () => {
+    it('PRO tier can access all 10 indicators (2 FREE + 8 PRO)', () => {
       const indicators = [
         'fractal_diagonal',
         'fractal_horizontal',
@@ -192,6 +194,8 @@ describe('Tier Validation', () => {
         'keltner_channels',
         'support_resistance',
         'zigzag',
+        'dual_tema_hl',
+        'pinbar_detection',
       ];
       indicators.forEach((ind) => {
         expect(canAccessIndicator(ind, 'PRO')).toBe(true);
@@ -217,6 +221,8 @@ describe('Tier Validation', () => {
         'keltner_channels',
         'support_resistance',
         'zigzag',
+        'dual_tema_hl',
+        'pinbar_detection',
       ]);
     });
 
@@ -228,6 +234,8 @@ describe('Tier Validation', () => {
         'keltner_channels',
         'support_resistance',
         'zigzag',
+        'dual_tema_hl',
+        'pinbar_detection',
       ]);
       expect(getLockedIndicators('PRO')).toEqual([]);
     });
@@ -473,7 +481,7 @@ describe('Tier Validation', () => {
         indicator: 'zigzag',
       });
       expect(result).toContain('zigzag');
-      expect(result).toContain('8 indicators');
+      expect(result).toContain('10 indicators');
     });
   });
 

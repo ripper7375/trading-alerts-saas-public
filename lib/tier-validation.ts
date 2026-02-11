@@ -19,9 +19,9 @@ export type { Tier };
 // =============================================
 
 /**
- * Comprehensive tier limits based on tier specifications and 57-column schema
+ * Comprehensive tier limits based on tier specifications and 60-column schema
  * FREE: 5 alerts, 1 watchlist/5 items, 60 req/hour, 2 FREE indicators (16 columns)
- * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all 8 indicators (49 columns)
+ * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all 10 indicators (52 columns)
  */
 export const TIER_LIMITS = {
   FREE: {
@@ -51,6 +51,8 @@ export const TIER_LIMITS = {
       'keltner_channels',
       'support_resistance',
       'zigzag',
+      'dual_tema_hl',
+      'pinbar_detection',
     ] as const,
   },
 } as const;
@@ -443,7 +445,7 @@ export function validateFullTierAccess(params: {
   }
 
   if (indicator && !canAccessIndicator(indicator, tier)) {
-    return `Your Free tier does not have access to ${indicator}. Upgrade to Pro for all 8 indicators.`;
+    return `Your Free tier does not have access to ${indicator}. Upgrade to Pro for all 10 indicators.`;
   }
 
   return null; // Access allowed

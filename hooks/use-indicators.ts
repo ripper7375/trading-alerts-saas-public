@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Tier } from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 57-COLUMN SCHEMA DATA STRUCTURES
+// 60-COLUMN SCHEMA DATA STRUCTURES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
@@ -61,8 +61,8 @@ interface MovingAveragesData {
  * PRO tier: Body Momentum data (2 columns)
  */
 interface BodyMomentumData {
-  z_score_of_body_size: number | null;
-  candle_classification: number | null;
+  body_size: number | null;
+  body_direction: number | null;
 }
 
 /**
@@ -73,68 +73,85 @@ interface HeikenAshiData {
   ha_high: number | null;
   ha_low: number | null;
   ha_close: number | null;
-  ha_classification: number | null;
-  ha_body_size: number | null;
-  ha_body_zscore: number | null;
+  ha_color: number | null;
+  ha_trend: number | null;
+  ha_strength: number | null;
 }
 
 /**
  * PRO tier: Keltner Channels data (10 columns)
  */
 interface KeltnerChannelsData {
-  kc_ultra_extreme_upper: number | null;
-  kc_extreme_upper: number | null;
-  kc_uppermost: number | null;
   kc_upper: number | null;
-  kc_upper_middle: number | null;
-  kc_lower_middle: number | null;
+  kc_middle: number | null;
   kc_lower: number | null;
-  kc_lowermost: number | null;
-  kc_extreme_lower: number | null;
-  kc_ultra_extreme_lower: number | null;
+  kc_upper_ema: number | null;
+  kc_middle_ema: number | null;
+  kc_lower_ema: number | null;
+  kc_squeeze: number | null;
+  kc_squeeze_pro: number | null;
+  kc_width: number | null;
+  kc_width_ema: number | null;
 }
 
 /**
  * PRO tier: Support & Resistance data (8 columns)
  */
 interface SupportResistanceData {
-  sr_support_1: number | null;
-  sr_support_2: number | null;
-  sr_support_3: number | null;
-  sr_support_4: number | null;
-  sr_resistance_1: number | null;
-  sr_resistance_2: number | null;
-  sr_resistance_3: number | null;
-  sr_resistance_4: number | null;
+  sr_1: number | null;
+  sr_2: number | null;
+  sr_3: number | null;
+  sr_4: number | null;
+  sr_5: number | null;
+  sr_6: number | null;
+  sr_7: number | null;
+  sr_8: number | null;
 }
 
 /**
  * PRO tier: ZigZag + EMA data (3 columns)
  */
 interface ZigZagData {
-  zigzag_peak: number | null;
-  zigzag_bottom: number | null;
-  ema_26: number | null;
+  zigzag_high: number | null;
+  zigzag_low: number | null;
+  zigzag_trend: number | null;
 }
 
 /**
- * Single market data row from 57-column schema
+ * PRO tier: Dual TEMA High/Low data (2 columns)
+ */
+interface DualTemaHighLowData {
+  dual_tema_high: number | null;
+  dual_tema_low: number | null;
+}
+
+/**
+ * PRO tier: Pinbar Detection data (1 column)
+ */
+interface PinbarData {
+  pinbar: number | null;
+}
+
+/**
+ * Single market data row from 60-column schema
  */
 export interface MarketDataRow extends CandleData {
   // FREE tier indicators (16 columns)
   fractal_diagonal?: FractalDiagonalData;
   fractal_horizontal?: FractalHorizontalData;
-  // PRO tier indicators (33 columns)
+  // PRO tier indicators (36 columns)
   moving_averages?: MovingAveragesData;
   body_momentum?: BodyMomentumData;
   heiken_ashi?: HeikenAshiData;
   keltner_channels?: KeltnerChannelsData;
   support_resistance?: SupportResistanceData;
   zigzag?: ZigZagData;
+  dual_tema_hl?: DualTemaHighLowData;
+  pinbar_detection?: PinbarData;
 }
 
 /**
- * Indicator data structure from API (57-column schema)
+ * Indicator data structure from API (60-column schema)
  * Replaces old nested JSON structure with flat column data
  */
 export interface IndicatorData {
@@ -187,13 +204,13 @@ interface UseIndicatorsResult {
 /**
  * useIndicators Hook
  *
- * React hook for fetching indicator data from the 57-column schema API.
+ * React hook for fetching indicator data from the 60-column schema API.
  * Handles loading, error, and success states with automatic refetch.
  *
- * 57-Column Schema Structure:
+ * 60-Column Schema Structure:
  * - System columns (8): timestamp, open, high, low, close, volume, timeframe, collected_at
  * - FREE tier indicators (16 columns): fractal_diagonal (8) + fractal_horizontal (8)
- * - PRO tier indicators (33 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3)
+ * - PRO tier indicators (36 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
  *
  * Features:
  * - Fetches OHLC data and tier-appropriate indicator columns
