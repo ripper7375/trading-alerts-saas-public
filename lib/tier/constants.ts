@@ -302,18 +302,19 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
 
 /**
  * Keltner Channel band colors
+ * Keys match KeltnerChannelData (MT5 format) used by chart visualization
  */
 export const KELTNER_COLORS = {
-  upper: '#2196f3',
-  middle: '#808080',
-  lower: '#f23645',
-  upperEma: '#64B5F6',
-  middleEma: '#BDBDBD',
-  lowerEma: '#EF9A9A',
-  squeeze: '#9C27B0',
-  squeezePro: '#AB47BC',
-  width: '#FF9800',
-  widthEma: '#FFB74D',
+  ultraExtremeUpper: '#9C27B0',
+  extremeUpper: '#AB47BC',
+  upperMost: '#BA68C8',
+  upper: '#CE93D8',
+  upperMiddle: '#FF5722',
+  lowerMiddle: '#FF7043',
+  lower: '#CE93D8',
+  lowerMost: '#BA68C8',
+  extremeLower: '#AB47BC',
+  ultraExtremeLower: '#9C27B0',
 } as const;
 
 /**
