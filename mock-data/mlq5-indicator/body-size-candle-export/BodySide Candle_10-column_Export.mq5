@@ -136,6 +136,9 @@ void CalculateBodySizeCandles(const datetime &time[],
       bodySizes[i] = MathAbs(close[i] - open[i]);
    }
 
+   // Minimum bars needed for meaningful calculation (at least 10)
+   int minBarsForCalc = 10;
+
    // Calculate z-scores and determine candle classifications
    for(int i = 0; i < bars_count; i++)
    {
@@ -144,26 +147,27 @@ void CalculateBodySizeCandles(const datetime &time[],
       bool isBullish = close[i] >= open[i];
       classifications[i] = isBullish ? 0 : 3;  // TYPE_UP_NORMAL or TYPE_DOWN_NORMAL
 
-      // Skip if not enough historical data for calculation
-      if(i < InpZScoreLength)
+      // Calculate available lookback (minimum of i or InpZScoreLength)
+      int lookback = MathMin(i, InpZScoreLength);
+
+      // Skip if not enough historical data for meaningful calculation
+      if(lookback < minBarsForCalc)
          continue;
 
-      // Z-Score calculation with base timeframe consideration
+      // Z-Score calculation - use all available bars in lookback window
       double sum = 0, sum2 = 0;
       int validBars = 0;
 
-      for(int j = 0; j < InpZScoreLength; j++)
+      for(int j = 0; j <= lookback; j++)
       {
-         // Only include bars that align with base timeframe
-         if((time[i-j] % (baseTimeframeMinutes * 60)) == 0)
-         {
-            sum += bodySizes[i-j];
-            sum2 += bodySizes[i-j] * bodySizes[i-j];
-            validBars++;
-         }
+         // Include all bars in the lookback window
+         // Note: Removed base timeframe alignment check for simplicity and accuracy
+         sum += bodySizes[i-j];
+         sum2 += bodySizes[i-j] * bodySizes[i-j];
+         validBars++;
       }
 
-      if(validBars > 0)
+      if(validBars > 1)  // Need at least 2 bars for variance calculation
       {
          double mean = sum / validBars;
          double variance = (sum2 - sum * mean) / (validBars - 1);
