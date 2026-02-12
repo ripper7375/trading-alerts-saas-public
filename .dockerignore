@@ -58,9 +58,47 @@ __tests__
 jest.config.*
 jest.setup.*
 
-# Seed code and examples
+# Seed code and examples (some dirs have spaces in names which break Nixpacks cache mounts)
 seed-code
 examples
+
+# Non-app directories not needed for Next.js build
+archive
+backend-stack-a
+backend-stack-b
+backend-stack-c
+frontend
+mt5-service
+k6-tests
+postman
+e2e
+errors
+reports
+coverage
+mock-data
+mql5-indicators
+mt5-installation
+monolith-to-microservice-architecture-uionly-stack-a-b-c
+monolith-to-modular-monolith-migration
+part-20-deployment-mt5-to-postgresql-pipeline-building
+affiliate-marketing-part-17
+frountend-ui-validation-and-fixing
+bundle-size-optimization
+enhancement-all-19-parts
+operation-manual-for-human
+prompt-with-testing-framework-to-claude-code
+shift-left-testing-principles
+sql-injection-identification-and-detection-and-fix
+testing-and-ui-development-framework
+testing-framework-development-before-deployment
+testing-framework-models
+ui-frontend-user-journey
+oauth
+dlocal
+riseworks
+sync
+Integration-4-py-validation-layers-to-workflow
+part-6-roll-back
 
 # CI/CD
 .github
