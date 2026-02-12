@@ -337,11 +337,11 @@ bool ForceDownloadSymbolHistory(string symbol, ENUM_TIMEFRAMES timeframe, int ba
 
    Print("Forcing download of ", bars_needed, " bars for ", symbol, " @ ", EnumToString(timeframe));
 
-   datetime end_time = TimeCurrent();
-   datetime start_time = end_time - PeriodSeconds(timeframe) * bars_needed;
+   // Create temporary array for time data
+   datetime time_array[];
 
-   // Request data download
-   int copied = CopyTime(symbol, timeframe, start_time, end_time, NULL);
+   // Request data download using position-based CopyTime
+   int copied = CopyTime(symbol, timeframe, 0, bars_needed, time_array);
 
    if(copied <= 0)
    {
