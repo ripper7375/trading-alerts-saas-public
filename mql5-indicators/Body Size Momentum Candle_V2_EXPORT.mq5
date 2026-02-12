@@ -84,18 +84,21 @@ int OnInit()
     SetIndexBuffer(5, BodySizeBuffer, INDICATOR_CALCULATIONS);
     SetIndexBuffer(6, ZScoreBuffer, INDICATOR_CALCULATIONS);
 
-    // Initialize buffers
-    ArrayInitialize(OpenBuffer, 0);
-    ArrayInitialize(HighBuffer, 0);
-    ArrayInitialize(LowBuffer, 0);
-    ArrayInitialize(CloseBuffer, 0);
-    ArrayInitialize(ColorBuffer, 0);
-    ArrayInitialize(BodySizeBuffer, 0);
-    ArrayInitialize(ZScoreBuffer, 0);
+    // Set all buffers as timeseries (index 0 = newest bar)
+    ArraySetAsSeries(OpenBuffer, true);
+    ArraySetAsSeries(HighBuffer, true);
+    ArraySetAsSeries(LowBuffer, true);
+    ArraySetAsSeries(CloseBuffer, true);
+    ArraySetAsSeries(ColorBuffer, true);
+    ArraySetAsSeries(BodySizeBuffer, true);
+    ArraySetAsSeries(ZScoreBuffer, true);
 
     // Set indicator properties
     IndicatorSetInteger(INDICATOR_DIGITS, _Digits);
     PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
+
+    // Set where drawing begins (skip first InpZScoreLength bars for accurate Z-Score)
+    PlotIndexSetInteger(0, PLOT_DRAW_BEGIN, InpZScoreLength);
 
     // Set candle thickness
     int candleWidth = (InpCandleWidth >= 1 && InpCandleWidth <= 5) ? InpCandleWidth : 3;
@@ -113,6 +116,9 @@ int OnInit()
     // Set indicator name
     string short_name = StringFormat("Body Size Momentum (%d)", InpZScoreLength);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
+
+    // Set plot label for data window
+    PlotIndexSetString(0, PLOT_LABEL, "BSM Open;BSM High;BSM Low;BSM Close");
 
     // Create export buttons
     CreateExportButton();
