@@ -281,6 +281,23 @@ void CreateBatchExportButton()
 }
 
 //+------------------------------------------------------------------+
+//| Get error description                                            |
+//+------------------------------------------------------------------+
+string ErrorDescription(int error_code)
+{
+   switch(error_code)
+   {
+      case 4401: return "Requested history not found";
+      case 4066: return "Requested history not found or timeout";
+      case 4014: return "System is busy";
+      case 4073: return "Cannot open file";
+      case 5040: return "Invalid symbol";
+      case 4002: return "Wrong parameter in the function";
+      default: return "Error code " + IntegerToString(error_code);
+   }
+}
+
+//+------------------------------------------------------------------+
 //| Get selected symbol                                              |
 //+------------------------------------------------------------------+
 string GetSelectedSymbol()
@@ -516,6 +533,14 @@ bool ExportPriceDataForSymbol(string requested_symbol, ENUM_TIMEFRAMES timeframe
    Print("Timeframe: ", EnumToString(timeframe));
    Print("Bars to export: ", InpBars);
 
+   // Resolve PERIOD_CURRENT to actual timeframe
+   ENUM_TIMEFRAMES working_timeframe = timeframe;
+   if(timeframe == PERIOD_CURRENT || timeframe == 0)
+   {
+      working_timeframe = Period();
+      Print("Resolved PERIOD_CURRENT to: ", EnumToString(working_timeframe));
+   }
+
    // Detect actual broker symbol name
    string working_symbol = DetectBrokerSymbol(requested_symbol);
 
@@ -527,27 +552,51 @@ bool ExportPriceDataForSymbol(string requested_symbol, ENUM_TIMEFRAMES timeframe
 
    Print("Working Symbol: ", working_symbol);
 
-   // Force download history if enabled
-   if(!ForceDownloadSymbolHistory(working_symbol, timeframe, InpBars))
+   // Ensure symbol is selected in Market Watch
+   if(!SymbolSelect(working_symbol, true))
    {
-      Print("WARNING: Failed to download history, continuing anyway...");
+      Print("WARNING: Failed to select symbol in Market Watch");
+   }
+
+   // Check if symbol data is available
+   int bars_available = Bars(working_symbol, working_timeframe);
+   Print("Bars available: ", bars_available);
+
+   if(bars_available <= 0)
+   {
+      Print("ERROR: No bars available for ", working_symbol, " @ ", EnumToString(working_timeframe));
+      Print("Please ensure the symbol has historical data loaded.");
+      Print("Try opening a chart with this symbol and timeframe first.");
+      return false;
+   }
+
+   // Force download history if enabled
+   if(!ForceDownloadSymbolHistory(working_symbol, working_timeframe, InpBars))
+   {
+      Print("WARNING: Failed to download additional history, continuing with available data...");
    }
 
    // Prepare arrays
    MqlRates rates[];
    ArraySetAsSeries(rates, true);
 
+   // Copy data - use minimum of requested and available
+   int bars_to_copy = MathMin(InpBars, bars_available);
+   Print("Attempting to copy ", bars_to_copy, " bars...");
+
    // Copy data
-   int bars_copied = CopyRates(working_symbol, timeframe, 0, InpBars, rates);
+   int bars_copied = CopyRates(working_symbol, working_timeframe, 0, bars_to_copy, rates);
 
    if(bars_copied <= 0)
    {
-      Print("ERROR: Failed to copy rates. Error: ", GetLastError());
+      int error_code = GetLastError();
+      Print("ERROR: Failed to copy rates. Error: ", error_code);
+      Print("Error description: ", ErrorDescription(error_code));
       return false;
    }
 
-   int bars_to_export = MathMin(bars_copied, InpBars);
-   Print("Exporting ", bars_to_export, " bars of ", working_symbol, " @ ", EnumToString(timeframe));
+   int bars_to_export = bars_copied;
+   Print("Successfully copied ", bars_to_export, " bars of ", working_symbol, " @ ", EnumToString(working_timeframe));
 
    // Extract data into separate arrays
    datetime time[];
@@ -569,16 +618,17 @@ bool ExportPriceDataForSymbol(string requested_symbol, ENUM_TIMEFRAMES timeframe
    }
 
    // Generate filenames
-   string txt_filename = GenerateFilename(InpBaseFileName, working_symbol, timeframe, "txt");
-   string json_filename = GenerateFilename(InpBaseFileName, working_symbol, timeframe, "json");
+   string txt_filename = GenerateFilename(InpBaseFileName, working_symbol, working_timeframe, "txt");
+   string json_filename = GenerateFilename(InpBaseFileName, working_symbol, working_timeframe, "json");
 
    // Export the data to both formats
-   bool txt_success = ExportToTxt(working_symbol, timeframe, txt_filename, time, open, high, low, close, bars_to_export);
+   bool txt_success = ExportToTxt(working_symbol, working_timeframe, txt_filename, time, open, high, low, close, bars_to_export);
    bool json_success = true;
 
    if(InpExportJSON)
-      json_success = ExportToJson(working_symbol, timeframe, json_filename, time, open, high, low, close, bars_to_export);
+      json_success = ExportToJson(working_symbol, working_timeframe, json_filename, time, open, high, low, close, bars_to_export);
 
+   Print("====== Export Complete ======");
    return txt_success && (InpExportJSON ? json_success : true);
 }
 
