@@ -275,7 +275,7 @@ void CreateExportButton()
   }
 
 //+------------------------------------------------------------------+
-//| Export Market Structure Analysis to all files                     |
+//| Export Market Structure Analysis - single TXT with 8 columns      |
 //+------------------------------------------------------------------+
 bool ExportMarketStructureData()
   {
@@ -290,67 +290,28 @@ bool ExportMarketStructureData()
 // Determine which symbol and timeframe to use for filenames
    if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
      {
-      // Use file data symbols and timeframes
       symbolName = g_FileSymbol;
       timeframeName = g_FileTimeframe;
-
       Print("Exporting using file data source - Symbol: ", symbolName, ", Timeframe: ", timeframeName);
-
-      if(ArraySize(xcollectedPoints) == 0)
-        {
-         Print("WARNING: No zigzag points collected from file to export");
-         return false;
-        }
      }
    else
      {
-      // Use current chart symbol and timeframe
       symbolName = Symbol();
       timeframeName = EnumToString(Period());
-
-      // Remove PERIOD_ prefix if present
       if(StringFind(timeframeName, "PERIOD_") == 0)
          timeframeName = StringSubstr(timeframeName, 7);
-
       Print("Exporting using live chart data - Symbol: ", symbolName, ", Timeframe: ", timeframeName);
      }
 
-// Create base filenames with explicit naming for each file type
-   string marketStructureJsonFile = "MarketStructureAnalysis_" + symbolName + "_" + timeframeName + ".json";
-   string marketStructureTxtFile = "MarketStructureAnalysis_" + symbolName + "_" + timeframeName + ".txt";
-   string bottomJsonFile = "Bottom_" + symbolName + "_" + timeframeName + ".json";
-   string peakJsonFile = "Peak_" + symbolName + "_" + timeframeName + ".json";
-   string bottomTxtFile = "Bottom_" + symbolName + "_" + timeframeName + ".txt";
-   string peakTxtFile = "Peak_" + symbolName + "_" + timeframeName + ".txt";
+// Create single TXT filename
+   string txtFile = "ZigZag_" + symbolName + "_" + timeframeName + ".txt";
+   Print("Exporting to: ", txtFile);
 
-// Log the filenames we're using
-   Print("Using these export filenames:");
-   Print(" - Market Structure JSON: ", marketStructureJsonFile);
-   Print(" - Market Structure TXT: ", marketStructureTxtFile);
-   Print(" - Bottom Points JSON: ", bottomJsonFile);
-   Print(" - Peak Points JSON: ", peakJsonFile);
-   Print(" - Bottom Points TXT: ", bottomTxtFile);
-   Print(" - Peak Points TXT: ", peakTxtFile);
+// Export single TXT file with 8 columns
+   bool success = ExportSingleTxtFile(txtFile);
 
-// Export to all formats using explicit filenames (no prefixes in function calls)
-   bool json_success = ExportMarketStructureToJSON(marketStructureJsonFile);
-   bool text_success = ExportMarketStructureToText(marketStructureTxtFile);
-   bool bottom_json_success = ExportBottomPointsToJSON(bottomJsonFile);
-   bool peak_json_success = ExportPeakPointsToJSON(peakJsonFile);
-   bool bottom_text_success = ExportBottomPointsToText(bottomTxtFile);
-   bool peak_text_success = ExportPeakPointsToText(peakTxtFile);
-
-// Summarize export results
-   Print("Export results:");
-   Print("- Market Structure to JSON: ", json_success ? "Success" : "Failed");
-   Print("- Market Structure to TEXT: ", text_success ? "Success" : "Failed");
-   Print("- Bottom Points to JSON: ", bottom_json_success ? "Success" : "Failed");
-   Print("- Bottom Points to TEXT: ", bottom_text_success ? "Success" : "Failed");
-   Print("- Peak Points to JSON: ", peak_json_success ? "Success" : "Failed");
-   Print("- Peak Points to TEXT: ", peak_text_success ? "Success" : "Failed");
-
-   return json_success && text_success && bottom_json_success &&
-          peak_json_success && bottom_text_success && peak_text_success;
+   Print("Export result: ", success ? "Success" : "Failed");
+   return success;
   }
 
 //+------------------------------------------------------------------+
@@ -472,39 +433,18 @@ bool ProcessSingleFile(string symbol, string timeframe)
   }
 
 //+------------------------------------------------------------------+
-//| Export all data with custom filename                              |
+//| Export all data with custom filename - single TXT                 |
 //+------------------------------------------------------------------+
 bool ExportDataWithCustomName(string baseName)
   {
-// Create filenames
-   string jsonFile = baseName + ".json";
-   string txtFile = baseName;  // No extension for txt files
+// Create single TXT filename
+   string txtFile = baseName + ".txt";
 
-// Export market structure data
-   bool msJson = ExportMarketStructureToJSON(jsonFile);
-   bool msTxt = ExportMarketStructureToText(txtFile);
+// Export single TXT file with 8 columns
+   bool success = ExportSingleTxtFile(txtFile);
 
-// Export bottom points
-   string bottomJson = "Bottom_" + baseName + ".json";
-   string bottomTxt = "Bottom_" + baseName;
-   bool btJson = ExportBottomPointsToJSON(bottomJson);
-   bool btTxt = ExportBottomPointsToText(bottomTxt);
-
-// Export peak points
-   string peakJson = "Peak_" + baseName + ".json";
-   string peakTxt = "Peak_" + baseName;
-   bool pkJson = ExportPeakPointsToJSON(peakJson);
-   bool pkTxt = ExportPeakPointsToText(peakTxt);
-
-   Print("Export results for ", baseName, ":");
-   Print("- Market Structure to JSON: ", msJson ? "Success" : "Failed");
-   Print("- Market Structure to TEXT: ", msTxt ? "Success" : "Failed");
-   Print("- Bottom Points to JSON: ", btJson ? "Success" : "Failed");
-   Print("- Bottom Points to TEXT: ", btTxt ? "Success" : "Failed");
-   Print("- Peak Points to JSON: ", pkJson ? "Success" : "Failed");
-   Print("- Peak Points to TEXT: ", pkTxt ? "Success" : "Failed");
-
-   return msJson && msTxt && btJson && btTxt && pkJson && pkTxt;
+   Print("Export result for ", baseName, ": ", success ? "Success" : "Failed");
+   return success;
   }
 
 //+------------------------------------------------------------------+
@@ -577,16 +517,18 @@ bool ProcessAllBatchFiles()
   }
 
 //+------------------------------------------------------------------+
-//| Export Market Structure Analysis to JSON                         |
+//| Export single TXT file with 8 columns                             |
+//| Columns: No, TimeStamp, Symbol, Close, Timeframe,               |
+//|          ZigZag_High, ZigZag_Low, EMA                            |
+//| Every bar is exported. ZigZag_High/ZigZag_Low = 0 when empty.   |
 //+------------------------------------------------------------------+
-bool ExportMarketStructureToJSON(string filename = "")
+bool ExportSingleTxtFile(string filename = "")
   {
-// Use the passed filename or default to input parameter
    if(filename == "")
-      filename = InpExportFileName;
+      filename = "ZigZag_Export.txt";
 
    string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Print("Attempting to export market structure analysis to: ", full_path);
+   Print("Attempting to export 8-column data to: ", full_path);
 
    int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
    if(file_handle == INVALID_HANDLE)
@@ -597,450 +539,89 @@ bool ExportMarketStructureToJSON(string filename = "")
 
    bool write_success = true;
 
-// Write JSON header
-   write_success &= FileWrite(file_handle, "{") > 0;
-   write_success &= FileWrite(file_handle, "    \"timestamp\": \"", TimeToString(TimeCurrent()), "\",") > 0;
-   write_success &= FileWrite(file_handle, "    \"symbol\": \"", Symbol(), "\",") > 0;
-   write_success &= FileWrite(file_handle, "    \"timeframe\": \"", EnumToString(Period()), "\",") > 0;
-   write_success &= FileWrite(file_handle, "    \"marketStructureAnalysis\": [") > 0;
+// Write header with 8 columns
+   write_success &= FileWrite(file_handle,
+                              "No\tTimeStamp\tSymbol\tClose\tTimeframe\tZigZag_High\tZigZag_Low\tEMA") > 0;
 
-// Write market structure data
-   int totalPoints = ArraySize(xcollectedPoints);
-   for(int i = 0; i < totalPoints - 2; i++)
+// Determine data source and export accordingly
+   if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
      {
-      if(i > 0)
-         FileWrite(file_handle, "        ,");
+      // === FILE DATA MODE ===
+      int fileSize = ArraySize(FileData);
+      int precision = g_FileDigitsPrecision;
+      string symbolName = g_FileSymbol;
+      string timeframeName = g_FileTimeframe;
 
-      double currentPrice = xcollectedPoints[i].price;
-      double prevPrice = xcollectedPoints[i+1].price;
-      double twoPrevPrice = xcollectedPoints[i+2].price;
+      for(int i = 0; i < fileSize; i++)
+        {
+         // Get zigzag values: use buffer value if non-zero, otherwise 0
+         double zigzagHigh = (FileZigzagPeakBuffer[i] != 0.0) ? FileZigzagPeakBuffer[i] : 0.0;
+         double zigzagLow  = (FileZigzagBottomBuffer[i] != 0.0) ? FileZigzagBottomBuffer[i] : 0.0;
 
-      double priceChange = currentPrice - prevPrice;
-      double percentChange = (priceChange / prevPrice) * 100;
-      int barCount = xcollectedPoints[i].bar - xcollectedPoints[i+1].bar;
-      int barsWithDir = xcollectedPoints[i].isPeak ? barCount : -barCount;
-      double pointsPerBar = barCount != 0 ? priceChange/barCount : 0;
+         // Get EMA value
+         double emaValue = (i < ArraySize(FileEMABuffer)) ? FileEMABuffer[i] : 0.0;
 
-      // Calculate market structure category
-      double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
-      double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
+         string line = StringFormat("%d\t%s\t%s\t%.*f\t%s\t%.*f\t%.*f\t%.*f",
+                                    i,
+                                    TimeToString(FileData[i].time, TIME_DATE|TIME_MINUTES),
+                                    symbolName,
+                                    precision, FileData[i].close,
+                                    timeframeName,
+                                    precision, zigzagHigh,
+                                    precision, zigzagLow,
+                                    precision, emaValue
+                                   );
 
-      string firstStatus;
-      if(currentPrice > upperThreshold)
-         firstStatus = "Higher";
-      else
-         if(currentPrice < lowerThreshold)
-            firstStatus = "Lower";
-         else
-            firstStatus = "Equal";
+         write_success &= FileWrite(file_handle, line) > 0;
+        }
 
-      string lastStatus = (currentPrice > prevPrice) ? "High" : "Low";
-
-      string category;
-      if(firstStatus == "Higher" && lastStatus == "High")
-         category = "HH";
-      else
-         if(firstStatus == "Lower" && lastStatus == "Low")
-            category = "LL";
-         else
-            if(firstStatus == "Higher" && lastStatus == "Low")
-               category = "HL";
-            else
-               if(firstStatus == "Lower" && lastStatus == "High")
-                  category = "LH";
-               else
-                  if(firstStatus == "Equal" && lastStatus == "High")
-                     category = "EQH";
-                  else
-                     if(firstStatus == "Equal" && lastStatus == "Low")
-                        category = "EQL";
-
-      write_success &= FileWrite(file_handle, "        {") > 0;
-      write_success &= FileWrite(file_handle, "            \"no\": ", i, ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(xcollectedPoints[i].timestamp, TIME_DATE|TIME_MINUTES), "\",") > 0;
-      write_success &= FileWrite(file_handle, "            \"barIndex\": ", xcollectedPoints[i].bar, ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"type\": \"", xcollectedPoints[i].isPeak ? "Peak" : "Bottom", "\",") > 0;
-      write_success &= FileWrite(file_handle, "            \"currentPoint\": ", DoubleToString(currentPrice, 5), ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"previousPoint\": ", DoubleToString(prevPrice, 5), ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"twoPreviousPoint\": ", DoubleToString(twoPrevPrice, 5), ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"priceChange\": ", DoubleToString(priceChange, 5), ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"percentChange\": ", DoubleToString(percentChange, 2), ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"bars\": ", barCount, ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"barsWithDir\": ", barsWithDir, ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"pointsPerBar\": ", DoubleToString(pointsPerBar, 5), ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"category\": \"", category, "\",") > 0;  // Added category field
-      write_success &= FileWrite(file_handle, "            \"xValue\": ", xcollectedPoints[i].xValue, ",") > 0;
-      write_success &= FileWrite(file_handle, "            \"trend\": \"", xcollectedPoints[i].trend, "\"") > 0;
-      write_success &= FileWrite(file_handle, "        }") > 0;
+      Print("Exported ", fileSize, " bars from file data");
      }
+   else
+     {
+      // === LIVE CHART DATA MODE ===
+      int totalBars = ArraySize(xZigzagPeakBuffer);
+      int precision = _Digits;
+      string symbolName = Symbol();
+      string timeframeName = EnumToString(Period());
+      if(StringFind(timeframeName, "PERIOD_") == 0)
+         timeframeName = StringSubstr(timeframeName, 7);
 
-// Close JSON structure
-   write_success &= FileWrite(file_handle, "    ]") > 0;
-   write_success &= FileWrite(file_handle, "}") > 0;
+      for(int i = 0; i < totalBars; i++)
+        {
+         // Get zigzag values: use buffer value if non-zero, otherwise 0
+         double zigzagHigh = (xZigzagPeakBuffer[i] != 0.0) ? xZigzagPeakBuffer[i] : 0.0;
+         double zigzagLow  = (xZigzagBottomBuffer[i] != 0.0) ? xZigzagBottomBuffer[i] : 0.0;
+
+         // Get Close price and bar time for live data
+         double closePrice = iClose(Symbol(), Period(), totalBars - 1 - i);
+         datetime barTime  = iTime(Symbol(), Period(), totalBars - 1 - i);
+
+         // Get EMA value
+         double emaValue = (i < ArraySize(EMA_Buffer)) ? EMA_Buffer[i] : 0.0;
+
+         string line = StringFormat("%d\t%s\t%s\t%.*f\t%s\t%.*f\t%.*f\t%.*f",
+                                    i,
+                                    TimeToString(barTime, TIME_DATE|TIME_MINUTES),
+                                    symbolName,
+                                    precision, closePrice,
+                                    timeframeName,
+                                    precision, zigzagHigh,
+                                    precision, zigzagLow,
+                                    precision, emaValue
+                                   );
+
+         write_success &= FileWrite(file_handle, line) > 0;
+        }
+
+      Print("Exported ", totalBars, " bars from live chart data");
+     }
 
    FileClose(file_handle);
 
    if(!write_success)
      {
       Print("ERROR: Failed to write some data to file");
-      return false;
-     }
-
-   Print("Successfully exported to: ", filename);
-   return true;
-  }
-
-//+------------------------------------------------------------------+
-//| Export Market Structure Analysis to TEXT file                      |
-//+------------------------------------------------------------------+
-bool ExportMarketStructureToText(string filename = "")
-  {
-// Use the passed filename or default to input parameter
-   if(filename == "")
-      filename = StringSubstr(InpExportFileName, 0, StringFind(InpExportFileName, ".")) + ".txt";
-
-   string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Print("Attempting to export market structure analysis to TEXT: ", full_path);
-
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
-   if(file_handle == INVALID_HANDLE)
-     {
-      Print("ERROR: Failed to open TEXT file for writing. Error code: ", GetLastError());
-      return false;
-     }
-
-   bool write_success = true;
-
-// FIXED: Headers already include X Value and Trend
-   write_success &= FileWrite(file_handle,
-                              "No\tTimeStamp\tBarIndex\tType\tCurrentPoint\tPreviousPoint\tTwoPreviousPoint\t" +
-                              "PriceChange\tPercentChange\tBars\tBarsWithDir\tPointsPerBar\tCategory\tX Value\tTrend") > 0;
-
-// Write market structure data
-   int totalPoints = ArraySize(xcollectedPoints);
-   for(int i = 0; i < totalPoints - 2; i++)
-     {
-      double currentPrice = xcollectedPoints[i].price;
-      double prevPrice = xcollectedPoints[i+1].price;
-      double twoPrevPrice = xcollectedPoints[i+2].price;
-
-      double priceChange = currentPrice - prevPrice;
-      double percentChange = (priceChange / prevPrice) * 100;
-      int barCount = xcollectedPoints[i].bar - xcollectedPoints[i+1].bar;
-      int barsWithDir = xcollectedPoints[i].isPeak ? barCount : -barCount;
-      double pointsPerBar = barCount != 0 ? priceChange/barCount : 0;
-
-      // Calculate market structure category as before
-      double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
-      double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
-
-      string firstStatus;
-      if(currentPrice > upperThreshold)
-         firstStatus = "Higher";
-      else
-         if(currentPrice < lowerThreshold)
-            firstStatus = "Lower";
-         else
-            firstStatus = "Equal";
-
-      string lastStatus = (currentPrice > prevPrice) ? "High" : "Low";
-
-      string category;
-      if(firstStatus == "Higher" && lastStatus == "High")
-         category = "HH";
-      else
-         if(firstStatus == "Lower" && lastStatus == "Low")
-            category = "LL";
-         else
-            if(firstStatus == "Higher" && lastStatus == "Low")
-               category = "HL";
-            else
-               if(firstStatus == "Lower" && lastStatus == "High")
-                  category = "LH";
-               else
-                  if(firstStatus == "Equal" && lastStatus == "High")
-                     category = "EQH";
-                  else
-                     if(firstStatus == "Equal" && lastStatus == "Low")
-                        category = "EQL";
-
-      // Use stored X value and trend
-      string line = StringFormat("%d\t%s\t%d\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.2f\t%d\t%d\t%.5f\t%s\t%d\t%s",
-                                 i,
-                                 TimeToString(xcollectedPoints[i].timestamp, TIME_DATE|TIME_MINUTES),
-                                 xcollectedPoints[i].bar,
-                                 xcollectedPoints[i].isPeak ? "Peak" : "Bottom",
-                                 currentPrice,
-                                 prevPrice,
-                                 twoPrevPrice,
-                                 priceChange,
-                                 percentChange,
-                                 barCount,
-                                 barsWithDir,
-                                 pointsPerBar,
-                                 category,
-                                 xcollectedPoints[i].xValue,
-                                 xcollectedPoints[i].trend
-                                );
-
-      write_success &= FileWrite(file_handle, line) > 0;
-     }
-
-   FileClose(file_handle);
-
-   if(!write_success)
-     {
-      Print("ERROR: Failed to write some data to TEXT file");
-      return false;
-     }
-
-   Print("Successfully exported to: ", filename);
-   return true;
-  }
-
-//+------------------------------------------------------------------+
-//| Export Bottom Points to JSON                                       |
-//+------------------------------------------------------------------+
-bool ExportBottomPointsToJSON(string filename = "")
-  {
-// Use the passed filename or default
-   if(filename == "")
-      filename = "Bottom_" + InpExportFileName;
-
-   string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Print("Attempting to export bottom points to: ", full_path);
-
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
-   if(file_handle == INVALID_HANDLE)
-     {
-      Print("ERROR: Failed to open bottom points file for writing. Error code: ", GetLastError());
-      return false;
-     }
-
-   bool write_success = true;
-
-// Write JSON header
-   write_success &= FileWrite(file_handle, "{") > 0;
-   write_success &= FileWrite(file_handle, "    \"bottomPoints\": [") > 0;
-
-// Write bottom points data
-   int totalPoints = ArraySize(xcollectedPoints);
-   bool first_point = true;
-
-   for(int i = 0; i < totalPoints; i++)
-     {
-      if(!xcollectedPoints[i].isPeak) // Only process bottom points
-        {
-         if(!first_point)
-            FileWrite(file_handle, "        ,");
-         first_point = false;
-
-         write_success &= FileWrite(file_handle, "        {") > 0;
-         write_success &= FileWrite(file_handle, "            \"no\": ", i, ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(xcollectedPoints[i].timestamp, TIME_DATE|TIME_MINUTES), "\",") > 0;
-         write_success &= FileWrite(file_handle, "            \"barIndex\": ", xcollectedPoints[i].bar, ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"type\": \"Bottom\",") > 0;
-         write_success &= FileWrite(file_handle, "            \"currentPoint\": ", DoubleToString(xcollectedPoints[i].price, 2), ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"xValue\": ", xcollectedPoints[i].xValue, ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"trend\": \"", xcollectedPoints[i].trend, "\"") > 0;
-         write_success &= FileWrite(file_handle, "        }") > 0;
-        }
-     }
-
-// Close JSON structure
-   write_success &= FileWrite(file_handle, "    ]") > 0;
-   write_success &= FileWrite(file_handle, "}") > 0;
-
-   FileClose(file_handle);
-
-   if(!write_success)
-     {
-      Print("ERROR: Failed to write some data to bottom points file");
-      return false;
-     }
-
-   Print("Successfully exported to: ", filename);
-   return true;
-  }
-
-//+------------------------------------------------------------------+
-//| Export Peak Points to JSON                                         |
-//+------------------------------------------------------------------+
-bool ExportPeakPointsToJSON(string filename = "")
-  {
-// Use the passed filename or default
-   if(filename == "")
-      filename = "Peak_" + InpExportFileName;
-
-   string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Print("Attempting to export peak points to: ", full_path);
-
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
-   if(file_handle == INVALID_HANDLE)
-     {
-      Print("ERROR: Failed to open peak points file for writing. Error code: ", GetLastError());
-      return false;
-     }
-
-   bool write_success = true;
-
-// Write JSON header
-   write_success &= FileWrite(file_handle, "{") > 0;
-   write_success &= FileWrite(file_handle, "    \"peakPoints\": [") > 0;
-
-// Write peak points data
-   int totalPoints = ArraySize(xcollectedPoints);
-   bool first_point = true;
-
-   for(int i = 0; i < totalPoints; i++)
-     {
-      if(xcollectedPoints[i].isPeak) // Only process peak points
-        {
-         if(!first_point)
-            FileWrite(file_handle, "        ,");
-         first_point = false;
-
-         write_success &= FileWrite(file_handle, "        {") > 0;
-         write_success &= FileWrite(file_handle, "            \"no\": ", i, ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(xcollectedPoints[i].timestamp, TIME_DATE|TIME_MINUTES), "\",") > 0;
-         write_success &= FileWrite(file_handle, "            \"barIndex\": ", xcollectedPoints[i].bar, ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"type\": \"Peak\",") > 0;
-         write_success &= FileWrite(file_handle, "            \"currentPoint\": ", DoubleToString(xcollectedPoints[i].price, 2), ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"xValue\": ", xcollectedPoints[i].xValue, ",") > 0;
-         write_success &= FileWrite(file_handle, "            \"trend\": \"", xcollectedPoints[i].trend, "\"") > 0;
-         write_success &= FileWrite(file_handle, "        }") > 0;
-        }
-     }
-
-// Close JSON structure
-   write_success &= FileWrite(file_handle, "    ]") > 0;
-   write_success &= FileWrite(file_handle, "}") > 0;
-
-   FileClose(file_handle);
-
-   if(!write_success)
-     {
-      Print("ERROR: Failed to write some data to peak points file");
-      return false;
-     }
-
-   Print("Successfully exported to: ", filename);
-   return true;
-  }
-
-//+------------------------------------------------------------------+
-//| Export Bottom Points to TEXT file                                  |
-//+------------------------------------------------------------------+
-bool ExportBottomPointsToText(string filename = "")
-  {
-// Use the passed filename or default
-   if(filename == "")
-      filename = "Bottom_" + StringSubstr(InpExportFileName, 0, StringFind(InpExportFileName, ".")) + ".txt";
-
-   string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Print("Attempting to export bottom points to TEXT: ", full_path);
-
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
-   if(file_handle == INVALID_HANDLE)
-     {
-      Print("ERROR: Failed to open bottom points TEXT file for writing. Error code: ", GetLastError());
-      return false;
-     }
-
-   bool write_success = true;
-
-// Write header
-   write_success &= FileWrite(file_handle,
-                              "No\tTimeStamp\tBarIndex\tType\tCurrentPoint\tX Value\tTrend") > 0;
-
-// Write bottom points data
-   int totalPoints = ArraySize(xcollectedPoints);
-   int pointCount = 0;
-
-   for(int i = 0; i < totalPoints; i++)
-     {
-      if(!xcollectedPoints[i].isPeak) // Only process bottom points
-        {
-         string line = StringFormat("%d\t%s\t%d\t%s\t%.2f\t%d\t%s",
-                                    pointCount,
-                                    TimeToString(xcollectedPoints[i].timestamp, TIME_DATE|TIME_MINUTES),
-                                    xcollectedPoints[i].bar,
-                                    "Bottom",
-                                    xcollectedPoints[i].price,
-                                    xcollectedPoints[i].xValue,
-                                    xcollectedPoints[i].trend
-                                   );
-
-         write_success &= FileWrite(file_handle, line) > 0;
-         pointCount++;
-        }
-     }
-
-   FileClose(file_handle);
-
-   if(!write_success)
-     {
-      Print("ERROR: Failed to write some data to bottom points TEXT file");
-      return false;
-     }
-
-   Print("Successfully exported to: ", filename);
-   return true;
-  }
-
-//+------------------------------------------------------------------+
-//| Export Peak Points to TEXT file                                    |
-//+------------------------------------------------------------------+
-bool ExportPeakPointsToText(string filename = "")
-  {
-// Use the passed filename or default
-   if(filename == "")
-      filename = "Peak_" + StringSubstr(InpExportFileName, 0, StringFind(InpExportFileName, ".")) + ".txt";
-
-   string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Print("Attempting to export peak points to TEXT: ", full_path);
-
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
-   if(file_handle == INVALID_HANDLE)
-     {
-      Print("ERROR: Failed to open peak points TEXT file for writing. Error code: ", GetLastError());
-      return false;
-     }
-
-   bool write_success = true;
-
-// Write header
-   write_success &= FileWrite(file_handle,
-                              "No\tTimeStamp\tBarIndex\tType\tCurrentPoint\tX Value\tTrend") > 0;
-
-// Write peak points data
-   int totalPoints = ArraySize(xcollectedPoints);
-   int pointCount = 0;
-
-   for(int i = 0; i < totalPoints; i++)
-     {
-      if(xcollectedPoints[i].isPeak) // Only process peak points
-        {
-         string line = StringFormat("%d\t%s\t%d\t%s\t%.2f\t%d\t%s",
-                                    pointCount,
-                                    TimeToString(xcollectedPoints[i].timestamp, TIME_DATE|TIME_MINUTES),
-                                    xcollectedPoints[i].bar,
-                                    "Peak",
-                                    xcollectedPoints[i].price,
-                                    xcollectedPoints[i].xValue,
-                                    xcollectedPoints[i].trend
-                                   );
-
-         write_success &= FileWrite(file_handle, line) > 0;
-         pointCount++;
-        }
-     }
-
-   FileClose(file_handle);
-
-   if(!write_success)
-     {
-      Print("ERROR: Failed to write some data to peak points TEXT file");
       return false;
      }
 
