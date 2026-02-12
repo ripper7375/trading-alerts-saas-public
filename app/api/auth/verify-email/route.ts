@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { InvalidTokenError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
+import { sendWelcomeEmail } from '@/lib/email/email';
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
@@ -24,6 +25,22 @@ export async function GET(request: Request): Promise<NextResponse> {
       throw new InvalidTokenError('Invalid or expired verification token');
     }
 
+    // SIMPLE FIX: Prevent Gmail auto-preview from triggering verification
+    // Token must be at least 5 seconds old before we allow verification
+    const tokenAge = Date.now() - user.updatedAt.getTime();
+    const MIN_DELAY_MS = 5000; // 5 seconds
+
+    if (tokenAge < MIN_DELAY_MS) {
+      const waitSeconds = Math.ceil((MIN_DELAY_MS - tokenAge) / 1000);
+      return NextResponse.json(
+        {
+          error: `Please wait ${waitSeconds} more seconds, then refresh this page.`,
+          retryAfter: waitSeconds,
+        },
+        { status: 429 }
+      );
+    }
+
     // Update user: set emailVerified and clear verificationToken
     await prisma.user.update({
       where: { id: user.id },
@@ -32,6 +49,31 @@ export async function GET(request: Request): Promise<NextResponse> {
         verificationToken: null,
       },
     });
+
+    // Send welcome email after successful verification
+    try {
+      const welcomeResult = await sendWelcomeEmail(
+        user.email,
+        user.name || 'User'
+      );
+
+      if (!welcomeResult.success) {
+        console.error(
+          '[Verify Email] Failed to send welcome email:',
+          welcomeResult.error
+        );
+      } else {
+        console.log(
+          '[Verify Email] Welcome email sent successfully to:',
+          user.email
+        );
+      }
+    } catch (emailError) {
+      console.error(
+        '[Verify Email] Exception while sending welcome email:',
+        emailError
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -45,7 +87,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       );
     }
 
-    console.error('Email verification failed:', error);
+    console.error('[Verify Email] Email verification failed:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
