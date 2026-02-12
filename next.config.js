@@ -33,6 +33,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.vercel.app', // Vercel preview deployments
       },
+      {
+        protocol: 'https',
+        hostname: '*.railway.app', // Railway deployments
+      },
     ],
     // Optimize images for faster loading
     formats: ['image/avif', 'image/webp'],
@@ -98,7 +102,8 @@ const nextConfig = {
           // Permissions Policy - Restrict browser features
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            value:
+              'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
           // XSS Protection for legacy browsers
           {
@@ -181,7 +186,11 @@ const nextConfig = {
     // Exclude test/E2E packages from bundle
     config.externals = config.externals || [];
     if (Array.isArray(config.externals)) {
-      config.externals.push('@playwright/test', 'playwright', 'playwright-core');
+      config.externals.push(
+        '@playwright/test',
+        'playwright',
+        'playwright-core'
+      );
     }
 
     return config;

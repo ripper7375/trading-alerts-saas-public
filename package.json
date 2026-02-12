@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "rm -rf .next tsconfig.tsbuildinfo node_modules/.prisma && prisma generate",
+    "prebuild": "(rm -rf .next tsconfig.tsbuildinfo node_modules/.prisma || true) && prisma generate",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
     "start": "next start",
