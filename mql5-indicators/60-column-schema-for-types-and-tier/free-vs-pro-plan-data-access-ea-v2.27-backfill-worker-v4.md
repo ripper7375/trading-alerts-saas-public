@@ -68,15 +68,13 @@
 | `Z-Score of body size`  | `DECIMAL(10,5)` | YES      | Statistical Z-score of candle body size | Buffer 6 | MA Length: 432       |
 | `Candle classification` | `INTEGER`       | YES      | Body size classification (-3 to +3)     | Buffer 4 | Thresholds: 1.5, 2.5 |
 
-**Classification Values:**
-
-- `-3`: Extreme bearish body
-- `-2`: Large bearish body
-- `-1`: Normal bearish body
-- `0`: Doji / Small body
-- `+1`: Normal bullish body
-- `+2`: Large bullish body
-- `+3`: Extreme bullish body
+Classification Values (0-5):
+TYPE_UP_NORMAL (0) - Bullish candle with normal body size (Z-Score < 1.5)
+TYPE_UP_LARGE (1) - Bullish candle with large body size (Z-Score ≥ 1.5 and < 2.5)
+TYPE_UP_EXTREME (2) - Bullish candle with extreme body size (Z-Score ≥ 2.5)
+TYPE_DOWN_NORMAL (3) - Bearish candle with normal body size (Z-Score < 1.5)
+TYPE_DOWN_LARGE (4) - Bearish candle with large body size (Z-Score ≥ 1.5 and < 2.5)
+TYPE_DOWN_EXTREME (5) - Bearish candle with extreme body size (Z-Score ≥ 2.5)
 
 ---
 
