@@ -146,11 +146,13 @@ void CalculateBodySizeCandles(const datetime &time[],
       zScores[i] = 0.0;
       classifications[i] = (bodySizes[i] >= 0) ? 0 : 3;  // Default: TYPE_UP_NORMAL or TYPE_DOWN_NORMAL
 
-      // Calculate available lookback (minimum of i or InpZScoreLength)
-      int lookback = MathMin(i, InpZScoreLength);
+      // Calculate available historical bars after current bar i
+      // (arrays are in series order: index 0 = newest, higher indices = older)
+      int availableHistory = bars_count - 1 - i;  // How many bars exist after index i
+      int lookback = MathMin(availableHistory, InpZScoreLength);
 
       // Skip if not enough historical data for meaningful calculation
-      if(lookback < minBarsForCalc)
+      if(lookback < minBarsForCalc - 1)  // Need at least 1 historical bar plus current
          continue;
 
       // Z-Score calculation using ABSOLUTE body sizes for mean/stddev
@@ -158,11 +160,18 @@ void CalculateBodySizeCandles(const datetime &time[],
       double sum = 0, sum2 = 0;
       int validBars = 0;
 
-      for(int j = 0; j <= lookback; j++)
+      // Include current bar
+      double absBodySize = MathAbs(bodySizes[i]);
+      sum += absBodySize;
+      sum2 += absBodySize * absBodySize;
+      validBars++;
+
+      // Look back at historical bars (forward in array index, back in time)
+      for(int j = 1; j <= lookback; j++)
       {
-         double absBodySize = MathAbs(bodySizes[i-j]);
-         sum += absBodySize;
-         sum2 += absBodySize * absBodySize;
+         double absHistoricalBody = MathAbs(bodySizes[i+j]);
+         sum += absHistoricalBody;
+         sum2 += absHistoricalBody * absHistoricalBody;
          validBars++;
       }
 
