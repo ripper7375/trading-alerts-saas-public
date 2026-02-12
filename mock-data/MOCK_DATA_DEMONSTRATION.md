@@ -16,6 +16,7 @@ $ ls -lh *_mock_data.txt
 ```
 
 **Summary:**
+
 - ✅ 2 files created successfully
 - ✅ M5 file: 287 KB (576 data rows)
 - ✅ M15 file: 97 KB (192 data rows)
@@ -141,16 +142,19 @@ System:
 ## 📋 Sample Data Rows
 
 ### Header Row
+
 ```
 timestamp|symbol|open|high|low|close|volume|timeframe|tema|hrma|...
 ```
 
 ### First Data Row (XAUUSD M5)
+
 ```
 1770595200|XAUUSD|2649.67|2656.69|2649.66|2653.61|3247|M5|2657.22|...
 ```
 
 **Breakdown:**
+
 - **Timestamp:** 1770595200 → `2026-02-09 00:00:00 UTC`
 - **Symbol:** XAUUSD (Gold vs USD)
 - **OHLC:** Open 2649.67, High 2656.69, Low 2649.66, Close 2653.61
@@ -159,11 +163,13 @@ timestamp|symbol|open|high|low|close|volume|timeframe|tema|hrma|...
 - **Indicators:** TEMA 2657.22, HRMA 2646.97, SMMA 2654.46, etc.
 
 ### Second Data Row (XAUUSD M5)
+
 ```
 1770595500|XAUUSD|2655.5|2663.49|2651.79|2658.56|6697|M5|2661.77|...
 ```
 
 **Breakdown:**
+
 - **Timestamp:** 1770595500 → `2026-02-09 00:05:00 UTC` (5 minutes later)
 - **OHLC:** Open 2655.50, High 2663.49, Low 2651.79, Close 2658.56
 - **Volume:** 6,697
@@ -176,12 +182,14 @@ timestamp|symbol|open|high|low|close|volume|timeframe|tema|hrma|...
 ### 1. Row Count Verification
 
 **M5 (5-minute bars):**
+
 - Date range: Feb 9-10, 2026 = 2 days
 - Bars per day: 24 hours × 12 bars/hour = 288 bars/day
 - Total expected: 2 days × 288 = 576 bars
 - **Actual: 576 bars ✅**
 
 **M15 (15-minute bars):**
+
 - Date range: Feb 9-10, 2026 = 2 days
 - Bars per day: 24 hours × 4 bars/hour = 96 bars/day
 - Total expected: 2 days × 96 = 192 bars
@@ -213,6 +221,7 @@ $ head -1 XAUUSD_M5_mock_data.txt | tr '|' '\n' | wc -l
 ### 4. Price Realism Check
 
 **Sample values from M5 data:**
+
 ```
 Bar 1: Open 2649.67, Close 2653.61 → +$3.94 (+0.15%)
 Bar 2: Open 2655.50, Close 2658.56 → +$3.06 (+0.12%)
@@ -228,16 +237,19 @@ Bar 2: Open 2655.50, Close 2658.56 → +$3.06 (+0.12%)
 ### 5. Indicator Values Check
 
 **Moving Averages (Bar 1):**
+
 - TEMA: 2657.22 (near close price ✅)
 - HRMA: 2646.97 (below close ✅)
 - SMMA: 2654.46 (near close ✅)
 
 **Keltner Channels (Bar 1):**
+
 - Ultra Extreme Upper: 2681.73
 - Ultra Extreme Lower: 2625.49
 - **Spread:** $56.24 (reasonable for gold ✅)
 
 **Support/Resistance (Bar 1):**
+
 - Resistance 4: 2670.75 (above price ✅)
 - Support 4: 2635.60 (below price ✅)
 
@@ -254,6 +266,7 @@ Bar 2: Open 2655.50, Close 2658.56 → +$3.06 (+0.12%)
 5. Click Import
 
 **Expected Result:**
+
 - ✅ 61 columns displayed
 - ✅ 576 data rows + 1 header row
 - ✅ All values properly separated
@@ -283,6 +296,7 @@ print(df[['datetime', 'symbol', 'close']].head())
 ```
 
 **Expected Output:**
+
 ```
               datetime  symbol     close
 0  2026-02-09 00:00:00  XAUUSD  2653.61
@@ -338,12 +352,14 @@ python3 scripts/generate_mock_market_data_multi.py
 ```
 
 This will generate data for:
+
 - ✅ XAUUSD (Gold)
 - ✅ EURUSD (Euro)
 - ✅ GBPUSD (Pound)
 - ✅ USDJPY (Yen)
 
 With timeframes:
+
 - ✅ M5 (5-minute)
 - ✅ M15 (15-minute)
 
@@ -354,6 +370,7 @@ With timeframes:
 ## 📚 Documentation
 
 For detailed configuration instructions, see:
+
 - `docs/MOCK_DATA_GENERATOR_GUIDE.md` (comprehensive guide)
 - `docs/MOCK_DATA_QUICK_REFERENCE.md` (quick reference)
 

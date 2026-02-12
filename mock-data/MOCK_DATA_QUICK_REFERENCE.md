@@ -108,7 +108,7 @@ end_date = datetime(2026, 2, 9, 17, 0, 0)    # 5 PM
 ## 🔢 Data Size Calculator
 
 | Duration | M5 Bars | M15 Bars | H1 Bars | D1 Bars |
-|----------|---------|----------|---------|---------|
+| -------- | ------- | -------- | ------- | ------- |
 | 1 day    | 288     | 96       | 24      | 1       |
 | 1 week   | 2,016   | 672      | 168     | 7       |
 | 1 month  | 8,640   | 2,880    | 720     | 30      |
@@ -119,16 +119,16 @@ end_date = datetime(2026, 2, 9, 17, 0, 0)    # 5 PM
 
 ## 🎨 Symbol Base Prices
 
-| Symbol  | Typical Base Price | Asset Type    |
-|---------|-------------------|---------------|
-| XAUUSD  | 2600-2700         | Gold          |
-| EURUSD  | 1.05-1.10         | Forex Major   |
-| GBPUSD  | 1.25-1.30         | Forex Major   |
-| USDJPY  | 145-150           | Forex Major   |
-| AUDUSD  | 0.65-0.68         | Forex Minor   |
-| USDCAD  | 1.33-1.36         | Forex Minor   |
-| BTCUSD  | 40000-50000       | Cryptocurrency|
-| ETHUSD  | 2500-3000         | Cryptocurrency|
+| Symbol | Typical Base Price | Asset Type     |
+| ------ | ------------------ | -------------- |
+| XAUUSD | 2600-2700          | Gold           |
+| EURUSD | 1.05-1.10          | Forex Major    |
+| GBPUSD | 1.25-1.30          | Forex Major    |
+| USDJPY | 145-150            | Forex Major    |
+| AUDUSD | 0.65-0.68          | Forex Minor    |
+| USDCAD | 1.33-1.36          | Forex Minor    |
+| BTCUSD | 40000-50000        | Cryptocurrency |
+| ETHUSD | 2500-3000          | Cryptocurrency |
 
 ---
 
@@ -158,12 +158,12 @@ wc -l XAUUSD_M5_mock_data.txt
 
 ## 🐛 Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| Empty file | Check end_date > start_date |
-| File too large | Reduce date range or use larger timeframe |
-| Wrong delimiter in Excel | Use pipe `\|` not comma |
-| Script not found | Ensure you're in project root |
+| Issue                    | Solution                                  |
+| ------------------------ | ----------------------------------------- |
+| Empty file               | Check end_date > start_date               |
+| File too large           | Reduce date range or use larger timeframe |
+| Wrong delimiter in Excel | Use pipe `\|` not comma                   |
+| Script not found         | Ensure you're in project root             |
 
 ---
 

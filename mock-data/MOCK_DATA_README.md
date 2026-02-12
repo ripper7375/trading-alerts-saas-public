@@ -10,19 +10,19 @@ This package contains scripts and documentation for generating realistic mock ma
 
 ### Scripts (in `/scripts/`)
 
-| Script | Description | Use Case |
-|--------|-------------|----------|
-| `generate_mock_market_data.py` | Original script | XAUUSD only, quick testing |
+| Script                               | Description          | Use Case                      |
+| ------------------------------------ | -------------------- | ----------------------------- |
+| `generate_mock_market_data.py`       | Original script      | XAUUSD only, quick testing    |
 | `generate_mock_market_data_multi.py` | **Enhanced version** | Multiple symbols & timeframes |
 
 ### Documentation (in `/docs/`)
 
-| Document | Description | When to Use |
-|----------|-------------|-------------|
-| `MOCK_DATA_GENERATOR_GUIDE.md` | **📖 Complete guide** | First time setup, detailed instructions |
-| `MOCK_DATA_QUICK_REFERENCE.md` | **⚡ Quick reference** | Fast configuration, common examples |
-| `MOCK_DATA_DEMONSTRATION.md` | **🔍 Live demo results** | See what output looks like |
-| `MOCK_DATA_README.md` | **📋 This file** | Package overview |
+| Document                       | Description              | When to Use                             |
+| ------------------------------ | ------------------------ | --------------------------------------- |
+| `MOCK_DATA_GENERATOR_GUIDE.md` | **📖 Complete guide**    | First time setup, detailed instructions |
+| `MOCK_DATA_QUICK_REFERENCE.md` | **⚡ Quick reference**   | Fast configuration, common examples     |
+| `MOCK_DATA_DEMONSTRATION.md`   | **🔍 Live demo results** | See what output looks like              |
+| `MOCK_DATA_README.md`          | **📋 This file**         | Package overview                        |
 
 ---
 
@@ -31,11 +31,13 @@ This package contains scripts and documentation for generating realistic mock ma
 ### Step 1: Choose Your Script
 
 **Need XAUUSD only?**
+
 ```bash
 python3 scripts/generate_mock_market_data.py
 ```
 
 **Need multiple symbols?**
+
 ```bash
 python3 scripts/generate_mock_market_data_multi.py
 ```
@@ -109,6 +111,7 @@ timestamp|symbol|open|high|low|close|volume|timeframe|tema|hrma|...
 **Script:** `generate_mock_market_data.py`
 
 **Output:**
+
 - `XAUUSD_M5_mock_data.txt` (576 rows)
 - `XAUUSD_M15_mock_data.txt` (192 rows)
 
@@ -123,6 +126,7 @@ timestamp|symbol|open|high|low|close|volume|timeframe|tema|hrma|...
 **Script:** `generate_mock_market_data_multi.py`
 
 **Configuration:**
+
 ```python
 symbols = [
     ("EURUSD", 1.0850, "EUR/USD"),
@@ -146,6 +150,7 @@ timeframes = [("M15", 15), ("H1", 60)]
 **Script:** `generate_mock_market_data_multi.py`
 
 **Configuration:**
+
 ```python
 # FREE tier: EURUSD M15 only
 # PRO tier: XAUUSD M5, GBPUSD H1, etc.
@@ -164,6 +169,7 @@ symbols = [
 **Goal:** Generate 1 month of H1 data for strategy testing
 
 **Configuration:**
+
 ```python
 start_date = datetime(2026, 1, 1, 0, 0, 0)
 end_date = datetime(2026, 2, 1, 0, 0, 0)  # 1 month
@@ -180,6 +186,7 @@ timeframes = [("H1", 60)]
 ### For First-Time Users
 
 **Start here:**
+
 1. Read this README (you are here!)
 2. Read: `MOCK_DATA_GENERATOR_GUIDE.md`
 3. Try: Run the original script
@@ -189,6 +196,7 @@ timeframes = [("H1", 60)]
 ### For Experienced Users
 
 **Quick workflow:**
+
 1. Open: `MOCK_DATA_QUICK_REFERENCE.md`
 2. Copy configuration example
 3. Edit: `generate_mock_market_data_multi.py`
@@ -201,25 +209,25 @@ timeframes = [("H1", 60)]
 
 ### By Timeframe (per symbol, 1 week)
 
-| Timeframe | Bars/Week | File Size | Best For |
-|-----------|-----------|-----------|----------|
-| M1        | 10,080    | ~2 MB     | Scalping, tick testing |
-| M5        | 2,016     | ~400 KB   | Intraday, most alerts |
+| Timeframe | Bars/Week | File Size | Best For                 |
+| --------- | --------- | --------- | ------------------------ |
+| M1        | 10,080    | ~2 MB     | Scalping, tick testing   |
+| M5        | 2,016     | ~400 KB   | Intraday, most alerts    |
 | M15       | 672       | ~140 KB   | Swing trading, FREE tier |
-| M30       | 336       | ~70 KB    | Day trading |
-| H1        | 168       | ~35 KB    | Position trading |
-| H4        | 42        | ~9 KB     | Long-term trends |
-| D1        | 7         | ~2 KB     | Portfolio analysis |
+| M30       | 336       | ~70 KB    | Day trading              |
+| H1        | 168       | ~35 KB    | Position trading         |
+| H4        | 42        | ~9 KB     | Long-term trends         |
+| D1        | 7         | ~2 KB     | Portfolio analysis       |
 
 ### By Duration (M15 timeframe)
 
-| Duration | Bars | File Size |
-|----------|------|-----------|
-| 1 day    | 96   | ~20 KB    |
-| 1 week   | 672  | ~140 KB   |
-| 1 month  | 2,880| ~575 KB   |
-| 3 months | 8,640| ~1.7 MB   |
-| 1 year   | 35,040| ~7 MB    |
+| Duration | Bars   | File Size |
+| -------- | ------ | --------- |
+| 1 day    | 96     | ~20 KB    |
+| 1 week   | 672    | ~140 KB   |
+| 1 month  | 2,880  | ~575 KB   |
+| 3 months | 8,640  | ~1.7 MB   |
+| 1 year   | 35,040 | ~7 MB     |
 
 ---
 
@@ -270,35 +278,35 @@ fs.createReadStream('XAUUSD_M5_mock_data.txt')
 
 ### Forex Majors
 
-| Symbol  | Base Price | Volatility |
-|---------|------------|------------|
-| EURUSD  | 1.0850     | ~0.0005    |
-| GBPUSD  | 1.2750     | ~0.0005    |
-| USDJPY  | 148.50     | ~0.5       |
-| USDCHF  | 0.8750     | ~0.0005    |
+| Symbol | Base Price | Volatility |
+| ------ | ---------- | ---------- |
+| EURUSD | 1.0850     | ~0.0005    |
+| GBPUSD | 1.2750     | ~0.0005    |
+| USDJPY | 148.50     | ~0.5       |
+| USDCHF | 0.8750     | ~0.0005    |
 
 ### Forex Minors
 
-| Symbol  | Base Price | Volatility |
-|---------|------------|------------|
-| AUDUSD  | 0.6650     | ~0.0005    |
-| USDCAD  | 1.3450     | ~0.0005    |
-| NZDUSD  | 0.6150     | ~0.0005    |
+| Symbol | Base Price | Volatility |
+| ------ | ---------- | ---------- |
+| AUDUSD | 0.6650     | ~0.0005    |
+| USDCAD | 1.3450     | ~0.0005    |
+| NZDUSD | 0.6150     | ~0.0005    |
 
 ### Commodities
 
-| Symbol  | Base Price | Volatility |
-|---------|------------|------------|
-| XAUUSD  | 2650.00    | ~5.0       |
-| XAGUSD  | 30.50      | ~0.5       |
-| WTIUSD  | 75.00      | ~2.0       |
+| Symbol | Base Price | Volatility |
+| ------ | ---------- | ---------- |
+| XAUUSD | 2650.00    | ~5.0       |
+| XAGUSD | 30.50      | ~0.5       |
+| WTIUSD | 75.00      | ~2.0       |
 
 ### Crypto
 
-| Symbol  | Base Price | Volatility |
-|---------|------------|------------|
-| BTCUSD  | 45000.00   | ~200.0     |
-| ETHUSD  | 2800.00    | ~50.0      |
+| Symbol | Base Price | Volatility |
+| ------ | ---------- | ---------- |
+| BTCUSD | 45000.00   | ~200.0     |
+| ETHUSD | 2800.00    | ~50.0      |
 
 ---
 
@@ -348,6 +356,7 @@ if current_time.weekday() >= 5:  # Saturday=5, Sunday=6
 **Cause:** End date ≤ Start date
 
 **Solution:**
+
 ```python
 # ❌ Wrong
 start_date = datetime(2026, 2, 9, 0, 0, 0)
@@ -365,6 +374,7 @@ end_date = datetime(2026, 2, 11, 0, 0, 0)  # 2 days later
 **Cause:** M1 timeframe + long date range
 
 **Solution:**
+
 - Use M5 or M15 instead of M1
 - Reduce date range
 - Generate in batches
@@ -376,6 +386,7 @@ end_date = datetime(2026, 2, 11, 0, 0, 0)  # 2 days later
 **Cause:** Comma selected instead of pipe
 
 **Solution:**
+
 - During import: Check "Other"
 - Enter: `|` (pipe character)
 - Preview should show 61 columns
@@ -400,18 +411,21 @@ After generation:
 ## 🎓 Learning Path
 
 ### Level 1: Beginner
+
 1. Run original script (XAUUSD only)
 2. View output in text editor
 3. Import into Excel
 4. Count rows and columns
 
 ### Level 2: Intermediate
+
 1. Run multi-symbol script with defaults
 2. Customize date range
 3. Add 1-2 new symbols
 4. Import into Python/database
 
 ### Level 3: Advanced
+
 1. Add custom symbols with volatility
 2. Generate trading hours only
 3. Batch generate multiple date ranges
@@ -430,6 +444,7 @@ After generation:
 ### Script Comments
 
 Both scripts have inline comments explaining:
+
 - Configuration options
 - Function parameters
 - Column definitions
@@ -475,6 +490,7 @@ trading-alerts-saas-public/
 You now have everything you need to generate mock market data for your Trading Alerts SaaS platform.
 
 **Start with:**
+
 1. Read this README (✅ you just did!)
 2. Run: `python3 scripts/generate_mock_market_data.py`
 3. Check: `ls -lh *_mock_data.txt`

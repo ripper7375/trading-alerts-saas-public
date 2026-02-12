@@ -52,6 +52,7 @@ python3 scripts/generate_mock_market_data.py
 ```
 
 **Output:**
+
 - `XAUUSD_M5_mock_data.txt` (5-minute Gold data)
 - `XAUUSD_M15_mock_data.txt` (15-minute Gold data)
 
@@ -63,6 +64,7 @@ python3 scripts/generate_mock_market_data_multi.py
 ```
 
 **Output (default):**
+
 - `XAUUSD_M5_mock_data.txt`, `XAUUSD_M15_mock_data.txt`
 - `EURUSD_M5_mock_data.txt`, `EURUSD_M15_mock_data.txt`
 - `GBPUSD_M5_mock_data.txt`, `GBPUSD_M15_mock_data.txt`
@@ -75,11 +77,13 @@ python3 scripts/generate_mock_market_data_multi.py
 ### Version 1: Original (generate_mock_market_data.py)
 
 **Best for:**
+
 - Quick testing with Gold (XAUUSD) only
 - Simple use cases
 - Small datasets (2 days, 2 timeframes)
 
 **Fixed configuration:**
+
 - Symbol: XAUUSD
 - Timeframes: M5, M15
 - Date range: Feb 9-10, 2026
@@ -87,12 +91,14 @@ python3 scripts/generate_mock_market_data_multi.py
 ### Version 2: Multi-Symbol/Timeframe (generate_mock_market_data_multi.py)
 
 **Best for:**
+
 - Testing multiple currency pairs
 - Different timeframes (M1-D1)
 - Flexible date ranges
 - Production-ready datasets
 
 **Configurable:**
+
 - ✅ Multiple symbols (Forex, Gold, Bitcoin)
 - ✅ Any timeframe (M1, M5, M15, M30, H1, H4, D1)
 - ✅ Custom date ranges
@@ -122,6 +128,7 @@ symbols = [
 **Format:** `(symbol_code, base_price, display_name)`
 
 **Finding base prices:**
+
 - Forex pairs: Use current market rate (e.g., EURUSD ≈ 1.08)
 - Gold (XAUUSD): Around $2,600-2,700
 - Bitcoin (BTCUSD): Check current price (e.g., $45,000)
@@ -147,6 +154,7 @@ timeframes = [
 **Format:** `(timeframe_code, interval_in_minutes)`
 
 **Choosing timeframes:**
+
 - **M1, M5**: Scalping strategies, high-frequency testing
 - **M15, M30**: Intraday trading, most alerts
 - **H1, H4**: Swing trading, medium-term alerts
@@ -179,7 +187,7 @@ end_date = datetime(2026, 2, 9, 17, 0, 0)
 **Data size calculator:**
 
 | Date Range | M5 Bars | M15 Bars | H1 Bars | File Size (M5) |
-|------------|---------|----------|---------|----------------|
+| ---------- | ------- | -------- | ------- | -------------- |
 | 1 hour     | 12      | 4        | 1       | ~2 KB          |
 | 8 hours    | 96      | 32       | 8       | ~15 KB         |
 | 1 day      | 288     | 96       | 24      | ~50 KB         |
@@ -204,6 +212,7 @@ python3 scripts/generate_mock_market_data.py
 ```
 
 **Output:**
+
 - `XAUUSD_M15_mock_data.txt` (96 rows = 2 days × 24 hours × 4 bars/hour)
 
 ---
@@ -215,6 +224,7 @@ python3 scripts/generate_mock_market_data.py
 **Script:** Multi `generate_mock_market_data_multi.py`
 
 **Configuration:**
+
 ```python
 symbols = [
     ("EURUSD", 1.0850, "EUR/USD"),
@@ -233,6 +243,7 @@ end_date = datetime(2026, 2, 16, 0, 0, 0)  # 1 week
 ```
 
 **Run:**
+
 ```bash
 python3 scripts/generate_mock_market_data_multi.py
 ```
@@ -246,6 +257,7 @@ python3 scripts/generate_mock_market_data_multi.py
 **Goal:** Generate data for FREE tier (EURUSD M15) and PRO tier (XAUUSD M5, GBPUSD H1)
 
 **Configuration:**
+
 ```python
 symbols = [
     ("EURUSD", 1.0850, "EUR/USD - FREE"),  # FREE tier symbol
@@ -269,6 +281,7 @@ timeframes = [
 **Goal:** Test high-frequency M1 and M5 data for 24 hours
 
 **Configuration:**
+
 ```python
 symbols = [
     ("EURUSD", 1.0850, "EUR/USD"),
@@ -284,6 +297,7 @@ end_date = datetime(2026, 2, 10, 0, 0, 0)  # 24 hours
 ```
 
 **Output:**
+
 - `EURUSD_M1_mock_data.txt` (1,440 rows)
 - `EURUSD_M5_mock_data.txt` (288 rows)
 
@@ -294,6 +308,7 @@ end_date = datetime(2026, 2, 10, 0, 0, 0)  # 24 hours
 **Goal:** Generate 3 months of H4 and D1 data
 
 **Configuration:**
+
 ```python
 symbols = [
     ("XAUUSD", 2650.00, "Gold"),
@@ -309,6 +324,7 @@ end_date = datetime(2026, 2, 1, 0, 0, 0)  # 3 months
 ```
 
 **Output:**
+
 - `XAUUSD_H4_mock_data.txt` (540 rows = 90 days × 6 bars/day)
 - `XAUUSD_D1_mock_data.txt` (90 rows)
 
@@ -328,21 +344,21 @@ timestamp|symbol|open|high|low|close|volume|timeframe|tema|hrma|smma|...
 
 ### Column Layout (61 columns)
 
-| # | Column Name | Category | Description |
-|---|-------------|----------|-------------|
-| 1 | timestamp | System | Unix epoch timestamp |
-| 2 | symbol | System | Trading symbol (e.g., XAUUSD) |
-| 3-6 | open, high, low, close | System | OHLC prices |
-| 7 | volume | System | Volume |
-| 8 | timeframe | System | Timeframe (M5, M15, etc.) |
-| 9-13 | tema, hrma, smma, zscore, classification | FREE | Moving averages & signals |
-| 14-28 | diag_asc_*, diag_desc_*, horiz_* | FREE | Diagonal & horizontal lines |
-| 29-35 | ha_open, ha_high, ha_low, ha_close, etc. | FREE | Heiken Ashi candles |
-| 36-45 | kc_ultra_extreme_upper, kc_upper, etc. | PRO | Keltner Channel bands |
-| 46-53 | sr_support_*, sr_resistance_* | PRO | Support/Resistance levels |
-| 54-59 | zigzag_high, zigzag_low, ema, dual_tema_* | PRO | ZigZag & TEMA indicators |
-| 60 | pinbar | PRO | Pinbar detection (0 or 1) |
-| 61 | collected_at | System | Collection timestamp |
+| #     | Column Name                                | Category | Description                   |
+| ----- | ------------------------------------------ | -------- | ----------------------------- |
+| 1     | timestamp                                  | System   | Unix epoch timestamp          |
+| 2     | symbol                                     | System   | Trading symbol (e.g., XAUUSD) |
+| 3-6   | open, high, low, close                     | System   | OHLC prices                   |
+| 7     | volume                                     | System   | Volume                        |
+| 8     | timeframe                                  | System   | Timeframe (M5, M15, etc.)     |
+| 9-13  | tema, hrma, smma, zscore, classification   | FREE     | Moving averages & signals     |
+| 14-28 | diag*asc*_, diag*desc*_, horiz\_\*         | FREE     | Diagonal & horizontal lines   |
+| 29-35 | ha_open, ha_high, ha_low, ha_close, etc.   | FREE     | Heiken Ashi candles           |
+| 36-45 | kc_ultra_extreme_upper, kc_upper, etc.     | PRO      | Keltner Channel bands         |
+| 46-53 | sr*support*_, sr*resistance*_              | PRO      | Support/Resistance levels     |
+| 54-59 | zigzag*high, zigzag_low, ema, dual_tema*\* | PRO      | ZigZag & TEMA indicators      |
+| 60    | pinbar                                     | PRO      | Pinbar detection (0 or 1)     |
+| 61    | collected_at                               | System   | Collection timestamp          |
 
 ---
 
@@ -426,11 +442,13 @@ fs.createReadStream('XAUUSD_M5_mock_data.txt')
 ### Issue 1: Script Not Found
 
 **Error:**
+
 ```
 python3: can't open file 'scripts/generate_mock_market_data.py': [Errno 2] No such file or directory
 ```
 
 **Solution:**
+
 ```bash
 # Ensure you're in the project root
 cd /home/user/trading-alerts-saas-public
@@ -451,6 +469,7 @@ python3 scripts/generate_mock_market_data_multi.py
 **Cause:** End date is before or equal to start date
 
 **Solution:**
+
 ```python
 # ❌ Wrong - end_date same as start_date
 start_date = datetime(2026, 2, 9, 0, 0, 0)
@@ -470,6 +489,7 @@ end_date = datetime(2026, 2, 11, 0, 0, 0)  # 2 days later
 **Cause:** M1 timeframe with long date range
 
 **Example calculation:**
+
 ```
 M1 bars per day = 24 hours × 60 minutes = 1,440 bars/day
 1 year = 365 days × 1,440 bars = 525,600 bars
@@ -477,6 +497,7 @@ File size ≈ 525,600 × 0.3 KB = 157 MB (per symbol!)
 ```
 
 **Solution:**
+
 ```python
 # Option 1: Use larger timeframe
 timeframes = [
@@ -504,6 +525,7 @@ for week in range(4):  # 4 weeks
 **Cause:** Wrong delimiter selected
 
 **Solution:**
+
 1. During import, click **"Delimited"** (not "Fixed width")
 2. Uncheck "Tab", "Comma", "Semicolon"
 3. Check **"Other"** and enter `|` (pipe character)
@@ -519,6 +541,7 @@ for week in range(4):  # 4 weeks
 **Cause:** Timezone issues or wrong date format
 
 **Solution:**
+
 ```python
 # Verify generated timestamps
 from datetime import datetime
@@ -531,6 +554,7 @@ print(f"Timestamp {timestamp} = {dt}")
 ```
 
 **In Python (when reading):**
+
 ```python
 import pandas as pd
 
@@ -547,12 +571,14 @@ print(df[['timestamp', 'datetime']].head())
 ### 1. Start Small, Scale Up
 
 ✅ **DO:**
+
 - Generate 1-2 days of M15 data first
 - Verify import works correctly
 - Check data looks realistic
 - Then scale to production size
 
 ❌ **DON'T:**
+
 - Jump to 1 year of M1 data immediately
 - Generate all symbols at once without testing
 
@@ -561,10 +587,12 @@ print(df[['timestamp', 'datetime']].head())
 ### 2. Match Production Timeframes
 
 ✅ **DO:**
+
 - Use timeframes your users will actually access (M15, H1)
 - Match your tier restrictions (FREE: M15, PRO: M5+H1)
 
 ❌ **DON'T:**
+
 - Generate M1 data if your system doesn't support it
 - Create D1 data for a scalping platform
 
@@ -573,6 +601,7 @@ print(df[['timestamp', 'datetime']].head())
 ### 3. Organize Output Files
 
 ✅ **DO:**
+
 ```bash
 # Create organized directory structure
 mkdir -p mock_data/{gold,forex,crypto}
@@ -582,6 +611,7 @@ mv BTCUSD_* mock_data/crypto/
 ```
 
 ❌ **DON'T:**
+
 - Leave 50+ files in project root
 - Mix production and test data
 
@@ -590,6 +620,7 @@ mv BTCUSD_* mock_data/crypto/
 ### 4. Version Your Mock Data
 
 ✅ **DO:**
+
 ```bash
 # Include date in folder name
 mkdir mock_data_2026-02-12
@@ -627,6 +658,7 @@ After generating mock data:
 **Questions or Issues?**
 
 If you encounter problems not covered in this guide, check:
+
 - Script comments in `generate_mock_market_data_multi.py`
 - Python error messages (usually very descriptive)
 - Your project's main documentation
