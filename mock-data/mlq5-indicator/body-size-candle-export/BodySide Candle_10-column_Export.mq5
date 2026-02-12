@@ -91,27 +91,25 @@ string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timefra
 
 //+------------------------------------------------------------------+
 //| Function to get integer candle classification (0-5)              |
+//| Based on Z-Score value (positive = bullish, negative = bearish)  |
 //+------------------------------------------------------------------+
-int GetCandleClassification(double zScore, bool isBullish)
+int GetCandleClassification(double zScore)
 {
-   if(isBullish)  // Bullish candle
-   {
-      if(zScore >= InpThresholdZ2)
-         return 2;  // TYPE_UP_EXTREME
-      else if(zScore >= InpThresholdZ1)
-         return 1;  // TYPE_UP_LARGE
-      else
-         return 0;  // TYPE_UP_NORMAL
-   }
-   else  // Bearish candle
-   {
-      if(zScore >= InpThresholdZ2)
-         return 5;  // TYPE_DOWN_EXTREME
-      else if(zScore >= InpThresholdZ1)
-         return 4;  // TYPE_DOWN_LARGE
-      else
-         return 3;  // TYPE_DOWN_NORMAL
-   }
+   // Positive Z-Score = Bullish (large body upward)
+   if(zScore >= InpThresholdZ2)
+      return 2;  // TYPE_UP_EXTREME (>= 2.5)
+   else if(zScore >= InpThresholdZ1)
+      return 1;  // TYPE_UP_LARGE (>= 1.5 to < 2.5)
+   else if(zScore > 0)
+      return 0;  // TYPE_UP_NORMAL (> 0 to < 1.5)
+
+   // Negative Z-Score = Bearish (large body downward)
+   else if(zScore <= -InpThresholdZ2)
+      return 5;  // TYPE_DOWN_EXTREME (<= -2.5)
+   else if(zScore <= -InpThresholdZ1)
+      return 4;  // TYPE_DOWN_LARGE (<= -1.5 to > -2.5)
+   else
+      return 3;  // TYPE_DOWN_NORMAL (< 0 to > -1.5)
 }
 
 //+------------------------------------------------------------------+
@@ -127,25 +125,26 @@ void CalculateBodySizeCandles(const datetime &time[],
    ArrayResize(zScores, bars_count);
    ArrayResize(classifications, bars_count);
 
-   // Calculate body sizes for all bars
+   // Calculate body sizes WITH SIGN for all bars
+   // Positive = bullish (close > open), Negative = bearish (close < open)
    double bodySizes[];
    ArrayResize(bodySizes, bars_count);
 
    for(int i = 0; i < bars_count; i++)
    {
-      bodySizes[i] = MathAbs(close[i] - open[i]);
+      // Body size with sign: positive for bullish, negative for bearish
+      bodySizes[i] = close[i] - open[i];
    }
 
-   // Minimum bars needed for meaningful calculation (at least 10)
-   int minBarsForCalc = 10;
+   // Minimum bars needed for meaningful calculation
+   int minBarsForCalc = 2;  // Need at least 2 bars for variance
 
    // Calculate z-scores and determine candle classifications
    for(int i = 0; i < bars_count; i++)
    {
-      // Default to 0.0 z-score and normal classification
+      // Default to 0.0 z-score and classification based on direction
       zScores[i] = 0.0;
-      bool isBullish = close[i] >= open[i];
-      classifications[i] = isBullish ? 0 : 3;  // TYPE_UP_NORMAL or TYPE_DOWN_NORMAL
+      classifications[i] = (bodySizes[i] >= 0) ? 0 : 3;  // Default: TYPE_UP_NORMAL or TYPE_DOWN_NORMAL
 
       // Calculate available lookback (minimum of i or InpZScoreLength)
       int lookback = MathMin(i, InpZScoreLength);
@@ -154,16 +153,16 @@ void CalculateBodySizeCandles(const datetime &time[],
       if(lookback < minBarsForCalc)
          continue;
 
-      // Z-Score calculation - use all available bars in lookback window
+      // Z-Score calculation using ABSOLUTE body sizes for mean/stddev
+      // (We compare magnitude of body sizes, regardless of direction)
       double sum = 0, sum2 = 0;
       int validBars = 0;
 
       for(int j = 0; j <= lookback; j++)
       {
-         // Include all bars in the lookback window
-         // Note: Removed base timeframe alignment check for simplicity and accuracy
-         sum += bodySizes[i-j];
-         sum2 += bodySizes[i-j] * bodySizes[i-j];
+         double absBodySize = MathAbs(bodySizes[i-j]);
+         sum += absBodySize;
+         sum2 += absBodySize * absBodySize;
          validBars++;
       }
 
@@ -173,11 +172,16 @@ void CalculateBodySizeCandles(const datetime &time[],
          double variance = (sum2 - sum * mean) / (validBars - 1);
          double stdDev = MathSqrt(variance);
 
-         // Calculate Z-Score for current candle
-         zScores[i] = stdDev != 0 ? (bodySizes[i] - mean) / stdDev : 0;
+         // Calculate Z-Score for current candle's absolute body size
+         double absCurrentBody = MathAbs(bodySizes[i]);
+         double rawZScore = stdDev != 0 ? (absCurrentBody - mean) / stdDev : 0;
 
-         // Determine candle classification (0-5)
-         classifications[i] = GetCandleClassification(zScores[i], isBullish);
+         // Apply sign based on candle direction
+         // Positive Z-Score = large bullish body, Negative Z-Score = large bearish body
+         zScores[i] = bodySizes[i] >= 0 ? rawZScore : -rawZScore;
+
+         // Determine candle classification (0-5) based on Z-Score value
+         classifications[i] = GetCandleClassification(zScores[i]);
       }
    }
 }

@@ -97,12 +97,14 @@ int GetCandleClassification(double zScore, bool isBullish)
 
 | Classification | Value | Description | Z-Score Range |
 |----------------|-------|-------------|---------------|
-| **TYPE_UP_NORMAL** | 0 | Bullish candle with normal body size | < 1.5 |
-| **TYPE_UP_LARGE** | 1 | Bullish candle with large body size | 1.5 - 2.5 |
+| **TYPE_UP_NORMAL** | 0 | Bullish candle with normal body size | > 0 to < 1.5 |
+| **TYPE_UP_LARGE** | 1 | Bullish candle with large body size | ≥ 1.5 to < 2.5 |
 | **TYPE_UP_EXTREME** | 2 | Bullish candle with extreme body size | ≥ 2.5 |
-| **TYPE_DOWN_NORMAL** | 3 | Bearish candle with normal body size | < 1.5 |
-| **TYPE_DOWN_LARGE** | 4 | Bearish candle with large body size | 1.5 - 2.5 |
-| **TYPE_DOWN_EXTREME** | 5 | Bearish candle with extreme body size | ≥ 2.5 |
+| **TYPE_DOWN_NORMAL** | 3 | Bearish candle with normal body size | < 0 to > -1.5 |
+| **TYPE_DOWN_LARGE** | 4 | Bearish candle with large body size | ≤ -1.5 to > -2.5 |
+| **TYPE_DOWN_EXTREME** | 5 | Bearish candle with extreme body size | ≤ -2.5 |
+
+**Note:** The thresholds (±1.5, ±2.5) are configured via `InpThresholdZ1` and `InpThresholdZ2` input parameters and are not hardcoded.
 
 ---
 
