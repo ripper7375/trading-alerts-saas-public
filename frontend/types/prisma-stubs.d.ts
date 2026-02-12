@@ -5,7 +5,7 @@
  * cannot be generated (e.g., network restrictions blocking binaries.prisma.sh).
  *
  * Generated from prisma/schema.prisma
- * Updated for Prisma 5.22.0 compatibility
+ * Updated for Prisma 6.x compatibility
  */
 
 declare module '@prisma/client' {
@@ -854,7 +854,6 @@ declare module '@prisma/client' {
       | '$disconnect'
       | '$on'
       | '$transaction'
-      | '$use'
       | '$extends'
       | '$metrics'
     >;
@@ -933,20 +932,6 @@ declare module '@prisma/client' {
     export type PrismaPromise<T> = Promise<T> & {
       [Symbol.toStringTag]: 'PrismaPromise';
     };
-
-    // ===== MIDDLEWARE TYPES (enhanced in Prisma 5.x) =====
-    export type Middleware = (
-      params: MiddlewareParams,
-      next: (params: MiddlewareParams) => Promise<unknown>
-    ) => Promise<unknown>;
-
-    export interface MiddlewareParams {
-      model?: string;
-      action: string;
-      args: Record<string, unknown>;
-      dataPath: string[];
-      runInTransaction: boolean;
-    }
 
     // ===== FILTER TYPES =====
     export type QueryMode = 'default' | 'insensitive';
@@ -1047,10 +1032,7 @@ declare module '@prisma/client' {
       callback: (e: unknown) => void
     ): void;
 
-    // Middleware (enhanced in Prisma 5.x)
-    $use(middleware: Prisma.Middleware): void;
-
-    // Transaction support (improved in Prisma 5.x)
+    // Transaction support (Prisma 6.x)
     $transaction<T>(
       fn: (prisma: Prisma.TransactionClient) => Promise<T>,
       options?: {

@@ -142,9 +142,8 @@ export class PrismaClient {
   $connect = jest.fn().mockResolvedValue(undefined);
   $disconnect = jest.fn().mockResolvedValue(undefined);
   $on = jest.fn();
-  $use = jest.fn();
 
-  // Prisma 5.x specific
+  // Prisma 6.x features
   $metrics = {
     json: jest
       .fn()
