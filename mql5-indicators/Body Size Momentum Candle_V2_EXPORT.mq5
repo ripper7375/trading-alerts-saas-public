@@ -146,34 +146,26 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
+    // Set arrays as series (index 0 = newest bar)
+    // This matches indicator buffer indexing
+    ArraySetAsSeries(open, true);
+    ArraySetAsSeries(high, true);
+    ArraySetAsSeries(low, true);
+    ArraySetAsSeries(close, true);
+
     // Check for minimum number of bars
     if(rates_total < InpZScoreLength)
         return 0;
 
-    // Calculate start position
-    int start;
+    // Calculate start position for series arrays
+    int limit;
     if(prev_calculated == 0)
-        start = InpZScoreLength;
+        limit = rates_total - InpZScoreLength; // Start from oldest calculable bar
     else
-        start = prev_calculated - 1;
+        limit = rates_total - prev_calculated + 1; // Recalculate last bars
 
-    // Calculate body sizes and statistics
-    CalculateBodySizeStats(rates_total, start, open, high, low, close);
-
-    return(rates_total);
-}
-
-//+------------------------------------------------------------------+
-//| Calculate body sizes and their statistics                        |
-//+------------------------------------------------------------------+
-void CalculateBodySizeStats(const int rates_total,
-                           const int start,
-                           const double &open[],
-                           const double &high[],
-                           const double &low[],
-                           const double &close[])
-{
-    for(int i = start; i < rates_total && !IsStopped(); i++)
+    // Calculate body sizes and statistics (from newest to oldest)
+    for(int i = 0; i < limit && !IsStopped(); i++)
     {
         // Calculate body size (ABSOLUTE value - unsigned)
         BodySizeBuffer[i] = MathAbs(close[i] - open[i]);
@@ -190,6 +182,8 @@ void CalculateBodySizeStats(const int rates_total,
         LowBuffer[i] = low[i];
         CloseBuffer[i] = close[i];
     }
+
+    return(rates_total);
 }
 
 //+------------------------------------------------------------------+
@@ -200,9 +194,10 @@ void CalculateZScore(const int position)
     double sum = 0, sum2 = 0;
 
     // Calculate sums for mean and standard deviation
+    // For series arrays: position 0 = newest, so lookback is position + j
     for(int j = 0; j < InpZScoreLength; j++)
     {
-        double value = BodySizeBuffer[position - j];
+        double value = BodySizeBuffer[position + j];
         sum += value;
         sum2 += value * value;
     }
