@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db/prisma';
 import {
   isEmailServiceConfigured,
   sendVerificationEmail,
-  sendWelcomeEmail,
+  // REMOVED: sendWelcomeEmail - will be sent AFTER email verification
 } from '@/lib/email/email';
 
 const registerSchema = z.object({
@@ -89,19 +89,23 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
 
       if (!emailResult.success) {
-        console.error('Failed to send verification email:', emailResult.error);
+        console.error('[Register] Failed to send verification email:', emailResult.error);
       }
     }
 
-    // Send welcome email
-    const welcomeResult = await sendWelcomeEmail(
-      validated.email,
-      validated.name || 'User'
-    );
-
-    if (!welcomeResult.success) {
-      console.error('Failed to send welcome email:', welcomeResult.error);
-    }
+    // FIX APPLIED: Welcome email removed from registration
+    // =====================================================
+    // Welcome email will be sent AFTER user verifies their email
+    // This prevents user confusion from receiving two emails at once
+    //
+    // The welcome email is now sent in /api/auth/verify-email route
+    // after successful email verification
+    //
+    // REMOVED CODE:
+    // const welcomeResult = await sendWelcomeEmail(
+    //   validated.email,
+    //   validated.name || 'User'
+    // );
 
     // Return appropriate message based on verification status
     const message = autoVerify
@@ -133,7 +137,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Log detailed error for debugging (visible in server console only)
-    console.error('Registration failed:', error);
+    console.error('[Register] Registration failed:', error);
 
     // Check for Prisma-specific errors
     if (error && typeof error === 'object' && 'code' in error) {
@@ -154,9 +158,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     // Check for database connection errors by message pattern
     const errMsg = error instanceof Error ? error.message : '';
-    if (errMsg.includes("Can't reach database server") ||
-        errMsg.includes('Connection refused') ||
-        errMsg.includes('ECONNREFUSED')) {
+    if (
+      errMsg.includes("Can't reach database server") ||
+      errMsg.includes('Connection refused') ||
+      errMsg.includes('ECONNREFUSED')
+    ) {
       return NextResponse.json(
         { error: 'Service temporarily unavailable. Please try again later.' },
         { status: 503 }
