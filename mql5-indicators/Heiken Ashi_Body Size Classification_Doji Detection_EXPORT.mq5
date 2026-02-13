@@ -565,12 +565,20 @@ bool ExportHeikenAshiData()
     Print("Exporting ", bars_to_export, " bars (calculated: ", calculated_bars, ", available: ", rates_total, ")");
 
     // Copy time data
+    // NOTE: Do NOT use ArraySetAsSeries - keep normal indexing (0 = oldest)
+    // This matches the indicator buffer indexing where HAOpenBuffer[0] = oldest bar
     datetime time[];
-    ArraySetAsSeries(time, true);
 
     if(CopyTime(symbol, timeframe, 0, bars_to_export, time) <= 0)
     {
         Print("ERROR: Failed to copy time data");
+        return false;
+    }
+
+    // Verify array sizes match
+    if(ArraySize(time) != bars_to_export)
+    {
+        Print("ERROR: Time array size mismatch. Expected: ", bars_to_export, ", Got: ", ArraySize(time));
         return false;
     }
 
@@ -604,8 +612,17 @@ bool ExportHeikenAshiData()
     write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tha_open\tha_high\tha_low\tha_close\tha_classification\tha_body_size\tha_body_zscore") > 0;
 
     // Write data rows (using Heiken Ashi buffers)
+    // NOTE: Normal array indexing where i=0 is the OLDEST bar, i=bars_to_export-1 is the NEWEST bar
+    // Bars 0 to InpZScoreLength-1 will have ha_body_zscore=0 and ha_classification=0 or 3 (no Z-Score calculated yet)
     for(int i = 0; i < bars_to_export; i++)
     {
+        // Bounds checking to prevent accessing invalid buffer positions
+        if(i >= ArraySize(HAOpenBuffer) || i >= ArraySize(time))
+        {
+            Print("WARNING: Skipping bar ", i, " - buffer size exceeded");
+            continue;
+        }
+
         // Get Heiken Ashi classification
         int classification = (int)HAColorBuffer[i];
 
@@ -676,8 +693,16 @@ bool ExportToJson(const string symbol,
     write_success &= FileWrite(file_handle, "    \"data\": [") > 0;
 
     // Write Heiken Ashi data
+    // NOTE: Normal array indexing where i=0 is the OLDEST bar
     for(int i = 0; i < bars_count; i++)
     {
+        // Bounds checking
+        if(i >= ArraySize(HAOpenBuffer) || i >= ArraySize(time))
+        {
+            Print("WARNING: Skipping JSON bar ", i, " - buffer size exceeded");
+            continue;
+        }
+
         if(i > 0)
             FileWrite(file_handle, "        ,");
 
