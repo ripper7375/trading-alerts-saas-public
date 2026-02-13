@@ -20,8 +20,9 @@
 #property indicator_label7 "BufferSix"
 #property indicator_label8 "BufferSeven"
 
-//--- Export Button name constant
+//--- Export Button name constants
 #define EXPORT_BUTTON_NAME "SRExportButton"
+#define BACKFILL_BUTTON_NAME "SRBackfillButton"
 
 enum ENUM_CUSTOMTIMEFRAMES
   {
@@ -57,6 +58,8 @@ input color SupportColor = clrGreen;               // Support Color
 
 input group "Export Settings"
 input bool InpEnableExport = true;                 // Enable Export Button
+input bool InpEnableBackfill = true;               // Enable Backfill Export Button
+input int InpBackfillBars = 1000;                  // Number of bars to backfill
 input string InpBaseFileName = "SR_Levels";        // Base file name for export
 
 input string Comment_1 = "====================";    // Indicator Settings
@@ -164,6 +167,49 @@ void CreateExportButton()
 }
 
 //+------------------------------------------------------------------+
+//| Create Backfill Export Button                                     |
+//+------------------------------------------------------------------+
+void CreateBackfillButton()
+{
+   // Delete existing button if it exists
+   ObjectDelete(0, BACKFILL_BUTTON_NAME);
+
+   // Create new button
+   ObjectCreate(0, BACKFILL_BUTTON_NAME, OBJ_BUTTON, 0, 0, 0);
+
+   // Button dimensions
+   int button_width = 200;
+   int button_height = 50;
+   int x_margin = 10;     // 10 pixels from right edge
+   int y_margin = 70;     // 70 pixels from top (below first button)
+
+   // Position at top-right corner, below the export button
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_XDISTANCE, x_margin);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_YDISTANCE, y_margin);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_XSIZE, button_width);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_YSIZE, button_height);
+
+   // Text and font properties
+   ObjectSetString(0, BACKFILL_BUTTON_NAME, OBJPROP_TEXT, "Backfill Export");
+   ObjectSetString(0, BACKFILL_BUTTON_NAME, OBJPROP_FONT, "Arial Bold");
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_FONTSIZE, 11);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_COLOR, clrWhite);
+
+   // Visual style (green color for backfill)
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_BGCOLOR, C'0,150,80');
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_BORDER_COLOR, C'0,120,60');
+
+   // Button behavior
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_ANCHOR, ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_HIDDEN, false);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_ZORDER, 999);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_STATE, false);
+   ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_BACK, false);
+}
+
+//+------------------------------------------------------------------+
 //| Export Support and Resistance Levels to TXT file (13-column format) |
 //+------------------------------------------------------------------+
 bool ExportSRToTxt()
@@ -189,11 +235,9 @@ bool ExportSRToTxt()
    if(file_exists)
    {
       // Append to existing file
-      file_handle = FileOpen(filename, FILE_READ|FILE_WRITE|FILE_TXT);
+      file_handle = FileOpen(filename, FILE_READ|FILE_WRITE|FILE_TXT|FILE_ANSI);
       if(file_handle != INVALID_HANDLE)
       {
-         FileSeek(file_handle, 0, SEEK_END);  // Move to end of file
-
          // Read last line to get last row number
          FileSeek(file_handle, 0, SEEK_SET);
          string last_line = "";
@@ -213,13 +257,13 @@ bool ExportSRToTxt()
             }
          }
 
-         FileSeek(file_handle, 0, SEEK_END);  // Move back to end
+         FileSeek(file_handle, 0, SEEK_END);  // Move to end for appending
       }
    }
    else
    {
       // Create new file
-      file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+      file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
       ExportRowNumber = 0;
    }
 
@@ -231,15 +275,13 @@ bool ExportSRToTxt()
       return false;
    }
 
-   bool write_success = true;
-
    // Write header if new file
    if(!file_exists)
    {
       string header = "No\tTimeStamp\tSymbol\tTimeframe\tClose\t";
       header += "sr_support_1\tsr_support_2\tsr_support_3\tsr_support_4\t";
-      header += "sr_resistance_1\tsr_resistance_2\tsr_resistance_3\tsr_resistance_4";
-      write_success &= FileWrite(file_handle, header) > 0;
+      header += "sr_resistance_1\tsr_resistance_2\tsr_resistance_3\tsr_resistance_4\r\n";
+      FileWriteString(file_handle, header);
    }
 
    // Increment row number
@@ -291,7 +333,7 @@ bool ExportSRToTxt()
    string resistance_4_str = (sr_resistance_4 > 0) ? DoubleToString(sr_resistance_4, Digits()) : "0";
 
    // Build the data row (13 columns)
-   string data_row = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
+   string data_row = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
                                    ExportRowNumber,
                                    timestamp,
                                    symbol,
@@ -306,15 +348,9 @@ bool ExportSRToTxt()
                                    resistance_3_str,
                                    resistance_4_str);
 
-   write_success &= FileWrite(file_handle, data_row) > 0;
+   FileWriteString(file_handle, data_row);
 
    FileClose(file_handle);
-
-   if(!write_success)
-   {
-      Print("ERROR: Failed to write data to TXT file");
-      return false;
-   }
 
    Print("Support and Resistance levels successfully exported to TXT file: ", filename);
    Print("Row number: ", ExportRowNumber);
@@ -325,7 +361,157 @@ bool ExportSRToTxt()
 }
 
 //+------------------------------------------------------------------+
-//| Handle chart events for export button                            |
+//| Backfill Export - Export historical S/R levels                   |
+//+------------------------------------------------------------------+
+bool BackfillExportSR()
+{
+   // Use current chart symbol and timeframe
+   string symbol = Symbol();
+   ENUM_TIMEFRAMES timeframe = SRTimeframe;
+   if(timeframe == PERIOD_CURRENT)
+      timeframe = Period();
+
+   // Generate filename
+   string filename = GenerateFilename(InpBaseFileName, symbol, timeframe);
+   string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
+
+   Print("Starting backfill export for ", InpBackfillBars, " bars to: ", full_path);
+
+   // Delete existing file and create new one
+   FileDelete(filename);
+
+   ResetLastError();
+   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
+   int error = GetLastError();
+
+   if(file_handle == INVALID_HANDLE)
+   {
+      Print("ERROR: Failed to create TXT file for backfill. Error: ", error);
+      return false;
+   }
+
+   // Write header
+   string header = "No\tTimeStamp\tSymbol\tTimeframe\tClose\t";
+   header += "sr_support_1\tsr_support_2\tsr_support_3\tsr_support_4\t";
+   header += "sr_resistance_1\tsr_resistance_2\tsr_resistance_3\tsr_resistance_4\r\n";
+   FileWriteString(file_handle, header);
+
+   // Format timeframe string
+   string tf_str = "";
+   switch(timeframe)
+   {
+      case PERIOD_M1:  tf_str = "M1"; break;
+      case PERIOD_M5:  tf_str = "M5"; break;
+      case PERIOD_M15: tf_str = "M15"; break;
+      case PERIOD_M30: tf_str = "M30"; break;
+      case PERIOD_H1:  tf_str = "H1"; break;
+      case PERIOD_H4:  tf_str = "H4"; break;
+      case PERIOD_D1:  tf_str = "D1"; break;
+      case PERIOD_W1:  tf_str = "W1"; break;
+      case PERIOD_MN1: tf_str = "MN1"; break;
+      default: tf_str = EnumToString(timeframe); break;
+   }
+
+   // Check available bars
+   int available_bars = iBars(symbol, timeframe);
+   int bars_to_export = MathMin(InpBackfillBars, available_bars - 1);
+
+   Print("Available bars: ", available_bars);
+   Print("Bars to export: ", bars_to_export);
+
+   int exported_count = 0;
+   int row_number = 0;
+
+   // Loop through historical bars (from oldest to newest, excluding current bar)
+   for(int shift = bars_to_export; shift >= 1; shift--)
+   {
+      // Get bar time and price data
+      MqlRates rates[];
+      ArraySetAsSeries(rates, true);
+
+      if(CopyRates(symbol, timeframe, shift, 1, rates) <= 0)
+      {
+         Print("WARNING: Failed to copy rates for shift ", shift);
+         continue;
+      }
+
+      datetime bar_time = rates[0].time;
+      double bar_close = rates[0].close;
+      string timestamp = TimeToString(bar_time, TIME_DATE|TIME_SECONDS);
+
+      // Get SR levels from indicator buffers at this shift
+      double buffers[8];
+      for(int i = 0; i < 8; i++)
+      {
+         double values[1];
+         if(CopyBuffer(0, i, shift, 1, values) > 0)  // 0 = current indicator handle
+            buffers[i] = values[0];
+         else
+            buffers[i] = 0;
+      }
+
+      // Map buffers to SR levels
+      double sr_support_4 = buffers[0];      // BufferZero
+      double sr_support_3 = buffers[1];      // BufferOne
+      double sr_support_2 = buffers[2];      // BufferTwo
+      double sr_support_1 = buffers[3];      // BufferThree
+      double sr_resistance_1 = buffers[4];   // BufferFour
+      double sr_resistance_2 = buffers[5];   // BufferFive
+      double sr_resistance_3 = buffers[6];   // BufferSix
+      double sr_resistance_4 = buffers[7];   // BufferSeven
+
+      // Format values
+      string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
+      string support_2_str = (sr_support_2 > 0) ? DoubleToString(sr_support_2, Digits()) : "0";
+      string support_3_str = (sr_support_3 > 0) ? DoubleToString(sr_support_3, Digits()) : "0";
+      string support_4_str = (sr_support_4 > 0) ? DoubleToString(sr_support_4, Digits()) : "0";
+
+      string resistance_1_str = (sr_resistance_1 > 0) ? DoubleToString(sr_resistance_1, Digits()) : "0";
+      string resistance_2_str = (sr_resistance_2 > 0) ? DoubleToString(sr_resistance_2, Digits()) : "0";
+      string resistance_3_str = (sr_resistance_3 > 0) ? DoubleToString(sr_resistance_3, Digits()) : "0";
+      string resistance_4_str = (sr_resistance_4 > 0) ? DoubleToString(sr_resistance_4, Digits()) : "0";
+
+      // Build data row
+      row_number++;
+      string data_row = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
+                                      row_number,
+                                      timestamp,
+                                      symbol,
+                                      tf_str,
+                                      DoubleToString(bar_close, Digits()),
+                                      support_1_str,
+                                      support_2_str,
+                                      support_3_str,
+                                      support_4_str,
+                                      resistance_1_str,
+                                      resistance_2_str,
+                                      resistance_3_str,
+                                      resistance_4_str);
+
+      FileWriteString(file_handle, data_row);
+      exported_count++;
+
+      // Progress update every 100 bars
+      if(exported_count % 100 == 0)
+      {
+         Print("Backfill progress: ", exported_count, "/", bars_to_export, " bars exported");
+      }
+   }
+
+   FileClose(file_handle);
+
+   // Update global row counter for subsequent manual exports
+   ExportRowNumber = row_number;
+
+   Print("✅ Backfill export completed successfully!");
+   Print("Total bars exported: ", exported_count);
+   Print("File: ", filename);
+
+   return true;
+}
+
+//+------------------------------------------------------------------+
+//| Handle chart events for export buttons                           |
 //+------------------------------------------------------------------+
 void OnChartEvent(const int id,
                   const long &lparam,
@@ -344,6 +530,19 @@ void OnChartEvent(const int id,
 
          // Reset button state
          ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
+      }
+      else if(sparam == BACKFILL_BUTTON_NAME)
+      {
+         Print("Starting backfill export for ", InpBackfillBars, " historical bars...");
+         Print("This may take a few moments. Please wait...");
+
+         if(BackfillExportSR())
+            Print("SUCCESS: Backfill export completed successfully!");
+         else
+            Print("ERROR: Failed to backfill export. See above for details.");
+
+         // Reset button state
+         ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_STATE, false);
       }
    }
 }
@@ -380,10 +579,15 @@ int OnInit()
    ArraySetAsSeries(BufferSix, true);
    ArraySetAsSeries(BufferSeven, true);
 
-   // Create export button if enabled
+   // Create export buttons if enabled
    if(InpEnableExport)
    {
       CreateExportButton();
+
+      if(InpEnableBackfill)
+      {
+         CreateBackfillButton();
+      }
    }
 
    return INIT_SUCCEEDED;
@@ -718,9 +922,14 @@ void OnDeinit(const int reason)
    CleanChart();
    Comment("");  // Clear comments
 
-   // Delete export button if it exists
+   // Delete export buttons if they exist
    if(InpEnableExport)
    {
       ObjectDelete(0, EXPORT_BUTTON_NAME);
+
+      if(InpEnableBackfill)
+      {
+         ObjectDelete(0, BACKFILL_BUTTON_NAME);
+      }
    }
   }
