@@ -137,8 +137,8 @@ void CreateExportButton()
    // Button dimensions
    int button_width = 200;
    int button_height = 50;
-   int x_margin = 10;     // 10 pixels from right edge
-   int y_margin = 10;     // 10 pixels from top
+   int x_margin = 220;    // 220 pixels from right edge (more to the left)
+   int y_margin = 70;     // 70 pixels from top (below backfill button)
 
    // Position at top-right corner for better visibility
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
@@ -180,10 +180,10 @@ void CreateBackfillButton()
    // Button dimensions
    int button_width = 200;
    int button_height = 50;
-   int x_margin = 10;     // 10 pixels from right edge
-   int y_margin = 70;     // 70 pixels from top (below first button)
+   int x_margin = 220;    // 220 pixels from right edge (more to the left)
+   int y_margin = 10;     // 10 pixels from top (above export button)
 
-   // Position at top-right corner, below the export button
+   // Position at top-right corner, above the export button
    ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
    ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_XDISTANCE, x_margin);
    ObjectSetInteger(0, BACKFILL_BUTTON_NAME, OBJPROP_YDISTANCE, y_margin);
