@@ -58,8 +58,12 @@ double EMABuffer[];         // First EMA buffer
 double EMAofEMABuffer[];    // EMA of EMA buffer
 double EMAofEMAofEMABuffer[]; // Triple EMA buffer
 
-//--- global variable to track total bars for export alignment
-int g_rates_total = 0;
+//--- global arrays to cache time and close from OnCalculate for export
+//    Indexed oldest-first (same direction as indicator buffers):
+//    index 0 = oldest bar,  index rates_total-1 = newest bar
+datetime g_time[];
+double   g_close[];
+int      g_rates_total = 0;
 
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
@@ -204,7 +208,18 @@ int OnCalculate(const int rates_total,
 //--- calculate TEMA
    CalculateTEMA(rates_total,start);
 
-//--- store total bars count for export use
+//--- cache time[] and close[] for export (same oldest-first index as indicator buffers)
+   if(ArraySize(g_time) < rates_total)
+     {
+      ArrayResize(g_time,  rates_total);
+      ArrayResize(g_close, rates_total);
+     }
+   int copy_start = prev_calculated > 0 ? prev_calculated - 1 : 0;
+   for(int j = copy_start; j < rates_total; j++)
+     {
+      g_time[j]  = time[j];
+      g_close[j] = close[j];
+     }
    g_rates_total = rates_total;
 
 //--- return value of prev_calculated for next call
@@ -305,33 +320,21 @@ string TimeframeToString(ENUM_TIMEFRAMES timeframe)
 //+------------------------------------------------------------------+
 bool ExportData()
   {
-   string symbol    = Symbol();
-   ENUM_TIMEFRAMES tf = Period();
-   string tf_str    = TimeframeToString(tf);
+   string symbol = Symbol();
+   string tf_str = TimeframeToString(Period());
 
-   int bars_total    = g_rates_total;
-   if(bars_total <= 0)
+   if(g_rates_total <= 0)
      {
       Print("ERROR: No bars available for export (indicator not yet calculated)");
       return false;
      }
 
-   int bars_to_export = MathMin(InpExportBars, bars_total);
-
-   //--- copy time and close arrays (index 0 = most recent bar)
-   datetime time_arr[];
-   double   close_arr[];
-
-   if(CopyTime(symbol, tf, 0, bars_to_export, time_arr) <= 0)
-     {
-      Print("ERROR: Failed to copy time data. Error: ", GetLastError());
-      return false;
-     }
-   if(CopyClose(symbol, tf, 0, bars_to_export, close_arr) <= 0)
-     {
-      Print("ERROR: Failed to copy close data. Error: ", GetLastError());
-      return false;
-     }
+   //--- determine how many bars to export, starting from the oldest available
+   int bars_to_export = MathMin(InpExportBars, g_rates_total);
+   //--- start_idx: oldest bar that will be exported
+   //    g_time[], g_close[], and all indicator buffers share the same oldest-first
+   //    indexing, so one index variable correctly addresses all of them.
+   int start_idx = g_rates_total - bars_to_export;
 
    //--- build filename: BaseName_Symbol_Timeframe.csv
    string clean_symbol = symbol;
@@ -339,7 +342,7 @@ bool ExportData()
    if(dot_pos > 0)
       clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
 
-   string filename = StringFormat("%s_%s_%s.csv", InpExportFileName, clean_symbol, tf_str);
+   string filename  = StringFormat("%s_%s_%s.csv", InpExportFileName, clean_symbol, tf_str);
    string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
    Print("Exporting to file: ", full_path);
 
@@ -357,25 +360,25 @@ bool ExportData()
    //--- write header row
    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tTema\tHrma\tSmma") > 0;
 
-   //--- write data rows
-   //    CopyTime/CopyClose: index 0 = newest bar
-   //    Indicator buffers:  index 0 = oldest bar, index (bars_total-1) = newest bar
+   //--- write data rows oldest-first
+   //    idx directly addresses g_time[], g_close[], TEMABuffer[], HRMABuffer[], SMMABuffer[]
+   //    since all share the same oldest=start_idx, newest=g_rates_total-1 direction.
+   //    Warmup (empty) rows therefore appear at the top of the file (oldest bars) as expected.
    for(int i = 0; i < bars_to_export; i++)
      {
-      //--- map copy-array index to indicator buffer index
-      int buf_idx = bars_total - 1 - i;
+      int idx = start_idx + i;  // oldest exported bar at i=0, newest at i=bars_to_export-1
 
-      //--- read indicator values; 0.0 is the empty/uninitialised sentinel
-      string tema_str = (TEMABuffer[buf_idx] != 0.0 ? DoubleToString(TEMABuffer[buf_idx], _Digits) : "");
-      string hrma_str = (HRMABuffer[buf_idx] != 0.0 ? DoubleToString(HRMABuffer[buf_idx], _Digits) : "");
-      string smma_str = (SMMABuffer[buf_idx] != 0.0 ? DoubleToString(SMMABuffer[buf_idx], _Digits) : "");
+      //--- 0.0 is the empty/warmup sentinel set by PlotIndexSetDouble PLOT_EMPTY_VALUE
+      string tema_str = (TEMABuffer[idx] != 0.0 ? DoubleToString(TEMABuffer[idx], _Digits) : "");
+      string hrma_str = (HRMABuffer[idx] != 0.0 ? DoubleToString(HRMABuffer[idx], _Digits) : "");
+      string smma_str = (SMMABuffer[idx] != 0.0 ? DoubleToString(SMMABuffer[idx], _Digits) : "");
 
       string line = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
                                  i,
-                                 TimeToString(time_arr[i], TIME_DATE|TIME_MINUTES),
+                                 TimeToString(g_time[idx],  TIME_DATE|TIME_MINUTES),
                                  symbol,
                                  tf_str,
-                                 DoubleToString(close_arr[i], _Digits),
+                                 DoubleToString(g_close[idx], _Digits),
                                  tema_str,
                                  hrma_str,
                                  smma_str);
