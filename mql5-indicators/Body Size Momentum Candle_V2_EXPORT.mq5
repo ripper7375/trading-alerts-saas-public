@@ -213,8 +213,8 @@ void CalculateZScore(const int position)
     double variance = (sum2 - sum * mean) / (InpZScoreLength - 1);
     double stdDev = MathSqrt(variance);
 
-    // Calculate Z-Score (unsigned - always positive)
-    ZScoreBuffer[position] = (stdDev != 0) ? (BodySizeBuffer[position] - mean) / stdDev : 0;
+    // Calculate Z-Score (unsigned - always positive using MathAbs)
+    ZScoreBuffer[position] = (stdDev != 0) ? MathAbs(BodySizeBuffer[position] - mean) / stdDev : 0;
 }
 
 //+------------------------------------------------------------------+
