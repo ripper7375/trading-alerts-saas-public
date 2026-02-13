@@ -439,26 +439,16 @@ bool BackfillExportSR()
       double bar_close = rates[0].close;
       string timestamp = TimeToString(bar_time, TIME_DATE|TIME_SECONDS);
 
-      // Get SR levels from indicator buffers at this shift
-      double buffers[8];
-      for(int i = 0; i < 8; i++)
-      {
-         double values[1];
-         if(CopyBuffer(0, i, shift, 1, values) > 0)  // 0 = current indicator handle
-            buffers[i] = values[0];
-         else
-            buffers[i] = 0;
-      }
-
-      // Map buffers to SR levels
-      double sr_support_4 = buffers[0];      // BufferZero
-      double sr_support_3 = buffers[1];      // BufferOne
-      double sr_support_2 = buffers[2];      // BufferTwo
-      double sr_support_1 = buffers[3];      // BufferThree
-      double sr_resistance_1 = buffers[4];   // BufferFour
-      double sr_resistance_2 = buffers[5];   // BufferFive
-      double sr_resistance_3 = buffers[6];   // BufferSix
-      double sr_resistance_4 = buffers[7];   // BufferSeven
+      // Get SR levels directly from indicator buffers at this shift
+      // Buffers are set as series (ArraySetAsSeries = true), so index matches shift
+      double sr_support_4 = (shift < ArraySize(BufferZero)) ? BufferZero[shift] : 0;      // 4th support
+      double sr_support_3 = (shift < ArraySize(BufferOne)) ? BufferOne[shift] : 0;        // 3rd support
+      double sr_support_2 = (shift < ArraySize(BufferTwo)) ? BufferTwo[shift] : 0;        // 2nd support
+      double sr_support_1 = (shift < ArraySize(BufferThree)) ? BufferThree[shift] : 0;    // Closest support
+      double sr_resistance_1 = (shift < ArraySize(BufferFour)) ? BufferFour[shift] : 0;   // Closest resistance
+      double sr_resistance_2 = (shift < ArraySize(BufferFive)) ? BufferFive[shift] : 0;   // 2nd resistance
+      double sr_resistance_3 = (shift < ArraySize(BufferSix)) ? BufferSix[shift] : 0;     // 3rd resistance
+      double sr_resistance_4 = (shift < ArraySize(BufferSeven)) ? BufferSeven[shift] : 0; // 4th resistance
 
       // Format values
       string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
