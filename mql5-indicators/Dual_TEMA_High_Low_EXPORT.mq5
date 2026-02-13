@@ -358,9 +358,12 @@ bool ExportData()
     {
         int idx = start_idx + i;  // oldest exported bar at i=0, newest at i=bars_to_export-1
 
-        //--- 0.0 is the empty/warmup sentinel (ArrayInitialize sets this, CalculateTEMA writes 0 during warmup)
-        string tema_high_str = (TEMAHighBuffer[idx] != 0.0 ? DoubleToString(TEMAHighBuffer[idx], _Digits) : "");
-        string tema_low_str  = (TEMALowBuffer[idx]  != 0.0 ? DoubleToString(TEMALowBuffer[idx],  _Digits) : "");
+        //--- skip both 0.0 (explicit warmup sentinel) and EMPTY_VALUE (DBL_MAX, MT5's default
+        //    pre-fill for indicator buffer slots not yet reached by CalculateTEMA)
+        string tema_high_str = (TEMAHighBuffer[idx] != 0.0 && TEMAHighBuffer[idx] != EMPTY_VALUE
+                                ? DoubleToString(TEMAHighBuffer[idx], _Digits) : "");
+        string tema_low_str  = (TEMALowBuffer[idx]  != 0.0 && TEMALowBuffer[idx]  != EMPTY_VALUE
+                                ? DoubleToString(TEMALowBuffer[idx],  _Digits) : "");
 
         string line = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s",
                                    i,

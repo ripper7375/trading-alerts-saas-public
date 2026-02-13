@@ -368,10 +368,14 @@ bool ExportData()
      {
       int idx = start_idx + i;  // oldest exported bar at i=0, newest at i=bars_to_export-1
 
-      //--- 0.0 is the empty/warmup sentinel set by PlotIndexSetDouble PLOT_EMPTY_VALUE
-      string tema_str = (TEMABuffer[idx] != 0.0 ? DoubleToString(TEMABuffer[idx], _Digits) : "");
-      string hrma_str = (HRMABuffer[idx] != 0.0 ? DoubleToString(HRMABuffer[idx], _Digits) : "");
-      string smma_str = (SMMABuffer[idx] != 0.0 ? DoubleToString(SMMABuffer[idx], _Digits) : "");
+      //--- skip both 0.0 (explicit warmup sentinel) and EMPTY_VALUE (DBL_MAX, MT5's default
+      //    pre-fill for indicator buffer slots not yet reached by the MA calculations)
+      string tema_str = (TEMABuffer[idx] != 0.0 && TEMABuffer[idx] != EMPTY_VALUE
+                         ? DoubleToString(TEMABuffer[idx], _Digits) : "");
+      string hrma_str = (HRMABuffer[idx] != 0.0 && HRMABuffer[idx] != EMPTY_VALUE
+                         ? DoubleToString(HRMABuffer[idx], _Digits) : "");
+      string smma_str = (SMMABuffer[idx] != 0.0 && SMMABuffer[idx] != EMPTY_VALUE
+                         ? DoubleToString(SMMABuffer[idx], _Digits) : "");
 
       string line = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
                                  i,
