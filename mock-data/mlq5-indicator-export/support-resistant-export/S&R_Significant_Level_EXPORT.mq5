@@ -92,6 +92,31 @@ double BufferSeven[];
 void CleanLines();  // Forward declaration
 
 //+------------------------------------------------------------------+
+//| Validate S/R level value - filter out invalid/corrupted values   |
+//+------------------------------------------------------------------+
+bool IsValidSRLevel(double value)
+{
+   // Check for EMPTY_VALUE (uninitialized buffers)
+   if(value == EMPTY_VALUE)
+      return false;
+
+   // Check for zero or negative
+   if(value <= 0)
+      return false;
+
+   // Check for extremely large values (corrupted data)
+   // Reasonable price range: 0.0001 to 1,000,000
+   if(value < 0.0001 || value > 1000000.0)
+      return false;
+
+   // Check for NaN or Inf (corrupted floating point)
+   if(!MathIsValidNumber(value))
+      return false;
+
+   return true;
+}
+
+//+------------------------------------------------------------------+
 //| Export Functions - Simplified version                            |
 //+------------------------------------------------------------------+
 string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timeframe)
@@ -441,32 +466,32 @@ bool BackfillExportSR()
 
       // Get SR levels directly from indicator buffers at this shift
       // Buffers are set as series (ArraySetAsSeries = true), so index matches shift
-      // IMPORTANT: Check for EMPTY_VALUE which indicates uncalculated buffer values
+      // Use robust validation to filter out ANY invalid/corrupted values
       double temp_val;
 
       temp_val = (shift < ArraySize(BufferZero)) ? BufferZero[shift] : EMPTY_VALUE;
-      double sr_support_4 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_support_4 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferOne)) ? BufferOne[shift] : EMPTY_VALUE;
-      double sr_support_3 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_support_3 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferTwo)) ? BufferTwo[shift] : EMPTY_VALUE;
-      double sr_support_2 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_support_2 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferThree)) ? BufferThree[shift] : EMPTY_VALUE;
-      double sr_support_1 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_support_1 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferFour)) ? BufferFour[shift] : EMPTY_VALUE;
-      double sr_resistance_1 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_resistance_1 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferFive)) ? BufferFive[shift] : EMPTY_VALUE;
-      double sr_resistance_2 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_resistance_2 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferSix)) ? BufferSix[shift] : EMPTY_VALUE;
-      double sr_resistance_3 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_resistance_3 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       temp_val = (shift < ArraySize(BufferSeven)) ? BufferSeven[shift] : EMPTY_VALUE;
-      double sr_resistance_4 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+      double sr_resistance_4 = IsValidSRLevel(temp_val) ? temp_val : 0;
 
       // Format values
       string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
