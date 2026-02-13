@@ -441,14 +441,32 @@ bool BackfillExportSR()
 
       // Get SR levels directly from indicator buffers at this shift
       // Buffers are set as series (ArraySetAsSeries = true), so index matches shift
-      double sr_support_4 = (shift < ArraySize(BufferZero)) ? BufferZero[shift] : 0;      // 4th support
-      double sr_support_3 = (shift < ArraySize(BufferOne)) ? BufferOne[shift] : 0;        // 3rd support
-      double sr_support_2 = (shift < ArraySize(BufferTwo)) ? BufferTwo[shift] : 0;        // 2nd support
-      double sr_support_1 = (shift < ArraySize(BufferThree)) ? BufferThree[shift] : 0;    // Closest support
-      double sr_resistance_1 = (shift < ArraySize(BufferFour)) ? BufferFour[shift] : 0;   // Closest resistance
-      double sr_resistance_2 = (shift < ArraySize(BufferFive)) ? BufferFive[shift] : 0;   // 2nd resistance
-      double sr_resistance_3 = (shift < ArraySize(BufferSix)) ? BufferSix[shift] : 0;     // 3rd resistance
-      double sr_resistance_4 = (shift < ArraySize(BufferSeven)) ? BufferSeven[shift] : 0; // 4th resistance
+      // IMPORTANT: Check for EMPTY_VALUE which indicates uncalculated buffer values
+      double temp_val;
+
+      temp_val = (shift < ArraySize(BufferZero)) ? BufferZero[shift] : EMPTY_VALUE;
+      double sr_support_4 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferOne)) ? BufferOne[shift] : EMPTY_VALUE;
+      double sr_support_3 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferTwo)) ? BufferTwo[shift] : EMPTY_VALUE;
+      double sr_support_2 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferThree)) ? BufferThree[shift] : EMPTY_VALUE;
+      double sr_support_1 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferFour)) ? BufferFour[shift] : EMPTY_VALUE;
+      double sr_resistance_1 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferFive)) ? BufferFive[shift] : EMPTY_VALUE;
+      double sr_resistance_2 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferSix)) ? BufferSix[shift] : EMPTY_VALUE;
+      double sr_resistance_3 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
+
+      temp_val = (shift < ArraySize(BufferSeven)) ? BufferSeven[shift] : EMPTY_VALUE;
+      double sr_resistance_4 = (temp_val != EMPTY_VALUE && temp_val > 0) ? temp_val : 0;
 
       // Format values
       string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
