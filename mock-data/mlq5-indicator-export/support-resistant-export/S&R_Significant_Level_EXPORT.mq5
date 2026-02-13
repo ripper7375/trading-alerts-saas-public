@@ -56,7 +56,7 @@ input color ResistanceColor = clrRed;              // Resistance Color
 input color SupportColor = clrGreen;               // Support Color
 
 input group "Export Settings"
-input bool InpEnableExport = false;                // Enable Export Button
+input bool InpEnableExport = true;                 // Enable Export Button
 input string InpBaseFileName = "SR_Levels";        // Base file name for export
 
 input string Comment_1 = "====================";    // Indicator Settings
@@ -71,6 +71,7 @@ double LevelBelow = 0;
 int DistanceFromSupport = INT_MAX;
 int DistanceFromResistance = INT_MAX;
 bool Waiting = false;
+int ExportRowNumber = 0;  // Track row number for exports
 
 int ATRHandle, FractalsHandle;
 double BufferFractalsUp[], BufferFractalsDown[];
@@ -133,11 +134,11 @@ void CreateExportButton()
    // Button dimensions
    int button_width = 200;
    int button_height = 50;
-   int x_margin = 250;
-   int y_margin = 100;
+   int x_margin = 10;     // 10 pixels from right edge
+   int y_margin = 10;     // 10 pixels from top
 
-   // Position at right side, higher up from bottom
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_RIGHT_LOWER);
+   // Position at top-right corner for better visibility
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XDISTANCE, x_margin);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, y_margin);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XSIZE, button_width);
@@ -154,7 +155,7 @@ void CreateExportButton()
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BORDER_COLOR, C'0,100,190');
 
    // Button behavior
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_ANCHOR, ANCHOR_RIGHT_LOWER);
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_ANCHOR, ANCHOR_RIGHT_UPPER);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_HIDDEN, false);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_ZORDER, 999);
@@ -163,7 +164,7 @@ void CreateExportButton()
 }
 
 //+------------------------------------------------------------------+
-//| Export Support and Resistance Levels to TXT file                 |
+//| Export Support and Resistance Levels to TXT file (13-column format) |
 //+------------------------------------------------------------------+
 bool ExportSRToTxt()
 {
@@ -179,8 +180,49 @@ bool ExportSRToTxt()
 
    Print("Exporting SR levels to TXT file: ", full_path);
 
+   // Check if file exists to determine if we need to write header
+   bool file_exists = FileIsExist(filename);
+
    ResetLastError();
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+   int file_handle;
+
+   if(file_exists)
+   {
+      // Append to existing file
+      file_handle = FileOpen(filename, FILE_READ|FILE_WRITE|FILE_TXT);
+      if(file_handle != INVALID_HANDLE)
+      {
+         FileSeek(file_handle, 0, SEEK_END);  // Move to end of file
+
+         // Read last line to get last row number
+         FileSeek(file_handle, 0, SEEK_SET);
+         string last_line = "";
+         while(!FileIsEnding(file_handle))
+         {
+            last_line = FileReadString(file_handle);
+         }
+
+         // Extract row number from last line
+         if(StringLen(last_line) > 0)
+         {
+            int tab_pos = StringFind(last_line, "\t");
+            if(tab_pos > 0)
+            {
+               string num_str = StringSubstr(last_line, 0, tab_pos);
+               ExportRowNumber = (int)StringToInteger(num_str);
+            }
+         }
+
+         FileSeek(file_handle, 0, SEEK_END);  // Move back to end
+      }
+   }
+   else
+   {
+      // Create new file
+      file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+      ExportRowNumber = 0;
+   }
+
    int error = GetLastError();
 
    if(file_handle == INVALID_HANDLE)
@@ -190,54 +232,95 @@ bool ExportSRToTxt()
    }
 
    bool write_success = true;
+
+   // Write header if new file
+   if(!file_exists)
+   {
+      string header = "No\tTimeStamp\tSymbol\tTimeframe\tClose\t";
+      header += "sr_support_1\tsr_support_2\tsr_support_3\tsr_support_4\t";
+      header += "sr_resistance_1\tsr_resistance_2\tsr_resistance_3\tsr_resistance_4";
+      write_success &= FileWrite(file_handle, header) > 0;
+   }
+
+   // Increment row number
+   ExportRowNumber++;
+
+   // Get current data
+   datetime current_time = TimeCurrent();
+   string timestamp = TimeToString(current_time, TIME_DATE|TIME_SECONDS);
    double currentClose = iClose(symbol, PERIOD_CURRENT, 0);
 
-   // Write simple header (no metadata)
-   write_success &= FileWrite(file_handle, "Level_Type\tLevel_Price\tDistance_Points\tLevel_Number") > 0;
-
-   // Count and export all levels
-   int level_count = 0;
-
-   // Export support levels (below current price) - from closest to furthest
-   for(int i = ArraySize(Array) - 1; i >= 0; i--)
+   // Format timeframe string
+   string tf_str = "";
+   switch(timeframe)
    {
-      if(Array[i] > 0 && Array[i] < currentClose)
-      {
-         level_count++;
-         int distance = int((currentClose - Array[i]) / Point());
-         string line = StringFormat("SUPPORT\t%.5f\t%d\t%d",
-                                   Array[i],
-                                   distance,
-                                   level_count);
-         write_success &= FileWrite(file_handle, line) > 0;
-      }
+      case PERIOD_M1:  tf_str = "M1"; break;
+      case PERIOD_M5:  tf_str = "M5"; break;
+      case PERIOD_M15: tf_str = "M15"; break;
+      case PERIOD_M30: tf_str = "M30"; break;
+      case PERIOD_H1:  tf_str = "H1"; break;
+      case PERIOD_H4:  tf_str = "H4"; break;
+      case PERIOD_D1:  tf_str = "D1"; break;
+      case PERIOD_W1:  tf_str = "W1"; break;
+      case PERIOD_MN1: tf_str = "MN1"; break;
+      default: tf_str = EnumToString(timeframe); break;
    }
 
-   // Export resistance levels (above current price) - from closest to furthest
-   for(int i = 0; i < ArraySize(Array); i++)
-   {
-      if(Array[i] > currentClose)
-      {
-         level_count++;
-         int distance = int((Array[i] - currentClose) / Point());
-         string line = StringFormat("RESISTANCE\t%.5f\t%d\t%d",
-                                   Array[i],
-                                   distance,
-                                   level_count);
-         write_success &= FileWrite(file_handle, line) > 0;
-      }
-   }
+   // Get SR levels from buffers (already calculated by FillBuffers)
+   // Support levels (closest to furthest)
+   double sr_support_1 = BufferThree[0];   // Closest support
+   double sr_support_2 = BufferTwo[0];     // 2nd closest support
+   double sr_support_3 = BufferOne[0];     // 3rd closest support
+   double sr_support_4 = BufferZero[0];    // 4th closest support
+
+   // Resistance levels (closest to furthest)
+   double sr_resistance_1 = BufferFour[0];    // Closest resistance
+   double sr_resistance_2 = BufferFive[0];    // 2nd closest resistance
+   double sr_resistance_3 = BufferSix[0];     // 3rd closest resistance
+   double sr_resistance_4 = BufferSeven[0];   // 4th closest resistance
+
+   // Format values (use 0 if level not found)
+   string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
+   string support_2_str = (sr_support_2 > 0) ? DoubleToString(sr_support_2, Digits()) : "0";
+   string support_3_str = (sr_support_3 > 0) ? DoubleToString(sr_support_3, Digits()) : "0";
+   string support_4_str = (sr_support_4 > 0) ? DoubleToString(sr_support_4, Digits()) : "0";
+
+   string resistance_1_str = (sr_resistance_1 > 0) ? DoubleToString(sr_resistance_1, Digits()) : "0";
+   string resistance_2_str = (sr_resistance_2 > 0) ? DoubleToString(sr_resistance_2, Digits()) : "0";
+   string resistance_3_str = (sr_resistance_3 > 0) ? DoubleToString(sr_resistance_3, Digits()) : "0";
+   string resistance_4_str = (sr_resistance_4 > 0) ? DoubleToString(sr_resistance_4, Digits()) : "0";
+
+   // Build the data row (13 columns)
+   string data_row = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
+                                   ExportRowNumber,
+                                   timestamp,
+                                   symbol,
+                                   tf_str,
+                                   DoubleToString(currentClose, Digits()),
+                                   support_1_str,
+                                   support_2_str,
+                                   support_3_str,
+                                   support_4_str,
+                                   resistance_1_str,
+                                   resistance_2_str,
+                                   resistance_3_str,
+                                   resistance_4_str);
+
+   write_success &= FileWrite(file_handle, data_row) > 0;
 
    FileClose(file_handle);
 
    if(!write_success)
    {
-      Print("ERROR: Failed to write some data to TXT file");
+      Print("ERROR: Failed to write data to TXT file");
       return false;
    }
 
    Print("Support and Resistance levels successfully exported to TXT file: ", filename);
-   Print("Total levels exported: ", level_count);
+   Print("Row number: ", ExportRowNumber);
+   Print("Support levels: ", support_1_str, ", ", support_2_str, ", ", support_3_str, ", ", support_4_str);
+   Print("Resistance levels: ", resistance_1_str, ", ", resistance_2_str, ", ", resistance_3_str, ", ", resistance_4_str);
+
    return true;
 }
 
