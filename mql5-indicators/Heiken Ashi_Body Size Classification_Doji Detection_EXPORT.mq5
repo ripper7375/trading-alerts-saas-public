@@ -540,6 +540,26 @@ string GetCandleDirection(int classification)
 }
 
 //+------------------------------------------------------------------+
+//| Sanitize double value - replace NaN/Infinity with 0              |
+//+------------------------------------------------------------------+
+double SanitizeDouble(double value)
+{
+    // Check for NaN (NaN != NaN is always true)
+    if(value != value)
+        return 0.0;
+
+    // Check for Infinity
+    if(value > DBL_MAX || value < -DBL_MAX)
+        return 0.0;
+
+    // Check for values that would cause formatting issues
+    if(MathAbs(value) > 1e15)
+        return 0.0;
+
+    return value;
+}
+
+//+------------------------------------------------------------------+
 //| Export Heiken Ashi data to TXT (11 columns)                      |
 //+------------------------------------------------------------------+
 bool ExportHeikenAshiData()
@@ -626,18 +646,37 @@ bool ExportHeikenAshiData()
         // Get Heiken Ashi classification
         int classification = (int)HAColorBuffer[i];
 
+        // Sanitize all double values to prevent NaN/Infinity corruption
+        double ha_open_clean = SanitizeDouble(HAOpenBuffer[i]);
+        double ha_high_clean = SanitizeDouble(HAHighBuffer[i]);
+        double ha_low_clean = SanitizeDouble(HALowBuffer[i]);
+        double ha_close_clean = SanitizeDouble(HACloseBuffer[i]);
+        double body_size_clean = SanitizeDouble(BodySizeBuffer[i]);
+        double zscore_clean = SanitizeDouble(ZScoreBuffer[i]);
+
+        // Debug: Log any sanitized values for first 10 bars
+        if(i < 10 && (ha_open_clean != HAOpenBuffer[i] || ha_high_clean != HAHighBuffer[i] ||
+                      ha_low_clean != HALowBuffer[i] || ha_close_clean != HACloseBuffer[i] ||
+                      body_size_clean != BodySizeBuffer[i] || zscore_clean != ZScoreBuffer[i]))
+        {
+            Print("WARNING: Sanitized invalid values at bar ", i);
+            Print("  Original: open=", HAOpenBuffer[i], " high=", HAHighBuffer[i],
+                  " low=", HALowBuffer[i], " close=", HACloseBuffer[i],
+                  " body=", BodySizeBuffer[i], " zscore=", ZScoreBuffer[i]);
+        }
+
         string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%d\t%.5f\t%.5f",
                                    i,
                                    TimeToString(time[i], TIME_DATE|TIME_MINUTES),
                                    symbol,
                                    EnumToString(timeframe),
-                                   HAOpenBuffer[i],
-                                   HAHighBuffer[i],
-                                   HALowBuffer[i],
-                                   HACloseBuffer[i],
+                                   ha_open_clean,
+                                   ha_high_clean,
+                                   ha_low_clean,
+                                   ha_close_clean,
                                    classification,
-                                   BodySizeBuffer[i],
-                                   ZScoreBuffer[i]);
+                                   body_size_clean,
+                                   zscore_clean);
 
         write_success &= FileWrite(file_handle, line) > 0;
     }
@@ -708,18 +747,26 @@ bool ExportToJson(const string symbol,
 
         int classification = (int)HAColorBuffer[i];
 
+        // Sanitize all double values to prevent NaN/Infinity corruption in JSON
+        double ha_open_clean = SanitizeDouble(HAOpenBuffer[i]);
+        double ha_high_clean = SanitizeDouble(HAHighBuffer[i]);
+        double ha_low_clean = SanitizeDouble(HALowBuffer[i]);
+        double ha_close_clean = SanitizeDouble(HACloseBuffer[i]);
+        double body_size_clean = SanitizeDouble(BodySizeBuffer[i]);
+        double zscore_clean = SanitizeDouble(ZScoreBuffer[i]);
+
         write_success &= FileWrite(file_handle, "        {") > 0;
         write_success &= FileWrite(file_handle, "            \"no\": ", i, ",") > 0;
         write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(time[i], TIME_DATE|TIME_MINUTES), "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"symbol\": \"", symbol, "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"timeframe\": \"", EnumToString(timeframe), "\",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_open\": ", DoubleToString(HAOpenBuffer[i], 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_high\": ", DoubleToString(HAHighBuffer[i], 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_low\": ", DoubleToString(HALowBuffer[i], 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_close\": ", DoubleToString(HACloseBuffer[i], 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_open\": ", DoubleToString(ha_open_clean, 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_high\": ", DoubleToString(ha_high_clean, 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_low\": ", DoubleToString(ha_low_clean, 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_close\": ", DoubleToString(ha_close_clean, 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"ha_classification\": ", classification, ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_body_size\": ", DoubleToString(BodySizeBuffer[i], 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_body_zscore\": ", DoubleToString(ZScoreBuffer[i], 5)) > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_body_size\": ", DoubleToString(body_size_clean, 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_body_zscore\": ", DoubleToString(zscore_clean, 5)) > 0;
         write_success &= FileWrite(file_handle, "        }") > 0;
     }
 
