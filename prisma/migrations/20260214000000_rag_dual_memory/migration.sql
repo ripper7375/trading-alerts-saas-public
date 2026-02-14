@@ -237,32 +237,51 @@ CREATE INDEX IF NOT EXISTS "idx_compliance_audit_risk_level"
 
 -- ----------------------------------------------------------
 -- Enhance existing trades table with behavioral columns
--- (safe — uses IF NOT EXISTS column addition)
+-- Only runs if the "trades" table already exists (created by a prior migration).
+-- When trades is absent the block is skipped entirely — no error.
 -- ----------------------------------------------------------
 
 DO $$
 BEGIN
+    -- Guard: skip the whole block if trades table does not exist yet
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'trades'
+    ) THEN
+        RETURN;
+    END IF;
+
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'trades' AND column_name = 'advice_session_id'
+        WHERE table_schema = 'public'
+          AND table_name   = 'trades'
+          AND column_name  = 'advice_session_id'
     ) THEN
         ALTER TABLE "trades"
-            ADD COLUMN "advice_session_id" TEXT,
-            ADD COLUMN "is_revenge_trade"  BOOLEAN DEFAULT FALSE,
-            ADD COLUMN "is_late_night_trade" BOOLEAN DEFAULT FALSE,
-            ADD COLUMN "is_oversize_trade" BOOLEAN DEFAULT FALSE,
-            ADD COLUMN "advice_followed"   BOOLEAN;
+            ADD COLUMN "advice_session_id"    TEXT,
+            ADD COLUMN "is_revenge_trade"     BOOLEAN DEFAULT FALSE,
+            ADD COLUMN "is_late_night_trade"  BOOLEAN DEFAULT FALSE,
+            ADD COLUMN "is_oversize_trade"    BOOLEAN DEFAULT FALSE,
+            ADD COLUMN "advice_followed"      BOOLEAN;
     END IF;
 END $$;
 
--- Indexes on new trades columns (IF NOT EXISTS via DO block)
+-- Indexes on new trades columns — also guarded by table existence
 DO $$
 BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'trades'
+    ) THEN
+        RETURN;
+    END IF;
+
     IF NOT EXISTS (
         SELECT 1 FROM pg_indexes
         WHERE tablename = 'trades' AND indexname = 'idx_trades_advice_session_id'
     ) THEN
-        CREATE INDEX "idx_trades_advice_session_id" ON "trades" ("advice_session_id");
+        CREATE INDEX "idx_trades_advice_session_id"
+            ON "trades" ("advice_session_id");
     END IF;
 
     IF NOT EXISTS (
