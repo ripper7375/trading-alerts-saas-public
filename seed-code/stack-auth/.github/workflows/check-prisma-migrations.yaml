@@ -1,0 +1,61 @@
+name: Ensure Prisma migrations are in sync with the schema
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
+
+jobs:
+  check_prisma_migrations:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # Even just starting the Docker Compose as a daemon is slow because we have to download and build the images
+      # so, we run it in the background
+      - name: Start Docker Compose in background
+        uses: JarvusInnovations/background-action@v1.0.7
+        with:
+          run: docker compose -f docker/dependencies/docker.compose.yaml up -d &
+          # we don't need to wait on anything, just need to start the daemon
+          wait-on: /dev/null
+          tail: true
+          wait-for: 3s
+          log-output-if: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Wait on Postgres
+        run: pnpm run wait-until-postgres-is-ready:pg_isready
+      
+      - name: Build packages
+        run: pnpm run build:packages
+
+      - name: Codegen
+        run: pnpm run codegen
+
+      - name: Initialize database
+        run: pnpm run db:init
+
+      - name: Check for differences in Prisma schema and current DB
+        run: cd apps/backend && pnpm run prisma:dev migrate diff --from-config-datasource --to-schema ./prisma/schema.prisma --exit-code

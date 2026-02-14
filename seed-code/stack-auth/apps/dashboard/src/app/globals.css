@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100% / 0.5;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-in-card: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-in-card: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 240 4.8% 95.9%;
+    --accent-in-card: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 120 40% 50%;
+    --success-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --border-in-card: 240 5.9% 90%;
+    --input: 240 5.9% 80%;
+    --input-in-card: 240 5.9% 80%;
+    --ring: 240 10% 3.9%;
+
+    --radius: 0.5rem;
+
+    --rainbow-beam-blur: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b, #10b981, #3b82f6);
+    --rainbow-beam-sharp: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6, #fbbf24, #34d399, #60a5fa);
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 9.4% / 0.5;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-in-card: 240 3.7% 23.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-in-card: 240 3.7% 23.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-in-card: 240 3.7% 23.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 120 40% 50%;
+    --success-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 35.9%;
+    --border-in-card: 240 3.7% 43.9%;
+    --input: 240 3.7% 25.9%;
+    --input-in-card: 240 3.7% 43.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+.stack-scope {
+  --background: inherit !important;
+  --foreground: inherit !important;
+
+  --card: inherit !important;
+  --card-foreground: inherit !important;
+
+  --popover: inherit !important;
+  --popover-foreground: inherit !important;
+
+  --primary: inherit !important;
+  --primary-foreground: inherit !important;
+
+  --secondary: inherit !important;
+  --secondary-in-card: inherit !important;
+  --secondary-foreground: inherit !important;
+
+  --muted: inherit !important;
+  --muted-in-card: inherit !important;
+  --muted-foreground: inherit !important;
+
+  --accent: inherit !important;
+  --accent-in-card: inherit !important;
+  --accent-foreground: inherit !important;
+
+  --destructive: inherit !important;
+  --destructive-foreground: inherit !important;
+
+  --success: inherit !important;
+  --success-foreground: inherit !important;
+
+  --border: inherit !important;
+  --border-in-card: inherit !important;
+  --input: inherit !important;
+  --input-in-card: inherit !important;
+  --ring: inherit !important;
+
+  --radius: inherit !important;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.bg-card {
+  box-shadow: 0 0 3px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(12px);
+  background-image: radial-gradient(ellipse at top, #fdfdfd88, transparent), radial-gradient(ellipse at bottom, #ffffff88, transparent);
+  background-color: transparent !important;
+}
+
+.dark .bg-card {
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  background-image: radial-gradient(ellipse at top, #18182288, transparent), radial-gradient(ellipse at bottom, #19191988, transparent);
+  background-color: transparent !important;
+}
+
+.bg-card > * {
+  --secondary: var(--secondary-in-card);
+  --muted: var(--muted-in-card);
+  --accent: var(--accent-in-card);
+  --input: var(--input-in-card);
+  --border: var(--border-in-card);
+}
+
+.site-loading-indicator {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  position: fixed;
+  background: transparent;
+  overflow: hidden;
+  z-index: 9999;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+body:has(.show-site-loading-indicator) .site-loading-indicator {
+  opacity: 1;
+  transition: none;
+}
+.site-loading-indicator > .site-loading-indicator-inner {
+  width: 40%;
+  height: 3px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  animation: animsite-loading-indicator 1s linear infinite;
+  border-radius: 1.5px;
+  background-image: linear-gradient(90deg, 
+    rgba(95, 174, 247, 0) 0%,
+    rgba(95, 174, 247, 1) 64.8%,
+    rgba(107, 93, 247, 1) 84%,
+    rgba(255, 255, 255, 1) 100%
+  );
+}
+.site-loading-indicator > .site-loading-indicator-inner > .site-loading-indicator-inner-glow {
+  position: absolute;
+  inset: -32px;
+  filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.site-loading-indicator > .site-loading-indicator-inner > .site-loading-indicator-inner-glow::after {
+  content: '';
+  position: absolute;
+  inset: 28px;
+  background-image: linear-gradient(90deg, 
+    rgba(95, 174, 247, 0) 0%,
+    rgba(95, 174, 247, 1) 64.8%,
+    rgba(107, 93, 247, 1) 84%,
+    rgba(255, 255, 255, 1) 100%
+  );
+}
+
+@media (min-width: 800px) {
+  .site-loading-indicator > .site-loading-indicator-inner {
+    width: 20%;
+    animation: animsite-loading-indicator 2s linear infinite;
+  }
+}
+
+@keyframes animsite-loading-indicator {
+  0% {
+    left: 0;
+    transform: translateX(-100%);
+  }
+  100% {
+    left: 100%;
+    transform: translateX(0%);
+  }
+}
+
+@keyframes rainbow-beam {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+
+/* Pacifica styles */
+[data-pacifica-surface] {
+  backdrop-filter: contrast(40%) blur(24px);
+  background-color: hsl(var(--background), 0.2);
+  color: hsl(var(--card-foreground));
+}
+
+.dark [data-pacifica-surface] {
+  background-image: radial-gradient(circle at top, #ffffff0d, #ffffff04), radial-gradient(circle at top right,  #ffffff04, transparent, transparent);
+}
+
+[data-pacifica-border] { 
+  border: 2px solid rgba(127, 127, 127, 0.2); 
+  box-shadow: 0 0 3px 3px rgba(0, 0, 0, 0.02);
+}
+
+:where([data-pacifica-children-flex-grow] > *) {
+  flex-grow: 1;
+}
+
+:where([data-pacifica-children-min-width-0] > *) {
+  min-width: 0;
+}
