@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trading-rag"
+version = "1.0.0"
+description = "Dual-memory RAG system for the Trading Alerts SaaS platform"
+requires-python = ">=3.11"
+
+dependencies = [
+    # memsearch — markdown memory + hybrid vector search (local seed-code)
+    # Install from local source: pip install -e ../../seed-code/memsearch
+    # Or from PyPI once published: memsearch>=0.1.0
+    "memsearch>=0.1.0",
+
+    # Milvus Lite (bundled with memsearch, listed for clarity)
+    "pymilvus[model]>=2.4.0",
+
+    # Embedding providers — install the one(s) you use
+    "openai>=1.0.0",           # for embedding_provider="openai"
+    # "google-genai>=0.8.0",   # for embedding_provider="google"
+    # "voyageai>=0.3.0",       # for embedding_provider="voyage"
+
+    # LLM providers for compact() memory compression
+    # anthropic and google-genai are optional; openai is the default
+    # "anthropic>=0.30.0",
+    # "google-genai>=0.8.0",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.30.0"]
+google    = ["google-genai>=0.8.0", "memsearch[google]"]
+voyage    = ["voyageai>=0.3.0", "memsearch[voyage]"]
+ollama    = ["memsearch[ollama]"]
+local     = ["memsearch[local]"]
+dev       = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
