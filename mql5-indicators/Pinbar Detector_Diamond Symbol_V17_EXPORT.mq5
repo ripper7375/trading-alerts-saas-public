@@ -97,7 +97,6 @@ input string                InpManualSymbol    = "";                // Manual Sy
 input ENUM_TIMEFRAMES       InpTimeframe       = PERIOD_CURRENT;    // Timeframe
 input int                   InpBars            = 3000;              // Number of bars to export
 input string                InpBaseFileName    = "PinbarDetector_V17"; // Base file name
-input bool                  InpIncludeMetadata = true;              // Include metadata in TXT export
 input bool                  InpExportJSON      = true;              // Export JSON file
 input bool                  InpCleanFilenames  = true;              // Clean filenames (no .txt extension)
 
@@ -1028,23 +1027,6 @@ bool ExportToTxt(const string symbol,
         }
 
         bool write_success = true;
-
-        // Write metadata header if requested
-        if(InpIncludeMetadata)
-        {
-                write_success &= FileWrite(file_handle, "=== V17 PINBAR DETECTOR EXPORT ===") > 0;
-                write_success &= FileWrite(file_handle, "Symbol: " + symbol) > 0;
-                write_success &= FileWrite(file_handle, "Timeframe: " + EnumToString(timeframe)) > 0;
-                write_success &= FileWrite(file_handle, "Export Time: " + TimeToString(TimeCurrent(), TIME_DATE|TIME_SECONDS)) > 0;
-                write_success &= FileWrite(file_handle, "Number of Bars: " + IntegerToString(bars_count)) > 0;
-                write_success &= FileWrite(file_handle, "Detection Engine: V7.1 Selective Focus") > 0;
-                write_success &= FileWrite(file_handle, "Pinbar Scheme: " + CurrentScheme) > 0;
-                write_success &= FileWrite(file_handle, "Left Eye Mode: " + LeftEyeMode) > 0;
-                write_success &= FileWrite(file_handle, "Parameters: MinWick=" + DoubleToString(MinWickSize, 3) + " MaxBody=" + DoubleToString(MaxNoseBodySize, 3) + " BodyPos=" + DoubleToString(NoseBodyPosition, 3)) > 0;
-                write_success &= FileWrite(file_handle, "Buffer Mapping: Buffer0=BullishPinbars Buffer1=BearishPinbars") > 0;
-                write_success &= FileWrite(file_handle, "pinbar column: 1=pinbar detected (bullish OR bearish), 0=no pinbar") > 0;
-                write_success &= FileWrite(file_handle, "") > 0; // Empty line for readability
-        }
 
         // Write data header - 6-column format
         write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tpinbar") > 0;
