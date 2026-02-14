@@ -588,6 +588,7 @@ bool ExportHeikenAshiData()
     // NOTE: Do NOT use ArraySetAsSeries - keep normal indexing (0 = oldest)
     // This matches the indicator buffer indexing where HAOpenBuffer[0] = oldest bar
     datetime time[];
+    double close[];
 
     if(CopyTime(symbol, timeframe, 0, bars_to_export, time) <= 0)
     {
@@ -595,10 +596,22 @@ bool ExportHeikenAshiData()
         return false;
     }
 
+    if(CopyClose(symbol, timeframe, 0, bars_to_export, close) <= 0)
+    {
+        Print("ERROR: Failed to copy close data");
+        return false;
+    }
+
     // Verify array sizes match
     if(ArraySize(time) != bars_to_export)
     {
         Print("ERROR: Time array size mismatch. Expected: ", bars_to_export, ", Got: ", ArraySize(time));
+        return false;
+    }
+
+    if(ArraySize(close) != bars_to_export)
+    {
+        Print("ERROR: Close array size mismatch. Expected: ", bars_to_export, ", Got: ", ArraySize(close));
         return false;
     }
 
@@ -628,8 +641,8 @@ bool ExportHeikenAshiData()
         write_success &= FileWrite(file_handle, "") > 0;
     }
 
-    // Write header - 11 columns for Heiken Ashi
-    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tha_open\tha_high\tha_low\tha_close\tha_classification\tha_body_size\tha_body_zscore") > 0;
+    // Write header - 12 columns for Heiken Ashi (added Close column)
+    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tha_open\tha_high\tha_low\tha_close\tha_classification\tha_body_size\tha_body_zscore") > 0;
 
     // Write data rows (using Heiken Ashi buffers)
     // NOTE: Normal array indexing where i=0 is the OLDEST bar, i=bars_to_export-1 is the NEWEST bar
@@ -665,11 +678,12 @@ bool ExportHeikenAshiData()
                   " body=", BodySizeBuffer[i], " zscore=", ZScoreBuffer[i]);
         }
 
-        string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%d\t%.5f\t%.5f",
+        string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%d\t%.5f\t%.5f",
                                    i,
                                    TimeToString(time[i], TIME_DATE|TIME_MINUTES),
                                    symbol,
                                    EnumToString(timeframe),
+                                   close[i],
                                    ha_open_clean,
                                    ha_high_clean,
                                    ha_low_clean,
@@ -696,19 +710,20 @@ bool ExportHeikenAshiData()
     if(InpExportJSON)
     {
         string json_filename = GenerateFilename(InpBaseFileName, symbol, timeframe, "json");
-        return ExportToJson(symbol, timeframe, json_filename, time, bars_to_export);
+        return ExportToJson(symbol, timeframe, json_filename, time, close, bars_to_export);
     }
 
     return true;
 }
 
 //+------------------------------------------------------------------+
-//| Export to JSON format (11 columns for Heiken Ashi)               |
+//| Export to JSON format (12 columns for Heiken Ashi)               |
 //+------------------------------------------------------------------+
 bool ExportToJson(const string symbol,
                  const ENUM_TIMEFRAMES timeframe,
                  const string filename,
                  const datetime &time[],
+                 const double &close[],
                  const int bars_count)
 {
     string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
@@ -760,6 +775,7 @@ bool ExportToJson(const string symbol,
         write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(time[i], TIME_DATE|TIME_MINUTES), "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"symbol\": \"", symbol, "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"timeframe\": \"", EnumToString(timeframe), "\",") > 0;
+        write_success &= FileWrite(file_handle, "            \"close\": ", DoubleToString(close[i], 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"ha_open\": ", DoubleToString(ha_open_clean, 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"ha_high\": ", DoubleToString(ha_high_clean, 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"ha_low\": ", DoubleToString(ha_low_clean, 5), ",") > 0;
