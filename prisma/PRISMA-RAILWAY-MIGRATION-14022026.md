@@ -104,7 +104,7 @@ postgresql://postgres:<PASSWORD>@<HOST>.proxy.rlwy.net:<PORT>/railway
 ### Staging Environment (`.env.staging`)
 
 ```env
-DATABASE_URL=postgresql://postgres:<PASSWORD>@turntable.proxy.rlwy.net:55082/railway
+DATABASE_URL=postgresql://postgres:<PASSWORD>@<HOST>.proxy.rlwy.net:<PORT>/railway
 ```
 
 > **Note:** `.env.staging` is committed with staging credentials only.
@@ -459,7 +459,7 @@ createUser: async (data) => {
 
 **Commit:** `abc65c8`
 
-> **Action recommended:** Rotate the MT5 demo account password (`7798026`) and any other credentials that appeared in the deleted file.
+> **Action recommended:** Rotate any credentials (database password, MT5 account password) that appeared in the deleted file.
 
 ---
 
