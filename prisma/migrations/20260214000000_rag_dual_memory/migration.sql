@@ -216,10 +216,8 @@ CREATE TABLE IF NOT EXISTS "compliance_audit" (
     "requires_disclosure" BOOLEAN DEFAULT FALSE,
     "disclosed_at"        TIMESTAMP WITH TIME ZONE,
 
-    -- 7-year retention enforcement
-    "retain_until"        DATE GENERATED ALWAYS AS (
-                              CAST(NOW() AS DATE) + INTERVAL '7 years'
-                          ) STORED,
+    -- 7-year retention enforcement (populated by application on insert)
+    "retain_until"        DATE NOT NULL DEFAULT (CURRENT_DATE + INTERVAL '7 years'),
 
     "occurred_at"         TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     "created_at"          TIMESTAMP WITH TIME ZONE DEFAULT NOW()
