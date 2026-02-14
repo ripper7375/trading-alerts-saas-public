@@ -464,34 +464,44 @@ bool BackfillExportSR()
       double bar_close = rates[0].close;
       string timestamp = TimeToString(bar_time, TIME_DATE|TIME_SECONDS);
 
-      // Get SR levels directly from indicator buffers at this shift
-      // Buffers are set as series (ArraySetAsSeries = true), so index matches shift
-      // Use robust validation to filter out ANY invalid/corrupted values
-      double temp_val;
+      // Calculate S/R levels for THIS SPECIFIC BAR using same logic as FillBuffers()
+      // Search through Array[] to find levels relative to THIS bar's close price
+      double sr_support_1 = 0, sr_support_2 = 0, sr_support_3 = 0, sr_support_4 = 0;
+      double sr_resistance_1 = 0, sr_resistance_2 = 0, sr_resistance_3 = 0, sr_resistance_4 = 0;
 
-      temp_val = (shift < ArraySize(BufferZero)) ? BufferZero[shift] : EMPTY_VALUE;
-      double sr_support_4 = IsValidSRLevel(temp_val) ? temp_val : 0;
+      // Find resistance levels (above this bar's close price)
+      int resistance_count = 0;
+      for(int i = 0; i < ArraySize(Array) && resistance_count < 4; i++)
+      {
+         if(IsValidSRLevel(Array[i]) && Array[i] > bar_close)
+         {
+            switch(resistance_count)
+            {
+               case 0: sr_resistance_1 = Array[i]; break;
+               case 1: sr_resistance_2 = Array[i]; break;
+               case 2: sr_resistance_3 = Array[i]; break;
+               case 3: sr_resistance_4 = Array[i]; break;
+            }
+            resistance_count++;
+         }
+      }
 
-      temp_val = (shift < ArraySize(BufferOne)) ? BufferOne[shift] : EMPTY_VALUE;
-      double sr_support_3 = IsValidSRLevel(temp_val) ? temp_val : 0;
-
-      temp_val = (shift < ArraySize(BufferTwo)) ? BufferTwo[shift] : EMPTY_VALUE;
-      double sr_support_2 = IsValidSRLevel(temp_val) ? temp_val : 0;
-
-      temp_val = (shift < ArraySize(BufferThree)) ? BufferThree[shift] : EMPTY_VALUE;
-      double sr_support_1 = IsValidSRLevel(temp_val) ? temp_val : 0;
-
-      temp_val = (shift < ArraySize(BufferFour)) ? BufferFour[shift] : EMPTY_VALUE;
-      double sr_resistance_1 = IsValidSRLevel(temp_val) ? temp_val : 0;
-
-      temp_val = (shift < ArraySize(BufferFive)) ? BufferFive[shift] : EMPTY_VALUE;
-      double sr_resistance_2 = IsValidSRLevel(temp_val) ? temp_val : 0;
-
-      temp_val = (shift < ArraySize(BufferSix)) ? BufferSix[shift] : EMPTY_VALUE;
-      double sr_resistance_3 = IsValidSRLevel(temp_val) ? temp_val : 0;
-
-      temp_val = (shift < ArraySize(BufferSeven)) ? BufferSeven[shift] : EMPTY_VALUE;
-      double sr_resistance_4 = IsValidSRLevel(temp_val) ? temp_val : 0;
+      // Find support levels (below this bar's close price) - search backwards for closest
+      int support_count = 0;
+      for(int i = ArraySize(Array) - 1; i >= 0 && support_count < 4; i--)
+      {
+         if(IsValidSRLevel(Array[i]) && Array[i] < bar_close)
+         {
+            switch(support_count)
+            {
+               case 0: sr_support_1 = Array[i]; break;  // Closest support
+               case 1: sr_support_2 = Array[i]; break;  // 2nd closest
+               case 2: sr_support_3 = Array[i]; break;  // 3rd closest
+               case 3: sr_support_4 = Array[i]; break;  // 4th closest
+            }
+            support_count++;
+         }
+      }
 
       // Format values
       string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
