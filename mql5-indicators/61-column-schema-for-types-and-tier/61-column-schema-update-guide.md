@@ -29,19 +29,19 @@
 
 Two significant schema improvements were made by `SimpleDataCollector_v2_27_API_GATEWAY.mq5`:
 
-| Change | Type | Description | Benefit |
-|--------|------|-------------|---------|
-| **Symbol column added** | `TEXT` | Added as column 2 (after timestamp) | Self-describing rows, enables efficient multi-symbol queries |
-| **EMA renamed** | Column rename | `ema_26` → `ema` | Consistency with tema/hrma/smma naming pattern |
+| Change                  | Type          | Description                         | Benefit                                                      |
+| ----------------------- | ------------- | ----------------------------------- | ------------------------------------------------------------ |
+| **Symbol column added** | `TEXT`        | Added as column 2 (after timestamp) | Self-describing rows, enables efficient multi-symbol queries |
+| **EMA renamed**         | Column rename | `ema_26` → `ema`                    | Consistency with tema/hrma/smma naming pattern               |
 
 ### Column Count Summary
 
-| Category | v2.0 (60-col) | v3.0 (61-col) | Delta |
-|----|----|----|------|
-| System columns | 8 | **9** | **+1** |
-| FREE tier indicators | 16 | 16 | — |
-| PRO tier indicators | 36 | 36 | — |
-| **Total** | **60** | **61** | **+1** |
+| Category             | v2.0 (60-col) | v3.0 (61-col) | Delta  |
+| -------------------- | ------------- | ------------- | ------ |
+| System columns       | 8             | **9**         | **+1** |
+| FREE tier indicators | 16            | 16            | —      |
+| PRO tier indicators  | 36            | 36            | —      |
+| **Total**            | **60**        | **61**        | **+1** |
 
 ### Symbol Column Details
 
@@ -60,6 +60,7 @@ CREATE TABLE [xauusd] (
 **Value:** Sanitized symbol name (e.g., "xauusd", "eurusd", "btcusd")
 
 **Benefits:**
+
 1. **Self-Describing Rows:** Each row contains complete context (no need to reference table name)
 2. **Multi-Symbol Queries:** Enables efficient queries across symbols in unified tables
 3. **Better Indexing:** Composite indexes on (symbol, timeframe, timestamp) improve performance
@@ -71,6 +72,7 @@ CREATE TABLE [xauusd] (
 **New:** `ema` (consistent with other moving averages)
 
 **Reasoning:**
+
 - All moving averages (tema, hrma, smma) use period-agnostic names
 - The period (26) is configurable in MQ5 via `InpEMA_Period`
 - Column name should not imply a fixed period
@@ -89,6 +91,7 @@ ALTER TABLE [symbol] ADD COLUMN symbol TEXT;
 ```
 
 **Backfill worker v4** (`backfill_worker_api_gateway_v4.py`) is backward compatible with v2.26 (60-col), v2.27+ (61-col), and even pre-v2.26 databases. It:
+
 - Reads all available columns dynamically from SQLite
 - Always adds `symbol` field when sending to API (line 285)
 - Handles both `ema_26` and `ema` column names transparently
@@ -96,6 +99,7 @@ ALTER TABLE [symbol] ADD COLUMN symbol TEXT;
 ### Tier Classification
 
 The `symbol` column is classified as a **system column** (not tier-restricted) because:
+
 1. It's metadata about the row, not an indicator
 2. It's required for data integrity and queries
 3. It should be accessible to all tiers (FREE and PRO)
@@ -271,14 +275,14 @@ The `symbol` column is classified as a **system column** (not tier-restricted) b
 
 ```typescript
 {
-  timestamp: number;    // Unix timestamp (seconds)
-  symbol: string;       // ← NEW: Trading symbol (e.g., 'xauusd', 'eurusd')
-  open: number;         // OHLC data
+  timestamp: number; // Unix timestamp (seconds)
+  symbol: string; // ← NEW: Trading symbol (e.g., 'xauusd', 'eurusd')
+  open: number; // OHLC data
   high: number;
   low: number;
   close: number;
-  volume: number;       // Trading volume
-  timeframe: string;    // 'M1', 'M5', 'M15', 'H1', 'H4', 'D1'
+  volume: number; // Trading volume
+  timeframe: string; // 'M1', 'M5', 'M15', 'H1', 'H4', 'D1'
   collected_at: string; // ISO 8601 timestamp
 }
 ```
@@ -289,14 +293,14 @@ The `symbol` column is classified as a **system column** (not tier-restricted) b
 
 ```typescript
 {
-  diag_asc_line_1: number | null;   // Ascending trendline 1
-  diag_asc_line_2: number | null;   // Ascending trendline 2
-  diag_asc_line_3: number | null;   // Ascending trendline 3
-  diag_desc_line_1: number | null;  // Descending trendline 1
-  diag_desc_line_2: number | null;  // Descending trendline 2
-  diag_desc_line_3: number | null;  // Descending trendline 3
-  diag_high_map: number | null;     // High fractal mapping data
-  diag_low_map: number | null;      // Low fractal mapping data
+  diag_asc_line_1: number | null; // Ascending trendline 1
+  diag_asc_line_2: number | null; // Ascending trendline 2
+  diag_asc_line_3: number | null; // Ascending trendline 3
+  diag_desc_line_1: number | null; // Descending trendline 1
+  diag_desc_line_2: number | null; // Descending trendline 2
+  diag_desc_line_3: number | null; // Descending trendline 3
+  diag_high_map: number | null; // High fractal mapping data
+  diag_low_map: number | null; // Low fractal mapping data
 }
 ```
 
@@ -304,14 +308,14 @@ The `symbol` column is classified as a **system column** (not tier-restricted) b
 
 ```typescript
 {
-  horiz_peak_line_1: number | null;    // Peak resistance line 1
-  horiz_peak_line_2: number | null;    // Peak resistance line 2
-  horiz_peak_line_3: number | null;    // Peak resistance line 3
-  horiz_bottom_line_1: number | null;  // Bottom support line 1
-  horiz_bottom_line_2: number | null;  // Bottom support line 2
-  horiz_bottom_line_3: number | null;  // Bottom support line 3
-  horiz_high_map: number | null;       // High fractal mapping data
-  horiz_low_map: number | null;        // Low fractal mapping data
+  horiz_peak_line_1: number | null; // Peak resistance line 1
+  horiz_peak_line_2: number | null; // Peak resistance line 2
+  horiz_peak_line_3: number | null; // Peak resistance line 3
+  horiz_bottom_line_1: number | null; // Bottom support line 1
+  horiz_bottom_line_2: number | null; // Bottom support line 2
+  horiz_bottom_line_3: number | null; // Bottom support line 3
+  horiz_high_map: number | null; // High fractal mapping data
+  horiz_low_map: number | null; // Low fractal mapping data
 }
 ```
 
@@ -321,10 +325,10 @@ The `symbol` column is classified as a **system column** (not tier-restricted) b
 
 ```typescript
 {
-  tema: number | null;  // Triple Exponential Moving Average
-  hrma: number | null;  // Hull Moving Average
-  smma: number | null;  // Smoothed Moving Average
-  ema: number | null;   // ← RENAMED from ema_26 (Exponential Moving Average)
+  tema: number | null; // Triple Exponential Moving Average
+  hrma: number | null; // Hull Moving Average
+  smma: number | null; // Smoothed Moving Average
+  ema: number | null; // ← RENAMED from ema_26 (Exponential Moving Average)
 }
 ```
 
@@ -348,28 +352,30 @@ The `symbol` column is classified as a **system column** (not tier-restricted) b
 
 **CRITICAL:** Different layers use different ID formats!
 
-| Layer | ID Format | Example | Location |
-|-------|-----------|---------|----------|
-| TypeScript Types | lowercase_snake_case | `dual_tema_hl` | lib/tier/constants.ts |
-| API Metadata | UPPERCASE_SNAKE_CASE | `FRACTAL_HORIZONTAL` | app/api/indicators/route.ts |
-| Database Columns | lowercase_snake_case | `dual_tema_high`, `symbol`, `ema` | PostgreSQL schema |
+| Layer            | ID Format            | Example                           | Location                    |
+| ---------------- | -------------------- | --------------------------------- | --------------------------- |
+| TypeScript Types | lowercase_snake_case | `dual_tema_hl`                    | lib/tier/constants.ts       |
+| API Metadata     | UPPERCASE_SNAKE_CASE | `FRACTAL_HORIZONTAL`              | app/api/indicators/route.ts |
+| Database Columns | lowercase_snake_case | `dual_tema_high`, `symbol`, `ema` | PostgreSQL schema           |
 
 ### 2. Column Name Changes
 
 **CRITICAL:** Handle renamed column for backward compatibility!
 
-| Old Column Name (v2.0) | New Column Name (v3.0) | Type | Notes |
-|----------------------|----------------------|------|-------|
-| (not present) | `symbol` | `TEXT` | NEW system column at position 2 |
-| `ema_26` | `ema` | `REAL` | Renamed for consistency with tema/hrma/smma |
+| Old Column Name (v2.0) | New Column Name (v3.0) | Type   | Notes                                       |
+| ---------------------- | ---------------------- | ------ | ------------------------------------------- |
+| (not present)          | `symbol`               | `TEXT` | NEW system column at position 2             |
+| `ema_26`               | `ema`                  | `REAL` | Renamed for consistency with tema/hrma/smma |
 
 ### 3. Tier Access Rules
 
 **FREE Tier:** **25 total columns** (was 24)
+
 - 9 system columns (was 8) ← **symbol added**
 - 16 FREE indicator columns
 
 **PRO Tier:** **61 total columns** (was 60)
+
 - 9 system columns (was 8) ← **symbol added**
 - 16 FREE indicator columns
 - 36 PRO indicator columns
@@ -379,9 +385,7 @@ The `symbol` column is classified as a **system column** (not tier-restricted) b
 ```typescript
 // Filter columns based on tier
 const allowedColumns =
-  tier === 'PRO'
-    ? ALL_61_COLUMNS
-    : SYSTEM_COLUMNS + FREE_TIER_COLUMNS; // 25 columns (was 24)
+  tier === 'PRO' ? ALL_61_COLUMNS : SYSTEM_COLUMNS + FREE_TIER_COLUMNS; // 25 columns (was 24)
 
 // Constants update required:
 // Was: ALL_60_COLUMNS_SELECT
@@ -811,7 +815,7 @@ export interface MarketDataRecord {
 export const ALL_61_COLUMNS_SELECT = {
   // System columns (9)
   timestamp: true,
-  symbol: true,        // ← NEW in v3.0
+  symbol: true, // ← NEW in v3.0
   open: true,
   high: true,
   low: true,
@@ -842,7 +846,7 @@ export const ALL_61_COLUMNS_SELECT = {
   tema: true,
   hrma: true,
   smma: true,
-  ema: true,              // ← RENAMED from ema_26 in v3.0
+  ema: true, // ← RENAMED from ema_26 in v3.0
   body_size: true,
   body_direction: true,
   ha_open: true,
@@ -880,7 +884,7 @@ export const ALL_61_COLUMNS_SELECT = {
 
 export const SYSTEM_COLUMNS_SELECT = {
   timestamp: true,
-  symbol: true,        // ← NEW in v3.0
+  symbol: true, // ← NEW in v3.0
   open: true,
   high: true,
   low: true,
@@ -891,7 +895,7 @@ export const SYSTEM_COLUMNS_SELECT = {
 };
 
 export const FREE_TIER_SELECT = {
-  ...SYSTEM_COLUMNS_SELECT,  // 9 columns (was 8)
+  ...SYSTEM_COLUMNS_SELECT, // 9 columns (was 8)
   // FREE tier indicators (16 columns)
   diag_asc_line_1: true,
   diag_asc_line_2: true,
@@ -979,7 +983,7 @@ export interface MarketDataRecord {
 export interface MarketDataRecord {
   // System (9)
   timestamp: number;
-  symbol: string;        // ← NEW
+  symbol: string; // ← NEW
   open: number;
   high: number;
   low: number;
@@ -990,7 +994,7 @@ export interface MarketDataRecord {
 
   // ... indicators ...
 
-  ema: number | null;    // ← RENAMED from ema_26
+  ema: number | null; // ← RENAMED from ema_26
   zigzag_high: number | null;
   zigzag_low: number | null;
   zigzag_trend: number | null;
@@ -1016,9 +1020,9 @@ it('should use ema_26 field name', () => {
 
 // AFTER (v3.0):
 it('should have correct column counts', () => {
-  expect(SYSTEM_COLUMNS).toHaveLength(9);   // ← +1
+  expect(SYSTEM_COLUMNS).toHaveLength(9); // ← +1
   expect(FREE_TIER_COLUMNS).toHaveLength(25); // ← +1
-  expect(PRO_TIER_COLUMNS).toHaveLength(61);  // ← +1
+  expect(PRO_TIER_COLUMNS).toHaveLength(61); // ← +1
 });
 
 it('should include symbol field', () => {
@@ -1039,7 +1043,7 @@ it('should use ema field name (not ema_26)', () => {
 const mockMarketDataPRO: MarketDataRecord = {
   // System (9)
   timestamp: 1705324800,
-  symbol: 'xauusd',      // ← NEW
+  symbol: 'xauusd', // ← NEW
   open: 43265,
   high: 43300,
   low: 43200,
@@ -1054,7 +1058,7 @@ const mockMarketDataPRO: MarketDataRecord = {
   tema: 43260,
   hrma: 43255,
   smma: 43258,
-  ema: 43257,           // ← RENAMED from ema_26
+  ema: 43257, // ← RENAMED from ema_26
   // ... rest of PRO indicators ...
   dual_tema_high: 43285,
   dual_tema_low: 43245,
@@ -1068,19 +1072,19 @@ const mockMarketDataPRO: MarketDataRecord = {
 
 ### What Requires Changes
 
-| Component | Change Required | Notes |
-|-----------|----------------|-------|
-| `prisma/schema.prisma` | ✅ Yes | Add `symbol` field, rename `ema_26` to `ema` |
-| `lib/tier/types.ts` | ✅ Yes | Add `symbol`, rename `ema_26` to `ema` |
-| `lib/tier/constants.ts` | ✅ Yes | Add `symbol` to selects, rename `ema_26` |
-| `frontend/lib/tier/constants.ts` | ✅ Yes | Sync with backend |
-| `app/api/indicators/route.ts` | ⚠️ Maybe | Update if column counts referenced |
-| `app/api/indicators/[s]/[tf]/route.ts` | ✅ Yes | Update select to `ALL_61_COLUMNS_SELECT` |
-| Test files | ✅ Yes | Update counts, add `symbol`, rename `ema_26` |
-| EA (.mq5 file) | ✅ Done | v2.27 already implemented |
-| backfill_worker.py | ✅ Done | v4 already implemented |
-| SQLite databases | ✅ Auto | EA v2.27 adds `symbol` column on startup |
-| Existing PostgreSQL rows | ⚠️ Migration | Need to populate `symbol` from table metadata |
+| Component                              | Change Required | Notes                                         |
+| -------------------------------------- | --------------- | --------------------------------------------- |
+| `prisma/schema.prisma`                 | ✅ Yes          | Add `symbol` field, rename `ema_26` to `ema`  |
+| `lib/tier/types.ts`                    | ✅ Yes          | Add `symbol`, rename `ema_26` to `ema`        |
+| `lib/tier/constants.ts`                | ✅ Yes          | Add `symbol` to selects, rename `ema_26`      |
+| `frontend/lib/tier/constants.ts`       | ✅ Yes          | Sync with backend                             |
+| `app/api/indicators/route.ts`          | ⚠️ Maybe        | Update if column counts referenced            |
+| `app/api/indicators/[s]/[tf]/route.ts` | ✅ Yes          | Update select to `ALL_61_COLUMNS_SELECT`      |
+| Test files                             | ✅ Yes          | Update counts, add `symbol`, rename `ema_26`  |
+| EA (.mq5 file)                         | ✅ Done         | v2.27 already implemented                     |
+| backfill_worker.py                     | ✅ Done         | v4 already implemented                        |
+| SQLite databases                       | ✅ Auto         | EA v2.27 adds `symbol` column on startup      |
+| Existing PostgreSQL rows               | ⚠️ Migration    | Need to populate `symbol` from table metadata |
 
 ### What Does NOT Change
 
@@ -1113,20 +1117,20 @@ const mockMarketDataPRO: MarketDataRecord = {
 
 ### Quick Reference
 
-| Aspect | FREE Tier | PRO Tier |
-|--------|-----------|----------|
-| Total Columns | **25** (↑24) | **61** (↑60) |
-| System Columns | **9** (↑8) | **9** (↑8) |
-| Indicator Columns | 16 | 52 |
-| Symbol Column | ✅ Yes | ✅ Yes |
-| EMA Column | N/A (PRO) | ✅ `ema` |
+| Aspect            | FREE Tier    | PRO Tier     |
+| ----------------- | ------------ | ------------ |
+| Total Columns     | **25** (↑24) | **61** (↑60) |
+| System Columns    | **9** (↑8)   | **9** (↑8)   |
+| Indicator Columns | 16           | 52           |
+| Symbol Column     | ✅ Yes       | ✅ Yes       |
+| EMA Column        | N/A (PRO)    | ✅ `ema`     |
 
 ### Schema Changes at a Glance
 
-| Change | Type | Position | Impact |
-|--------|------|----------|--------|
-| **symbol added** | NEW column | Column 2 | All tiers (+1 system column) |
-| **ema_26 → ema** | Renamed | PRO section | PRO tier only (naming consistency) |
+| Change           | Type       | Position    | Impact                             |
+| ---------------- | ---------- | ----------- | ---------------------------------- |
+| **symbol added** | NEW column | Column 2    | All tiers (+1 system column)       |
+| **ema_26 → ema** | Renamed    | PRO section | PRO tier only (naming consistency) |
 
 ---
 
