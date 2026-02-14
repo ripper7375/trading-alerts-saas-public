@@ -1,0 +1,116 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "STACK_*",
+    "CRON_SECRET",
+    "NEXT_PUBLIC_*",
+    "NEXT_PUBLIC_SENTRY_*",
+    "SENTRY_*",
+    "VERCEL_GIT_COMMIT_SHA",
+    "NEXT_PUBLIC_POSTHOG_*",
+    "POSTHOG_*",
+    "NODE_ENV",
+    "QUETZAL_*",
+    "OTEL_*",
+    "DISCORD_WEBHOOK_URL",
+    "DISCORD_CHANNEL_ID",
+    "DISCORD_BOT_TOKEN",
+    "ENABLE_EXPERIMENTAL_COREPACK"
+  ],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env",
+        ".env.local",
+        ".env.development",
+        ".env.development.local",
+        ".env.production",
+        ".env.production.local"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next",
+        "dist/**",
+        "lib/**",
+        "*.js",
+        "*.d.ts",
+        "*.d.ts.map"
+      ],
+      "outputLogs": "new-only"
+    },
+    "docker-build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env",
+        ".env.local",
+        ".env.development",
+        ".env.development.local",
+        ".env.production",
+        ".env.production.local"
+      ],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next",
+        "dist/**",
+        "lib/**",
+        "*.js",
+        "*.d.ts",
+        "*.d.ts.map"
+      ],
+      "outputLogs": "new-only"
+    },
+    "@stackframe/stack-backend#build": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "@stackframe/stack-backend#codegen": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "clean": {
+      "cache": false
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "start": {
+      "persistent": true,
+      "cache": false
+    },
+    "lint": {
+      "dependsOn": []
+    },
+    "codegen": {
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": []
+    },
+    "generate-keys": {
+      "cache": false
+    },
+    "db:migration-gen": {
+      "cache": false
+    },
+    "db:reset": {
+      "cache": false
+    },
+    "db:seed": {
+      "cache": false
+    },
+    "db:init": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    }
+  }
+}

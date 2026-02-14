@@ -1,0 +1,116 @@
+name: Lint & build
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
+
+jobs:
+  lint_and_build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create .env.production.local file for apps/backend
+        run: cp apps/backend/.env.development apps/backend/.env.production.local
+
+      - name: Create .env.production.local file for apps/dashboard
+        run: cp apps/dashboard/.env.development apps/dashboard/.env.production.local
+      
+      - name: Create .env.production.local file for apps/e2e
+        run: cp apps/e2e/.env.development apps/e2e/.env.production.local
+
+      - name: Create .env.production.local file for docs
+        run: cp docs/.env.development docs/.env.production.local
+
+      - name: Create .env.production.local file for examples/cjs-test
+        run: cp examples/cjs-test/.env.development examples/cjs-test/.env.production.local
+      
+      - name: Create .env.production.local file for examples/demo
+        run: cp examples/demo/.env.development examples/demo/.env.production.local
+
+      - name: Create .env.production.local file for examples/docs-examples
+        run: cp examples/docs-examples/.env.development examples/docs-examples/.env.production.local
+
+      - name: Create .env.production.local file for examples/e-commerce
+        run: cp examples/e-commerce/.env.development examples/e-commerce/.env.production.local
+
+      - name: Create .env.production.local file for examples/middleware
+        run: cp examples/middleware/.env.development examples/middleware/.env.production.local
+
+      - name: Create .env.production.local file for examples/supabase
+        run: cp examples/supabase/.env.development examples/supabase/.env.production.local
+
+      - name: Create .env.production.local file for examples/convex
+        run: cp examples/convex/.env.development examples/convex/.env.production.local
+
+      - name: Build
+        run: pnpm build
+        
+      - name: Lint
+        run: pnpm lint
+      
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Store Quetzal API key in packages/stack/.env.local to prepare for code gen
+        run: echo "QUETZAL_API_KEY=${{ secrets.QUETZAL_API_KEY }}" > packages/stack/.env.local
+
+      - name: Run code gen  # so we can check for uncommitted changes afterwards; `build` doesn't regenerate some committed files, eg. Quetzal
+        run: pnpm codegen
+      
+      - name: Check for uncommitted changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Error: There are uncommitted changes after build/lint/typecheck."
+            echo "Please commit all changes before pushing."
+            echo ""
+            echo "Files with uncommitted changes:"
+            git status --porcelain
+            echo ""
+            echo "Full git status:"
+            git status
+            echo ""
+            echo "Diff of changes:"
+            git diff
+            exit 1
+          fi
+      
+      - name: Check for uncommitted changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Error: There are uncommitted changes after build/lint/typecheck."
+            echo "Please commit all changes before pushing."
+            echo ""
+            echo "Files with uncommitted changes:"
+            git status --porcelain
+            echo ""
+            echo "Full git status:"
+            git status
+            echo ""
+            echo "Diff of changes:"
+            git diff
+            exit 1
+          fi
