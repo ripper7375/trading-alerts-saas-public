@@ -567,7 +567,9 @@ bool ExportKeltnerData()
 
     // Get the data
     datetime time[];
+    double close[];
     ArraySetAsSeries(time, true);
+    ArraySetAsSeries(close, true);
 
     // Copy time data
     ResetLastError();
@@ -581,12 +583,24 @@ bool ExportKeltnerData()
         return false;
     }
 
+    // Copy close data
+    ResetLastError();
+    int close_copied = CopyClose(symbol, timeframe, 0, bars_to_export, close);
+    error = GetLastError();
+
+    if(close_copied != bars_to_export)
+    {
+        Print("ERROR: Failed copying close data. Requested: ", bars_to_export,
+              ", Got: ", close_copied, ", Error: ", error);
+        return false;
+    }
+
     // Export the data to both formats
-    bool txt_success = ExportToTxt(symbol, timeframe, txt_filename, time, bars_to_export);
+    bool txt_success = ExportToTxt(symbol, timeframe, txt_filename, time, close, bars_to_export);
 
     bool json_success = true;
     if(InpExportJSON)
-        json_success = ExportToJson(symbol, timeframe, json_filename, time, bars_to_export);
+        json_success = ExportToJson(symbol, timeframe, json_filename, time, close, bars_to_export);
 
     return txt_success && (InpExportJSON ? json_success : true);
 }
@@ -598,6 +612,7 @@ bool ExportToTxt(const string symbol,
                  const ENUM_TIMEFRAMES timeframe,
                  const string filename,
                  const datetime &time[],
+                 const double &close[],
                  const int bars_count)
 {
     string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
@@ -637,8 +652,8 @@ bool ExportToTxt(const string symbol,
         write_success &= FileWrite(file_handle, "") > 0;  // Empty line
     }
 
-    // Write 14-column data header
-    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tkc_ultra_extreme_upper\tkc_extreme_upper\tkc_uppermost\tkc_upper\tkc_upper_middle\tkc_lower_middle\tkc_lower\tkc_lowermost\tkc_extreme_lower\tkc_ultra_extreme_lower") > 0;
+    // Write 15-column data header
+    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tkc_ultra_extreme_upper\tkc_extreme_upper\tkc_uppermost\tkc_upper\tkc_upper_middle\tkc_lower_middle\tkc_lower\tkc_lowermost\tkc_extreme_lower\tkc_ultra_extreme_lower") > 0;
 
     // Get current chart data size to properly index buffers
     int chart_bars = iBars(symbol, timeframe);
@@ -653,11 +668,12 @@ bool ExportToTxt(const string symbol,
         if(buffer_index < 0 || buffer_index >= ArraySize(UltraExtremeUpperBandBuffer))
             continue;
 
-        string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f",
+        string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f",
                                   i,
                                   TimeToString(time[i], TIME_DATE|TIME_MINUTES),
                                   symbol,
                                   tf_str,
+                                  close[i],
                                   UltraExtremeUpperBandBuffer[buffer_index],
                                   ExtremeUpperBandBuffer[buffer_index],
                                   UpperMostBandBuffer[buffer_index],
@@ -691,6 +707,7 @@ bool ExportToJson(const string symbol,
                   const ENUM_TIMEFRAMES timeframe,
                   const string filename,
                   const datetime &time[],
+                  const double &close[],
                   const int bars_count)
 {
     string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
@@ -751,6 +768,7 @@ bool ExportToJson(const string symbol,
         write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(time[i], TIME_DATE|TIME_MINUTES), "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"symbol\": \"", symbol, "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"timeframe\": \"", tf_str, "\",") > 0;
+        write_success &= FileWrite(file_handle, "            \"close\": ", DoubleToString(close[i], 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"kc_ultra_extreme_upper\": ", DoubleToString(UltraExtremeUpperBandBuffer[buffer_index], 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"kc_extreme_upper\": ", DoubleToString(ExtremeUpperBandBuffer[buffer_index], 5), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"kc_uppermost\": ", DoubleToString(UpperMostBandBuffer[buffer_index], 5), ",") > 0;
