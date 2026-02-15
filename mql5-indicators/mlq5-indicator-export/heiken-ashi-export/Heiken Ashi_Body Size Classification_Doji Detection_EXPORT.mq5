@@ -162,9 +162,15 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    ObjectDelete(0, EXPORT_BUTTON_NAME);
-    if(InpEnableBatchExport)
+    // Delete export button objects
+    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0)
+        ObjectDelete(0, EXPORT_BUTTON_NAME);
+
+    if(InpEnableBatchExport && ObjectFind(0, BATCH_EXPORT_BUTTON_NAME) >= 0)
         ObjectDelete(0, BATCH_EXPORT_BUTTON_NAME);
+
+    // Force chart redraw to remove objects immediately
+    ChartRedraw(0);
 
     Print("Enhanced Heiken Ashi with Doji Detection + Export deinitialized");
 }
@@ -678,18 +684,19 @@ bool ExportHeikenAshiData()
                   " body=", BodySizeBuffer[i], " zscore=", ZScoreBuffer[i]);
         }
 
-        string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%d\t%.5f\t%.5f",
+        // Use symbol's digit precision for price values, fixed precision for zscore
+        string line = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%.5f",
                                    i,
                                    TimeToString(time[i], TIME_DATE|TIME_MINUTES),
                                    symbol,
                                    EnumToString(timeframe),
-                                   close[i],
-                                   ha_open_clean,
-                                   ha_high_clean,
-                                   ha_low_clean,
-                                   ha_close_clean,
+                                   DoubleToString(close[i], _Digits),
+                                   DoubleToString(ha_open_clean, _Digits),
+                                   DoubleToString(ha_high_clean, _Digits),
+                                   DoubleToString(ha_low_clean, _Digits),
+                                   DoubleToString(ha_close_clean, _Digits),
                                    classification,
-                                   body_size_clean,
+                                   DoubleToString(body_size_clean, _Digits),
                                    zscore_clean);
 
         write_success &= FileWrite(file_handle, line) > 0;
@@ -775,13 +782,13 @@ bool ExportToJson(const string symbol,
         write_success &= FileWrite(file_handle, "            \"timestamp\": \"", TimeToString(time[i], TIME_DATE|TIME_MINUTES), "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"symbol\": \"", symbol, "\",") > 0;
         write_success &= FileWrite(file_handle, "            \"timeframe\": \"", EnumToString(timeframe), "\",") > 0;
-        write_success &= FileWrite(file_handle, "            \"close\": ", DoubleToString(close[i], 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_open\": ", DoubleToString(ha_open_clean, 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_high\": ", DoubleToString(ha_high_clean, 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_low\": ", DoubleToString(ha_low_clean, 5), ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_close\": ", DoubleToString(ha_close_clean, 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"close\": ", DoubleToString(close[i], _Digits), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_open\": ", DoubleToString(ha_open_clean, _Digits), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_high\": ", DoubleToString(ha_high_clean, _Digits), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_low\": ", DoubleToString(ha_low_clean, _Digits), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_close\": ", DoubleToString(ha_close_clean, _Digits), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"ha_classification\": ", classification, ",") > 0;
-        write_success &= FileWrite(file_handle, "            \"ha_body_size\": ", DoubleToString(body_size_clean, 5), ",") > 0;
+        write_success &= FileWrite(file_handle, "            \"ha_body_size\": ", DoubleToString(body_size_clean, _Digits), ",") > 0;
         write_success &= FileWrite(file_handle, "            \"ha_body_zscore\": ", DoubleToString(zscore_clean, 5)) > 0;
         write_success &= FileWrite(file_handle, "        }") > 0;
     }
