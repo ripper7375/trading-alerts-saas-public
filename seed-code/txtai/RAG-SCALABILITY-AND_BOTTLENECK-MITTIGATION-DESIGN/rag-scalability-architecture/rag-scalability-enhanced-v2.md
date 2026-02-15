@@ -398,6 +398,36 @@ User Query → WebSocket Gateway → BullMQ Queue → RAG Worker →
 │  • Stage 2 (25K users): Add 1 more read replica                      │
 │  • Stage 3 (50K+ users): Upgrade to db.r5.xlarge + 4 replicas       │
 │  • Stage 4 (100K+ users): Consider Citus sharding                    │
+│                                                                          │
+│  ⚠️  CRITICAL: Read Replicas ≠ Backups                                 │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│
+│  Read replicas provide:                                                │
+│  • ✅ High availability (failover <30s)                                │
+│  • ✅ Read scalability                                                  │
+│  • ✅ Zero data loss on hardware failure                               │
+│                                                                          │
+│  Read replicas DO NOT protect against:                                │
+│  • ❌ Accidental data deletion (DELETE without WHERE)                  │
+│  • ❌ Data corruption from bad migrations                              │
+│  • ❌ Ransomware attacks                                                │
+│  • ❌ Application bugs that corrupt data                               │
+│                                                                          │
+│  Why? Replicas replicate EVERYTHING in real-time, including mistakes. │
+│                                                                          │
+│  📚 Comprehensive Backup & Disaster Recovery Strategy:                 │
+│  See separate document: backup-disaster-recovery-strategy.md           │
+│                                                                          │
+│  The backup strategy document covers:                                  │
+│  • Automated daily backups (2 AM UTC)                                  │
+│  • Continuous WAL archiving (point-in-time recovery)                  │
+│  • Manual pre-migration snapshots                                      │
+│  • 30-day retention policy                                             │
+│  • Recovery procedures for all disaster scenarios                      │
+│  • Monthly backup testing & quarterly DR drills                        │
+│  • Team responsibilities (RACI matrix)                                 │
+│  • Compliance (GDPR, PCI DSS)                                          │
+│                                                                          │
+│  Responsibility: DevOps/Infrastructure Team owns backup operations     │
 └─────────────────────────────────────────────────────────────────────────┘
                               ↕
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -2333,6 +2363,12 @@ This enhanced v2.0 architecture incorporates battle-tested PostgreSQL scaling pa
 ---
 
 ## References
+
+### Internal Documentation
+
+- **[Backup & Disaster Recovery Strategy](backup-disaster-recovery-strategy.md)** - Comprehensive backup procedures, recovery runbooks, and DR testing (Owner: DevOps Team)
+
+### External Resources
 
 - [PostgreSQL Replication Documentation](https://www.postgresql.org/docs/16/high-availability.html)
 - [pgBouncer Documentation](https://www.pgbouncer.org/)
