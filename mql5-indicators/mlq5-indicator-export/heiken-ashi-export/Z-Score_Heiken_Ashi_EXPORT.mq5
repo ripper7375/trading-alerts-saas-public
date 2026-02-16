@@ -48,6 +48,7 @@ input int    DojiDistance = 0;               // Distance from candle in points
 
 // Input parameters for Export
 input string ExportSection = "=== DATA EXPORT SETTINGS ==="; // Export Settings
+input int    InpMaxBarsExport   = 0;                  // Max bars to export (0 = all available bars)
 input color  InpButtonColor     = clrDodgerBlue;   // Export button color
 input color  InpButtonTextColor = clrWhite;         // Export button text color
 input int    InpButtonXSize     = 140;              // Export button width
@@ -322,6 +323,15 @@ void ExportData()
 
     // Determine export start index (only bars with valid Z-Score)
     int exportStart = InpZScoreLength;
+
+    // Apply max bars limit if configured (export most recent N bars)
+    if(InpMaxBarsExport > 0)
+    {
+        int earliestAllowed = totalBars - InpMaxBarsExport;
+        if(earliestAllowed > exportStart)
+            exportStart = earliestAllowed;
+    }
+
     int rowNum = 0;
 
     for(int i = exportStart; i < totalBars && !IsStopped(); i++)
