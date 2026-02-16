@@ -10,15 +10,15 @@
 
 The Top Bar is a horizontal control strip above the chart providing:
 
-| Control | Function | User Action |
-|---------|----------|-------------|
-| **Timeframe Selector** | Switch OHLCV candle interval | Dropdown: 1s → 6M (24 options) |
-| **Timezone Selector** | Change time axis display timezone | Dropdown: 21 timezones |
-| **Chart Type Selector** | Switch chart visualization style | Dropdown: 13 chart types |
-| **f(x) Indicators** | Add/remove technical indicators | Searchable modal |
-| **Fullscreen** | Toggle fullscreen mode | Button click |
-| **Screenshot** | Capture chart image | Button click |
-| **Theme Toggle** | Switch dark/light mode | Animated toggle |
+| Control                 | Function                          | User Action                    |
+| ----------------------- | --------------------------------- | ------------------------------ |
+| **Timeframe Selector**  | Switch OHLCV candle interval      | Dropdown: 1s → 6M (24 options) |
+| **Timezone Selector**   | Change time axis display timezone | Dropdown: 21 timezones         |
+| **Chart Type Selector** | Switch chart visualization style  | Dropdown: 13 chart types       |
+| **f(x) Indicators**     | Add/remove technical indicators   | Searchable modal               |
+| **Fullscreen**          | Toggle fullscreen mode            | Button click                   |
+| **Screenshot**          | Capture chart image               | Button click                   |
+| **Theme Toggle**        | Switch dark/light mode            | Animated toggle                |
 
 **Key fact:** TradingView Lightweight Charts provides NONE of this UI. It is 100% custom React code.
 
@@ -52,15 +52,15 @@ The TopPanel is a React class component receiving props from the parent CandleVi
 ```typescript
 // TopPanel props (passed from CandleView)
 interface TopPanelProps {
-  chart: IChartApi;                          // lightweight-charts instance
-  chartSeries: ChartSeries | null;           // Current active series
-  currentTheme: ThemeConfig;                 // Dark/light theme config
-  currentTimeframe: TimeframeEnum;           // Active timeframe
-  currentTimezone: TimezoneEnum;             // Active timezone
-  currentMainChartType: MainChartType;       // Active chart type
-  mainChartIndicators: string[];             // Active main indicators
-  subChartIndicators: string[];              // Active sub-chart indicators
-  i18n: I18n;                                // Internationalization strings
+  chart: IChartApi; // lightweight-charts instance
+  chartSeries: ChartSeries | null; // Current active series
+  currentTheme: ThemeConfig; // Dark/light theme config
+  currentTimeframe: TimeframeEnum; // Active timeframe
+  currentTimezone: TimezoneEnum; // Active timezone
+  currentMainChartType: MainChartType; // Active chart type
+  mainChartIndicators: string[]; // Active main indicators
+  subChartIndicators: string[]; // Active sub-chart indicators
+  i18n: I18n; // Internationalization strings
   onTimeframeChange: (tf: TimeframeEnum) => void;
   onTimezoneChange: (tz: TimezoneEnum) => void;
   onMainChartTypeChange: (type: MainChartType) => void;
@@ -68,9 +68,9 @@ interface TopPanelProps {
   onFullscreen: () => void;
   onScreenshot: () => void;
   onThemeToggle: () => void;
-  toppanel?: boolean;                        // Show/hide top panel
-  fullscreen?: boolean;                      // Fullscreen button enabled
-  screenshot?: boolean;                      // Screenshot button enabled
+  toppanel?: boolean; // Show/hide top panel
+  fullscreen?: boolean; // Fullscreen button enabled
+  screenshot?: boolean; // Screenshot button enabled
 }
 ```
 
@@ -100,19 +100,35 @@ interface TopPanelProps {
 // Available timeframes organized by section
 enum TimeframeEnum {
   // Seconds
-  ONE_SECOND = '1s', FIVE_SECONDS = '5s', FIFTEEN_SECONDS = '15s', THIRTY_SECONDS = '30s',
+  ONE_SECOND = '1s',
+  FIVE_SECONDS = '5s',
+  FIFTEEN_SECONDS = '15s',
+  THIRTY_SECONDS = '30s',
   // Minutes
-  ONE_MINUTE = '1m', THREE_MINUTES = '3m', FIVE_MINUTES = '5m',
-  FIFTEEN_MINUTES = '15m', THIRTY_MINUTES = '30m', FORTY_FIVE_MINUTES = '45m',
+  ONE_MINUTE = '1m',
+  THREE_MINUTES = '3m',
+  FIVE_MINUTES = '5m',
+  FIFTEEN_MINUTES = '15m',
+  THIRTY_MINUTES = '30m',
+  FORTY_FIVE_MINUTES = '45m',
   // Hours
-  ONE_HOUR = '1H', TWO_HOURS = '2H', THREE_HOURS = '3H',
-  FOUR_HOURS = '4H', SIX_HOURS = '6H', EIGHT_HOURS = '8H', TWELVE_HOURS = '12H',
+  ONE_HOUR = '1H',
+  TWO_HOURS = '2H',
+  THREE_HOURS = '3H',
+  FOUR_HOURS = '4H',
+  SIX_HOURS = '6H',
+  EIGHT_HOURS = '8H',
+  TWELVE_HOURS = '12H',
   // Days
-  ONE_DAY = '1D', THREE_DAYS = '3D',
+  ONE_DAY = '1D',
+  THREE_DAYS = '3D',
   // Weeks
-  ONE_WEEK = '1W', TWO_WEEKS = '2W',
+  ONE_WEEK = '1W',
+  TWO_WEEKS = '2W',
   // Months
-  ONE_MONTH = '1M', THREE_MONTHS = '3M', SIX_MONTHS = '6M'
+  ONE_MONTH = '1M',
+  THREE_MONTHS = '3M',
+  SIX_MONTHS = '6M',
 }
 ```
 
@@ -122,17 +138,27 @@ enum TimeframeEnum {
 
 ```typescript
 enum TimezoneEnum {
-  NEW_YORK = 'America/New_York',     CHICAGO = 'America/Chicago',
-  DENVER = 'America/Denver',         LOS_ANGELES = 'America/Los_Angeles',
-  TORONTO = 'America/Toronto',       LONDON = 'Europe/London',
-  PARIS = 'Europe/Paris',            FRANKFURT = 'Europe/Frankfurt',
-  ZURICH = 'Europe/Zurich',          MOSCOW = 'Europe/Moscow',
-  DUBAI = 'Asia/Dubai',              KARACHI = 'Asia/Karachi',
-  KOLKATA = 'Asia/Kolkata',          SHANGHAI = 'Asia/Shanghai',
-  HONG_KONG = 'Asia/Hong_Kong',      SINGAPORE = 'Asia/Singapore',
-  TOKYO = 'Asia/Tokyo',              SEOUL = 'Asia/Seoul',
-  SYDNEY = 'Australia/Sydney',       AUCKLAND = 'Pacific/Auckland',
-  UTC = 'UTC'
+  NEW_YORK = 'America/New_York',
+  CHICAGO = 'America/Chicago',
+  DENVER = 'America/Denver',
+  LOS_ANGELES = 'America/Los_Angeles',
+  TORONTO = 'America/Toronto',
+  LONDON = 'Europe/London',
+  PARIS = 'Europe/Paris',
+  FRANKFURT = 'Europe/Frankfurt',
+  ZURICH = 'Europe/Zurich',
+  MOSCOW = 'Europe/Moscow',
+  DUBAI = 'Asia/Dubai',
+  KARACHI = 'Asia/Karachi',
+  KOLKATA = 'Asia/Kolkata',
+  SHANGHAI = 'Asia/Shanghai',
+  HONG_KONG = 'Asia/Hong_Kong',
+  SINGAPORE = 'Asia/Singapore',
+  TOKYO = 'Asia/Tokyo',
+  SEOUL = 'Asia/Seoul',
+  SYDNEY = 'Australia/Sydney',
+  AUCKLAND = 'Pacific/Auckland',
+  UTC = 'UTC',
 }
 ```
 
@@ -140,20 +166,20 @@ enum TimezoneEnum {
 
 ```typescript
 enum MainChartType {
-  Candle = "Candle",               // Standard candlestick
-  HollowCandle = "HollowCandle",   // Hollow body candles
-  Bar = "Bar",                     // OHLC bars
-  BaseLine = "BaseLine",           // Baseline reference
-  Line = "Line",                   // Close price line
-  Area = "Area",                   // Filled area
-  StepLine = "StepLine",           // Step/staircase line
-  Histogram = "Histogram",         // Bar histogram
-  HeikinAshi = "HeikinAshi",       // Smoothed candles
-  LineBreak = "LineBreak",         // Line break chart
-  Mountain = "Mountain",           // Mountain/gradient area
-  BaselineArea = "BaselineArea",   // Baseline with fill
-  HighLow = "HighLow",            // High-low range
-  HLCArea = "HLCArea"             // HLC with area fill
+  Candle = 'Candle', // Standard candlestick
+  HollowCandle = 'HollowCandle', // Hollow body candles
+  Bar = 'Bar', // OHLC bars
+  BaseLine = 'BaseLine', // Baseline reference
+  Line = 'Line', // Close price line
+  Area = 'Area', // Filled area
+  StepLine = 'StepLine', // Step/staircase line
+  Histogram = 'Histogram', // Bar histogram
+  HeikinAshi = 'HeikinAshi', // Smoothed candles
+  LineBreak = 'LineBreak', // Line break chart
+  Mountain = 'Mountain', // Mountain/gradient area
+  BaselineArea = 'BaselineArea', // Baseline with fill
+  HighLow = 'HighLow', // High-low range
+  HLCArea = 'HLCArea', // HLC with area fill
 }
 ```
 
@@ -164,18 +190,18 @@ enum MainChartType {
 ```typescript
 // Source: TopPanel/Config.ts → getMainIndicators()
 const mainIndicators = [
-  { id: 'ma',        type: MainChartIndicatorType.MA },
-  { id: 'ema',       type: MainChartIndicatorType.EMA },
+  { id: 'ma', type: MainChartIndicatorType.MA },
+  { id: 'ema', type: MainChartIndicatorType.EMA },
   { id: 'bollinger', type: MainChartIndicatorType.BOLLINGER },
-  { id: 'ichimoku',  type: MainChartIndicatorType.ICHIMOKU },
-  { id: 'donchian',  type: MainChartIndicatorType.DONCHIAN },
-  { id: 'envelope',  type: MainChartIndicatorType.ENVELOPE },
-  { id: 'vwap',      type: MainChartIndicatorType.VWAP },
+  { id: 'ichimoku', type: MainChartIndicatorType.ICHIMOKU },
+  { id: 'donchian', type: MainChartIndicatorType.DONCHIAN },
+  { id: 'envelope', type: MainChartIndicatorType.ENVELOPE },
+  { id: 'vwap', type: MainChartIndicatorType.VWAP },
 ];
 
 // Main chart maps (special overlays)
 const mainChartMaps = [
-  { id: 'heatmap',        type: MainChartIndicatorType.HEATMAP },
+  { id: 'heatmap', type: MainChartIndicatorType.HEATMAP },
   { id: 'market-profile', type: MainChartIndicatorType.MARKETPROFILE },
 ];
 ```
@@ -185,17 +211,17 @@ const mainChartMaps = [
 ```typescript
 // Source: TopPanel/Config.ts → getSubChartIndicators()
 const subChartIndicators = [
-  { id: 'rsi',        type: SubChartIndicatorType.RSI },
-  { id: 'macd',       type: SubChartIndicatorType.MACD },
-  { id: 'volume',     type: SubChartIndicatorType.VOLUME },
-  { id: 'sar',        type: SubChartIndicatorType.SAR },
-  { id: 'kdj',        type: SubChartIndicatorType.KDJ },
-  { id: 'atr',        type: SubChartIndicatorType.ATR },
+  { id: 'rsi', type: SubChartIndicatorType.RSI },
+  { id: 'macd', type: SubChartIndicatorType.MACD },
+  { id: 'volume', type: SubChartIndicatorType.VOLUME },
+  { id: 'sar', type: SubChartIndicatorType.SAR },
+  { id: 'kdj', type: SubChartIndicatorType.KDJ },
+  { id: 'atr', type: SubChartIndicatorType.ATR },
   { id: 'stochastic', type: SubChartIndicatorType.STOCHASTIC },
-  { id: 'cci',        type: SubChartIndicatorType.CCI },
-  { id: 'bbwidth',    type: SubChartIndicatorType.BBWIDTH },
-  { id: 'adx',        type: SubChartIndicatorType.ADX },
-  { id: 'obv',        type: SubChartIndicatorType.OBV },
+  { id: 'cci', type: SubChartIndicatorType.CCI },
+  { id: 'bbwidth', type: SubChartIndicatorType.BBWIDTH },
+  { id: 'adx', type: SubChartIndicatorType.ADX },
+  { id: 'obv', type: SubChartIndicatorType.OBV },
 ];
 ```
 
@@ -271,7 +297,10 @@ IndicatorProcessing handles:
 
 ```typescript
 // Simplified from Indicators/SubChart/RSIIndicator.ts
-function calculateRSI(data: ICandleViewDataPoint[], period: number): { time: number; value: number }[] {
+function calculateRSI(
+  data: ICandleViewDataPoint[],
+  period: number
+): { time: number; value: number }[] {
   const gains: number[] = [];
   const losses: number[] = [];
 
@@ -289,7 +318,7 @@ function calculateRSI(data: ICandleViewDataPoint[], period: number): { time: num
     avgGain = (avgGain * (period - 1) + gains[i]) / period;
     avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
     const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-    rsiData.push({ time: data[i + 1].time, value: 100 - (100 / (1 + rs)) });
+    rsiData.push({ time: data[i + 1].time, value: 100 - 100 / (1 + rs) });
   }
   return rsiData;
 }
@@ -303,7 +332,7 @@ const maSeries = chart.addSeries(LineSeries, {
   color: '#FF6B6B',
   lineWidth: 2,
   title: 'MA20',
-  priceScaleId: 'right'  // Same scale as candles
+  priceScaleId: 'right', // Same scale as candles
 });
 maSeries.setData(maData);
 
@@ -312,7 +341,7 @@ const rsiSeries = chart.addSeries(LineSeries, {
   color: '#7C4DFF',
   lineWidth: 1,
   title: 'RSI(14)',
-  pane: 1  // Separate pane below main chart
+  pane: 1, // Separate pane below main chart
 });
 rsiSeries.setData(rsiData);
 ```
@@ -356,19 +385,19 @@ User clicks fullscreen icon
 
 ## 6. LIGHTWEIGHT-CHARTS APIs USED BY TOP BAR
 
-| API | Used For |
-|-----|----------|
-| `createChart(container, options)` | Initial chart creation |
-| `chart.applyOptions(options)` | Theme changes, layout updates |
-| `chart.addSeries(SeriesType, options)` | Adding indicator series, switching chart types |
-| `chart.removeSeries(series)` | Removing old series on chart type switch |
-| `series.setData(data)` | Setting OHLCV data after timeframe/timezone change |
-| `series.applyOptions(options)` | Updating series colors on theme change |
-| `chart.takeScreenshot()` | Screenshot capture |
-| `chart.resize(w, h)` | Fullscreen toggle |
-| `chart.timeScale().applyOptions()` | Timezone display changes |
-| `series.attachPrimitive(mark)` | Re-attaching marks after chart type switch |
-| `series.detachPrimitive(mark)` | Detaching marks before chart type switch |
+| API                                    | Used For                                           |
+| -------------------------------------- | -------------------------------------------------- |
+| `createChart(container, options)`      | Initial chart creation                             |
+| `chart.applyOptions(options)`          | Theme changes, layout updates                      |
+| `chart.addSeries(SeriesType, options)` | Adding indicator series, switching chart types     |
+| `chart.removeSeries(series)`           | Removing old series on chart type switch           |
+| `series.setData(data)`                 | Setting OHLCV data after timeframe/timezone change |
+| `series.applyOptions(options)`         | Updating series colors on theme change             |
+| `chart.takeScreenshot()`               | Screenshot capture                                 |
+| `chart.resize(w, h)`                   | Fullscreen toggle                                  |
+| `chart.timeScale().applyOptions()`     | Timezone display changes                           |
+| `series.attachPrimitive(mark)`         | Re-attaching marks after chart type switch         |
+| `series.detachPrimitive(mark)`         | Detaching marks before chart type switch           |
 
 ---
 
@@ -451,17 +480,17 @@ Key adaptations needed:
 
 ## 8. KEY FILES TO STUDY IN CANDLEVIEW
 
-| File | Lines | What to Learn |
-|------|-------|---------------|
-| `TopPanel/index.tsx` | ~1,800 | Full UI implementation, dropdown rendering, scroll handling |
-| `TopPanel/Config.ts` | ~97 | All configuration data (timeframes, indicators, timezones) |
-| `TopPanel/IndicatorProcessing.ts` | ~200 | Indicator add/remove/toggle logic |
-| `types.ts` | ~322 | All enums and interfaces |
-| `ChartLayer/ChartTypeManager.ts` | ~400 | Series switching logic |
-| `ChartLayer/ChartManager.ts` | ~300 | Chart initialization and configuration |
-| `Indicators/MainChart/*.ts` | varies | Overlay indicator calculations |
-| `Indicators/SubChart/*.ts` | varies | Sub-pane indicator calculations |
+| File                              | Lines  | What to Learn                                               |
+| --------------------------------- | ------ | ----------------------------------------------------------- |
+| `TopPanel/index.tsx`              | ~1,800 | Full UI implementation, dropdown rendering, scroll handling |
+| `TopPanel/Config.ts`              | ~97    | All configuration data (timeframes, indicators, timezones)  |
+| `TopPanel/IndicatorProcessing.ts` | ~200   | Indicator add/remove/toggle logic                           |
+| `types.ts`                        | ~322   | All enums and interfaces                                    |
+| `ChartLayer/ChartTypeManager.ts`  | ~400   | Series switching logic                                      |
+| `ChartLayer/ChartManager.ts`      | ~300   | Chart initialization and configuration                      |
+| `Indicators/MainChart/*.ts`       | varies | Overlay indicator calculations                              |
+| `Indicators/SubChart/*.ts`        | varies | Sub-pane indicator calculations                             |
 
 ---
 
-*End of Document 1*
+_End of Document 1_

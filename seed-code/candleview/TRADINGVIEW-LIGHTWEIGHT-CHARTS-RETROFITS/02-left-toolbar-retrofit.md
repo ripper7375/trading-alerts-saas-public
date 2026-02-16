@@ -10,19 +10,19 @@
 
 The Left Toolbar is a vertical icon strip (50px wide) on the left side of the chart providing access to 60+ drawing and annotation tools organized into categories:
 
-| Category | Tools Count | Purpose |
-|----------|-------------|---------|
-| **Cursor Styles** | 6 | Change cursor appearance |
-| **Line/Channel Tools** | 14 | Trendlines, channels, pitchforks |
-| **Fibonacci & Gann** | 13 | Fibonacci retracements, Gann tools |
-| **Shapes & Patterns** | 16 | Shapes, Elliott waves, harmonic patterns |
-| **Project Info** | 7 | Ranges, positions, mock K-line |
-| **Pen/Brush Tools** | 5 | Freehand drawing, eraser |
-| **Text/Annotation** | 8 | Text, labels, flags, pins, bubbles |
-| **Emoji** | 26,000+ | Emoji picker |
-| **AI Tools** | 10 | AI chart analysis (5 providers x 2 functions) |
-| **Script Tools** | 1 | Price event scripting |
-| **Utility** | 3 | Show/hide marks, lock marks, clear all |
+| Category               | Tools Count | Purpose                                       |
+| ---------------------- | ----------- | --------------------------------------------- |
+| **Cursor Styles**      | 6           | Change cursor appearance                      |
+| **Line/Channel Tools** | 14          | Trendlines, channels, pitchforks              |
+| **Fibonacci & Gann**   | 13          | Fibonacci retracements, Gann tools            |
+| **Shapes & Patterns**  | 16          | Shapes, Elliott waves, harmonic patterns      |
+| **Project Info**       | 7           | Ranges, positions, mock K-line                |
+| **Pen/Brush Tools**    | 5           | Freehand drawing, eraser                      |
+| **Text/Annotation**    | 8           | Text, labels, flags, pins, bubbles            |
+| **Emoji**              | 26,000+     | Emoji picker                                  |
+| **AI Tools**           | 10          | AI chart analysis (5 providers x 2 functions) |
+| **Script Tools**       | 1           | Price event scripting                         |
+| **Utility**            | 3           | Show/hide marks, lock marks, clear all        |
 
 **Key fact:** TradingView Lightweight Charts provides NONE of these tools. All 100% custom React code.
 
@@ -85,19 +85,19 @@ seed-code/candleview/core/src/components/CandleView/
 
 ```typescript
 interface LeftPanelProps {
-  chart: IChartApi;                          // lightweight-charts instance
-  chartSeries: ChartSeries | null;           // Current active series
-  currentTheme: ThemeConfig;                 // Dark/light theme
-  i18n: I18n;                                // Internationalization
-  onToolSelect: (toolId: string) => void;    // When user selects a drawing tool
+  chart: IChartApi; // lightweight-charts instance
+  chartSeries: ChartSeries | null; // Current active series
+  currentTheme: ThemeConfig; // Dark/light theme
+  i18n: I18n; // Internationalization
+  onToolSelect: (toolId: string) => void; // When user selects a drawing tool
   onCursorChange: (cursor: CursorType) => void;
   onAIFunctionSelect: (aiToolId: string) => void;
   onClearAllMarks: () => void;
   onToggleMarksVisibility: () => void;
   onToggleMarksLock: () => void;
-  leftpanel?: boolean;                       // Show/hide left panel
-  ai?: boolean;                              // Enable AI tools
-  aiconfigs?: AIConfig[];                    // AI provider configurations
+  leftpanel?: boolean; // Show/hide left panel
+  ai?: boolean; // Enable AI tools
+  aiconfigs?: AIConfig[]; // AI provider configurations
 }
 ```
 
@@ -128,10 +128,10 @@ Each icon button with a dropdown arrow follows this pattern:
 ```typescript
 interface ToolConfig {
   cursorStyles: Array<{
-    id: string;                        // e.g., 'default', 'crosshair'
-    name: string;                      // Localized display name
-    description: string;               // Localized tooltip
-    icon: React.ComponentType<any>;    // SVG icon component
+    id: string; // e.g., 'default', 'crosshair'
+    name: string; // Localized display name
+    description: string; // Localized tooltip
+    icon: React.ComponentType<any>; // SVG icon component
   }>;
   penTools: Array<{ title: string; tools: Array<ToolItem> }>;
   drawingTools: Array<{ title: string; tools: Array<ToolItem> }>;
@@ -148,145 +148,145 @@ interface ToolConfig {
 
 **Cursor Styles (6):**
 
-| Tool ID | Name |
-|---------|------|
-| `default` | Arrow cursor |
+| Tool ID     | Name             |
+| ----------- | ---------------- |
+| `default`   | Arrow cursor     |
 | `crosshair` | Crosshair cursor |
-| `circle` | Circle cursor |
-| `dot` | Dot cursor |
-| `sparkle` | Sparkle cursor |
-| `emoji` | Emoji cursor |
+| `circle`    | Circle cursor    |
+| `dot`       | Dot cursor       |
+| `sparkle`   | Sparkle cursor   |
+| `emoji`     | Emoji cursor     |
 
 **Line Tools (3):**
 
-| Tool ID | Name |
-|---------|------|
-| `line-segment` | Line Segment |
+| Tool ID           | Name            |
+| ----------------- | --------------- |
+| `line-segment`    | Line Segment    |
 | `horizontal-line` | Horizontal Line |
-| `vertical-line` | Vertical Line |
+| `vertical-line`   | Vertical Line   |
 
 **Arrow Tools (2):**
 
-| Tool ID | Name |
-|---------|------|
-| `arrow-line` | Arrow Line |
+| Tool ID            | Name             |
+| ------------------ | ---------------- |
+| `arrow-line`       | Arrow Line       |
 | `thick-arrow-line` | Thick Arrow Line |
 
 **Channel Tools (4):**
 
-| Tool ID | Name |
-|---------|------|
-| `parallel-channel` | Parallel Channel |
+| Tool ID                     | Name                      |
+| --------------------------- | ------------------------- |
+| `parallel-channel`          | Parallel Channel          |
 | `linear-regression-channel` | Linear Regression Channel |
-| `equidistant-channel` | Equidistant Channel |
-| `disjoint-channel` | Disjoint Channel |
+| `equidistant-channel`       | Equidistant Channel       |
+| `disjoint-channel`          | Disjoint Channel          |
 
 **Pitchfork Tools (3):**
 
-| Tool ID | Name |
-|---------|------|
-| `andrew-pitchfork` | Andrew's Pitchfork |
+| Tool ID                      | Name                        |
+| ---------------------------- | --------------------------- |
+| `andrew-pitchfork`           | Andrew's Pitchfork          |
 | `enhanced-andrew-pitch-fork` | Enhanced Andrew's Pitchfork |
-| `schiff-pitch-fork` | Schiff Pitchfork |
+| `schiff-pitch-fork`          | Schiff Pitchfork            |
 
 **Gann Tools (3):**
 
-| Tool ID | Name |
-|---------|------|
-| `gann-fan` | Gann Fan |
-| `gann-box` | Gann Box |
+| Tool ID        | Name           |
+| -------------- | -------------- |
+| `gann-fan`     | Gann Fan       |
+| `gann-box`     | Gann Box       |
 | `gann-rectang` | Gann Rectangle |
 
 **Fibonacci Tools (10):**
 
-| Tool ID | Name |
-|---------|------|
-| `fibonacci-retracement` | Fibonacci Retracement |
-| `fibonacci-arc` | Fibonacci Arc |
-| `fibonacci-circle` | Fibonacci Circle |
-| `fibonacci-spiral` | Fibonacci Spiral |
-| `fibonacci-wedge` | Fibonacci Wedge |
-| `fibonacci-fan` | Fibonacci Fan |
-| `fibonacci-channel` | Fibonacci Channel |
-| `fibonacci-time-zoon` | Fibonacci Time Zones |
+| Tool ID                          | Name                      |
+| -------------------------------- | ------------------------- |
+| `fibonacci-retracement`          | Fibonacci Retracement     |
+| `fibonacci-arc`                  | Fibonacci Arc             |
+| `fibonacci-circle`               | Fibonacci Circle          |
+| `fibonacci-spiral`               | Fibonacci Spiral          |
+| `fibonacci-wedge`                | Fibonacci Wedge           |
+| `fibonacci-fan`                  | Fibonacci Fan             |
+| `fibonacci-channel`              | Fibonacci Channel         |
+| `fibonacci-time-zoon`            | Fibonacci Time Zones      |
 | `fibonacci-extension-base-price` | Fibonacci Price Extension |
-| `fibonacci-extension-base-time` | Fibonacci Time Extension |
+| `fibonacci-extension-base-time`  | Fibonacci Time Extension  |
 
 **Technical Pattern Tools (4):**
 
-| Tool ID | Name |
-|---------|------|
-| `xabcd` | XABCD Harmonic Pattern |
-| `head-and-shoulders` | Head and Shoulders |
-| `abcd` | ABCD Pattern |
-| `triangle-abcd` | Triangle ABCD |
+| Tool ID              | Name                   |
+| -------------------- | ---------------------- |
+| `xabcd`              | XABCD Harmonic Pattern |
+| `head-and-shoulders` | Head and Shoulders     |
+| `abcd`               | ABCD Pattern           |
+| `triangle-abcd`      | Triangle ABCD          |
 
 **Elliott Wave Tools (5):**
 
-| Tool ID | Name |
-|---------|------|
-| `elliott-lmpulse` | Elliott Impulse Wave |
-| `elliott-corrective` | Elliott Corrective Wave |
-| `elliott-triangle` | Elliott Triangle |
+| Tool ID                | Name                       |
+| ---------------------- | -------------------------- |
+| `elliott-lmpulse`      | Elliott Impulse Wave       |
+| `elliott-corrective`   | Elliott Corrective Wave    |
+| `elliott-triangle`     | Elliott Triangle           |
 | `elliott-double-combo` | Elliott Double Combination |
 | `elliott-triple-combo` | Elliott Triple Combination |
 
 **Shape Tools (7):**
 
-| Tool ID | Name |
-|---------|------|
-| `rectangle` | Rectangle |
-| `circle` | Circle |
-| `ellipse` | Ellipse |
-| `triangle` | Triangle |
-| `sector` | Sector |
-| `curve` | Curve |
+| Tool ID        | Name         |
+| -------------- | ------------ |
+| `rectangle`    | Rectangle    |
+| `circle`       | Circle       |
+| `ellipse`      | Ellipse      |
+| `triangle`     | Triangle     |
+| `sector`       | Sector       |
+| `curve`        | Curve        |
 | `double-curve` | Double Curve |
 
 **Range & Position Tools (6):**
 
-| Tool ID | Name |
-|---------|------|
-| `time-range` | Time Range |
-| `price-range` | Price Range |
+| Tool ID            | Name             |
+| ------------------ | ---------------- |
+| `time-range`       | Time Range       |
+| `price-range`      | Price Range      |
 | `time-price-range` | Time-Price Range |
-| `heat-map` | Heat Map |
-| `long-position` | Long Position |
-| `short-position` | Short Position |
+| `heat-map`         | Heat Map         |
+| `long-position`    | Long Position    |
+| `short-position`   | Short Position   |
 
 **Simulation Tool (1):**
 
-| Tool ID | Name |
-|---------|------|
+| Tool ID      | Name        |
+| ------------ | ----------- |
 | `mock-kline` | Mock K-Line |
 
 **Pen Tools (5):**
 
-| Tool ID | Name |
-|---------|------|
-| `pencil` | Pencil (freehand) |
-| `pen` | Pen (smooth curves) |
-| `brush` | Brush (thick strokes) |
-| `marker-pen` | Marker Pen (highlight) |
-| `eraser` | Eraser (delete by touching) |
+| Tool ID      | Name                        |
+| ------------ | --------------------------- |
+| `pencil`     | Pencil (freehand)           |
+| `pen`        | Pen (smooth curves)         |
+| `brush`      | Brush (thick strokes)       |
+| `marker-pen` | Marker Pen (highlight)      |
+| `eraser`     | Eraser (delete by touching) |
 
 **Text & Annotation Tools (8):**
 
-| Tool ID | Name |
-|---------|------|
-| `text` | Text Edit |
-| `price-note` | Price Note |
-| `bubble-box` | Bubble Box |
-| `pin` | Pin |
-| `signpost` | Signpost |
+| Tool ID       | Name        |
+| ------------- | ----------- |
+| `text`        | Text Edit   |
+| `price-note`  | Price Note  |
+| `bubble-box`  | Bubble Box  |
+| `pin`         | Pin         |
+| `signpost`    | Signpost    |
 | `price-label` | Price Label |
-| `flag-mark` | Flag Mark |
-| `image` | Image |
+| `flag-mark`   | Flag Mark   |
+| `image`       | Image       |
 
 **Script Tools (1):**
 
-| Tool ID | Name |
-|---------|------|
+| Tool ID       | Name        |
+| ------------- | ----------- |
 | `price-event` | Price Event |
 
 ---
@@ -322,25 +322,37 @@ The ChartMarkManager acts as a router, mapping tool IDs to their corresponding M
 function getManagerForTool(toolId: string): IMarkManager {
   switch (toolId) {
     // Lines
-    case 'line-segment':        return lineSegmentMarkManager;
-    case 'horizontal-line':     return horizontalLineMarkManager;
-    case 'vertical-line':       return verticalLineMarkManager;
-    case 'arrow-line':          return arrowLineMarkManager;
-    case 'thick-arrow-line':    return thickArrowLineMarkManager;
+    case 'line-segment':
+      return lineSegmentMarkManager;
+    case 'horizontal-line':
+      return horizontalLineMarkManager;
+    case 'vertical-line':
+      return verticalLineMarkManager;
+    case 'arrow-line':
+      return arrowLineMarkManager;
+    case 'thick-arrow-line':
+      return thickArrowLineMarkManager;
 
     // Channels
-    case 'parallel-channel':    return parallelChannelMarkManager;
-    case 'equidistant-channel': return equidistantChannelMarkManager;
+    case 'parallel-channel':
+      return parallelChannelMarkManager;
+    case 'equidistant-channel':
+      return equidistantChannelMarkManager;
     // ... etc for all 60+ tools
 
     // Pen tools
-    case 'pencil':              return pencilMarkManager;
-    case 'pen':                 return penMarkManager;
-    case 'brush':               return brushMarkManager;
-    case 'eraser':              return eraserMarkManager;
+    case 'pencil':
+      return pencilMarkManager;
+    case 'pen':
+      return penMarkManager;
+    case 'brush':
+      return brushMarkManager;
+    case 'eraser':
+      return eraserMarkManager;
 
     // Fibonacci
-    case 'fibonacci-retracement': return fibonacciRetracementMarkManager;
+    case 'fibonacci-retracement':
+      return fibonacciRetracementMarkManager;
     // ... etc
   }
 }
@@ -353,35 +365,83 @@ Every tool maps to a specific MarkType used for mark identification and serializ
 ```typescript
 enum MarkType {
   // Lines
-  LineSegment, ArrowLine, ThickArrowLine, HorizontalLine, VerticalLine,
+  LineSegment,
+  ArrowLine,
+  ThickArrowLine,
+  HorizontalLine,
+  VerticalLine,
   // Channels
-  ParallelChannel, LinearRegressionChannel, EquidistantChannel, DisjointChannel,
+  ParallelChannel,
+  LinearRegressionChannel,
+  EquidistantChannel,
+  DisjointChannel,
   // Pitchforks
-  AndrewPitchfork, EnhancedAndrewPitchfork, SchiffPitchfork,
+  AndrewPitchfork,
+  EnhancedAndrewPitchfork,
+  SchiffPitchfork,
   // Shapes
-  Rectangle, Circle, Ellipse, Sector, Triangle,
-  Curve, DoubleCurve,
+  Rectangle,
+  Circle,
+  Ellipse,
+  Sector,
+  Triangle,
+  Curve,
+  DoubleCurve,
   // Gann
-  GannFan, GannBox, GannRectangle,
+  GannFan,
+  GannBox,
+  GannRectangle,
   // Fibonacci
-  FibonacciTimeZoon, FibonacciRetracement, FibonacciArc, FibonacciCircle,
-  FibonacciSpiral, FibonacciWedge, FibonacciFan, FibonacciChannel,
-  FibonacciExtensionBasePrice, FibonacciExtensionBaseTime,
+  FibonacciTimeZoon,
+  FibonacciRetracement,
+  FibonacciArc,
+  FibonacciCircle,
+  FibonacciSpiral,
+  FibonacciWedge,
+  FibonacciFan,
+  FibonacciChannel,
+  FibonacciExtensionBasePrice,
+  FibonacciExtensionBaseTime,
   // Patterns
-  XABCD, HeadAndShoulders, ABCD, TriangleABCD,
+  XABCD,
+  HeadAndShoulders,
+  ABCD,
+  TriangleABCD,
   // Elliott
-  Elliott_Impulse, Elliott_Corrective, Elliott_Triangle,
-  Elliott_Double_Combination, Elliott_Triple_Combination,
+  Elliott_Impulse,
+  Elliott_Corrective,
+  Elliott_Triangle,
+  Elliott_Double_Combination,
+  Elliott_Triple_Combination,
   // Ranges
-  TimeRange, PriceRange, TimePriceRange,
+  TimeRange,
+  PriceRange,
+  TimePriceRange,
   // Pen tools
-  Pencil, Pen, Brush, MarkerPen, Eraser,
+  Pencil,
+  Pen,
+  Brush,
+  MarkerPen,
+  Eraser,
   // Annotations
-  Text, Emoji, Image, Table,
-  LongPosition, ShortPosition, PriceLabel, Flag, PriceNote, SignPost, Pin, BubbleBox,
+  Text,
+  Emoji,
+  Image,
+  Table,
+  LongPosition,
+  ShortPosition,
+  PriceLabel,
+  Flag,
+  PriceNote,
+  SignPost,
+  Pin,
+  BubbleBox,
   TextEdit,
   // Special
-  MockKLine, HeatMap, TimeEvent, PriceEvent
+  MockKLine,
+  HeatMap,
+  TimeEvent,
+  PriceEvent,
 }
 ```
 
@@ -453,7 +513,7 @@ Every drawing tool's mark object must implement these interfaces:
 ```typescript
 // Source: Mark/IGraph.ts
 interface IGraph<T = any> {
-  getMarkType(): MarkType;  // Returns which tool type this mark is
+  getMarkType(): MarkType; // Returns which tool type this mark is
 }
 ```
 
@@ -462,8 +522,8 @@ interface IGraph<T = any> {
 ```typescript
 // Source: Mark/IMarkStyle.ts
 interface IMarkStyle {
-  updateStyles(styles: { [key: string]: any }): void;  // Apply style changes
-  getCurrentStyles(): Record<string, any>;              // Get current styles
+  updateStyles(styles: { [key: string]: any }): void; // Apply style changes
+  getCurrentStyles(): Record<string, any>; // Get current styles
 }
 ```
 
@@ -472,14 +532,14 @@ interface IMarkStyle {
 ```typescript
 // Source: Mark/IMarkManager.ts
 interface IMarkManager<T = any> {
-  getCurrentDragTarget(): T | null;       // Mark being dragged
-  getCurrentDragPoint(): string | null;   // Which handle ('start', 'end', 'line')
-  getCurrentOperatingMark(): T | null;    // Mark being operated on
-  isOperatingOnChart(): boolean;          // Is user interacting with a mark?
-  getAllMarks(): T[];                     // All marks of this type
-  cancelOperationMode(): any;            // Cancel current drawing
+  getCurrentDragTarget(): T | null; // Mark being dragged
+  getCurrentDragPoint(): string | null; // Which handle ('start', 'end', 'line')
+  getCurrentOperatingMark(): T | null; // Mark being operated on
+  isOperatingOnChart(): boolean; // Is user interacting with a mark?
+  getAllMarks(): T[]; // All marks of this type
+  cancelOperationMode(): any; // Cancel current drawing
   getMarkAtPoint(point: Point): T | null; // Hit test at coordinates
-  clearState(): void;                    // Reset state
+  clearState(): void; // Reset state
 }
 ```
 
@@ -488,7 +548,7 @@ interface IMarkManager<T = any> {
 ```typescript
 // Source: Mark/IDeletableMark.ts
 interface IDeletableMark {
-  isPointNearPath(x: number, y: number, threshold?: number): boolean;  // Hit test for eraser
+  isPointNearPath(x: number, y: number, threshold?: number): boolean; // Hit test for eraser
   getMarkType(): MarkType;
 }
 ```
@@ -502,6 +562,7 @@ interface IDeletableMark {
 **Recommended priority for a trading alerts platform:**
 
 **Phase 1 — Essential (start here):**
+
 - Line Segment, Horizontal Line, Vertical Line
 - Fibonacci Retracement
 - Rectangle
@@ -511,6 +572,7 @@ interface IDeletableMark {
 - Show/hide, lock, clear all
 
 **Phase 2 — Important:**
+
 - Arrow Line
 - Parallel Channel
 - Long Position / Short Position
@@ -518,6 +580,7 @@ interface IDeletableMark {
 - Price Label, Flag
 
 **Phase 3 — Advanced:**
+
 - All Fibonacci tools
 - Gann tools
 - Elliott Wave patterns
@@ -526,6 +589,7 @@ interface IDeletableMark {
 - All pen/brush variants
 
 **Phase 4 — Optional:**
+
 - AI tools
 - Emoji picker
 - Script tools
@@ -562,9 +626,18 @@ class ChartMarkManager {
   private managers: Map<string, IMarkManager> = new Map();
 
   constructor(chart: IChartApi, series: ISeriesApi) {
-    this.managers.set('line-segment', new LineSegmentMarkManager(chart, series));
-    this.managers.set('horizontal-line', new HorizontalLineMarkManager(chart, series));
-    this.managers.set('fibonacci-retracement', new FibonacciRetracementMarkManager(chart, series));
+    this.managers.set(
+      'line-segment',
+      new LineSegmentMarkManager(chart, series)
+    );
+    this.managers.set(
+      'horizontal-line',
+      new HorizontalLineMarkManager(chart, series)
+    );
+    this.managers.set(
+      'fibonacci-retracement',
+      new FibonacciRetracementMarkManager(chart, series)
+    );
     // ... register managers for each tool
   }
 
@@ -598,18 +671,18 @@ Each mark uses lightweight-charts' `paneViews()` primitive API for rendering. Se
 
 ## 8. KEY FILES TO STUDY IN CANDLEVIEW
 
-| File | Lines | What to Learn |
-|------|-------|---------------|
-| `LeftPanel/index.tsx` | ~2,600 | Full toolbar UI, dropdown/submenu rendering, tool selection handlers |
-| `LeftPanel/Config.ts` | ~362 | Complete tool catalog with IDs, names, icons, grouping |
-| `types.ts` | ~322 | MarkType enum (60+ types), CursorType, all shared types |
-| `Mark/IGraph.ts` | 8 | Mark type identity interface |
-| `Mark/IMarkStyle.ts` | 7 | Mark styling interface |
-| `Mark/IMarkManager.ts` | 27 | Mark manager contract |
-| `Mark/IDeletableMark.ts` | 6 | Eraser hit-test interface |
-| `ChartLayer/ChartMarkManager.ts` | ~800 | Tool routing, mark lifecycle orchestration |
-| `Icons/` | varies | SVG icon components for every tool |
+| File                             | Lines  | What to Learn                                                        |
+| -------------------------------- | ------ | -------------------------------------------------------------------- |
+| `LeftPanel/index.tsx`            | ~2,600 | Full toolbar UI, dropdown/submenu rendering, tool selection handlers |
+| `LeftPanel/Config.ts`            | ~362   | Complete tool catalog with IDs, names, icons, grouping               |
+| `types.ts`                       | ~322   | MarkType enum (60+ types), CursorType, all shared types              |
+| `Mark/IGraph.ts`                 | 8      | Mark type identity interface                                         |
+| `Mark/IMarkStyle.ts`             | 7      | Mark styling interface                                               |
+| `Mark/IMarkManager.ts`           | 27     | Mark manager contract                                                |
+| `Mark/IDeletableMark.ts`         | 6      | Eraser hit-test interface                                            |
+| `ChartLayer/ChartMarkManager.ts` | ~800   | Tool routing, mark lifecycle orchestration                           |
+| `Icons/`                         | varies | SVG icon components for every tool                                   |
 
 ---
 
-*End of Document 2*
+_End of Document 2_

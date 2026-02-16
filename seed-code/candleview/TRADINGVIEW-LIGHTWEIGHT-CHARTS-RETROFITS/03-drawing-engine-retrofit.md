@@ -211,12 +211,15 @@ class LineSegmentMark {
           if (!ctx || !this._chart || !this._series) return;
 
           // Convert stored price/time to current pixel positions
-          const startX = this._chart.timeScale().timeToCoordinate(this._startTime);
+          const startX = this._chart
+            .timeScale()
+            .timeToCoordinate(this._startTime);
           const startY = this._series.priceToCoordinate(this._startPrice);
           const endX = this._chart.timeScale().timeToCoordinate(this._endTime);
           const endY = this._series.priceToCoordinate(this._endPrice);
 
-          if (startX == null || startY == null || endX == null || endY == null) return;
+          if (startX == null || startY == null || endX == null || endY == null)
+            return;
 
           // Draw on canvas
           ctx.save();
@@ -242,14 +245,19 @@ class LineSegmentMark {
           }
 
           ctx.restore();
-        }
+        },
       };
     }
     return [{ renderer: () => this._renderer }];
   }
 
   // Edit handle rendering (circles at endpoints)
-  private drawHandle(ctx: CanvasRenderingContext2D, x: number, y: number, isActive: boolean) {
+  private drawHandle(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    isActive: boolean
+  ) {
     ctx.fillStyle = this._color;
     ctx.beginPath();
     ctx.arc(x, y, 5, 0, Math.PI * 2);
@@ -301,7 +309,7 @@ class LineSegmentMark {
   updateEndPoint(time: number, price: number) {
     this._endTime = time;
     this._endPrice = price;
-    this.requestUpdate();  // Tell chart to re-render
+    this.requestUpdate(); // Tell chart to re-render
   }
 }
 ```
@@ -533,10 +541,21 @@ class FibonacciRetracementMark implements IGraph, IMarkStyle {
   private _endPrice: number;
   private _startTime: number;
   private _endTime: number;
-  private _levels: number[] = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.618, 2.618, 4.236, 6.854];
+  private _levels: number[] = [
+    0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.618, 2.618, 4.236, 6.854,
+  ];
   private _colors: string[] = [
-    '#FF4444', '#00A8FF', '#9C27B0', '#4CAF50', '#FF9800',
-    '#795548', '#607D8B', '#E91E63', '#3F51B5', '#009688', '#FF5722'
+    '#FF4444',
+    '#00A8FF',
+    '#9C27B0',
+    '#4CAF50',
+    '#FF9800',
+    '#795548',
+    '#607D8B',
+    '#E91E63',
+    '#3F51B5',
+    '#009688',
+    '#FF5722',
   ];
 }
 ```
@@ -735,19 +754,19 @@ Returns updated state
 
 ```typescript
 interface MarkDrawing {
-  id: string;                              // Unique identifier
-  type: string;                            // Tool name (e.g., 'line-segment')
-  markType: MarkType;                      // Enum value
-  mark: any;                               // The mark object
-  points: Point[];                         // Screen coordinates (for reference)
-  color: string;                           // Primary color
-  lineWidth: number;                       // Line thickness
-  isSelected?: boolean;                    // Currently selected?
-  rotation?: number;                       // Rotation angle
-  properties?: any;                        // Tool-specific data
-  graphColor?: string;                     // Override color
-  graphWidth?: number;                     // Override width
-  graphStyle?: 'solid' | 'dashed' | 'dotted';  // Line style
+  id: string; // Unique identifier
+  type: string; // Tool name (e.g., 'line-segment')
+  markType: MarkType; // Enum value
+  mark: any; // The mark object
+  points: Point[]; // Screen coordinates (for reference)
+  color: string; // Primary color
+  lineWidth: number; // Line thickness
+  isSelected?: boolean; // Currently selected?
+  rotation?: number; // Rotation angle
+  properties?: any; // Tool-specific data
+  graphColor?: string; // Override color
+  graphWidth?: number; // Override width
+  graphStyle?: 'solid' | 'dashed' | 'dotted'; // Line style
 }
 ```
 
@@ -755,8 +774,8 @@ interface MarkDrawing {
 
 ```typescript
 interface HistoryRecord {
-  drawings: MarkDrawing[];   // Snapshot of all drawings at this point
-  description: string;       // What changed (for undo/redo display)
+  drawings: MarkDrawing[]; // Snapshot of all drawings at this point
+  description: string; // What changed (for undo/redo display)
 }
 ```
 
@@ -797,7 +816,7 @@ function switchChartType(chart: IChartApi, newType: MainChartType) {
 
   // 6. Re-attach all marks to new series
   for (const mark of allMarks) {
-    mark.updateSeriesReference(newSeries);  // Update internal reference
+    mark.updateSeriesReference(newSeries); // Update internal reference
     newSeries.attachPrimitive(mark);
   }
 
@@ -810,23 +829,23 @@ function switchChartType(chart: IChartApi, newType: MainChartType) {
 
 ## 13. LIGHTWEIGHT-CHARTS APIs USED BY DRAWING ENGINE
 
-| API | Used For |
-|-----|----------|
-| `series.attachPrimitive(mark)` | Show mark on chart |
-| `series.detachPrimitive(mark)` | Remove mark from chart |
-| `series.priceToCoordinate(price)` | Price → pixel Y |
-| `series.coordinateToPrice(pixelY)` | Pixel Y → price |
-| `chart.timeScale().timeToCoordinate(time)` | Time → pixel X |
-| `chart.timeScale().coordinateToTime(pixelX)` | Pixel X → time |
-| `chart.timeScale().coordinateToLogical(pixelX)` | Pixel X → logical index |
-| `chart.subscribeCrosshairMove(cb)` | Mouse move events |
-| `chart.subscribeClick(cb)` | Click events |
-| `chart.subscribeDblClick(cb)` | Double-click events |
-| `chart.timeScale().subscribeVisibleTimeRangeChange(cb)` | Scroll/zoom detection |
-| `chart.chartElement()` | Get DOM element for rect calculations |
-| `series.applyOptions({})` | Force re-render |
-| `chart.removeSeries(series)` | For chart type switching |
-| `chart.addSeries(Type, options)` | For chart type switching |
+| API                                                     | Used For                              |
+| ------------------------------------------------------- | ------------------------------------- |
+| `series.attachPrimitive(mark)`                          | Show mark on chart                    |
+| `series.detachPrimitive(mark)`                          | Remove mark from chart                |
+| `series.priceToCoordinate(price)`                       | Price → pixel Y                       |
+| `series.coordinateToPrice(pixelY)`                      | Pixel Y → price                       |
+| `chart.timeScale().timeToCoordinate(time)`              | Time → pixel X                        |
+| `chart.timeScale().coordinateToTime(pixelX)`            | Pixel X → time                        |
+| `chart.timeScale().coordinateToLogical(pixelX)`         | Pixel X → logical index               |
+| `chart.subscribeCrosshairMove(cb)`                      | Mouse move events                     |
+| `chart.subscribeClick(cb)`                              | Click events                          |
+| `chart.subscribeDblClick(cb)`                           | Double-click events                   |
+| `chart.timeScale().subscribeVisibleTimeRangeChange(cb)` | Scroll/zoom detection                 |
+| `chart.chartElement()`                                  | Get DOM element for rect calculations |
+| `series.applyOptions({})`                               | Force re-render                       |
+| `chart.removeSeries(series)`                            | For chart type switching              |
+| `chart.addSeries(Type, options)`                        | For chart type switching              |
 
 ---
 
@@ -862,26 +881,16 @@ src/chart/drawing/
 ### Step 2: Implement in Priority Order
 
 **Phase 1 — Foundation (get the pattern working):**
+
 1. LineSegmentMark + LineSegmentManager (simplest two-click tool)
 2. HorizontalLineMark + HorizontalLineManager (simplest one-click tool)
 3. Eraser functionality
 
-**Phase 2 — Essential Trading Tools:**
-4. FibonacciRetracementMark + Manager
-5. RectangleMark + Manager
-6. PencilMark + Manager
+**Phase 2 — Essential Trading Tools:** 4. FibonacciRetracementMark + Manager 5. RectangleMark + Manager 6. PencilMark + Manager
 
-**Phase 3 — Expand:**
-7. Vertical Line, Arrow Line
-8. Parallel Channel
-9. Long/Short Position markers
-10. Text annotations
+**Phase 3 — Expand:** 7. Vertical Line, Arrow Line 8. Parallel Channel 9. Long/Short Position markers 10. Text annotations
 
-**Phase 4 — Advanced:**
-11. All Fibonacci variants
-12. Gann tools
-13. Elliott Wave patterns
-14. Harmonic patterns (XABCD)
+**Phase 4 — Advanced:** 11. All Fibonacci variants 12. Gann tools 13. Elliott Wave patterns 14. Harmonic patterns (XABCD)
 
 ### Step 3: Integration Pattern
 
@@ -932,24 +941,24 @@ function onClearAll() {
 
 ## 15. KEY FILES TO STUDY IN CANDLEVIEW
 
-| File | What to Learn |
-|------|---------------|
-| `ChartLayer/index.tsx` | How ChartLayer orchestrates everything |
-| `ChartLayer/ChartManager.ts` | Chart initialization with optimal options |
-| `ChartLayer/ChartEventManager.ts` | Event subscription patterns |
-| `ChartLayer/ChartMarkManager.ts` | Tool routing and mark lifecycle |
-| `ChartLayer/ChartTypeManager.ts` | Series switching with mark re-attachment |
-| `MarkManager/LineSegment/LineSegmentMark.ts` | Simplest two-point mark (learn the pattern here) |
-| `MarkManager/LineSegment/LineSegmentMarkManager.ts` | Simplest manager (learn the pattern here) |
-| `MarkManager/Pencil/PencilMark.ts` | Multi-point freehand mark |
-| `MarkManager/Pencil/PencilMarkManager.ts` | Continuous drawing manager |
-| `MarkManager/FibonacciRetracement/FibonacciRetracementMark.ts` | Complex calculated mark |
-| `Mark/IGraph.ts` | 8 lines — mark type identity |
-| `Mark/IMarkStyle.ts` | 7 lines — style interface |
-| `Mark/IMarkManager.ts` | 27 lines — manager contract |
-| `Mark/IDeletableMark.ts` | 6 lines — eraser support |
-| `types.ts` | All shared types and enums |
+| File                                                           | What to Learn                                    |
+| -------------------------------------------------------------- | ------------------------------------------------ |
+| `ChartLayer/index.tsx`                                         | How ChartLayer orchestrates everything           |
+| `ChartLayer/ChartManager.ts`                                   | Chart initialization with optimal options        |
+| `ChartLayer/ChartEventManager.ts`                              | Event subscription patterns                      |
+| `ChartLayer/ChartMarkManager.ts`                               | Tool routing and mark lifecycle                  |
+| `ChartLayer/ChartTypeManager.ts`                               | Series switching with mark re-attachment         |
+| `MarkManager/LineSegment/LineSegmentMark.ts`                   | Simplest two-point mark (learn the pattern here) |
+| `MarkManager/LineSegment/LineSegmentMarkManager.ts`            | Simplest manager (learn the pattern here)        |
+| `MarkManager/Pencil/PencilMark.ts`                             | Multi-point freehand mark                        |
+| `MarkManager/Pencil/PencilMarkManager.ts`                      | Continuous drawing manager                       |
+| `MarkManager/FibonacciRetracement/FibonacciRetracementMark.ts` | Complex calculated mark                          |
+| `Mark/IGraph.ts`                                               | 8 lines — mark type identity                     |
+| `Mark/IMarkStyle.ts`                                           | 7 lines — style interface                        |
+| `Mark/IMarkManager.ts`                                         | 27 lines — manager contract                      |
+| `Mark/IDeletableMark.ts`                                       | 6 lines — eraser support                         |
+| `types.ts`                                                     | All shared types and enums                       |
 
 ---
 
-*End of Document 3*
+_End of Document 3_
