@@ -1,0 +1,64 @@
+name: Build CandleView
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd core  
+          yarn install
+      
+      - name: Build
+        run: |
+          cd core  
+          yarn build
+      
+      - name: Package release
+        run: |
+          cd core
+          cp package.json dist/
+          cp README.md dist/
+          cp LICENSE dist/
+          cd dist
+          zip -r ../candleview-${{ github.ref_name }}.zip .
+          tar -czf ../candleview-${{ github.ref_name }}.tar.gz .
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: candleview-${{ github.ref_name }}
+          body: |
+            CandleView has been updated to the latest version.
+            
+            ### Release Notes
+            - the relevant features have been updated.
+            
+            ### Installation
+            ```bash
+            npm install candleview 
+            # or
+            yarn add candleview
+            ```
+          files: |
+            core/candleview-*.zip
+            core/candleview-*.tar.gz
+          generate_release_notes: true
