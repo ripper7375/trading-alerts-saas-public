@@ -27,7 +27,7 @@ input color  InpColorDownLarge = clrHotPink;   // Down Large Color (Light Pink)
 input color  InpColorDownExtreme = clrFireBrick; // Down Extreme Color
 
 // Export settings
-input int    InpMaxBarsExport = 0;             // Max Bars to Export (0 = all)
+input int    InpMaxBarsExport = 27000;         // Max Bars to Export (0 = all)
 input color  InpBtnColor      = clrDodgerBlue; // Export Button Color
 input color  InpBtnTextColor  = clrWhite;      // Export Button Text Color
 
