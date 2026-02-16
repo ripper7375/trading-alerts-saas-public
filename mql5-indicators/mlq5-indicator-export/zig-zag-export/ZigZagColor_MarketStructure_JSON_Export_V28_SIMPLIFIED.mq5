@@ -61,9 +61,10 @@ input string            InpPreferredTimeframe = "";       // Override timeframe 
 // Input parameters for export functionality
 input group "Data Export Settings"
 input bool   xInpShowPrice = false;  // Show price labels
-input bool   xInpDebugMode = true;   // Enable debug printing
-input int    xBartoPrint   = 15000;    // Bar to Print in Debug Prints
+input bool   xInpDebugMode = false;   // Enable debug printing
+input int    xBartoPrint   = 27000;    // Bar to Print in Debug Prints
 input string    InpExportFileName = "MarketStructureAnalysis.json";  // Export file name
+input int       InpMaxBarsExport = 27000;      // Max bars to export (0 = all bars)
 
 // Add batch processing parameters
 input group "Batch Processing Settings"
@@ -82,7 +83,7 @@ input ENUM_LINE_STYLE    SMMA_Style = STYLE_SOLID;      // SMMA Line style
 
 // EMA input parameters
 input group "EMA Settings"
-input int                EMA_Period = 26;                 // EMA period
+input int                EMA_Period = 27;                 // EMA period
 input ENUM_APPLIED_PRICE EMA_AppliedPrice = PRICE_TYPICAL; // EMA Applied price
 input color              EMA_Color = clrBlue;             // EMA Line color
 input int                EMA_Width = 2;                   // EMA Line width
@@ -90,7 +91,7 @@ input ENUM_LINE_STYLE    EMA_Style = STYLE_SOLID;         // EMA Line style
 
 // X Value Settings
 input group "X Value Settings"
-input int                InpXThreshold = 26;          // X threshold for trend determination
+input int                InpXThreshold = 27;          // X threshold for trend determination
 input ENUM_TIMEFRAMES    InpBaseTimeframe = PERIOD_CURRENT; // Base timeframe for X threshold
 input int                InpConfirmationBars = 1;     // Number of bars for trend confirmation
 
@@ -555,7 +556,12 @@ bool ExportSingleTxtFile(string filename = "")
       string symbolName = g_FileSymbol;
       string timeframeName = g_FileTimeframe;
 
-      for(int i = 0; i < fileSize; i++)
+      // Apply max bars limit (export most recent bars)
+      int startIdx = 0;
+      if(InpMaxBarsExport > 0 && InpMaxBarsExport < fileSize)
+         startIdx = fileSize - InpMaxBarsExport;
+
+      for(int i = startIdx; i < fileSize; i++)
         {
          // Get zigzag values: use buffer value if non-zero, otherwise 0
          double zigzagHigh = (FileZigzagPeakBuffer[i] != 0.0) ? FileZigzagPeakBuffer[i] : 0.0;
@@ -578,7 +584,8 @@ bool ExportSingleTxtFile(string filename = "")
          write_success &= FileWrite(file_handle, line) > 0;
         }
 
-      Print("Exported ", fileSize, " bars from file data");
+      Print("Exported ", fileSize - startIdx, " bars from file data",
+            (InpMaxBarsExport > 0 ? StringFormat(" (limited to %d)", InpMaxBarsExport) : ""));
      }
    else
      {
@@ -590,7 +597,12 @@ bool ExportSingleTxtFile(string filename = "")
       if(StringFind(timeframeName, "PERIOD_") == 0)
          timeframeName = StringSubstr(timeframeName, 7);
 
-      for(int i = 0; i < totalBars; i++)
+      // Apply max bars limit (export most recent bars)
+      int startIdx = 0;
+      if(InpMaxBarsExport > 0 && InpMaxBarsExport < totalBars)
+         startIdx = totalBars - InpMaxBarsExport;
+
+      for(int i = startIdx; i < totalBars; i++)
         {
          // Get zigzag values: use buffer value if non-zero, otherwise 0
          double zigzagHigh = (xZigzagPeakBuffer[i] != 0.0) ? xZigzagPeakBuffer[i] : 0.0;
@@ -617,7 +629,8 @@ bool ExportSingleTxtFile(string filename = "")
          write_success &= FileWrite(file_handle, line) > 0;
         }
 
-      Print("Exported ", totalBars, " bars from live chart data");
+      Print("Exported ", totalBars - startIdx, " bars from live chart data",
+            (InpMaxBarsExport > 0 ? StringFormat(" (limited to %d)", InpMaxBarsExport) : ""));
      }
 
    FileClose(file_handle);

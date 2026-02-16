@@ -41,11 +41,11 @@ enum ENUM_CUSTOMTIMEFRAMES
 // Core inputs
 input group "Support and Resistant Levels Settings"
 input ENUM_TIMEFRAMES SRTimeframe = PERIOD_CURRENT; // Timeframe to Analyze
-input double AccuracyMultiplier = 3.0;             // Accuracy Multiplier (eg: 1.0-3.5)
-input int ATRPeriod = 100;                         // ATR Period
+input double AccuracyMultiplier = 4.0;             // Accuracy Multiplier (eg: 1.0-3.5)
+input int ATRPeriod = 162;                         // ATR Period
 input int SafeDistance = 50;                       // Safety Distance From Closest Level (points)
 input int BarsToIgnore = 0;                        // Recent Candles to Ignore
-input int MaxBarsExt = 1000;                       // Bars to Analyze
+input int MaxBarsExt = 400;                       // Bars to Analyze
 input int MaxRange = 0;                            // Max Price Range to Analyze (points) (0=No Limit)
 
 input group "Draw Line Settings"
@@ -59,7 +59,7 @@ input color SupportColor = clrGreen;               // Support Color
 input group "Export Settings"
 input bool InpEnableExport = true;                 // Enable Export Button
 input bool InpEnableBackfill = true;               // Enable Backfill Export Button
-input int InpBackfillBars = 1000;                  // Number of bars to backfill
+input int InpBackfillBars = 27000;                  // Number of bars to backfill
 input string InpBaseFileName = "SR_Levels";        // Base file name for export
 
 input string Comment_1 = "====================";    // Indicator Settings

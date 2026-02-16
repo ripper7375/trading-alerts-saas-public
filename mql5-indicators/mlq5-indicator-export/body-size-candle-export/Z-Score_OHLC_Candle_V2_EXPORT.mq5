@@ -26,7 +26,8 @@ input color  InpColorDownNormal = clrNONE;     // Down Normal Color
 input color  InpColorDownLarge = clrHotPink;   // Down Large Color (Light Pink)
 input color  InpColorDownExtreme = clrFireBrick; // Down Extreme Color
 
-// Export button settings
+// Export settings
+input int    InpMaxBarsExport = 27000;         // Max Bars to Export (0 = all)
 input color  InpBtnColor      = clrDodgerBlue; // Export Button Color
 input color  InpBtnTextColor  = clrWhite;      // Export Button Text Color
 
@@ -191,6 +192,14 @@ void ExportData()
    // Determine export range (bars with valid Z-Score data)
    int startBar = InpZScoreLength;
    int endBar   = totalBars - 1;
+
+   // Apply max bars limit if configured (most recent bars first)
+   if(InpMaxBarsExport > 0 && (endBar - startBar + 1) > InpMaxBarsExport)
+   {
+      startBar = endBar - InpMaxBarsExport + 1;
+      if(startBar < InpZScoreLength)
+         startBar = InpZScoreLength;
+   }
 
    // Write data rows from most recent bar backwards
    int rowNo = 0;
