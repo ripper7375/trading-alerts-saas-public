@@ -5,16 +5,19 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2024, Your Name"
 #property link      "https://www.yourwebsite.com"
-#property version   "1.28"
-#property description "Improved ZigZag Color Indicator - V28 FIXED"
-#property description "Fixed: Buffer resizing optimization - eliminated log spam"
+#property version   "1.29"
+#property description "Improved ZigZag Color Indicator - V29 FIXED"
+#property description "Fixed: ZigZag corruption on new bar / reconnection + EMA/SMMA stability"
 
-// Version 28 Changelog:
-// - Fixed excessive buffer resize logging (99% reduction in log messages)
-// - Added conditional buffer checking (only when size changes)
-// - Optimized CheckAndResizeLiveDataBuffers function
-// - Pre-allocates extra buffer space to reduce resize frequency
-// - Significantly improved performance and terminal responsiveness
+// Version 29 Changelog:
+// - Fixed ZigZag display corruption when new bar forms or MT5 reconnects
+// - Fixed stale zigzag ghost points not cleared during partial recalculation
+// - Increased recalculation depth from 3 bars to Depth*3 for reliable state recovery
+// - Widened lookback range in CalculateZigZag to find last extremes reliably
+// - Fixed EMA corruption on reconnection (static first_calculation not resetting)
+// - Fixed X Value / trend corruption on reconnection (static variables not resetting)
+// - Fixed SMMA/EMA price buffer loops recalculating all bars unnecessarily
+// - Removed dead code in InitializeCalculation (unreachable buffers_initialized branch)
 
 // Indicator settings
 #property indicator_chart_window
@@ -789,6 +792,10 @@ void CalculateEMA(int rates_total, int start)
    static bool first_calculation = true;
    double alpha = 2.0 / (EMA_Period + 1);
 
+// Reset on full recalculation (reconnection or new chart load)
+   if(start == 0)
+      first_calculation = true;
+
 // Initialize first value if needed
    if(first_calculation && start == 0)
      {
@@ -1318,6 +1325,14 @@ void CalculateHistoricalXValues(const int rates_total, const int prev_calculated
    static int x = 0;
    static datetime last_bar_time = 0;
 
+// Reset static variables on full recalculation (reconnection / chart reload)
+   if(prev_calculated == 0)
+     {
+      last_state = 0;
+      x = 0;
+      last_bar_time = 0;
+     }
+
 // Determine starting point for calculation
    int start = 0;
    if(prev_calculated > 0)
@@ -1469,15 +1484,16 @@ int OnCalculate(const int rates_total,
 // Calculate only for new bars or recalculation
    if(prev_calculated > 0)
      {
-      // Process only the last 3 bars for updating
-      start = MathMax(prev_calculated - 3, xInpDepth - 1);
+      // Recalculate Depth*3 bars back to ensure reliable zigzag state recovery
+      start = MathMax(prev_calculated - xInpDepth * 3, xInpDepth - 1);
      }
 
 // Main calculation loop
    CalculateZigZag(rates_total, start, high, low, prev_calculated);
 
-// Calculate SMMA price buffer
-   for(int i = 0; i < rates_total; i++)
+// Calculate SMMA price buffer - only new bars
+   int priceStart = (prev_calculated > 0) ? prev_calculated - 1 : 0;
+   for(int i = priceStart; i < rates_total; i++)
      {
       SMMA_PriceBuffer[i] = GetAppliedPrice(SMMA_AppliedPrice, open[i], high[i], low[i], close[i]);
      }
@@ -1485,8 +1501,8 @@ int OnCalculate(const int rates_total,
 // Calculate SMMA
    CalculateSMMA(rates_total, prev_calculated);
 
-// Calculate EMA price buffer
-   for(int i = 0; i < rates_total; i++)
+// Calculate EMA price buffer - only new bars
+   for(int i = priceStart; i < rates_total; i++)
      {
       EMA_PriceBuffer[i] = GetAppliedPrice(EMA_AppliedPrice, open[i], high[i], low[i], close[i]);
      }
@@ -1991,62 +2007,16 @@ void CalculateFileZigZag()
 //+------------------------------------------------------------------+
 int InitializeCalculation(const int rates_total, const int prev_calculated)
   {
-   static bool buffers_initialized = false;
-
    if(prev_calculated == 0)
      {
-      // Initialize buffers only on first calculation
+      // Full recalculation: clear all buffers and start from scratch
       ArrayInitialize(xZigzagPeakBuffer, 0.0);
       ArrayInitialize(xZigzagBottomBuffer, 0.0);
       ArrayInitialize(xHighMapBuffer, 0.0);
       ArrayInitialize(xLowMapBuffer, 0.0);
       ArrayInitialize(xColorBuffer, 0.0);
-      ArrayInitialize(xHistoryBuffer, 0.0); // Initialize X history buffer
-      buffers_initialized = true;
+      ArrayInitialize(xHistoryBuffer, 0.0);
       return xInpDepth - 1;
-     }
-
-// Preserve last known good values
-   if(!buffers_initialized)
-     {
-      // Store last known good values
-      double lastPeak = 0, lastBottom = 0;
-      int lastPeakPos = -1, lastBottomPos = -1;
-
-      for(int i = rates_total - 1; i >= 0; i--)
-        {
-         if(xZigzagPeakBuffer[i] != 0)
-           {
-            lastPeak = xZigzagPeakBuffer[i];
-            lastPeakPos = i;
-            break;
-           }
-        }
-
-      for(int i = rates_total - 1; i >= 0; i--)
-        {
-         if(xZigzagBottomBuffer[i] != 0)
-           {
-            lastBottom = xZigzagBottomBuffer[i];
-            lastBottomPos = i;
-            break;
-           }
-        }
-
-      // Initialize buffers while preserving last values
-      ArrayInitialize(xZigzagPeakBuffer, 0.0);
-      ArrayInitialize(xZigzagBottomBuffer, 0.0);
-      ArrayInitialize(xHighMapBuffer, 0.0);
-      ArrayInitialize(xLowMapBuffer, 0.0);
-      ArrayInitialize(xColorBuffer, 0.0);
-
-      // Restore last known good values
-      if(lastPeakPos >= 0)
-         xZigzagPeakBuffer[lastPeakPos] = lastPeak;
-      if(lastBottomPos >= 0)
-         xZigzagBottomBuffer[lastBottomPos] = lastBottom;
-
-      buffers_initialized = true;
      }
 
    return prev_calculated - 1;
@@ -2151,10 +2121,22 @@ void CalculateZigZag(const int rates_total, int start,
    double last_high = 0, last_low = 0;
    int last_high_pos = 0, last_low_pos = 0;
 
-// Find last known extremes if restarting calculation
-   if(start > xInpDepth)
+// Clear stale zigzag points in the recalculation range to prevent ghost points
+   if(prev_calculated > 0 && start < rates_total)
      {
-      for(int i = start - 1; i >= start - xInpDepth && i >= 0; i--)
+      for(int i = start; i < rates_total; i++)
+        {
+         xZigzagPeakBuffer[i] = 0.0;
+         xZigzagBottomBuffer[i] = 0.0;
+         xColorBuffer[i] = 0.0;
+        }
+     }
+
+// Find last known extremes if restarting calculation
+// Use wider lookback (entire history) to reliably find the last extreme
+   if(start > 0)
+     {
+      for(int i = start - 1; i >= 0; i--)
         {
          if(xZigzagPeakBuffer[i] != 0)
            {
