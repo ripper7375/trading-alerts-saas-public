@@ -64,6 +64,7 @@ input bool   xInpShowPrice = false;  // Show price labels
 input bool   xInpDebugMode = true;   // Enable debug printing
 input int    xBartoPrint   = 15000;    // Bar to Print in Debug Prints
 input string    InpExportFileName = "MarketStructureAnalysis.json";  // Export file name
+input int       InpMaxBarsExport = 0;      // Max bars to export (0 = all bars)
 
 // Add batch processing parameters
 input group "Batch Processing Settings"
@@ -555,7 +556,12 @@ bool ExportSingleTxtFile(string filename = "")
       string symbolName = g_FileSymbol;
       string timeframeName = g_FileTimeframe;
 
-      for(int i = 0; i < fileSize; i++)
+      // Apply max bars limit (export most recent bars)
+      int startIdx = 0;
+      if(InpMaxBarsExport > 0 && InpMaxBarsExport < fileSize)
+         startIdx = fileSize - InpMaxBarsExport;
+
+      for(int i = startIdx; i < fileSize; i++)
         {
          // Get zigzag values: use buffer value if non-zero, otherwise 0
          double zigzagHigh = (FileZigzagPeakBuffer[i] != 0.0) ? FileZigzagPeakBuffer[i] : 0.0;
@@ -578,7 +584,8 @@ bool ExportSingleTxtFile(string filename = "")
          write_success &= FileWrite(file_handle, line) > 0;
         }
 
-      Print("Exported ", fileSize, " bars from file data");
+      Print("Exported ", fileSize - startIdx, " bars from file data",
+            (InpMaxBarsExport > 0 ? StringFormat(" (limited to %d)", InpMaxBarsExport) : ""));
      }
    else
      {
@@ -590,7 +597,12 @@ bool ExportSingleTxtFile(string filename = "")
       if(StringFind(timeframeName, "PERIOD_") == 0)
          timeframeName = StringSubstr(timeframeName, 7);
 
-      for(int i = 0; i < totalBars; i++)
+      // Apply max bars limit (export most recent bars)
+      int startIdx = 0;
+      if(InpMaxBarsExport > 0 && InpMaxBarsExport < totalBars)
+         startIdx = totalBars - InpMaxBarsExport;
+
+      for(int i = startIdx; i < totalBars; i++)
         {
          // Get zigzag values: use buffer value if non-zero, otherwise 0
          double zigzagHigh = (xZigzagPeakBuffer[i] != 0.0) ? xZigzagPeakBuffer[i] : 0.0;
@@ -617,7 +629,8 @@ bool ExportSingleTxtFile(string filename = "")
          write_success &= FileWrite(file_handle, line) > 0;
         }
 
-      Print("Exported ", totalBars, " bars from live chart data");
+      Print("Exported ", totalBars - startIdx, " bars from live chart data",
+            (InpMaxBarsExport > 0 ? StringFormat(" (limited to %d)", InpMaxBarsExport) : ""));
      }
 
    FileClose(file_handle);
