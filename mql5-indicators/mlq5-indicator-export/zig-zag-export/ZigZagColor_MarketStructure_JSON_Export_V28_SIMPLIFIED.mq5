@@ -2843,6 +2843,9 @@ void OnDeinit(const int reason)
 
 // Delete trend direction label
    ObjectDelete(0, trendLabel);
+
+// Force chart redraw to ensure objects are visually removed
+   ChartRedraw(0);
   }
 
 //+------------------------------------------------------------------+
