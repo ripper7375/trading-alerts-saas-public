@@ -316,7 +316,7 @@ string TimeframeToString(ENUM_TIMEFRAMES timeframe)
 
 //+------------------------------------------------------------------+
 //| Export indicator data to tab-separated text file                 |
-//| Format: No | TimeStamp | Symbol | Timeframe | Close | Tema | Hrma | Smma |
+//| Format: timestamp | symbol | timeframe | close | tema | hrma | smma |
 //+------------------------------------------------------------------+
 bool ExportData()
   {
@@ -358,7 +358,10 @@ bool ExportData()
    bool write_success = true;
 
    //--- write header row
-   write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tTema\tHrma\tSmma") > 0;
+   write_success &= FileWrite(file_handle, "timestamp\tsymbol\ttimeframe\tclose\ttema\thrma\tsmma") > 0;
+
+   //--- compute UTC offset once before the loop
+   datetime gmt_offset = TimeCurrent() - TimeGMT();
 
    //--- write data rows oldest-first
    //    idx directly addresses g_time[], g_close[], TEMABuffer[], HRMABuffer[], SMMABuffer[]
@@ -377,9 +380,8 @@ bool ExportData()
       string smma_str = (SMMABuffer[idx] != 0.0 && SMMABuffer[idx] != EMPTY_VALUE
                          ? DoubleToString(SMMABuffer[idx], _Digits) : "");
 
-      string line = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
-                                 i,
-                                 TimeToString(g_time[idx],  TIME_DATE|TIME_MINUTES),
+      string line = StringFormat("%I64d\t%s\t%s\t%s\t%s\t%s\t%s",
+                                 (long)(g_time[idx] - gmt_offset),
                                  symbol,
                                  tf_str,
                                  DoubleToString(g_close[idx], _Digits),
