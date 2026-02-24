@@ -326,6 +326,7 @@ export interface MovingAveragesColumns {
 export interface BodyMomentumData {
   body_size: number | null;
   body_direction: number | null;
+  body_classification: number | null;
 }
 
 /**
@@ -338,23 +339,24 @@ export interface HeikenAshiData {
   ha_close: number | null;
   ha_color: number | null;
   ha_trend: number | null;
-  ha_strength: number | null;
+  ha_body_size: number | null;
+  ha_body_zscore: number | null;
 }
 
 /**
  * PRO tier indicator: Keltner Channels (10 columns)
  */
 export interface KeltnerChannelsData {
+  kc_ultra_extreme_upper: number | null;
+  kc_extreme_upper: number | null;
+  kc_uppermost: number | null;
   kc_upper: number | null;
-  kc_middle: number | null;
+  kc_upper_middle: number | null;
+  kc_lower_middle: number | null;
   kc_lower: number | null;
-  kc_upper_ema: number | null;
-  kc_middle_ema: number | null;
-  kc_lower_ema: number | null;
-  kc_squeeze: number | null;
-  kc_squeeze_pro: number | null;
-  kc_width: number | null;
-  kc_width_ema: number | null;
+  kc_lowermost: number | null;
+  kc_extreme_lower: number | null;
+  kc_ultra_extreme_lower: number | null;
 }
 
 /**
