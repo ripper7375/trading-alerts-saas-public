@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Tier } from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 61-COLUMN SCHEMA DATA STRUCTURES
+// 63-COLUMN SCHEMA DATA STRUCTURES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
@@ -59,15 +59,16 @@ interface MovingAveragesData {
 
 
 /**
- * PRO tier: Body Momentum data (2 columns)
+ * PRO tier: Body Momentum data (3 columns)
  */
 interface BodyMomentumData {
   body_size: number | null;
   body_direction: number | null;
+  body_classification: number | null;
 }
 
 /**
- * PRO tier: Heiken Ashi data (7 columns)
+ * PRO tier: Heiken Ashi data (8 columns)
  */
 interface HeikenAshiData {
   ha_open: number | null;
@@ -76,23 +77,24 @@ interface HeikenAshiData {
   ha_close: number | null;
   ha_color: number | null;
   ha_trend: number | null;
-  ha_strength: number | null;
+  ha_body_size: number | null;
+  ha_body_zscore: number | null;
 }
 
 /**
  * PRO tier: Keltner Channels data (10 columns)
  */
 interface KeltnerChannelsData {
+  kc_ultra_extreme_upper: number | null;
+  kc_extreme_upper: number | null;
+  kc_uppermost: number | null;
   kc_upper: number | null;
-  kc_middle: number | null;
+  kc_upper_middle: number | null;
+  kc_lower_middle: number | null;
   kc_lower: number | null;
-  kc_upper_ema: number | null;
-  kc_middle_ema: number | null;
-  kc_lower_ema: number | null;
-  kc_squeeze: number | null;
-  kc_squeeze_pro: number | null;
-  kc_width: number | null;
-  kc_width_ema: number | null;
+  kc_lowermost: number | null;
+  kc_extreme_lower: number | null;
+  kc_ultra_extreme_lower: number | null;
 }
 
 /**
@@ -141,7 +143,7 @@ export interface MarketDataRow extends CandleData {
   // FREE tier indicators (16 columns)
   fractal_diagonal?: FractalDiagonalData;
   fractal_horizontal?: FractalHorizontalData;
-  // PRO tier indicators (36 columns)
+  // PRO tier indicators (38 columns)
   moving_averages?: MovingAveragesData;
   body_momentum?: BodyMomentumData;
   heiken_ashi?: HeikenAshiData;
@@ -153,7 +155,7 @@ export interface MarketDataRow extends CandleData {
 }
 
 /**
- * Indicator data structure from API (61-column schema)
+ * Indicator data structure from API (63-column schema)
  * Replaces old nested JSON structure with flat column data
  */
 export interface IndicatorData {
@@ -206,13 +208,13 @@ interface UseIndicatorsResult {
 /**
  * useIndicators Hook
  *
- * React hook for fetching indicator data from the 61-column schema API.
+ * React hook for fetching indicator data from the 63-column schema API.
  * Handles loading, error, and success states with automatic refetch.
  *
- * 61-Column Schema Structure:
+ * 63-Column Schema Structure:
  * - System columns (9): timestamp, symbol, open, high, low, close, volume, timeframe, collected_at
  * - FREE tier indicators (16 columns): fractal_diagonal (8) + fractal_horizontal (8)
- * - PRO tier indicators (36 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
+ * - PRO tier indicators (38 columns): moving_averages (3) + body_momentum (3) + heiken_ashi (8) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
  *
  * Features:
  * - Fetches OHLC data and tier-appropriate indicator columns
