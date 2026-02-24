@@ -1,5 +1,5 @@
 /**
- * Tests for Indicator Tier Constants - 61-Column Schema
+ * Tests for Indicator Tier Constants - 63-Column Schema
  */
 
 import {
@@ -14,7 +14,7 @@ import {
   getTierColumnCount,
 } from '../constants';
 
-describe('Indicator Constants - 61-Column Schema', () => {
+describe('Indicator Constants - 63-Column Schema', () => {
   describe('Indicator Arrays', () => {
     it('FREE_TIER_INDICATORS should have exactly 2 indicators', () => {
       expect(FREE_TIER_INDICATORS).toHaveLength(2);
@@ -120,24 +120,27 @@ describe('Indicator Constants - 61-Column Schema', () => {
       expect(INDICATOR_METADATA.zigzag.columns).not.toContain('zigzag_trend');
     });
 
-    it('body_momentum should have exactly 2 columns', () => {
-      expect(INDICATOR_METADATA.body_momentum.columns).toHaveLength(2);
+    it('body_momentum should have exactly 3 columns', () => {
+      expect(INDICATOR_METADATA.body_momentum.columns).toHaveLength(3);
       expect(INDICATOR_METADATA.body_momentum.columns).toEqual([
         'body_size',
         'body_direction',
+        'body_classification',
       ]);
     });
 
-    it('heiken_ashi should have exactly 7 columns', () => {
-      expect(INDICATOR_METADATA.heiken_ashi.columns).toHaveLength(7);
+    it('heiken_ashi should have exactly 8 columns', () => {
+      expect(INDICATOR_METADATA.heiken_ashi.columns).toHaveLength(8);
       expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_open');
       expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_color');
+      expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_body_size');
+      expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_body_zscore');
     });
 
     it('keltner_channels should have exactly 10 columns', () => {
       expect(INDICATOR_METADATA.keltner_channels.columns).toHaveLength(10);
       expect(INDICATOR_METADATA.keltner_channels.columns).toContain(
-        'kc_upper_ema'
+        'kc_ultra_extreme_upper'
       );
       expect(INDICATOR_METADATA.keltner_channels.columns).toContain('kc_upper');
     });
@@ -180,20 +183,20 @@ describe('Indicator Constants - 61-Column Schema', () => {
       expect(freeColumns).toBe(16); // 8 + 8
     });
 
-    it('PRO tier indicators should have 36 columns total', () => {
+    it('PRO tier indicators should have 38 columns total', () => {
       const proColumns = PRO_ONLY_INDICATORS.reduce(
         (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
         0
       );
-      expect(proColumns).toBe(36); // 3 + 2 + 7 + 10 + 8 + 3 + 2 + 1
+      expect(proColumns).toBe(38); // 3 + 3 + 8 + 10 + 8 + 3 + 2 + 1
     });
 
-    it('All indicators should have 52 columns total', () => {
+    it('All indicators should have 54 columns total', () => {
       const allColumns = ALL_INDICATORS.reduce(
         (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
         0
       );
-      expect(allColumns).toBe(52); // 16 + 36
+      expect(allColumns).toBe(54); // 16 + 38
     });
   });
 
@@ -270,8 +273,8 @@ describe('Indicator Constants - 61-Column Schema', () => {
         expect(getTierColumnCount('FREE')).toBe(25); // 9 system + 16 indicator
       });
 
-      it('should return 61 for PRO tier', () => {
-        expect(getTierColumnCount('PRO')).toBe(61); // 9 system + 52 indicator
+      it('should return 63 for PRO tier', () => {
+        expect(getTierColumnCount('PRO')).toBe(63); // 9 system + 54 indicator
       });
     });
   });
