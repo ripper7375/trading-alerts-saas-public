@@ -534,7 +534,7 @@ bool ExportSingleTxtFile(string filename = "")
    string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
    Print("Attempting to export 8-column data to: ", full_path);
 
-   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+   int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI, '\t');
    if(file_handle == INVALID_HANDLE)
      {
       Print("ERROR: Failed to open file for writing. Error code: ", GetLastError());
@@ -543,9 +543,9 @@ bool ExportSingleTxtFile(string filename = "")
 
    bool write_success = true;
 
-// Write header with 8 columns
+// Write header with 7 columns
    write_success &= FileWrite(file_handle,
-                              "No\tTimeStamp\tSymbol\tClose\tTimeframe\tZigZag_High\tZigZag_Low\tEMA") > 0;
+                              "timestamp\tsymbol\ttimeframe\tclose\tzigzag_high\tzigzag_low\tema") > 0;
 
 // Determine data source and export accordingly
    if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
@@ -561,6 +561,8 @@ bool ExportSingleTxtFile(string filename = "")
       if(InpMaxBarsExport > 0 && InpMaxBarsExport < fileSize)
          startIdx = fileSize - InpMaxBarsExport;
 
+      datetime gmt_offset = TimeCurrent() - TimeGMT();
+
       for(int i = startIdx; i < fileSize; i++)
         {
          // Get zigzag values: use buffer value if non-zero, otherwise 0
@@ -570,12 +572,11 @@ bool ExportSingleTxtFile(string filename = "")
          // Get EMA value
          double emaValue = (i < ArraySize(FileEMABuffer)) ? FileEMABuffer[i] : 0.0;
 
-         string line = StringFormat("%d\t%s\t%s\t%.*f\t%s\t%.*f\t%.*f\t%.*f",
-                                    i,
-                                    TimeToString(FileData[i].time, TIME_DATE|TIME_MINUTES),
+         string line = StringFormat("%d\t%s\t%s\t%.*f\t%.*f\t%.*f\t%.*f",
+                                    (long)(FileData[i].time - gmt_offset),
                                     symbolName,
-                                    precision, FileData[i].close,
                                     timeframeName,
+                                    precision, FileData[i].close,
                                     precision, zigzagHigh,
                                     precision, zigzagLow,
                                     precision, emaValue
@@ -602,6 +603,8 @@ bool ExportSingleTxtFile(string filename = "")
       if(InpMaxBarsExport > 0 && InpMaxBarsExport < totalBars)
          startIdx = totalBars - InpMaxBarsExport;
 
+      datetime gmt_offset = TimeCurrent() - TimeGMT();
+
       for(int i = startIdx; i < totalBars; i++)
         {
          // Get zigzag values: use buffer value if non-zero, otherwise 0
@@ -615,12 +618,11 @@ bool ExportSingleTxtFile(string filename = "")
          // Get EMA value
          double emaValue = (i < ArraySize(EMA_Buffer)) ? EMA_Buffer[i] : 0.0;
 
-         string line = StringFormat("%d\t%s\t%s\t%.*f\t%s\t%.*f\t%.*f\t%.*f",
-                                    i,
-                                    TimeToString(barTime, TIME_DATE|TIME_MINUTES),
+         string line = StringFormat("%d\t%s\t%s\t%.*f\t%.*f\t%.*f\t%.*f",
+                                    (long)(barTime - gmt_offset),
                                     symbolName,
-                                    precision, closePrice,
                                     timeframeName,
+                                    precision, closePrice,
                                     precision, zigzagHigh,
                                     precision, zigzagLow,
                                     precision, emaValue
