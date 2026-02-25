@@ -619,7 +619,7 @@ bool ExportToTxt(const string symbol,
     Print("Exporting to TXT file: ", full_path);
 
     ResetLastError();
-    int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+    int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI, '\t');
     int error = GetLastError();
 
     if(file_handle == INVALID_HANDLE)
@@ -652,14 +652,17 @@ bool ExportToTxt(const string symbol,
         write_success &= FileWrite(file_handle, "") > 0;  // Empty line
     }
 
-    // Write 15-column data header
-    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tkc_ultra_extreme_upper\tkc_extreme_upper\tkc_uppermost\tkc_upper\tkc_upper_middle\tkc_lower_middle\tkc_lower\tkc_lowermost\tkc_extreme_lower\tkc_ultra_extreme_lower") > 0;
+    // Write 14-column data header
+    write_success &= FileWrite(file_handle, "timestamp\tsymbol\ttimeframe\tclose\tkc_ultra_extreme_upper\tkc_extreme_upper\tkc_uppermost\tkc_upper\tkc_upper_middle\tkc_lower_middle\tkc_lower\tkc_lowermost\tkc_extreme_lower\tkc_ultra_extreme_lower") > 0;
 
     // Get current chart data size to properly index buffers
     int chart_bars = iBars(symbol, timeframe);
 
-    // Write data rows in series order (newest first)
-    for(int i = 0; i < bars_count; i++)
+    // Calculate GMT offset for UTC timestamps
+    datetime gmt_offset = TimeCurrent() - TimeGMT();
+
+    // Write data rows in ascending order (oldest first)
+    for(int i = bars_count-1; i >= 0; i--)
     {
         // Convert series index to buffer index
         int buffer_index = chart_bars - 1 - i;
@@ -668,9 +671,8 @@ bool ExportToTxt(const string symbol,
         if(buffer_index < 0 || buffer_index >= ArraySize(UltraExtremeUpperBandBuffer))
             continue;
 
-        string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f",
-                                  i,
-                                  TimeToString(time[i], TIME_DATE|TIME_MINUTES),
+        string line = StringFormat("%d\t%s\t%s\t%.2f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f",
+                                  (int)(iTime(Symbol(), Period(), i) - gmt_offset),
                                   symbol,
                                   tf_str,
                                   close[i],
