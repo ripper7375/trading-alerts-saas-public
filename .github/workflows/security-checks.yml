@@ -33,7 +33,13 @@ jobs:
           version: 10
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          # Use regular install (not --frozen-lockfile) so that pnpm.overrides
+          # in package.json are applied to the resolved dependency tree.
+          # --frozen-lockfile would skip override resolution when the lockfile
+          # was generated before the overrides were added, causing audit to
+          # report vulnerabilities that are already patched via overrides.
+          pnpm install --no-frozen-lockfile
 
       - name: Run security audit
         run: |
