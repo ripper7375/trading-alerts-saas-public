@@ -999,8 +999,27 @@ string GetSelectedSymbol()
 }
 
 // +------------------------------------------------------------------+
-// |   Export price data to TXT file (6-column format)               |
-// |   Columns: No | TimeStamp | Symbol | Timeframe | Close | pinbar  |
+// |   Convert ENUM_TIMEFRAMES to clean string (e.g. "M5" not        |
+// |   "PERIOD_M5")                                                   |
+// +------------------------------------------------------------------+
+string GetTFStr(ENUM_TIMEFRAMES tf)
+{
+        switch(tf)
+        {
+                case PERIOD_M1:  return "M1";
+                case PERIOD_M5:  return "M5";
+                case PERIOD_M15: return "M15";
+                case PERIOD_M30: return "M30";
+                case PERIOD_H1:  return "H1";
+                case PERIOD_H4:  return "H4";
+                case PERIOD_D1:  return "D1";
+                default: return EnumToString(tf);
+        }
+}
+
+// +------------------------------------------------------------------+
+// |   Export price data to TXT file (5-column format)               |
+// |   Columns: timestamp | symbol | timeframe | close | pinbar       |
 // +------------------------------------------------------------------+
 bool ExportToTxt(const string symbol,
                  const ENUM_TIMEFRAMES timeframe,
@@ -1017,7 +1036,7 @@ bool ExportToTxt(const string symbol,
         Print("V17 Exporting to TXT file: ", full_path);
 
         ResetLastError();
-        int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+        int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI, '\t');
         int error = GetLastError();
 
         if(file_handle == INVALID_HANDLE)
@@ -1028,16 +1047,16 @@ bool ExportToTxt(const string symbol,
 
         bool write_success = true;
 
-        // Write data header - 6-column format
-        write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tpinbar") > 0;
+        // Write data header - 5-column format
+        write_success &= FileWrite(file_handle, "timestamp\tsymbol\ttimeframe\tclose\tpinbar") > 0;
 
-        // Write data rows
-        string tf_str = EnumToString(timeframe);
-        for(int i = 0; i < bars_count; i++)
+        // Write data rows (oldest bar first)
+        datetime gmt_offset = TimeCurrent() - TimeGMT();
+        string tf_str = GetTFStr(timeframe);
+        for(int i = bars_count - 1; i >= 0; i--)
         {
-                string line = StringFormat("%d\t%s\t%s\t%s\t%.5f\t%d",
-                                          i,
-                                          TimeToString(time[i], TIME_DATE|TIME_MINUTES),
+                string line = StringFormat("%d\t%s\t%s\t%.2f\t%d",
+                                          (long)(time[i] - gmt_offset),
                                           symbol,
                                           tf_str,
                                           close[i],
@@ -1076,7 +1095,7 @@ bool ExportToJson(const string symbol,
         Print("V17 Exporting to JSON file: ", full_path);
 
         ResetLastError();
-        int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT);
+        int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
         int error = GetLastError();
 
         if(file_handle == INVALID_HANDLE)
