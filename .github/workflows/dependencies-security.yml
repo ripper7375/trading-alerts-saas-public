@@ -74,8 +74,17 @@ jobs:
           echo "🔍 Running pnpm security audit..."
           pnpm audit --audit-level=moderate || echo "⚠️  Security vulnerabilities detected"
           echo ""
-          echo "Note: This is informative during development phase"
-          echo "Action: Review vulnerabilities and update dependencies when appropriate"
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║  ⚠️  DO NOT add pnpm.overrides in feature branches to     ║"
+          echo "║     fix these vulnerabilities.                              ║"
+          echo "║                                                             ║"
+          echo "║  Security overrides MUST be added via a dedicated PR        ║"
+          echo "║  directly to main. Adding them in feature branches causes   ║"
+          echo "║  recurring merge conflicts (7+ documented occurrences).     ║"
+          echo "║  See: errors/continuous-pr-errors/                          ║"
+          echo "║                                                             ║"
+          echo "║  This scan is INFORMATIVE ONLY and does not block merging.  ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
 
       - name: Check for outdated dependencies
         if: steps.check_npm.outputs.exists == 'true'

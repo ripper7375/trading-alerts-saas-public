@@ -1,0 +1,5 @@
+# Auto-generated lockfiles — suppress noisy PR diffs.
+# After any merge involving lockfile changes, regenerate with:
+#   pnpm install --no-frozen-lockfile
+pnpm-lock.yaml linguist-generated -diff
+package-lock.json linguist-generated -diff
