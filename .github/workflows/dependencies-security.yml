@@ -3,6 +3,15 @@ name: Dependencies Security Scan
 # Purpose: Scan npm and Python dependencies for security vulnerabilities
 # Active: Phase 1-4 (always active)
 # Design: Non-blocking, informative feedback for autonomous development
+#
+# IMPORTANT: This is the ONLY workflow that runs pnpm audit.
+# It is intentionally non-blocking (continue-on-error) to prevent a
+# recurring merge-conflict loop where every feature branch independently
+# adds pnpm.overrides, then conflicts with main on merge.
+# See errors/continuous-pr-errors/ for the full history.
+#
+# DO NOT add pnpm audit to other workflows (e.g. security-checks.yml).
+# DO NOT remove continue-on-error from the audit steps below.
 
 on:
   push:
@@ -53,7 +62,10 @@ jobs:
 
       - name: Install dependencies
         if: steps.check_npm.outputs.exists == 'true'
-        run: pnpm install --frozen-lockfile
+        run: |
+          # Use --no-frozen-lockfile so pnpm.overrides in package.json are
+          # applied even if the lockfile predates the override entries.
+          pnpm install --no-frozen-lockfile
 
       - name: Run pnpm audit
         if: steps.check_npm.outputs.exists == 'true'

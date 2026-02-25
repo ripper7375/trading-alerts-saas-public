@@ -305,7 +305,7 @@ string TimeframeToString(ENUM_TIMEFRAMES timeframe)
 
 //+------------------------------------------------------------------+
 //| Export indicator data to tab-separated CSV file                  |
-//| Format: No | TimeStamp | Symbol | Timeframe | Close |            |
+//| Format: timestamp | symbol | timeframe | close |                 |
 //|         dual_tema_high | dual_tema_low                           |
 //+------------------------------------------------------------------+
 bool ExportData()
@@ -347,8 +347,11 @@ bool ExportData()
 
     bool write_success = true;
 
+    //--- calculate broker-to-GMT offset once (seconds)
+    datetime gmt_offset = TimeCurrent() - TimeGMT();
+
     //--- write header row
-    write_success &= FileWrite(file_handle, "No\tTimeStamp\tSymbol\tTimeframe\tClose\tdual_tema_high\tdual_tema_low") > 0;
+    write_success &= FileWrite(file_handle, "timestamp\tsymbol\ttimeframe\tclose\tdual_tema_high\tdual_tema_low") > 0;
 
     //--- write data rows oldest-first
     //    idx directly addresses g_time[], g_close[], TEMAHighBuffer[], TEMALowBuffer[]
@@ -365,9 +368,8 @@ bool ExportData()
         string tema_low_str  = (TEMALowBuffer[idx]  != 0.0 && TEMALowBuffer[idx]  != EMPTY_VALUE
                                 ? DoubleToString(TEMALowBuffer[idx],  _Digits) : "");
 
-        string line = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s",
-                                   i,
-                                   TimeToString(g_time[idx],  TIME_DATE|TIME_MINUTES),
+        string line = StringFormat("%lld\t%s\t%s\t%s\t%s\t%s",
+                                   (long)(g_time[idx] - gmt_offset),
                                    symbol,
                                    tf_str,
                                    DoubleToString(g_close[idx], _Digits),
