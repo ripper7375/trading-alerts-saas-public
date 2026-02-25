@@ -1,5 +1,5 @@
 /**
- * Indicator Tier Constants - 61-Column Database Schema
+ * Indicator Tier Constants - 63-Column Database Schema
  *
  * Defines which indicators are available for each tier level based on
  * the new 61-column flat schema (replacing old 14-column JSON structure).
@@ -7,7 +7,7 @@
  * Database Structure:
  * - System Columns (9): timestamp, symbol, open, high, low, close, volume, timeframe, collected_at
  * - FREE Indicators (16 columns): fractal_diagonal (8) + fractal_horizontal (8)
- * - PRO Indicators (36 columns): moving_averages (3) + body_momentum (2) + heiken_ashi (7) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
+ * - PRO Indicators (38 columns): moving_averages (3) + body_momentum (3) + heiken_ashi (8) + keltner_channels (10) + support_resistance (8) + zigzag (3) + dual_tema_hl (2) + pinbar_detection (1)
  *
  * @module lib/tier/constants
  */
@@ -15,7 +15,7 @@
 import type { Tier } from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// INDICATOR TYPE CONSTANTS (NEW 61-COLUMN SCHEMA)
+// INDICATOR TYPE CONSTANTS (NEW 63-COLUMN SCHEMA)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
@@ -30,14 +30,14 @@ export const FREE_TIER_INDICATORS = [
 export type FreeTierIndicator = (typeof FREE_TIER_INDICATORS)[number];
 
 /**
- * PRO-only indicators (8 groups, 36 columns total)
+ * PRO-only indicators (8 groups, 38 columns total)
  * Requires PRO tier subscription to access
  */
 export const PRO_ONLY_INDICATORS = [
   'moving_averages', // 3 columns: tema, hrma, smma
-  'body_momentum', // 2 columns: body_size, body_direction
-  'heiken_ashi', // 7 columns: ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength
-  'keltner_channels', // 10 columns: kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema
+  'body_momentum', // 3 columns: body_size, body_direction, body_classification
+  'heiken_ashi', // 8 columns: ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_body_size, ha_body_zscore
+  'keltner_channels', // 10 columns: kc_ultra_extreme_upper, kc_extreme_upper, kc_uppermost, kc_upper, kc_upper_middle, kc_lower_middle, kc_lower, kc_lowermost, kc_extreme_lower, kc_ultra_extreme_lower
   'support_resistance', // 8 columns: sr_1, sr_2, sr_3, sr_4, sr_5, sr_6, sr_7, sr_8
   'zigzag', // 3 columns: zigzag_high, zigzag_low, ema
   'dual_tema_hl', // 2 columns: dual_tema_high, dual_tema_low
@@ -47,8 +47,8 @@ export const PRO_ONLY_INDICATORS = [
 export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
 
 /**
- * All available indicators (FREE + PRO = 10 groups, 52 indicator columns)
- * System columns (9) + Indicator columns (52) = 61 total columns
+ * All available indicators (FREE + PRO = 10 groups, 54 indicator columns)
+ * System columns (9) + Indicator columns (54) = 63 total columns
  */
 export const ALL_INDICATORS = [
   ...FREE_TIER_INDICATORS,
@@ -167,7 +167,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     description: 'Candle body size analysis with Z-score classification',
     category: 'momentum',
     tier: 'PRO',
-    columns: ['body_size', 'body_direction'],
+    columns: ['body_size', 'body_direction', 'body_classification'],
     colors: {
       up_normal: '#90ee90',
       up_large: '#00c853',
@@ -192,7 +192,8 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
       'ha_close',
       'ha_color',
       'ha_trend',
-      'ha_strength',
+      'ha_body_size',
+      'ha_body_zscore',
     ],
     colors: {
       bullish: '#00c853',
@@ -208,16 +209,16 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     category: 'volatility',
     tier: 'PRO',
     columns: [
+      'kc_ultra_extreme_upper',
+      'kc_extreme_upper',
+      'kc_uppermost',
       'kc_upper',
-      'kc_middle',
+      'kc_upper_middle',
+      'kc_lower_middle',
       'kc_lower',
-      'kc_upper_ema',
-      'kc_middle_ema',
-      'kc_lower_ema',
-      'kc_squeeze',
-      'kc_squeeze_pro',
-      'kc_width',
-      'kc_width_ema',
+      'kc_lowermost',
+      'kc_extreme_lower',
+      'kc_ultra_extreme_lower',
     ],
     colors: {
       upper: '#2196f3',
@@ -235,16 +236,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     description: 'Fractal-based support and resistance levels',
     category: 'support_resistance',
     tier: 'PRO',
-    columns: [
-      'sr_1',
-      'sr_2',
-      'sr_3',
-      'sr_4',
-      'sr_5',
-      'sr_6',
-      'sr_7',
-      'sr_8',
-    ],
+    columns: ['sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8'],
     colors: {
       support: '#00c853',
       resistance: '#f23645',
@@ -393,7 +385,7 @@ export function getIndicatorByColumn(columnName: string): IndicatorId | null {
 }
 
 /**
- * Check if a column name is valid in the 61-column schema
+ * Check if a column name is valid in the 63-column schema
  */
 export function isValidColumnName(columnName: string): boolean {
   // Check system columns
@@ -414,7 +406,7 @@ export function isValidColumnName(columnName: string): boolean {
 /**
  * Get total column count for a tier
  * FREE: 9 system + 16 indicator = 25 columns
- * PRO: 9 system + 52 indicator = 61 columns
+ * PRO: 9 system + 54 indicator = 63 columns
  */
 export function getTierColumnCount(tier: Tier): number {
   if (tier === 'FREE') {
@@ -430,5 +422,5 @@ export function getTierColumnCount(tier: Tier): number {
     (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
     0
   );
-  return SYSTEM_COLUMNS.length + allIndicatorColumns; // 9 + 52 = 61
+  return SYSTEM_COLUMNS.length + allIndicatorColumns; // 9 + 54 = 63
 }
