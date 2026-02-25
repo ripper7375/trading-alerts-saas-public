@@ -35,7 +35,7 @@ input int InpPeriodEMA = 9;  // EMA period
 input int InpShift     = 0;  // Indicator's shift
 
 // Input parameters (export)
-input int    InpExportBars     = 27000;              // Number of bars to export
+input int    InpExportBars     = 500;              // Number of bars to export
 input string InpExportFileName = "Dual_TEMA_HL";     // Base export filename
 
 // === INDICATOR_DATA buffers MUST come first (Plot 0 -> buf 0, Plot 1 -> buf 1) ===

@@ -24,7 +24,7 @@ enum ENUM_SYMBOL_SELECTION {
 input ENUM_SYMBOL_SELECTION InpSymbolSelection = SYMBOL_CURRENT;  // Symbol Selection
 input string                InpManualSymbol = "";                 // Manual Symbol Entry (if "Enter manually")
 input ENUM_TIMEFRAMES      InpTimeframe = PERIOD_CURRENT;        // Timeframe
-input int                  InpBars = 27000;                       // Number of bars to export
+input int                  InpBars = 500;                       // Number of bars to export
 input string               InpBaseFileName = "PriceData";        // Base file name
 input bool                 InpForceTimeframe = true;            // Force timeframe if validation fails
 input bool                 InpIncludeMetadata = false;           // Include metadata in TXT export

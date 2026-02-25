@@ -59,7 +59,7 @@ input color SupportColor = clrGreen;               // Support Color
 input group "Export Settings"
 input bool InpEnableExport = true;                 // Enable Export Button
 input bool InpEnableBackfill = true;               // Enable Backfill Export Button
-input int InpBackfillBars = 27000;                  // Number of bars to backfill
+input int InpBackfillBars = 500;                  // Number of bars to backfill
 input string InpBaseFileName = "SR_Levels";        // Base file name for export
 
 input string Comment_1 = "====================";    // Indicator Settings

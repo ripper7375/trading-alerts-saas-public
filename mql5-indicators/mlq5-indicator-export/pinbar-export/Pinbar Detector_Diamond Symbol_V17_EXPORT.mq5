@@ -95,7 +95,7 @@ input string ExportSection           = "=== DATA EXPORT ===";       // Export Se
 input ENUM_SYMBOL_SELECTION InpSymbolSelection = SYMBOL_CURRENT;    // Symbol Selection
 input string                InpManualSymbol    = "";                // Manual Symbol Entry (if "Enter manually")
 input ENUM_TIMEFRAMES       InpTimeframe       = PERIOD_CURRENT;    // Timeframe
-input int                   InpBars            = 27000;              // Number of bars to export
+input int                   InpBars            = 500;              // Number of bars to export
 input string                InpBaseFileName    = "PinbarDetector_V17"; // Base file name
 input bool                  InpExportJSON      = false;              // Export JSON file
 input bool                  InpCleanFilenames  = true;              // Clean filenames (no .txt extension)

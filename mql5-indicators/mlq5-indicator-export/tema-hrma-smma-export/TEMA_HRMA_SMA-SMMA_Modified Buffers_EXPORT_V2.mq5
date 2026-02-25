@@ -42,7 +42,7 @@ input color              InpTEMAColor=clrGray;       // TEMA Line color
 input int                InpTEMAWidth=1;             // TEMA Line width
 
 //--- input parameters (export)
-input int                InpExportBars=27000;        // Number of bars to export
+input int                InpExportBars=500;        // Number of bars to export
 input string             InpExportFileName="TEMA_HRMA_SMMA"; // Base export filename
 
 //--- indicator buffers

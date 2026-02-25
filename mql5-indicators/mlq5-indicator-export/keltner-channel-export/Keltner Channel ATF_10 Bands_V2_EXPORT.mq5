@@ -92,7 +92,7 @@ input double ATRMultiplier_UltraExtremeLower = 4.00;
 // Export parameters
 input group "═══ Data Export Settings ═══"
 input ENUM_TIMEFRAMES      InpExportTimeframe = PERIOD_CURRENT;        // Timeframe for export
-input int                  InpBars = 27000;                           // Number of bars to export
+input int                  InpBars = 500;                           // Number of bars to export
 input string               InpBaseFileName = "KC_ATF_10Bands";        // Base file name
 input bool                 InpIncludeMetadata = false;                 // Include metadata in TXT export
 input bool                 InpExportJSON = false;                      // Export JSON file

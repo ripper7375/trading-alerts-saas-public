@@ -48,7 +48,7 @@ input int    DojiDistance = 0;               // Distance from candle in points
 
 // Input parameters for Export
 input string ExportSection = "=== DATA EXPORT SETTINGS ==="; // Export Settings
-input int    InpMaxBarsExport   = 27000;           // Max bars to export (0 = all available bars)
+input int    InpMaxBarsExport   = 500;           // Max bars to export (0 = all available bars)
 input color  InpButtonColor     = clrDodgerBlue;   // Export button color
 input color  InpButtonTextColor = clrWhite;         // Export button text color
 input int    InpButtonXSize     = 140;              // Export button width
@@ -343,15 +343,15 @@ void ExportData()
         int ha_color_val = (classification <= 2) ? 1 : -1;
 
         // Compute ha_trend streak
-        int color = ha_color_val;
-        if(prev_color == 0 || color != prev_color)
-            streak = color;        // reset: +1 first bullish, -1 first bearish
+        int ha_dir = ha_color_val;
+        if(prev_color == 0 || ha_dir != prev_color)
+            streak = ha_dir;       // reset: +1 first bullish, -1 first bearish
         else
-            streak += color;       // extend: +1 each bullish, -1 each bearish
-        prev_color = color;
+            streak += ha_dir;      // extend: +1 each bullish, -1 each bearish
+        prev_color = ha_dir;
 
         // Format the data line (12 columns, tab-delimited)
-        string line = IntegerToString(unix_ts) + "\t" +
+        string dataLine = IntegerToString(unix_ts) + "\t" +
                       _Symbol + "\t" +
                       tfStr + "\t" +
                       DoubleToString(closePrice[i], _Digits) + "\t" +
@@ -364,7 +364,7 @@ void ExportData()
                       DoubleToString(ZScoreBuffer[i], 5) + "\t" +
                       IntegerToString(streak);
 
-        FileWrite(fileHandle, line);
+        FileWrite(fileHandle, dataLine);
     }
 
     // Close file

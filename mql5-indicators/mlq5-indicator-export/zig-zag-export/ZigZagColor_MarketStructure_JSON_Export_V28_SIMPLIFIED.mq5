@@ -62,9 +62,9 @@ input string            InpPreferredTimeframe = "";       // Override timeframe 
 input group "Data Export Settings"
 input bool   xInpShowPrice = false;  // Show price labels
 input bool   xInpDebugMode = false;   // Enable debug printing
-input int    xBartoPrint   = 27000;    // Bar to Print in Debug Prints
+input int    xBartoPrint   = 400;    // Bar to Print in Debug Prints
 input string    InpExportFileName = "MarketStructureAnalysis.json";  // Export file name
-input int       InpMaxBarsExport = 27000;      // Max bars to export (0 = all bars)
+input int       InpMaxBarsExport = 400;      // Max bars to export (0 = all bars)
 
 // Add batch processing parameters
 input group "Batch Processing Settings"
