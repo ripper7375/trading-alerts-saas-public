@@ -19,9 +19,9 @@ export type { Tier };
 // =============================================
 
 /**
- * Comprehensive tier limits based on tier specifications and 61-column schema
+ * Comprehensive tier limits based on tier specifications and 63-column schema
  * FREE: 5 alerts, 1 watchlist/5 items, 60 req/hour, 2 FREE indicators (16 columns)
- * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all 10 indicators (52 columns)
+ * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all 10 indicators (54 columns)
  */
 export const TIER_LIMITS = {
   FREE: {
@@ -251,10 +251,7 @@ export function getMaxWatchlists(tier: Tier): number {
  * Check if tier can create more watchlists
  * FREE: 1 watchlist, PRO: 5 watchlists
  */
-export function canCreateWatchlist(
-  currentCount: number,
-  tier: Tier
-): boolean {
+export function canCreateWatchlist(currentCount: number, tier: Tier): boolean {
   const limits = getTierLimits(tier);
   return currentCount < limits.maxWatchlists;
 }
@@ -431,7 +428,10 @@ export function validateFullTierAccess(params: {
     }
   }
 
-  if (watchlistCount !== undefined && !canCreateWatchlist(watchlistCount, tier)) {
+  if (
+    watchlistCount !== undefined &&
+    !canCreateWatchlist(watchlistCount, tier)
+  ) {
     const limits = getTierLimits(tier);
     return `You have reached your watchlist limit (${limits.maxWatchlists}). Upgrade to create more watchlists.`;
   }
