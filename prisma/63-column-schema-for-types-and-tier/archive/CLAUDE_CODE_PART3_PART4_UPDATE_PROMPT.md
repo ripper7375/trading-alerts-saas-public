@@ -655,8 +655,7 @@ export interface ZigZagData {
  * Complete market data (all 57 columns) - PRO tier
  */
 export interface CompleteMarketData
-  extends
-    SystemColumns,
+  extends SystemColumns,
     FractalDiagonalData,
     FractalHorizontalData,
     MovingAveragesData,
@@ -670,7 +669,9 @@ export interface CompleteMarketData
  * FREE tier data (24 columns)
  */
 export interface FreeMarketData
-  extends SystemColumns, FractalDiagonalData, FractalHorizontalData {}
+  extends SystemColumns,
+    FractalDiagonalData,
+    FractalHorizontalData {}
 ```
 
 ### 5. Update API Types

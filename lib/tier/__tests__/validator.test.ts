@@ -1,5 +1,5 @@
 /**
- * Tests for Indicator Tier Validator - 61-Column Schema
+ * Tests for Indicator Tier Validator - 63-Column Schema
  */
 
 import {
@@ -22,7 +22,7 @@ import {
   isProIndicator,
 } from '../validator';
 
-describe('Indicator Tier Validator - 61-Column Schema', () => {
+describe('Indicator Tier Validator - 63-Column Schema', () => {
   describe('Indicator Access Control', () => {
     describe('canAccessIndicator', () => {
       it('FREE tier can access FREE indicators', () => {
@@ -147,9 +147,9 @@ describe('Indicator Tier Validator - 61-Column Schema', () => {
         expect(columns).toHaveLength(25); // 9 system + 16 indicator
       });
 
-      it('PRO tier should get 61 columns', () => {
+      it('PRO tier should get 63 columns', () => {
         const columns = getAccessibleColumns('PRO');
-        expect(columns).toHaveLength(61); // 9 system + 52 indicator
+        expect(columns).toHaveLength(63); // 9 system + 54 indicator
       });
 
       it('FREE tier columns should include system and FREE indicators', () => {
@@ -169,9 +169,9 @@ describe('Indicator Tier Validator - 61-Column Schema', () => {
     });
 
     describe('getLockedColumns', () => {
-      it('FREE tier should have 36 locked columns', () => {
+      it('FREE tier should have 38 locked columns', () => {
         const locked = getLockedColumns('FREE');
-        expect(locked).toHaveLength(36); // All PRO indicator columns
+        expect(locked).toHaveLength(38); // All PRO indicator columns
       });
 
       it('PRO tier should have no locked columns', () => {
