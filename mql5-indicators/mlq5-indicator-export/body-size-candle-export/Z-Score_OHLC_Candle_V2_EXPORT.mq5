@@ -180,60 +180,58 @@ void ExportData()
       return;
    }
 
-   // Write header
+   // Write header (FIX 1: no "No" column; FIX 2: renamed columns)
    FileWrite(fileHandle,
-      "No", "TimeStamp", "Symbol", "Timeframe",
-      "Open", "High", "Low", "Close",
-      "Candle direction", "Z-Score of body size", "Candle classification");
+      "timestamp", "symbol", "timeframe",
+      "open", "high", "low", "close",
+      "body_direction", "body_size", "body_classification");
 
-   // Get timeframe string
-   string tfString = GetTimeframeString();
+   // FIX 2: Use GetTimeframeShort() to produce "M5" style value (not "PERIOD_M5")
+   string tfString = GetTimeframeShort();
 
-   // Determine export range (bars with valid Z-Score data)
-   int startBar = InpZScoreLength;
-   int endBar   = totalBars - 1;
+   // Determine export range in shift terms (shift 0 = newest, maxShift = oldest valid)
+   int maxShift = totalBars - 1 - InpZScoreLength;
 
-   // Apply max bars limit if configured (most recent bars first)
-   if(InpMaxBarsExport > 0 && (endBar - startBar + 1) > InpMaxBarsExport)
-   {
-      startBar = endBar - InpMaxBarsExport + 1;
-      if(startBar < InpZScoreLength)
-         startBar = InpZScoreLength;
-   }
+   // Apply max bars limit
+   if(InpMaxBarsExport > 0 && maxShift + 1 > InpMaxBarsExport)
+      maxShift = InpMaxBarsExport - 1;
 
-   // Write data rows from most recent bar backwards
+   // FIX 3: Compute broker-to-UTC offset once before the loop
+   datetime gmt_offset = TimeCurrent() - TimeGMT();
+
+   // FIX 5: Loop oldest first (i = bar shift; bars-1 = oldest, 0 = newest)
+   int bars = maxShift + 1;
    int rowNo = 0;
-   for(int i = endBar; i >= startBar; i--)
+   for(int i = bars-1; i >= 0; i--)
    {
+      int bufIdx = totalBars - 1 - i;
+
       // Skip bars where buffers have no data
-      if(OpenBuffer[i] == 0 && HighBuffer[i] == 0 && LowBuffer[i] == 0 && CloseBuffer[i] == 0)
+      if(OpenBuffer[bufIdx] == 0 && HighBuffer[bufIdx] == 0 && LowBuffer[bufIdx] == 0 && CloseBuffer[bufIdx] == 0)
          continue;
 
-      // Candle direction
-      string direction = (CloseBuffer[i] >= OpenBuffer[i]) ? "bullish" : "bearish";
+      // FIX 4: body_direction as integer (1 = bullish, -1 = bearish, 0 = doji)
+      int dir = (CloseBuffer[bufIdx] > OpenBuffer[bufIdx]) ? 1 : (CloseBuffer[bufIdx] < OpenBuffer[bufIdx]) ? -1 : 0;
 
-      // Z-Score (absolute value - always positive as per indicator logic)
-      double zScore = MathAbs(ZScoreBuffer[i]);
+      // Z-Score (absolute value)
+      double zScore = MathAbs(ZScoreBuffer[bufIdx]);
 
       // Candle classification (integer 0-5)
-      int classification = (int)ColorBuffer[i];
+      int classification = (int)ColorBuffer[bufIdx];
 
-      // Timestamp
-      datetime barTime = iTime(_Symbol, Period(), totalBars - 1 - i);
-      string timeStr = TimeToString(barTime, TIME_DATE | TIME_MINUTES);
-      // Replace dots in date format if needed - MT5 uses YYYY.MM.DD HH:MM
-      // Keep as-is since the example uses dot format
+      // FIX 3: UTC Unix integer timestamp
+      long ts = (long)(iTime(Symbol(), Period(), i) - gmt_offset);
 
+      // FIX 1: No row counter written; FIX 2: column order matches new header
       FileWrite(fileHandle,
-         IntegerToString(rowNo),
-         timeStr,
+         IntegerToString(ts),
          _Symbol,
          tfString,
-         DoubleToString(OpenBuffer[i], _Digits),
-         DoubleToString(HighBuffer[i], _Digits),
-         DoubleToString(LowBuffer[i], _Digits),
-         DoubleToString(CloseBuffer[i], _Digits),
-         direction,
+         DoubleToString(OpenBuffer[bufIdx], _Digits),
+         DoubleToString(HighBuffer[bufIdx], _Digits),
+         DoubleToString(LowBuffer[bufIdx], _Digits),
+         DoubleToString(CloseBuffer[bufIdx], _Digits),
+         IntegerToString(dir),
          DoubleToString(zScore, 5),
          IntegerToString(classification));
 
