@@ -57,7 +57,6 @@ interface MovingAveragesData {
   smma: number | null;
 }
 
-
 /**
  * PRO tier: Body Momentum data (3 columns)
  */

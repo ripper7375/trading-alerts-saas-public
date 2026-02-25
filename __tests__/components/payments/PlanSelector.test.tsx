@@ -11,6 +11,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
+
 import { PlanSelector } from '@/components/payments/PlanSelector';
 
 // Mock useAffiliateConfig to prevent SWR async state updates (act() warnings)

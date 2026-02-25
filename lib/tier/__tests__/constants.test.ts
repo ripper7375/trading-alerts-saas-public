@@ -134,7 +134,9 @@ describe('Indicator Constants - 63-Column Schema', () => {
       expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_open');
       expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_color');
       expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_body_size');
-      expect(INDICATOR_METADATA.heiken_ashi.columns).toContain('ha_body_zscore');
+      expect(INDICATOR_METADATA.heiken_ashi.columns).toContain(
+        'ha_body_zscore'
+      );
     });
 
     it('keltner_channels should have exactly 10 columns', () => {

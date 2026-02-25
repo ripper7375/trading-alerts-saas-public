@@ -92,9 +92,7 @@ describe('IndicatorToggles Component - 63-Column Schema', () => {
 
       // FREE tier indicators (2 groups)
       expect(screen.getByText('Fractal Diagonal Lines')).toBeInTheDocument();
-      expect(
-        screen.getByText('Fractal Horizontal Lines')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Fractal Horizontal Lines')).toBeInTheDocument();
     });
 
     it('should render PRO indicators', () => {

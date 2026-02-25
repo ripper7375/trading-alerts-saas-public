@@ -251,10 +251,7 @@ export function getMaxWatchlists(tier: Tier): number {
  * Check if tier can create more watchlists
  * FREE: 1 watchlist, PRO: 5 watchlists
  */
-export function canCreateWatchlist(
-  currentCount: number,
-  tier: Tier
-): boolean {
+export function canCreateWatchlist(currentCount: number, tier: Tier): boolean {
   const limits = getTierLimits(tier);
   return currentCount < limits.maxWatchlists;
 }
@@ -431,7 +428,10 @@ export function validateFullTierAccess(params: {
     }
   }
 
-  if (watchlistCount !== undefined && !canCreateWatchlist(watchlistCount, tier)) {
+  if (
+    watchlistCount !== undefined &&
+    !canCreateWatchlist(watchlistCount, tier)
+  ) {
     const limits = getTierLimits(tier);
     return `You have reached your watchlist limit (${limits.maxWatchlists}). Upgrade to create more watchlists.`;
   }

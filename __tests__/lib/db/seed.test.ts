@@ -516,7 +516,7 @@ describe('Database Seed Functions', () => {
     it('should include condition JSON in alert creation', async () => {
       const mockPrisma = createMockPrisma();
       mockAlertCreate.mockImplementation(
-        (args: { data: { condition: string } }) =>
+        (_args: { data: { condition: string } }) =>
           Promise.resolve({
             id: 'alert-123',
             symbol: 'BTCUSD',

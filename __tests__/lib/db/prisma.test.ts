@@ -834,7 +834,6 @@ describe('Prisma Client Singleton', () => {
     it('should have $on method for event listeners', () => {
       expect(typeof prismaModule.prisma.$on).toBe('function');
     });
-
   });
 
   describe('Prisma 6.x Features', () => {

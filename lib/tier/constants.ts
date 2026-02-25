@@ -236,16 +236,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     description: 'Fractal-based support and resistance levels',
     category: 'support_resistance',
     tier: 'PRO',
-    columns: [
-      'sr_1',
-      'sr_2',
-      'sr_3',
-      'sr_4',
-      'sr_5',
-      'sr_6',
-      'sr_7',
-      'sr_8',
-    ],
+    columns: ['sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8'],
     colors: {
       support: '#00c853',
       resistance: '#f23645',
