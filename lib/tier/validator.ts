@@ -1,5 +1,5 @@
 /**
- * Indicator Tier Validator - 61-Column Schema
+ * Indicator Tier Validator - 63-Column Schema
  *
  * Provides access control for tier-gated indicators and database columns.
  *
@@ -132,7 +132,7 @@ export function canAccessColumn(tier: Tier, columnName: string): boolean {
  * @returns Array of accessible column names
  *
  * FREE tier: 25 columns (9 system + 16 indicators)
- * PRO tier: 61 columns (9 system + 52 indicators)
+ * PRO tier: 63 columns (9 system + 54 indicators)
  */
 export function getAccessibleColumns(tier: Tier): string[] {
   const columns: string[] = [...SYSTEM_COLUMNS];

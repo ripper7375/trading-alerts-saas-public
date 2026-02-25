@@ -875,28 +875,30 @@ declare module '@prisma/client' {
     tema: number | null;
     hrma: number | null;
     smma: number | null;
-    // PRO tier: body_momentum (2 columns)
+    // PRO tier: body_momentum (3 columns)
     body_size: number | null;
     body_direction: number | null;
-    // PRO tier: heiken_ashi (7 columns)
+    body_classification: number | null;
+    // PRO tier: heiken_ashi (8 columns)
     ha_open: number | null;
     ha_high: number | null;
     ha_low: number | null;
     ha_close: number | null;
     ha_color: number | null;
     ha_trend: number | null;
-    ha_strength: number | null;
+    ha_body_size: number | null;
+    ha_body_zscore: number | null;
     // PRO tier: keltner_channels (10 columns)
+    kc_ultra_extreme_upper: number | null;
+    kc_extreme_upper: number | null;
+    kc_uppermost: number | null;
     kc_upper: number | null;
-    kc_middle: number | null;
+    kc_upper_middle: number | null;
+    kc_lower_middle: number | null;
     kc_lower: number | null;
-    kc_upper_ema: number | null;
-    kc_middle_ema: number | null;
-    kc_lower_ema: number | null;
-    kc_squeeze: number | null;
-    kc_squeeze_pro: number | null;
-    kc_width: number | null;
-    kc_width_ema: number | null;
+    kc_lowermost: number | null;
+    kc_extreme_lower: number | null;
+    kc_ultra_extreme_lower: number | null;
     // PRO tier: support_resistance (8 columns)
     sr_1: number | null;
     sr_2: number | null;

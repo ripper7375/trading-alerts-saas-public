@@ -13,6 +13,23 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PlanSelector } from '@/components/payments/PlanSelector';
 
+// Mock useAffiliateConfig to prevent SWR async state updates (act() warnings)
+jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
+  useAffiliateConfig: () => ({
+    config: undefined,
+    discountPercent: 20,
+    commissionPercent: 20,
+    codesPerMonth: 15,
+    regularPrice: 29.0,
+    threeDayPrice: 1.99,
+    calculateDiscountedPrice: (price: number) => price * 0.8,
+    calculateCommissionAmount: (price: number) => price * 0.8 * 0.2,
+    calculateDiscountAmount: (price: number) => price * 0.2,
+    isLoading: false,
+    error: undefined,
+  }),
+}));
+
 describe('PlanSelector', () => {
   const defaultProps = {
     value: 'MONTHLY' as const,
