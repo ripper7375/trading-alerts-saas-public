@@ -19,6 +19,36 @@
 9. [Best Practices](#best-practices)
 10. [Troubleshooting](#troubleshooting)
 11. [Real-World Examples](#real-world-examples)
+12. [Security Override Policy](#security-override-policy)
+
+---
+
+## 🔒 Security Override Policy
+
+**CRITICAL RULE — All AI agents (Claude Code, Aider, etc.) MUST follow this.**
+
+### DO NOT modify dependency overrides in feature branches
+
+When working on a feature branch, you **MUST NOT** modify the `overrides` or `pnpm.overrides` sections of `package.json`. This applies even if `pnpm audit` reports security vulnerabilities.
+
+**Why:** Every feature branch that independently adds overrides will conflict with `main` on merge, because `main` gets different overrides from other PRs. This has caused **7+ documented merge conflict incidents** — see `errors/continuous-pr-errors/` for the full history.
+
+### What to do if `pnpm audit` reports vulnerabilities
+
+1. **Ignore it.** The security audit is informative and non-blocking.
+2. Continue working on your feature branch normally.
+3. Security overrides are managed centrally on `main` via dedicated PRs.
+
+### How security overrides are managed
+
+1. A dedicated security PR is created from `main` (not from a feature branch)
+2. The PR only modifies `overrides`/`pnpm.overrides` in `package.json`
+3. It is merged to `main` before other feature PRs
+4. The `lockfile-regen.yml` workflow automatically regenerates `pnpm-lock.yaml`
+
+### CI enforcement
+
+The `check-overrides.yml` workflow will **fail** any PR that modifies overrides from a feature branch. To bypass (for dedicated security PRs only), add the `security-override` label to the PR.
 
 ---
 

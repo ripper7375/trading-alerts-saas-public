@@ -1,0 +1,106 @@
+name: Override Change Guard
+
+# Purpose: Prevent feature branches from modifying dependency overrides in
+# package.json. This is the root-cause fix for the recurring merge-conflict
+# loop documented in errors/continuous-pr-errors/.
+#
+# WHY THIS EXISTS:
+# Every feature branch that independently adds pnpm.overrides to fix audit
+# warnings will conflict with main on merge (because main gets different
+# overrides from other PRs). This has happened 7+ times. The fix is to only
+# allow override changes via dedicated security PRs that target main directly.
+#
+# If you need to add/change a security override:
+#   1. Create a NEW branch from main specifically for the security fix
+#   2. Modify overrides in package.json
+#   3. Run: pnpm install --no-frozen-lockfile
+#   4. Open a PR titled "fix(security): ..." targeting main
+#   5. Merge it BEFORE other feature PRs
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [package.json]
+
+jobs:
+  check-overrides:
+    name: Check for override changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare overrides with main
+        run: |
+          set -euo pipefail
+
+          # Fetch the main branch version of package.json
+          git fetch origin main --depth=1 2>/dev/null || true
+
+          MAIN_PKG=$(git show origin/main:package.json 2>/dev/null || echo '{}')
+          PR_PKG=$(cat package.json)
+
+          # Extract the npm "overrides" and "pnpm.overrides" sections using jq
+          MAIN_OVERRIDES=$(echo "$MAIN_PKG" | jq -S '.overrides // {}')
+          PR_OVERRIDES=$(echo "$PR_PKG" | jq -S '.overrides // {}')
+
+          MAIN_PNPM_OVERRIDES=$(echo "$MAIN_PKG" | jq -S '.pnpm.overrides // {}')
+          PR_PNPM_OVERRIDES=$(echo "$PR_PKG" | jq -S '.pnpm.overrides // {}')
+
+          CHANGED=false
+
+          if [ "$MAIN_OVERRIDES" != "$PR_OVERRIDES" ]; then
+            echo "::error::npm 'overrides' section in package.json was modified by this PR."
+            echo ""
+            echo "=== Diff (main vs PR) ==="
+            diff <(echo "$MAIN_OVERRIDES") <(echo "$PR_OVERRIDES") || true
+            echo ""
+            CHANGED=true
+          fi
+
+          if [ "$MAIN_PNPM_OVERRIDES" != "$PR_PNPM_OVERRIDES" ]; then
+            echo "::error::pnpm 'pnpm.overrides' section in package.json was modified by this PR."
+            echo ""
+            echo "=== Diff (main vs PR) ==="
+            diff <(echo "$MAIN_PNPM_OVERRIDES") <(echo "$PR_PNPM_OVERRIDES") || true
+            echo ""
+            CHANGED=true
+          fi
+
+          if [ "$CHANGED" = true ]; then
+            echo ""
+            echo "============================================================"
+            echo "  ❌  OVERRIDE CHANGE DETECTED IN FEATURE BRANCH"
+            echo "============================================================"
+            echo ""
+            echo "  DO NOT modify 'overrides' or 'pnpm.overrides' in"
+            echo "  package.json from feature branches. This causes recurring"
+            echo "  merge conflicts — see errors/continuous-pr-errors/ for the"
+            echo "  full history (7+ occurrences)."
+            echo ""
+            echo "  To fix security vulnerabilities, create a SEPARATE PR"
+            echo "  from main that ONLY modifies overrides, and merge it"
+            echo "  BEFORE this feature PR."
+            echo ""
+            echo "  If this IS a dedicated security-fix PR, add the label"
+            echo "  'security-override' to bypass this check."
+            echo ""
+            echo "============================================================"
+
+            # Check for bypass label
+            if [ -n "${GITHUB_EVENT_PATH:-}" ]; then
+              LABELS=$(jq -r '.pull_request.labels[]?.name // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+              if echo "$LABELS" | grep -q "security-override"; then
+                echo ""
+                echo "✅ 'security-override' label found — bypassing check."
+                exit 0
+              fi
+            fi
+
+            exit 1
+          else
+            echo "✅ No override changes detected — package.json overrides match main."
+          fi
