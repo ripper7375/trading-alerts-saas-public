@@ -292,16 +292,8 @@ void ExportData()
         return;
     }
 
-    // Copy time array
-    datetime timeArr[];
-    if(CopyTime(_Symbol, _Period, 0, totalBars, timeArr) <= 0)
-    {
-        Alert("Failed to copy time data: ", GetLastError());
-        return;
-    }
-
     // Build file name: Symbol_Timeframe_HA_Export_YYYYMMDD_HHMMSS.txt
-    string tfStr = TimeframeToString((ENUM_TIMEFRAMES)_Period);
+    string tfStr = GetTFStr((ENUM_TIMEFRAMES)_Period);
     string timestamp = TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
     StringReplace(timestamp, ":", "");
     StringReplace(timestamp, ".", "");
@@ -318,7 +310,7 @@ void ExportData()
     }
 
     // Write header
-    string header = "No\tTimeStamp\tSymbol\tTimeframe\tClose\tha_open\tha_high\tha_low\tha_close\tha_classification\tha_body_size\tha_body_zscore";
+    string header = "timestamp\tsymbol\ttimeframe\tclose\tha_open\tha_high\tha_low\tha_close\tha_color\tha_body_size\tha_body_zscore\tha_trend";
     FileWrite(fileHandle, header);
 
     // Determine export start index (only bars with valid Z-Score)
@@ -332,19 +324,34 @@ void ExportData()
             exportStart = earliestAllowed;
     }
 
-    int rowNum = 0;
+    // Compute GMT offset so all timestamps are written as UTC Unix seconds
+    datetime gmt_offset = TimeCurrent() - TimeGMT();
 
-    for(int i = exportStart; i < totalBars && !IsStopped(); i++)
+    // Variables for ha_trend consecutive-streak tracking (oldest bar first)
+    int streak = 0;
+    int prev_color = 0;
+
+    for(int i = totalBars-1; i >= exportStart && !IsStopped(); i--)
     {
-        // Format timestamp
-        string timeStamp = TimeToString(timeArr[i], TIME_DATE | TIME_MINUTES);
+        // UTC Unix timestamp (integer seconds)
+        long unix_ts = (long)(iTime(Symbol(), Period(), i) - gmt_offset);
 
-        // Get classification as integer
+        // Get classification as integer (0-5)
         int classification = (int)HAColorBuffer[i];
 
-        // Format the data line
-        string line = IntegerToString(rowNum) + "\t" +
-                      timeStamp + "\t" +
+        // Convert to ha_color: 1 = bullish (0-2), -1 = bearish (3-5)
+        int ha_color_val = (classification <= 2) ? 1 : -1;
+
+        // Compute ha_trend streak
+        int color = ha_color_val;
+        if(prev_color == 0 || color != prev_color)
+            streak = color;        // reset: +1 first bullish, -1 first bearish
+        else
+            streak += color;       // extend: +1 each bullish, -1 each bearish
+        prev_color = color;
+
+        // Format the data line (12 columns, tab-delimited)
+        string line = IntegerToString(unix_ts) + "\t" +
                       _Symbol + "\t" +
                       tfStr + "\t" +
                       DoubleToString(closePrice[i], _Digits) + "\t" +
@@ -352,12 +359,12 @@ void ExportData()
                       DoubleToString(HAHighBuffer[i], _Digits) + "\t" +
                       DoubleToString(HALowBuffer[i], _Digits) + "\t" +
                       DoubleToString(HACloseBuffer[i], _Digits) + "\t" +
-                      IntegerToString(classification) + "\t" +
+                      IntegerToString(ha_color_val) + "\t" +
                       DoubleToString(BodySizeBuffer[i], _Digits) + "\t" +
-                      DoubleToString(ZScoreBuffer[i], 5);
+                      DoubleToString(ZScoreBuffer[i], 5) + "\t" +
+                      IntegerToString(streak);
 
         FileWrite(fileHandle, line);
-        rowNum++;
     }
 
     // Close file
@@ -374,6 +381,24 @@ void ExportData()
     Print("File: ", fileName);
     Print("Total rows exported: ", exportedBars);
     Print("Z-Score Thresholds: Z1=", InpThresholdZ1_HA, " Z2=", InpThresholdZ2_HA);
+}
+
+//+------------------------------------------------------------------+
+//| Convert timeframe enum to short data string (M5, H1, …)         |
+//+------------------------------------------------------------------+
+string GetTFStr(ENUM_TIMEFRAMES tf)
+{
+    switch(tf)
+    {
+        case PERIOD_M1:  return "M1";
+        case PERIOD_M5:  return "M5";
+        case PERIOD_M15: return "M15";
+        case PERIOD_M30: return "M30";
+        case PERIOD_H1:  return "H1";
+        case PERIOD_H4:  return "H4";
+        case PERIOD_D1:  return "D1";
+        default: return EnumToString(tf);
+    }
 }
 
 //+------------------------------------------------------------------+
