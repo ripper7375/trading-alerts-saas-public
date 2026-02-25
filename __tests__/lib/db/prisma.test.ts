@@ -253,7 +253,7 @@ const createMockPrismaClient = () => ({
     delete: jest.fn(),
   },
 
-  // Market Data model (61-column schema: 9 system + 16 FREE + 36 PRO)
+  // Market Data model (63-column schema: 9 system + 16 FREE + 38 PRO)
   marketData: {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
@@ -794,7 +794,7 @@ describe('Prisma Client Singleton', () => {
     });
   });
 
-  describe('Market Data Model (61-Column Schema)', () => {
+  describe('Market Data Model (63-Column Schema)', () => {
     beforeEach(async () => {
       prismaModule = await import('@/lib/db/prisma');
     });
@@ -834,7 +834,6 @@ describe('Prisma Client Singleton', () => {
     it('should have $on method for event listeners', () => {
       expect(typeof prismaModule.prisma.$on).toBe('function');
     });
-
   });
 
   describe('Prisma 6.x Features', () => {

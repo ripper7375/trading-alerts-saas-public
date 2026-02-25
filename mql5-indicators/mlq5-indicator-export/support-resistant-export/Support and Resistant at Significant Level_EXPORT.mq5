@@ -263,25 +263,6 @@ bool ExportSRToTxt()
       file_handle = FileOpen(filename, FILE_READ|FILE_WRITE|FILE_TXT|FILE_ANSI);
       if(file_handle != INVALID_HANDLE)
       {
-         // Read last line to get last row number
-         FileSeek(file_handle, 0, SEEK_SET);
-         string last_line = "";
-         while(!FileIsEnding(file_handle))
-         {
-            last_line = FileReadString(file_handle);
-         }
-
-         // Extract row number from last line
-         if(StringLen(last_line) > 0)
-         {
-            int tab_pos = StringFind(last_line, "\t");
-            if(tab_pos > 0)
-            {
-               string num_str = StringSubstr(last_line, 0, tab_pos);
-               ExportRowNumber = (int)StringToInteger(num_str);
-            }
-         }
-
          FileSeek(file_handle, 0, SEEK_END);  // Move to end for appending
       }
    }
@@ -303,9 +284,9 @@ bool ExportSRToTxt()
    // Write header if new file
    if(!file_exists)
    {
-      string header = "No\tTimeStamp\tSymbol\tTimeframe\tClose\t";
-      header += "sr_support_1\tsr_support_2\tsr_support_3\tsr_support_4\t";
-      header += "sr_resistance_1\tsr_resistance_2\tsr_resistance_3\tsr_resistance_4\r\n";
+      string header = "timestamp\tsymbol\ttimeframe\tclose\t";
+      header += "sr_1\tsr_2\tsr_3\tsr_4\t";
+      header += "sr_5\tsr_6\tsr_7\tsr_8\r\n";
       FileWriteString(file_handle, header);
    }
 
@@ -313,8 +294,9 @@ bool ExportSRToTxt()
    ExportRowNumber++;
 
    // Get current data
-   datetime current_time = TimeCurrent();
-   string timestamp = TimeToString(current_time, TIME_DATE|TIME_SECONDS);
+   datetime gmt_offset = TimeCurrent() - TimeGMT();
+   datetime current_time = iTime(Symbol(), Period(), 0);
+   long unix_ts = (long)(current_time - gmt_offset);
    double currentClose = iClose(symbol, PERIOD_CURRENT, 0);
 
    // Format timeframe string
@@ -346,21 +328,20 @@ bool ExportSRToTxt()
    double sr_resistance_3 = BufferSix[0];     // 3rd closest resistance
    double sr_resistance_4 = BufferSeven[0];   // 4th closest resistance
 
-   // Format values (use 0 if level not found)
-   string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
-   string support_2_str = (sr_support_2 > 0) ? DoubleToString(sr_support_2, Digits()) : "0";
-   string support_3_str = (sr_support_3 > 0) ? DoubleToString(sr_support_3, Digits()) : "0";
-   string support_4_str = (sr_support_4 > 0) ? DoubleToString(sr_support_4, Digits()) : "0";
+   // Format values (empty string if level not found, NULL in database)
+   string support_1_str = (sr_support_1 == 0.0) ? "" : DoubleToString(sr_support_1, 2);
+   string support_2_str = (sr_support_2 == 0.0) ? "" : DoubleToString(sr_support_2, 2);
+   string support_3_str = (sr_support_3 == 0.0) ? "" : DoubleToString(sr_support_3, 2);
+   string support_4_str = (sr_support_4 == 0.0) ? "" : DoubleToString(sr_support_4, 2);
 
-   string resistance_1_str = (sr_resistance_1 > 0) ? DoubleToString(sr_resistance_1, Digits()) : "0";
-   string resistance_2_str = (sr_resistance_2 > 0) ? DoubleToString(sr_resistance_2, Digits()) : "0";
-   string resistance_3_str = (sr_resistance_3 > 0) ? DoubleToString(sr_resistance_3, Digits()) : "0";
-   string resistance_4_str = (sr_resistance_4 > 0) ? DoubleToString(sr_resistance_4, Digits()) : "0";
+   string resistance_1_str = (sr_resistance_1 == 0.0) ? "" : DoubleToString(sr_resistance_1, 2);
+   string resistance_2_str = (sr_resistance_2 == 0.0) ? "" : DoubleToString(sr_resistance_2, 2);
+   string resistance_3_str = (sr_resistance_3 == 0.0) ? "" : DoubleToString(sr_resistance_3, 2);
+   string resistance_4_str = (sr_resistance_4 == 0.0) ? "" : DoubleToString(sr_resistance_4, 2);
 
-   // Build the data row (13 columns)
-   string data_row = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
-                                   ExportRowNumber,
-                                   timestamp,
+   // Build the data row (12 columns)
+   string data_row = StringFormat("%lld\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
+                                   unix_ts,
                                    symbol,
                                    tf_str,
                                    DoubleToString(currentClose, Digits()),
@@ -416,9 +397,9 @@ bool BackfillExportSR()
    }
 
    // Write header
-   string header = "No\tTimeStamp\tSymbol\tTimeframe\tClose\t";
-   header += "sr_support_1\tsr_support_2\tsr_support_3\tsr_support_4\t";
-   header += "sr_resistance_1\tsr_resistance_2\tsr_resistance_3\tsr_resistance_4\r\n";
+   string header = "timestamp\tsymbol\ttimeframe\tclose\t";
+   header += "sr_1\tsr_2\tsr_3\tsr_4\t";
+   header += "sr_5\tsr_6\tsr_7\tsr_8\r\n";
    FileWriteString(file_handle, header);
 
    // Format timeframe string
@@ -446,6 +427,7 @@ bool BackfillExportSR()
 
    int exported_count = 0;
    int row_number = 0;
+   datetime gmt_offset = TimeCurrent() - TimeGMT();
 
    // Loop through historical bars (from oldest to newest, excluding current bar)
    for(int shift = bars_to_export; shift >= 1; shift--)
@@ -462,7 +444,7 @@ bool BackfillExportSR()
 
       datetime bar_time = rates[0].time;
       double bar_close = rates[0].close;
-      string timestamp = TimeToString(bar_time, TIME_DATE|TIME_SECONDS);
+      long unix_ts = (long)(bar_time - gmt_offset);
 
       // Calculate S/R levels for THIS SPECIFIC BAR using same logic as FillBuffers()
       // Search through Array[] to find levels relative to THIS bar's close price
@@ -503,22 +485,21 @@ bool BackfillExportSR()
          }
       }
 
-      // Format values
-      string support_1_str = (sr_support_1 > 0) ? DoubleToString(sr_support_1, Digits()) : "0";
-      string support_2_str = (sr_support_2 > 0) ? DoubleToString(sr_support_2, Digits()) : "0";
-      string support_3_str = (sr_support_3 > 0) ? DoubleToString(sr_support_3, Digits()) : "0";
-      string support_4_str = (sr_support_4 > 0) ? DoubleToString(sr_support_4, Digits()) : "0";
+      // Format values (empty string if level not found, NULL in database)
+      string support_1_str = (sr_support_1 == 0.0) ? "" : DoubleToString(sr_support_1, 2);
+      string support_2_str = (sr_support_2 == 0.0) ? "" : DoubleToString(sr_support_2, 2);
+      string support_3_str = (sr_support_3 == 0.0) ? "" : DoubleToString(sr_support_3, 2);
+      string support_4_str = (sr_support_4 == 0.0) ? "" : DoubleToString(sr_support_4, 2);
 
-      string resistance_1_str = (sr_resistance_1 > 0) ? DoubleToString(sr_resistance_1, Digits()) : "0";
-      string resistance_2_str = (sr_resistance_2 > 0) ? DoubleToString(sr_resistance_2, Digits()) : "0";
-      string resistance_3_str = (sr_resistance_3 > 0) ? DoubleToString(sr_resistance_3, Digits()) : "0";
-      string resistance_4_str = (sr_resistance_4 > 0) ? DoubleToString(sr_resistance_4, Digits()) : "0";
+      string resistance_1_str = (sr_resistance_1 == 0.0) ? "" : DoubleToString(sr_resistance_1, 2);
+      string resistance_2_str = (sr_resistance_2 == 0.0) ? "" : DoubleToString(sr_resistance_2, 2);
+      string resistance_3_str = (sr_resistance_3 == 0.0) ? "" : DoubleToString(sr_resistance_3, 2);
+      string resistance_4_str = (sr_resistance_4 == 0.0) ? "" : DoubleToString(sr_resistance_4, 2);
 
       // Build data row
       row_number++;
-      string data_row = StringFormat("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
-                                      row_number,
-                                      timestamp,
+      string data_row = StringFormat("%lld\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
+                                      unix_ts,
                                       symbol,
                                       tf_str,
                                       DoubleToString(bar_close, Digits()),
