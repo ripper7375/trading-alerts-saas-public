@@ -1,10 +1,10 @@
 /**
- * IndicatorToggles Component Tests - 61-Column Schema
+ * IndicatorToggles Component Tests - 63-Column Schema
  *
  * Tests for components/charts/indicator-toggles.tsx
  * UI component for toggling chart indicators with tier access control
  *
- * Part 9: Charts & Visualization - Updated for 61-column database schema
+ * Part 9: Charts & Visualization - Updated for 63-column database schema
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
@@ -33,7 +33,7 @@ jest.mock('next/link', () => {
 // Import after mocks
 import { IndicatorToggles } from '@/components/charts/indicator-toggles';
 
-describe('IndicatorToggles Component - 61-Column Schema', () => {
+describe('IndicatorToggles Component - 63-Column Schema', () => {
   const mockOnToggle = jest.fn();
 
   beforeEach(() => {
@@ -92,9 +92,7 @@ describe('IndicatorToggles Component - 61-Column Schema', () => {
 
       // FREE tier indicators (2 groups)
       expect(screen.getByText('Fractal Diagonal Lines')).toBeInTheDocument();
-      expect(
-        screen.getByText('Fractal Horizontal Lines')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Fractal Horizontal Lines')).toBeInTheDocument();
     });
 
     it('should render PRO indicators', () => {
