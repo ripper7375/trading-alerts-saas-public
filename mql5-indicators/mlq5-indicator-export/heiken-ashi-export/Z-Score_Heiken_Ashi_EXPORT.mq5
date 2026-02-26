@@ -331,10 +331,13 @@ void ExportData()
     int streak = 0;
     int prev_color = 0;
 
-    for(int i = totalBars-1; i >= exportStart && !IsStopped(); i--)
+    for(int i = exportStart; i < totalBars && !IsStopped(); i++)
     {
+        // Convert buffer index to time-series index for iTime
+        int tsIdx = totalBars - 1 - i;
+
         // UTC Unix timestamp (integer seconds)
-        long unix_ts = (long)(iTime(Symbol(), Period(), i) - gmt_offset);
+        long unix_ts = (long)(iTime(Symbol(), Period(), tsIdx) - gmt_offset);
 
         // Get classification as integer (0-5)
         int classification = (int)HAColorBuffer[i];
