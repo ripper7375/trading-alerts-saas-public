@@ -66,6 +66,7 @@ Build a **production-ready Nest.js backend** following the OpenAPI contract with
 ### Required Files:
 
 #### 1️⃣ Core Service Files
+
 - **Controllers** (`*.controller.ts`) - HTTP request handlers following OpenAPI paths
 - **Services** (`*.service.ts`) - Business logic implementation
 - **DTOs** (`dto/*.dto.ts`) - Data Transfer Objects matching OpenAPI schemas
@@ -73,6 +74,7 @@ Build a **production-ready Nest.js backend** following the OpenAPI contract with
 - **Interfaces** (`interfaces/*.interface.ts`) - TypeScript interfaces
 
 #### 2️⃣ Supporting Files
+
 - **Guards** (`guards/*.guard.ts`) - Authentication & authorization
 - **Interceptors** (`interceptors/*.interceptor.ts`) - Logging, transformation
 - **Pipes** (`pipes/*.pipe.ts`) - Validation pipes
@@ -80,17 +82,20 @@ Build a **production-ready Nest.js backend** following the OpenAPI contract with
 - **Decorators** (`decorators/*.decorator.ts`) - Custom decorators
 
 #### 3️⃣ Infrastructure Files
+
 - **Module** (`{{MODULE_NAME}}.module.ts`) - Feature module definition
 - **Database Migrations** (`prisma/migrations/*`) - Database schema
 - **Message Queue** (`queue/*.processor.ts`) - Background job processors
 - **Cache** (`cache/*.service.ts`) - Redis caching layer
 
 #### 4️⃣ Test Files
+
 - **Unit Tests** (`*.spec.ts`) - For services and utilities
 - **Integration Tests** (`*.e2e-spec.ts`) - For controllers and API endpoints
 - **Mock Data** (`__mocks__/*.mock.ts`) - Test fixtures
 
 #### 5️⃣ Configuration Files
+
 - **Environment Schema** (`.env.example`) - Required environment variables
 - **Swagger Config** (`swagger.config.ts`) - API documentation
 - **Module Config** (`config/*.config.ts`) - Feature-specific configuration
@@ -100,59 +105,60 @@ Build a **production-ready Nest.js backend** following the OpenAPI contract with
 ## 📐 Project Structure
 
 Generate files in this structure:
-
 ```
+
 backend-stack-b/
 ├── src/
-│   ├── {{MODULE_NAME}}/
-│   │   ├── controllers/
-│   │   │   └── {{MODULE_NAME}}.controller.ts
-│   │   ├── services/
-│   │   │   └── {{MODULE_NAME}}.service.ts
-│   │   ├── dto/
-│   │   │   ├── create-{{ENTITY_NAME}}.dto.ts
-│   │   │   ├── update-{{ENTITY_NAME}}.dto.ts
-│   │   │   └── {{ENTITY_NAME}}-response.dto.ts
-│   │   ├── entities/
-│   │   │   └── {{ENTITY_NAME}}.entity.ts
-│   │   ├── interfaces/
-│   │   │   └── {{ENTITY_NAME}}.interface.ts
-│   │   ├── guards/
-│   │   │   └── {{GUARD_NAME}}.guard.ts
-│   │   ├── pipes/
-│   │   │   └── {{PIPE_NAME}}.pipe.ts
-│   │   ├── decorators/
-│   │   │   └── {{DECORATOR_NAME}}.decorator.ts
-│   │   ├── queue/
-│   │   │   └── {{JOB_NAME}}.processor.ts
-│   │   ├── tests/
-│   │   │   ├── {{MODULE_NAME}}.controller.spec.ts
-│   │   │   ├── {{MODULE_NAME}}.service.spec.ts
-│   │   │   └── {{MODULE_NAME}}.e2e-spec.ts
-│   │   └── {{MODULE_NAME}}.module.ts
-│   ├── common/
-│   │   ├── filters/
-│   │   │   └── http-exception.filter.ts
-│   │   ├── interceptors/
-│   │   │   └── logging.interceptor.ts
-│   │   └── guards/
-│   │       └── jwt-auth.guard.ts
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── migrations/
-│   ├── config/
-│   │   ├── database.config.ts
-│   │   ├── redis.config.ts
-│   │   └── queue.config.ts
-│   └── main.ts
+│ ├── {{MODULE_NAME}}/
+│ │ ├── controllers/
+│ │ │ └── {{MODULE_NAME}}.controller.ts
+│ │ ├── services/
+│ │ │ └── {{MODULE_NAME}}.service.ts
+│ │ ├── dto/
+│ │ │ ├── create-{{ENTITY_NAME}}.dto.ts
+│ │ │ ├── update-{{ENTITY_NAME}}.dto.ts
+│ │ │ └── {{ENTITY_NAME}}-response.dto.ts
+│ │ ├── entities/
+│ │ │ └── {{ENTITY_NAME}}.entity.ts
+│ │ ├── interfaces/
+│ │ │ └── {{ENTITY_NAME}}.interface.ts
+│ │ ├── guards/
+│ │ │ └── {{GUARD_NAME}}.guard.ts
+│ │ ├── pipes/
+│ │ │ └── {{PIPE_NAME}}.pipe.ts
+│ │ ├── decorators/
+│ │ │ └── {{DECORATOR_NAME}}.decorator.ts
+│ │ ├── queue/
+│ │ │ └── {{JOB_NAME}}.processor.ts
+│ │ ├── tests/
+│ │ │ ├── {{MODULE_NAME}}.controller.spec.ts
+│ │ │ ├── {{MODULE_NAME}}.service.spec.ts
+│ │ │ └── {{MODULE_NAME}}.e2e-spec.ts
+│ │ └── {{MODULE_NAME}}.module.ts
+│ ├── common/
+│ │ ├── filters/
+│ │ │ └── http-exception.filter.ts
+│ │ ├── interceptors/
+│ │ │ └── logging.interceptor.ts
+│ │ └── guards/
+│ │ └── jwt-auth.guard.ts
+│ ├── prisma/
+│ │ ├── schema.prisma
+│ │ └── migrations/
+│ ├── config/
+│ │ ├── database.config.ts
+│ │ ├── redis.config.ts
+│ │ └── queue.config.ts
+│ └── main.ts
 ├── test/
-│   └── {{MODULE_NAME}}.e2e-spec.ts
+│ └── {{MODULE_NAME}}.e2e-spec.ts
 ├── .env.example
 ├── nest-cli.json
 ├── package.json
 ├── tsconfig.json
 └── README.md
-```
+
+````
 
 ---
 
@@ -269,11 +275,12 @@ describe('{{ServiceName}}', () => {
   it('should validate tier access');
   // Add more based on business logic
 });
-```
+````
 
 ### Integration Tests (`*.e2e-spec.ts`)
 
 For each controller:
+
 ```typescript
 describe('{{ControllerName}} (e2e)', () => {
   it('GET /{{path}} should return 200 with data');
@@ -357,34 +364,40 @@ Add these to `package.json`:
 Please build the following:
 
 ### Phase 1: Core Structure
+
 - [ ] Module definition (`{{MODULE_NAME}}.module.ts`)
 - [ ] Controller with all endpoints (`{{MODULE_NAME}}.controller.ts`)
 - [ ] Service with business logic (`{{MODULE_NAME}}.service.ts`)
 - [ ] All DTOs matching OpenAPI schemas
 
 ### Phase 2: Database
+
 - [ ] Prisma schema for Database B
 - [ ] Entities/models
 - [ ] Initial migration
 
 ### Phase 3: Infrastructure
+
 - [ ] Authentication guards
 - [ ] Validation pipes
 - [ ] Exception filters
 - [ ] Logging interceptors
 
 ### Phase 4: Advanced Features
+
 - [ ] Background job processors
 - [ ] Redis caching layer
 - [ ] Real-time features (if applicable)
 
 ### Phase 5: Testing
+
 - [ ] Unit tests for all services
 - [ ] Integration tests for all endpoints
 - [ ] E2E tests for user flows
 - [ ] Mock data and fixtures
 
 ### Phase 6: Documentation
+
 - [ ] README with setup instructions
 - [ ] API documentation (Swagger)
 - [ ] Environment variable documentation
@@ -666,7 +679,8 @@ All endpoints from `{{OPENAPI_FILE_NAME}}.yaml` should work and return proper re
 Please build the complete Backend Stack B following this specification. Generate all files with production-quality code, comprehensive tests, and proper documentation.
 
 Start with the basic structure and work through each phase systematically. Let me know if you need any clarifications!
-```
+
+````
 
 ---
 
@@ -791,7 +805,7 @@ Build a **production-ready Nest.js backend** following the OpenAPI contract...
 - watchlist_sync_log (tracks sync operations)
 
 [Rest continues...]
-```
+````
 
 ---
 
@@ -807,6 +821,7 @@ This template provides:
 6. **Validation Checklist** - How to verify completion
 
 **To Use:**
+
 1. Fill in placeholders
 2. Attach documents to Claude Code
 3. Submit prompt

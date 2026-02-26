@@ -79,9 +79,10 @@ import type { paths as AnalyticsPaths } from '@/types/api-stack-b-analytics';
 export class StackBClient extends BaseApiClient {
   constructor() {
     // Use Stack B URL or fallback to Stack A during development
-    const baseURL = process.env['NEXT_PUBLIC_API_B_URL'] ||
-                    process.env['NEXT_PUBLIC_API_A_URL'] ||
-                    '/api';
+    const baseURL =
+      process.env['NEXT_PUBLIC_API_B_URL'] ||
+      process.env['NEXT_PUBLIC_API_A_URL'] ||
+      '/api';
     super(baseURL);
   }
 
@@ -93,7 +94,8 @@ export class StackBClient extends BaseApiClient {
     sort?: 'createdAt' | 'symbol' | 'timeframe';
     order?: 'asc' | 'desc';
   }) {
-    type Response = WatchlistPaths['/watchlist']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      WatchlistPaths['/watchlist']['get']['responses']['200']['content']['application/json'];
     const query = new URLSearchParams(params as any).toString();
     return this.get<Response>(`/watchlist${query ? `?${query}` : ''}`);
   }
@@ -103,8 +105,10 @@ export class StackBClient extends BaseApiClient {
     timeframe: string;
     notes?: string;
   }) {
-    type Request = WatchlistPaths['/watchlist']['post']['requestBody']['content']['application/json'];
-    type Response = WatchlistPaths['/watchlist']['post']['responses']['201']['content']['application/json'];
+    type Request =
+      WatchlistPaths['/watchlist']['post']['requestBody']['content']['application/json'];
+    type Response =
+      WatchlistPaths['/watchlist']['post']['responses']['201']['content']['application/json'];
     return this.post<Response>('/watchlist', data as Request);
   }
 
@@ -126,7 +130,8 @@ export class StackBClient extends BaseApiClient {
     limit?: number;
     offset?: number;
   }) {
-    type Response = AlertsPaths['/alerts']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      AlertsPaths['/alerts']['get']['responses']['200']['content']['application/json'];
     const query = new URLSearchParams(params as any).toString();
     return this.get<Response>(`/alerts${query ? `?${query}` : ''}`);
   }
@@ -139,17 +144,22 @@ export class StackBClient extends BaseApiClient {
     notificationChannels?: ('email' | 'push' | 'sms')[];
     message?: string;
   }) {
-    type Request = AlertsPaths['/alerts']['post']['requestBody']['content']['application/json'];
-    type Response = AlertsPaths['/alerts']['post']['responses']['201']['content']['application/json'];
+    type Request =
+      AlertsPaths['/alerts']['post']['requestBody']['content']['application/json'];
+    type Response =
+      AlertsPaths['/alerts']['post']['responses']['201']['content']['application/json'];
     return this.post<Response>('/alerts', data as Request);
   }
 
-  async updateAlert(id: string, data: Partial<{
-    condition: string;
-    targetPrice: number;
-    active: boolean;
-    message: string;
-  }>) {
+  async updateAlert(
+    id: string,
+    data: Partial<{
+      condition: string;
+      targetPrice: number;
+      active: boolean;
+      message: string;
+    }>
+  ) {
     return this.patch(`/alerts/${id}`, data);
   }
 
@@ -180,7 +190,8 @@ export class StackBClient extends BaseApiClient {
     limit?: number;
     offset?: number;
   }) {
-    type Response = NotificationsPaths['/notifications']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      NotificationsPaths['/notifications']['get']['responses']['200']['content']['application/json'];
     const query = new URLSearchParams(params as any).toString();
     return this.get<Response>(`/notifications${query ? `?${query}` : ''}`);
   }
@@ -194,7 +205,8 @@ export class StackBClient extends BaseApiClient {
   }
 
   async getNotificationPreferences() {
-    type Response = NotificationsPaths['/notifications/preferences']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      NotificationsPaths['/notifications/preferences']['get']['responses']['200']['content']['application/json'];
     return this.get<Response>('/notifications/preferences');
   }
 
@@ -211,7 +223,8 @@ export class StackBClient extends BaseApiClient {
   }
 
   async getRealtimeConnection() {
-    type Response = NotificationsPaths['/realtime/connection']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      NotificationsPaths['/realtime/connection']['get']['responses']['200']['content']['application/json'];
     return this.get<Response>('/realtime/connection');
   }
 
@@ -220,22 +233,27 @@ export class StackBClient extends BaseApiClient {
   // ==========================================
 
   async getConfluenceScores(symbol: string, timeframes?: string[]) {
-    type Response = AnalyticsPaths['/confluence/{symbol}']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      AnalyticsPaths['/confluence/{symbol}']['get']['responses']['200']['content']['application/json'];
     const query = timeframes ? `?timeframes=${timeframes.join(',')}` : '';
     return this.get<Response>(`/confluence/${symbol}${query}`);
   }
 
   async getConfluenceScore(symbol: string, timeframe: string) {
-    type Response = AnalyticsPaths['/confluence/{symbol}/{timeframe}']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      AnalyticsPaths['/confluence/{symbol}/{timeframe}']['get']['responses']['200']['content']['application/json'];
     return this.get<Response>(`/confluence/${symbol}/${timeframe}`);
   }
 
-  async getConfluenceHistory(symbol: string, params: {
-    timeframe: string;
-    startDate?: string;
-    endDate?: string;
-    limit?: number;
-  }) {
+  async getConfluenceHistory(
+    symbol: string,
+    params: {
+      timeframe: string;
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+    }
+  ) {
     const query = new URLSearchParams(params as any).toString();
     return this.get(`/confluence/${symbol}/history?${query}`);
   }
@@ -245,15 +263,19 @@ export class StackBClient extends BaseApiClient {
     limit?: number;
     allowedOnly?: boolean;
   }) {
-    type Response = AnalyticsPaths['/leaderboard']['get']['responses']['200']['content']['application/json'];
+    type Response =
+      AnalyticsPaths['/leaderboard']['get']['responses']['200']['content']['application/json'];
     const query = new URLSearchParams(params as any).toString();
     return this.get<Response>(`/leaderboard${query ? `?${query}` : ''}`);
   }
 
-  async getLeaderBoardByTimeframe(timeframe: string, params?: {
-    metric?: string;
-    limit?: number;
-  }) {
+  async getLeaderBoardByTimeframe(
+    timeframe: string,
+    params?: {
+      metric?: string;
+      limit?: number;
+    }
+  ) {
     const query = new URLSearchParams(params as any).toString();
     return this.get(`/leaderboard/${timeframe}${query ? `?${query}` : ''}`);
   }
@@ -353,7 +375,7 @@ export const alertsHandlers = [
           symbol: 'XAUUSD',
           timeframe: 'H1',
           condition: 'above',
-          targetPrice: 2050.00,
+          targetPrice: 2050.0,
           active: true,
           notificationChannels: ['email', 'push'],
           triggerCount: 0,
@@ -473,6 +495,7 @@ NEXT_PUBLIC_USE_MOCKS=true npm run dev
 ```
 
 **MSW intercepts requests:**
+
 ```
 Frontend → api.stackB.getWatchlist()
   → fetch('http://localhost:3002/watchlist')
@@ -497,6 +520,7 @@ npm run dev
 ```
 
 **Real requests:**
+
 ```
 Frontend → api.stackB.getWatchlist()
   → fetch('https://trading-alerts-stack-b.railway.app/watchlist')
@@ -600,7 +624,7 @@ PORT=3002
 
 ### What Frontend Can Do NOW:
 
-- ✅ Build UI components using api.stackB.*
+- ✅ Build UI components using api.stackB.\*
 - ✅ Test with MSW mocks (no backend needed)
 - ✅ Full type safety from OpenAPI specs
 - ✅ Deploy to Vercel with mocks

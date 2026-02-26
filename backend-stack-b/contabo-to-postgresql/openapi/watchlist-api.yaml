@@ -95,7 +95,12 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: [TIER_LIMIT_REACHED, SYMBOL_NOT_ALLOWED, TIMEFRAME_NOT_ALLOWED]
+                    enum:
+                      [
+                        TIER_LIMIT_REACHED,
+                        SYMBOL_NOT_ALLOWED,
+                        TIMEFRAME_NOT_ALLOWED,
+                      ]
         '409':
           description: Item already in watchlist
           content:

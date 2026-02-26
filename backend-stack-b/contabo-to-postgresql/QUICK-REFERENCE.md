@@ -22,39 +22,45 @@ Copy `CLAUDE-CODE-PROMPT-TEMPLATE.md` and replace:
 
 #### Quick Fill Guide:
 
-| Part | {{PART_NAME}} | {{PART_NUMBER}} | {{OPENAPI_FILE_NAME}} | {{MODULE_NAME}} |
-|------|---------------|-----------------|----------------------|-----------------|
-| 10   | Watchlist System | 10 | watchlist-api | watchlist |
-| 11   | Alerts System | 11 | alerts-api | alerts |
-| 15   | Notifications & Real-time | 15 | notifications-api | notifications |
-| 22   | Confluence Scores | 22 | analytics-api | confluence |
-| 23   | Leader Board | 23 | analytics-api | leaderboard |
+| Part | {{PART_NAME}}             | {{PART_NUMBER}} | {{OPENAPI_FILE_NAME}} | {{MODULE_NAME}} |
+| ---- | ------------------------- | --------------- | --------------------- | --------------- |
+| 10   | Watchlist System          | 10              | watchlist-api         | watchlist       |
+| 11   | Alerts System             | 11              | alerts-api            | alerts          |
+| 15   | Notifications & Real-time | 15              | notifications-api     | notifications   |
+| 22   | Confluence Scores         | 22              | analytics-api         | confluence      |
+| 23   | Leader Board              | 23              | analytics-api         | leaderboard     |
 
 #### Entity Names by Part:
 
 **Part 10 (Watchlist):**
+
 - `{{ENTITY_NAME}}`: WatchlistItem
 - `{{ENTITY_LIST}}`: WatchlistItem, WatchlistOrder
 
 **Part 11 (Alerts):**
+
 - `{{ENTITY_NAME}}`: Alert
 - `{{ENTITY_LIST}}`: Alert, AlertTrigger, AlertHistory
 
 **Part 15 (Notifications):**
+
 - `{{ENTITY_NAME}}`: Notification
 - `{{ENTITY_LIST}}`: Notification, NotificationPreference, PushSubscription
 
 **Part 22 (Confluence):**
+
 - `{{ENTITY_NAME}}`: ConfluenceScore
 - `{{ENTITY_LIST}}`: ConfluenceScore, ConfluenceHistory
 
 **Part 23 (Leaderboard):**
+
 - `{{ENTITY_NAME}}`: LeaderBoardEntry
 - `{{ENTITY_LIST}}`: LeaderBoardEntry, LeaderBoardSnapshot
 
 ### Step 3: Attach Files to Claude Code
 
 In Claude Code (web):
+
 1. Click attachment icon
 2. Upload these files:
    - OpenAPI spec (`.yaml` file)
@@ -80,10 +86,12 @@ Claude Code will build files. Review and request changes if needed.
 # Build Backend Stack B - Watchlist System (Part 10)
 
 ## Context
+
 You are building Backend Stack B - Watchlist System which handles async watchlist
 management with real-time updates and tier-based access control.
 
 ## Attached Documents
+
 1. OpenAPI Contract: watchlist-api.yaml
 2. Implementation Guide: IMPLEMENTATION-GUIDE.md
 3. Architecture Design: backend-stack-b-architecture.md
@@ -92,23 +100,28 @@ management with real-time updates and tier-based access control.
 ## Module: watchlist
 
 Entities:
+
 - WatchlistItem (id, userId, symbol, timeframe, order, notes, createdAt, updatedAt)
 
 Key Features:
+
 - Add/remove symbols from watchlist
 - Reorder watchlist items
 - Tier validation (Free: 5, Pro: 50, Premium: unlimited)
 - Bulk operations
 
 Background Jobs:
+
 - sync-watchlist-to-cache (every 5 min)
 - cleanup-old-items (every 24h)
 
 Cache Keys:
+
 - watchlist:list:{userId} (TTL: 300s)
 - watchlist:item:{id} (TTL: 600s)
 
 Database Tables:
+
 - watchlist_items
 
 Environment Variables:
@@ -207,15 +220,19 @@ After Claude Code finishes, verify:
 ## 🚨 Common Issues & Solutions
 
 ### Issue: "Not all endpoints implemented"
+
 **Fix**: Check if OpenAPI file was attached correctly
 
 ### Issue: "TypeScript errors"
+
 **Fix**: Ask Claude Code to fix strict mode violations
 
 ### Issue: "Tests failing"
+
 **Fix**: Ask Claude Code to update tests with correct mocks
 
 ### Issue: "Missing Prisma schema"
+
 **Fix**: Provide explicit database schema or ask Claude Code to infer from entities
 
 ---
@@ -223,6 +240,7 @@ After Claude Code finishes, verify:
 ## 📞 Support
 
 If stuck, refer to:
+
 - Full template: `CLAUDE-CODE-PROMPT-TEMPLATE.md`
 - Implementation guide: `IMPLEMENTATION-GUIDE.md`
 - OpenAPI specs: `openapi/*.yaml`

@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DavinTrade AI — Real-Time Data Feed Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070910;
+    --surface: #0e1118;
+    --surface2: #141820;
+    --border: #1c2235;
+    --border2: #252f45;
+    --text: #dce6f5;
+    --muted: #5a6b88;
+    --dim: #2a3550;
+
+    --gold: #f5c842;
+    --gold-dim: #f5c84218;
+    --gold-glow: #f5c84230;
+    --blue: #4db8ff;
+    --blue-dim: #4db8ff15;
+    --blue-glow: #4db8ff25;
+    --green: #34d97b;
+    --green-dim: #34d97b15;
+    --green-glow: #34d97b25;
+    --purple: #b388ff;
+    --purple-dim: #b388ff15;
+    --teal: #26e8c8;
+    --teal-dim: #26e8c815;
+    --red: #ff6b6b;
+    --red-dim: #ff6b6b15;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    padding: 48px 28px 64px;
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ─── */
+  .header {
+    max-width: 1100px;
+    margin: 0 auto 52px;
+    text-align: center;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: var(--gold-dim);
+    border: 1px solid #f5c84250;
+    padding: 5px 16px;
+    border-radius: 2px;
+    margin-bottom: 18px;
+  }
+
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: blink 2s ease infinite; }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 3.5vw, 38px);
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  h1 em { font-style: normal; color: var(--gold); }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+  }
+
+  /* ─── MAIN PIPELINE ─── */
+  .pipeline {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ─── NODE ─── */
+  .node {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    position: relative;
+  }
+
+  /* left label column */
+  .node-label {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    padding-right: 24px;
+    gap: 4px;
+    position: relative;
+  }
+
+  .node-label::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: var(--bg);
+    z-index: 2;
+  }
+
+  .node-label-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  .node-label-sub {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-align: right;
+  }
+
+  /* right card column */
+  .node-card {
+    border: 1px solid;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 8px 0 8px 24px;
+    position: relative;
+  }
+
+  .node-card::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.4;
+  }
+
+  .node-card-inner {
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .node-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .node-content { flex: 1; }
+
+  .node-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+
+  .node-desc {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.7;
+    letter-spacing: 0.3px;
+  }
+
+  .node-desc strong { color: var(--text); font-weight: 600; }
+
+  .node-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .node-deploy {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .deploy-pill {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+
+  /* ─── CONNECTOR ─── */
+  .connector-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    height: 64px;
+  }
+
+  .connector-line-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding-right: 0;
+    position: relative;
+  }
+
+  /* vertical line on right side of label col */
+  .connector-line-wrap::before {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--dim);
+  }
+
+  .connector-right {
+    display: flex;
+    align-items: center;
+    padding-left: 24px;
+    gap: 12px;
+    position: relative;
+  }
+
+  /* vertical dashed line in right col */
+  .connector-right::before {
+    content: '';
+    position: absolute;
+    left: 44px; /* 24 offset + ~20 center */
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    border-left: 1px dashed;
+    opacity: 0.25;
+  }
+
+  .connector-arrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1;
+  }
+
+  .arrow-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .connector-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .connector-protocol {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .connector-detail {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .connector-latency {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  /* ─── VERTICAL SPINE ─── */
+  .spine {
+    position: absolute;
+    left: 199px; /* right edge of label col */
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--dim) 10%, var(--dim) 90%, transparent);
+    pointer-events: none;
+  }
+
+  /* ─── COLOR THEMES ─── */
+  /* PostgreSQL — gold */
+  .theme-gold .node-label::after { border-color: var(--gold); background: var(--gold); }
+  .theme-gold .node-label-name { color: var(--gold); }
+  .theme-gold .node-card { border-color: #f5c84240; background: linear-gradient(135deg, #141208, #0e1118); box-shadow: 0 0 24px var(--gold-glow); color: var(--gold); }
+  .theme-gold .node-card::before { color: var(--gold); }
+  .theme-gold .node-icon { background: var(--gold-dim); }
+  .theme-gold .node-title { color: var(--gold); }
+  .theme-gold .connector-right::before { border-color: var(--gold); }
+  .theme-gold .arrow-icon { border-color: #f5c84240; color: var(--gold); background: var(--gold-dim); }
+  .theme-gold .connector-protocol { color: var(--gold); }
+  .theme-gold .connector-latency { border-color: #f5c84240; color: var(--gold); background: var(--gold-dim); }
+
+  /* NestJS — blue */
+  .theme-blue .node-label::after { border-color: var(--blue); background: var(--blue); }
+  .theme-blue .node-label-name { color: var(--blue); }
+  .theme-blue .node-card { border-color: #4db8ff35; background: linear-gradient(135deg, #080e16, #0e1118); box-shadow: 0 0 24px var(--blue-glow); color: var(--blue); }
+  .theme-blue .node-card::before { color: var(--blue); }
+  .theme-blue .node-icon { background: var(--blue-dim); }
+  .theme-blue .node-title { color: var(--blue); }
+  .theme-blue .connector-right::before { border-color: var(--blue); }
+  .theme-blue .arrow-icon { border-color: #4db8ff35; color: var(--blue); background: var(--blue-dim); }
+  .theme-blue .connector-protocol { color: var(--blue); }
+  .theme-blue .connector-latency { border-color: #4db8ff35; color: var(--blue); background: var(--blue-dim); }
+
+  /* WebSocket — purple */
+  .theme-purple .node-label::after { border-color: var(--purple); background: var(--purple); }
+  .theme-purple .node-label-name { color: var(--purple); }
+  .theme-purple .node-card { border-color: #b388ff35; background: linear-gradient(135deg, #0d0a18, #0e1118); box-shadow: 0 0 24px #b388ff18; color: var(--purple); }
+  .theme-purple .node-card::before { color: var(--purple); }
+  .theme-purple .node-icon { background: var(--purple-dim); }
+  .theme-purple .node-title { color: var(--purple); }
+  .theme-purple .connector-right::before { border-color: var(--purple); }
+  .theme-purple .arrow-icon { border-color: #b388ff35; color: var(--purple); background: var(--purple-dim); }
+  .theme-purple .connector-protocol { color: var(--purple); }
+  .theme-purple .connector-latency { border-color: #b388ff35; color: var(--purple); background: var(--purple-dim); }
+
+  /* Next.js — teal */
+  .theme-teal .node-label::after { border-color: var(--teal); background: var(--teal); }
+  .theme-teal .node-label-name { color: var(--teal); }
+  .theme-teal .node-card { border-color: #26e8c835; background: linear-gradient(135deg, #060f0d, #0e1118); box-shadow: 0 0 24px #26e8c818; color: var(--teal); }
+  .theme-teal .node-card::before { color: var(--teal); }
+  .theme-teal .node-icon { background: var(--teal-dim); }
+  .theme-teal .node-title { color: var(--teal); }
+  .theme-teal .connector-right::before { border-color: var(--teal); }
+  .theme-teal .arrow-icon { border-color: #26e8c835; color: var(--teal); background: var(--teal-dim); }
+  .theme-teal .connector-protocol { color: var(--teal); }
+  .theme-teal .connector-latency { border-color: #26e8c835; color: var(--teal); background: var(--teal-dim); }
+
+  /* UI — green */
+  .theme-green .node-label::after { border-color: var(--green); background: var(--green); }
+  .theme-green .node-label-name { color: var(--green); }
+  .theme-green .node-card { border-color: #34d97b35; background: linear-gradient(135deg, #060f0a, #0e1118); box-shadow: 0 0 28px var(--green-glow); color: var(--green); }
+  .theme-green .node-card::before { color: var(--green); }
+  .theme-green .node-icon { background: var(--green-dim); }
+  .theme-green .node-title { color: var(--green); }
+
+  /* ─── SECTION DIVIDER ─── */
+  .section-divider {
+    max-width: 1100px;
+    margin: 40px auto 36px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .divider-line { flex: 1; height: 1px; background: var(--border2); }
+
+  .divider-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 16px;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  /* ─── UI PREVIEW CARD ─── */
+  .ui-preview {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid #34d97b35;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 28px var(--green-glow);
+  }
+
+  .ui-preview-header {
+    background: #060f0a;
+    border-bottom: 1px solid #34d97b25;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .ui-preview-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: 0.5px;
+  }
+
+  .live-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 1px;
+    margin-left: auto;
+  }
+
+  .live-dot::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 1.5s ease infinite;
+  }
+
+  .table-mock {
+    padding: 16px 20px;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    min-width: 700px;
+  }
+
+  thead th {
+    padding: 8px 10px;
+    text-align: left;
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border2);
+    text-transform: uppercase;
+    font-size: 9px;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--surface2); }
+
+  tbody tr.new-row {
+    background: #34d97b10;
+    border-bottom-color: #34d97b25;
+  }
+
+  tbody tr.new-row td { color: var(--green); }
+
+  tbody td {
+    padding: 8px 10px;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+
+  .cell-bullish { color: #34d97b; font-weight: 600; }
+  .cell-bearish { color: #ff6b6b; font-weight: 600; }
+  .cell-num { color: var(--blue); }
+  .cell-muted { color: var(--dim); }
+  .cell-support { color: #34d97b; font-size: 9px; font-weight: 700; }
+  .cell-resist  { color: #ff6b6b; font-size: 9px; font-weight: 700; }
+
+  .new-row-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid #34d97b40;
+    padding: 2px 7px;
+    border-radius: 2px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    animation: pulse-badge 2s ease infinite;
+  }
+
+  @keyframes pulse-badge {
+    0%,100%{opacity:1} 50%{opacity:0.5}
+  }
+
+  /* ─── TIMING CALLOUT ─── */
+  .timing-row {
+    max-width: 1100px;
+    margin: 24px auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .timing-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .timing-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .timing-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+
+  .timing-desc {
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+
+  /* footer */
+  .footer {
+    max-width: 1100px;
+    margin: 40px auto 0;
+    text-align: center;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  @media (max-width: 680px) {
+    .node { grid-template-columns: 90px 1fr; }
+    .connector-row { grid-template-columns: 90px 1fr; }
+    .node-label-name { font-size: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="badge">DavinTrade AI · Data Pipeline</div>
+  <h1>PostgreSQL <em>→</em> Real-Time UI</h1>
+  <p class="subtitle">Production Stack · XAUUSD M15 · Auto-Scroll Data Feed · Executive Summary</p>
+</div>
+
+<!-- PIPELINE -->
+<div class="pipeline" style="position:relative;">
+
+  <!-- ═══════════════════ NODE 1: PostgreSQL ═══════════════════ -->
+  <div class="node theme-gold">
+    <div class="node-label">
+      <div class="node-label-name">Inception</div>
+      <div class="node-label-sub">Railway</div>
+    </div>
+    <div class="node-card">
+      <div class="node-card-inner">
+        <div class="node-icon">🗄️</div>
+        <div class="node-content">
+          <div class="node-title">PostgreSQL (Primary DB)</div>
+          <div class="node-desc">
+            Every <strong>5 minutes</strong>, a new row is written by the Flask data ingestion service — containing the latest MT5 indicator snapshot: Close price, Imp High/Low, TC signals, S&R levels.
+            <br><br>
+            This row insert is the <strong>trigger event</strong> that starts the entire real-time pipeline downstream.
+          </div>
+          <div class="node-tags">
+            <span class="tag" style="color:var(--gold);border-color:#f5c84240;background:var(--gold-dim);">INSERT every 5 min</span>
+            <span class="tag" style="color:var(--gold);border-color:#f5c84240;background:var(--gold-dim);">XAUUSD · M15</span>
+            <span class="tag" style="color:var(--gold);border-color:#f5c84240;background:var(--gold-dim);">TC P1/P2/P3 · S&R · Rej signals</span>
+          </div>
+        </div>
+        <div class="node-deploy">
+          <div class="deploy-pill" style="color:var(--gold);border-color:#f5c84240;background:var(--gold-dim);">Railway</div>
+          <div class="deploy-pill" style="color:var(--muted);border-color:var(--border2);background:var(--surface2);">PostgreSQL 16</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CONNECTOR 1→2 ─── -->
+  <div class="connector-row theme-gold">
+    <div class="connector-line-wrap"></div>
+    <div class="connector-right">
+      <div class="connector-arrow">
+        <div class="arrow-icon">↓</div>
+        <div class="connector-meta">
+          <div class="connector-protocol">pg_notify / Polling</div>
+          <div class="connector-detail">NestJS listens for new row via pg_notify trigger OR interval polling (5 min)</div>
+        </div>
+      </div>
+      <div class="connector-latency">&lt; 100ms detect</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ NODE 2: NestJS ═══════════════════ -->
+  <div class="node theme-blue">
+    <div class="node-label">
+      <div class="node-label-name">Backend</div>
+      <div class="node-label-sub">Railway</div>
+    </div>
+    <div class="node-card">
+      <div class="node-card-inner">
+        <div class="node-icon">⚙️</div>
+        <div class="node-content">
+          <div class="node-title">NestJS 11 — Gateway Service</div>
+          <div class="node-desc">
+            Detects the new DB row via <strong>pg_notify</strong> (PostgreSQL LISTEN/NOTIFY) or a scheduled <strong>5-minute poller</strong>.
+            Queries the latest row, shapes it into the feed payload, then <strong>broadcasts to all connected WebSocket clients</strong> subscribed to the XAUUSD·M15 room.
+          </div>
+          <div class="node-tags">
+            <span class="tag" style="color:var(--blue);border-color:#4db8ff35;background:var(--blue-dim);">@nestjs/websockets</span>
+            <span class="tag" style="color:var(--blue);border-color:#4db8ff35;background:var(--blue-dim);">Socket.IO Gateway</span>
+            <span class="tag" style="color:var(--blue);border-color:#4db8ff35;background:var(--blue-dim);">LISTEN feed_update</span>
+            <span class="tag" style="color:var(--blue);border-color:#4db8ff35;background:var(--blue-dim);">emit → symbol room</span>
+          </div>
+        </div>
+        <div class="node-deploy">
+          <div class="deploy-pill" style="color:var(--blue);border-color:#4db8ff35;background:var(--blue-dim);">Railway</div>
+          <div class="deploy-pill" style="color:var(--muted);border-color:var(--border2);background:var(--surface2);">NestJS 11</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CONNECTOR 2→3 ─── -->
+  <div class="connector-row theme-blue">
+    <div class="connector-line-wrap"></div>
+    <div class="connector-right">
+      <div class="connector-arrow">
+        <div class="arrow-icon">↓</div>
+        <div class="connector-meta">
+          <div class="connector-protocol">WebSocket (Socket.IO)</div>
+          <div class="connector-detail">Persistent WSS connection · event: "feed_row" · payload: single row JSON</div>
+        </div>
+      </div>
+      <div class="connector-latency">&lt; 50ms transit</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ NODE 3: WebSocket Transport ═══════════════════ -->
+  <div class="node theme-purple">
+    <div class="node-label">
+      <div class="node-label-name">Transport</div>
+      <div class="node-label-sub">WSS Protocol</div>
+    </div>
+    <div class="node-card">
+      <div class="node-card-inner">
+        <div class="node-icon">⚡</div>
+        <div class="node-content">
+          <div class="node-title">WebSocket Channel — "feed_row" Event</div>
+          <div class="node-desc">
+            A persistent <strong>Socket.IO connection</strong> is maintained between Next.js frontend and NestJS gateway.
+            When NestJS emits <strong>"feed_row"</strong>, the payload travels over this connection
+            without HTTP overhead — no polling, no page reload.
+            <br><br>
+            Payload structure per event: <strong>{ timestamp, symbol, tf, close, impHigh, impLow, highLowRej, tcP1, tcP2, tcP3, tcB1, tcB2, tcB3, srP1 }</strong>
+          </div>
+          <div class="node-tags">
+            <span class="tag" style="color:var(--purple);border-color:#b388ff35;background:var(--purple-dim);">wss:// encrypted</span>
+            <span class="tag" style="color:var(--purple);border-color:#b388ff35;background:var(--purple-dim);">event-driven push</span>
+            <span class="tag" style="color:var(--purple);border-color:#b388ff35;background:var(--purple-dim);">no polling</span>
+            <span class="tag" style="color:var(--purple);border-color:#b388ff35;background:var(--purple-dim);">room: xauusd_m15</span>
+          </div>
+        </div>
+        <div class="node-deploy">
+          <div class="deploy-pill" style="color:var(--purple);border-color:#b388ff35;background:var(--purple-dim);">Socket.IO</div>
+          <div class="deploy-pill" style="color:var(--muted);border-color:var(--border2);background:var(--surface2);">WSS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CONNECTOR 3→4 ─── -->
+  <div class="connector-row theme-purple">
+    <div class="connector-line-wrap"></div>
+    <div class="connector-right">
+      <div class="connector-arrow">
+        <div class="arrow-icon">↓</div>
+        <div class="connector-meta">
+          <div class="connector-protocol">React State Update</div>
+          <div class="connector-detail">socket.on("feed_row") → prepend to rows array → trigger re-render</div>
+        </div>
+      </div>
+      <div class="connector-latency">instant render</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ NODE 4: Next.js ═══════════════════ -->
+  <div class="node theme-teal">
+    <div class="node-label">
+      <div class="node-label-name">Frontend</div>
+      <div class="node-label-sub">Vercel</div>
+    </div>
+    <div class="node-card">
+      <div class="node-card-inner">
+        <div class="node-icon">🖥️</div>
+        <div class="node-content">
+          <div class="node-title">Next.js 16 — WebSocket Client Hook</div>
+          <div class="node-desc">
+            A custom <strong>useDataFeed()</strong> hook manages the Socket.IO client lifecycle.
+            On receiving <strong>"feed_row"</strong>, it <strong>prepends</strong> the new row to the top of the table state array and triggers a React re-render.
+            The auto-scroll logic detects the state change and <strong>smoothly scrolls the table to the newest row</strong>.
+          </div>
+          <div class="node-tags">
+            <span class="tag" style="color:var(--teal);border-color:#26e8c835;background:var(--teal-dim);">socket.io-client</span>
+            <span class="tag" style="color:var(--teal);border-color:#26e8c835;background:var(--teal-dim);">useDataFeed() hook</span>
+            <span class="tag" style="color:var(--teal);border-color:#26e8c835;background:var(--teal-dim);">useState rows[]</span>
+            <span class="tag" style="color:var(--teal);border-color:#26e8c835;background:var(--teal-dim);">auto-scroll ref</span>
+          </div>
+        </div>
+        <div class="node-deploy">
+          <div class="deploy-pill" style="color:var(--teal);border-color:#26e8c835;background:var(--teal-dim);">Vercel</div>
+          <div class="deploy-pill" style="color:var(--muted);border-color:var(--border2);background:var(--surface2);">Next.js 16</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CONNECTOR 4→UI ─── -->
+  <div class="connector-row theme-teal">
+    <div class="connector-line-wrap"></div>
+    <div class="connector-right">
+      <div class="connector-arrow">
+        <div class="arrow-icon">↓</div>
+        <div class="connector-meta">
+          <div class="connector-protocol">DOM Render + Scroll</div>
+          <div class="connector-detail">New &lt;tr&gt; injected at top · scrollIntoView({ behavior: "smooth" })</div>
+        </div>
+      </div>
+      <div class="connector-latency">~16ms (1 frame)</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ NODE 5: UI ═══════════════════ -->
+  <div class="node theme-green">
+    <div class="node-label">
+      <div class="node-label-name">UI Output</div>
+      <div class="node-label-sub">Browser</div>
+    </div>
+    <div class="node-card">
+      <div class="node-card-inner" style="flex-direction:column;gap:12px;padding-bottom:12px;">
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <div class="node-icon">📊</div>
+          <div class="node-content">
+            <div class="node-title">Real-Time Technical Feed Table</div>
+            <div class="node-desc">
+              New row appears at the <strong>top of the table every 5 minutes</strong>, highlighted in green for 3 seconds, then the table auto-scrolls to keep the newest row visible.
+              Historical rows scroll down. No page reload. No manual refresh needed.
+            </div>
+          </div>
+          <div class="node-deploy">
+            <div class="deploy-pill" style="color:var(--green);border-color:#34d97b35;background:var(--green-dim);">AUTO SCROLL</div>
+            <div class="deploy-pill" style="color:var(--green);border-color:#34d97b35;background:var(--green-dim);">● LIVE</div>
+          </div>
+        </div>
+
+        <!-- Mini table mockup -->
+        <div class="table-mock">
+          <table>
+            <thead>
+              <tr>
+                <th>TimeStamp</th>
+                <th>Symbol</th>
+                <th>TF</th>
+                <th>Close</th>
+                <th>Imp High</th>
+                <th>Imp Low</th>
+                <th>High/Low + Rej</th>
+                <th>TC P1</th>
+                <th>TC P2</th>
+                <th>TC B1</th>
+                <th>S&R P1</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="new-row">
+                <td>2026-02-26 11:55 <span class="new-row-badge">● new</span></td>
+                <td>XAUUSD</td>
+                <td>M15</td>
+                <td>2651.43</td>
+                <td>2664.34</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-num">4</td>
+                <td class="cell-num">6</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+              </tr>
+              <tr>
+                <td>2026-02-26 11:50</td>
+                <td>XAUUSD</td>
+                <td>M15</td>
+                <td>2649.08</td>
+                <td>2646.19</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-bullish">Bullish Rej</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-num">4</td>
+                <td class="cell-num">4</td>
+                <td class="cell-muted">────</td>
+              </tr>
+              <tr>
+                <td>2026-02-26 11:45</td>
+                <td>XAUUSD</td>
+                <td>M15</td>
+                <td>2652.17</td>
+                <td class="cell-muted">────</td>
+                <td>2641.96</td>
+                <td class="cell-bullish">Bullish Rej</td>
+                <td class="cell-num">4</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-num">2</td>
+                <td class="cell-muted">────</td>
+              </tr>
+              <tr>
+                <td>2026-02-26 11:40</td>
+                <td>XAUUSD</td>
+                <td>M15</td>
+                <td>2656.92</td>
+                <td>2658.57</td>
+                <td>2649.71</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-num">2</td>
+              </tr>
+              <tr>
+                <td>2026-02-26 11:35</td>
+                <td>XAUUSD</td>
+                <td>M15</td>
+                <td>2645.33</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-muted">────</td>
+                <td class="cell-num">5</td>
+                <td class="cell-num">5</td>
+                <td class="cell-num">3</td>
+                <td class="cell-muted">────</td>
+              </tr>
+              <tr>
+                <td>2026-02-26 11:30</td>
+                <td>XAUUSD</td>
+                <td>M15</td>
+                <td>2653.84</td>
+                <td>2666.58</td>
+                <td>2640.87</td>
+                <td class="cell-bearish">Bearish Rej</td>
+                <td class="cell-num">4</td>
+                <td class="cell-num">3</td>
+                <td class="cell-num">6</td>
+                <td class="cell-support">Support</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SECTION DIVIDER -->
+<div class="section-divider">
+  <div class="divider-line"></div>
+  <div class="divider-label">End-to-End Timing & Key Numbers</div>
+  <div class="divider-line"></div>
+</div>
+
+<!-- TIMING CARDS -->
+<div class="timing-row">
+  <div class="timing-card" style="border-color:#f5c84230;">
+    <div class="timing-label">Data Cadence</div>
+    <div class="timing-value" style="color:var(--gold);">5 min</div>
+    <div class="timing-desc">New PostgreSQL row inserted every M15 candle close. Flask ingestion service writes indicators + signals.</div>
+  </div>
+  <div class="timing-card" style="border-color:#4db8ff30;">
+    <div class="timing-label">DB → NestJS</div>
+    <div class="timing-value" style="color:var(--blue);">&lt;100ms</div>
+    <div class="timing-desc">pg_notify fires immediately on INSERT. NestJS LISTEN picks up event and queries the new row.</div>
+  </div>
+  <div class="timing-card" style="border-color:#b388ff30;">
+    <div class="timing-label">NestJS → Client</div>
+    <div class="timing-value" style="color:var(--purple);">&lt;50ms</div>
+    <div class="timing-desc">Socket.IO emit over persistent WSS connection. No HTTP handshake overhead.</div>
+  </div>
+  <div class="timing-card" style="border-color:#26e8c830;">
+    <div class="timing-label">Client Render</div>
+    <div class="timing-value" style="color:var(--teal);">~16ms</div>
+    <div class="timing-desc">React state update + one DOM paint cycle. Row appears highlighted in green, table auto-scrolls.</div>
+  </div>
+  <div class="timing-card" style="border-color:#34d97b30;">
+    <div class="timing-label">Total E2E</div>
+    <div class="timing-value" style="color:var(--green);">&lt;200ms</div>
+    <div class="timing-desc">From PostgreSQL INSERT to new row visible on user screen. Well within the 5-min data window.</div>
+  </div>
+</div>
+
+<div class="footer">
+  DavinTrade AI · XAUUSD M15 · Pipeline Architecture v1.0 · 2026-02-26 · PostgreSQL → NestJS 11 (Railway) → Socket.IO WSS → Next.js 16 (Vercel)
+</div>
+
+</body>
+</html>
