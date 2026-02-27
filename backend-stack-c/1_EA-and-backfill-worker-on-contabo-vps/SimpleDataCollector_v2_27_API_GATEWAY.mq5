@@ -117,8 +117,8 @@ input double InpPinbar_Protruding         = 0.40;  // Pinbar min nose protrusion
 
 // Timeframes to collect
 ENUM_TIMEFRAMES timeframes[] = {
-   PERIOD_M1, PERIOD_M5, PERIOD_M15, PERIOD_M30,
-   PERIOD_H1, PERIOD_H4, PERIOD_D1, PERIOD_W1, PERIOD_MN1
+   PERIOD_M5, PERIOD_M15, PERIOD_M30,
+   PERIOD_H1, PERIOD_H2, PERIOD_H4, PERIOD_H8, PERIOD_H12, PERIOD_D1
 };
 
 // Symbol information structure
