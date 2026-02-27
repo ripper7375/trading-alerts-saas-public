@@ -921,12 +921,14 @@ model DisbursementAuditLog {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MARKET DATA (61-COLUMN SCHEMA)
+// MARKET DATA (63-COLUMN SCHEMA)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/// Market data with 61-column flat schema
-/// Structure: 9 system + 16 FREE tier + 36 PRO tier = 61 columns
-/// Updated: v3.0 — adds symbol to system columns, renames ema_26 to ema (EA v2.27+)
+/// Market data with 63-column flat schema
+/// Structure: 9 system + 16 FREE tier + 38 PRO tier = 63 columns
+/// Updated: v4.0 — Body Momentum +1 col (body_classification), Heiken Ashi +1 col (ha_body_zscore),
+///          ha_strength→ha_body_size, ha_classification→ha_color, KC 10 bands renamed,
+///          sr_support/resistance→sr_1-8, zigzag_peak/bottom→zigzag_high/low (EA v2.27+)
 model MarketData {
   id           String   @id @default(cuid())
   symbol       String
@@ -966,20 +968,20 @@ model MarketData {
   hrma                 Float?
   smma                 Float?
 
-  // PRO tier indicators - Group 4: Body Size Momentum (2 columns)
-  body_size            Float?  // Candle body size (0.0 to 1.0)
-  body_direction       Float?  // 1 = bullish, -1 = bearish, 0 = neutral
-  body_classification  Int?
+  // PRO tier indicators - Group 4: Body Momentum (3 columns)
+  body_direction       Int?    // 1 = bullish, -1 = bearish, 0 = neutral
+  body_size            Float?  // Z-score of candle body size
+  body_classification  Int?    // Candle classification bucket (0–5)
 
-  // PRO tier indicators - Group 5: Heiken Ashi (7 columns)
+  // PRO tier indicators - Group 5: Heiken Ashi (8 columns)
   ha_open              Float?
   ha_high              Float?
   ha_low               Float?
   ha_close             Float?
-  ha_color             Float?  // 1 = green, -1 = red
-  ha_trend             Float?  // 1 = uptrend, -1 = downtrend
-  ha_body_size         Float?  // Trend strength (0.0 to 1.0)
-  ha_body_zscore       Float?
+  ha_color             Int?    // 1 = bullish (green), -1 = bearish (red)
+  ha_body_size         Float?  // Heiken Ashi body size
+  ha_body_zscore       Float?  // Z-score of HA body size
+  ha_trend             Int?    // Consecutive streak count with direction sign (+N bullish, -N bearish)
 
   // PRO tier indicators - Group 6: Keltner Channels (10 columns)
   kc_ultra_extreme_upper  Float?
