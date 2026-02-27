@@ -183,7 +183,7 @@ void ExportData()
    // Write header (FIX 1: no "No" column; FIX 2: renamed columns)
    FileWrite(fileHandle,
       "timestamp", "symbol", "timeframe",
-      "open", "high", "low", "close",
+      "close", "open", "high", "low",
       "body_direction", "body_size", "body_classification");
 
    // FIX 2: Use GetTimeframeShort() to produce "M5" style value (not "PERIOD_M5")
@@ -227,10 +227,10 @@ void ExportData()
          IntegerToString(ts),
          _Symbol,
          tfString,
+         DoubleToString(CloseBuffer[bufIdx], _Digits),
          DoubleToString(OpenBuffer[bufIdx], _Digits),
          DoubleToString(HighBuffer[bufIdx], _Digits),
          DoubleToString(LowBuffer[bufIdx], _Digits),
-         DoubleToString(CloseBuffer[bufIdx], _Digits),
          IntegerToString(dir),
          DoubleToString(zScore, 5),
          IntegerToString(classification));
