@@ -717,8 +717,8 @@ bool ExportToTxt(const string symbol,
    }
    
    // Write data header
-   write_success &= FileWrite(file_handle, "timestamp\tsymbol\ttimeframe\topen\thigh\tlow\tclose\tvolume") > 0;
-   
+   write_success &= FileWrite(file_handle, "timestamp\tsymbol\ttimeframe\tclose\topen\thigh\tlow\tvolume") > 0;
+
    // Write data rows
    datetime gmt_offset = TimeCurrent() - TimeGMT();
    for(int i = bars_count-1; i >= 0; i--)
@@ -727,10 +727,10 @@ bool ExportToTxt(const string symbol,
                               (long)(time[i] - gmt_offset),
                               symbol,
                               GetTFStr(timeframe),
+                              close[i],
                               open[i],
                               high[i],
                               low[i],
-                              close[i],
                               volume[i]);
                               
       write_success &= FileWrite(file_handle, line) > 0;
