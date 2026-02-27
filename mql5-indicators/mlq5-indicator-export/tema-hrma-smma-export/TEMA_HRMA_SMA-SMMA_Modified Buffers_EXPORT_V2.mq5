@@ -342,7 +342,7 @@ bool ExportData()
    if(dot_pos > 0)
       clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
 
-   string filename  = StringFormat("%s_%s_%s.csv", InpExportFileName, clean_symbol, tf_str);
+   string filename  = StringFormat("%s_%s_%s.txt", InpExportFileName, clean_symbol, tf_str);
    string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
    Print("Exporting to file: ", full_path);
 

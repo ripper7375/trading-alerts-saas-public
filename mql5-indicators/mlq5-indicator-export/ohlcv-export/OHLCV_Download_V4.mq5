@@ -70,8 +70,6 @@ string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timefra
    
    // For compatibility with ZigZagColor, we can optionally omit the .txt extension
    string file_extension = extension;
-   if(InpCleanFilenames && extension == "txt")
-      file_extension = "";
    
    // Build the filename: BaseName_Symbol_Timeframe.extension
    if(file_extension != "")

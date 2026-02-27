@@ -286,8 +286,6 @@ string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timefra
 
     // For clean filenames, optionally omit the .txt extension
     string file_extension = extension;
-    if(InpCleanFilenames && extension == "txt")
-        file_extension = "";
 
     // Build the filename
     if(file_extension != "")

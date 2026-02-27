@@ -766,8 +766,6 @@ string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timefra
         }
 
         string file_extension = extension;
-        if(InpCleanFilenames && extension == "txt")
-                file_extension = "";
 
         if(file_extension != "")
                 return StringFormat("%s_%s_%s.%s", base_name, clean_symbol, tf_str, file_extension);
