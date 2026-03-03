@@ -1,0 +1,7 @@
+the 3 documents
+
+(1) RAG_ARCHITECTURE_STORAGE_AND_RETRIEVAL_STRATEGY_V3.2.md
+(2) RAG_ARCHITECTURE_STORAGE_AND_RETRIEVAL_STRATEGY_V3.3.md
+(3) DUAL-RAG-SYSTEM-ARCHITECTURE
+
+must be all used together as a single source of truth
