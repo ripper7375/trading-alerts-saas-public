@@ -4,7 +4,7 @@ Microservice A, B, C, D ---> @nestjs/bullmq (BULLMQ is wrapped by Nest.js) ---> 
 
 My SaaS on MVP stage
 
-Microservice A, B, C, D ---> @nestjs/bullmq (BULLMQ is wrapped by Nest.js) ---> ioredis library (write to redis) ---> redis(casual database) = Job Queue ---> ioredis library (read from redis) ---> Background Worker Service (BULLMQ is wrapped by Nest.js) (worker reads from redis and writes to PostgreSQL) ---> Single Prisma (Translator between Nest.js and PostgreSQL) ---> Single PostgreSQL (permanent database)
+MT5 terminal 1 2 3 4 5 ---> @nestjs/bullmq (BULLMQ is wrapped by Nest.js) ---> ioredis library (write to redis) ---> redis(casual database) = Job Queue ---> ioredis library (read from redis) ---> Background Worker Service (BULLMQ is wrapped by Nest.js) (worker reads from redis and writes to PostgreSQL) ---> Single Prisma (Translator between Nest.js and PostgreSQL) ---> Single PostgreSQL (permanent database)
 
 ==============================================
 
