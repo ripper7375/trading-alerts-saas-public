@@ -32,10 +32,10 @@
 
 The SaaS platform uses a **dual RAG architecture** to answer user natural language queries about trading data. Two specialized RAG systems work in sequence, each handling a distinct responsibility:
 
-| System | Responsibility | Input | Output |
-|---|---|---|---|
-| **VANNA RAG** | Translate natural language to SQL, execute, return data | User's NL query | DataFrame (numeric + JSONB narratives) |
-| **TRADING RAG** | Enrich data with trading knowledge, generate final response | DataFrame + user query | Natural language answer to user |
+| System          | Responsibility                                              | Input                  | Output                                 |
+| --------------- | ----------------------------------------------------------- | ---------------------- | -------------------------------------- |
+| **VANNA RAG**   | Translate natural language to SQL, execute, return data     | User's NL query        | DataFrame (numeric + JSONB narratives) |
+| **TRADING RAG** | Enrich data with trading knowledge, generate final response | DataFrame + user query | Natural language answer to user        |
 
 ### Why Two RAG Systems
 
@@ -127,14 +127,14 @@ Translate ambiguous natural language queries into precise, executable SQL querie
 
 Users say things like:
 
-| User says | Database needs |
-|---|---|
-| "gold" | `symbol = 'XAUUSD'` |
-| "low timeframe" | `timeframe = 'M5'` |
-| "last hour" | `LIMIT 12` (12 bars x 5min = 60min) |
-| "euro dollar" | `symbol = 'EURUSD'` |
-| "daily chart" | `timeframe = 'D1'` |
-| "this week" | `timestamp_adjusted >= date_trunc('week', NOW())` |
+| User says       | Database needs                                    |
+| --------------- | ------------------------------------------------- |
+| "gold"          | `symbol = 'XAUUSD'`                               |
+| "low timeframe" | `timeframe = 'M5'`                                |
+| "last hour"     | `LIMIT 12` (12 bars x 5min = 60min)               |
+| "euro dollar"   | `symbol = 'EURUSD'`                               |
+| "daily chart"   | `timeframe = 'D1'`                                |
+| "this week"     | `timestamp_adjusted >= date_trunc('week', NOW())` |
 
 Vanna's reference data teaches the LLM these mappings.
 
@@ -191,6 +191,7 @@ Step 5: Returns DataFrame with all columns (numeric + JSONB)
 Three categories of reference data (loaded once, updated when schema changes):
 
 **Category 1: DDL Schemas**
+
 ```sql
 CREATE TABLE candles (
     id              TEXT PRIMARY KEY,
@@ -210,6 +211,7 @@ CREATE TABLE candles (
 ```
 
 **Category 2: Column & Domain Descriptions**
+
 ```text
 "The candles table stores OHLCV candlestick data with technical indicators.
 
@@ -239,6 +241,7 @@ numeric data."
 ```
 
 **Category 3: Example Question → SQL Pairs**
+
 ```text
 Q: "Show me gold on the 5 minute chart for the last hour"
 A: SELECT * FROM candles WHERE symbol = 'XAUUSD' AND timeframe = 'M5'
@@ -257,12 +260,12 @@ A: SELECT timestamp_adjusted, tema, hrma, close FROM candles
 
 ### Vanna Components Used
 
-| Vanna Component | Class | Purpose |
-|---|---|---|
-| Agent Memory | `ChromaAgentMemory` or `PineconeAgentMemory` | Store/retrieve reference data |
-| LLM Service | `AnthropicLlmService` | Generate SQL from NL + context |
-| SQL Runner | `PostgresRunner` | Execute generated SQL |
-| Data Models | `ToolMemory`, `TextMemory` | Structure stored reference data |
+| Vanna Component | Class                                        | Purpose                         |
+| --------------- | -------------------------------------------- | ------------------------------- |
+| Agent Memory    | `ChromaAgentMemory` or `PineconeAgentMemory` | Store/retrieve reference data   |
+| LLM Service     | `AnthropicLlmService`                        | Generate SQL from NL + context  |
+| SQL Runner      | `PostgresRunner`                             | Execute generated SQL           |
+| Data Models     | `ToolMemory`, `TextMemory`                   | Structure stored reference data |
 
 ### No Embedding Required at Query Time
 
@@ -338,6 +341,7 @@ Step 4: Claude generates contextual response
 This is the **pre-embedded trading knowledge base** — the only component that uses embeddings at query time:
 
 **Category 1: Indicator Interpretation**
+
 ```text
 "When TEMA crosses above HRMA, it signals short-term bullish momentum.
 The crossover is more significant when confirmed by rising volume.
@@ -345,6 +349,7 @@ SMMA acts as a trend filter — if price is above SMMA, favor long setups."
 ```
 
 **Category 2: Candlestick Pattern Recognition**
+
 ```text
 "A bearish engulfing pattern on M5 at a resistance level is a
 short-term reversal signal. Reliability increases when:
@@ -354,6 +359,7 @@ short-term reversal signal. Reliability increases when:
 ```
 
 **Category 3: Trading Workflows**
+
 ```text
 "Multi-timeframe analysis workflow:
 1. Identify trend on H4 (SMMA direction)
@@ -363,6 +369,7 @@ short-term reversal signal. Reliability increases when:
 ```
 
 **Category 4: Market Context**
+
 ```text
 "XAUUSD (Gold) is sensitive to USD strength, bond yields, and
 geopolitical events. During London session (07:00-16:00 UTC),
@@ -371,11 +378,11 @@ volatility is typically higher. Asian session tends to consolidate."
 
 ### Embedding Strategy
 
-| What | Embedded? | When | Why |
-|---|---|---|---|
-| Trading knowledge base | Yes | At ingestion time (one-time + updates) | Large corpus, needs similarity search |
-| User query | No | Never | Small text, passed directly to Claude |
-| DataFrame from Vanna | No | Never | Already specific/filtered, passed as context |
+| What                   | Embedded? | When                                   | Why                                          |
+| ---------------------- | --------- | -------------------------------------- | -------------------------------------------- |
+| Trading knowledge base | Yes       | At ingestion time (one-time + updates) | Large corpus, needs similarity search        |
+| User query             | No        | Never                                  | Small text, passed directly to Claude        |
+| DataFrame from Vanna   | No        | Never                                  | Already specific/filtered, passed as context |
 
 ---
 
@@ -461,11 +468,11 @@ User query arrives
 
 ### Route Categories
 
-| Route | Example Query | Pipeline |
-|---|---|---|
-| **Data + Knowledge** | "How is gold moving on M5?" | VANNA RAG → TRADING RAG |
-| **Knowledge only** | "What does TEMA crossover mean?" | TRADING RAG only |
-| **Data only** | "Give me raw EURUSD H1 data" | VANNA RAG only (return DataFrame) |
+| Route                | Example Query                    | Pipeline                          |
+| -------------------- | -------------------------------- | --------------------------------- |
+| **Data + Knowledge** | "How is gold moving on M5?"      | VANNA RAG → TRADING RAG           |
+| **Knowledge only**   | "What does TEMA crossover mean?" | TRADING RAG only                  |
+| **Data only**        | "Give me raw EURUSD H1 data"     | VANNA RAG only (return DataFrame) |
 
 ### Implementation Approach
 
@@ -567,11 +574,11 @@ await agent_memory.save_tool_usage(
 
 ### Maintenance
 
-| Event | Action |
-|---|---|
-| Prisma schema changes | Re-load DDL into Vanna's vector store |
-| New symbol added | Update domain descriptions |
-| New timeframe added | Update timeframe mappings |
+| Event                        | Action                                            |
+| ---------------------------- | ------------------------------------------------- |
+| Prisma schema changes        | Re-load DDL into Vanna's vector store             |
+| New symbol added             | Update domain descriptions                        |
+| New timeframe added          | Update timeframe mappings                         |
 | Users ask new query patterns | Add as example SQL pairs (continuous improvement) |
 
 ---
@@ -694,10 +701,10 @@ Claude API Prompt Construction
 
 ### What Gets Embedded vs What Doesn't
 
-| Input | Embedded? | Reason |
-|---|---|---|
-| User query | No | Small text, passed directly as user message |
-| DataFrame from Vanna | No | Already filtered/specific, injected as context |
+| Input                  | Embedded?          | Reason                                                     |
+| ---------------------- | ------------------ | ---------------------------------------------------------- |
+| User query             | No                 | Small text, passed directly as user message                |
+| DataFrame from Vanna   | No                 | Already filtered/specific, injected as context             |
 | Trading knowledge base | Yes (pre-embedded) | Large corpus requiring similarity search at retrieval time |
 
 ---
@@ -706,48 +713,48 @@ Claude API Prompt Construction
 
 ### VANNA RAG Components
 
-| Component | Source | Description |
-|---|---|---|
-| `AgentMemory` | Vanna framework | Interface for storing/retrieving reference data |
-| `ChromaAgentMemory` / `PineconeAgentMemory` | Vanna integration | Vector store for schema context |
-| `AnthropicLlmService` | Vanna integration | LLM for SQL generation |
-| `PostgresRunner` | Vanna integration | Execute SQL against PostgreSQL |
-| `ToolMemory` | Vanna core | Data model for example SQL pairs |
-| `TextMemory` | Vanna core | Data model for DDL/descriptions |
+| Component                                   | Source            | Description                                     |
+| ------------------------------------------- | ----------------- | ----------------------------------------------- |
+| `AgentMemory`                               | Vanna framework   | Interface for storing/retrieving reference data |
+| `ChromaAgentMemory` / `PineconeAgentMemory` | Vanna integration | Vector store for schema context                 |
+| `AnthropicLlmService`                       | Vanna integration | LLM for SQL generation                          |
+| `PostgresRunner`                            | Vanna integration | Execute SQL against PostgreSQL                  |
+| `ToolMemory`                                | Vanna core        | Data model for example SQL pairs                |
+| `TextMemory`                                | Vanna core        | Data model for DDL/descriptions                 |
 
 ### TRADING RAG Components
 
-| Component | Source | Description |
-|---|---|---|
-| VectorDB client | To be selected (ChromaDB / Pinecone / Qdrant) | Store/retrieve trading knowledge |
-| Embedding model | OpenAI `text-embedding-3-small` or equivalent | Embed trading knowledge at ingestion |
-| Claude API client | Anthropic SDK | Generate final response |
-| Knowledge ingestion pipeline | Custom | Load trading docs into VectorDB |
+| Component                    | Source                                        | Description                          |
+| ---------------------------- | --------------------------------------------- | ------------------------------------ |
+| VectorDB client              | To be selected (ChromaDB / Pinecone / Qdrant) | Store/retrieve trading knowledge     |
+| Embedding model              | OpenAI `text-embedding-3-small` or equivalent | Embed trading knowledge at ingestion |
+| Claude API client            | Anthropic SDK                                 | Generate final response              |
+| Knowledge ingestion pipeline | Custom                                        | Load trading docs into VectorDB      |
 
 ### Shared Components
 
-| Component | Description |
-|---|---|
-| Query Router | Classify queries and route to appropriate pipeline |
-| User session management | Authenticate and track user context |
-| Response formatter | Format final response for UI delivery |
+| Component               | Description                                        |
+| ----------------------- | -------------------------------------------------- |
+| Query Router            | Classify queries and route to appropriate pipeline |
+| User session management | Authenticate and track user context                |
+| Response formatter      | Format final response for UI delivery              |
 
 ---
 
 ## 12. Technology Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **LLM (SQL generation)** | Claude via Vanna's `AnthropicLlmService` | NL → SQL translation |
-| **LLM (Response generation)** | Claude API (Anthropic SDK) | Final response generation |
-| **Database** | PostgreSQL (via Prisma) | Trading data storage |
-| **Vector Store (Vanna)** | ChromaDB or Pinecone | Schema reference data |
-| **Vector Store (Trading)** | ChromaDB or Pinecone | Trading knowledge base |
-| **Embedding Model** | `text-embedding-3-small` or equivalent | Embed trading knowledge |
-| **ORM** | Prisma | Schema management, migrations |
-| **Framework** | Next.js (App Router) | Web application |
-| **API Layer** | Next.js Route Handlers | API endpoints |
-| **Vanna Framework** | Vanna 2.0 (Python) | SQL translation pipeline |
+| Layer                         | Technology                               | Purpose                       |
+| ----------------------------- | ---------------------------------------- | ----------------------------- |
+| **LLM (SQL generation)**      | Claude via Vanna's `AnthropicLlmService` | NL → SQL translation          |
+| **LLM (Response generation)** | Claude API (Anthropic SDK)               | Final response generation     |
+| **Database**                  | PostgreSQL (via Prisma)                  | Trading data storage          |
+| **Vector Store (Vanna)**      | ChromaDB or Pinecone                     | Schema reference data         |
+| **Vector Store (Trading)**    | ChromaDB or Pinecone                     | Trading knowledge base        |
+| **Embedding Model**           | `text-embedding-3-small` or equivalent   | Embed trading knowledge       |
+| **ORM**                       | Prisma                                   | Schema management, migrations |
+| **Framework**                 | Next.js (App Router)                     | Web application               |
+| **API Layer**                 | Next.js Route Handlers                   | API endpoints                 |
+| **Vanna Framework**           | Vanna 2.0 (Python)                       | SQL translation pipeline      |
 
 ### Vanna Integration Note
 
@@ -801,20 +808,20 @@ Vanna is a Python framework. Integration with the Next.js (TypeScript) applicati
 
 ### VANNA RAG Failures
 
-| Failure | Handling |
-|---|---|
+| Failure                             | Handling                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
 | SQL generation produces invalid SQL | Retry with error context; if fails again, return "Could not understand query" |
-| SQL execution error | Return error message; do not expose raw SQL errors to user |
-| Empty result set | Pass empty DataFrame to Trading RAG; let it respond "No data found for..." |
-| Vector store unavailable | Fall back to LLM-only SQL generation (no RAG context) |
+| SQL execution error                 | Return error message; do not expose raw SQL errors to user                    |
+| Empty result set                    | Pass empty DataFrame to Trading RAG; let it respond "No data found for..."    |
+| Vector store unavailable            | Fall back to LLM-only SQL generation (no RAG context)                         |
 
 ### TRADING RAG Failures
 
-| Failure | Handling |
-|---|---|
-| VectorDB unavailable | Generate response using DataFrame + JSONB narratives only (no knowledge enrichment) |
-| Claude API error | Retry with exponential backoff; after 3 failures, return raw DataFrame as formatted table |
-| Knowledge retrieval returns no results | Proceed with DataFrame context only |
+| Failure                                | Handling                                                                                  |
+| -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| VectorDB unavailable                   | Generate response using DataFrame + JSONB narratives only (no knowledge enrichment)       |
+| Claude API error                       | Retry with exponential backoff; after 3 failures, return raw DataFrame as formatted table |
+| Knowledge retrieval returns no results | Proceed with DataFrame context only                                                       |
 
 ### Graceful Degradation Order
 
@@ -859,13 +866,13 @@ Degraded level 3:          Error message to user
 
 The dual RAG system cleanly separates two concerns:
 
-| | VANNA RAG | TRADING RAG |
-|---|---|---|
-| **Job** | Translate NL → SQL → Data | Interpret data → NL response |
-| **Vector store contains** | Database schema knowledge | Trading domain knowledge |
-| **LLM task** | Generate SQL | Generate analysis |
-| **Input** | User query | User query + DataFrame |
-| **Output** | DataFrame (numeric + JSONB) | Natural language response |
+|                             | VANNA RAG                        | TRADING RAG                            |
+| --------------------------- | -------------------------------- | -------------------------------------- |
+| **Job**                     | Translate NL → SQL → Data        | Interpret data → NL response           |
+| **Vector store contains**   | Database schema knowledge        | Trading domain knowledge               |
+| **LLM task**                | Generate SQL                     | Generate analysis                      |
+| **Input**                   | User query                       | User query + DataFrame                 |
+| **Output**                  | DataFrame (numeric + JSONB)      | Natural language response              |
 | **Embedding at query time** | No (reference data pre-embedded) | Yes (knowledge base similarity search) |
 
 Both systems are modular and independently testable. VANNA RAG can be validated by checking SQL correctness. TRADING RAG can be validated by checking response quality given known DataFrames.
