@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DavinTrade · RAG Observability v3.3</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#070d16;min-height:100vh;font-family:'IBM Plex Mono','Courier New',monospace;color:#e2e8f0}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:#0d1520}::-webkit-scrollbar-thumb{background:#1a2d45;border-radius:2px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes blink{0%,49%{opacity:1}50%,99%{opacity:0}}
+#app{display:flex;flex-direction:column;min-height:100vh}
+.header{background:#0a0f1a;border-bottom:1px solid #1a2d45;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;flex-shrink:0}
+.header-left{display:flex;align-items:center;gap:14px}
+.dot-live{width:8px;height:8px;border-radius:50%;background:#2dd4bf;animation:pulse 2s infinite;box-shadow:0 0 8px #2dd4bf;flex-shrink:0}
+.logo-text{color:#2dd4bf;font-size:14px;font-weight:700;letter-spacing:.05em}
+.logo-text span{color:#4b6285}
+.divider{width:1px;height:20px;background:#1a2d45}
+.subtitle{color:#4b6285;font-size:11px;letter-spacing:.1em}
+.header-right{display:flex;align-items:center;gap:18px}
+.clock-time{color:#2dd4bf;font-size:13px;font-weight:700;letter-spacing:.04em}
+.clock-blink{animation:blink 1s step-start infinite}
+.clock-date{color:#4b6285;font-size:10px;text-align:right}
+.abuse-pill{background:#ef444418;border:1px solid #ef444440;color:#ef4444;padding:4px 12px;border-radius:4px;font-size:10px;letter-spacing:.08em;white-space:nowrap}
+.tabs{background:#0a0f1a;border-bottom:1px solid #1a2d45;padding:0 24px;display:flex;gap:2px;overflow-x:auto;flex-shrink:0}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:#4b6285;padding:10px 16px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;font-family:'IBM Plex Mono','Courier New',monospace;white-space:nowrap;transition:color .15s}
+.tab.active{background:#0d1520;border-bottom-color:#2dd4bf;color:#2dd4bf}
+.tab:hover:not(.active){color:#94a3b8}
+.content{padding:22px 24px;max-width:1400px;margin:0 auto;width:100%}
+.kpi-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.kpi-card{border-radius:6px;padding:16px 20px;flex:1;min-width:160px;position:relative;overflow:hidden}
+.kpi-glow{position:absolute;top:0;right:0;width:60px;height:60px;pointer-events:none}
+.kpi-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#4b6285;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.kpi-sub{display:flex;align-items:center;gap:8px;margin-top:6px}
+.kpi-sub-text{color:#4b6285;font-size:11px}
+.delta-up{color:#2dd4bf;font-size:11px}.delta-dn{color:#ef4444;font-size:11px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-abuse{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.col-span-2{grid-column:1/-1}
+.panel{background:#0d1520;border:1px solid #1a2d45;border-radius:8px;padding:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{display:flex;align-items:center;gap:10px}
+.panel-bar{width:3px;height:14px;background:#2dd4bf;border-radius:2px}
+.panel-title-text{color:#e2e8f0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.panel-badge{background:#ffffff08;color:#4b6285;font-size:10px;padding:3px 8px;border-radius:3px;letter-spacing:.08em}
+.chart-wrap{position:relative}
+.tier-badge{padding:1px 7px;border-radius:2px;font-size:10px;font-weight:700;letter-spacing:.05em;display:inline-block}
+.tier-free{background:#2dd4bf18;border:1px solid #2dd4bf;color:#2dd4bf}
+.tier-pro{background:#f59e0b18;border:1px solid #f59e0b;color:#f59e0b}
+.action-badge{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.08em;display:inline-block}
+.ab-throttled{background:#fbbf2420;border:1px solid #fbbf24;color:#fbbf24}
+.ab-capped{background:#f9731620;border:1px solid #f97316;color:#f97316}
+.ab-blocked{background:#ef444420;border:1px solid #ef4444;color:#ef4444}
+.cost-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cost-bar-track{flex:1;height:4px;background:#1a2d45;border-radius:2px}
+.cost-bar-fill{height:100%;border-radius:2px;opacity:.85}
+.budget-row{margin-bottom:16px}
+.budget-label-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.budget-track{height:6px;background:#1a2d45;border-radius:3px}
+.budget-fill{height:100%;border-radius:3px}
+.budget-sub{color:#4b6285;font-size:10px;margin-top:3px}
+.abuse-thead{display:grid;grid-template-columns:75px 52px 140px 1fr 50px 75px 90px;gap:8px;padding:0 10px 8px;border-bottom:1px solid #1a2d45;margin-bottom:4px}
+.abuse-thead span{color:#4b6285;font-size:9px;letter-spacing:.1em}
+.abuse-row{display:grid;grid-template-columns:75px 52px 140px 1fr 50px 75px 90px;gap:8px;padding:9px 10px;background:#070d16;border:1px solid #1a2d45;border-radius:4px;margin-bottom:6px;cursor:pointer;align-items:center;transition:background .15s}
+.abuse-row:hover{background:#0f1e30}
+.abuse-row.selected{background:#ef444410;border-color:#ef444430}
+.abuse-uid{color:#2dd4bf;font-size:11px;font-weight:700}
+.abuse-model{color:#94a3b8;font-size:10px}
+.abuse-hits{color:#ef4444;font-size:12px;font-weight:700}
+.abuse-time{color:#4b6285;font-size:10px}
+.layer-l1{color:#2dd4bf;font-size:11px;font-weight:700}
+.layer-l2{color:#f59e0b;font-size:11px;font-weight:700}
+.layer-l3{color:#f97316;font-size:11px;font-weight:700}
+.layer-l4{color:#ef4444;font-size:11px;font-weight:700}
+.action-panel{margin-top:12px;padding:14px;background:#ef444408;border:1px solid #ef444430;border-radius:6px}
+.action-title{color:#ef4444;font-size:11px;font-weight:700;margin-bottom:10px}
+.action-btns{display:flex;gap:8px;flex-wrap:wrap}
+.action-btn{background:#1a2d45;border:1px solid #2d4a6a;color:#94a3b8;padding:6px 12px;border-radius:4px;font-size:10px;cursor:pointer;letter-spacing:.06em;font-family:'IBM Plex Mono','Courier New',monospace;transition:all .15s}
+.action-btn:hover{border-color:#2dd4bf;color:#2dd4bf}
+.layer-stat{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.layer-accent{width:3px;border-radius:2px;flex-shrink:0}
+.arch-row{padding:8px 0;border-bottom:1px solid #1a2d4540}
+.arch-row:last-child{border-bottom:none}
+.arch-label{font-size:11px;font-weight:700;margin-bottom:2px}
+.arch-limit{font-size:10px;color:#4b6285}
+.slider-wrap{margin-bottom:16px}
+.slider-top{display:flex;justify-content:space-between;margin-bottom:5px}
+.slider-label{color:#94a3b8;font-size:11px}
+.slider-val{font-size:11px;font-weight:700}
+.slider-track{position:relative;height:6px;background:#1a2d45;border-radius:3px;cursor:pointer}
+.slider-fill{height:100%;border-radius:3px;transition:width .1s;pointer-events:none}
+.slider-input{position:absolute;top:50%;left:0;width:100%;transform:translateY(-50%);opacity:0;cursor:pointer;height:20px;-webkit-appearance:none;appearance:none;margin:0}
+.saas-box{margin-top:12px;padding:10px;border-radius:4px}
+.saas-label{font-size:10px;color:#4b6285;margin-bottom:4px}
+.saas-val{font-size:16px;font-weight:700}
+.saas-unit{font-size:11px;font-weight:400;color:#4b6285}
+.model-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:4px;margin-bottom:8px}
+.model-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.model-name{flex:1;font-size:11px}
+.model-cost{font-size:10px;color:#4b6285}
+.model-locked{font-size:9px;color:#4b6285;letter-spacing:.08em}
+.toggle-btn{padding:3px 8px;border-radius:3px;font-size:9px;cursor:pointer;letter-spacing:.08em;font-family:'IBM Plex Mono','Courier New',monospace;border:1px solid}
+.uecon-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #1a2d4540;flex-wrap:wrap}
+.uecon-row:last-child{border-bottom:none}
+.uecon-model{font-size:10px;width:110px;flex-shrink:0}
+.uecon-rate{font-size:10px;color:#4b6285}
+.uecon-perq{font-size:13px;font-weight:700;margin-left:auto}
+.econ-box{margin-top:12px;padding:9px 10px;background:#f59e0b10;border:1px solid #f59e0b30;border-radius:4px;font-size:10px;color:#4b6285}
+.cap-row{margin-bottom:14px}
+.cap-label-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.cap-label{color:#94a3b8;font-size:11px}
+.cap-val{font-size:11px;font-weight:700}
+.cap-track{height:5px;background:#1a2d45;border-radius:3px}
+.cap-fill{height:100%;border-radius:3px}
+.alert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.alert-card{background:#070d16;border:1px solid #1a2d45;border-radius:4px;padding:12px 14px}
+.alert-card-label{font-size:10px;color:#4b6285;margin-bottom:4px}
+.alert-card-val{font-size:22px;font-weight:700}
+.alert-card-ok{font-size:10px;color:#2dd4bf;margin-top:4px}
+.pie-legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.pie-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#4b6285}
+.pie-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.footer{border-top:1px solid #1a2d45;padding:11px 24px;display:flex;justify-content:space-between;align-items:center;background:#0a0f1a;flex-wrap:wrap;gap:10px;margin-top:40px}
+.footer-left{color:#2d4a6a;font-size:10px;letter-spacing:.1em}
+.footer-services{display:flex;gap:20px;flex-wrap:wrap}
+.svc{display:flex;align-items:center;gap:5px}
+.svc-dot{width:5px;height:5px;border-radius:50%}
+.svc-label{font-size:9px;letter-spacing:.1em;color:#2d4a6a}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="dot-live"></div>
+        <span class="logo-text">DAVIN<span>TRADE</span></span>
+      </div>
+      <div class="divider"></div>
+      <span class="subtitle">RAG · OBSERVABILITY · V3.3</span>
+    </div>
+    <div class="header-right">
+      <div>
+        <div class="clock-time" id="clock-time">--:--:--<span class="clock-blink">_</span></div>
+        <div class="clock-date">UTC+0 · 05 MAR 2026</div>
+      </div>
+      <div class="abuse-pill">⚠ 6 ABUSE FLAGS</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="tokens">Tokens</button>
+    <button class="tab" data-tab="costs">Costs</button>
+    <button class="tab" data-tab="queries">Queries</button>
+    <button class="tab" data-tab="abuse">Abuse</button>
+    <button class="tab" data-tab="controls">Controls</button>
+  </div>
+
+  <div class="content">
+
+    <div class="kpi-row">
+      <div class="kpi-card" style="background:#0d1520;border:1px solid #2dd4bf30;border-left:3px solid #2dd4bf">
+        <div class="kpi-glow" style="background:radial-gradient(circle at top right,#2dd4bf18,transparent 70%)"></div>
+        <div class="kpi-label">Tokens Today</div>
+        <div class="kpi-value" style="color:#2dd4bf">4.33M</div>
+        <div class="kpi-sub"><span class="kpi-sub-text">input + output + vanna</span><span class="delta-up">▲ 12.4%</span></div>
+      </div>
+      <div class="kpi-card" style="background:#0d1520;border:1px solid #f59e0b30;border-left:3px solid #f59e0b">
+        <div class="kpi-glow" style="background:radial-gradient(circle at top right,#f59e0b18,transparent 70%)"></div>
+        <div class="kpi-label">LLM Cost Today</div>
+        <div class="kpi-value" style="color:#f59e0b">$44.20</div>
+        <div class="kpi-sub"><span class="kpi-sub-text">all models · all tiers</span><span class="delta-dn">▼ 8.1%</span></div>
+      </div>
+      <div class="kpi-card" style="background:#0d1520;border:1px solid #818cf830;border-left:3px solid #818cf8">
+        <div class="kpi-glow" style="background:radial-gradient(circle at top right,#818cf818,transparent 70%)"></div>
+        <div class="kpi-label">Avg Queries / hr</div>
+        <div class="kpi-value" style="color:#818cf8">591</div>
+        <div class="kpi-sub"><span class="kpi-sub-text">7-day avg · FREE + PRO</span><span class="delta-up">▲ 3.7%</span></div>
+      </div>
+      <div class="kpi-card" style="background:#0d1520;border:1px solid #ef444430;border-left:3px solid #ef4444">
+        <div class="kpi-glow" style="background:radial-gradient(circle at top right,#ef444418,transparent 70%)"></div>
+        <div class="kpi-label">Abuse Flags</div>
+        <div class="kpi-value" style="color:#ef4444">6</div>
+        <div class="kpi-sub"><span class="kpi-sub-text">last 24h · all layers</span><span class="delta-dn">▼ active</span></div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Token Usage · 24h</span></div><span class="panel-badge">FREE / PRO / VANNA</span></div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chart-ov-token"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Query Volume · 7-Day</span></div><span class="panel-badge">STACKED</span></div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chart-ov-query"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Cost by Model · Today</span></div><span class="panel-badge">USD</span></div>
+          <div id="cost-bars"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Rate Limit Events · 24h</span></div><span class="panel-badge">ALL LAYERS</span></div>
+          <div id="ov-abuse"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOKENS -->
+    <div class="tab-content" id="tab-tokens">
+      <div class="grid-2">
+        <div class="panel col-span-2">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Token Timeline · 24h</span></div><span class="panel-badge">INPUT + OUTPUT + VANNA</span></div>
+          <div class="chart-wrap" style="height:260px"><canvas id="chart-tk-token"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">PRO Budget Consumption</span></div><span class="panel-badge">MONTHLY</span></div>
+          <div id="budget-bars"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Query Mix · Today</span></div><span class="panel-badge">BY TIER + MODEL</span></div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chart-pie"></canvas></div>
+          <div class="pie-legend" id="pie-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COSTS -->
+    <div class="tab-content" id="tab-costs">
+      <div class="grid-2">
+        <div class="panel col-span-2">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Daily Cost Trend · 9 Days</span></div><span class="panel-badge">USD</span></div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-cost-trend"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Cost by Model · Today</span></div><span class="panel-badge">USD</span></div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-cost-model"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Unit Economics · Per Query</span></div></div>
+          <div id="unit-econ"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUERIES -->
+    <div class="tab-content" id="tab-queries">
+      <div class="grid-2">
+        <div class="panel col-span-2">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Query Volume · 7-Day</span></div><span class="panel-badge">FREE + PRO STACKED</span></div>
+          <div class="chart-wrap" style="height:260px"><canvas id="chart-q-vol"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Capacity vs Limits</span></div><span class="panel-badge">REAL-TIME</span></div>
+          <div id="cap-bars"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Hourly Token Distribution</span></div><span class="panel-badge">COMBINED</span></div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-q-hourly"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABUSE -->
+    <div class="tab-content" id="tab-abuse">
+      <div class="grid-abuse">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Rate Limit Violations · 24h</span></div><span class="panel-badge">6 EVENTS</span></div>
+          <div id="abuse-table"></div>
+          <div id="abuse-actions" style="display:none" class="action-panel">
+            <div class="action-title" id="action-title">ACTIONS</div>
+            <div class="action-btns" id="action-btns"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Violations by Layer</span></div></div>
+            <div id="layer-stats"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Layer Architecture</span></div><span class="panel-badge">4-LAYER</span></div>
+            <div id="layer-arch"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="tab-content" id="tab-controls">
+      <div class="grid-3">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">FREE Tier Limits</span></div><span class="panel-badge">LIVE</span></div>
+          <div id="free-sliders"></div>
+          <div class="saas-box" style="background:#2dd4bf10;border:1px solid #2dd4bf30">
+            <div class="saas-label">SaaS COST ESTIMATE</div>
+            <div class="saas-val" style="color:#2dd4bf" id="saas-cost">$0.40<span class="saas-unit"> / user / mo</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">PRO Tier Limits</span></div><span class="panel-badge">LIVE</span></div>
+          <div id="pro-sliders"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Model Access Control</span></div><span class="panel-badge">TOGGLE</span></div>
+          <div id="model-toggles"></div>
+        </div>
+        <div class="panel" style="grid-column:1/-1">
+          <div class="panel-header"><div class="panel-title"><div class="panel-bar"></div><span class="panel-title-text">Alert Thresholds</span></div><span class="panel-badge">NOTIFICATIONS</span></div>
+          <div class="alert-grid">
+            <div class="alert-card" style="border-left:3px solid #f59e0b"><div class="alert-card-label">Cost Alert (daily)</div><div class="alert-card-val" style="color:#f59e0b">$80</div><div class="alert-card-ok">✓ Alert enabled</div></div>
+            <div class="alert-card" style="border-left:3px solid #2dd4bf"><div class="alert-card-label">Token Spike (15min)</div><div class="alert-card-val" style="color:#2dd4bf">500K</div><div class="alert-card-ok">✓ Alert enabled</div></div>
+            <div class="alert-card" style="border-left:3px solid #ef4444"><div class="alert-card-label">Abuse Events/hr</div><div class="alert-card-val" style="color:#ef4444">10</div><div class="alert-card-ok">✓ Alert enabled</div></div>
+            <div class="alert-card" style="border-left:3px solid #818cf8"><div class="alert-card-label">PRO Budget Alert (%)</div><div class="alert-card-val" style="color:#818cf8">80%</div><div class="alert-card-ok">✓ Alert enabled</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span class="footer-left">RAG ARCHITECTURE V3.3 · TRADING ADVISORY SYSTEM</span>
+    <div class="footer-services">
+      <div class="svc"><div class="svc-dot" style="background:#2dd4bf;box-shadow:0 0 4px #2dd4bf"></div><span class="svc-label">PG</span></div>
+      <div class="svc"><div class="svc-dot" style="background:#2dd4bf;box-shadow:0 0 4px #2dd4bf"></div><span class="svc-label">REDIS</span></div>
+      <div class="svc"><div class="svc-dot" style="background:#2dd4bf;box-shadow:0 0 4px #2dd4bf"></div><span class="svc-label">VANNA</span></div>
+      <div class="svc"><div class="svc-dot" style="background:#2dd4bf;box-shadow:0 0 4px #2dd4bf"></div><span class="svc-label">TXTAI</span></div>
+      <div class="svc"><div class="svc-dot" style="background:#f59e0b;box-shadow:0 0 4px #f59e0b"></div><span class="svc-label">LiteLLM</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+var TL_LABELS = ["00:00","02:00","04:00","06:00","08:00","10:00","12:00","14:00","16:00","18:00","20:00","22:00"];
+var TL_FREE   = [42000,18000,9000,25000,87000,194000,230000,218000,175000,145000,112000,78000];
+var TL_PRO    = [180000,94000,51000,130000,420000,810000,1100000,980000,720000,540000,390000,260000];
+var TL_VANNA  = [15000,8000,4200,11000,38000,72000,95000,88000,64000,51000,34000,23000];
+
+var COST_MODELS = [
+  {model:"gemini-2.5-flash",cost:4.82, queries:2410,tier:"FREE",color:"#2dd4bf"},
+  {model:"claude-sonnet-4", cost:38.40,queries:960, tier:"PRO", color:"#f59e0b"},
+  {model:"claude-opus-4",   cost:12.60,queries:70,  tier:"PRO", color:"#f97316"},
+  {model:"gpt-4o",          cost:9.15, queries:183, tier:"PRO", color:"#818cf8"},
+  {model:"gemini-pro",      cost:6.30, queries:420, tier:"PRO", color:"#34d399"}
+];
+
+var QV_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+var QV_FREE   = [1820,2140,1990,2410,2780,1440,1100];
+var QV_PRO    = [740,890,820,960,1120,630,490];
+
+var CT_LABELS = ["25 Feb","26 Feb","27 Feb","28 Feb","01 Mar","02 Mar","03 Mar","04 Mar","05 Mar"];
+var CT_COST   = [48.2,52.7,45.1,61.4,58.9,67.3,71.3,63.8,44.2];
+
+var PIE_DATA = [
+  {name:"FREE",       value:2410,color:"#2dd4bf"},
+  {name:"PRO(Sonnet)",value:960, color:"#f59e0b"},
+  {name:"PRO(Opus)",  value:70,  color:"#f97316"},
+  {name:"PRO(GPT-4o)",value:183, color:"#818cf8"},
+  {name:"PRO(Gemini)",value:420, color:"#34d399"}
+];
+
+var ABUSE_DATA = [
+  {id:"usr_4f2a",tier:"FREE",layer:"L1 · Per-Min",   lk:"l1",count:18,model:"gemini-2.5-flash",last:"14:32:07",action:"throttled"},
+  {id:"usr_8b1c",tier:"PRO", layer:"L3 · Monthly",   lk:"l3",count:3, model:"claude-opus-4",   last:"13:55:41",action:"capped"},
+  {id:"usr_2e9d",tier:"FREE",layer:"L2 · Daily",      lk:"l2",count:7, model:"gemini-2.5-flash",last:"12:18:22",action:"capped"},
+  {id:"usr_7a3f",tier:"PRO", layer:"L1 · Per-Min",   lk:"l1",count:12,model:"gpt-4o",           last:"11:47:59",action:"throttled"},
+  {id:"usr_1d5e",tier:"FREE",layer:"L4 · Concurrent",lk:"l4",count:2, model:"gemini-2.5-flash",last:"10:03:14",action:"blocked"},
+  {id:"usr_9c4b",tier:"PRO", layer:"L2 · Daily",      lk:"l2",count:5, model:"claude-sonnet-4", last:"09:28:33",action:"capped"}
+];
+
+// ── UTILITIES ────────────────────────────────────────────────────────────────
+function fmt(n){return n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"K":String(n)}
+function axisStyle(){return {color:"#1a2d45",drawBorder:false}}
+function tickStyle(){return {color:"#4b6285",font:{family:"'IBM Plex Mono','Courier New',monospace",size:10}}}
+function baseAxis(){return {border:{color:"transparent",dash:[3,3]},ticks:tickStyle(),grid:axisStyle()}}
+
+Chart.defaults.color="#4b6285";
+Chart.defaults.font.family="'IBM Plex Mono','Courier New',monospace";
+Chart.defaults.font.size=10;
+
+var charts={};
+function mkChart(id,cfg){if(charts[id]){charts[id].destroy();}charts[id]=new Chart(document.getElementById(id),cfg);}
+
+// ── CLOCK ────────────────────────────────────────────────────────────────────
+function tick(){
+  var d=new Date(),h=d.getHours(),m=d.getMinutes(),s=d.getSeconds();
+  var str=(h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  document.getElementById("clock-time").innerHTML=str+'<span class="clock-blink">_</span>';
+}
+setInterval(tick,1000);tick();
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+var rendered={};
+document.querySelectorAll(".tab").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    document.querySelectorAll(".tab").forEach(function(b){b.classList.remove("active");});
+    btn.classList.add("active");
+    document.querySelectorAll(".tab-content").forEach(function(tc){tc.classList.remove("active");});
+    var id="tab-"+btn.dataset.tab;
+    document.getElementById(id).classList.add("active");
+    setTimeout(function(){renderTab(btn.dataset.tab);},50);
+  });
+});
+
+function renderTab(t){
+  if(rendered[t])return;rendered[t]=true;
+  if(t==="overview")renderOverview();
+  else if(t==="tokens")renderTokens();
+  else if(t==="costs")renderCosts();
+  else if(t==="queries")renderQueries();
+  else if(t==="abuse")renderAbuse();
+  else if(t==="controls")renderControls();
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────────────
+function renderOverview(){
+  mkChart("chart-ov-token",{type:"line",data:{labels:TL_LABELS,datasets:[
+    {label:"FREE", data:TL_FREE, borderColor:"#2dd4bf",backgroundColor:"#2dd4bf20",fill:true,tension:.4,pointRadius:0,borderWidth:1.5},
+    {label:"PRO",  data:TL_PRO,  borderColor:"#f59e0b",backgroundColor:"#f59e0b20",fill:true,tension:.4,pointRadius:0,borderWidth:1.5},
+    {label:"VANNA",data:TL_VANNA,borderColor:"#818cf8",backgroundColor:"#818cf810",fill:true,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+fmt(c.raw);}}}},
+    scales:{x:baseAxis(),y:Object.assign({},baseAxis(),{ticks:Object.assign({},tickStyle(),{callback:fmt})})}}});
+
+  mkChart("chart-ov-query",{type:"bar",data:{labels:QV_LABELS,datasets:[
+    {label:"FREE",data:QV_FREE,backgroundColor:"#2dd4bf",stack:"s"},
+    {label:"PRO", data:QV_PRO, backgroundColor:"#f59e0b",borderRadius:2,stack:"s"}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false}},
+    scales:{x:Object.assign({},baseAxis(),{stacked:true}),y:Object.assign({},baseAxis(),{stacked:true})}}});
+
+  var cb=document.getElementById("cost-bars");
+  cb.innerHTML=COST_MODELS.map(function(m){
+    return '<div class="cost-row">'+
+      '<span class="tier-badge '+(m.tier==="FREE"?"tier-free":"tier-pro")+'">'+m.tier+'</span>'+
+      '<span style="color:#94a3b8;font-size:11px;width:128px;flex-shrink:0">'+m.model+'</span>'+
+      '<div class="cost-bar-track"><div class="cost-bar-fill" style="width:'+((m.cost/40)*100)+'%;background:'+m.color+'"></div></div>'+
+      '<span style="color:'+m.color+';font-size:12px;font-weight:700;width:46px;text-align:right">$'+m.cost.toFixed(2)+'</span>'+
+      '<span style="color:#4b6285;font-size:10px;width:50px;text-align:right">'+m.queries+' q</span>'+
+      '</div>';
+  }).join("");
+
+  var oa=document.getElementById("ov-abuse");
+  oa.innerHTML=ABUSE_DATA.slice(0,5).map(function(u){
+    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:#070d16;border:1px solid #1a2d45;border-radius:4px;margin-bottom:7px">'+
+      '<span class="abuse-uid">'+u.id+'</span>'+
+      '<span class="tier-badge '+(u.tier==="FREE"?"tier-free":"tier-pro")+'">'+u.tier+'</span>'+
+      '<span class="layer-'+u.lk+'">'+u.layer+'</span>'+
+      '<span style="flex:1"></span>'+
+      '<span style="color:#4b6285;font-size:10px">'+u.last+'</span>'+
+      '<span class="action-badge ab-'+u.action+'">'+u.action.toUpperCase()+'</span>'+
+      '</div>';
+  }).join("");
+}
+
+// ── TOKENS ────────────────────────────────────────────────────────────────────
+function renderTokens(){
+  mkChart("chart-tk-token",{type:"line",data:{labels:TL_LABELS,datasets:[
+    {label:"FREE (gemini-flash)",data:TL_FREE, borderColor:"#2dd4bf",backgroundColor:"#2dd4bf20",fill:true,tension:.4,pointRadius:0,borderWidth:2},
+    {label:"PRO (all models)",   data:TL_PRO,  borderColor:"#f59e0b",backgroundColor:"#f59e0b20",fill:true,tension:.4,pointRadius:0,borderWidth:2},
+    {label:"VANNA (admin)",      data:TL_VANNA,borderColor:"#818cf8",backgroundColor:"#818cf810",fill:true,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[4,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{color:"#4b6285",boxWidth:12}},tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+fmt(c.raw);}}}},
+    scales:{x:baseAxis(),y:Object.assign({},baseAxis(),{ticks:Object.assign({},tickStyle(),{callback:fmt})})}}});
+
+  var budgets=[
+    {model:"claude-sonnet-4",budget:1500000,used:840000,color:"#f59e0b"},
+    {model:"claude-opus-4",  budget:500000, used:392000,color:"#f97316"},
+    {model:"gpt-4o",         budget:1500000,used:620000,color:"#818cf8"},
+    {model:"gemini-pro",     budget:1500000,used:290000,color:"#34d399"}
+  ];
+  document.getElementById("budget-bars").innerHTML=budgets.map(function(m){
+    var pct=((m.used/m.budget)*100).toFixed(1);
+    return '<div class="budget-row">'+
+      '<div class="budget-label-row"><span style="color:#94a3b8;font-size:11px">'+m.model+'</span>'+
+      '<span style="color:'+m.color+';font-size:11px;font-weight:700">'+fmt(m.used)+' / '+fmt(m.budget)+'</span></div>'+
+      '<div class="budget-track"><div class="budget-fill" style="width:'+((m.used/m.budget)*100)+'%;background:linear-gradient(90deg,'+m.color+'66,'+m.color+')"></div></div>'+
+      '<div class="budget-sub">'+pct+'% of monthly budget</div></div>';
+  }).join("");
+
+  mkChart("chart-pie",{type:"doughnut",data:{
+    labels:PIE_DATA.map(function(t){return t.name;}),
+    datasets:[{data:PIE_DATA.map(function(t){return t.value;}),backgroundColor:PIE_DATA.map(function(t){return t.color+"d9";}),borderColor:"#070d16",borderWidth:3}]
+  },options:{responsive:true,maintainAspectRatio:false,animation:false,cutout:"65%",
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+": "+c.raw+" queries";}}}}}});
+
+  document.getElementById("pie-legend").innerHTML=PIE_DATA.map(function(t){
+    return '<div class="pie-item"><div class="pie-dot" style="background:'+t.color+'"></div>'+t.name+'</div>';
+  }).join("");
+}
+
+// ── COSTS ─────────────────────────────────────────────────────────────────────
+function renderCosts(){
+  mkChart("chart-cost-trend",{type:"line",data:{labels:CT_LABELS,datasets:[
+    {label:"Total Cost",data:CT_COST,borderColor:"#f59e0b",backgroundColor:"#f59e0b18",fill:true,tension:.4,pointRadius:4,pointBackgroundColor:"#f59e0b",borderWidth:2}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return "$"+c.raw;}}}},
+    scales:{x:baseAxis(),y:Object.assign({},baseAxis(),{ticks:Object.assign({},tickStyle(),{callback:function(v){return"$"+v;}})})}}});
+
+  mkChart("chart-cost-model",{type:"bar",data:{
+    labels:COST_MODELS.map(function(m){return m.model;}),
+    datasets:[{label:"Cost USD",data:COST_MODELS.map(function(m){return m.cost;}),backgroundColor:COST_MODELS.map(function(m){return m.color+"cc";}),borderRadius:3}]
+  },options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return"$"+c.raw.toFixed(2);}}}},
+    scales:{x:Object.assign({},baseAxis(),{ticks:Object.assign({},tickStyle(),{callback:function(v){return"$"+v;}})}),y:Object.assign({},baseAxis(),{grid:{display:false}})}}});
+
+  var ue=[
+    {model:"gemini-2.5-flash",tier:"FREE",input:"$0.15/1M",output:"$0.60/1M",perQ:"$0.002",color:"#2dd4bf"},
+    {model:"claude-sonnet-4", tier:"PRO", input:"$3/1M",   output:"$15/1M",  perQ:"$0.066",color:"#f59e0b"},
+    {model:"claude-opus-4",   tier:"PRO", input:"$15/1M",  output:"$75/1M",  perQ:"$0.330",color:"#f97316"},
+    {model:"gpt-4o",          tier:"PRO", input:"$2.5/1M", output:"$10/1M",  perQ:"$0.050",color:"#818cf8"},
+    {model:"gemini-pro",      tier:"PRO", input:"$1.25/1M",output:"$5/1M",   perQ:"$0.025",color:"#34d399"}
+  ];
+  document.getElementById("unit-econ").innerHTML=ue.map(function(r){
+    return '<div class="uecon-row">'+
+      '<span class="uecon-model" style="color:'+r.color+'">'+r.model+'</span>'+
+      '<span class="tier-badge '+(r.tier==="FREE"?"tier-free":"tier-pro")+'">'+r.tier+'</span>'+
+      '<span class="uecon-rate">in: '+r.input+'</span>'+
+      '<span class="uecon-rate">out: '+r.output+'</span>'+
+      '<span class="uecon-perq" style="color:'+r.color+'">'+r.perQ+'</span></div>';
+  }).join("")+
+  '<div class="econ-box">PRO cap: <span style="color:#f59e0b">$10.00 / user / month</span> · FREE SaaS cost: <span style="color:#2dd4bf">~$0.40 / user / month</span></div>';
+}
+
+// ── QUERIES ───────────────────────────────────────────────────────────────────
+function renderQueries(){
+  mkChart("chart-q-vol",{type:"bar",data:{labels:QV_LABELS,datasets:[
+    {label:"FREE",data:QV_FREE,backgroundColor:"#2dd4bf",stack:"s"},
+    {label:"PRO", data:QV_PRO, backgroundColor:"#f59e0b",borderRadius:2,stack:"s"}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{color:"#4b6285",boxWidth:12}}},
+    scales:{x:Object.assign({},baseAxis(),{stacked:true}),y:Object.assign({},baseAxis(),{stacked:true})}}});
+
+  var capData=[
+    {label:"FREE · Per-Minute", used:2.1,limit:3, color:"#2dd4bf"},
+    {label:"PRO · Per-Minute",  used:7.4,limit:10,color:"#f59e0b"},
+    {label:"FREE · Daily (avg)",used:14, limit:20,color:"#2dd4bf"},
+    {label:"PRO · Daily (avg)", used:31, limit:40,color:"#f59e0b"}
+  ];
+  document.getElementById("cap-bars").innerHTML=capData.map(function(m){
+    var pct=Math.min((m.used/m.limit)*100,100);
+    var warn=pct>80,c=warn?"#ef4444":m.color;
+    return '<div class="cap-row">'+
+      '<div class="cap-label-row"><span class="cap-label">'+m.label+'</span>'+
+      '<span class="cap-val" style="color:'+c+'">'+m.used+' / '+m.limit+'</span></div>'+
+      '<div class="cap-track"><div class="cap-fill" style="width:'+pct+'%;background:linear-gradient(90deg,'+c+'66,'+c+')"></div></div></div>';
+  }).join("");
+
+  var hourlyTotal=TL_LABELS.map(function(_,i){return TL_FREE[i]+TL_PRO[i];});
+  mkChart("chart-q-hourly",{type:"line",data:{labels:TL_LABELS,datasets:[
+    {label:"Total Tokens",data:hourlyTotal,borderColor:"#818cf8",backgroundColor:"#818cf820",fill:true,tension:.4,pointRadius:0,borderWidth:2}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmt(c.raw)+" tokens";}}}},
+    scales:{x:baseAxis(),y:Object.assign({},baseAxis(),{ticks:Object.assign({},tickStyle(),{callback:fmt})})}}});
+}
+
+// ── ABUSE ─────────────────────────────────────────────────────────────────────
+var selectedAbuse=null;
+function renderAbuse(){
+  var tbl=document.getElementById("abuse-table");
+  tbl.innerHTML='<div class="abuse-thead"><span>USER ID</span><span>TIER</span><span>LAYER</span><span>MODEL</span><span>HITS</span><span>LAST SEEN</span><span>ACTION</span></div>'+
+    ABUSE_DATA.map(function(u){
+      return '<div class="abuse-row" data-id="'+u.id+'" onclick="toggleAbuse(\''+u.id+'\')">'+
+        '<span class="abuse-uid">'+u.id+'</span>'+
+        '<span class="tier-badge '+(u.tier==="FREE"?"tier-free":"tier-pro")+'">'+u.tier+'</span>'+
+        '<span class="layer-'+u.lk+'">'+u.layer+'</span>'+
+        '<span class="abuse-model">'+u.model+'</span>'+
+        '<span class="abuse-hits">'+u.count+'x</span>'+
+        '<span class="abuse-time">'+u.last+'</span>'+
+        '<span class="action-badge ab-'+u.action+'">'+u.action.toUpperCase()+'</span>'+
+        '</div>';
+    }).join("");
+
+  document.getElementById("layer-stats").innerHTML=[
+    {layer:"L1 · Per-Min",   count:30,color:"#2dd4bf",desc:"Burst abuse"},
+    {layer:"L2 · Daily",      count:12,color:"#f59e0b",desc:"Daily spam"},
+    {layer:"L3 · Monthly",    count:3, color:"#f97316",desc:"Cost overrun"},
+    {layer:"L4 · Concurrent", count:2, color:"#ef4444",desc:"Session flood"}
+  ].map(function(l){
+    return '<div class="layer-stat">'+
+      '<div class="layer-accent" style="background:'+l.color+';height:32px"></div>'+
+      '<div style="flex:1"><div style="display:flex;justify-content:space-between">'+
+      '<span style="color:'+l.color+';font-size:11px;font-weight:700">'+l.layer+'</span>'+
+      '<span style="color:'+l.color+';font-size:14px;font-weight:700">'+l.count+'</span></div>'+
+      '<div style="color:#4b6285;font-size:10px">'+l.desc+'</div></div></div>';
+  }).join("");
+
+  document.getElementById("layer-arch").innerHTML=[
+    {l:"L1",desc:"Per-minute · Redis 60s TTL",    limit:"FREE 3/min · PRO 10/min",  color:"#2dd4bf"},
+    {l:"L2",desc:"Daily hard cap · Redis 86400s", limit:"FREE 20/day · PRO 40/day", color:"#f59e0b"},
+    {l:"L3",desc:"Monthly cap · PG + Redis cache",limit:"PRO only · model-based",   color:"#f97316"},
+    {l:"L4",desc:"Concurrent sessions · Redis 30s",limit:"Max 2 parallel",          color:"#ef4444"}
+  ].map(function(l){
+    return '<div class="arch-row">'+
+      '<div class="arch-label" style="color:'+l.color+'">'+l.l+' — '+l.desc+'</div>'+
+      '<div class="arch-limit">'+l.limit+'</div></div>';
+  }).join("");
+}
+
+function toggleAbuse(id){
+  var panel=document.getElementById("abuse-actions");
+  document.querySelectorAll(".abuse-row").forEach(function(r){r.classList.remove("selected");});
+  if(selectedAbuse===id){selectedAbuse=null;panel.style.display="none";return;}
+  selectedAbuse=id;
+  document.querySelectorAll(".abuse-row").forEach(function(r){if(r.dataset.id===id)r.classList.add("selected");});
+  document.getElementById("action-title").textContent="⚡ ACTIONS → "+id;
+  document.getElementById("action-btns").innerHTML=
+    ["Reset Counters","Extend Daily Limit","Downgrade to FREE","Suspend 1h","Whitelist"].map(function(a){
+      return '<button class="action-btn" onclick="doAction(\''+a+'\',\''+id+'\')">'+a+'</button>';
+    }).join("");
+  panel.style.display="block";
+}
+function doAction(action,uid){alert('Action "'+action+'" applied to '+uid);}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+var sliders={freePerMin:3,proPerMin:10,freePerDay:20,proPerDay:40,freePerMonth:200,proPerMonth:200,costCap:10};
+var modelEnabled={"claude-sonnet-4":true,"claude-opus-4":true,"gpt-4o":true,"gemini-pro":false};
+
+function makeSlider(key,label,max,unit,color){
+  var pct=(sliders[key]/max)*100;
+  return '<div class="slider-wrap">'+
+    '<div class="slider-top"><span class="slider-label">'+label+'</span>'+
+    '<span class="slider-val" id="sv-'+key+'" style="color:'+color+'">'+sliders[key]+' '+unit+'</span></div>'+
+    '<div class="slider-track">'+
+    '<div class="slider-fill" id="sf-'+key+'" style="width:'+pct+'%;background:linear-gradient(90deg,'+color+'88,'+color+')"></div>'+
+    '<input type="range" class="slider-input" min="1" max="'+max+'" value="'+sliders[key]+'" '+
+    'oninput="updateSlider(\''+key+'\','+max+',\''+unit+'\',\''+color+'\',this.value)"/>'+
+    '</div></div>';
+}
+
+function updateSlider(key,max,unit,color,val){
+  sliders[key]=Number(val);
+  var el=document.getElementById("sv-"+key);if(el)el.textContent=val+" "+unit;
+  var fl=document.getElementById("sf-"+key);if(fl)fl.style.width=((val/max)*100)+"%";
+  if(key==="freePerMonth"){
+    var sc=document.getElementById("saas-cost");
+    if(sc)sc.innerHTML="$"+(val*0.002).toFixed(2)+'<span class="saas-unit"> / user / mo</span>';
+  }
+}
+
+function renderControls(){
+  document.getElementById("free-sliders").innerHTML=
+    makeSlider("freePerMin","Per-Minute Rate Limit",20,"q/min","#2dd4bf")+
+    makeSlider("freePerDay","Daily Hard Cap",100,"q/day","#2dd4bf")+
+    makeSlider("freePerMonth","Monthly Query Cap",500,"q/mo","#2dd4bf");
+
+  document.getElementById("pro-sliders").innerHTML=
+    makeSlider("proPerMin","Per-Minute Rate Limit",60,"q/min","#f59e0b")+
+    makeSlider("proPerDay","Daily Hard Cap",200,"q/day","#f59e0b")+
+    makeSlider("proPerMonth","Monthly Query Cap",1000,"q/mo","#f59e0b")+
+    makeSlider("costCap","Cost Cap Per User",50,"USD/mo","#f97316");
+
+  var models=[
+    {model:"gemini-2.5-flash",tier:"FREE",locked:true, cost:"$0.002/q"},
+    {model:"claude-sonnet-4", tier:"PRO", locked:false,cost:"$0.066/q"},
+    {model:"claude-opus-4",   tier:"PRO", locked:false,cost:"$0.330/q"},
+    {model:"gpt-4o",          tier:"PRO", locked:false,cost:"$0.050/q"},
+    {model:"gemini-pro",      tier:"PRO", locked:false,cost:"$0.025/q"}
+  ];
+  document.getElementById("model-toggles").innerHTML=models.map(function(m){
+    var on=m.locked?true:(modelEnabled[m.model]!==false);
+    var safeKey=m.model.replace(/\./g,"_").replace(/-/g,"_");
+    return '<div class="model-row" id="mr_'+safeKey+'" style="background:#070d16;border:1px solid '+(on?"#1a2d45":"#1a2d4550")+'">'+
+      '<div class="model-dot" style="background:'+(on?"#2dd4bf":"#1a2d45")+';'+(on?"box-shadow:0 0 5px #2dd4bf":"")+'"></div>'+
+      '<span class="model-name" style="color:'+(on?"#e2e8f0":"#4b6285")+'">'+m.model+'</span>'+
+      '<span class="tier-badge '+(m.tier==="FREE"?"tier-free":"tier-pro")+'">'+m.tier+'</span>'+
+      '<span class="model-cost">'+m.cost+'</span>'+
+      (m.locked?'<span class="model-locked">LOCKED</span>':
+        '<button class="toggle-btn" onclick="toggleModel(\''+m.model+'\')" '+
+        'style="background:'+(on?"#ef444418":"#2dd4bf18")+';border-color:'+(on?"#ef444440":"#2dd4bf40")+';color:'+(on?"#ef4444":"#2dd4bf")+'">'+(on?"DISABLE":"ENABLE")+'</button>')+
+      '</div>';
+  }).join("");
+}
+
+function toggleModel(model){
+  modelEnabled[model]=!modelEnabled[model];
+  rendered["controls"]=false;
+  renderControls();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderOverview();
+</script>
+</body>
+</html>
