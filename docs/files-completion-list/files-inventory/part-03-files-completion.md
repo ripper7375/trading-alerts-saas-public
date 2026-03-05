@@ -380,6 +380,12 @@
   - Payment integration types
   - Affiliate disbursement types
   - Complete OpenAPI documentation
+- **v1.1.0** (2026-03-05): WebSocket OHLCV type note
+  - The real-time OHLCV data structure (`OhlcvSocketData`, `OhlcvCandle`) used by the
+    chart WebSocket hook is defined locally in `hooks/use-ohlcv-socket.ts` and is not
+    part of the shared `types/` directory — it is specific to the Socket.IO transport
+    layer and does not need to be exported globally
+  - No changes to existing type files in Part 03
 
 ---
 

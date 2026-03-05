@@ -54,10 +54,21 @@
   - ✅ Updated `tests/test_mt5_integration.py` to remove fractal indicator tests
   - ✅ Part 6 now correctly reflects OHLCV-only data fetching via `copy_rates_from_pos()`
   - ✅ All indicators come from Part 20 (SQLite-Sync) which processes MQL5 exports
+- **Recent Changes (2026-03-05):**
+  - ✅ `websocket.py` background loop check interval changed from 1s → **0.25s**
+  - ✅ Change detection upgraded: now tracks `{timestamp, close}` per room instead of
+    only the bar open timestamp — intra-bar close price ticks now trigger `ohlcv_update`
+    pushes, so the live candle body updates in real-time as the market moves
+  - ✅ Frontend chart components now consume WebSocket (see Part 09) — HTTP polling
+    from `trading-chart.tsx` has been removed
 - **Key Features:**
   - OHLCV data fetching via MT5 Python API `copy_rates_from_pos()`
   - Symbol resolver for broker-specific naming (Eightcap .i suffix)
-  - WebSocket support for real-time OHLCV streaming
+  - Real-time WebSocket OHLCV streaming via Socket.IO (flask-socketio + eventlet)
+  - Background loop checks every **0.25s** per active subscription room
+  - Pushes on new bar open (timestamp advances) **or** intra-bar close tick change
+  - Subscription rooms only exist when a browser tab is actively viewing that symbol/timeframe — idle combinations consume zero resources
+  - No Redis required for single-instance deployment (eventlet handles concurrent connections)
   - Multi-terminal connection pool (15 symbols across 15 terminals)
   - FREE/PRO tier validation (symbol and timeframe restrictions)
   - Comprehensive test suite with mock MT5 server
@@ -65,3 +76,18 @@
   - MT5 Python API's `iCustom()` and `copy_buffer()` are unreliable
   - Fractals and trendlines were calculated incorrectly from OHLCV data
   - Part 20 (SQLite-Sync) provides all indicator data from MQL5 expert advisor exports
+
+## WebSocket Update Frequency (Clarification)
+
+The 0.25s interval is the **change-detection granularity**, not a guaranteed broadcast rate:
+
+| Trigger | What happens |
+|---|---|
+| New bar opens (timestamp advances) | Push `ohlcv_update` immediately |
+| Current bar's close price changes (tick) | Push `ohlcv_update` immediately |
+| No price movement | No push — silence is free |
+
+Real-world push frequency depends on market activity:
+- Active liquid pairs (EURUSD during London/NY session): multiple pushes per second
+- Quiet pairs or off-hours: sparse pushes, possibly minutes apart
+- Subscription rooms are only active when a user's browser tab is open on that chart
