@@ -51,7 +51,8 @@
 - 5 max watchlist items
 - 2 indicators (fractal_diagonal, fractal_horizontal)
 - 24 total columns (8 system + 16 indicator)
-- 60 requests/hour
+- 60 requests/hour (HTTP API; chart OHLCV uses WebSocket, does not count)
+- **Chart OHLCV update: real-time via WebSocket** (push on price change, ≤0.25s detection)
 - $0/month
 
 **PRO Tier:**
@@ -64,7 +65,8 @@
 - 50 max watchlist items
 - 8 indicators (all FREE + 6 PRO-only)
 - 57 total columns (8 system + 49 indicator)
-- 300 requests/hour
+- 300 requests/hour (HTTP API; chart OHLCV uses WebSocket, does not count)
+- **Chart OHLCV update: real-time via WebSocket** (push on price change, ≤0.25s detection)
 - $29/month
 - 7-day free trial
 
@@ -130,3 +132,6 @@
 - Added comprehensive OpenAPI specification (2025-01-24)
 - Added tier system API endpoints (2025-01-24)
 - Added test coverage for all tier functions (2025-01-24)
+- Updated tier feature table to reflect real-time WebSocket chart updates (2026-03-05):
+  both FREE and PRO chart OHLCV now delivered via Socket.IO push (no polling interval
+  difference between tiers); HTTP request rate limits apply only to REST API calls

@@ -200,15 +200,20 @@ def start_update_thread():
 
 def background_update_loop():
     """
-    Background loop that pushes MT5 OHLCV data updates to subscribed clients
-    Runs every 1 second to check for new data
+    Background loop that pushes MT5 OHLCV data updates to subscribed clients.
+    Runs every 0.25 seconds to detect intra-bar tick changes and new bar opens.
+
+    A push is triggered when either:
+    - A new bar opens (bar timestamp advances), OR
+    - The current bar's close price changes (live tick within the bar)
     """
     from app.services.indicator_reader import fetch_ohlcv_data
     from app.services.mt5_connection_pool import get_connection_pool
 
     logger.info("Starting background update loop")
 
-    # Cache last update timestamps to avoid redundant pushes
+    # Cache last seen {timestamp, close} per room to avoid redundant pushes
+    # Format: {'EURUSD_M5': {'timestamp': int, 'close': float}, ...}
     last_updates = {}
 
     # Get connection pool
@@ -238,12 +243,17 @@ def background_update_loop():
                     data = fetch_ohlcv_data(connection, symbol, timeframe)
 
                     if data:
-                        # Check if data has changed since last update
+                        # Detect change: new bar open OR intra-bar close tick
                         current_timestamp = data.get('metadata', {}).get('timestamp', 0)
-                        last_timestamp = last_updates.get(room, 0)
+                        ohlcv_bars = data.get('ohlcv', [])
+                        current_close = ohlcv_bars[-1].get('close', 0) if ohlcv_bars else 0
 
-                        if current_timestamp > last_timestamp:
-                            # New data available, push to clients
+                        last = last_updates.get(room, {})
+                        last_timestamp = last.get('timestamp', 0)
+                        last_close = last.get('close', 0)
+
+                        if current_timestamp > last_timestamp or current_close != last_close:
+                            # New bar or price tick — push to subscribed clients
                             socketio.emit('ohlcv_update', {
                                 'symbol': symbol,
                                 'timeframe': timeframe,
@@ -251,14 +261,17 @@ def background_update_loop():
                                 'timestamp': time.time()
                             }, room=room)
 
-                            last_updates[room] = current_timestamp
+                            last_updates[room] = {
+                                'timestamp': current_timestamp,
+                                'close': current_close,
+                            }
                             logger.debug(f"Pushed OHLCV update for {room}")
 
                 except Exception as e:
                     logger.error(f"Error processing room {room}: {e}")
 
-            # Sleep for 1 second before next update cycle
-            time.sleep(1)
+            # Sleep 0.25s — fast enough to catch sub-second tick movements
+            time.sleep(0.25)
 
         except Exception as e:
             logger.error(f"Error in background update loop: {e}")

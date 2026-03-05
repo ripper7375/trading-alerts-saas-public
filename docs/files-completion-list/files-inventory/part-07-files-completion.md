@@ -107,11 +107,21 @@ Frontend (Chart Component)
     ↓
 2. User selects symbol + timeframe
     ↓
-3. GET /api/candles/{symbol}?timeframe=H1  ← Part 20 (SQLite-Sync)
-    ↓ (Fetch OHLCV data)
+3. Socket.IO subscribe { symbol, timeframe }  ← Part 06 (Flask MT5 WebSocket)
+    ↓ (Real-time OHLCV push; backend checks every 0.25s, pushes on price change)
     ↓
-4. Render candlestick chart
+4. Receive initial_data event (full candle history on connect)
+    ↓
+5. Receive ohlcv_update events (live candle updates as market moves)
+    ↓
+6. Render/update candlestick chart via lightweight-charts
 ```
+
+> **Note (2026-03-05):** Step 3 was previously documented as an HTTP GET to
+> `/api/candles/{symbol}` (Part 20 / SQLite-Sync). This has been superseded by
+> the Socket.IO WebSocket connection to Part 06 (Flask MT5 service). Both FREE
+> and PRO users receive real-time updates — tier access control remains enforced
+> at the Flask API level before any data is sent.
 
 ### Previous Architecture (v1.x - DEPRECATED)
 
@@ -162,6 +172,6 @@ If you're upgrading from Part 07 v1.x:
 
 ---
 
-**Last Updated:** 2026-01-24
-**Version:** 2.0.0 (Tier Routes Only)
-**Related PR:** #293 (Remove MT5 Indicators)
+**Last Updated:** 2026-03-05
+**Version:** 2.1.0 (Tier Routes Only — data flow updated to WebSocket)
+**Related PR:** #293 (Remove MT5 Indicators), chart WebSocket migration (2026-03-05)

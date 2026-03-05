@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { Tier } from '@/lib/tier-config';
 
 // Dynamic import for TradingChart to reduce initial bundle size
 // lightweight-charts library (~200KB) is only loaded when needed
@@ -24,13 +23,11 @@ const TradingChart = dynamic(
 interface TradingChartClientProps {
   symbol: string;
   timeframe: string;
-  tier: Tier;
 }
 
 export function TradingChartClient({
   symbol,
   timeframe,
-  tier,
 }: TradingChartClientProps) {
-  return <TradingChart symbol={symbol} timeframe={timeframe} tier={tier} />;
+  return <TradingChart symbol={symbol} timeframe={timeframe} />;
 }
