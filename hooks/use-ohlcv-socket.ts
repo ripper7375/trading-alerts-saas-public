@@ -73,7 +73,7 @@ export function useOhlcvSocket(
 
   useEffect(() => {
     const wsUrl =
-      process.env.NEXT_PUBLIC_MT5_WS_URL ?? 'http://localhost:5001';
+      process.env['NEXT_PUBLIC_MT5_WS_URL'] ?? 'http://localhost:5001';
 
     const socket = io(wsUrl, {
       transports: ['websocket'],

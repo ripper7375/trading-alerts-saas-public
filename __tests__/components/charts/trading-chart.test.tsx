@@ -3,42 +3,52 @@
  *
  * Tests for the trading chart visualization component.
  * Part 9: Charts & Visualization
+ *
+ * The component uses useOhlcvSocket (Socket.IO) instead of HTTP polling.
+ * All tests mock the hook at the module level so no real socket connection
+ * is attempted.
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
-// Create mock functions that can be referenced in factory
+// ─────────────────────────────────────────────────────────────
+// Mock useOhlcvSocket — prevents real Socket.IO connections
+// ─────────────────────────────────────────────────────────────
+jest.mock('@/hooks/use-ohlcv-socket', () => ({
+  useOhlcvSocket: jest.fn(),
+}));
+
+import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
+const mockUseOhlcvSocket = useOhlcvSocket as jest.MockedFunction<
+  typeof useOhlcvSocket
+>;
+
+// ─────────────────────────────────────────────────────────────
+// Mock lightweight-charts (canvas not available in jsdom)
+// ─────────────────────────────────────────────────────────────
 const mockChartRemove = jest.fn();
 const mockSetData = jest.fn();
-const mockSetMarkers = jest.fn();
 const mockFitContent = jest.fn();
 const mockApplyOptions = jest.fn();
-const mockAddCandlestickSeries = jest.fn();
-const mockTimeScale = jest.fn();
 
-// Mock lightweight-charts using factory function
-jest.mock('lightweight-charts', () => {
-  return {
-    createChart: jest.fn(() => ({
-      addCandlestickSeries: () => ({
-        setData: (...args: unknown[]) => mockSetData(...args),
-        setMarkers: (...args: unknown[]) => mockSetMarkers(...args),
-      }),
-      remove: () => mockChartRemove(),
-      timeScale: () => ({ fitContent: () => mockFitContent() }),
-      applyOptions: (...args: unknown[]) => mockApplyOptions(...args),
-    })),
-    ColorType: { Solid: 'Solid' },
-  };
-});
+jest.mock('lightweight-charts', () => ({
+  createChart: jest.fn(() => ({
+    addCandlestickSeries: () => ({
+      setData: (...args: unknown[]) => mockSetData(...args),
+      setMarkers: jest.fn(),
+    }),
+    remove: () => mockChartRemove(),
+    timeScale: () => ({ fitContent: () => mockFitContent() }),
+    applyOptions: (...args: unknown[]) => mockApplyOptions(...args),
+  })),
+  ColorType: { Solid: 'Solid' },
+}));
 
-// Mock fetch
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
-
-// Mock ResizeObserver
+// ─────────────────────────────────────────────────────────────
+// Mock ResizeObserver (not in jsdom)
+// ─────────────────────────────────────────────────────────────
 class MockResizeObserver {
   observe = jest.fn();
   disconnect = jest.fn();
@@ -48,350 +58,303 @@ global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 import { TradingChart } from '@/components/charts/trading-chart';
 
-// Sample API response (OHLCV-only, no fractals/trendlines)
-const sampleApiResponse = {
-  success: true,
-  data: {
-    ohlcv: [
-      { time: 1704067200, open: 2040, high: 2045, low: 2035, close: 2042 },
-      { time: 1704070800, open: 2042, high: 2050, low: 2040, close: 2048 },
-      { time: 1704074400, open: 2048, high: 2055, low: 2045, close: 2052 },
-    ],
-    metadata: {
-      symbol: 'XAUUSD',
-      timeframe: 'H1',
-      bars: 3,
-    },
-  },
-  tier: 'FREE',
-  requestedAt: '2024-01-01T00:00:00Z',
+// ─────────────────────────────────────────────────────────────
+// Shared fixtures
+// ─────────────────────────────────────────────────────────────
+const sampleOhlcvData = {
+  symbol: 'XAUUSD',
+  timeframe: 'H1',
+  ohlcv: [
+    { time: 1704067200, open: 2040, high: 2045, low: 2035, close: 2042 },
+    { time: 1704070800, open: 2042, high: 2050, low: 2040, close: 2048 },
+    { time: 1704074400, open: 2048, high: 2055, low: 2045, close: 2052 },
+  ],
+  metadata: { timestamp: 1704074400, bars: 3 },
 };
 
+const loadingState = {
+  data: null,
+  isConnected: false,
+  isLoading: true,
+  error: null,
+} as const;
+
+const connectedState = {
+  data: sampleOhlcvData,
+  isConnected: true,
+  isLoading: false,
+  error: null,
+} as const;
+
+const disconnectedState = {
+  data: null,
+  isConnected: false,
+  isLoading: false,
+  error: null,
+} as const;
+
+// ─────────────────────────────────────────────────────────────
+// Tests
+// ─────────────────────────────────────────────────────────────
 describe('TradingChart Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(sampleApiResponse),
-    });
+    // Default: connected with data
+    mockUseOhlcvSocket.mockReturnValue(connectedState);
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   // Loading State
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   describe('loading state', () => {
-    it('should show loading spinner initially', () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+    it('should show loading spinner while socket is connecting', () => {
+      mockUseOhlcvSocket.mockReturnValue(loadingState);
 
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
 
-      expect(screen.getByText('Loading chart...')).toBeInTheDocument();
+      expect(
+        screen.getByText('Connecting to live data...')
+      ).toBeInTheDocument();
     });
 
-    it('should show loading animation', () => {
-      mockFetch.mockImplementation(() => new Promise(() => {}));
+    it('should show loading animation spinner element', () => {
+      mockUseOhlcvSocket.mockReturnValue(loadingState);
 
       const { container } = render(
-        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      const spinner = container.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      expect(container.querySelector('.animate-spin')).toBeInTheDocument();
     });
   });
 
-  // ============================================================================
-  // Data Fetching
-  // ============================================================================
-  describe('data fetching', () => {
-    it('should fetch data on mount', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+  // ──────────────────────────────────────────────────────────
+  // Socket Hook Integration
+  // ──────────────────────────────────────────────────────────
+  describe('socket hook integration', () => {
+    it('should call useOhlcvSocket with correct symbol and timeframe', () => {
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/XAUUSD/H1');
-      });
+      expect(mockUseOhlcvSocket).toHaveBeenCalledWith('XAUUSD', 'H1');
     });
 
-    it('should refetch when symbol changes', async () => {
+    it('should call useOhlcvSocket with new symbol when symbol prop changes', () => {
       const { rerender } = render(
-        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/XAUUSD/H1');
-      });
+      expect(mockUseOhlcvSocket).toHaveBeenCalledWith('XAUUSD', 'H1');
 
-      rerender(<TradingChart symbol="EURUSD" timeframe="H1" tier="FREE" />);
+      rerender(<TradingChart symbol="EURUSD" timeframe="H1" />);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/EURUSD/H1');
-      });
+      expect(mockUseOhlcvSocket).toHaveBeenCalledWith('EURUSD', 'H1');
     });
 
-    it('should refetch when timeframe changes', async () => {
+    it('should call useOhlcvSocket with new timeframe when timeframe prop changes', () => {
       const { rerender } = render(
-        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/XAUUSD/H1');
-      });
+      rerender(<TradingChart symbol="XAUUSD" timeframe="M15" />);
 
-      rerender(<TradingChart symbol="XAUUSD" timeframe="M15" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/XAUUSD/M15');
-      });
+      expect(mockUseOhlcvSocket).toHaveBeenCalledWith('XAUUSD', 'M15');
     });
   });
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   // Error Handling
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   describe('error handling', () => {
-    it('should show error message on fetch failure', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: 'API Error',
-            message: 'Failed',
-          }),
+    it('should show error heading when socket reports an error', () => {
+      mockUseOhlcvSocket.mockReturnValue({
+        data: null,
+        isConnected: false,
+        isLoading: false,
+        error: 'Connection failed: ECONNREFUSED',
       });
 
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
 
-      await waitFor(() => {
-        expect(screen.getByText('Error loading chart')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Error loading chart')).toBeInTheDocument();
     });
 
-    it('should show error details', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        json: () =>
-          Promise.resolve({
-            success: false,
-            error: 'Not Found',
-            message: 'Symbol not found',
-          }),
+    it('should display the specific error message', () => {
+      mockUseOhlcvSocket.mockReturnValue({
+        data: null,
+        isConnected: false,
+        isLoading: false,
+        error: 'Symbol not found',
       });
 
-      render(<TradingChart symbol="INVALID" timeframe="H1" tier="FREE" />);
+      render(<TradingChart symbol="INVALID" timeframe="H1" />);
 
-      await waitFor(() => {
-        expect(screen.getByText('Symbol not found')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Symbol not found')).toBeInTheDocument();
     });
   });
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   // Chart Rendering
-  // Note: Chart library internals (setData, setMarkers, etc.) are difficult to
-  // test in jsdom as they depend on refs and canvas rendering. These aspects
-  // should be covered in E2E tests with a real browser.
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   describe('chart rendering', () => {
-    it('should render chart container', async () => {
+    it('should render the chart container', () => {
       const { container } = render(
-        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      await waitFor(() => {
-        // Chart container should exist
-        expect(container.querySelector('.rounded-lg')).toBeInTheDocument();
-      });
+      expect(container.querySelector('.rounded-lg')).toBeInTheDocument();
     });
 
-    it('should display OHLCV info text', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+    it('should display live OHLCV info text', () => {
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
 
-      await waitFor(() => {
-        expect(
-          screen.getByText('Displaying OHLCV candlestick data only')
-        ).toBeInTheDocument();
-      });
+      expect(
+        screen.getByText('Displaying live OHLCV candlestick data')
+      ).toBeInTheDocument();
+    });
+
+    it('should display WebSocket update info text', () => {
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
+
+      expect(
+        screen.getByText('Updates in real-time via WebSocket')
+      ).toBeInTheDocument();
     });
   });
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   // Status Bar
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   describe('status bar', () => {
-    it('should display symbol and timeframe', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+    it('should display symbol and timeframe in header', () => {
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
 
-      await waitFor(() => {
-        expect(screen.getByText('XAUUSD/H1')).toBeInTheDocument();
-      });
+      expect(screen.getByText('XAUUSD/H1')).toBeInTheDocument();
     });
 
-    it('should show refresh interval for FREE tier', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+    it('should show "Live" when socket is connected', () => {
+      mockUseOhlcvSocket.mockReturnValue(connectedState);
 
-      await waitFor(() => {
-        expect(screen.getByText('Refresh interval: 60 seconds')).toBeInTheDocument();
-      });
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
+
+      expect(screen.getByText('Live')).toBeInTheDocument();
     });
 
-    it('should show refresh interval for PRO tier', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="PRO" />);
+    it('should show "Disconnected" when socket is not connected', () => {
+      mockUseOhlcvSocket.mockReturnValue(disconnectedState);
 
-      await waitFor(() => {
-        expect(screen.getByText('Refresh interval: 30 seconds')).toBeInTheDocument();
-      });
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
+
+      expect(screen.getByText('Disconnected')).toBeInTheDocument();
     });
 
-    it('should show last updated time', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
+    it('should show green dot when connected', () => {
+      mockUseOhlcvSocket.mockReturnValue(connectedState);
 
-      await waitFor(() => {
-        expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  // ============================================================================
-  // Auto-refresh
-  // ============================================================================
-  describe('auto-refresh', () => {
-    it('should auto-refresh every 60s for FREE tier', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
-
-      // Advance time by 60 seconds
-      jest.advanceTimersByTime(60000);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(2);
-      });
-    });
-
-    it('should auto-refresh every 30s for PRO tier', async () => {
-      render(<TradingChart symbol="XAUUSD" timeframe="H1" tier="PRO" />);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
-
-      // Advance time by 30 seconds
-      jest.advanceTimersByTime(30000);
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(2);
-      });
-    });
-  });
-
-  // ============================================================================
-  // Cleanup
-  // Note: Chart cleanup (remove) depends on refs which don't populate in jsdom.
-  // The actual cleanup logic should be tested in E2E tests.
-  // ============================================================================
-  describe('cleanup', () => {
-    it('should unmount without errors', async () => {
-      const { unmount } = render(
-        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+      const { container } = render(
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
-      });
-
-      // Should unmount cleanly without throwing
-      expect(() => unmount()).not.toThrow();
+      expect(
+        container.querySelector('.bg-green-500')
+      ).toBeInTheDocument();
     });
 
-    it('should clear interval on unmount', async () => {
-      const { unmount } = render(
-        <TradingChart symbol="XAUUSD" timeframe="H1" tier="FREE" />
+    it('should show red dot when disconnected', () => {
+      mockUseOhlcvSocket.mockReturnValue(disconnectedState);
+
+      const { container } = render(
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
-
-      unmount();
-
-      // Advance time - should not trigger more fetches
-      jest.advanceTimersByTime(60000);
-
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(container.querySelector('.bg-red-500')).toBeInTheDocument();
     });
   });
 
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   // Data Loading and Display
-  // ============================================================================
+  // ──────────────────────────────────────────────────────────
   describe('data loading and display', () => {
-    it('should load and display JPY pair data', async () => {
-      const jpyResponse = {
-        ...sampleApiResponse,
-        data: {
-          ...sampleApiResponse.data,
-          ohlcv: [
-            {
-              time: 1704067200,
-              open: 145.123,
-              high: 145.5,
-              low: 145.0,
-              close: 145.234,
-            },
-          ],
-        },
-      };
+    it('should pass OHLCV data to the chart series when received', async () => {
+      mockUseOhlcvSocket.mockReturnValue(connectedState);
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(jpyResponse),
-      });
-
-      render(<TradingChart symbol="USDJPY" timeframe="H1" tier="FREE" />);
+      render(<TradingChart symbol="XAUUSD" timeframe="H1" />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/USDJPY/H1');
-        expect(mockSetData).toHaveBeenCalled();
+        expect(mockSetData).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ open: 2040, close: 2042 }),
+          ])
+        );
       });
     });
 
-    it('should load and display EUR pair data', async () => {
-      const eurResponse = {
-        ...sampleApiResponse,
-        data: {
-          ...sampleApiResponse.data,
-          ohlcv: [
-            {
-              time: 1704067200,
-              open: 1.085,
-              high: 1.086,
-              low: 1.084,
-              close: 1.08523,
-            },
-          ],
-        },
+    it('should pass JPY pair OHLCV data to the chart series', async () => {
+      const jpyData = {
+        symbol: 'USDJPY',
+        timeframe: 'H1',
+        ohlcv: [
+          { time: 1704067200, open: 145.123, high: 145.5, low: 145.0, close: 145.234 },
+        ],
+        metadata: { timestamp: 1704067200, bars: 1 },
       };
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(eurResponse),
+      mockUseOhlcvSocket.mockReturnValue({
+        data: jpyData,
+        isConnected: true,
+        isLoading: false,
+        error: null,
       });
 
-      render(<TradingChart symbol="EURUSD" timeframe="H1" tier="FREE" />);
+      render(<TradingChart symbol="USDJPY" timeframe="H1" />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/indicators/EURUSD/H1');
-        expect(mockSetData).toHaveBeenCalled();
+        expect(mockSetData).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ close: 145.234 }),
+          ])
+        );
       });
+    });
+
+    it('should pass EUR pair OHLCV data to the chart series', async () => {
+      const eurData = {
+        symbol: 'EURUSD',
+        timeframe: 'H1',
+        ohlcv: [
+          { time: 1704067200, open: 1.085, high: 1.086, low: 1.084, close: 1.08523 },
+        ],
+        metadata: { timestamp: 1704067200, bars: 1 },
+      };
+
+      mockUseOhlcvSocket.mockReturnValue({
+        data: eurData,
+        isConnected: true,
+        isLoading: false,
+        error: null,
+      });
+
+      render(<TradingChart symbol="EURUSD" timeframe="H1" />);
+
+      await waitFor(() => {
+        expect(mockSetData).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ close: 1.08523 }),
+          ])
+        );
+      });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // Cleanup
+  // ──────────────────────────────────────────────────────────
+  describe('cleanup', () => {
+    it('should unmount without errors', () => {
+      const { unmount } = render(
+        <TradingChart symbol="XAUUSD" timeframe="H1" />
+      );
+
+      expect(() => unmount()).not.toThrow();
     });
   });
 });
