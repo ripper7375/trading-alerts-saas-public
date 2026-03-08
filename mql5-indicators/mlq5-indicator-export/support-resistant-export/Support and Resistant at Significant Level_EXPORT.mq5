@@ -45,7 +45,7 @@ input double AccuracyMultiplier = 4.0;             // Accuracy Multiplier (eg: 1
 input int ATRPeriod = 162;                         // ATR Period
 input int SafeDistance = 50;                       // Safety Distance From Closest Level (points)
 input int BarsToIgnore = 0;                        // Recent Candles to Ignore
-input int MaxBarsExt = 400;                       // Bars to Analyze
+input int MaxBarsExt = 500;                       // Bars to Analyze
 input int MaxRange = 0;                            // Max Price Range to Analyze (points) (0=No Limit)
 
 input group "Draw Line Settings"
