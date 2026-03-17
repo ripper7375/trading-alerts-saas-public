@@ -7,8 +7,8 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 #property indicator_chart_window
-#property indicator_buffers 2
-#property indicator_plots   2
+#property indicator_buffers 4
+#property indicator_plots   4
 
 //--- include ALGLIB
 #include <Math/Alglib/alglib.mqh>
@@ -25,6 +25,16 @@
 #property indicator_width2  2
 #property indicator_style2  STYLE_DASH
 
+#property indicator_label3  "SSA Trend High"
+#property indicator_type3   DRAW_LINE
+#property indicator_color3  clrLime
+#property indicator_width3  2
+
+#property indicator_label4  "SSA Trend Low"
+#property indicator_type4   DRAW_LINE
+#property indicator_color4  clrRed
+#property indicator_width4  2
+
 //--- export button name constant
 #define EXPORT_BUTTON_NAME "SSAExportButton"
 
@@ -39,10 +49,14 @@ input string InpExportFileName = "ALGLIB_SSA"; // Base export filename
 //--- indicator buffers
 double ssaTrendBuffer[];
 double ssaSignalBuffer[];
+double ssaTrendHighBuffer[];
+double ssaTrendLowBuffer[];
 
 //--- global cache for export (oldest-first, same index as indicator buffers)
 datetime g_time[];
 double   g_close[];
+double   g_high[];
+double   g_low[];
 int      g_rates_total = 0;
 
 //+------------------------------------------------------------------+
@@ -50,13 +64,17 @@ int      g_rates_total = 0;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   SetIndexBuffer(0, ssaTrendBuffer,  INDICATOR_DATA);
-   SetIndexBuffer(1, ssaSignalBuffer, INDICATOR_DATA);
+   SetIndexBuffer(0, ssaTrendBuffer,     INDICATOR_DATA);
+   SetIndexBuffer(1, ssaSignalBuffer,    INDICATOR_DATA);
+   SetIndexBuffer(2, ssaTrendHighBuffer, INDICATOR_DATA);
+   SetIndexBuffer(3, ssaTrendLowBuffer,  INDICATOR_DATA);
 
    PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, EMPTY_VALUE);
    PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   PlotIndexSetDouble(2, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   PlotIndexSetDouble(3, PLOT_EMPTY_VALUE, EMPTY_VALUE);
 
-   IndicatorSetString(INDICATOR_SHORTNAME, "SSA Trend & Signal");
+   IndicatorSetString(INDICATOR_SHORTNAME, "SSA Trend & Signal (Close/High/Low)");
 
    CreateExportButton();
 
@@ -86,17 +104,21 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-   //--- Cache time[] and close[] for export — always update, same as reference pattern
+   //--- Cache time[], close[], high[], low[] for export — always update
    if(ArraySize(g_time) < rates_total)
    {
       ArrayResize(g_time,  rates_total);
       ArrayResize(g_close, rates_total);
+      ArrayResize(g_high,  rates_total);
+      ArrayResize(g_low,   rates_total);
    }
    int copy_start = (prev_calculated > 0) ? prev_calculated - 1 : 0;
    for(int j = copy_start; j < rates_total; j++)
    {
       g_time[j]  = time[j];
       g_close[j] = close[j];
+      g_high[j]  = high[j];
+      g_low[j]   = low[j];
    }
    g_rates_total = rates_total;
 
@@ -109,8 +131,10 @@ int OnCalculate(const int rates_total,
    {
       for(int i = startIdx; i < rates_total; i++)
       {
-         ssaTrendBuffer[i]  = EMPTY_VALUE;
-         ssaSignalBuffer[i] = EMPTY_VALUE;
+         ssaTrendBuffer[i]     = EMPTY_VALUE;
+         ssaSignalBuffer[i]    = EMPTY_VALUE;
+         ssaTrendHighBuffer[i] = EMPTY_VALUE;
+         ssaTrendLowBuffer[i]  = EMPTY_VALUE;
       }
       return(rates_total);
    }
@@ -120,35 +144,63 @@ int OnCalculate(const int rates_total,
    {
       for(int i = 0; i < startIdx; i++)
       {
-         ssaTrendBuffer[i]  = EMPTY_VALUE;
-         ssaSignalBuffer[i] = EMPTY_VALUE;
+         ssaTrendBuffer[i]     = EMPTY_VALUE;
+         ssaSignalBuffer[i]    = EMPTY_VALUE;
+         ssaTrendHighBuffer[i] = EMPTY_VALUE;
+         ssaTrendLowBuffer[i]  = EMPTY_VALUE;
       }
    }
 
-   //--- Load close prices for the full lookback window
+   //--- Load close, high, low prices for the full lookback window
    vector<double> vecClose(len);
+   vector<double> vecHigh(len);
+   vector<double> vecLow(len);
    for(int i = 0; i < len; i++)
+   {
       vecClose[i] = close[startIdx + i];
+      vecHigh[i]  = high[startIdx + i];
+      vecLow[i]   = low[startIdx + i];
+   }
 
-   //--- Build SSA model (always trained on full lookback data)
-   CSSAModel ssa;
-   CAlglib::SSACreate(ssa);
-   CRowDouble priceRow(vecClose);
-   CAlglib::SSAAddSequence(ssa, priceRow);
-   CAlglib::SSASetAlgoTopKRealtime(ssa, SSARank);
-   CAlglib::SSASetWindow(ssa, SSAWindow);
+   //--- Build SSA model for Close (always trained on full lookback data)
+   CSSAModel ssaClose;
+   CAlglib::SSACreate(ssaClose);
+   CRowDouble closeRow(vecClose);
+   CAlglib::SSAAddSequence(ssaClose, closeRow);
+   CAlglib::SSASetAlgoTopKRealtime(ssaClose, SSARank);
+   CAlglib::SSASetWindow(ssaClose, SSAWindow);
+
+   //--- Build SSA model for High
+   CSSAModel ssaHigh;
+   CAlglib::SSACreate(ssaHigh);
+   CRowDouble highRow(vecHigh);
+   CAlglib::SSAAddSequence(ssaHigh, highRow);
+   CAlglib::SSASetAlgoTopKRealtime(ssaHigh, SSARank);
+   CAlglib::SSASetWindow(ssaHigh, SSAWindow);
+
+   //--- Build SSA model for Low
+   CSSAModel ssaLow;
+   CAlglib::SSACreate(ssaLow);
+   CRowDouble lowRow(vecLow);
+   CAlglib::SSAAddSequence(ssaLow, lowRow);
+   CAlglib::SSASetAlgoTopKRealtime(ssaLow, SSARank);
+   CAlglib::SSASetWindow(ssaLow, SSAWindow);
+
    CRowDouble trend, noise;
+   CRowDouble trendHigh, noiseHigh;
+   CRowDouble trendLow, noiseLow;
 
    double alpha = 2.0 / (SSASignalPeriod + 1.0);
 
    if(prev_calculated == 0)
    {
       //---------------------------------------------------------------
-      // FIRST LOAD — mirrors reference pattern: write ALL bars once.
-      // SSAAnalyzeLast(ssa, len, ...) decomposes the full window.
+      // FIRST LOAD — decompose full window for Close, High, Low.
       // Every bar is written here and NEVER touched again after this.
       //---------------------------------------------------------------
-      CAlglib::SSAAnalyzeLast(ssa, len, trend, noise);
+      CAlglib::SSAAnalyzeLast(ssaClose, len, trend, noise);
+      CAlglib::SSAAnalyzeLast(ssaHigh,  len, trendHigh, noiseHigh);
+      CAlglib::SSAAnalyzeLast(ssaLow,   len, trendLow, noiseLow);
 
       if(trend.Size() == len)
       {
@@ -170,34 +222,57 @@ int OnCalculate(const int rates_total,
             ssaSignalBuffer[startIdx + i] = EMPTY_VALUE;
          }
       }
+
+      if(trendHigh.Size() == len)
+      {
+         vector<double> vecTrendH = trendHigh.ToVector();
+         for(int i = 0; i < len; i++)
+            ssaTrendHighBuffer[startIdx + i] = vecTrendH[i];
+      }
+      else
+      {
+         for(int i = 0; i < len; i++)
+            ssaTrendHighBuffer[startIdx + i] = EMPTY_VALUE;
+      }
+
+      if(trendLow.Size() == len)
+      {
+         vector<double> vecTrendL = trendLow.ToVector();
+         for(int i = 0; i < len; i++)
+            ssaTrendLowBuffer[startIdx + i] = vecTrendL[i];
+      }
+      else
+      {
+         for(int i = 0; i < len; i++)
+            ssaTrendLowBuffer[startIdx + i] = EMPTY_VALUE;
+      }
    }
    else
    {
       //---------------------------------------------------------------
-      // INCREMENTAL UPDATE — mirrors reference pattern:
-      // Only the LAST bar is written; ALL historical bars are frozen.
-      //
-      // Key: SSAAnalyzeLast(ssa, 1, ...) returns only the newest bar's
-      // trend value.  Historical bars (startIdx .. rates_total-2) are
-      // NEVER overwritten, so buffer values are stable and always match
-      // what the chart tooltip shows — fixing Issues 2 & 3.
-      //
-      // Same-bar ticks are handled implicitly: MT5 only calls us when
-      // prev_calculated < rates_total (new bar) because we return
-      // rates_total each time; same-bar ticks get prev_calculated ==
-      // rates_total and MT5 skips re-calling for indicator buffers.
+      // INCREMENTAL UPDATE — only the LAST bar is written for all
+      // three SSA models. Historical bars are frozen.
       //---------------------------------------------------------------
-      CAlglib::SSAAnalyzeLast(ssa, 1, trend, noise);
+      CAlglib::SSAAnalyzeLast(ssaClose, 1, trend, noise);
+      CAlglib::SSAAnalyzeLast(ssaHigh,  1, trendHigh, noiseHigh);
+      CAlglib::SSAAnalyzeLast(ssaLow,   1, trendLow, noiseLow);
+
+      int last = rates_total - 1;
 
       if(trend.Size() == 1)
       {
-         int last = rates_total - 1;
          ssaTrendBuffer[last]  = trend[0];
 
-         //--- Incremental EMA on the new bar only — exactly like reference TEMA
+         //--- Incremental EMA on the new bar only
          ssaSignalBuffer[last] = alpha * ssaTrendBuffer[last]
                                + (1.0 - alpha) * ssaSignalBuffer[last - 1];
       }
+
+      if(trendHigh.Size() == 1)
+         ssaTrendHighBuffer[last] = trendHigh[0];
+
+      if(trendLow.Size() == 1)
+         ssaTrendLowBuffer[last] = trendLow[0];
    }
 
    return(rates_total);
@@ -303,7 +378,7 @@ string TimeframeToString(ENUM_TIMEFRAMES timeframe)
 
 //+------------------------------------------------------------------+
 //| Export indicator data to tab-delimited .txt file                 |
-//| Columns : timestamp  symbol  timeframe  close  ssa  ema_ssa      |
+//| Columns : timestamp symbol timeframe close ssa ema_ssa ssa_high ssa_low |
 //| Order   : ascending (oldest bar first, newest bar last)          |
 //| Encoding: UTF-8, No BOM  (FILE_ANSI in MQL5)                     |
 //| UNIX ts : broker time adjusted to UTC via gmt_offset             |
@@ -348,7 +423,7 @@ bool ExportData()
    datetime gmt_offset = TimeCurrent() - TimeGMT();
 
    //--- header row
-   ok &= FileWrite(fh, "timestamp\tsymbol\ttimeframe\tclose\tssa\tema_ssa") > 0;
+   ok &= FileWrite(fh, "timestamp\tsymbol\ttimeframe\tclose\tssa\tema_ssa\tssa_high\tssa_low") > 0;
 
    //--- data rows: i=0 is oldest exported bar, i=bars_to_export-1 is newest
    for(int i = 0; i < bars_to_export; i++)
@@ -365,13 +440,23 @@ bool ExportData()
       string ema_ssa_str = (ssaSignalBuffer[idx] != EMPTY_VALUE && ssaSignalBuffer[idx] != 0.0)
                            ? DoubleToString(ssaSignalBuffer[idx], _Digits + 3) : "";
 
-      string line = StringFormat("%lld\t%s\t%s\t%s\t%s\t%s",
+      //--- SSA Trend High value
+      string ssa_high_str = (ssaTrendHighBuffer[idx] != EMPTY_VALUE && ssaTrendHighBuffer[idx] != 0.0)
+                            ? DoubleToString(ssaTrendHighBuffer[idx], _Digits + 3) : "";
+
+      //--- SSA Trend Low value
+      string ssa_low_str = (ssaTrendLowBuffer[idx] != EMPTY_VALUE && ssaTrendLowBuffer[idx] != 0.0)
+                           ? DoubleToString(ssaTrendLowBuffer[idx], _Digits + 3) : "";
+
+      string line = StringFormat("%lld\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
                                  (long)(g_time[idx] - gmt_offset),  // UNIX UTC timestamp
                                  symbol,
                                  tf_str,
                                  DoubleToString(g_close[idx], _Digits),
                                  ssa_str,
-                                 ema_ssa_str);
+                                 ema_ssa_str,
+                                 ssa_high_str,
+                                 ssa_low_str);
 
       ok &= FileWrite(fh, line) > 0;
    }
