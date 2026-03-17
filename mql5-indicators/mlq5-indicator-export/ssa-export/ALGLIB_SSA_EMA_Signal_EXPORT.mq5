@@ -45,6 +45,11 @@ input int    SSASignalPeriod   = 3;           // EMA period for SSA signal line
 input int    LookbackBars      = 500;         // Number of recent bars to process
 input int    InpExportBars     = 500;         // Number of bars to export
 input string InpExportFileName = "ALGLIB_SSA"; // Base export filename
+input bool   InpAutoReload     = true;         // Auto-reload every minute (1s before end)
+input int    InpReloadSecond   = 59;           // Second of the minute to trigger reload (0-59)
+
+//--- auto-reload state
+bool g_reloadFired = false;   // prevents repeated reloads within the same second
 
 //--- indicator buffers
 double ssaTrendBuffer[];
@@ -78,6 +83,10 @@ int OnInit()
 
    CreateExportButton();
 
+   //--- start 1-second timer for auto-reload
+   if(InpAutoReload)
+      EventSetMillisecondTimer(500);   // check twice per second so we don't miss second 59
+
    return(INIT_SUCCEEDED);
 }
 
@@ -86,8 +95,39 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
+   if(InpAutoReload)
+      EventKillTimer();
    ObjectDelete(0, EXPORT_BUTTON_NAME);
    ChartRedraw(0);
+}
+
+//+------------------------------------------------------------------+
+//| Timer handler — auto-reload at InpReloadSecond of every minute   |
+//+------------------------------------------------------------------+
+void OnTimer()
+{
+   if(!InpAutoReload)
+      return;
+
+   MqlDateTime dt;
+   TimeCurrent(dt);
+   int sec = dt.sec;
+
+   if(sec == InpReloadSecond && !g_reloadFired)
+   {
+      g_reloadFired = true;
+      Print("AUTO-RELOAD: Triggering full recalculation at second ", sec,
+            " of minute ", dt.min, " (", TimeToString(TimeCurrent()), ")");
+
+      //--- Force full indicator reload by switching chart to its own symbol/period.
+      //    This resets prev_calculated to 0, causing a full SSA decomposition
+      //    so the EA reads fresh hindsight-consistent data on the next fetch.
+      ChartSetSymbolPeriod(0, Symbol(), Period());
+   }
+   else if(sec != InpReloadSecond)
+   {
+      g_reloadFired = false;   // reset flag once we leave the trigger second
+   }
 }
 
 //+------------------------------------------------------------------+
