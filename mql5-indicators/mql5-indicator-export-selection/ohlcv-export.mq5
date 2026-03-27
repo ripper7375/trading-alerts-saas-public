@@ -436,6 +436,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
 {
+   //--- Handle "Export All" custom event from EA
+   if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+   {
+      if(ExportPriceData())
+         Print("SUCCESS: [Export All] OHLCV data exported successfully");
+      else
+         Print("ERROR: [Export All] Failed to export OHLCV data.");
+      return;
+   }
+
    // Check if it's a button click event
    if(id == CHARTEVENT_OBJECT_CLICK)
    {
@@ -455,7 +465,7 @@ void OnChartEvent(const int id,
             Print("SUCCESS: Batch export completed successfully");
          else
             Print("WARNING: Batch export completed with some errors. See above for details.");
-            
+
          // Reset button state
          ObjectSetInteger(0, BATCH_EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
       }

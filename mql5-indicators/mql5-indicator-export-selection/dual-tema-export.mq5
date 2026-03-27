@@ -162,6 +162,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
 {
+    //--- Handle "Export All" custom event from EA
+    if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+    {
+        if(ExportData())
+            Print("SUCCESS: [Export All] Dual TEMA data exported successfully");
+        else
+            Print("ERROR: [Export All] Failed to export Dual TEMA data.");
+        return;
+    }
+
     if(id == CHARTEVENT_OBJECT_CLICK)
     {
         if(sparam == EXPORT_BUTTON_NAME)

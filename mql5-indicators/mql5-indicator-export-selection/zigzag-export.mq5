@@ -1298,6 +1298,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
   {
+//--- Handle "Export All" custom event from EA
+   if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+     {
+      if(ExportMarketStructureData())
+         Print("SUCCESS: [Export All] ZigZag data exported successfully");
+      else
+         Print("ERROR: [Export All] Failed to export ZigZag data.");
+      return;
+     }
+
 // Check if it's a button click event
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME)
      {
