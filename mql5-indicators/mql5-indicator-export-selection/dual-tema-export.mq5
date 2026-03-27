@@ -99,8 +99,8 @@ int OnInit()
     PlotIndexSetString(0, PLOT_LABEL, "TEMA High");
     PlotIndexSetString(1, PLOT_LABEL, "TEMA Low");
 
-    // Create export button
-    CreateExportButton();
+    // Export button hidden — use "Export All" EA instead
+    // CreateExportButton();
 
     return(INIT_SUCCEEDED);
 }
@@ -110,7 +110,8 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    ObjectDelete(0, EXPORT_BUTTON_NAME);
+    // Export button hidden — use "Export All" EA instead
+    // ObjectDelete(0, EXPORT_BUTTON_NAME);
     ChartRedraw(0);
 }
 

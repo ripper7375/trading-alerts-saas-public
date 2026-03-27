@@ -667,7 +667,8 @@ int OnInit()
    Print("  Positive = Ascending, Negative = Descending");
    Print("  Symbol 108: ", pattern_name, " (", ExtSideBars, " bars each side)");
 
-   CreateExportButton();
+   // Export button hidden — use "Export All" EA instead
+   // CreateExportButton();
    return INIT_SUCCEEDED;
 }
 
@@ -679,7 +680,8 @@ void OnDeinit(const int reason)
 
    DeleteAllLabels();
    Comment("");
-   ObjectDelete(0, EXPORT_BUTTON_NAME);
+   // Export button hidden — use "Export All" EA instead
+   // ObjectDelete(0, EXPORT_BUTTON_NAME);
   }
 //+------------------------------------------------------------------+
 //| Chart event handler                                              |

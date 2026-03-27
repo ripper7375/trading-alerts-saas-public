@@ -1260,7 +1260,8 @@ int OnInit()
    ObjectSetInteger(0, trendLabel, OBJPROP_YDISTANCE, 20);
    ObjectSetInteger(0, trendLabel, OBJPROP_FONTSIZE, 9);
 
-   CreateExportButton();
+   // Export button hidden — use "Export All" EA instead
+   // CreateExportButton();
 
 // Initialize from file data if needed
    if(InpDataSource == DATA_SOURCE_FILE)
@@ -2845,8 +2846,8 @@ void OnDeinit(const int reason)
       ArrayFree(FilexHistoryBuffer);
      }
 
-// Delete export button
-   ObjectDelete(0, EXPORT_BUTTON_NAME);
+// Export button hidden — use "Export All" EA instead
+   // ObjectDelete(0, EXPORT_BUTTON_NAME);
 
 // Delete trend direction label
    ObjectDelete(0, trendLabel);

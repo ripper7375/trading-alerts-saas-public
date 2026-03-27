@@ -81,7 +81,8 @@ int OnInit()
 
    IndicatorSetString(INDICATOR_SHORTNAME, "SSA Trend & Signal (Close/High/Low)");
 
-   CreateExportButton();
+   // Export button hidden — use "Export All" EA instead
+   // CreateExportButton();
 
    //--- start 1-second timer for auto-reload
    if(InpAutoReload)
@@ -97,7 +98,8 @@ void OnDeinit(const int reason)
 {
    if(InpAutoReload)
       EventKillTimer();
-   ObjectDelete(0, EXPORT_BUTTON_NAME);
+   // Export button hidden — use "Export All" EA instead
+   // ObjectDelete(0, EXPORT_BUTTON_NAME);
    ChartRedraw(0);
 }
 
