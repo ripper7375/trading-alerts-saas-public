@@ -360,8 +360,8 @@ void OnInit()
                 Print("=====================================");
         }
 
-        // Create export button
-        CreateExportButtonRobust();
+        // Export button hidden — use "Export All" EA instead
+        // CreateExportButtonRobust();
 }
 
 bool CheckLeftEyeConditions(int i, double NoseBody, double NoseLength, double LeftEyeBody, double LeftEyeLength, bool isBearish,
@@ -536,8 +536,8 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-        // Check button status and recreate if needed
-        CheckButtonStatus();
+        // Export button hidden — use "Export All" EA instead
+        // CheckButtonStatus();
 
         int NeedBarsCounted;
         double NoseLength, NoseBody, LeftEyeBody, LeftEyeLength;
@@ -725,12 +725,12 @@ void OnDeinit(const int reason)
                 DeleteOldPinbarObjects();
         }
 
-        // Delete export button
-        if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0)
-        {
-                ObjectDelete(0, EXPORT_BUTTON_NAME);
-                ChartRedraw(0);
-        }
+        // Export button hidden — use "Export All" EA instead
+        // if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0)
+        // {
+        //         ObjectDelete(0, EXPORT_BUTTON_NAME);
+        //         ChartRedraw(0);
+        // }
 
         // Reset button status variables
         ButtonCreated    = false;
@@ -1289,6 +1289,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
 {
+        //--- Handle "Export All" custom event from EA
+        if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+        {
+                if(ExportPriceData())
+                        Print("SUCCESS: [Export All] Pinbar data exported successfully");
+                else
+                        Print("ERROR: [Export All] Failed to export Pinbar data.");
+                return;
+        }
+
         // Check if it's a button click event
         if(id == CHARTEVENT_OBJECT_CLICK)
         {

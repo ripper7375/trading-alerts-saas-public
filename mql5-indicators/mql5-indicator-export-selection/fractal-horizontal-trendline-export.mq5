@@ -667,7 +667,8 @@ int OnInit()
    Print("  Positive = Ascending, Negative = Descending");
    Print("  Symbol 108: ", pattern_name, " (", ExtSideBars, " bars each side)");
 
-   CreateExportButton();
+   // Export button hidden — use "Export All" EA instead
+   // CreateExportButton();
    return INIT_SUCCEEDED;
 }
 
@@ -679,7 +680,8 @@ void OnDeinit(const int reason)
 
    DeleteAllLabels();
    Comment("");
-   ObjectDelete(0, EXPORT_BUTTON_NAME);
+   // Export button hidden — use "Export All" EA instead
+   // ObjectDelete(0, EXPORT_BUTTON_NAME);
   }
 //+------------------------------------------------------------------+
 //| Chart event handler                                              |
@@ -689,6 +691,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
   {
+    //--- Handle "Export All" custom event from EA
+    if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+      {
+        if(ExportTrendlineData())
+           Print("SUCCESS: [Export All] Fractal trendline data exported successfully");
+        else
+           Print("ERROR: [Export All] Failed to export fractal trendline data.");
+        return;
+      }
+
     if(id == CHARTEVENT_OBJECT_CLICK)
       {
         if(sparam == EXPORT_BUTTON_NAME)

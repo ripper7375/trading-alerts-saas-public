@@ -81,7 +81,8 @@ int OnInit()
 
    IndicatorSetString(INDICATOR_SHORTNAME, "SSA Trend & Signal (Close/High/Low)");
 
-   CreateExportButton();
+   // Export button hidden — use "Export All" EA instead
+   // CreateExportButton();
 
    //--- start 1-second timer for auto-reload
    if(InpAutoReload)
@@ -97,7 +98,8 @@ void OnDeinit(const int reason)
 {
    if(InpAutoReload)
       EventKillTimer();
-   ObjectDelete(0, EXPORT_BUTTON_NAME);
+   // Export button hidden — use "Export All" EA instead
+   // ObjectDelete(0, EXPORT_BUTTON_NAME);
    ChartRedraw(0);
 }
 
@@ -326,6 +328,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
 {
+   //--- Handle "Export All" custom event from EA
+   if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+   {
+      if(ExportData())
+         Print("SUCCESS: [Export All] SSA data exported successfully");
+      else
+         Print("ERROR: [Export All] Failed to export SSA data.");
+      return;
+   }
+
    if(id == CHARTEVENT_OBJECT_CLICK)
    {
       if(sparam == EXPORT_BUTTON_NAME)

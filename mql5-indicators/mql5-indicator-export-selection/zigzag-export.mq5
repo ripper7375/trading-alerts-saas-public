@@ -1260,7 +1260,8 @@ int OnInit()
    ObjectSetInteger(0, trendLabel, OBJPROP_YDISTANCE, 20);
    ObjectSetInteger(0, trendLabel, OBJPROP_FONTSIZE, 9);
 
-   CreateExportButton();
+   // Export button hidden — use "Export All" EA instead
+   // CreateExportButton();
 
 // Initialize from file data if needed
    if(InpDataSource == DATA_SOURCE_FILE)
@@ -1298,6 +1299,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
   {
+//--- Handle "Export All" custom event from EA
+   if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+     {
+      if(ExportMarketStructureData())
+         Print("SUCCESS: [Export All] ZigZag data exported successfully");
+      else
+         Print("ERROR: [Export All] Failed to export ZigZag data.");
+      return;
+     }
+
 // Check if it's a button click event
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME)
      {
@@ -2835,8 +2846,8 @@ void OnDeinit(const int reason)
       ArrayFree(FilexHistoryBuffer);
      }
 
-// Delete export button
-   ObjectDelete(0, EXPORT_BUTTON_NAME);
+// Export button hidden — use "Export All" EA instead
+   // ObjectDelete(0, EXPORT_BUTTON_NAME);
 
 // Delete trend direction label
    ObjectDelete(0, trendLabel);
