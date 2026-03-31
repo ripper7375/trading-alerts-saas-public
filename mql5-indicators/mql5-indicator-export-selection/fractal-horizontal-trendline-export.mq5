@@ -88,11 +88,28 @@ enum ENUM_SCORING_PRESET
    PRESET_PURE_PROXIMITY   = 5   // Preset 5 - Pure Proximity (M1 Scalp)
   };
 
+enum ENUM_CALC_TIMEFRAME
+  {
+   CALC_TF_CURRENT = 0,    // Current Chart
+   CALC_TF_M5     = 5,     // M5
+   CALC_TF_M15    = 15,    // M15
+   CALC_TF_M30    = 30,    // M30
+   CALC_TF_H1     = 60,    // H1
+   CALC_TF_H2     = 120,   // H2
+   CALC_TF_H4     = 240,   // H4
+   CALC_TF_H8     = 480,   // H8
+   CALC_TF_H12    = 720,   // H12
+   CALC_TF_D1     = 1440   // D1
+  };
+
 //--- Input parameters
 input string            Sep1 = "===== Symbol 108 Settings =====";
 input ENUM_FRACTAL_BARS InpFractalBars = BARS_35;
 input ENUM_SYMBOL_SIZE  InpSymbolSize = SIZE_LARGE;
 input int               InpSymbolOffset = 0;
+
+input string              Sep1b = "===== Calculation Timeframe =====";
+input ENUM_CALC_TIMEFRAME InpCalcTimeframe = CALC_TF_CURRENT;  // Timeframe for fractal calculation
 
 input string            Sep2 = "===== Symbol 119 Settings =====";
 input bool              InpShowSymbol119 = true;
@@ -193,6 +210,9 @@ int    ExtWeightFractals  = 25;
 int    ExtWeightSlope     = 15;
 int    ExtWeightLength    = 10;
 int    ExtWeightProximity = 50;
+
+ENUM_TIMEFRAMES ExtCalcTimeframe;  // Resolved calculation timeframe
+bool            ExtMTFMode = false; // True when calc TF differs from chart TF
 
 datetime ExtLastAlertTime = 0;
 string   ExtLastAlertCondition = "";
@@ -548,6 +568,22 @@ int OnInit()
    g_line_cache_peak.Invalidate();
    g_line_cache_bottom.Invalidate();
 
+   //--- Resolve calculation timeframe from custom enum
+   switch(InpCalcTimeframe)
+     {
+      case CALC_TF_M5:  ExtCalcTimeframe = PERIOD_M5;  break;
+      case CALC_TF_M15: ExtCalcTimeframe = PERIOD_M15; break;
+      case CALC_TF_M30: ExtCalcTimeframe = PERIOD_M30; break;
+      case CALC_TF_H1:  ExtCalcTimeframe = PERIOD_H1;  break;
+      case CALC_TF_H2:  ExtCalcTimeframe = PERIOD_H2;  break;
+      case CALC_TF_H4:  ExtCalcTimeframe = PERIOD_H4;  break;
+      case CALC_TF_H8:  ExtCalcTimeframe = PERIOD_H8;  break;
+      case CALC_TF_H12: ExtCalcTimeframe = PERIOD_H12; break;
+      case CALC_TF_D1:  ExtCalcTimeframe = PERIOD_D1;  break;
+      default:          ExtCalcTimeframe = _Period;     break;
+     }
+   ExtMTFMode = (ExtCalcTimeframe != _Period);
+
    ExtSideBars = (InpFractalBars - 1) / 2;
    ExtMinBars = InpFractalBars;
    ExtSideBars119 = (InpFractalBars119 - 1) / 2;
@@ -585,7 +621,7 @@ int OnInit()
         }
      }
 
-   ExtATRHandle = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
+   ExtATRHandle = iATR(_Symbol, ExtCalcTimeframe, InpATRPeriod);
 
    SetIndexBuffer(0, ExtUpperBuffer, INDICATOR_DATA);
    SetIndexBuffer(1, ExtLowerBuffer, INDICATOR_DATA);
@@ -660,12 +696,15 @@ int OnInit()
      }
 
    string pattern_name = IntegerToString(InpFractalBars) + "-bar";
-   IndicatorSetString(INDICATOR_SHORTNAME, "Fractal SR (V5.54)");
+   string tf_label = ExtMTFMode ? (" [" + EnumToString(ExtCalcTimeframe) + "]") : "";
+   IndicatorSetString(INDICATOR_SHORTNAME, "Fractal SR (V5.54)" + tf_label);
 
    Print("=== Fractal SR V5.54 ===");
    Print("  FIXED: Angle signs now show slope direction");
    Print("  Positive = Ascending, Negative = Descending");
    Print("  Symbol 108: ", pattern_name, " (", ExtSideBars, " bars each side)");
+   if(ExtMTFMode)
+      Print("  MTF Mode: Calculating fractals on ", EnumToString(ExtCalcTimeframe));
 
    // Export button hidden — use "Export All" EA instead
    // CreateExportButton();
@@ -718,7 +757,7 @@ void OnChartEvent(const int id,
 bool ExportTrendlineData()
   {
     string symbol = _Symbol;
-    ENUM_TIMEFRAMES timeframe = _Period;
+    ENUM_TIMEFRAMES timeframe = ExtCalcTimeframe;
     
     string clean_symbol = symbol;
     int dot_pos = StringFind(clean_symbol, ".");
@@ -728,15 +767,15 @@ bool ExportTrendlineData()
     string tf_str = "";
     switch(timeframe)
       {
-        case PERIOD_M1:  tf_str = "M1"; break;
         case PERIOD_M5:  tf_str = "M5"; break;
         case PERIOD_M15: tf_str = "M15"; break;
         case PERIOD_M30: tf_str = "M30"; break;
         case PERIOD_H1:  tf_str = "H1"; break;
+        case PERIOD_H2:  tf_str = "H2"; break;
         case PERIOD_H4:  tf_str = "H4"; break;
+        case PERIOD_H8:  tf_str = "H8"; break;
+        case PERIOD_H12: tf_str = "H12"; break;
         case PERIOD_D1:  tf_str = "D"; break;
-        case PERIOD_W1:  tf_str = "W"; break;
-        case PERIOD_MN1: tf_str = "MN"; break;
         default: tf_str = EnumToString(timeframe); break;
       }
 
@@ -1253,7 +1292,7 @@ void BuildMultiPointTrendlines(const int rates_total)
    ClearAllTrendlineBuffers();
    DeleteAllLabels();
    
-   double current_price = iClose(_Symbol, PERIOD_CURRENT, 0);
+   double current_price = iClose(_Symbol, ExtCalcTimeframe, 0);
    int lookback_limit = InpLookbackBars > 0 ? MathMin(InpLookbackBars, rates_total) : rates_total;
    
    if(InpUseOptimizations)
@@ -1756,7 +1795,7 @@ void CheckProximityAndAlert(const int rates_total)
       return;
 
    int current_bar = 0;
-   double current_price = iClose(_Symbol, PERIOD_CURRENT, 0);
+   double current_price = iClose(_Symbol, ExtCalcTimeframe, 0);
    datetime current_time = TimeCurrent();
 
    double most_recent_peak_108, second_recent_peak_108;
@@ -1908,6 +1947,19 @@ void CheckProximityAndAlert(const int rates_total)
   }
 
 //+------------------------------------------------------------------+
+//| Map HTF bar time to chart bar index (series-indexed, 0=newest)   |
+//+------------------------------------------------------------------+
+int MapHTFToChartBar(datetime htf_time, const datetime &chart_time[], int chart_total)
+  {
+   for(int i = 0; i < chart_total; i++)
+     {
+      if(chart_time[i] <= htf_time)
+         return i;
+     }
+   return -1;
+  }
+
+//+------------------------------------------------------------------+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -1962,10 +2014,100 @@ int OnCalculate(const int rates_total,
          start_calc = 0;
      }
 
+   bool fractals_changed = false;
+
+   //=================================================================
+   // MTF MODE: Copy HTF data and map fractals to chart bars
+   //=================================================================
+   if(ExtMTFMode)
+     {
+      if(!first_run && !new_bar)
+        {
+         CheckProximityAndAlert(rates_total);
+         return(rates_total);
+        }
+
+      //--- Copy HTF data
+      double htf_high[], htf_low[];
+      datetime htf_time[];
+      int htf_bars = Bars(_Symbol, ExtCalcTimeframe);
+      if(htf_bars < global_min_bars)
+         return(0);
+
+      int htf_copied = CopyHigh(_Symbol, ExtCalcTimeframe, 0, htf_bars, htf_high);
+      if(htf_copied <= 0) return(0);
+      CopyLow(_Symbol, ExtCalcTimeframe, 0, htf_bars, htf_low);
+      CopyTime(_Symbol, ExtCalcTimeframe, 0, htf_bars, htf_time);
+
+      ArraySetAsSeries(htf_high, true);
+      ArraySetAsSeries(htf_low, true);
+      ArraySetAsSeries(htf_time, true);
+
+      //--- Clear buffers for full recalc in MTF mode
+      ArrayInitialize(ExtUpperBuffer, EMPTY_VALUE);
+      ArrayInitialize(ExtLowerBuffer, EMPTY_VALUE);
+      ArrayInitialize(ExtHighMapBuffer, 0.0);
+      ArrayInitialize(ExtLowMapBuffer, 0.0);
+      ArrayInitialize(ExtUpperBuffer119, EMPTY_VALUE);
+      ArrayInitialize(ExtLowerBuffer119, EMPTY_VALUE);
+
+      //--- Detect 108 fractals on HTF data and map to chart bars
+      int start_htf = ExtSideBars;
+      int end_htf = htf_copied - ExtSideBars - 1;
+
+      for(int i = start_htf; i < end_htf && !IsStopped(); i++)
+        {
+         int chart_bar = MapHTFToChartBar(htf_time[i], time, rates_total);
+         if(chart_bar < 0 || chart_bar >= rates_total)
+            continue;
+
+         if(IsUpperFractal(htf_high, i, ExtSideBars))
+           {
+            ExtUpperBuffer[chart_bar] = htf_high[i];
+            ExtHighMapBuffer[chart_bar] = htf_high[i];
+            fractals_changed = true;
+           }
+
+         if(IsLowerFractal(htf_low, i, ExtSideBars))
+           {
+            ExtLowerBuffer[chart_bar] = htf_low[i];
+            ExtLowMapBuffer[chart_bar] = htf_low[i];
+            fractals_changed = true;
+           }
+        }
+
+      //--- Detect 119 fractals on HTF data and map to chart bars
+      if(InpShowSymbol119)
+        {
+         int start_htf119 = ExtSideBars119;
+         int end_htf119 = htf_copied - ExtSideBars119 - 1;
+
+         for(int i = start_htf119; i < end_htf119 && !IsStopped(); i++)
+           {
+            int chart_bar = MapHTFToChartBar(htf_time[i], time, rates_total);
+            if(chart_bar < 0 || chart_bar >= rates_total)
+               continue;
+
+            if(IsUpperFractal(htf_high, i, ExtSideBars119))
+               ExtUpperBuffer119[chart_bar] = htf_high[i];
+
+            if(IsLowerFractal(htf_low, i, ExtSideBars119))
+               ExtLowerBuffer119[chart_bar] = htf_low[i];
+           }
+        }
+
+      if(InpShowTrendlines && (first_run || fractals_changed))
+         BuildMultiPointTrendlines(rates_total);
+
+      CheckProximityAndAlert(rates_total);
+      return(rates_total);
+     }
+
+   //=================================================================
+   // STANDARD MODE: Use chart timeframe data directly
+   //=================================================================
    int start_108 = MathMax(ExtSideBars, start_calc);
    int end_108 = rates_total - ExtSideBars - 1;
-
-   bool fractals_changed = false;
 
    for(int i = start_108; i < end_108 && !IsStopped(); i++)
      {
