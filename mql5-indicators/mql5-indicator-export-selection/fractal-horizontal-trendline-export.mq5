@@ -88,14 +88,28 @@ enum ENUM_SCORING_PRESET
    PRESET_PURE_PROXIMITY   = 5   // Preset 5 - Pure Proximity (M1 Scalp)
   };
 
+enum ENUM_CALC_TIMEFRAME
+  {
+   CALC_TF_CURRENT = 0,    // Current Chart
+   CALC_TF_M5     = 5,     // M5
+   CALC_TF_M15    = 15,    // M15
+   CALC_TF_M30    = 30,    // M30
+   CALC_TF_H1     = 60,    // H1
+   CALC_TF_H2     = 120,   // H2
+   CALC_TF_H4     = 240,   // H4
+   CALC_TF_H8     = 480,   // H8
+   CALC_TF_H12    = 720,   // H12
+   CALC_TF_D1     = 1440   // D1
+  };
+
 //--- Input parameters
 input string            Sep1 = "===== Symbol 108 Settings =====";
 input ENUM_FRACTAL_BARS InpFractalBars = BARS_35;
 input ENUM_SYMBOL_SIZE  InpSymbolSize = SIZE_LARGE;
 input int               InpSymbolOffset = 0;
 
-input string            Sep1b = "===== Calculation Timeframe =====";
-input ENUM_TIMEFRAMES   InpCalcTimeframe = PERIOD_CURRENT;  // Timeframe for fractal calculation (PERIOD_CURRENT = chart TF)
+input string              Sep1b = "===== Calculation Timeframe =====";
+input ENUM_CALC_TIMEFRAME InpCalcTimeframe = CALC_TF_CURRENT;  // Timeframe for fractal calculation
 
 input string            Sep2 = "===== Symbol 119 Settings =====";
 input bool              InpShowSymbol119 = true;
@@ -554,8 +568,20 @@ int OnInit()
    g_line_cache_peak.Invalidate();
    g_line_cache_bottom.Invalidate();
 
-   //--- Resolve calculation timeframe
-   ExtCalcTimeframe = (InpCalcTimeframe == PERIOD_CURRENT) ? _Period : InpCalcTimeframe;
+   //--- Resolve calculation timeframe from custom enum
+   switch(InpCalcTimeframe)
+     {
+      case CALC_TF_M5:  ExtCalcTimeframe = PERIOD_M5;  break;
+      case CALC_TF_M15: ExtCalcTimeframe = PERIOD_M15; break;
+      case CALC_TF_M30: ExtCalcTimeframe = PERIOD_M30; break;
+      case CALC_TF_H1:  ExtCalcTimeframe = PERIOD_H1;  break;
+      case CALC_TF_H2:  ExtCalcTimeframe = PERIOD_H2;  break;
+      case CALC_TF_H4:  ExtCalcTimeframe = PERIOD_H4;  break;
+      case CALC_TF_H8:  ExtCalcTimeframe = PERIOD_H8;  break;
+      case CALC_TF_H12: ExtCalcTimeframe = PERIOD_H12; break;
+      case CALC_TF_D1:  ExtCalcTimeframe = PERIOD_D1;  break;
+      default:          ExtCalcTimeframe = _Period;     break;
+     }
    ExtMTFMode = (ExtCalcTimeframe != _Period);
 
    ExtSideBars = (InpFractalBars - 1) / 2;
@@ -741,15 +767,15 @@ bool ExportTrendlineData()
     string tf_str = "";
     switch(timeframe)
       {
-        case PERIOD_M1:  tf_str = "M1"; break;
         case PERIOD_M5:  tf_str = "M5"; break;
         case PERIOD_M15: tf_str = "M15"; break;
         case PERIOD_M30: tf_str = "M30"; break;
         case PERIOD_H1:  tf_str = "H1"; break;
+        case PERIOD_H2:  tf_str = "H2"; break;
         case PERIOD_H4:  tf_str = "H4"; break;
+        case PERIOD_H8:  tf_str = "H8"; break;
+        case PERIOD_H12: tf_str = "H12"; break;
         case PERIOD_D1:  tf_str = "D"; break;
-        case PERIOD_W1:  tf_str = "W"; break;
-        case PERIOD_MN1: tf_str = "MN"; break;
         default: tf_str = EnumToString(timeframe); break;
       }
 
