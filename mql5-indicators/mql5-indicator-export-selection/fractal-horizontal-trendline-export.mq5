@@ -114,8 +114,8 @@ input double            InpToleranceATRMultiplier = 1.5;
 input int               InpATRPeriod = 12;
 input int               InpLookbackBars = 500;
 input int               InpExtensionBars = 100;
-input int               InpMaxPeakLines = 3;
-input int               InpMaxBottomLines = 3;
+input int               InpMaxPeakLines = 1;
+input int               InpMaxBottomLines = 1;
 input color             InpPeakLineColor = clrRed;
 input color             InpBottomLineColor = clrLimeGreen;
 
@@ -138,7 +138,7 @@ input string            InpAlertSound = "alert2.wav";
 input int               InpAlertCooldownSeconds = 300;
 
 input string            Sep6 = "===== Display Settings =====";
-input bool              InpShowLabels = true;
+input bool              InpShowLabels = false;
 input int               InpLabelFontSize = 9;
 input int               InpLabelOffsetBars = 5;
 input bool              InpEnableColorIntensity = true;
