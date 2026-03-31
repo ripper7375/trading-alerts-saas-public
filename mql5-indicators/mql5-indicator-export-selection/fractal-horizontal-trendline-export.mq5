@@ -8,8 +8,8 @@
 #property version   "5.54"
 #property description "Fixed: Negative angles for descending, positive for ascending"
 #property indicator_chart_window
-#property indicator_buffers 8
-#property indicator_plots   6
+#property indicator_buffers 12
+#property indicator_plots   10
 
 #property indicator_type1   DRAW_ARROW
 #property indicator_type2   DRAW_ARROW
@@ -17,23 +17,39 @@
 #property indicator_type4   DRAW_ARROW
 #property indicator_type5   DRAW_LINE
 #property indicator_type6   DRAW_LINE
+#property indicator_type7   DRAW_LINE
+#property indicator_type8   DRAW_LINE
+#property indicator_type9   DRAW_LINE
+#property indicator_type10  DRAW_LINE
 
 #property indicator_color1  clrRed
 #property indicator_color2  clrLimeGreen
 #property indicator_color3  clrRed
 #property indicator_color4  clrLimeGreen
 #property indicator_color5  clrRed
-#property indicator_color6  clrLimeGreen
+#property indicator_color6  clrOrangeRed
+#property indicator_color7  clrDarkOrange
+#property indicator_color8  clrLimeGreen
+#property indicator_color9  clrSpringGreen
+#property indicator_color10 clrAqua
 
 #property indicator_label1  "Fractal Up (108)"
 #property indicator_label2  "Fractal Down (108)"
 #property indicator_label3  "Fractal Up (119)"
 #property indicator_label4  "Fractal Down (119)"
 #property indicator_label5  "Peak Line #1"
-#property indicator_label6  "Bottom Line #1"
+#property indicator_label6  "Peak Line #2"
+#property indicator_label7  "Peak Line #3"
+#property indicator_label8  "Bottom Line #1"
+#property indicator_label9  "Bottom Line #2"
+#property indicator_label10 "Bottom Line #3"
 
 #property indicator_width5  2
 #property indicator_width6  2
+#property indicator_width7  2
+#property indicator_width8  2
+#property indicator_width9  2
+#property indicator_width10 2
 
 //--- Input enums
 
@@ -72,28 +88,11 @@ enum ENUM_SCORING_PRESET
    PRESET_PURE_PROXIMITY   = 5   // Preset 5 - Pure Proximity (M1 Scalp)
   };
 
-enum ENUM_CALC_TIMEFRAME
-  {
-   CALC_TF_CURRENT = 0,    // Current Chart
-   CALC_TF_M5     = 5,     // M5
-   CALC_TF_M15    = 15,    // M15
-   CALC_TF_M30    = 30,    // M30
-   CALC_TF_H1     = 60,    // H1
-   CALC_TF_H2     = 120,   // H2
-   CALC_TF_H4     = 240,   // H4
-   CALC_TF_H8     = 480,   // H8
-   CALC_TF_H12    = 720,   // H12
-   CALC_TF_D1     = 1440   // D1
-  };
-
 //--- Input parameters
 input string            Sep1 = "===== Symbol 108 Settings =====";
 input ENUM_FRACTAL_BARS InpFractalBars = BARS_35;
 input ENUM_SYMBOL_SIZE  InpSymbolSize = SIZE_LARGE;
 input int               InpSymbolOffset = 0;
-
-input string              Sep1b = "===== Calculation Timeframe =====";
-input ENUM_CALC_TIMEFRAME InpCalcTimeframe = CALC_TF_CURRENT;  // Timeframe for fractal calculation
 
 input string            Sep2 = "===== Symbol 119 Settings =====";
 input bool              InpShowSymbol119 = true;
@@ -115,6 +114,8 @@ input double            InpToleranceATRMultiplier = 1.5;
 input int               InpATRPeriod = 12;
 input int               InpLookbackBars = 500;
 input int               InpExtensionBars = 100;
+input int               InpMaxPeakLines = 1;
+input int               InpMaxBottomLines = 1;
 input color             InpPeakLineColor = clrRed;
 input color             InpBottomLineColor = clrLimeGreen;
 
@@ -148,7 +149,15 @@ input bool              InpEnableAngleFilter = false;
 input double            InpMinLineAngle = 0.5;
 input double            InpMaxLineAngle = 45.0;
 
-input string            Sep8 = "===== Export Settings =====";
+input string            Sep8 = "===== 🚀 Performance Optimization =====";
+input bool              InpUseOptimizations = true;
+input bool              InpUseCaching = true;
+input bool              InpUseSlopeFilter = true;
+input bool              InpUseEarlyExit = false;
+input double            InpEarlyExitThreshold = 150.0;
+input bool              InpUseSpatialIndex = false;
+input int               InpSpatialGridSize = 20;
+input string            Sep9 = "===== Export Settings =====";
 input string            InpExportFileName = "FractalTrendlines";  // Export file name  
 input bool              InpIncludeHeader = true;                  // Include header row
 input int               InpExportBars = 500;                    // Number of bars to export
@@ -161,7 +170,11 @@ double ExtLowerBuffer[];
 double ExtUpperBuffer119[];
 double ExtLowerBuffer119[];
 double ExtPeakLine1[];
+double ExtPeakLine2[];
+double ExtPeakLine3[];
 double ExtBottomLine1[];
+double ExtBottomLine2[];
+double ExtBottomLine3[];
 double ExtHighMapBuffer[];
 double ExtLowMapBuffer[];
 
@@ -180,9 +193,6 @@ int    ExtWeightFractals  = 25;
 int    ExtWeightSlope     = 15;
 int    ExtWeightLength    = 10;
 int    ExtWeightProximity = 50;
-
-ENUM_TIMEFRAMES ExtCalcTimeframe;  // Resolved calculation timeframe
-bool            ExtMTFMode = false; // True when calc TF differs from chart TF
 
 datetime ExtLastAlertTime = 0;
 string   ExtLastAlertCondition = "";
@@ -206,6 +216,282 @@ struct FractalLine
    double            score;
    double            line_price_at_current;
   };
+
+//+------------------------------------------------------------------+
+//| OPTIMIZATION 1: SLOPE FILTER CLASS                               |
+//+------------------------------------------------------------------+
+class CSlopeFilter
+{
+private:
+   double   m_min_slope;
+   double   m_max_slope;
+   double   m_atr;
+   bool     m_enabled;
+   
+public:
+   CSlopeFilter() : m_enabled(false), m_atr(0), m_min_slope(0), m_max_slope(0) {}
+   
+   void Init(double min_angle, double max_angle, double atr, bool enabled)
+   {
+      m_enabled = enabled;
+      m_atr = atr;
+      
+      if(m_enabled && m_atr > 0)
+      {
+         m_min_slope = MathTan(min_angle * M_PI / 180.0);
+         m_max_slope = MathTan(max_angle * M_PI / 180.0);
+      }
+   }
+   
+   bool IsEnabled() { return m_enabled; }
+   
+   bool IsValidSlope(int bar1, double price1, int bar2, double price2)
+   {
+      if(!m_enabled || m_atr == 0) return true;
+      
+      if(bar2 <= bar1) return false;
+      
+      int bar_distance = bar2 - bar1;
+      double price_diff = price2 - price1;
+      
+      double slope = MathAbs(price_diff / (bar_distance * m_atr));
+      
+      return (slope >= m_min_slope && slope <= m_max_slope);
+   }
+};
+
+//+------------------------------------------------------------------+
+//| OPTIMIZATION 2: SPATIAL GRID                                     |
+//+------------------------------------------------------------------+
+class CSpatialGrid
+{
+private:
+   int       m_grid_indices[];
+   int       m_grid_counts[];
+   int       m_grid_size;
+   double    m_price_min;
+   double    m_price_max;
+   double    m_price_range;
+   int       m_bars_total;
+   bool      m_enabled;
+   int       m_max_per_cell;
+   
+   int GetCellIndex(int grid_x, int grid_y)
+   {
+      return grid_y * m_grid_size + grid_x;
+   }
+   
+public:
+   CSpatialGrid() : m_enabled(false), m_grid_size(20), m_max_per_cell(50) {}
+   
+   void Init(int bars_total, double price_min, double price_max, int grid_size, bool enabled)
+   {
+      m_enabled = enabled;
+      if(!m_enabled) return;
+      
+      m_bars_total = bars_total;
+      m_price_min = price_min;
+      m_price_max = price_max;
+      m_price_range = price_max - price_min;
+      m_grid_size = grid_size;
+      
+      if(m_price_range <= 0) 
+      {
+         m_enabled = false;
+         return;
+      }
+      
+      int total_cells = m_grid_size * m_grid_size;
+      ArrayResize(m_grid_counts, total_cells);
+      ArrayResize(m_grid_indices, total_cells * m_max_per_cell);
+      ArrayInitialize(m_grid_counts, 0);
+   }
+   
+   bool IsEnabled() { return m_enabled; }
+   
+   void Clear()
+   {
+      if(!m_enabled) return;
+      ArrayInitialize(m_grid_counts, 0);
+   }
+   
+   void AddFractal(int fractal_index, int bar, double price)
+   {
+      if(!m_enabled) return;
+      
+      int grid_x = (int)((double)bar / m_bars_total * m_grid_size);
+      int grid_y = (int)((price - m_price_min) / m_price_range * m_grid_size);
+      
+      if(grid_x < 0 || grid_x >= m_grid_size) return;
+      if(grid_y < 0 || grid_y >= m_grid_size) return;
+      
+      int cell_idx = GetCellIndex(grid_x, grid_y);
+      int count = m_grid_counts[cell_idx];
+      
+      if(count >= m_max_per_cell) return;
+      
+      m_grid_indices[cell_idx * m_max_per_cell + count] = fractal_index;
+      m_grid_counts[cell_idx]++;
+   }
+   
+   void GetCandidatesNearLine(int bar1, double price1, int bar2, double price2,
+                              int &candidates[])
+   {
+      ArrayResize(candidates, 0);
+      
+      if(!m_enabled) return;
+      
+      int grid_x1 = (int)((double)bar1 / m_bars_total * m_grid_size);
+      int grid_x2 = (int)((double)bar2 / m_bars_total * m_grid_size);
+      int grid_y1 = (int)((price1 - m_price_min) / m_price_range * m_grid_size);
+      int grid_y2 = (int)((price2 - m_price_min) / m_price_range * m_grid_size);
+      
+      int x_min = MathMax(0, MathMin(grid_x1, grid_x2) - 1);
+      int x_max = MathMin(m_grid_size - 1, MathMax(grid_x1, grid_x2) + 1);
+      int y_min = MathMax(0, MathMin(grid_y1, grid_y2) - 1);
+      int y_max = MathMin(m_grid_size - 1, MathMax(grid_y1, grid_y2) + 1);
+      
+      int candidate_count = 0;
+      
+      for(int x = x_min; x <= x_max; x++)
+      {
+         for(int y = y_min; y <= y_max; y++)
+         {
+            int cell_idx = GetCellIndex(x, y);
+            int count = m_grid_counts[cell_idx];
+            
+            for(int i = 0; i < count; i++)
+            {
+               int fractal_idx = m_grid_indices[cell_idx * m_max_per_cell + i];
+               
+               ArrayResize(candidates, candidate_count + 1);
+               candidates[candidate_count] = fractal_idx;
+               candidate_count++;
+            }
+         }
+      }
+   }
+};
+
+//+------------------------------------------------------------------+
+//| OPTIMIZATION 3: LINE CACHE                                       |
+//+------------------------------------------------------------------+
+class CLineCache
+{
+private:
+   int       m_line_bar_start[];
+   int       m_line_bar_end[];
+   double    m_line_price_start[];
+   double    m_line_price_end[];
+   int       m_line_fractals_touched[];
+   int       m_line_length_bars[];
+   double    m_line_slope[];
+   double    m_line_angle_degrees[];
+   double    m_line_score[];
+   double    m_line_price_at_current[];
+   
+   double    m_high_map_snapshot[];
+   double    m_low_map_snapshot[];
+   datetime  m_cache_time;
+   bool      m_valid;
+   bool      m_enabled;
+   
+public:
+   CLineCache() : m_valid(false), m_enabled(true) {}
+   
+   void SetEnabled(bool enabled) { m_enabled = enabled; }
+   void Invalidate()              { m_valid = false; }  // Force re-score on next run
+   
+   bool IsValid(double &high_map[], double &low_map[], int lookback)
+   {
+      if(!m_enabled) return false;
+      if(!m_valid) return false;
+      
+      if(ArraySize(m_high_map_snapshot) != lookback) return false;
+      if(ArraySize(m_low_map_snapshot) != lookback) return false;
+      
+      for(int i = 0; i < lookback; i++)
+      {
+         if(high_map[i] != m_high_map_snapshot[i]) return false;
+         if(low_map[i] != m_low_map_snapshot[i]) return false;
+      }
+      
+      return true;
+   }
+   
+   void Store(FractalLine &lines[], double &high_map[], double &low_map[], int lookback)
+   {
+      if(!m_enabled) return;
+      
+      int line_count = ArraySize(lines);
+      
+      ArrayResize(m_line_bar_start, line_count);
+      ArrayResize(m_line_bar_end, line_count);
+      ArrayResize(m_line_price_start, line_count);
+      ArrayResize(m_line_price_end, line_count);
+      ArrayResize(m_line_fractals_touched, line_count);
+      ArrayResize(m_line_length_bars, line_count);
+      ArrayResize(m_line_slope, line_count);
+      ArrayResize(m_line_angle_degrees, line_count);
+      ArrayResize(m_line_score, line_count);
+      ArrayResize(m_line_price_at_current, line_count);
+      
+      for(int i = 0; i < line_count; i++)
+      {
+         m_line_bar_start[i] = lines[i].bar_start;
+         m_line_bar_end[i] = lines[i].bar_end;
+         m_line_price_start[i] = lines[i].price_start;
+         m_line_price_end[i] = lines[i].price_end;
+         m_line_fractals_touched[i] = lines[i].fractals_touched;
+         m_line_length_bars[i] = lines[i].length_bars;
+         m_line_slope[i] = lines[i].slope;
+         m_line_angle_degrees[i] = lines[i].angle_degrees;
+         m_line_score[i] = lines[i].score;
+         m_line_price_at_current[i] = lines[i].line_price_at_current;
+      }
+      
+      ArrayResize(m_high_map_snapshot, lookback);
+      ArrayResize(m_low_map_snapshot, lookback);
+      ArrayCopy(m_high_map_snapshot, high_map, 0, 0, lookback);
+      ArrayCopy(m_low_map_snapshot, low_map, 0, 0, lookback);
+      
+      m_cache_time = TimeCurrent();
+      m_valid = true;
+   }
+   
+   void Retrieve(FractalLine &lines[])
+   {
+      if(!m_enabled || !m_valid) return;
+      
+      int line_count = ArraySize(m_line_bar_start);
+      ArrayResize(lines, line_count);
+      
+      for(int i = 0; i < line_count; i++)
+      {
+         lines[i].bar_start = m_line_bar_start[i];
+         lines[i].bar_end = m_line_bar_end[i];
+         lines[i].price_start = m_line_price_start[i];
+         lines[i].price_end = m_line_price_end[i];
+         lines[i].fractals_touched = m_line_fractals_touched[i];
+         lines[i].length_bars = m_line_length_bars[i];
+         lines[i].slope = m_line_slope[i];
+         lines[i].angle_degrees = m_line_angle_degrees[i];
+         lines[i].score = m_line_score[i];
+         lines[i].line_price_at_current = m_line_price_at_current[i];
+         
+         ArrayResize(lines[i].touched_bars, 0);
+      }
+   }
+   
+};
+
+//+------------------------------------------------------------------+
+//| Global optimization objects                                      |
+//+------------------------------------------------------------------+
+CSlopeFilter   g_slope_filter;
+CSpatialGrid   g_spatial_grid;
+CLineCache     g_line_cache_peak;
+CLineCache     g_line_cache_bottom;
 
 //+------------------------------------------------------------------+
 
@@ -258,21 +544,9 @@ int OnInit()
          ExtWeightLength=InpWeightLength;     ExtWeightProximity=InpWeightProximity; break;
      }
 
-   //--- Resolve calculation timeframe from custom enum
-   switch(InpCalcTimeframe)
-     {
-      case CALC_TF_M5:  ExtCalcTimeframe = PERIOD_M5;  break;
-      case CALC_TF_M15: ExtCalcTimeframe = PERIOD_M15; break;
-      case CALC_TF_M30: ExtCalcTimeframe = PERIOD_M30; break;
-      case CALC_TF_H1:  ExtCalcTimeframe = PERIOD_H1;  break;
-      case CALC_TF_H2:  ExtCalcTimeframe = PERIOD_H2;  break;
-      case CALC_TF_H4:  ExtCalcTimeframe = PERIOD_H4;  break;
-      case CALC_TF_H8:  ExtCalcTimeframe = PERIOD_H8;  break;
-      case CALC_TF_H12: ExtCalcTimeframe = PERIOD_H12; break;
-      case CALC_TF_D1:  ExtCalcTimeframe = PERIOD_D1;  break;
-      default:          ExtCalcTimeframe = _Period;     break;
-     }
-   ExtMTFMode = (ExtCalcTimeframe != _Period);
+   //--- Invalidate line cache so lines are re-scored with new weights
+   g_line_cache_peak.Invalidate();
+   g_line_cache_bottom.Invalidate();
 
    ExtSideBars = (InpFractalBars - 1) / 2;
    ExtMinBars = InpFractalBars;
@@ -311,23 +585,31 @@ int OnInit()
         }
      }
 
-   ExtATRHandle = iATR(_Symbol, ExtCalcTimeframe, InpATRPeriod);
+   ExtATRHandle = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
 
    SetIndexBuffer(0, ExtUpperBuffer, INDICATOR_DATA);
    SetIndexBuffer(1, ExtLowerBuffer, INDICATOR_DATA);
    SetIndexBuffer(2, ExtUpperBuffer119, INDICATOR_DATA);
    SetIndexBuffer(3, ExtLowerBuffer119, INDICATOR_DATA);
    SetIndexBuffer(4, ExtPeakLine1, INDICATOR_DATA);
-   SetIndexBuffer(5, ExtBottomLine1, INDICATOR_DATA);
-   SetIndexBuffer(6, ExtHighMapBuffer, INDICATOR_CALCULATIONS);
-   SetIndexBuffer(7, ExtLowMapBuffer, INDICATOR_CALCULATIONS);
+   SetIndexBuffer(5, ExtPeakLine2, INDICATOR_DATA);
+   SetIndexBuffer(6, ExtPeakLine3, INDICATOR_DATA);
+   SetIndexBuffer(7, ExtBottomLine1, INDICATOR_DATA);
+   SetIndexBuffer(8, ExtBottomLine2, INDICATOR_DATA);
+   SetIndexBuffer(9, ExtBottomLine3, INDICATOR_DATA);
+   SetIndexBuffer(10, ExtHighMapBuffer, INDICATOR_CALCULATIONS);
+   SetIndexBuffer(11, ExtLowMapBuffer, INDICATOR_CALCULATIONS);
 
    ArraySetAsSeries(ExtUpperBuffer, true);
    ArraySetAsSeries(ExtLowerBuffer, true);
    ArraySetAsSeries(ExtUpperBuffer119, true);
    ArraySetAsSeries(ExtLowerBuffer119, true);
    ArraySetAsSeries(ExtPeakLine1, true);
+   ArraySetAsSeries(ExtPeakLine2, true);
+   ArraySetAsSeries(ExtPeakLine3, true);
    ArraySetAsSeries(ExtBottomLine1, true);
+   ArraySetAsSeries(ExtBottomLine2, true);
+   ArraySetAsSeries(ExtBottomLine3, true);
    ArraySetAsSeries(ExtHighMapBuffer, true);
    ArraySetAsSeries(ExtLowMapBuffer, true);
 
@@ -361,28 +643,29 @@ int OnInit()
       PlotIndexSetInteger(3, PLOT_DRAW_TYPE, DRAW_NONE);
      }
 
-   PlotIndexSetDouble(4, PLOT_EMPTY_VALUE, EMPTY_VALUE);
-   PlotIndexSetDouble(5, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   for(int i = 4; i <= 9; i++)
+      PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
 
    PlotIndexSetInteger(4, PLOT_LINE_COLOR, InpPeakLineColor);
-   PlotIndexSetInteger(5, PLOT_LINE_COLOR, InpBottomLineColor);
+   PlotIndexSetInteger(5, PLOT_LINE_COLOR, InpPeakLineColor);
+   PlotIndexSetInteger(6, PLOT_LINE_COLOR, InpPeakLineColor);
+   PlotIndexSetInteger(7, PLOT_LINE_COLOR, InpBottomLineColor);
+   PlotIndexSetInteger(8, PLOT_LINE_COLOR, InpBottomLineColor);
+   PlotIndexSetInteger(9, PLOT_LINE_COLOR, InpBottomLineColor);
 
    if(!InpShowTrendlines)
      {
-      PlotIndexSetInteger(4, PLOT_DRAW_TYPE, DRAW_NONE);
-      PlotIndexSetInteger(5, PLOT_DRAW_TYPE, DRAW_NONE);
+      for(int i = 4; i <= 9; i++)
+         PlotIndexSetInteger(i, PLOT_DRAW_TYPE, DRAW_NONE);
      }
 
    string pattern_name = IntegerToString(InpFractalBars) + "-bar";
-   string tf_label = ExtMTFMode ? (" [" + EnumToString(ExtCalcTimeframe) + "]") : "";
-   IndicatorSetString(INDICATOR_SHORTNAME, "Fractal SR (V5.54)" + tf_label);
+   IndicatorSetString(INDICATOR_SHORTNAME, "Fractal SR (V5.54)");
 
    Print("=== Fractal SR V5.54 ===");
    Print("  FIXED: Angle signs now show slope direction");
    Print("  Positive = Ascending, Negative = Descending");
    Print("  Symbol 108: ", pattern_name, " (", ExtSideBars, " bars each side)");
-   if(ExtMTFMode)
-      Print("  MTF Mode: Calculating fractals on ", EnumToString(ExtCalcTimeframe));
 
    // Export button hidden — use "Export All" EA instead
    // CreateExportButton();
@@ -435,7 +718,7 @@ void OnChartEvent(const int id,
 bool ExportTrendlineData()
   {
     string symbol = _Symbol;
-    ENUM_TIMEFRAMES timeframe = ExtCalcTimeframe;
+    ENUM_TIMEFRAMES timeframe = _Period;
     
     string clean_symbol = symbol;
     int dot_pos = StringFind(clean_symbol, ".");
@@ -445,15 +728,15 @@ bool ExportTrendlineData()
     string tf_str = "";
     switch(timeframe)
       {
+        case PERIOD_M1:  tf_str = "M1"; break;
         case PERIOD_M5:  tf_str = "M5"; break;
         case PERIOD_M15: tf_str = "M15"; break;
         case PERIOD_M30: tf_str = "M30"; break;
         case PERIOD_H1:  tf_str = "H1"; break;
-        case PERIOD_H2:  tf_str = "H2"; break;
         case PERIOD_H4:  tf_str = "H4"; break;
-        case PERIOD_H8:  tf_str = "H8"; break;
-        case PERIOD_H12: tf_str = "H12"; break;
         case PERIOD_D1:  tf_str = "D"; break;
+        case PERIOD_W1:  tf_str = "W"; break;
+        case PERIOD_MN1: tf_str = "MN"; break;
         default: tf_str = EnumToString(timeframe); break;
       }
 
@@ -488,13 +771,15 @@ bool ExportTrendlineData()
 
     if(InpIncludeHeader)
       {
-        string header = "timestamp\tsymbol\ttimeframe\tclose\thoriz_peak_line_1\thoriz_bottom_line_1\thoriz_high_map\thoriz_low_map";
+        string header = "timestamp\tsymbol\ttimeframe\tclose\thoriz_peak_line_1\thoriz_peak_line_2\thoriz_peak_line_3\thoriz_bottom_line_1\thoriz_bottom_line_2\thoriz_bottom_line_3\thoriz_high_map\thoriz_low_map";
         write_success &= FileWrite(file_handle, header) > 0;
       }
 
     datetime gmt_offset = TimeCurrent() - TimeGMT();
     for(int row = 0; row < copied && row < InpExportBars; row++)
       {
+        // Reverse index for indicator buffers (series indexed, 0=newest)
+        // while time_array is normal indexed (0=oldest)
         int buf_idx = copied - 1 - row;
 
         string line = IntegerToString((long)(iTime(Symbol(), Period(), buf_idx) - gmt_offset)) + "\t";
@@ -509,8 +794,20 @@ bool ExportTrendlineData()
         string peak1 = (ExtPeakLine1[buf_idx] == 0.0 || ExtPeakLine1[buf_idx] == EMPTY_VALUE) ? "" : DoubleToString(ExtPeakLine1[buf_idx], 2);
         line += peak1 + "\t";
 
+        string peak2 = (ExtPeakLine2[buf_idx] == 0.0 || ExtPeakLine2[buf_idx] == EMPTY_VALUE) ? "" : DoubleToString(ExtPeakLine2[buf_idx], 2);
+        line += peak2 + "\t";
+
+        string peak3 = (ExtPeakLine3[buf_idx] == 0.0 || ExtPeakLine3[buf_idx] == EMPTY_VALUE) ? "" : DoubleToString(ExtPeakLine3[buf_idx], 2);
+        line += peak3 + "\t";
+
         string bottom1 = (ExtBottomLine1[buf_idx] == 0.0 || ExtBottomLine1[buf_idx] == EMPTY_VALUE) ? "" : DoubleToString(ExtBottomLine1[buf_idx], 2);
         line += bottom1 + "\t";
+
+        string bottom2 = (ExtBottomLine2[buf_idx] == 0.0 || ExtBottomLine2[buf_idx] == EMPTY_VALUE) ? "" : DoubleToString(ExtBottomLine2[buf_idx], 2);
+        line += bottom2 + "\t";
+
+        string bottom3 = (ExtBottomLine3[buf_idx] == 0.0 || ExtBottomLine3[buf_idx] == EMPTY_VALUE) ? "" : DoubleToString(ExtBottomLine3[buf_idx], 2);
+        line += bottom3 + "\t";
 
         string hmap = (ExtHighMapBuffer[buf_idx] == 0.0) ? "" : DoubleToString(ExtHighMapBuffer[buf_idx], 2);
         line += hmap + "\t";
@@ -693,69 +990,133 @@ double CalculateNormalizedAngle(double price_start, double price_end, int bar_di
 void ClearAllTrendlineBuffers()
   {
    ArrayInitialize(ExtPeakLine1, EMPTY_VALUE);
+   ArrayInitialize(ExtPeakLine2, EMPTY_VALUE);
+   ArrayInitialize(ExtPeakLine3, EMPTY_VALUE);
    ArrayInitialize(ExtBottomLine1, EMPTY_VALUE);
+   ArrayInitialize(ExtBottomLine2, EMPTY_VALUE);
+   ArrayInitialize(ExtBottomLine3, EMPTY_VALUE);
   }
 
 //+------------------------------------------------------------------+
 //| Find multi-point lines - PRESERVES ANGLE SIGN                    |
 //+------------------------------------------------------------------+
-void FindMultiPointLines(int &fractal_bars[], double &fractal_prices[],
-                         int fractal_count, FractalLine &lines[])
+void FindMultiPointLinesOptimized(int &fractal_bars[], double &fractal_prices[],
+                                   int fractal_count, FractalLine &lines[],
+                                   bool is_peak_lines)
 {
    ArrayResize(lines, 0);
    if(fractal_count < InpMinFractalTouch) return;
-
+   
    int line_count = 0;
-
+   int target_lines = is_peak_lines ? InpMaxPeakLines : InpMaxBottomLines;
+   int high_quality_found = 0;
+   
+   if(InpUseSpatialIndex && g_spatial_grid.IsEnabled())
+   {
+      g_spatial_grid.Clear();
+      double price_min = fractal_prices[0];
+      double price_max = fractal_prices[0];
+      for(int i = 1; i < fractal_count; i++)
+      {
+         if(fractal_prices[i] < price_min) price_min = fractal_prices[i];
+         if(fractal_prices[i] > price_max) price_max = fractal_prices[i];
+      }
+      g_spatial_grid.Init(fractal_bars[fractal_count-1], price_min, price_max, 
+                          InpSpatialGridSize, true);
+      
+      for(int i = 0; i < fractal_count; i++)
+         g_spatial_grid.AddFractal(i, fractal_bars[i], fractal_prices[i]);
+   }
+   
    for(int i = 0; i < fractal_count - 1; i++)
    {
+      if(InpUseEarlyExit && high_quality_found >= target_lines)
+         break;
+      
       for(int j = i + 1; j < fractal_count; j++)
       {
+         if(InpUseSlopeFilter && g_slope_filter.IsEnabled())
+         {
+            if(!g_slope_filter.IsValidSlope(fractal_bars[i], fractal_prices[i],
+                                           fractal_bars[j], fractal_prices[j]))
+               continue;
+         }
+         
          int distance_bars = fractal_bars[j] - fractal_bars[i];
          if(distance_bars < InpMinLineLength)
             continue;
          if(InpMaxLineLength > 0 && distance_bars > InpMaxLineLength)
             continue;
-
+         
          double slope = (fractal_prices[j] - fractal_prices[i]) / (double)distance_bars;
          double y_intercept = fractal_prices[i] - slope * fractal_bars[i];
-
+         
+         // Calculate SIGNED angle
          double angle = CalculateNormalizedAngle(fractal_prices[i], fractal_prices[j], distance_bars);
-         double abs_angle = MathAbs(angle);
-
+         double abs_angle = MathAbs(angle);  // Use absolute value ONLY for filtering
+         
          if(InpEnableAngleFilter)
          {
             if(abs_angle < InpMinLineAngle || abs_angle > InpMaxLineAngle)
                continue;
          }
-
+         
          int touched_count = 2;
          int touched_indices[];
          ArrayResize(touched_indices, 2);
          touched_indices[0] = i;
          touched_indices[1] = j;
-
-         for(int k = 0; k < fractal_count; k++)
+         
+         if(InpUseSpatialIndex && g_spatial_grid.IsEnabled())
          {
-            if(k == i || k == j) continue;
-            if(fractal_bars[k] < fractal_bars[i] || fractal_bars[k] > fractal_bars[j])
-               continue;
-
-            double expected_price = slope * fractal_bars[k] + y_intercept;
-            double price_diff = MathAbs(fractal_prices[k] - expected_price);
-            double tolerance = CalculateTolerance(fractal_prices[k]);
-
-            if(price_diff <= tolerance)
+            int candidates[];
+            g_spatial_grid.GetCandidatesNearLine(fractal_bars[i], fractal_prices[i],
+                                                 fractal_bars[j], fractal_prices[j],
+                                                 candidates);
+            
+            for(int c = 0; c < ArraySize(candidates); c++)
             {
-               touched_count++;
-               ArrayResize(touched_indices, touched_count);
-               touched_indices[touched_count - 1] = k;
+               int k = candidates[c];
+               if(k == i || k == j) continue;
+               if(fractal_bars[k] < fractal_bars[i] || fractal_bars[k] > fractal_bars[j])
+                  continue;
+               
+               double expected_price = slope * fractal_bars[k] + y_intercept;
+               double price_diff = MathAbs(fractal_prices[k] - expected_price);
+               double tolerance = CalculateTolerance(fractal_prices[k]);
+               
+               if(price_diff <= tolerance)
+               {
+                  touched_count++;
+                  ArrayResize(touched_indices, touched_count);
+                  touched_indices[touched_count - 1] = k;
+               }
             }
          }
-
+         else
+         {
+            for(int k = 0; k < fractal_count; k++)
+            {
+               if(k == i || k == j) continue;
+               if(fractal_bars[k] < fractal_bars[i] || fractal_bars[k] > fractal_bars[j])
+                  continue;
+               
+               double expected_price = slope * fractal_bars[k] + y_intercept;
+               double price_diff = MathAbs(fractal_prices[k] - expected_price);
+               double tolerance = CalculateTolerance(fractal_prices[k]);
+               
+               if(price_diff <= tolerance)
+               {
+                  touched_count++;
+                  ArrayResize(touched_indices, touched_count);
+                  touched_indices[touched_count - 1] = k;
+               }
+            }
+         }
+         
          if(touched_count < InpMinFractalTouch)
             continue;
-
+         
          ArrayResize(lines, line_count + 1);
          lines[line_count].bar_start = fractal_bars[i];
          lines[line_count].bar_end = fractal_bars[j];
@@ -764,13 +1125,25 @@ void FindMultiPointLines(int &fractal_bars[], double &fractal_prices[],
          lines[line_count].fractals_touched = touched_count;
          lines[line_count].length_bars = distance_bars;
          lines[line_count].slope = slope;
-         lines[line_count].angle_degrees = angle;
-
+         lines[line_count].angle_degrees = angle;  // Store SIGNED angle
+         
          ArrayResize(lines[line_count].touched_bars, touched_count);
          for(int t = 0; t < touched_count; t++)
             lines[line_count].touched_bars[t] = fractal_bars[touched_indices[t]];
-
+         
          line_count++;
+         
+         if(InpUseEarlyExit)
+         {
+            double quick_score = touched_count * ExtWeightFractals;
+            
+            if(quick_score >= InpEarlyExitThreshold)
+            {
+               high_quality_found++;
+               if(high_quality_found >= target_lines)
+                  break;
+            }
+         }
       }
    }
 }
@@ -879,20 +1252,51 @@ void BuildMultiPointTrendlines(const int rates_total)
 {
    ClearAllTrendlineBuffers();
    DeleteAllLabels();
-
-   double current_price = iClose(_Symbol, ExtCalcTimeframe, 0);
+   
+   double current_price = iClose(_Symbol, PERIOD_CURRENT, 0);
    int lookback_limit = InpLookbackBars > 0 ? MathMin(InpLookbackBars, rates_total) : rates_total;
-
+   
+   if(InpUseOptimizations)
+   {
+      if(InpUseSlopeFilter && InpEnableAngleFilter)
+      {
+         double atr = 0;
+         if(ExtATRHandle != INVALID_HANDLE)
+         {
+            double atr_array[1];
+            if(CopyBuffer(ExtATRHandle, 0, 0, 1, atr_array) > 0)
+               atr = atr_array[0];
+         }
+         g_slope_filter.Init(InpMinLineAngle, InpMaxLineAngle, atr, true);
+      }
+      else
+      {
+         g_slope_filter.Init(0, 0, 0, false);
+      }
+      
+      g_line_cache_peak.SetEnabled(InpUseCaching);
+      g_line_cache_bottom.SetEnabled(InpUseCaching);
+   }
+   
    //=================================================================
-   // PEAK LINE
+   // PEAK LINES
    //=================================================================
    FractalLine peak_lines[];
+   
+   bool use_cache = InpUseOptimizations && InpUseCaching && 
+                    g_line_cache_peak.IsValid(ExtHighMapBuffer, ExtLowMapBuffer, lookback_limit);
+   
+   if(use_cache)
+   {
+      g_line_cache_peak.Retrieve(peak_lines);
+   }
+   else
    {
       int peak_bars[];
       double peak_prices[];
       ArrayResize(peak_bars, 0);
       ArrayResize(peak_prices, 0);
-
+      
       for(int i = 0; i < lookback_limit; i++)
       {
          if(ExtHighMapBuffer[i] > 0)
@@ -904,29 +1308,43 @@ void BuildMultiPointTrendlines(const int rates_total)
             peak_prices[size] = ExtHighMapBuffer[i];
          }
       }
-
+      
       if(ArraySize(peak_bars) > 1)
       {
          for(int i = 0; i < ArraySize(peak_bars) - 1; i++)
+         {
             for(int j = i + 1; j < ArraySize(peak_bars); j++)
+            {
                if(peak_bars[j] < peak_bars[i])
                {
-                  int temp_bar = peak_bars[i]; peak_bars[i] = peak_bars[j]; peak_bars[j] = temp_bar;
-                  double temp_price = peak_prices[i]; peak_prices[i] = peak_prices[j]; peak_prices[j] = temp_price;
+                  int temp_bar = peak_bars[i];
+                  peak_bars[i] = peak_bars[j];
+                  peak_bars[j] = temp_bar;
+                  
+                  double temp_price = peak_prices[i];
+                  peak_prices[i] = peak_prices[j];
+                  peak_prices[j] = temp_price;
                }
+            }
+         }
       }
-
+      
       if(ArraySize(peak_bars) >= InpMinFractalTouch)
       {
-         FindMultiPointLines(peak_bars, peak_prices, ArraySize(peak_bars), peak_lines);
+         FindMultiPointLinesOptimized(peak_bars, peak_prices, ArraySize(peak_bars), peak_lines, true);
+         
          if(ArraySize(peak_lines) > 0)
          {
             ScoreLines(peak_lines, rates_total, current_price);
-            FilterTopLines(peak_lines, 1);
+            FilterTopLines(peak_lines, InpMaxPeakLines);
          }
+         
+         if(InpUseOptimizations && InpUseCaching)
+            g_line_cache_peak.Store(peak_lines, ExtHighMapBuffer, ExtLowMapBuffer, lookback_limit);
       }
    }
-
+   
+   // Draw peak lines with SIGNED angles
    if(ArraySize(peak_lines) >= 1)
    {
       DrawTrendline(ExtPeakLine1, peak_lines[0], rates_total);
@@ -939,25 +1357,76 @@ void BuildMultiPointTrendlines(const int rates_total)
       if(InpShowLabels)
       {
          datetime label_time = iTime(_Symbol, PERIOD_CURRENT, InpLabelOffsetBars);
-         string label_text = StringFormat("P1: %d touches, %d bars, %.1f°",
+         string label_text = StringFormat("P-P1: %d touches, %d bars, %.1f°",
                                          peak_lines[0].fractals_touched,
                                          peak_lines[0].length_bars,
-                                         peak_lines[0].angle_degrees);
+                                         peak_lines[0].angle_degrees);  // SIGNED angle
          DrawLineLabel("P_P1", peak_lines[0].line_price_at_current,
                       label_time, label_text, InpPeakLineColor, InpLabelFontSize);
       }
    }
-
+   
+   if(ArraySize(peak_lines) >= 2)
+   {
+      DrawTrendline(ExtPeakLine2, peak_lines[1], rates_total);
+      if(InpEnableColorIntensity)
+      {
+         color line_color = CalculateAdaptiveColor(peak_lines[1].line_price_at_current,
+                                                   current_price, InpPeakLineColor);
+         PlotIndexSetInteger(5, PLOT_LINE_COLOR, line_color);
+      }
+      if(InpShowLabels)
+      {
+         datetime label_time = iTime(_Symbol, PERIOD_CURRENT, InpLabelOffsetBars);
+         string label_text = StringFormat("P-P2: %d touches, %d bars, %.1f°",
+                                         peak_lines[1].fractals_touched,
+                                         peak_lines[1].length_bars,
+                                         peak_lines[1].angle_degrees);  // SIGNED angle
+         DrawLineLabel("P_P2", peak_lines[1].line_price_at_current,
+                      label_time, label_text, InpPeakLineColor, InpLabelFontSize);
+      }
+   }
+   
+   if(ArraySize(peak_lines) >= 3)
+   {
+      DrawTrendline(ExtPeakLine3, peak_lines[2], rates_total);
+      if(InpEnableColorIntensity)
+      {
+         color line_color = CalculateAdaptiveColor(peak_lines[2].line_price_at_current,
+                                                   current_price, InpPeakLineColor);
+         PlotIndexSetInteger(6, PLOT_LINE_COLOR, line_color);
+      }
+      if(InpShowLabels)
+      {
+         datetime label_time = iTime(_Symbol, PERIOD_CURRENT, InpLabelOffsetBars);
+         string label_text = StringFormat("P-P3: %d touches, %d bars, %.1f°",
+                                         peak_lines[2].fractals_touched,
+                                         peak_lines[2].length_bars,
+                                         peak_lines[2].angle_degrees);  // SIGNED angle
+         DrawLineLabel("P_P3", peak_lines[2].line_price_at_current,
+                      label_time, label_text, InpPeakLineColor, InpLabelFontSize);
+      }
+   }
+   
    //=================================================================
-   // BOTTOM LINE
+   // BOTTOM LINES
    //=================================================================
    FractalLine bottom_lines[];
+   
+   use_cache = InpUseOptimizations && InpUseCaching && 
+               g_line_cache_bottom.IsValid(ExtHighMapBuffer, ExtLowMapBuffer, lookback_limit);
+   
+   if(use_cache)
+   {
+      g_line_cache_bottom.Retrieve(bottom_lines);
+   }
+   else
    {
       int bottom_bars[];
       double bottom_prices[];
       ArrayResize(bottom_bars, 0);
       ArrayResize(bottom_prices, 0);
-
+      
       for(int i = 0; i < lookback_limit; i++)
       {
          if(ExtLowMapBuffer[i] > 0)
@@ -969,29 +1438,43 @@ void BuildMultiPointTrendlines(const int rates_total)
             bottom_prices[size] = ExtLowMapBuffer[i];
          }
       }
-
+      
       if(ArraySize(bottom_bars) > 1)
       {
          for(int i = 0; i < ArraySize(bottom_bars) - 1; i++)
+         {
             for(int j = i + 1; j < ArraySize(bottom_bars); j++)
+            {
                if(bottom_bars[j] < bottom_bars[i])
                {
-                  int temp_bar = bottom_bars[i]; bottom_bars[i] = bottom_bars[j]; bottom_bars[j] = temp_bar;
-                  double temp_price = bottom_prices[i]; bottom_prices[i] = bottom_prices[j]; bottom_prices[j] = temp_price;
+                  int temp_bar = bottom_bars[i];
+                  bottom_bars[i] = bottom_bars[j];
+                  bottom_bars[j] = temp_bar;
+                  
+                  double temp_price = bottom_prices[i];
+                  bottom_prices[i] = bottom_prices[j];
+                  bottom_prices[j] = temp_price;
                }
+            }
+         }
       }
-
+      
       if(ArraySize(bottom_bars) >= InpMinFractalTouch)
       {
-         FindMultiPointLines(bottom_bars, bottom_prices, ArraySize(bottom_bars), bottom_lines);
+         FindMultiPointLinesOptimized(bottom_bars, bottom_prices, ArraySize(bottom_bars), bottom_lines, false);
+         
          if(ArraySize(bottom_lines) > 0)
          {
             ScoreLines(bottom_lines, rates_total, current_price);
-            FilterTopLines(bottom_lines, 1);
+            FilterTopLines(bottom_lines, InpMaxBottomLines);
          }
+         
+         if(InpUseOptimizations && InpUseCaching)
+            g_line_cache_bottom.Store(bottom_lines, ExtHighMapBuffer, ExtLowMapBuffer, lookback_limit);
       }
    }
-
+   
+   // Draw bottom lines with SIGNED angles
    if(ArraySize(bottom_lines) >= 1)
    {
       DrawTrendline(ExtBottomLine1, bottom_lines[0], rates_total);
@@ -999,16 +1482,58 @@ void BuildMultiPointTrendlines(const int rates_total)
       {
          color line_color = CalculateAdaptiveColor(bottom_lines[0].line_price_at_current,
                                                    current_price, InpBottomLineColor);
-         PlotIndexSetInteger(5, PLOT_LINE_COLOR, line_color);
+         PlotIndexSetInteger(7, PLOT_LINE_COLOR, line_color);
       }
       if(InpShowLabels)
       {
          datetime label_time = iTime(_Symbol, PERIOD_CURRENT, InpLabelOffsetBars);
-         string label_text = StringFormat("B1: %d touches, %d bars, %.1f°",
+         string label_text = StringFormat("B-B1: %d touches, %d bars, %.1f°",
                                          bottom_lines[0].fractals_touched,
                                          bottom_lines[0].length_bars,
-                                         bottom_lines[0].angle_degrees);
+                                         bottom_lines[0].angle_degrees);  // SIGNED angle
          DrawLineLabel("B_B1", bottom_lines[0].line_price_at_current,
+                      label_time, label_text, InpBottomLineColor, InpLabelFontSize);
+      }
+   }
+   
+   if(ArraySize(bottom_lines) >= 2)
+   {
+      DrawTrendline(ExtBottomLine2, bottom_lines[1], rates_total);
+      if(InpEnableColorIntensity)
+      {
+         color line_color = CalculateAdaptiveColor(bottom_lines[1].line_price_at_current,
+                                                   current_price, InpBottomLineColor);
+         PlotIndexSetInteger(8, PLOT_LINE_COLOR, line_color);
+      }
+      if(InpShowLabels)
+      {
+         datetime label_time = iTime(_Symbol, PERIOD_CURRENT, InpLabelOffsetBars);
+         string label_text = StringFormat("B-B2: %d touches, %d bars, %.1f°",
+                                         bottom_lines[1].fractals_touched,
+                                         bottom_lines[1].length_bars,
+                                         bottom_lines[1].angle_degrees);  // SIGNED angle
+         DrawLineLabel("B_B2", bottom_lines[1].line_price_at_current,
+                      label_time, label_text, InpBottomLineColor, InpLabelFontSize);
+      }
+   }
+   
+   if(ArraySize(bottom_lines) >= 3)
+   {
+      DrawTrendline(ExtBottomLine3, bottom_lines[2], rates_total);
+      if(InpEnableColorIntensity)
+      {
+         color line_color = CalculateAdaptiveColor(bottom_lines[2].line_price_at_current,
+                                                   current_price, InpBottomLineColor);
+         PlotIndexSetInteger(9, PLOT_LINE_COLOR, line_color);
+      }
+      if(InpShowLabels)
+      {
+         datetime label_time = iTime(_Symbol, PERIOD_CURRENT, InpLabelOffsetBars);
+         string label_text = StringFormat("B-B3: %d touches, %d bars, %.1f°",
+                                         bottom_lines[2].fractals_touched,
+                                         bottom_lines[2].length_bars,
+                                         bottom_lines[2].angle_degrees);  // SIGNED angle
+         DrawLineLabel("B_B3", bottom_lines[2].line_price_at_current,
                       label_time, label_text, InpBottomLineColor, InpLabelFontSize);
       }
    }
@@ -1159,7 +1684,31 @@ bool IsPriceNearTrendline(double current_price, int current_bar,
      {
       if(IsPriceNear(current_price, ExtPeakLine1[current_bar], tolerance_percent))
         {
-         matched_lines += "P1";
+         if(found)
+            matched_lines += ", ";
+         matched_lines += "P-P1";
+         found = true;
+        }
+     }
+
+   if(ExtPeakLine2[current_bar] != EMPTY_VALUE && ExtPeakLine2[current_bar] > 0)
+     {
+      if(IsPriceNear(current_price, ExtPeakLine2[current_bar], tolerance_percent))
+        {
+         if(found)
+            matched_lines += ", ";
+         matched_lines += "P-P2";
+         found = true;
+        }
+     }
+
+   if(ExtPeakLine3[current_bar] != EMPTY_VALUE && ExtPeakLine3[current_bar] > 0)
+     {
+      if(IsPriceNear(current_price, ExtPeakLine3[current_bar], tolerance_percent))
+        {
+         if(found)
+            matched_lines += ", ";
+         matched_lines += "P-P3";
          found = true;
         }
      }
@@ -1170,7 +1719,29 @@ bool IsPriceNearTrendline(double current_price, int current_bar,
         {
          if(found)
             matched_lines += ", ";
-         matched_lines += "B1";
+         matched_lines += "B-B1";
+         found = true;
+        }
+     }
+
+   if(ExtBottomLine2[current_bar] != EMPTY_VALUE && ExtBottomLine2[current_bar] > 0)
+     {
+      if(IsPriceNear(current_price, ExtBottomLine2[current_bar], tolerance_percent))
+        {
+         if(found)
+            matched_lines += ", ";
+         matched_lines += "B-B2";
+         found = true;
+        }
+     }
+
+   if(ExtBottomLine3[current_bar] != EMPTY_VALUE && ExtBottomLine3[current_bar] > 0)
+     {
+      if(IsPriceNear(current_price, ExtBottomLine3[current_bar], tolerance_percent))
+        {
+         if(found)
+            matched_lines += ", ";
+         matched_lines += "B-B3";
          found = true;
         }
      }
@@ -1185,7 +1756,7 @@ void CheckProximityAndAlert(const int rates_total)
       return;
 
    int current_bar = 0;
-   double current_price = iClose(_Symbol, ExtCalcTimeframe, 0);
+   double current_price = iClose(_Symbol, PERIOD_CURRENT, 0);
    datetime current_time = TimeCurrent();
 
    double most_recent_peak_108, second_recent_peak_108;
@@ -1337,19 +1908,6 @@ void CheckProximityAndAlert(const int rates_total)
   }
 
 //+------------------------------------------------------------------+
-//| Map HTF bar time to chart bar index (series-indexed, 0=newest)   |
-//+------------------------------------------------------------------+
-int MapHTFToChartBar(datetime htf_time, const datetime &chart_time[], int chart_total)
-  {
-   for(int i = 0; i < chart_total; i++)
-     {
-      if(chart_time[i] <= htf_time)
-         return i;
-     }
-   return -1;
-  }
-
-//+------------------------------------------------------------------+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -1404,100 +1962,10 @@ int OnCalculate(const int rates_total,
          start_calc = 0;
      }
 
-   bool fractals_changed = false;
-
-   //=================================================================
-   // MTF MODE: Copy HTF data and map fractals to chart bars
-   //=================================================================
-   if(ExtMTFMode)
-     {
-      if(!first_run && !new_bar)
-        {
-         CheckProximityAndAlert(rates_total);
-         return(rates_total);
-        }
-
-      //--- Copy HTF data
-      double htf_high[], htf_low[];
-      datetime htf_time[];
-      int htf_bars = Bars(_Symbol, ExtCalcTimeframe);
-      if(htf_bars < global_min_bars)
-         return(0);
-
-      int htf_copied = CopyHigh(_Symbol, ExtCalcTimeframe, 0, htf_bars, htf_high);
-      if(htf_copied <= 0) return(0);
-      CopyLow(_Symbol, ExtCalcTimeframe, 0, htf_bars, htf_low);
-      CopyTime(_Symbol, ExtCalcTimeframe, 0, htf_bars, htf_time);
-
-      ArraySetAsSeries(htf_high, true);
-      ArraySetAsSeries(htf_low, true);
-      ArraySetAsSeries(htf_time, true);
-
-      //--- Clear buffers for full recalc in MTF mode
-      ArrayInitialize(ExtUpperBuffer, EMPTY_VALUE);
-      ArrayInitialize(ExtLowerBuffer, EMPTY_VALUE);
-      ArrayInitialize(ExtHighMapBuffer, 0.0);
-      ArrayInitialize(ExtLowMapBuffer, 0.0);
-      ArrayInitialize(ExtUpperBuffer119, EMPTY_VALUE);
-      ArrayInitialize(ExtLowerBuffer119, EMPTY_VALUE);
-
-      //--- Detect 108 fractals on HTF data and map to chart bars
-      int start_htf = ExtSideBars;
-      int end_htf = htf_copied - ExtSideBars - 1;
-
-      for(int i = start_htf; i < end_htf && !IsStopped(); i++)
-        {
-         int chart_bar = MapHTFToChartBar(htf_time[i], time, rates_total);
-         if(chart_bar < 0 || chart_bar >= rates_total)
-            continue;
-
-         if(IsUpperFractal(htf_high, i, ExtSideBars))
-           {
-            ExtUpperBuffer[chart_bar] = htf_high[i];
-            ExtHighMapBuffer[chart_bar] = htf_high[i];
-            fractals_changed = true;
-           }
-
-         if(IsLowerFractal(htf_low, i, ExtSideBars))
-           {
-            ExtLowerBuffer[chart_bar] = htf_low[i];
-            ExtLowMapBuffer[chart_bar] = htf_low[i];
-            fractals_changed = true;
-           }
-        }
-
-      //--- Detect 119 fractals on HTF data and map to chart bars
-      if(InpShowSymbol119)
-        {
-         int start_htf119 = ExtSideBars119;
-         int end_htf119 = htf_copied - ExtSideBars119 - 1;
-
-         for(int i = start_htf119; i < end_htf119 && !IsStopped(); i++)
-           {
-            int chart_bar = MapHTFToChartBar(htf_time[i], time, rates_total);
-            if(chart_bar < 0 || chart_bar >= rates_total)
-               continue;
-
-            if(IsUpperFractal(htf_high, i, ExtSideBars119))
-               ExtUpperBuffer119[chart_bar] = htf_high[i];
-
-            if(IsLowerFractal(htf_low, i, ExtSideBars119))
-               ExtLowerBuffer119[chart_bar] = htf_low[i];
-           }
-        }
-
-      if(InpShowTrendlines && (first_run || fractals_changed))
-         BuildMultiPointTrendlines(rates_total);
-
-      CheckProximityAndAlert(rates_total);
-      return(rates_total);
-     }
-
-   //=================================================================
-   // STANDARD MODE: Use chart timeframe data directly
-   //=================================================================
    int start_108 = MathMax(ExtSideBars, start_calc);
    int end_108 = rates_total - ExtSideBars - 1;
+
+   bool fractals_changed = false;
 
    for(int i = start_108; i < end_108 && !IsStopped(); i++)
      {
