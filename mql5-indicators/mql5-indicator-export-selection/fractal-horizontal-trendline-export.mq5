@@ -80,12 +80,13 @@ enum ENUM_TOLERANCE_TYPE
 
 enum ENUM_SCORING_PRESET
   {
-   PRESET_MANUAL           = 0,  // Manual (use weights below)
-   PRESET_PURE_STRUCTURE   = 1,  // Preset 1 - Pure Structure  (Swing / D1)
-   PRESET_STRUCTURE_BIASED = 2,  // Preset 2 - Structure-Biased (H1 / XAUUSD)
-   PRESET_BALANCED         = 3,  // Preset 3 - Balanced (General)
-   PRESET_PROXIMITY_BIASED = 4,  // Preset 4 - Proximity-Biased (M5/M10 Scalp)
-   PRESET_PURE_PROXIMITY   = 5   // Preset 5 - Pure Proximity (M1 Scalp)
+   PRESET_MANUAL                = 0,  // Manual (use weights below)
+   PRESET_ULTRA_PURE_STRUCTURE  = 1,  // Preset 1 - Ultra Pure Structure (Swing / Fixed Target)
+   PRESET_PURE_STRUCTURE        = 2,  // Preset 2 - Pure Structure  (Swing / D1)
+   PRESET_STRUCTURE_BIASED      = 3,  // Preset 3 - Structure-Biased (H1 / XAUUSD)
+   PRESET_BALANCED              = 4,  // Preset 4 - Balanced (General)
+   PRESET_PROXIMITY_BIASED      = 5,  // Preset 5 - Proximity-Biased (M5/M10 Scalp)
+   PRESET_PURE_PROXIMITY        = 6   // Preset 6 - Pure Proximity (M1 Scalp)
   };
 
 //--- Input parameters
@@ -120,7 +121,7 @@ input color             InpPeakLineColor = clrRed;
 input color             InpBottomLineColor = clrLimeGreen;
 
 input string               Sep4              = "===== Scoring Weights =====";
-input ENUM_SCORING_PRESET  InpScoringPreset  = PRESET_MANUAL;    // Scoring Preset
+input ENUM_SCORING_PRESET  InpScoringPreset  = PRESET_ULTRA_PURE_STRUCTURE;    // Scoring Preset
 input int                  InpWeightFractals = 25;  // [Manual] Fractals touched weight
 input int                  InpWeightSlope    = 15;  // [Manual] Slope (flatness) weight
 input int                  InpWeightLength   = 10;  // [Manual] Line length weight
@@ -529,6 +530,8 @@ int OnInit()
    //--- Resolve scoring preset
    switch(InpScoringPreset)
      {
+      case PRESET_ULTRA_PURE_STRUCTURE: // Fractals:45 Slope:20 Length:30 Proximity:5
+         ExtWeightFractals=45; ExtWeightSlope=20; ExtWeightLength=30; ExtWeightProximity=5;  break;
       case PRESET_PURE_STRUCTURE:    // Fractals:45 Slope:15 Length:30 Proximity:10
          ExtWeightFractals=45; ExtWeightSlope=15; ExtWeightLength=30; ExtWeightProximity=10; break;
       case PRESET_STRUCTURE_BIASED:  // Fractals:35 Slope:15 Length:25 Proximity:25
