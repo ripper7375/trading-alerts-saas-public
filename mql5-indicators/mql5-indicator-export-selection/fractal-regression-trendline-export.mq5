@@ -8,8 +8,8 @@
 #property version   "5.54"
 #property description "Augmented: Adds regression consensus price alongside original anchor-pair price"
 #property indicator_chart_window
-#property indicator_buffers 12
-#property indicator_plots   10
+#property indicator_buffers 18
+#property indicator_plots   16
 
 #property indicator_type1   DRAW_ARROW
 #property indicator_type2   DRAW_ARROW
@@ -50,6 +50,35 @@
 #property indicator_width8  2
 #property indicator_width9  2
 #property indicator_width10 2
+
+// Regression consensus lines — dashed, 1px, slightly different hue from originals
+#property indicator_type11  DRAW_LINE
+#property indicator_type12  DRAW_LINE
+#property indicator_type13  DRAW_LINE
+#property indicator_type14  DRAW_LINE
+#property indicator_type15  DRAW_LINE
+#property indicator_type16  DRAW_LINE
+
+#property indicator_color11 clrCrimson
+#property indicator_color12 clrOrangeRed
+#property indicator_color13 clrDarkOrange
+#property indicator_color14 clrMediumSeaGreen
+#property indicator_color15 clrSeaGreen
+#property indicator_color16 clrTeal
+
+#property indicator_label11 "Regr Peak Line #1"
+#property indicator_label12 "Regr Peak Line #2"
+#property indicator_label13 "Regr Peak Line #3"
+#property indicator_label14 "Regr Bottom Line #1"
+#property indicator_label15 "Regr Bottom Line #2"
+#property indicator_label16 "Regr Bottom Line #3"
+
+#property indicator_width11 1
+#property indicator_width12 1
+#property indicator_width13 1
+#property indicator_width14 1
+#property indicator_width15 1
+#property indicator_width16 1
 
 //--- Input enums
 
@@ -632,8 +661,14 @@ int OnInit()
    SetIndexBuffer(7, ExtBottomLine1, INDICATOR_DATA);
    SetIndexBuffer(8, ExtBottomLine2, INDICATOR_DATA);
    SetIndexBuffer(9, ExtBottomLine3, INDICATOR_DATA);
-   SetIndexBuffer(10, ExtHighMapBuffer, INDICATOR_CALCULATIONS);
-   SetIndexBuffer(11, ExtLowMapBuffer, INDICATOR_CALCULATIONS);
+   SetIndexBuffer(10, ExtHighMapBuffer,   INDICATOR_CALCULATIONS);
+   SetIndexBuffer(11, ExtLowMapBuffer,    INDICATOR_CALCULATIONS);
+   SetIndexBuffer(12, ExtRegrPeakLine1,   INDICATOR_DATA);
+   SetIndexBuffer(13, ExtRegrPeakLine2,   INDICATOR_DATA);
+   SetIndexBuffer(14, ExtRegrPeakLine3,   INDICATOR_DATA);
+   SetIndexBuffer(15, ExtRegrBottomLine1, INDICATOR_DATA);
+   SetIndexBuffer(16, ExtRegrBottomLine2, INDICATOR_DATA);
+   SetIndexBuffer(17, ExtRegrBottomLine3, INDICATOR_DATA);
 
    ArraySetAsSeries(ExtUpperBuffer, true);
    ArraySetAsSeries(ExtLowerBuffer, true);
@@ -647,6 +682,12 @@ int OnInit()
    ArraySetAsSeries(ExtBottomLine3, true);
    ArraySetAsSeries(ExtHighMapBuffer, true);
    ArraySetAsSeries(ExtLowMapBuffer, true);
+   ArraySetAsSeries(ExtRegrPeakLine1,   true);
+   ArraySetAsSeries(ExtRegrPeakLine2,   true);
+   ArraySetAsSeries(ExtRegrPeakLine3,   true);
+   ArraySetAsSeries(ExtRegrBottomLine1, true);
+   ArraySetAsSeries(ExtRegrBottomLine2, true);
+   ArraySetAsSeries(ExtRegrBottomLine3, true);
 
    IndicatorSetInteger(INDICATOR_DIGITS, _Digits);
 
@@ -691,6 +732,25 @@ int OnInit()
    if(!InpShowTrendlines)
      {
       for(int i = 4; i <= 9; i++)
+         PlotIndexSetInteger(i, PLOT_DRAW_TYPE, DRAW_NONE);
+     }
+
+   // Regression line plot configuration (plots 10-15)
+   for(int i = 10; i <= 15; i++)
+     {
+      PlotIndexSetDouble(i,  PLOT_EMPTY_VALUE, EMPTY_VALUE);
+      PlotIndexSetInteger(i, PLOT_LINE_STYLE,  STYLE_DASH);
+     }
+   PlotIndexSetInteger(10, PLOT_LINE_COLOR, clrCrimson);
+   PlotIndexSetInteger(11, PLOT_LINE_COLOR, clrOrangeRed);
+   PlotIndexSetInteger(12, PLOT_LINE_COLOR, clrDarkOrange);
+   PlotIndexSetInteger(13, PLOT_LINE_COLOR, clrMediumSeaGreen);
+   PlotIndexSetInteger(14, PLOT_LINE_COLOR, clrSeaGreen);
+   PlotIndexSetInteger(15, PLOT_LINE_COLOR, clrTeal);
+
+   if(!InpShowTrendlines)
+     {
+      for(int i = 10; i <= 15; i++)
          PlotIndexSetInteger(i, PLOT_DRAW_TYPE, DRAW_NONE);
      }
 
@@ -1558,14 +1618,6 @@ void BuildMultiPointTrendlines(const int rates_total)
       }
    }
    
-   //--- Size regression buffers to match rates_total
-   ArrayResize(ExtRegrPeakLine1,   rates_total);  ArrayInitialize(ExtRegrPeakLine1,   EMPTY_VALUE);
-   ArrayResize(ExtRegrPeakLine2,   rates_total);  ArrayInitialize(ExtRegrPeakLine2,   EMPTY_VALUE);
-   ArrayResize(ExtRegrPeakLine3,   rates_total);  ArrayInitialize(ExtRegrPeakLine3,   EMPTY_VALUE);
-   ArrayResize(ExtRegrBottomLine1, rates_total);  ArrayInitialize(ExtRegrBottomLine1, EMPTY_VALUE);
-   ArrayResize(ExtRegrBottomLine2, rates_total);  ArrayInitialize(ExtRegrBottomLine2, EMPTY_VALUE);
-   ArrayResize(ExtRegrBottomLine3, rates_total);  ArrayInitialize(ExtRegrBottomLine3, EMPTY_VALUE);
-
    // Draw peak lines with SIGNED angles
    if(ArraySize(peak_lines) >= 1)
    {
