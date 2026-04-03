@@ -1122,7 +1122,11 @@ void ClearAllTrendlineBuffers()
 //| fractals.  Weight = 1 - (distance_from_original / tolerance),    |
 //| so fractals exactly on the anchor-pair line get weight 1.0 and   |
 //| fractals at the edge of the tolerance band get weight ≈ 0.       |
-//| This keeps the regression close to the original line by design.  |
+//|                                                                  |
+//| Bar numbers are MEAN-CENTERED before computation to eliminate    |
+//| catastrophic floating-point cancellation in the denominator      |
+//| (which occurs when raw bar numbers are in the thousands and       |
+//| sw·Σwx² ≈ (Σwx)², causing wildly wrong slopes).                 |
 //+------------------------------------------------------------------+
 void ComputeWeightedLeastSquares(int &bars[], double &prices[], int count,
                                   double orig_slope, double orig_intercept,
@@ -1136,21 +1140,30 @@ void ComputeWeightedLeastSquares(int &bars[], double &prices[], int count,
       return;
    }
 
-   double sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
+   //--- Step 1: compute unweighted mean of bar numbers for centering
+   double x_mean = 0;
+   for(int i = 0; i < count; i++)
+      x_mean += (double)bars[i];
+   x_mean /= count;
+
+   //--- Step 2: WLS on centered x = (bar - x_mean)
+   //    This keeps dx values small (≈ ±half-span) and prevents
+   //    catastrophic cancellation in the denominator.
+   double sw = 0, swdx = 0, swy = 0, swdx2 = 0, swdxy = 0;
    for(int i = 0; i < count; i++)
    {
-      double x        = (double)bars[i];
+      double dx       = (double)bars[i] - x_mean;   // centered bar index
       double y        = prices[i];
-      double expected = orig_slope * x + orig_intercept;
+      double expected = orig_slope * (double)bars[i] + orig_intercept;
       double dist     = MathAbs(y - expected);
       // Linear proximity weight: 1 at dist=0, 0 at dist=tolerance
       double w = (tolerance > 0) ? MathMax(0.0, 1.0 - dist / tolerance) : 1.0;
 
-      sw   += w;
-      swx  += w * x;
-      swy  += w * y;
-      swxx += w * x * x;
-      swxy += w * x * y;
+      sw    += w;
+      swdx  += w * dx;
+      swy   += w * y;
+      swdx2 += w * dx * dx;
+      swdxy += w * dx * y;
    }
 
    // Guard: if all weights collapsed to zero, fall back to original line
@@ -1161,16 +1174,21 @@ void ComputeWeightedLeastSquares(int &bars[], double &prices[], int count,
       return;
    }
 
-   double denom = sw * swxx - swx * swx;
-   if(denom == 0)
+   double denom = sw * swdx2 - swdx * swdx;
+   if(MathAbs(denom) < 1e-10)
    {
+      // All points at identical bar — return weighted mean price as flat line
       out_slope     = 0;
       out_intercept = swy / sw;
       return;
    }
 
-   out_slope     = (sw * swxy - swx * swy) / denom;
-   out_intercept = (swy - out_slope * swx) / sw;
+   //--- Step 3: solve in centered space, convert intercept back to original
+   //    y = b*(x - x_mean) + a  =>  y = b*x + (a - b*x_mean)
+   double b      = (sw * swdxy - swdx * swy) / denom;
+   double a      = (swy - b * swdx) / sw;
+   out_slope     = b;
+   out_intercept = a - b * x_mean;   // back to original bar-index coordinates
 }
 
 //+------------------------------------------------------------------+
