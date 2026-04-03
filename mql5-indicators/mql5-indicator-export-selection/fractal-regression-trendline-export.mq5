@@ -159,9 +159,13 @@ input double            InpEarlyExitThreshold = 150.0;
 input bool              InpUseSpatialIndex = false;
 input int               InpSpatialGridSize = 20;
 input string            Sep9 = "===== Export Settings =====";
-input string            InpExportFileName = "FractalTrendlines";  // Export file name  
+input string            InpExportFileName = "FractalTrendlines";  // Export file name
 input bool              InpIncludeHeader = true;                  // Include header row
 input int               InpExportBars = 500;                    // Number of bars to export
+
+input string            Sep10 = "===== Regression Validation =====";
+input double            InpRegrMaxDistancePct   = 0.30;  // Max regression vs original price deviation at current bar (%)
+input double            InpRegrMaxSlopeDriftPct = 0.50;  // Max regression vs original total slope drift across line length (% of price)
 
 
 
@@ -225,9 +229,12 @@ struct FractalLine
    double            angle_degrees;          // SIGNED angle
    double            score;
    double            line_price_at_current;  // original anchor-pair projected price
-   double            regression_slope;       // least-squares slope through all touches
-   double            regression_intercept;   // least-squares y-intercept through all touches
-   double            regression_price_at_current; // consensus price at current bar
+   double            regression_slope;             // WLS slope through all touches
+   double            regression_intercept;         // WLS y-intercept through all touches
+   double            regression_price_at_current;  // consensus price at current bar
+   bool              regression_valid;             // true when both validation checks pass
+   double            regression_distance_pct;      // actual price deviation at current bar (%)
+   double            regression_slope_drift_pct;   // actual slope drift over line length (% of price)
   };
 
 //+------------------------------------------------------------------+
@@ -497,9 +504,12 @@ public:
          lines[i].angle_degrees = m_line_angle_degrees[i];
          lines[i].score = m_line_score[i];
          lines[i].line_price_at_current = m_line_price_at_current[i];
-         lines[i].regression_slope = m_line_regression_slope[i];
-         lines[i].regression_intercept = m_line_regression_intercept[i];
-         lines[i].regression_price_at_current = 0; // re-computed in ScoreLines()
+         lines[i].regression_slope              = m_line_regression_slope[i];
+         lines[i].regression_intercept          = m_line_regression_intercept[i];
+         lines[i].regression_price_at_current   = 0;     // re-computed in ScoreLines()
+         lines[i].regression_valid              = false;  // re-computed in ScoreLines()
+         lines[i].regression_distance_pct       = 0;
+         lines[i].regression_slope_drift_pct    = 0;
 
          ArrayResize(lines[i].touched_bars, 0);
          ArrayResize(lines[i].touched_prices, 0);
@@ -1048,40 +1058,59 @@ void ClearAllTrendlineBuffers()
   }
 
 //+------------------------------------------------------------------+
-//| Least-squares linear regression through a set of (bar, price)   |
-//| points.  Returns slope and intercept in bar-index space.         |
+//| Proximity-weighted least-squares regression through N touching   |
+//| fractals.  Weight = 1 - (distance_from_original / tolerance),    |
+//| so fractals exactly on the anchor-pair line get weight 1.0 and   |
+//| fractals at the edge of the tolerance band get weight ≈ 0.       |
+//| This keeps the regression close to the original line by design.  |
 //+------------------------------------------------------------------+
-void ComputeLeastSquares(int &bars[], double &prices[], int count,
-                         double &out_slope, double &out_intercept)
+void ComputeWeightedLeastSquares(int &bars[], double &prices[], int count,
+                                  double orig_slope, double orig_intercept,
+                                  double tolerance,
+                                  double &out_slope, double &out_intercept)
 {
    if(count < 2)
    {
-      out_slope     = 0;
-      out_intercept = (count == 1) ? prices[0] : 0;
+      out_slope     = orig_slope;
+      out_intercept = (count == 1) ? prices[0] - orig_slope * bars[0] : orig_intercept;
       return;
    }
 
-   double sum_x = 0, sum_y = 0, sum_xx = 0, sum_xy = 0;
+   double sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
    for(int i = 0; i < count; i++)
    {
-      double x = (double)bars[i];
-      double y = prices[i];
-      sum_x  += x;
-      sum_y  += y;
-      sum_xx += x * x;
-      sum_xy += x * y;
+      double x        = (double)bars[i];
+      double y        = prices[i];
+      double expected = orig_slope * x + orig_intercept;
+      double dist     = MathAbs(y - expected);
+      // Linear proximity weight: 1 at dist=0, 0 at dist=tolerance
+      double w = (tolerance > 0) ? MathMax(0.0, 1.0 - dist / tolerance) : 1.0;
+
+      sw   += w;
+      swx  += w * x;
+      swy  += w * y;
+      swxx += w * x * x;
+      swxy += w * x * y;
    }
 
-   double denom = count * sum_xx - sum_x * sum_x;
+   // Guard: if all weights collapsed to zero, fall back to original line
+   if(sw <= 0)
+   {
+      out_slope     = orig_slope;
+      out_intercept = orig_intercept;
+      return;
+   }
+
+   double denom = sw * swxx - swx * swx;
    if(denom == 0)
    {
       out_slope     = 0;
-      out_intercept = sum_y / count;
+      out_intercept = swy / sw;
       return;
    }
 
-   out_slope     = (count * sum_xy - sum_x * sum_y) / denom;
-   out_intercept = (sum_y - out_slope * sum_x) / count;
+   out_slope     = (sw * swxy - swx * swy) / denom;
+   out_intercept = (swy - out_slope * swx) / sw;
 }
 
 //+------------------------------------------------------------------+
@@ -1215,8 +1244,12 @@ void FindMultiPointLinesOptimized(int &fractal_bars[], double &fractal_prices[],
             reg_prices[t] = fractal_prices[touched_indices[t]];
          }
 
+         // WLS: weight each touch by proximity to the anchor-pair line
+         double reg_tolerance = CalculateTolerance(fractal_prices[i]);
          double reg_slope, reg_intercept;
-         ComputeLeastSquares(reg_bars, reg_prices, touched_count, reg_slope, reg_intercept);
+         ComputeWeightedLeastSquares(reg_bars, reg_prices, touched_count,
+                                     slope, y_intercept, reg_tolerance,
+                                     reg_slope, reg_intercept);
 
          ArrayResize(lines, line_count + 1);
          lines[line_count].bar_start = fractal_bars[i];
@@ -1227,9 +1260,12 @@ void FindMultiPointLinesOptimized(int &fractal_bars[], double &fractal_prices[],
          lines[line_count].length_bars = distance_bars;
          lines[line_count].slope = slope;
          lines[line_count].angle_degrees = angle;  // Store SIGNED angle
-         lines[line_count].regression_slope     = reg_slope;
-         lines[line_count].regression_intercept = reg_intercept;
-         lines[line_count].regression_price_at_current = 0; // computed in ScoreLines()
+         lines[line_count].regression_slope              = reg_slope;
+         lines[line_count].regression_intercept          = reg_intercept;
+         lines[line_count].regression_price_at_current   = 0;     // computed in ScoreLines()
+         lines[line_count].regression_valid              = false;  // set in ScoreLines()
+         lines[line_count].regression_distance_pct       = 0;
+         lines[line_count].regression_slope_drift_pct    = 0;
 
          ArrayResize(lines[line_count].touched_bars,   touched_count);
          ArrayResize(lines[line_count].touched_prices, touched_count);
@@ -1254,6 +1290,43 @@ void FindMultiPointLinesOptimized(int &fractal_bars[], double &fractal_prices[],
          }
       }
    }
+}
+
+//+------------------------------------------------------------------+
+//| Validate regression line against the original anchor-pair line.  |
+//|                                                                  |
+//| Distance check: how far apart are the two lines at the current   |
+//| bar? Should be negligible for a well-clustered fractal set.      |
+//|                                                                  |
+//| Slope-drift check: over the full historical span of the line,    |
+//| how much total price gap accumulates between the two slopes?     |
+//| Expressed as % of current price — large values mean the          |
+//| regression is tilted significantly away from the original.       |
+//+------------------------------------------------------------------+
+void ValidateRegression(FractalLine &line)
+{
+   double orig_price = line.line_price_at_current;
+   double regr_price = line.regression_price_at_current;
+
+   // --- Distance check at current bar ---
+   double distance_pct = (orig_price > 0)
+      ? MathAbs(regr_price - orig_price) / orig_price * 100.0
+      : 0;
+
+   // --- Slope-drift check across full line length ---
+   // Total price divergence between the two lines over length_bars:
+   //   diff_per_bar = |regr_slope - orig_slope|
+   //   total_drift  = diff_per_bar * length_bars
+   //   as % of orig_price → gives a "how bad is the tilt?" metric
+   double slope_diff    = MathAbs(line.regression_slope - line.slope);
+   double slope_drift_pct = (orig_price > 0)
+      ? slope_diff * line.length_bars / orig_price * 100.0
+      : 0;
+
+   line.regression_distance_pct    = distance_pct;
+   line.regression_slope_drift_pct = slope_drift_pct;
+   line.regression_valid = (distance_pct    <= InpRegrMaxDistancePct) &&
+                           (slope_drift_pct <= InpRegrMaxSlopeDriftPct);
 }
 
 //+------------------------------------------------------------------+
@@ -1307,6 +1380,9 @@ void ScoreLines(FractalLine &lines[], int rates_total, double current_price)
       // Regression consensus price at current bar
       lines[i].regression_price_at_current =
          lines[i].regression_slope * (rates_total - 1) + lines[i].regression_intercept;
+
+      // Validate regression against original line (distance + slope drift)
+      ValidateRegression(lines[i]);
      }
   }
 
@@ -1363,6 +1439,10 @@ void DrawTrendline(double &buffer[], FractalLine &line, int rates_total)
 //+------------------------------------------------------------------+
 void DrawRegressionLine(double &buffer[], FractalLine &line, int rates_total)
 {
+   // Validation failed: leave buffer as EMPTY_VALUE so neither chart nor export show it.
+   // The consumer falls back to the horiz_* column which always contains the original price.
+   if(!line.regression_valid) return;
+
    double reg_slope     = line.regression_slope;
    double reg_intercept = line.regression_intercept;
 
