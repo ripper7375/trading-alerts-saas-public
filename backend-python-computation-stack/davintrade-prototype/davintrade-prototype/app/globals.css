@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure html/body fill viewport — required for h-screen to work */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #030712;  /* gray-950 */
+}
+
+/* Prevent LWC canvas from bleeding outside container */
+canvas {
+  display: block;
+}

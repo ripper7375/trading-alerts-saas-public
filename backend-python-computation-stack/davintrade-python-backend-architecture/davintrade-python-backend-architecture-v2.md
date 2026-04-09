@@ -1,6 +1,6 @@
 # DavinTrade Backend Architecture: MT5 to Pandas Trendline Scoring Engine
 
-### Version 2.0 — Updated Blueprint for Claude Code Implementation
+### Version 2.2 — Updated Blueprint for Claude Code Implementation
 
 ---
 
@@ -16,6 +16,37 @@
 | 6   | `execute_bpi_pipeline()` updated with SSA pre-processing insertion point                     | Code Update   |
 | 7   | Phase 6 config schema extended with `ssa_entropy` block                                      | Config Update |
 | 8   | OHLC vs fractal map column disambiguation added                                              | Clarification |
+
+## Revision Notes (v2 → v2.1)
+
+| #   | Change                                                                                                                                                | Type          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 9   | `compute_shannon_entropy()` rewritten to match `Entropy_IT.mq5` exactly — 3-state categorical (up/down/flat) replacing log-returns histogram approach | Critical Fix  |
+| 10  | Phase 6 config schema: `entropy_bins` removed, `price_step_points` + `point_size` added to `ssa_entropy` block                                        | Config Fix    |
+| 11  | `run_ssa_pipeline()` updated — removed `bins=` parameter, added `price_step_points` and `point_size`                                                  | Code Fix      |
+| 12  | Section 10 library notes updated — entropy now uses `math.log2` not `np.histogram`                                                                    | Documentation |
+
+> **Why this fix matters:** The original `compute_shannon_entropy()` used log-returns + 10-bin histogram, producing numerically different entropy values than `Entropy_IT.mq5`. The regime thresholds 0.35 and 0.65 were calibrated for the MQL5 3-state system. Using a different algorithm would cause Python to classify the same market bar differently than what the trader sees on their MT5 chart — directly undermining platform trust.
+
+## Revision Notes (v2.1 → v2.2)
+
+| #   | Change                                                                                                                  | Type          |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 13  | Phase 5.1 added — HMI (Heat Map Index) pipeline: `calculate_hmi_m5()` + `execute_hmi_pipeline()`                        | New Index     |
+| 14  | Phase 6 config schema: `hmi_structural` block added to XAUUSD and DEFAULT                                               | Config        |
+| 15  | Section 9 unified API payload extended: `active_hmi`, `active_hmi_type`, `upper_sandwich_price`, `lower_sandwich_price` | API           |
+| 16  | Section 11 Core Principles updated to reflect HMI orthogonality                                                         | Documentation |
+
+> **HMI rationale:** HMI = Base structural power only (no proximity decay). RPI = same base power × Gaussian proximity decay. The two together give traders a complete picture: HMI tells you how strong the wall is regardless of distance; RPI tells you how relevant that strength is right now.
+
+| #   | Change                                                                                                                                                | Type          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 9   | `compute_shannon_entropy()` rewritten to match `Entropy_IT.mq5` exactly — 3-state categorical (up/down/flat) replacing log-returns histogram approach | Critical Fix  |
+| 10  | Phase 6 config schema: `entropy_bins` removed, `price_step_points` + `point_size` added to `ssa_entropy` block                                        | Config Fix    |
+| 11  | `run_ssa_pipeline()` updated — removed `bins=` parameter, added `price_step_points` and `point_size`                                                  | Code Fix      |
+| 12  | Section 10 library notes updated — entropy now uses `math.log2` not `np.histogram`                                                                    | Documentation |
+
+> **Why this fix matters:** The original `compute_shannon_entropy()` used log-returns + 10-bin histogram, producing numerically different entropy values than `Entropy_IT.mq5`. The regime thresholds 0.35 and 0.65 were calibrated for the MQL5 3-state system. Using a different algorithm would cause Python to classify the same market bar differently than what the trader sees on their MT5 chart — directly undermining platform trust.
 
 ---
 
@@ -296,37 +327,77 @@ def compute_ema(series: np.ndarray, period: int) -> np.ndarray:
 
 
 # ============================================================
-# 3. Shannon Entropy — equivalent to Entropy_IT MQL5 indicator
-#    Applied to log returns on a rolling window
+# 3. Shannon Entropy — exact Python equivalent of Entropy_IT.mq5
+#
+# CRITICAL IMPLEMENTATION NOTE:
+# This function mirrors CalculateEntropy() + ClassifyPriceMovement()
+# in Entropy_IT.mq5 exactly. It uses the same 3-state categorical
+# classification (up/down/flat), same log base 2, and same log2(3)
+# normalizer. This ensures Python regime classifications (Trend /
+# Transition / Chaotic) are numerically consistent with what
+# Entropy_IT.mq5 displays on the trader's MT5 chart.
+#
+# Do NOT replace with log-returns + histogram approach — that
+# produces different numeric values, making the 0.35 / 0.65
+# regime thresholds (calibrated for 3-state system) invalid.
 # ============================================================
-def compute_shannon_entropy(close: np.ndarray, window: int = 50, bins: int = 10) -> np.ndarray:
+def compute_shannon_entropy(
+    close: np.ndarray,
+    window: int = 50,
+    price_step_points: float = 0.01,
+    point_size: float = 0.01,
+) -> np.ndarray:
     """
-    Rolling Shannon entropy on log returns, normalized to [0, 1].
+    Rolling Shannon entropy using 3-state price direction classification.
+    Exact algorithmic equivalent of Entropy_IT.mq5 CalculateEntropy().
 
-    Interpretation:
-        Low value  (< 0.35) = structured / trending regime
-        Mid value  (0.35–0.65) = transitioning regime
-        High value (> 0.65) = chaotic / random regime
+    Interpretation (matches Entropy_IT.mq5 regime labels exactly):
+        < 0.35  = TREND MODE      (structured directional movement)
+        0.35–0.65 = TRANSITION MODE (mixed / transitioning)
+        > 0.65  = CHAOTIC MODE    (random, no directional dominance)
 
     Parameters:
-        close  : 1D numpy array of close prices
-        window : Rolling lookback bars (default 50)
-        bins   : Histogram bins for return distribution (default 10)
+        close             : 1D numpy array of close prices
+        window            : Rolling lookback bars — EntropyPeriod in MQL5 (default 50)
+        price_step_points : Minimum price change to classify as a move.
+                            Equivalent to PriceStep * _Point in MQL5.
+                            Default: 1 * 0.01 = 0.01 (1 point for XAUUSD)
+        point_size        : _Point equivalent for the symbol (0.01 for XAUUSD)
 
     Returns:
-        1D numpy array of normalized entropy values (NaN for warmup bars)
+        1D numpy array of normalized entropy values in [0, 1].
+        NaN for warmup bars (index < window).
     """
-    log_returns = np.diff(np.log(close))
-    entropy_series = np.full(len(close), np.nan)
+    import math
 
-    for i in range(window, len(log_returns) + 1):
-        window_returns = log_returns[i - window:i]
-        counts, _ = np.histogram(window_returns, bins=bins)
-        probs = counts / counts.sum()
-        probs = probs[probs > 0]  # avoid log(0)
-        raw_entropy = -np.sum(probs * np.log(probs))
-        # Normalize by max possible entropy (uniform distribution = log(bins))
-        entropy_series[i] = raw_entropy / np.log(bins)
+    threshold = price_step_points  # mirrors: double threshold = PriceStep * _Point
+    N = len(close)
+    entropy_series = np.full(N, np.nan)
+
+    # Classify each bar into 3 states — mirrors ClassifyPriceMovement() in MQL5
+    # states: 1 = up, 2 = down, 0 = flat
+    states = np.zeros(N, dtype=int)
+    diff = np.diff(close)
+    states[1:] = np.where(diff > threshold, 1,
+                 np.where(diff < -threshold, 2, 0))
+
+    log2_3 = math.log2(3)  # max entropy for 3-state system — normalizer in MQL5
+
+    for i in range(window, N):
+        window_states = states[i - window:i]
+
+        p_up   = np.sum(window_states == 1) / window
+        p_down = np.sum(window_states == 2) / window
+        p_flat = np.sum(window_states == 0) / window
+
+        # Shannon entropy in bits — mirrors MQL5: entropy -= p * MathLog(p) / M_LN2
+        H = 0.0
+        for p in (p_up, p_down, p_flat):
+            if p > 0:
+                H -= p * math.log2(p)
+
+        # Normalize by log2(3) — mirrors MQL5: return entropy / (MathLog(3) / M_LN2)
+        entropy_series[i] = H / log2_3
 
     return entropy_series
 
@@ -379,10 +450,12 @@ def run_ssa_pipeline(df: pd.DataFrame, ssa_cfg: dict) -> pd.DataFrame:
     low    = df['low'].values
 
     # 1. Compute rolling entropy to classify current regime
+    # Uses 3-state MQL5-matching algorithm — see compute_shannon_entropy() notes
     entropy_series = compute_shannon_entropy(
         close,
         window=ssa_cfg.get('entropy_window', 50),
-        bins=ssa_cfg.get('entropy_bins', 10)
+        price_step_points=ssa_cfg.get('price_step_points', 0.01),
+        point_size=ssa_cfg.get('point_size', 0.01),
     )
 
     # 2. Select adaptive SSA window from latest non-NaN entropy value
@@ -678,6 +751,84 @@ def execute_rpi_pipeline(df_m5, line_price_cols, line_score_cols, global_max_sco
 
 ---
 
+## 7.1 Phase 5.1: Heat Map Index (HMI) — Master Execution Pipeline
+
+**System Overview:** HMI measures the **raw structural wall strength** without any proximity
+concern. It is the distance-agnostic complement to RPI.
+
+**Orthogonal Triplet Relationship:**
+
+| Index   | Formula                                           | Answers                              |
+| ------- | ------------------------------------------------- | ------------------------------------ |
+| **HMI** | Base structural power only (no proximity decay)   | How thick/strong is the wall?        |
+| **RPI** | Base structural power × Gaussian proximity decay  | How dangerous is the wall right now? |
+| **BPI** | Crawl detection + HTF multiplier + ignition bonus | How hard is price hitting the wall?  |
+
+**Interpretation pattern for traders:**
+
+- High HMI + Low RPI = very strong wall but price is far from it — watch, not urgent
+- High HMI + High RPI = very strong wall AND price is close — maximum structural danger
+- High BPI = price is actively hammering whichever wall is closest
+
+**Feature Orthogonality:** HMI must not include Gaussian proximity decay (sigma), SSA/EMA-SSA,
+or HTF trend multipliers. It is a purely structural measurement derived solely from `Final_Score`
+of trendline confluence. HMI reuses `extract_dynamic_targets_with_scores()` from Phase 5 — no
+duplicate target extraction needed.
+
+```python
+def calculate_hmi_m5(df_m5, res_price, res_score, sup_price, sup_score, global_max_score):
+    """
+    Calculates pure structural HMI on the M5 grid — wall strength WITHOUT proximity decay.
+
+    HMI = Base Power only
+    RPI = Base Power × Gaussian Proximity Decay
+
+    Uses the same Sandwich Selection pattern as RPI and BPI.
+    Shares extract_dynamic_targets_with_scores() output — call once, feed to both HMI and RPI.
+    """
+    if global_max_score <= 0:
+        global_max_score = 1.0
+
+    # Base Power (0-100%) — identical starting point as RPI, proximity decay NOT applied
+    hmi_resistance = np.clip((res_score / global_max_score), 0, 1.0) * 100.0
+    hmi_support    = np.clip((sup_score / global_max_score), 0, 1.0) * 100.0
+
+    dist_res = np.abs(res_price - df_m5['close'])
+    dist_sup = np.abs(df_m5['close'] - sup_price)
+
+    # Sandwich Selection — reports the closer wall, same as RPI/BPI
+    is_res_closer     = dist_res < dist_sup
+    reported_hmi      = np.where(is_res_closer, hmi_resistance, hmi_support)
+    reported_hmi_type = np.where(is_res_closer, 'Resistance', 'Support')
+
+    return pd.DataFrame({
+        'active_hmi':      np.clip(reported_hmi, 0, 99.9),
+        'active_hmi_type': reported_hmi_type,
+    }, index=df_m5.index)
+
+
+def execute_hmi_pipeline(df_m5, line_price_cols, line_score_cols, global_max_score):
+    """
+    Master execution function for the HMI pipeline.
+    Reuses extract_dynamic_targets_with_scores() — share the result with execute_rpi_pipeline()
+    to avoid redundant computation. Call pattern:
+
+        res_price, res_score, sup_price, sup_score = extract_dynamic_targets_with_scores(...)
+        hmi_df = calculate_hmi_m5(df_m5, res_price, res_score, sup_price, sup_score, max_score)
+        rpi_df = calculate_universal_rpi_m5(df_m5, res_price, res_score, sup_price, sup_score, max_score)
+    """
+    res_price, res_score, sup_price, sup_score = extract_dynamic_targets_with_scores(
+        df_m5, line_price_cols, line_score_cols
+    )
+
+    hmi_df = calculate_hmi_m5(
+        df_m5, res_price, res_score, sup_price, sup_score, global_max_score
+    )
+    return hmi_df
+```
+
+---
+
 ## 8. Phase 6: Production Parameter Extraction & SaaS Configuration
 
 **System Overview:** All hardcoded mathematical constants must be extracted into a centralized, dynamically updateable configuration schema. SaaS administrators and future ML optimization models must be able to adjust model sensitivities on a per-asset basis without modifying or redeploying the core Python codebase.
@@ -689,6 +840,9 @@ A **Redis Pub/Sub hot-reload hook** must be implemented so that when an ML scrip
 ```json
 {
   "XAUUSD": {
+    "hmi_structural": {
+      "note": "HMI uses Final_Score and global_max_score only. No sigma_pct — proximity decay is intentionally absent."
+    },
     "rpi_structural": {
       "sigma_pct": 0.001
     },
@@ -705,7 +859,8 @@ A **Redis Pub/Sub hot-reload hook** must be implemented so that when an ML scrip
     },
     "ssa_entropy": {
       "entropy_window": 50,
-      "entropy_bins": 10,
+      "price_step_points": 0.01,
+      "point_size": 0.01,
       "entropy_trend_threshold": 0.35,
       "entropy_chaotic_threshold": 0.65,
       "ssa_rank": 6,
@@ -716,6 +871,9 @@ A **Redis Pub/Sub hot-reload hook** must be implemented so that when an ML scrip
     }
   },
   "DEFAULT": {
+    "hmi_structural": {
+      "note": "HMI uses Final_Score and global_max_score only. No sigma_pct — proximity decay is intentionally absent."
+    },
     "rpi_structural": {
       "sigma_pct": 0.001
     },
@@ -732,7 +890,8 @@ A **Redis Pub/Sub hot-reload hook** must be implemented so that when an ML scrip
     },
     "ssa_entropy": {
       "entropy_window": 50,
-      "entropy_bins": 10,
+      "price_step_points": 0.01,
+      "point_size": 0.01,
       "entropy_trend_threshold": 0.35,
       "entropy_chaotic_threshold": 0.65,
       "ssa_rank": 6,
@@ -767,47 +926,70 @@ def execute_bpi_pipeline(df_m5, df_m15, valid_line_cols, symbol_config):
 
 ## 9. Unified Frontend API Payload
 
-The Sandwich Selection in both RPI and BPI produces a fully unified API payload standard. Frontend React components read the following fields directly from the JSON:
+All three indices (HMI, RPI, BPI) plus Sandwich trendline prices are returned in a single unified
+JSON payload. Frontend gauge components and Sandwich indication labels read directly from this.
 
 ```json
 {
+  "active_hmi": 85.2,
+  "active_hmi_type": "Resistance",
   "active_rpi": 72.4,
   "active_rpi_type": "Resistance",
   "active_bpi": 61.8,
   "active_bpi_type": "Resistance Breakout",
   "distance_to_active": 4.25,
   "entropy": 0.42,
-  "ssa_regime": "Transition"
+  "ssa_regime": "Transition",
+  "upper_sandwich_price": 4747.7,
+  "lower_sandwich_price": 4666.96
 }
 ```
 
-> **Interpretation:** RPI spike = structural geometric block. BPI spike = algorithmic order-flow breakout. These two indices are orthogonal by design — high RPI + high BPI = price is hammering a very strong wall.
+**Field descriptions:**
+
+| Field                  | Source                                     | Frontend use                                  |
+| ---------------------- | ------------------------------------------ | --------------------------------------------- |
+| `active_hmi`           | `calculate_hmi_m5()`                       | HMI gauge chart value                         |
+| `active_hmi_type`      | `calculate_hmi_m5()`                       | HMI gauge Sandwich Active Indication label    |
+| `active_rpi`           | `calculate_universal_rpi_m5()`             | RPI gauge chart value                         |
+| `active_rpi_type`      | `calculate_universal_rpi_m5()`             | RPI gauge Sandwich Active Indication label    |
+| `active_bpi`           | `calculate_bpi_m5()`                       | BPI gauge chart value                         |
+| `active_bpi_type`      | `calculate_bpi_m5()`                       | BPI gauge Sandwich Active Indication label    |
+| `distance_to_active`   | `calculate_universal_rpi_m5()`             | Distance display (optional)                   |
+| `entropy`              | `compute_shannon_entropy()`                | Regime display                                |
+| `ssa_regime`           | mapped from entropy value                  | Regime label: Trend / Transition / Chaotic    |
+| `upper_sandwich_price` | `closest_res_price` from target extraction | Upper Sandwich price label on ECharts heatmap |
+| `lower_sandwich_price` | `closest_sup_price` from target extraction | Lower Sandwich price label on ECharts heatmap |
+
+> **Interpretation:** HMI = wall thickness. RPI = current danger level. BPI = breakout kinetic energy.
+> High HMI + High RPI + High BPI = a very strong wall is being actively hammered right now.
 
 ---
 
 ## 10. Technical Stack & Library Requirements
 
-| Purpose                | Library                | Notes                                                                                                 |
-| ---------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------- |
-| Core data manipulation | `pandas`, `numpy`      | All ΔP and distance calculations must be NumPy vectorized. Zero Python for-loops over DatetimeIndex.  |
-| SSA decomposition      | `numpy` (built-in SVD) | `np.linalg.svd` — direct equivalent of ALGLIB Hankel/SVD. No external SSA library required.           |
-| Entropy calculation    | `numpy` (built-in)     | `np.histogram` + log — no scipy dependency needed.                                                    |
-| Binning & histograms   | `numpy.histogram`      | Rapid Volume/Time profile generation.                                                                 |
-| Clustering (optional)  | `scikit-learn`         | DBSCAN or AgglomerativeClustering if proximity thresholding is insufficient for confluence detection. |
-| Async job queue        | `BullMQ` + `Redis`     | Config hot-reload via Redis Pub/Sub.                                                                  |
-| Database               | `PostgreSQL`           | Only Golden nodes (top 10%) are persisted. Raw scoring stays in RAM.                                  |
+| Purpose                | Library                     | Notes                                                                                                                                        |
+| ---------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core data manipulation | `pandas`, `numpy`           | All ΔP and distance calculations must be NumPy vectorized. Zero Python for-loops over DatetimeIndex.                                         |
+| SSA decomposition      | `numpy` (built-in SVD)      | `np.linalg.svd` — direct equivalent of ALGLIB Hankel/SVD. No external SSA library required.                                                  |
+| Entropy calculation    | `numpy` + `math` (built-in) | 3-state categorical classification matching `Entropy_IT.mq5` exactly. Uses `math.log2` + `log2(3)` normalizer. No external library required. |
+| Binning & histograms   | `numpy.histogram`           | Rapid Volume/Time profile generation.                                                                                                        |
+| Clustering (optional)  | `scikit-learn`              | DBSCAN or AgglomerativeClustering if proximity thresholding is insufficient for confluence detection.                                        |
+| Async job queue        | `BullMQ` + `Redis`          | Config hot-reload via Redis Pub/Sub.                                                                                                         |
+| Database               | `PostgreSQL`                | Only Golden nodes (top 10%) are persisted. Raw scoring stays in RAM.                                                                         |
 
 ---
 
 ## 11. Core Architectural Principles
 
-| Principle                | Implementation                                                         |
-| ------------------------ | ---------------------------------------------------------------------- |
-| No data leakage          | M15 SSA computed natively on M15 grid, then ffilled to M5              |
-| No stair-step artifacts  | `interpolate(method='time')` not `ffill()` for HTF trendlines          |
-| Vectorized performance   | All ΔP / distance math is NumPy arrays — zero Python for-loops         |
-| Feature orthogonality    | RPI = structural geometry only. BPI = SSA momentum only.               |
-| RAM-first                | All Pandas scoring in memory. Only Golden nodes hit PostgreSQL/Redis.  |
-| Zero hardcoded constants | All math parameters in per-symbol JSON config (Phase 6).               |
-| Hot-reloadable           | Redis Pub/Sub invalidates config cache without server restart.         |
-| Adaptive SSA             | Window L is entropy-driven per bar, not a fixed compile-time constant. |
+| Principle                | Implementation                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| No data leakage          | M15 SSA computed natively on M15 grid, then ffilled to M5                      |
+| No stair-step artifacts  | `interpolate(method='time')` not `ffill()` for HTF trendlines                  |
+| Vectorized performance   | All ΔP / distance math is NumPy arrays — zero Python for-loops                 |
+| Feature orthogonality    | HMI = raw wall power. RPI = wall power × proximity. BPI = SSA momentum only.   |
+| RAM-first                | All Pandas scoring in memory. Only Golden nodes hit PostgreSQL/Redis.          |
+| Zero hardcoded constants | All math parameters in per-symbol JSON config (Phase 6).                       |
+| Hot-reloadable           | Redis Pub/Sub invalidates config cache without server restart.                 |
+| Adaptive SSA             | Window L is entropy-driven per bar, not a fixed compile-time constant.         |
+| Entropy consistency      | `compute_shannon_entropy()` matches `Entropy_IT.mq5` exactly — 3-state system. |
