@@ -204,7 +204,7 @@ DavinTrade Backend Architecture: MT5 to Pandas Trendline Scoring Engine
 4. Phase 3: Aggregation and Output Formatting
    The final step filters the calculated data to prepare it for the frontend.
    • Step 3.1: Composite Score Calculation:
-   Final_Score = Gaussian_Touch_Score _ Price_Density_Multiplier _ Confluence_Multiplier
+   Final*Score = Gaussian_Touch_Score * Price*Density_Multiplier * Confluence_Multiplier
    • Step 3.2: Threshold Filtering: Drop all trendlines with a Final_Score below the designated 90th percentile threshold. Only "Golden" S&R levels survive.
 
 ### Expansion to Step 3.2: Threshold Filtering (Hybrid Ranking)
