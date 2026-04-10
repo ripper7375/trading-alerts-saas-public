@@ -165,13 +165,12 @@ void ExportData()
       return;
    }
 
-   // Build filename: ZScore_SYMBOL_TIMEFRAME_YYYYMMDD_HHMMSS.txt
-   MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
-   string timestamp = StringFormat("%04d%02d%02d_%02d%02d%02d",
-                                   dt.year, dt.mon, dt.day,
-                                   dt.hour, dt.min, dt.sec);
-   string filename = "ZScore_" + _Symbol + "_" + GetTimeframeShort() + "_" + timestamp + ".txt";
+   // Build filename: ZScore_SYMBOL_TIMEFRAME.txt
+   string clean_symbol = _Symbol;
+   int dot_pos = StringFind(clean_symbol, ".");
+   if(dot_pos > 0)
+      clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
+   string filename = "ZScore_" + clean_symbol + "_" + GetTimeframeShort() + ".txt";
 
    int fileHandle = FileOpen(filename, FILE_WRITE | FILE_TXT | FILE_ANSI, '\t');
    if(fileHandle == INVALID_HANDLE)
