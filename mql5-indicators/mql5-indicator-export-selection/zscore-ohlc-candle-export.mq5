@@ -321,6 +321,14 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
 {
+   //--- Handle "Export All" custom event from EA
+   if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+   {
+      ExportData();
+      Print("SUCCESS: [Export All] Z-Score OHLC data exported successfully");
+      return;
+   }
+
    // Handle button click
    if(id == CHARTEVENT_OBJECT_CLICK)
    {
