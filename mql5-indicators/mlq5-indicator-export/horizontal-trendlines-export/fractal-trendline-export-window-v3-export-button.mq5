@@ -725,7 +725,7 @@ bool ExportTrendlineData()
     if(end_bar >= total_bars) end_bar = total_bars - 1;
     
     int exported_count = 0;
-    for(int bar_idx = start_bar; bar_idx <= end_bar; bar_idx++)
+    for(int bar_idx = end_bar; bar_idx >= start_bar; bar_idx--)
       {
         string line = IntegerToString((long)(iTime(symbol, timeframe, bar_idx) - gmt_offset)) + "\t";
         line += symbol + "\t";
