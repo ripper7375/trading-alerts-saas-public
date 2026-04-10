@@ -117,10 +117,10 @@ input int               InpMinLineLength = 20;
 input int               InpMaxLineLength = 0;
 input double            InpMaxAngleDegrees = 60;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
-input double            InpTolerancePercent = 0.25;
+input double            InpTolerancePercent = 1.00;
 input double            InpToleranceATRMultiplier = 1.5;
 input int               InpATRPeriod = 12;
-input int               InpExtensionBars = 1000;
+input int               InpExtensionBars = 3000;
 input int               InpMaxPeakLines = 1;
 input int               InpMaxBottomLines = 1;
 
@@ -478,9 +478,10 @@ void CreateExportButton()
   {
     if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0)
         ObjectDelete(0, EXPORT_BUTTON_NAME);
+        
     if(!ObjectCreate(0, EXPORT_BUTTON_NAME, OBJ_BUTTON, 0, 0, 0))
       {
-        Print("Failed to create export button");
+        Print("ERROR: Failed to create export button. Code: ", GetLastError());
         return;
       }
 
@@ -496,8 +497,14 @@ void CreateExportButton()
     ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_FONTSIZE, 10);
     ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_SELECTABLE, false);
     
+    // --- CRITICAL VISIBILITY SETTINGS ---
+    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BACK, false);   // Do not draw behind chart background // Add this line to manually draw chart
+    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_ZORDER, 100);   // Bring to the very front layer  // Add this line to manually draw chart
+    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_HIDDEN, false); // Make visible in object list  // Add this line to manually draw chart
+    
+    Print("SUCCESS: Export button created on chart.");  // Add this line to manually draw chart
     ChartRedraw(0);
-}
+  }
 
 int OnInit()
   {
@@ -615,6 +622,9 @@ int OnInit()
    Print("=== Fractal SR V5.60 (3 Window Periods) ===");
    Print("  Symbol 108: ", pattern_name, " (", ExtSideBars, " bars each side)");
    
+   // Enable the export button for testing  // Add this line to manually draw chart
+   CreateExportButton();  // Add this line to manually draw chart
+   
    return INIT_SUCCEEDED;
 }
 
@@ -715,7 +725,7 @@ bool ExportTrendlineData()
     if(end_bar >= total_bars) end_bar = total_bars - 1;
     
     int exported_count = 0;
-    for(int bar_idx = start_bar; bar_idx <= end_bar; bar_idx++)
+    for(int bar_idx = end_bar; bar_idx >= start_bar; bar_idx--)
       {
         string line = IntegerToString((long)(iTime(symbol, timeframe, bar_idx) - gmt_offset)) + "\t";
         line += symbol + "\t";
