@@ -1,6 +1,6 @@
 # DavinTrade Python Backend Stack B: H1-to-M5 SSA Interpolation Engine
 
-### Version 1.0 — Architecture Blueprint for Claude Code Implementation
+### Version 1.1 — Architecture Blueprint for Claude Code Implementation
 
 ---
 
@@ -42,9 +42,9 @@ This is **H1-to-M5 Linear Endpoint Interpolation**: for each H1 period (12 M5 ba
 The Excel workbook `ALGLIB_SSA_XAUUSD_timeframemapping.xlsx`, sheet `Mapped_H1_M5_Interporate`, contains the verified reference output:
 
 - **Columns A–O**: Full M5-aligned working data, including interpolated H1 values in columns D–H
-- **Columns R–AA**: Final consolidated output payload (the downstream consumer format)
+- **Columns R–AC**: Final consolidated output payload (the downstream consumer format)
 
-Stack B's Python output must produce values numerically identical to columns R–AA when run on the same input data as exported by `ssa-export.mq5`. This workbook serves as the acceptance test fixture for implementation verification.
+Stack B's Python output must produce values numerically identical to columns R–AC when run on the same input data as exported by `ssa-export.mq5`. This workbook serves as the acceptance test fixture for implementation verification.
 
 ---
 
@@ -142,20 +142,22 @@ This is **two-endpoint linear interpolation**. It is NOT forward-fill (which wou
 
 ### 4.3 Columns Interpolated vs. Passed Through
 
-| Column in Output    | Source                                  | Interpolated?  |
-| ------------------- | --------------------------------------- | -------------- |
-| `timestamp`         | M5 timestamp (col A)                    | No — M5 native |
-| `symbol`            | M5 symbol (col I)                       | No — M5 native |
-| `timeframe`         | M5 timeframe (col J)                    | No — M5 native |
-| `close`             | M5 close (col K)                        | No — M5 native |
-| `ssa_h1_interp`     | H1 `ssa` interpolated to M5 (col V)     | **Yes**        |
-| `ema_ssa_h1_interp` | H1 `ema_ssa` interpolated to M5 (col W) | **Yes**        |
-| `ssa_m5`            | M5 `ssa` from Stack A (col X)           | No — M5 native |
-| `ema_ssa_m5`        | M5 `ema_ssa` from Stack A (col Y)       | No — M5 native |
-| `ssa_high_m5`       | M5 `ssa_high` from Stack A (col Z)      | No — M5 native |
-| `ssa_low_m5`        | M5 `ssa_low` from Stack A (col AA)      | No — M5 native |
+| Column in Output            | Source                           | Excel Col | Interpolated?  |
+| --------------------------- | -------------------------------- | --------- | -------------- |
+| `timestamp`                 | M5 timestamp                     | R         | No — M5 native |
+| `symbol`                    | M5 symbol                        | S         | No — M5 native |
+| `timeframe`                 | M5 timeframe                     | T         | No — M5 native |
+| `close`                     | M5 close                         | U         | No — M5 native |
+| `ssa_h1_interp`             | H1 `ssa` interpolated to M5      | V         | **Yes**        |
+| `ema_ssa_h1_interp`         | H1 `ema_ssa` interpolated to M5  | W         | **Yes**        |
+| `ssa_m5`                    | M5 `ssa` from Stack A            | X         | No — M5 native |
+| `ema_ssa_m5`                | M5 `ema_ssa` from Stack A        | Y         | No — M5 native |
+| `ssa_high_m5_interpolation` | H1 `ssa_high` interpolated to M5 | Z         | **Yes**        |
+| `ssa_high_m5`               | M5 `ssa_high` from Stack A       | AA        | No — M5 native |
+| `ssa_low_m5_interpolation`  | H1 `ssa_low` interpolated to M5  | AB        | **Yes**        |
+| `ssa_low_m5`                | M5 `ssa_low` from Stack A        | AC        | No — M5 native |
 
-> **Design decision:** Only `ssa` and `ema_ssa` from H1 are interpolated. `ssa_high_h1` and `ssa_low_h1` are computed in Stack A from the raw H1 high/low candles and represent H1-resolution band boundaries. These are deliberately excluded from the Stack B output payload because on the M5 consumer side, `ssa_high_m5` and `ssa_low_m5` (computed natively at M5 resolution) are the correct band references. Including H1 band interpolations alongside M5 band actuals would create an ambiguous dual-band signal. If a future use case requires H1 band interpolation, it must be added as a clearly named separate column pair (`ssa_high_h1_interp`, `ssa_low_h1_interp`) and documented explicitly.
+> **Design decision:** All four H1 SSA components (`ssa`, `ema_ssa`, `ssa_high`, `ssa_low`) are interpolated to the M5 grid. The interpolated H1 band columns (`ssa_high_m5_interpolation` at col Z, `ssa_low_m5_interpolation` at col AB) are placed immediately before their actual M5 counterparts (`ssa_high_m5` at col AA, `ssa_low_m5` at col AC) so that each interpolated/actual pair is visually adjacent on the sheet. This pairing convention mirrors the V/X and W/Y pattern established for the `ssa` and `ema_ssa` pairs.
 
 ---
 
@@ -253,35 +255,39 @@ def build_interpolated_output(df_merged: pd.DataFrame) -> pd.DataFrame:
     """
     Assembles the final Stack B output DataFrame.
 
-    Column mapping (mirrors Mapped_H1_M5_Interporate cols R–AA):
-        R  timestamp           ← M5 DatetimeIndex (as Unix epoch int)
-        S  symbol              ← df_m5 symbol
-        T  timeframe           ← df_m5 timeframe (M5)
-        U  close               ← df_m5 close (actual M5 close)
-        V  ssa_h1_interp       ← H1 ssa interpolated to M5 grid
-        W  ema_ssa_h1_interp   ← H1 ema_ssa interpolated to M5 grid
-        X  ssa_m5              ← df_m5 ssa (actual M5 SSA from Stack A)
-        Y  ema_ssa_m5          ← df_m5 ema_ssa (actual M5 EMA-SSA from Stack A)
-        Z  ssa_high_m5         ← df_m5 ssa_high (actual M5 SSA high from Stack A)
-        AA ssa_low_m5          ← df_m5 ssa_low  (actual M5 SSA low from Stack A)
+    Column mapping (mirrors Mapped_H1_M5_Interporate cols R–AC):
+        R  timestamp                  ← M5 DatetimeIndex (as Unix epoch int)
+        S  symbol                     ← df_m5 symbol
+        T  timeframe                  ← df_m5 timeframe (M5)
+        U  close                      ← df_m5 close (actual M5 close)
+        V  ssa_h1_interp              ← H1 ssa interpolated to M5 grid
+        W  ema_ssa_h1_interp          ← H1 ema_ssa interpolated to M5 grid
+        X  ssa_m5                     ← df_m5 ssa (actual M5 SSA from Stack A)
+        Y  ema_ssa_m5                 ← df_m5 ema_ssa (actual M5 EMA-SSA from Stack A)
+        Z  ssa_high_m5_interpolation  ← H1 ssa_high interpolated to M5 grid
+        AA ssa_high_m5                ← df_m5 ssa_high (actual M5 SSA high from Stack A)
+        AB ssa_low_m5_interpolation   ← H1 ssa_low interpolated to M5 grid
+        AC ssa_low_m5                 ← df_m5 ssa_low  (actual M5 SSA low from Stack A)
 
     Parameters:
         df_merged : Output of interpolate_h1_anchors(). Must have DatetimeIndex.
 
     Returns:
-        df_out : Clean output DataFrame with exactly the 10 columns above.
+        df_out : Clean output DataFrame with exactly the 12 columns above.
     """
     df_out = pd.DataFrame({
-        'timestamp':         df_merged.index.astype(np.int64) // 10**9,
-        'symbol':            df_merged['symbol'],
-        'timeframe':         df_merged['timeframe'],
-        'close':             df_merged['close'],
-        'ssa_h1_interp':     df_merged['ssa_h1_anchor'],
-        'ema_ssa_h1_interp': df_merged['ema_ssa_h1_anchor'],
-        'ssa_m5':            df_merged['ssa'],
-        'ema_ssa_m5':        df_merged['ema_ssa'],
-        'ssa_high_m5':       df_merged['ssa_high'],
-        'ssa_low_m5':        df_merged['ssa_low'],
+        'timestamp':                 df_merged.index.astype(np.int64) // 10**9,
+        'symbol':                    df_merged['symbol'],
+        'timeframe':                 df_merged['timeframe'],
+        'close':                     df_merged['close'],
+        'ssa_h1_interp':             df_merged['ssa_h1_anchor'],
+        'ema_ssa_h1_interp':         df_merged['ema_ssa_h1_anchor'],
+        'ssa_m5':                    df_merged['ssa'],
+        'ema_ssa_m5':                df_merged['ema_ssa'],
+        'ssa_high_m5_interpolation': df_merged['ssa_high_h1_anchor'],
+        'ssa_high_m5':               df_merged['ssa_high'],
+        'ssa_low_m5_interpolation':  df_merged['ssa_low_h1_anchor'],
+        'ssa_low_m5':                df_merged['ssa_low'],
     }, index=df_merged.index)
 
     return df_out
@@ -386,20 +392,22 @@ def _validate_interpolation_inputs(
 
 ### 6.1 `df_m5_aligned` — Stack B Output DataFrame
 
-The output is a single Pandas DataFrame indexed by `DatetimeIndex` (UTC). It contains exactly 10 columns:
+The output is a single Pandas DataFrame indexed by `DatetimeIndex` (UTC). It contains exactly 12 columns:
 
-| Column              | Type    | Description                                                                |
-| ------------------- | ------- | -------------------------------------------------------------------------- |
-| `timestamp`         | int64   | Unix epoch seconds (redundant with index; included for JSON serialization) |
-| `symbol`            | str     | Instrument symbol (e.g., `XAUUSD`)                                         |
-| `timeframe`         | str     | Always `M5`                                                                |
-| `close`             | float64 | Actual M5 raw close price (from Stack A M5 DataFrame, unmodified)          |
-| `ssa_h1_interp`     | float64 | H1 SSA trend linearly interpolated to M5 resolution                        |
-| `ema_ssa_h1_interp` | float64 | H1 EMA-SSA signal linearly interpolated to M5 resolution                   |
-| `ssa_m5`            | float64 | Actual M5 SSA trend (from Stack A M5 DataFrame, unmodified)                |
-| `ema_ssa_m5`        | float64 | Actual M5 EMA-SSA signal (from Stack A M5 DataFrame, unmodified)           |
-| `ssa_high_m5`       | float64 | Actual M5 SSA high band (from Stack A M5 DataFrame, unmodified)            |
-| `ssa_low_m5`        | float64 | Actual M5 SSA low band (from Stack A M5 DataFrame, unmodified)             |
+| Column                      | Type    | Excel Col | Description                                                                |
+| --------------------------- | ------- | --------- | -------------------------------------------------------------------------- |
+| `timestamp`                 | int64   | R         | Unix epoch seconds (redundant with index; included for JSON serialization) |
+| `symbol`                    | str     | S         | Instrument symbol (e.g., `XAUUSD`)                                         |
+| `timeframe`                 | str     | T         | Always `M5`                                                                |
+| `close`                     | float64 | U         | Actual M5 raw close price (from Stack A M5 DataFrame, unmodified)          |
+| `ssa_h1_interp`             | float64 | V         | H1 `ssa` trend linearly interpolated to M5 resolution                      |
+| `ema_ssa_h1_interp`         | float64 | W         | H1 `ema_ssa` signal linearly interpolated to M5 resolution                 |
+| `ssa_m5`                    | float64 | X         | Actual M5 SSA trend (from Stack A M5 DataFrame, unmodified)                |
+| `ema_ssa_m5`                | float64 | Y         | Actual M5 EMA-SSA signal (from Stack A M5 DataFrame, unmodified)           |
+| `ssa_high_m5_interpolation` | float64 | Z         | H1 `ssa_high` band linearly interpolated to M5 resolution                  |
+| `ssa_high_m5`               | float64 | AA        | Actual M5 SSA high band (from Stack A M5 DataFrame, unmodified)            |
+| `ssa_low_m5_interpolation`  | float64 | AB        | H1 `ssa_low` band linearly interpolated to M5 resolution                   |
+| `ssa_low_m5`                | float64 | AC        | Actual M5 SSA low band (from Stack A M5 DataFrame, unmodified)             |
 
 **Guarantee:** All 10 columns must be free of NaN values in the returned DataFrame. The `_validate_interpolation_inputs()` guard and the `bfill()`/`ffill()` calls in `interpolate_h1_anchors()` together ensure this.
 
@@ -425,7 +433,9 @@ The Stack B output extends the unified frontend API payload defined in Stack A S
   "ema_ssa_h1_interp": 4616.096,
   "ssa_m5": 4627.215,
   "ema_ssa_m5": 4627.215,
+  "ssa_high_m5_interpolation": 4639.044,
   "ssa_high_m5": 4628.943,
+  "ssa_low_m5_interpolation": 4598.718,
   "ssa_low_m5": 4622.095,
   "ssa_cross_signal": "H1_above_M5"
 }
@@ -433,15 +443,17 @@ The Stack B output extends the unified frontend API payload defined in Stack A S
 
 **New field descriptions:**
 
-| Field               | Source                               | Frontend use                          |
-| ------------------- | ------------------------------------ | ------------------------------------- |
-| `ssa_h1_interp`     | `ssa_h1_anchor` (interpolated)       | H1 trend line on M5 ECharts chart     |
-| `ema_ssa_h1_interp` | `ema_ssa_h1_anchor` (interpolated)   | H1 signal line on M5 ECharts chart    |
-| `ssa_m5`            | M5 `ssa` from Stack A                | M5 trend line on M5 ECharts chart     |
-| `ema_ssa_m5`        | M5 `ema_ssa` from Stack A            | M5 signal line on M5 ECharts chart    |
-| `ssa_high_m5`       | M5 `ssa_high` from Stack A           | M5 SSA upper band on M5 ECharts chart |
-| `ssa_low_m5`        | M5 `ssa_low` from Stack A            | M5 SSA lower band on M5 ECharts chart |
-| `ssa_cross_signal`  | Computed from H1 interp vs M5 actual | Cross-timeframe trend alignment label |
+| Field                       | Source                               | Frontend use                               |
+| --------------------------- | ------------------------------------ | ------------------------------------------ |
+| `ssa_h1_interp`             | `ssa_h1_anchor` (interpolated)       | H1 trend line on M5 ECharts chart          |
+| `ema_ssa_h1_interp`         | `ema_ssa_h1_anchor` (interpolated)   | H1 signal line on M5 ECharts chart         |
+| `ssa_m5`                    | M5 `ssa` from Stack A                | M5 trend line on M5 ECharts chart          |
+| `ema_ssa_m5`                | M5 `ema_ssa` from Stack A            | M5 signal line on M5 ECharts chart         |
+| `ssa_high_m5_interpolation` | `ssa_high_h1_anchor` (interpolated)  | H1 SSA upper band interpolated to M5 chart |
+| `ssa_high_m5`               | M5 `ssa_high` from Stack A           | M5 SSA upper band on M5 ECharts chart      |
+| `ssa_low_m5_interpolation`  | `ssa_low_h1_anchor` (interpolated)   | H1 SSA lower band interpolated to M5 chart |
+| `ssa_low_m5`                | M5 `ssa_low` from Stack A            | M5 SSA lower band on M5 ECharts chart      |
+| `ssa_cross_signal`          | Computed from H1 interp vs M5 actual | Cross-timeframe trend alignment label      |
 
 ### 6.3 `ssa_cross_signal` Derivation
 
@@ -512,7 +524,7 @@ Stack B introduces a new `interp_h1m5` config block that extends the existing pe
     "interp_h1m5": {
       "m5_bars_per_h1": 12,
       "cross_signal_tolerance_pct": 0.0005,
-      "interpolate_columns": ["ssa", "ema_ssa"]
+      "interpolate_columns": ["ssa", "ema_ssa", "ssa_high", "ssa_low"]
     }
   },
   "DEFAULT": {
@@ -548,7 +560,7 @@ Stack B introduces a new `interp_h1m5` config block that extends the existing pe
     "interp_h1m5": {
       "m5_bars_per_h1": 12,
       "cross_signal_tolerance_pct": 0.0005,
-      "interpolate_columns": ["ssa", "ema_ssa"]
+      "interpolate_columns": ["ssa", "ema_ssa", "ssa_high", "ssa_low"]
     }
   }
 }
@@ -556,11 +568,11 @@ Stack B introduces a new `interp_h1m5` config block that extends the existing pe
 
 ### `interp_h1m5` Config Fields
 
-| Field                        | Default              | Description                                                                                       |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------------------------------- |
-| `m5_bars_per_h1`             | `12`                 | Number of M5 bars per H1 bar. Fixed 12 for XAUUSD. Change for other TF pairs (e.g., 48 for H4-M5) |
-| `cross_signal_tolerance_pct` | `0.0005`             | % tolerance for classifying `H1_aligned_M5` in `compute_ssa_cross_signal()`                       |
-| `interpolate_columns`        | `["ssa", "ema_ssa"]` | Which H1 columns to interpolate. Extend to include `ssa_high`, `ssa_low` if needed                |
+| Field                        | Default                                     | Description                                                                                       |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `m5_bars_per_h1`             | `12`                                        | Number of M5 bars per H1 bar. Fixed 12 for XAUUSD. Change for other TF pairs (e.g., 48 for H4-M5) |
+| `cross_signal_tolerance_pct` | `0.0005`                                    | % tolerance for classifying `H1_aligned_M5` in `compute_ssa_cross_signal()`                       |
+| `interpolate_columns`        | `["ssa", "ema_ssa", "ssa_high", "ssa_low"]` | All four H1 SSA components interpolated to the M5 grid — produces cols V, W, Z, AB                |
 
 ---
 
@@ -716,27 +728,31 @@ def verify_stack_b_against_reference(df_m5_aligned: pd.DataFrame,
     """
     Compares Stack B output against the reference Excel workbook.
 
-    Reference columns (R–AA in Mapped_H1_M5_Interporate):
-        R  = timestamp            → compare with df_m5_aligned['timestamp']
-        V  = ssa_m5_interpolation → compare with df_m5_aligned['ssa_h1_interp']
-        W  = ema_ssa_m5_interp    → compare with df_m5_aligned['ema_ssa_h1_interp']
-        X  = ssa_m5               → compare with df_m5_aligned['ssa_m5']
-        Y  = ema_ssa_m5           → compare with df_m5_aligned['ema_ssa_m5']
-        Z  = ssa_high_m5          → compare with df_m5_aligned['ssa_high_m5']
-        AA = ssa_low_m5           → compare with df_m5_aligned['ssa_low_m5']
+    Reference columns (R–AC in Mapped_H1_M5_Interporate):
+        R  = timestamp                    → compare with df_m5_aligned['timestamp']
+        V  = ssa_m5_interpolation         → compare with df_m5_aligned['ssa_h1_interp']
+        W  = ema_ssa_m5_interpolation     → compare with df_m5_aligned['ema_ssa_h1_interp']
+        X  = ssa_m5                       → compare with df_m5_aligned['ssa_m5']
+        Y  = ema_ssa_m5                   → compare with df_m5_aligned['ema_ssa_m5']
+        Z  = ssa_high_m5_interpolation    → compare with df_m5_aligned['ssa_high_m5_interpolation']
+        AA = ssa_high_m5                  → compare with df_m5_aligned['ssa_high_m5']
+        AB = ssa_low_m5_interpolation     → compare with df_m5_aligned['ssa_low_m5_interpolation']
+        AC = ssa_low_m5                   → compare with df_m5_aligned['ssa_low_m5']
 
     Returns dict with per-column max_abs_error and pass/fail status.
     """
     ref = pd.read_excel(reference_path, sheet_name='Mapped_H1_M5_Interporate',
-                        header=0, usecols='R:AA')
+                        header=0, usecols='R:AC')
 
     col_map = {
-        'ssa_m5_interpolation':     'ssa_h1_interp',
-        'ema_ssa_m5_interpolation': 'ema_ssa_h1_interp',
-        'ssa_m5.1':                 'ssa_m5',
-        'ema_ssa_m5.1':             'ema_ssa_m5',
-        'ssa_high_m5.1':            'ssa_high_m5',
-        'ssa_low_m5.1':             'ssa_low_m5',
+        'ssa_m5_interpolation':         'ssa_h1_interp',
+        'ema_ssa_m5_interpolation':     'ema_ssa_h1_interp',
+        'ssa_m5.1':                     'ssa_m5',
+        'ema_ssa_m5.1':                 'ema_ssa_m5',
+        'ssa_high_m5_interpolation':    'ssa_high_m5_interpolation',
+        'ssa_high_m5.1':                'ssa_high_m5',
+        'ssa_low_m5_interpolation':     'ssa_low_m5_interpolation',
+        'ssa_low_m5.1':                 'ssa_low_m5',
     }
 
     results = {}
