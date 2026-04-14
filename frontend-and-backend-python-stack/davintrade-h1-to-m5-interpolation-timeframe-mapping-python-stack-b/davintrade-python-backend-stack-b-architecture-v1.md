@@ -701,14 +701,15 @@ Export to DB:
 
 ## 10. Technical Stack
 
-Stack B shares the complete technical stack defined in Stack A Section 10. No additional libraries are introduced.
+Stack B shares the complete technical stack defined in Stack A Section 10.
 
-| Purpose            | Library         | Notes                                                                        |
-| ------------------ | --------------- | ---------------------------------------------------------------------------- |
-| Core interpolation | `pandas`        | `DataFrame.interpolate(method='index')` — primary interpolation mechanism    |
-| Numeric operations | `numpy`         | Array operations for `ssa_cross_signal` tolerance check                      |
-| Config hot-reload  | `Redis Pub/Sub` | Same hot-reload hook as Stack A — `interp_h1m5` block reloaded on same cycle |
-| Persistence        | `PostgreSQL`    | `df_m5_aligned` persisted alongside Stack A Golden node data                 |
+| Purpose                 | Library         | Notes                                                                                                                                                                                                                                     |
+| ----------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core interpolation      | `pandas`        | `DataFrame.interpolate(method='index')` — primary interpolation mechanism                                                                                                                                                                 |
+| Numeric operations      | `numpy`         | Array operations for `ssa_cross_signal` tolerance check                                                                                                                                                                                   |
+| Excel reference reading | `openpyxl`      | Required by `pd.read_excel()` to open `.xlsx` files. Used in `verify_stack_b_against_reference()` only. File: `ALGLIB_SSA_XAUUSD_timeframemapping.xlsx`, sheet: `Mapped_H1_M5_Interporate`, cols: `R:AC`. Install: `pip install openpyxl` |
+| Config hot-reload       | `Redis Pub/Sub` | Same hot-reload hook as Stack A — `interp_h1m5` block reloaded on same cycle                                                                                                                                                              |
+| Persistence             | `PostgreSQL`    | `df_m5_aligned` persisted alongside Stack A Golden node data                                                                                                                                                                              |
 
 ---
 
@@ -778,7 +779,72 @@ def verify_stack_b_against_reference(df_m5_aligned: pd.DataFrame,
 
 ---
 
-## 12. Core Architectural Principles for Stack B
+## 12. Warm-Up Behaviour: First Partial H1 Period
+
+### 12.1 What Warm-Up Means in Stack B
+
+Stack B's interpolation formula requires **two H1 endpoints** — a start anchor and an end anchor — to produce a linear value for each M5 bar between them. For the vast majority of bars in production, both endpoints are available and the normal formula applies. The warm-up condition arises only at the **leading edge of the M5 dataset**, where there may not be a complete H1 period available before the first M5 bar.
+
+There are two distinct starting conditions. **Ideal case:** the first M5 bar falls exactly on an H1 boundary timestamp (x_count = 1). Both the start anchor (row 0) and the end anchor (12 bars later) are within the M5 range. Full linear interpolation proceeds normally from the very first bar — zero warm-up bars. This is confirmed by the reference dataset `ALGLIB_SSA_XAUUSD_timeframemapping.xlsx`, where M5 data begins at timestamp `1775127600` (x_count = 1), and Stack B columns V, W, Z, AB are fully populated from row 2 onward with no anomalous values.
+
+**General case (mid-period start):** the first M5 bar falls partway through an H1 period (x_count > 1). The H1 boundary that started that period falls before the first M5 bar and is therefore not present in the M5 DatetimeIndex. After the left-join in `merge_h1_onto_m5_grid()`, these early M5 bars carry NaN for all four anchor columns. `interpolate(method='index')` cannot fill them (there is no preceding anchor within the M5 index to interpolate from). `bfill()` then fills them backward from the **first H1 anchor that does appear** in the M5 range (the start of the next complete H1 period).
+
+### 12.2 Calculation Difference During Warm-Up
+
+| Condition                         | Value assigned                            | Calculation logic                      |
+| --------------------------------- | ----------------------------------------- | -------------------------------------- |
+| Normal bar (complete H1 period)   | `start_H1 + (j/12) × (end_H1 − start_H1)` | True two-endpoint linear interpolation |
+| Warm-up bar (pre-boundary, bfill) | Constant = first H1 anchor in M5 range    | Copy — NOT interpolated                |
+
+The warm-up bars receive a **constant value** equal to the H1 anchor at the start of the first complete H1 period in the M5 range, not a linearly interpolated value between two H1 endpoints. This is materially different from the normal calculation logic and will show as a flat (non-sloped) segment at the very beginning of the interpolated series.
+
+### 12.3 Quantifying Warm-Up Depth
+
+The number of warm-up bars depends on where in the H1 period the M5 data begins:
+
+| M5 data starts at x_count | Warm-up bars (pre-boundary) | First normal interpolated bar |
+| ------------------------- | --------------------------- | ----------------------------- |
+| 1 (H1 boundary)           | 0                           | Row 1 (first M5 bar)          |
+| 2                         | 1                           | Row 2                         |
+| 6                         | 5                           | Row 6                         |
+| 12 (last bar of H1)       | 11                          | Row 12                        |
+
+Maximum warm-up depth: **11 bars** (when M5 data starts at x_count = 12 of an H1 period).
+
+### 12.4 Identifying Warm-Up Bars in Code
+
+```python
+def get_stack_b_warmup_count(df_m5_raw: pd.DataFrame, df_h1: pd.DataFrame) -> int:
+    """
+    Returns the number of leading M5 bars that fall before the first H1 boundary
+    in the M5 data range. These bars receive bfill-propagated constant values
+    rather than true linear interpolation.
+
+    Returns 0 if M5 data begins exactly at an H1 boundary (ideal case).
+    Maximum return value is m5_bars_per_h1 - 1 = 11.
+    """
+    m5_start = df_m5_raw.index[0]
+    h1_boundaries_in_range = df_h1.index[df_h1.index >= m5_start]
+    if len(h1_boundaries_in_range) == 0:
+        return len(df_m5_raw)  # No H1 anchor found — entire dataset is warm-up
+    first_h1_in_range = h1_boundaries_in_range[0]
+    warmup_bars = int((first_h1_in_range - m5_start) / pd.Timedelta(seconds=300))
+    return warmup_bars
+```
+
+### 12.5 Recommendation for Claude Code
+
+When implementing Stack B:
+
+1. Call `get_stack_b_warmup_count()` once at startup. Log the result. Zero is expected for well-aligned data.
+2. If warm-up count > 0, the first `warmup_count` rows of the Stack B output DataFrame carry **constant bfill values, not interpolated values**. These rows are structurally valid (no NaN) but semantically different.
+3. These warm-up rows should be **tagged or excluded** in the frontend payload if the upstream data alignment cannot be guaranteed. A simple approach is to store `warmup_bars` in the API response metadata so the frontend can skip plotting those rows.
+4. The reference dataset starts at x_count = 1 with zero warm-up bars. The `verify_stack_b_against_reference()` function therefore validates the normal interpolation path only. No separate warm-up verification is required against the reference workbook.
+5. **Minimum data requirement:** Stack B requires at least 2 H1 anchors to appear within or after the first M5 bar. With only 1 H1 anchor (all M5 bars belong to a single H1 period), the entire dataset receives bfill-propagated constant values.
+
+---
+
+## 13. Core Architectural Principles for Stack B
 
 | Principle                   | Implementation                                                                                                                                                                             |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

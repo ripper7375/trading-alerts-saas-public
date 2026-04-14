@@ -1,0 +1,2 @@
+Implement Python Backend Stack B as specified in davintrade-python-backend-stack-b-architecture-v1.md. Stack A context is in davintrade-python-backend-architecture-v2.md. The Excel file ALGLIB_SSA_XAUUSD_timeframemapping.xlsx is the verification reference.
+Deliver a single Python module stack_b.py containing all functions from Section 5. When complete, run verify_stack_b_against_reference() against the Excel file and confirm all columns PASS with max_abs_error ≤ 1e-4.
