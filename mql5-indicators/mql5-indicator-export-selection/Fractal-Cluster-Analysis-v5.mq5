@@ -478,27 +478,52 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
 
    int limit = rates_total - prev_calculated;
    if (limit <= 0) limit = 1;
+   
+   // --- FIX: Track if any fractal appeared or disappeared during this tick ---
+   bool fractals_changed = false; 
+
    int calc_limit_108 = limit + ExtSideBars;
    if(calc_limit_108 >= rates_total - ExtSideBars) calc_limit_108 = rates_total - ExtSideBars - 1;
    for(int i = calc_limit_108; i >= ExtSideBars && !IsStopped(); i--) {
+      // Store the old state
+      double old_upper = ExtUpperBuffer[i];
+      double old_lower = ExtLowerBuffer[i];
+      
       ExtUpperBuffer[i] = EMPTY_VALUE;
       ExtLowerBuffer[i] = EMPTY_VALUE;
+      
       if(IsUpperFractal(high, i, ExtSideBars)) ExtUpperBuffer[i] = high[i];
       if(IsLowerFractal(low, i, ExtSideBars))  ExtLowerBuffer[i] = low[i];
+      
+      // If the state changed on this tick, flag it
+      if(old_upper != ExtUpperBuffer[i] || old_lower != ExtLowerBuffer[i]) {
+         fractals_changed = true;
+      }
    }
 
    if(InpShowSymbol119) {
       int calc_limit_119 = limit + ExtSideBars119;
       if(calc_limit_119 >= rates_total - ExtSideBars119) calc_limit_119 = rates_total - ExtSideBars119 - 1;
       for(int i = calc_limit_119; i >= ExtSideBars119 && !IsStopped(); i--) {
+         // Store the old state
+         double old_upper = ExtUpperBuffer119[i];
+         double old_lower = ExtLowerBuffer119[i];
+         
          ExtUpperBuffer119[i] = EMPTY_VALUE;
          ExtLowerBuffer119[i] = EMPTY_VALUE;
+         
          if(IsUpperFractal(high, i, ExtSideBars119)) ExtUpperBuffer119[i] = high[i];
          if(IsLowerFractal(low, i, ExtSideBars119))  ExtLowerBuffer119[i] = low[i];
+         
+         // If the state changed on this tick, flag it
+         if(old_upper != ExtUpperBuffer119[i] || old_lower != ExtLowerBuffer119[i]) {
+             fractals_changed = true;
+         }
       }
    }
 
-   if(prev_calculated == 0 || new_bar) {
+   // --- FIX: Update clustering instantly if a fractal changed mid-bar ---
+   if(prev_calculated == 0 || new_bar || fractals_changed) {
       PerformClustering(rates_total, time);
       ChartRedraw(0);
    }

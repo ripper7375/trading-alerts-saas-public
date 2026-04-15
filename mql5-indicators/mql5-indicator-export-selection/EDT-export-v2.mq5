@@ -526,6 +526,7 @@ bool ExportEDTData()
     if(dot_pos > 0) clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
     
     string tf_str = EnumToString(timeframe);
+    StringReplace(tf_str, "PERIOD_", ""); // Removes the prefix
     string filename = StringFormat("%s_%s_%s.txt", InpExportFileName, clean_symbol, tf_str);
     int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
     if(file_handle == INVALID_HANDLE) { Print("ERROR: Failed to open file for writing."); return false; }

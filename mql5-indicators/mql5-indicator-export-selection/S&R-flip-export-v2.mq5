@@ -546,6 +546,7 @@ bool ExportFlipLineData()
     if(dot_pos > 0) clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
     
     string tf_str = EnumToString(timeframe);
+    StringReplace(tf_str, "PERIOD_", ""); // This removes the "PERIOD_" prefix
     string filename = StringFormat("%s_%s_%s.txt", InpExportFileName, clean_symbol, tf_str);
     string full_path = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
 
