@@ -214,6 +214,16 @@ void CreateExportButton()
 
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
   {
+    //--- Handle "Export All" custom event from EA
+    if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+      {
+        if(ExportFlipLineData())
+            Print("SUCCESS: [Export All] S&R FL data exported successfully");
+        else
+            Print("ERROR: [Export All] Failed to export S&R FL data.");
+        return;
+      }
+
     if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME)
       {
         ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
