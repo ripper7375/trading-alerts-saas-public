@@ -77,7 +77,7 @@ input ENUM_SYMBOL_SIZE  InpSymbolSize119 = SIZE_NORMAL;
 input int               InpSymbolOffset119 = 0;
 
 input string            Sep5 = "===== CFL #2 Base & EDT Rules =====";
-input int               InpRegCentroids = 12; // Max Centroids to Evaluate (Comb. Masking)
+input int               InpRegCentroids = 12; // (3-12) Max Centroids to Evaluate (Comb. Masking)
 input double            InpMinCFLSeparation = 0.1; // Minimum Price Separation (%) from CFL #1
 input double            InpMinCFLSlopeSeparation = 5.0; // Minimum Slope Separation (%) from CFL #1
 input int               InpCFLVisualLookback = 500; // Visual Drawing Limit
@@ -736,7 +736,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
    }
 
    bool cfl_found = (unique_count >= 2); // MUST have at least 2 unique lines to use CFL_2
-   CFLCandidate target_cfl;
+   CFLCandidate target_cfl = {}; // The "= {}" initializes it with zeros to clear the warning
 
    double mse_cross = 0, r2_cross = 0, skew_cross = 0, kurt_cross = 0, var_cross = 1.0;
    double mse_close = 0, r2_close = 0, skew_close = 0, kurt_close = 0, var_close = 1.0;

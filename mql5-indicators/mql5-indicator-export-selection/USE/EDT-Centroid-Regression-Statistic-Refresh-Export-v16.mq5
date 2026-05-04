@@ -1,12 +1,12 @@
 ﻿//+------------------------------------------------------------------+
-//|                                SSA_Centroid_Regression_CFL.mq5   |
+//|                                SSA_Centroid_Regression_EDT.mq5   |
 //|                                    Copyright 2026, Clemence Benjamin|
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
-#property version   "3.92"
-#property description "DavinTrade V3.92: Auto-Refined CFL Base Line + Symmetrical EDTs"
+#property version   "3.891"
+#property description "DavinTrade V3.89: Standard Regression (Harmonized for Multi-Chart)"
 #property indicator_chart_window
 
 // Total Buffers: 17 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 44 Buffers
@@ -15,7 +15,7 @@
 
 #include <Math/Alglib/alglib.mqh>
 
-#define EXPORT_BUTTON_NAME "V392ExportButton"
+#define EXPORT_BUTTON_NAME "V389ExportButton"
 
 //--- Enums
 enum ENUM_CLUSTERING_ALGO {
@@ -76,13 +76,14 @@ input ENUM_FRACTAL_BARS_119 InpFractalBars119 = BARS_13;
 input ENUM_SYMBOL_SIZE  InpSymbolSize119 = SIZE_NORMAL;
 input int               InpSymbolOffset119 = 0;
 
-input string            Sep5 = "===== CFL Base & EDT Rules =====";
-input int               InpRegCentroids = 12; // (3-12) Max Centroids to Evaluate (Comb. Masking)
-input int               InpCFLVisualLookback = 500; // Visual Drawing Limit
-input color             InpCFLColor = clrDarkOrange; // Color of Top CFL
-input int               InpMaxEDTLines = 4;  // Maximum Total EDTs
+input string            Sep5 = "===== EDT Rules & Tolerance =====";
+input bool              InpShowComments = false; // Toggle to prevent comment flickering on Multi-Chart
+input int               InpRegCentroids = 6; // Number of Centroids for Regression (3 to 12)
+input int               InpMaxEDTLines = 4;  // Maximum Total EDTs (Max 8 due to Strict Buffers)
+input int               InpEDTVisualLookback = 500; // Visual Drawing Limit
 input int               InpEDTMinTouches = 1; 
 input double            InpMinLineSeparationPercent = 0.5; 
+input color             InpBaseLineColor = clrDarkOrange;
 input color             InpEDTColor = clrDarkViolet;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
 input double            InpTolerancePercent = 1.00;
@@ -90,7 +91,7 @@ input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
 
 input string            Sep6 = "===== Export & Timer Settings =====";
-input string            InpExportFileName = "DavinTrade_V392_CFL_EDT_Data";
+input string            InpExportFileName = "DavinTrade_V389_Data";
 input bool              InpAutoExport = true;
 input int               InpExportSecond = 59; // Trigger at this second (0-59)
 
@@ -102,7 +103,7 @@ double ExtUpper108[];      // 3
 double ExtLower108[];      // 4
 double ExtUpper119[];      // 5
 double ExtLower119[];      // 6
-double ExtCFL1[];          // 7 (Base Line)
+double ExtBaseLine[];      // 7
 double ExtEDT1[], ExtEDT2[], ExtEDT3[], ExtEDT4[], ExtEDT5[]; // 8-12
 double ExtEDT6[], ExtEDT7[], ExtEDT8[], ExtEDT9[];            // 13-16
 
@@ -171,16 +172,6 @@ struct ClusterCentroidInfo {
    int      cluster_id;
 };
 
-struct CFLCandidate {
-   int      mask;
-   double   m;
-   double   c;
-   double   r2_cross;
-   int      leftmost;
-   int      rightmost;
-   int      centroids_used;
-};
-
 struct FractalPoint {
    int      bar;
    double   price;
@@ -194,6 +185,7 @@ struct TrendLine {
    double score;
 };
 
+
 //+------------------------------------------------------------------+
 //| Initialization                                                   |
 //+------------------------------------------------------------------+
@@ -203,8 +195,9 @@ int OnInit()
    ExtSideBars119 = ((int)InpFractalBars119 - 1) / 2;
    
    if(InpMaxEDTLines > 8) Print("WARNING: InpMaxEDTLines capped at 8 due to Strict Buffer assignment.");
-   ExtATRHandle = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
    
+   ExtATRHandle = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
+
    SetIndexBuffer(0, ExtSSATrend, INDICATOR_DATA);
    SetIndexBuffer(1, ExtSSASignal, INDICATOR_DATA);
    SetIndexBuffer(2, ExtSSACross, INDICATOR_DATA);
@@ -212,7 +205,7 @@ int OnInit()
    SetIndexBuffer(4, ExtLower108, INDICATOR_DATA);
    SetIndexBuffer(5, ExtUpper119, INDICATOR_DATA);
    SetIndexBuffer(6, ExtLower119, INDICATOR_DATA);
-   SetIndexBuffer(7, ExtCFL1, INDICATOR_DATA); 
+   SetIndexBuffer(7, ExtBaseLine, INDICATOR_DATA);
    SetIndexBuffer(8, ExtEDT1, INDICATOR_DATA); SetIndexBuffer(9, ExtEDT2, INDICATOR_DATA);
    SetIndexBuffer(10, ExtEDT3, INDICATOR_DATA); SetIndexBuffer(11, ExtEDT4, INDICATOR_DATA);
    SetIndexBuffer(12, ExtEDT5, INDICATOR_DATA); SetIndexBuffer(13, ExtEDT6, INDICATOR_DATA);
@@ -251,17 +244,15 @@ int OnInit()
    PlotIndexSetInteger(4, PLOT_DRAW_TYPE, DRAW_ARROW); PlotIndexSetInteger(4, PLOT_ARROW, 108); PlotIndexSetInteger(4, PLOT_LINE_COLOR, clrLimeGreen); PlotIndexSetInteger(4, PLOT_LINE_WIDTH, (int)InpSymbolSize); PlotIndexSetInteger(4, PLOT_ARROW_SHIFT, InpSymbolOffset);
    PlotIndexSetInteger(5, PLOT_DRAW_TYPE, InpShowSymbol119 ? DRAW_ARROW : DRAW_NONE); PlotIndexSetInteger(5, PLOT_ARROW, 119); PlotIndexSetInteger(5, PLOT_LINE_COLOR, clrRed); PlotIndexSetInteger(5, PLOT_LINE_WIDTH, (int)InpSymbolSize119); PlotIndexSetInteger(5, PLOT_ARROW_SHIFT, -InpSymbolOffset119);
    PlotIndexSetInteger(6, PLOT_DRAW_TYPE, InpShowSymbol119 ? DRAW_ARROW : DRAW_NONE); PlotIndexSetInteger(6, PLOT_ARROW, 119); PlotIndexSetInteger(6, PLOT_LINE_COLOR, clrLimeGreen); PlotIndexSetInteger(6, PLOT_LINE_WIDTH, (int)InpSymbolSize119); PlotIndexSetInteger(6, PLOT_ARROW_SHIFT, InpSymbolOffset119);
-   
-   PlotIndexSetInteger(7, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(7, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(7, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(7, PLOT_LINE_COLOR, InpCFLColor); PlotIndexSetString(7, PLOT_LABEL, "Top CFL Base Line");
+   PlotIndexSetInteger(7, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(7, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(7, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(7, PLOT_LINE_COLOR, InpBaseLineColor); PlotIndexSetString(7, PLOT_LABEL, "Regression Base Line");
    
    for(int i = 8; i <= 16; i++) {
       PlotIndexSetInteger(i, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(i, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(i, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(i, PLOT_LINE_COLOR, InpEDTColor);
       PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE); PlotIndexSetString(i, PLOT_LABEL, "EDT #" + IntegerToString(i-7));
    }
-   
    for(int i=0; i<17; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
    
-   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA CFL EDT V3.92");
+   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA EDT V3.89");
    CreateExportButton();
    
    if(InpAutoExport) EventSetTimer(1);
@@ -272,10 +263,10 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
-   ObjectsDeleteAll(0, "ClusterHull_");
-   ObjectsDeleteAll(0, "ClusterCentroidStar_");
+   ObjectsDeleteAll(0, "ClusterHull_V89_");
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V89_");
    ObjectDelete(0, EXPORT_BUTTON_NAME);
-   Comment(""); 
+   if(InpShowComments) Comment(""); 
    if(InpAutoExport) EventKillTimer();
    ChartRedraw(0);
 }
@@ -294,7 +285,7 @@ void OnTimer()
    if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
        last_trigger_min = time_struct.min;
        if(g_rates_total > 0) {
-           PerformClusteringAndCFL(g_rates_total, g_time, g_close);
+           PerformClusteringAndEDT(g_rates_total, g_time, g_close);
            ChartRedraw(0);
            ExportData(true); 
        }
@@ -323,10 +314,11 @@ void CreateExportButton()
    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0) ObjectDelete(0, EXPORT_BUTTON_NAME);
    ObjectCreate(0, EXPORT_BUTTON_NAME, OBJ_BUTTON, 0, 0, 0);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XDISTANCE, 20);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 30);
+   // Shifted down to 110 to clear V3.92 (30) and V3.92_2 (70)
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 110);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XSIZE, 160);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YSIZE, 30);
-   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Export V3.92 Data");
+   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Export V3.89 Data");
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_COLOR, clrWhite);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BGCOLOR, clrDarkBlue);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_LEFT_UPPER);
@@ -338,7 +330,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 {
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME) {
       ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
-      PerformClusteringAndCFL(g_rates_total, g_time, g_close); 
+      PerformClusteringAndEDT(g_rates_total, g_time, g_close); 
       ExportData(false);
       ChartRedraw(0);
    }
@@ -487,14 +479,14 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
 
 
 //+------------------------------------------------------------------+
-//| Core: Clustering -> Combinatorics -> Best CFL -> EDTs            |
+//| Core: Clustering -> Regression -> Dual Pipeline Math -> EDT      |
 //+------------------------------------------------------------------+
-void PerformClusteringAndCFL(const int rates_total, const datetime &time[], const double &close_arr[])
+void PerformClusteringAndEDT(const int rates_total, const datetime &time[], const double &close_arr[])
 {
-   ObjectsDeleteAll(0, "ClusterHull_"); 
-   ObjectsDeleteAll(0, "ClusterCentroidStar_");
+   ObjectsDeleteAll(0, "ClusterHull_V89_"); 
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V89_");
    ArrayInitialize(ExtCrossInCluster, 0.0);
-   ArrayInitialize(ExtCFL1, EMPTY_VALUE);
+   ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
    ArrayInitialize(g_cen_prices, 0.0);
    
    int startIdx = (rates_total > InpSSAMathLookback) ? rates_total - InpSSAMathLookback : 0;
@@ -509,7 +501,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
 
    int p_count = ArraySize(points);
    if(p_count < InpMinPts) {
-      Comment("--- DavinTrade V3.92 (CFL+EDT) ---\nAwaiting more data: Points < MinPts");
+      if(InpShowComments) Comment("--- DavinTrade V3.89 ---\nAwaiting more data: Points < MinPts");
       return;
    }
 
@@ -563,7 +555,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
          
          for(int h = 0; h < h_count; h++) {
             ClusterPoint p1 = hull[h], p2 = hull[(h + 1) % h_count]; 
-            string line_name = "ClusterHull_" + IntegerToString(k) + "_" + IntegerToString(h);
+            string line_name = "ClusterHull_V89_" + IntegerToString(k) + "_" + IntegerToString(h);
             ObjectCreate(0, line_name, OBJ_TREND, 0, p1.time, p1.price, p2.time, p2.price);
             ObjectSetInteger(0, line_name, OBJPROP_COLOR, c_color); ObjectSetInteger(0, line_name, OBJPROP_WIDTH, 2);
             ObjectSetInteger(0, line_name, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, line_name, OBJPROP_BACK, true); ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
@@ -577,7 +569,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
          if(time_index < 0) time_index = 0; if(time_index >= rates_total) time_index = rates_total - 1;
          datetime centroid_time = time[time_index];
          
-         string star_name = "ClusterCentroidStar_" + IntegerToString(k);
+         string star_name = "ClusterCentroidStar_V89_" + IntegerToString(k);
          ObjectCreate(0, star_name, OBJ_TEXT, 0, centroid_time, real_centroid_price);
          ObjectSetString(0, star_name, OBJPROP_FONT, "Wingdings"); ObjectSetString(0, star_name, OBJPROP_TEXT, ShortToString(108));
          ObjectSetInteger(0, star_name, OBJPROP_FONTSIZE, 10); ObjectSetInteger(0, star_name, OBJPROP_ANCHOR, ANCHOR_CENTER);
@@ -602,158 +594,102 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
       }
    }
 
-   if(centroid_count < 3) {
-      Comment(StringFormat("--- DavinTrade V3.92 (CFL+EDT) ---\nAwaiting more data: Found %d / 3 Centroids needed.", centroid_count));
+   int target_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12)); 
+   
+   if(centroid_count < target_reg) {
+      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.89 ---\nAwaiting more data: Found %d / %d Centroids needed.", centroid_count, target_reg));
       return; 
    }
 
-   int n_reg = (int)MathMin(InpRegCentroids, centroid_count);
-   if(n_reg > 12) n_reg = 12;
-
-   for(int c = 0; c < n_reg; c++) {
+   for(int c = 0; c < MathMin(12, centroid_count); c++) {
        g_cen_prices[c] = centroids[c].price;
    }
 
-   // PRE-CALCULATE LEFTMOST & RIGHTMOST FOR EACH VALID CLUSTER
-   int cl_left[12]; ArrayInitialize(cl_left, rates_total);
-   int cl_right[12]; ArrayInitialize(cl_right, -1);
+   double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+   int n_reg = target_reg; 
+   for(int i = 0; i < n_reg; i++) {
+      double cx = centroids[i].bar_index;
+      double cy = centroids[i].price;
+      sumX += cx; sumY += cy; sumXY += cx * cy; sumX2 += cx * cx;
+   }
+
+   double D = n_reg * sumX2 - sumX * sumX;
+   double base_m = 0, base_c = 0;
+
+   if(D != 0) {
+      base_m = (n_reg * sumXY - sumX * sumY) / D;
+      base_c = (sumY - base_m * sumX) / n_reg;
+   } else {
+      base_m = 0; base_c = centroids[0].price; 
+   }
+
+   int leftmost_bar = rates_total; 
+   int rightmost_bar = -1;         
    
-   for(int c=0; c<n_reg; c++) {
-      int cid = centroids[c].cluster_id;
-      for(int p=0; p<p_count; p++) {
-         if(assignments[p] == cid) {
-            if(points[p].bar < cl_left[c]) cl_left[c] = points[p].bar;
-            if(points[p].bar > cl_right[c]) cl_right[c] = points[p].bar;
-         }
-      }
+   int oldest_cluster_id = centroids[target_reg - 1].cluster_id;
+   int newest_cluster_id = centroids[0].cluster_id;
+   
+   for(int i = 0; i < p_count; i++) {
+      if(assignments[i] == oldest_cluster_id && points[i].bar < leftmost_bar) leftmost_bar = points[i].bar;
+      if(assignments[i] == newest_cluster_id && points[i].bar > rightmost_bar) rightmost_bar = points[i].bar;
    }
-
-   CFLCandidate best_cfl;
-   best_cfl.r2_cross = -9999999.0;
-   best_cfl.centroids_used = 0;
-   bool cfl_found = false;
-
-   int total_combos = 1 << n_reg;
-
-   for(int mask = 1; mask < total_combos; mask++) {
-       int bits = 0;
-       for(int b=0; b<n_reg; b++) { if((mask & (1<<b)) != 0) bits++; }
-       if(bits < 3) continue;
-
-       double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-       int leftmost_bar = rates_total, rightmost_bar = -1;
-       
-       for(int b=0; b<n_reg; b++) {
-           if((mask & (1<<b)) != 0) {
-               double cx = centroids[b].bar_index;
-               double cy = centroids[b].price;
-               sumX += cx; sumY += cy; sumXY += cx * cy; sumX2 += cx * cx;
-               
-               if(cl_left[b] < leftmost_bar) leftmost_bar = cl_left[b];
-               if(cl_right[b] > rightmost_bar) rightmost_bar = cl_right[b];
-           }
-       }
-
-       if(leftmost_bar >= rightmost_bar) continue;
-
-       double D = bits * sumX2 - sumX * sumX;
-       double cand_m = 0, cand_c = 0;
-       if(D != 0) {
-           cand_m = (bits * sumXY - sumX * sumY) / D;
-           cand_c = (sumY - cand_m * sumX) / bits;
-       } else { continue; }
-
-       int start_idx_p = -1, end_idx_p = -1;
-       for(int p=0; p<p_count; p++) {
-           if(points[p].bar >= leftmost_bar && start_idx_p == -1) start_idx_p = p;
-           if(points[p].bar <= rightmost_bar) end_idx_p = p;
-       }
-       if(start_idx_p == -1 || end_idx_p == -1) continue;
-
-       int n_crossings = 0;
-       double sum_crossings = 0;
-       for(int p = start_idx_p; p <= end_idx_p; p++) {
-           sum_crossings += points[p].price;
-           n_crossings++;
-       }
-       if(n_crossings < 3) continue;
-
-       double mean_cross = sum_crossings / n_crossings;
-       double res_sq = 0, tot_sq = 0;
-       for(int p = start_idx_p; p <= end_idx_p; p++) {
-           double pred_y = cand_m * points[p].bar + cand_c;
-           res_sq += MathPow(points[p].price - pred_y, 2);
-           tot_sq += MathPow(points[p].price - mean_cross, 2);
-       }
-       
-       double r2 = (tot_sq != 0) ? 1.0 - (res_sq / tot_sq) : 0.0;
-       
-       if(r2 > best_cfl.r2_cross) {
-           best_cfl.mask = mask;
-           best_cfl.m = cand_m;
-           best_cfl.c = cand_c;
-           best_cfl.r2_cross = r2;
-           best_cfl.leftmost = leftmost_bar;
-           best_cfl.rightmost = rightmost_bar;
-           best_cfl.centroids_used = bits;
-           cfl_found = true;
-       }
-   }
-
+   
    double mse_cross = 0, r2_cross = 0, skew_cross = 0, kurt_cross = 0, var_cross = 1.0;
    double mse_close = 0, r2_close = 0, skew_close = 0, kurt_close = 0, var_close = 1.0;
    double current_angle = 0.0;
-   double current_intercept_anchored = 0.0; 
-   int n_crossings_eval = 0;
-   int n_close_bars = 0;
-   int leftmost_eval = rates_total, rightmost_eval = -1;
-   double base_m = 0, base_c = 0;
-
-   if(cfl_found) {
-       base_m = best_cfl.m;
-       base_c = best_cfl.c;
-       leftmost_eval = best_cfl.leftmost;
-       rightmost_eval = best_cfl.rightmost;
-       
-       current_intercept_anchored = base_m * (rates_total - 1) + base_c; 
-       n_close_bars = (rightmost_eval - leftmost_eval) + 1;
-       
-       double sum_crossings = 0, sum_close = 0;
-       for(int i = leftmost_eval; i <= rightmost_eval; i++) {
-          if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) { sum_crossings += ExtSSACross[i]; n_crossings_eval++; }
-          sum_close += close_arr[i];
-       }
+   double current_intercept_anchored = base_m * (rates_total - 1) + base_c; 
+   
+   int n_crossings = 0;
+   int n_close_bars = (rightmost_bar - leftmost_bar) + 1;
+   
+   if(leftmost_bar <= rightmost_bar && leftmost_bar != rates_total) {
       
-       double mean_cross = (n_crossings_eval > 0) ? (sum_crossings / n_crossings_eval) : 0.0;
-       double mean_close_price = (n_close_bars > 0) ? (sum_close / n_close_bars) : current_intercept_anchored;
-       double slope_pct_per_bar = (base_m / mean_close_price) * 100.0;
-       current_angle = MathArctan(slope_pct_per_bar * 100.0) * 180.0 / M_PI; 
+      double sum_crossings = 0;
+      double sum_close = 0;
+      
+      for(int i = leftmost_bar; i <= rightmost_bar; i++) {
+          if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
+             sum_crossings += ExtSSACross[i];
+             n_crossings++;
+          }
+          sum_close += close_arr[i];
+      }
+      
+      double mean_cross = (n_crossings > 0) ? (sum_crossings / n_crossings) : 0.0;
+      double mean_close_price = (n_close_bars > 0) ? (sum_close / n_close_bars) : current_intercept_anchored;
+      double slope_pct_per_bar = (base_m / mean_close_price) * 100.0;
+      current_angle = MathArctan(slope_pct_per_bar * 100.0) * 180.0 / M_PI; 
 
-       if(n_crossings_eval >= 3 && n_close_bars >= 3) {
-          double res_cross[]; ArrayResize(res_cross, n_crossings_eval);
+      if(n_crossings >= 3 && n_close_bars >= 3) {
+          
+          double res_cross[]; ArrayResize(res_cross, n_crossings);
           double res_close[]; ArrayResize(res_close, n_close_bars);
           
           int rx = 0; double sum_e_cross = 0;
           int rc = 0; double sum_e_close = 0;
           
-          // Calculate Residuals (Errors) first
-          for(int i = leftmost_eval; i <= rightmost_eval; i++) {
+          for(int i = leftmost_bar; i <= rightmost_bar; i++) {
               double pred_y = base_m * i + base_c;
+              
               if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
-                 res_cross[rx] = ExtSSACross[i] - pred_y; sum_e_cross += res_cross[rx]; rx++;
+                 res_cross[rx] = ExtSSACross[i] - pred_y;
+                 sum_e_cross += res_cross[rx];
+                 rx++;
               }
-              res_close[rc] = close_arr[i] - pred_y; sum_e_close += res_close[rc]; rc++;
+              
+              res_close[rc] = close_arr[i] - pred_y;
+              sum_e_close += res_close[rc];
+              rc++;
           }
           
-          // Calculate Means of the Errors
-          double mean_e_cross = sum_e_cross / n_crossings_eval, mean_e_close = sum_e_close / n_close_bars;
+          double mean_e_cross = sum_e_cross / n_crossings;
+          double mean_e_close = sum_e_close / n_close_bars;
           
           double m2_x = 0, var_x = 0, m3_x = 0, m4_x = 0, tot_sq_x = 0;
           double m2_c = 0, var_c = 0, m3_c = 0, m4_c = 0, tot_sq_c = 0;
           
           int rx_idx = 0;
-          for(int i = leftmost_eval; i <= rightmost_eval; i++) {
-              // --- MODEL A: CROSSINGS ---
+          for(int i = leftmost_bar; i <= rightmost_bar; i++) {
               if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
                   double actual_val = ExtSSACross[i]; 
                   double err = res_cross[rx_idx];                  
@@ -765,9 +701,8 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
                   rx_idx++;
               }
               
-              // --- MODEL B: CLOSE PRICE ---
               double actual_close = close_arr[i];
-              int rc_idx = i - leftmost_eval;
+              int rc_idx = i - leftmost_bar;
               double err_c = res_close[rc_idx];
               double dev_c = err_c - mean_e_close;
               
@@ -776,9 +711,9 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
               tot_sq_c += MathPow(actual_close - mean_close_price, 2); 
           }
           
-          m2_x /= n_crossings_eval; var_x /= n_crossings_eval; m3_x /= n_crossings_eval; m4_x /= n_crossings_eval;
+          m2_x /= n_crossings; var_x /= n_crossings; m3_x /= n_crossings; m4_x /= n_crossings;
           mse_cross = m2_x; 
-          if(tot_sq_x != 0) r2_cross = 1.0 - ((m2_x * n_crossings_eval) / tot_sq_x);
+          if(tot_sq_x != 0) r2_cross = 1.0 - ((m2_x * n_crossings) / tot_sq_x);
           if(var_x > 0) { skew_cross = m3_x / MathPow(var_x, 1.5); kurt_cross = m4_x / MathPow(var_x, 2.0); }
           
           m2_c /= n_close_bars; var_c /= n_close_bars; m3_c /= n_close_bars; m4_c /= n_close_bars;
@@ -786,26 +721,30 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
           if(tot_sq_c != 0) r2_close = 1.0 - ((m2_c * n_close_bars) / tot_sq_c);
           if(var_c > 0) { skew_close = m3_c / MathPow(var_c, 1.5); kurt_close = m4_c / MathPow(var_c, 2.0); }
 
-          int half_x = n_crossings_eval / 2;
+          int half_x = n_crossings / 2;
           if(half_x > 1) {
               double mt1=0, mt2=0, vt1=0, vt2=0;
-              for(int i=0; i<half_x; i++) mt1 += res_cross[i]; for(int i=half_x; i<n_crossings_eval; i++) mt2 += res_cross[i];
-              mt1 /= half_x; mt2 /= (n_crossings_eval - half_x);
-              for(int i=0; i<half_x; i++) vt1 += MathPow(res_cross[i] - mt1, 2); for(int i=half_x; i<n_crossings_eval; i++) vt2 += MathPow(res_cross[i] - mt2, 2);
-              vt1 /= (half_x - 1); vt2 /= (n_crossings_eval - half_x - 1);
+              for(int i=0; i<half_x; i++) mt1 += res_cross[i];
+              for(int i=half_x; i<n_crossings; i++) mt2 += res_cross[i];
+              mt1 /= half_x; mt2 /= (n_crossings - half_x);
+              for(int i=0; i<half_x; i++) vt1 += MathPow(res_cross[i] - mt1, 2);
+              for(int i=half_x; i<n_crossings; i++) vt2 += MathPow(res_cross[i] - mt2, 2);
+              vt1 /= (half_x - 1); vt2 /= (n_crossings - half_x - 1);
               if(vt1 > 0) var_cross = vt2 / vt1;
           }
           
           int half_c = n_close_bars / 2;
           if(half_c > 1) {
               double mt1=0, mt2=0, vt1=0, vt2=0;
-              for(int i=0; i<half_c; i++) mt1 += res_close[i]; for(int i=half_c; i<n_close_bars; i++) mt2 += res_close[i];
+              for(int i=0; i<half_c; i++) mt1 += res_close[i];
+              for(int i=half_c; i<n_close_bars; i++) mt2 += res_close[i];
               mt1 /= half_c; mt2 /= (n_close_bars - half_c);
-              for(int i=0; i<half_c; i++) vt1 += MathPow(res_close[i] - mt1, 2); for(int i=half_c; i<n_close_bars; i++) vt2 += MathPow(res_close[i] - mt2, 2);
+              for(int i=0; i<half_c; i++) vt1 += MathPow(res_close[i] - mt1, 2);
+              for(int i=half_c; i<n_close_bars; i++) vt2 += MathPow(res_close[i] - mt2, 2);
               vt1 /= (half_c - 1); vt2 /= (n_close_bars - half_c - 1);
               if(vt1 > 0) var_close = vt2 / vt1;
           }
-       }
+      }
    }
    
    int current_bar_idx = rates_total - 1;
@@ -833,8 +772,8 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
    ExtCen8[current_bar_idx] = g_cen_prices[8]; ExtCen9[current_bar_idx] = g_cen_prices[9];
    ExtCen10[current_bar_idx] = g_cen_prices[10]; ExtCen11[current_bar_idx] = g_cen_prices[11];
 
-   int distance_to_leftmost = (cfl_found) ? (rates_total - leftmost_eval) : 0;
-   int active_visual_lookback = InpCFLVisualLookback;
+   int distance_to_leftmost = rates_total - leftmost_bar;
+   int active_visual_lookback = InpEDTVisualLookback;
    string override_msg = "";
    
    if(active_visual_lookback < distance_to_leftmost) {
@@ -842,78 +781,77 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
        override_msg = " (Auto-Overridden to fit Centroids)";
    }
    
-   g_stat_centroids = (cfl_found) ? best_cfl.centroids_used : 0;
+   g_stat_centroids = target_reg;
    g_stat_math_window = InpSSAMathLookback;
    g_stat_visual_window = active_visual_lookback;
    g_stat_obs_window = n_close_bars;
-   g_stat_n_crossings = n_crossings_eval;
+   g_stat_n_crossings = n_crossings;
    g_stat_n_close = n_close_bars;
-   g_stat_leftmost_bar = leftmost_eval;
+   g_stat_leftmost_bar = leftmost_bar;
 
    int drawStartIdx = rates_total - active_visual_lookback;
    if(drawStartIdx < 0) drawStartIdx = 0;
 
-   if(cfl_found) {
-       double m = best_cfl.m;
-       double c = best_cfl.c;
-       for(int i = drawStartIdx; i < rates_total; i++) {
-           ExtCFL1[i] = m * i + c;
-       }
-       
-       FractalPoint fractals[];
-       for(int i = drawStartIdx; i < rates_total; i++) {
-          if(ExtUpper108[i] != EMPTY_VALUE && ExtUpper108[i] > 0) {
-             int sz = ArraySize(fractals); ArrayResize(fractals, sz + 1);
-             fractals[sz].bar = i; fractals[sz].price = ExtUpper108[i]; fractals[sz].is_peak = true;
-          }
-          if(ExtLower108[i] != EMPTY_VALUE && ExtLower108[i] > 0) {
-             int sz = ArraySize(fractals); ArrayResize(fractals, sz + 1);
-             fractals[sz].bar = i; fractals[sz].price = ExtLower108[i]; fractals[sz].is_peak = false;
-          }
-       }
-       BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx);
+   for(int i = drawStartIdx; i < rates_total; i++) {
+      ExtBaseLine[i] = base_m * i + base_c;
    }
    
-   string comment_text = StringFormat(
-       "--- DavinTrade V3.92 A/B Statistical Pipeline ---\n" +
-       "Centroids used in Top CFL: %d\n" +
-       "Math Search Window: %d Bars\n" +
-       "Visual CFL Window: %d Bars%s\n" +
-       "Observation Window: %d Bars (Index %d to %d)\n" +
-       "Total 171 Crossings (n): %d\n" +
-       "Timeframe (Sec): %d\n" +
-       "Top CFL Raw Slope (b): %.5f\n" +
-       "Top CFL Angle: %.2f°  |  Anchored Y-Int: %.5f\n" +
-       "=================================================\n" +
-       "            [MODEL A]         [MODEL B]\n" +
-       "METRIC      (CROSSINGS)       (CLOSE PRICE)\n" +
-       "-------------------------------------------------\n" +
-       "Sample (n) : %-16d %d\n" +
-       "R-Square   : %-16.4f %.4f\n" +
-       "MSE        : %-16.4f %.4f\n" +
-       "Var Ratio  : %-16.2f %.2f\n" +
-       "Skewness   : %-16.2f %.2f\n" +
-       "Kurtosis   : %-16.2f %.2f",
-       g_stat_centroids,
-       InpSSAMathLookback,
-       active_visual_lookback, override_msg,
-       n_close_bars, leftmost_eval, rightmost_eval,
-       n_crossings_eval,
-       PeriodSeconds(_Period),
-       base_m,
-       current_angle, current_intercept_anchored,
-       n_crossings_eval, n_close_bars,
-       r2_cross, r2_close,
-       mse_cross, mse_close,
-       var_cross, var_close,
-       skew_cross, skew_close,
-       kurt_cross, kurt_close
-   );
-   Comment(comment_text);
+   if(InpShowComments) {
+      string comment_text = StringFormat(
+          "--- DavinTrade V3.89 A/B Statistical Pipeline ---\n" +
+          "Regression Centroids: %d\n" +
+          "Math Search Window: %d Bars\n" +
+          "Visual EDT Window: %d Bars%s\n" +
+          "Observation Window: %d Bars (Index %d to %d)\n" +
+          "Total 171 Crossings (n): %d\n" +
+          "Timeframe (Sec): %d\n" +
+          "Raw Slope (b): %.5f\n" +
+          "Regression Angle: %.2f°  |  Anchored Y-Int: %.5f\n" +
+          "=================================================\n" +
+          "            [MODEL A]         [MODEL B]\n" +
+          "METRIC      (CROSSINGS)       (CLOSE PRICE)\n" +
+          "-------------------------------------------------\n" +
+          "Sample (n) : %-16d %d\n" +
+          "R-Square   : %-16.4f %.4f\n" +
+          "MSE        : %-16.4f %.4f\n" +
+          "Var Ratio  : %-16.2f %.2f\n" +
+          "Skewness   : %-16.2f %.2f\n" +
+          "Kurtosis   : %-16.2f %.2f",
+          target_reg,
+          InpSSAMathLookback,
+          active_visual_lookback, override_msg,
+          n_close_bars, leftmost_bar, rightmost_bar,
+          n_crossings,
+          PeriodSeconds(_Period),
+          base_m,
+          current_angle, current_intercept_anchored,
+          n_crossings, n_close_bars,
+          r2_cross, r2_close,
+          mse_cross, mse_close,
+          var_cross, var_close,
+          skew_cross, skew_close,
+          kurt_cross, kurt_close
+      );
+      Comment(comment_text);
+   }
+
+   FractalPoint fractals[];
+   for(int i = drawStartIdx; i < rates_total; i++) {
+      if(ExtUpper108[i] != EMPTY_VALUE && ExtUpper108[i] > 0) {
+         int sz = ArraySize(fractals); ArrayResize(fractals, sz + 1);
+         fractals[sz].bar = i; fractals[sz].price = ExtUpper108[i]; fractals[sz].is_peak = true;
+      }
+      if(ExtLower108[i] != EMPTY_VALUE && ExtLower108[i] > 0) {
+         int sz = ArraySize(fractals); ArrayResize(fractals, sz + 1);
+         fractals[sz].bar = i; fractals[sz].price = ExtLower108[i]; fractals[sz].is_peak = false;
+      }
+   }
+
+   BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx);
 }
 
 //+------------------------------------------------------------------+
-//| Symmetrical EDT Snapping Logic (Re-Integrated from V3.89)        |
+//| Symmetrical EDT Snapping Logic (V3.89 Dynamic Strict Limits)     |
 //+------------------------------------------------------------------+
 void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &fractals[], int rates_total, double current_close, int drawStartIdx)
 {
@@ -978,7 +916,7 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
       }
    }
 
-   int max_allowed = (int)MathMin(InpMaxEDTLines, 8);
+   int max_allowed = (int)MathMin(InpMaxEDTLines, 8); // Cap at 8 to respect strict buffers
    int max_per_side = max_allowed / 2;
    int remainder = max_allowed % 2; 
    
@@ -990,6 +928,7 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
        else extra_below = 1;
    }
 
+   // Base targets capped strictly at 4 to ensure buffer arrays do not overflow
    int target_above = (int)MathMin(4, max_per_side + extra_above);
    int target_below = (int)MathMin(4, max_per_side + extra_below);
 
@@ -1047,6 +986,7 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
       }
    }
 
+   // The Failsafe (Slot-Stealing System)
    if (picked_above + picked_below < max_allowed) {
        int remaining = max_allowed - (picked_above + picked_below);
        
@@ -1126,9 +1066,9 @@ bool ExportData(bool silent = false)
    int live_idx = g_rates_total - 1;
    datetime gmt_offset = TimeCurrent() - TimeGMT();
 
-   FileWrite(fh, "Regression Centroids (Best CFL): " + IntegerToString(g_stat_centroids));
+   FileWrite(fh, "Regression Centroids: " + IntegerToString(g_stat_centroids));
    FileWrite(fh, "Math Search Window (Bars): " + IntegerToString(g_stat_math_window));
-   FileWrite(fh, "Visual CFL/EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
+   FileWrite(fh, "Visual EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
    FileWrite(fh, "Observation Window (Bars): " + IntegerToString(g_stat_obs_window));
    FileWrite(fh, "Total 171 Crossings (n): " + IntegerToString(g_stat_n_crossings));
    FileWrite(fh, "Timeframe (Sec): " + IntegerToString((int)ExtTimeframe[live_idx]));
@@ -1155,7 +1095,7 @@ bool ExportData(bool silent = false)
    FileWrite(fh, "Kurtosis: " + DoubleToString(ExtKurtosis_Close[live_idx], 2));
    FileWrite(fh, "");
 
-   FileWrite(fh, "timestamp\tsymbol\ttimeframe\tclose\tCEN_0\tCEN_1\tCEN_2\tCEN_3\tCEN_4\tCEN_5\tCEN_6\tCEN_7\tCEN_8\tCEN_9\tCEN_10\tCEN_11\tCFL_1\tEDT_1\tEDT_2\tEDT_3\tEDT_4\tEDT_5\tEDT_6\tEDT_7\tEDT_8\thoriz_high_map\thoriz_low_map\tssa\tema_ssa\tcrossing");
+   FileWrite(fh, "timestamp\tsymbol\ttimeframe\tclose\tCEN_0\tCEN_1\tCEN_2\tCEN_3\tCEN_4\tCEN_5\tCEN_6\tCEN_7\tCEN_8\tCEN_9\tCEN_10\tCEN_11\tBase_FL\tEDT_1\tEDT_2\tEDT_3\tEDT_4\tEDT_5\tEDT_6\tEDT_7\tEDT_8\thoriz_high_map\thoriz_low_map\tssa\tema_ssa\tcrossing");
 
    int max_lookback = MathMax(InpSSAMathLookback, g_rates_total - g_stat_leftmost_bar);
    int start_idx = g_rates_total - max_lookback;
@@ -1171,8 +1111,7 @@ bool ExportData(bool silent = false)
          else line += "\t";
       }
       
-      line += (ExtCFL1[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtCFL1[i], 5) + "\t";
-      
+      line += (ExtBaseLine[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtBaseLine[i], 5) + "\t";
       line += (ExtEDT1[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT1[i], 5) + "\t";
       line += (ExtEDT2[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT2[i], 5) + "\t";
       line += (ExtEDT3[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT3[i], 5) + "\t";
@@ -1215,7 +1154,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    if(prev_calculated == 0) new_bars_start = 0;
    
    for(int j = new_bars_start; j < rates_total; j++) {
-       ExtCFL1[j] = EMPTY_VALUE; 
+       ExtBaseLine[j] = EMPTY_VALUE;
        ExtEDT1[j] = EMPTY_VALUE; ExtEDT2[j] = EMPTY_VALUE; ExtEDT3[j] = EMPTY_VALUE; ExtEDT4[j] = EMPTY_VALUE;
        ExtEDT5[j] = EMPTY_VALUE; ExtEDT6[j] = EMPTY_VALUE; ExtEDT7[j] = EMPTY_VALUE; ExtEDT8[j] = EMPTY_VALUE; ExtEDT9[j] = EMPTY_VALUE;
        
@@ -1315,7 +1254,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
 
    if(math_update_due) { 
-      PerformClusteringAndCFL(rates_total, time, close); 
+      PerformClusteringAndEDT(rates_total, time, close); 
       ChartRedraw(0); 
    }
 
