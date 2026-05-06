@@ -5,9 +5,9 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2024, Your Name"
 #property link      "https://www.yourwebsite.com"
-#property version   "1.41"
-#property description "Improved ZigZag Color Indicator - V41 BASELINE"
-#property description "Added 3-Color Mapping for Z-Score Classifications (Normal, Large, Extreme)"
+#property version   "1.42"
+#property description "Improved ZigZag Color Indicator - V42 BASELINE"
+#property description "Added Equal High/Low Toggle and Memory Optimization"
 
 // Indicator settings
 #property indicator_chart_window
@@ -22,13 +22,14 @@
 
 // input parameters
 input group "ZigZag and Market Structure Settings"
-input int    xInpDepth     = 12;      // Depth (minimum value: 2)
-input int    xInpDeviation = 5;       // Deviation (in points)
-input int    xInpBackstep  = 3;       // Back Step (minimum value: 1)
+input int    xInpDepth     = 12;             // Depth (minimum value: 2)
+input int    xInpDeviation = 5;              // Deviation (in points)
+input int    xInpBackstep  = 3;              // Back Step (minimum value: 1)
 input color  xInpColorNormal = clrSilver;      // Normal ZigZag color
 input color  xInpColorLarge = clrDodgerBlue;   // Large ZigZag color
 input color  xInpColorExtreme = clrDarkViolet; // Extreme ZigZag color
-input double xInpEqualThreshold = 0.50;  // Equal threshold (In % of 2-Prev Points)
+input bool   xInpEnableEqual = false;         // Enable Equal High/Low Detection
+input double xInpEqualThreshold = 0.50;      // Equal threshold (In % of 2-Prev Points)
 
 // Additional input parameters for data source
 input group "Data Source Settings"
@@ -44,14 +45,14 @@ input string            InpPreferredTimeframe = "";        // Override timeframe
 
 // Z-Score Percent Change parameters
 input group "Z-Score Percent Change Settings"
-input int    InpZScoreLength  = 50;      // Z-Score Length (Number of ZigZag Segments)
-input double InpThresholdZ1   = 1.41;    // First threshold (Large)
-input double InpThresholdZ2   = 1.88;    // Second threshold (Extreme)
+input int    InpZScoreLength  = 50;          // Z-Score Length (Number of ZigZag Segments)
+input double InpThresholdZ1   = 1.41;        // First threshold (Large)
+input double InpThresholdZ2   = 1.88;        // Second threshold (Extreme)
 
 // Input parameters for export functionality
 input group "Data Export Settings"
 input string InpExportFileName = "MarketStructureAnalysis.txt"; // Export file name
-input int    InpMaxBarsExport = 3000;    // Max lookback bars for export (0 = all bars)
+input int    InpMaxBarsExport = 3000;                           // Max lookback bars for export (0 = all bars)
 
 // Structure for storing valid zigzag points
 struct xValidZigZagPoint
@@ -173,7 +174,7 @@ int GetPercentChangeClassification(int currentIndex, int totalPoints, double cur
    double sum = 0, sum2 = 0;
    int count = 0;
    int startIdx = isUnconfirmed ? 0 : currentIndex;
-   
+
    // If it's the live unconfirmed segment, include it as the first data point
    if(isUnconfirmed)
      {
@@ -200,7 +201,6 @@ int GetPercentChangeClassification(int currentIndex, int totalPoints, double cur
      }
    
    double mean = 0, stdDev = 0, zScore = 0;
-   
    if(count > 0)
      {
       mean = sum / count;
@@ -213,7 +213,7 @@ int GetPercentChangeClassification(int currentIndex, int totalPoints, double cur
    
    if(stdDev != 0)
       zScore = (MathAbs(currentPctChange) - mean) / stdDev;
-      
+
    bool isBullish = currentPctChange >= 0;
    
    if(isBullish)
@@ -237,7 +237,7 @@ bool ExportMarketStructureData()
   {
    string symbolName = "";
    string timeframeName = "";
-   
+
    if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
      {
       symbolName = g_FileSymbol;
@@ -276,10 +276,9 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
   {
    if(filename == "")
       filename = StringSubstr(InpExportFileName, 0, StringFind(InpExportFileName, ".")) + ".txt";
-      
+
    // Using FILE_ANSI with CP_UTF8 creates a pure UTF-8 file without BOM
    int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI, '\t', CP_UTF8);
-   
    if(file_handle == INVALID_HANDLE)
      {
       Print("ERROR: Failed to open TEXT file for writing. Error code: ", GetLastError());
@@ -294,7 +293,6 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
                               "PriceChange\tPercentChange\tPercentChangeClassification\tBars\tCategory") > 0;
 
    int totalPoints = ArraySize(xcollectedPoints);
-   
    if(totalPoints < 6)
      {
       FileClose(file_handle);
@@ -338,22 +336,32 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
       double priceChange = currentPrice - prevPrice;
       double percentChange = (priceChange / prevPrice) * 100;
       int barCount = xcollectedPoints[i].bar - xcollectedPoints[i+1].bar;
-      
       int pctClass = GetPercentChangeClassification(i, totalPoints, percentChange, false);
 
-      double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
-      double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
-
       string firstStatus;
-      if(currentPrice > upperThreshold)
-         firstStatus = "Higher";
-      else if(currentPrice < lowerThreshold)
-         firstStatus = "Lower";
+      if(xInpEnableEqual)
+        {
+         double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
+         double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
+         
+         if(currentPrice > upperThreshold)
+            firstStatus = "Higher";
+         else if(currentPrice < lowerThreshold)
+            firstStatus = "Lower";
+         else
+            firstStatus = "Equal";
+        }
       else
-         firstStatus = "Equal";
+        {
+         // Conventional Mode (Strict comparison)
+         if(currentPrice >= twoPrevPrice)
+            firstStatus = "Higher";
+         else
+            firstStatus = "Lower";
+        }
 
       string lastStatus = (currentPrice > prevPrice) ? "High" : "Low";
-      string category;
+      string category = "";
 
       if(firstStatus == "Higher" && lastStatus == "High") category = "HH";
       else if(firstStatus == "Lower" && lastStatus == "Low") category = "LL";
@@ -361,10 +369,10 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
       else if(firstStatus == "Lower" && lastStatus == "High") category = "LH";
       else if(firstStatus == "Equal" && lastStatus == "High") category = "EQH";
       else if(firstStatus == "Equal" && lastStatus == "Low") category = "EQL";
-      
+
       // Convert local MT5 time to UNIX time 
       long unixTime = (long)(xcollectedPoints[i].timestamp - gmt_offset);
-      
+
       string line = StringFormat("%d\t%s\t%s\t%.5f\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.2f\t%d\t%d\t%s",
                                  unixTime,
                                  symbol,
@@ -383,7 +391,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
                                  barCount,
                                  category
                                 );
-                                
+
       write_success &= FileWrite(file_handle, line) > 0;
      }
 
@@ -403,7 +411,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
          int endBar = fileSize - 1;
          unconf_bars = endBar - startBar;
          unconf_close = FileData[endBar].close;
-         
+
          if(unconf_isPeak)
            {
             double hh = FileData[startBar].high;
@@ -432,6 +440,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
 
          unconf_close = iClose(Symbol(), currentPeriod, 0);
          double highArr[], lowArr[];
+
          if(CopyHigh(Symbol(), currentPeriod, 0, shiftLastConfirmed + 1, highArr) > 0 &&
             CopyLow(Symbol(), currentPeriod, 0, shiftLastConfirmed + 1, lowArr) > 0)
            {
@@ -459,19 +468,30 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
 
       int pctClass = GetPercentChangeClassification(0, totalPoints, percentChange, true);
       
-      double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
-      double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
-      
       string firstStatus;
-      if(currentPrice > upperThreshold)
-         firstStatus = "Higher";
-      else if(currentPrice < lowerThreshold)
-         firstStatus = "Lower";
+      if(xInpEnableEqual)
+        {
+         double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
+         double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
+         
+         if(currentPrice > upperThreshold)
+            firstStatus = "Higher";
+         else if(currentPrice < lowerThreshold)
+            firstStatus = "Lower";
+         else
+            firstStatus = "Equal";
+        }
       else
-         firstStatus = "Equal";
+        {
+         // Conventional Mode (Strict comparison)
+         if(currentPrice >= twoPrevPrice)
+            firstStatus = "Higher";
+         else
+            firstStatus = "Lower";
+        }
 
       string lastStatus = (currentPrice > prevPrice) ? "High" : "Low";
-      string category;
+      string category = "";
 
       if(firstStatus == "Higher" && lastStatus == "High") category = "HH";
       else if(firstStatus == "Lower" && lastStatus == "Low") category = "LL";
@@ -479,7 +499,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
       else if(firstStatus == "Lower" && lastStatus == "High") category = "LH";
       else if(firstStatus == "Equal" && lastStatus == "High") category = "EQH";
       else if(firstStatus == "Equal" && lastStatus == "Low") category = "EQL";
-      
+
       string line = StringFormat("%d\t%s\t%s\t%.5f\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.2f\t%d\t%d\t%s",
                                  unconf_time,
                                  symbol,
@@ -498,12 +518,12 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
                                  barCount,
                                  category
                                 );
-                                
+
       write_success &= FileWrite(file_handle, line) > 0;
      }
 
    FileClose(file_handle);
-   
+
    if(!write_success)
      {
       Print("ERROR: Failed to write some data to TEXT file");
@@ -535,7 +555,7 @@ string FindOHLCDataFile(string targetSymbol, string targetTimeframe)
 
    string exactFilename = "PriceData_" + targetSymbol + "_" + targetTimeframe;
    string filenameWithExt = exactFilename + ".txt";
-   
+
    int handle = FileOpen(exactFilename, FILE_READ|FILE_TXT);
    if(handle != INVALID_HANDLE)
      {
@@ -566,7 +586,7 @@ bool ExtractSymbolAndTimeframe(string fileName)
 
    string parts[];
    int count = StringSplit(fileName, '_', parts);
-   
+
    if(count < 3)
      {
       Print("ERROR: Filename format not recognized: ", fileName);
@@ -575,7 +595,7 @@ bool ExtractSymbolAndTimeframe(string fileName)
 
    g_FileSymbol = parts[1];
    g_FileTimeframe = parts[2];
-   
+
    if(StringFind(g_FileSymbol, "JPY") >= 0)
      {
       g_FileDigitsPrecision = 3;
@@ -619,7 +639,7 @@ bool LoadPriceData(string fileName)
 
    string line = "";
    bool headerFound = false;
-   
+
    while(!FileIsEnding(fileHandle))
      {
       line = FileReadString(fileHandle);
@@ -639,7 +659,7 @@ bool LoadPriceData(string fileName)
 
    int lineCount = 0;
    ulong filePos = FileTell(fileHandle);
-   
+
    while(!FileIsEnding(fileHandle))
      {
       line = FileReadString(fileHandle);
@@ -653,7 +673,7 @@ bool LoadPriceData(string fileName)
 
    ArrayResize(FileData, lineCount);
    g_FileDataSize = lineCount;
-   
+
    for(int i = 0; i < lineCount && !FileIsEnding(fileHandle); i++)
      {
       line = FileReadString(fileHandle);
@@ -683,7 +703,6 @@ bool LoadPriceData(string fileName)
 bool InitializeFromFile()
   {
    string sourceFile = FindOHLCDataFile();
-   
    if(sourceFile == "")
      {
       Print("ERROR: No source file found");
@@ -703,7 +722,7 @@ bool InitializeFromFile()
    ArrayResize(FileColorBuffer, dataSize);
    ArrayResize(FileHighMapBuffer, dataSize);
    ArrayResize(FileLowMapBuffer, dataSize);
-   
+
    ArrayInitialize(FileZigzagPeakBuffer, 0.0);
    ArrayInitialize(FileZigzagBottomBuffer, 0.0);
    ArrayInitialize(FileColorBuffer, 0.0);
@@ -720,7 +739,7 @@ int OnInit()
   {
    if(xInpDepth < 2 || xInpBackstep < 1 || xInpDeviation < 0)
       return INIT_PARAMETERS_INCORRECT;
-      
+
    if(xInpEqualThreshold <= 0 || xInpEqualThreshold > 1.00)
      {
       Print("ERROR: Equal threshold must be between 0.00% and 1.00%");
@@ -740,7 +759,7 @@ int OnInit()
    SetIndexBuffer(4, xLowMapBuffer, INDICATOR_CALCULATIONS);
 
    IndicatorSetInteger(INDICATOR_DIGITS, _Digits);
-   
+
    // Apply 3-color map for Normal, Large, and Extreme classification
    PlotIndexSetInteger(0, PLOT_COLOR_INDEXES, 3);
    PlotIndexSetInteger(0, PLOT_LINE_COLOR, 0, xInpColorNormal);
@@ -802,9 +821,8 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
   {
-   // REMOVED: CheckAndResizeLiveDataBuffers()
-   // MT5 automatically manages sizes for arrays bound by SetIndexBuffer()
-
+   // Note: CheckAndResizeLiveDataBuffers removed in v1.41 for terminal stability
+   
    if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
      {
       if(prev_calculated == 0)
@@ -818,7 +836,7 @@ int OnCalculate(const int rates_total,
 
    if(rates_total < xInpDepth)
       return 0;
-      
+
    int checkStart = (prev_calculated > 0) ? prev_calculated - 1 : 0;
    
    for(int i = checkStart; i < rates_total && i < checkStart + xInpDepth * 2; i++)
@@ -831,11 +849,11 @@ int OnCalculate(const int rates_total,
 
    if(!ValidateBuffers())
       return 0;
-      
+
    int start = InitializeCalculation(rates_total, prev_calculated);
    if(start < 0)
       return 0;
-      
+
    if(prev_calculated > 0)
      {
       start = MathMax(prev_calculated - 3, xInpDepth - 1);
@@ -845,7 +863,7 @@ int OnCalculate(const int rates_total,
 
    // Quietly collect Valid points with Close prices appended
    CollectValidPoints(time, close);
-   
+
    // Update Chart ZigZag Colors based on Z-Score classification
    UpdateZigZagColors();
    
@@ -878,7 +896,7 @@ void UnifiedCalculateHighLowMaps(const int index,
    int lowSize = ArraySize(low);
    int highMapBufferSize = ArraySize(highMapBuffer);
    int lowMapBufferSize = ArraySize(lowMapBuffer);
-   
+
    if(index < 0 || index >= highSize || index >= lowSize ||
       index >= highMapBufferSize || index >= lowMapBufferSize)
      {
@@ -887,7 +905,6 @@ void UnifiedCalculateHighLowMaps(const int index,
      }
 
    double highVal = UnifiedHighest(high, depth, index);
-   
    if(high[index] == highVal)
      {
       highMapBuffer[index] = high[index];
@@ -912,7 +929,6 @@ void UnifiedCalculateHighLowMaps(const int index,
 double UnifiedHighest(const double &array[], int count, int start)
   {
    int arraySize = ArraySize(array);
-   
    if(start < 0 || start >= arraySize)
      {
       return 0.0;
@@ -966,7 +982,7 @@ void CalculateFileZigZag()
 
    if(ArraySize(FileColorBuffer) < fileSize)
       ArrayResize(FileColorBuffer, fileSize);
-      
+
    double highValues[], lowValues[];
    ArrayResize(highValues, fileSize);
    ArrayResize(lowValues, fileSize);
@@ -986,7 +1002,7 @@ void CalculateFileZigZag()
    int extreme_search = xExtremum;
    double last_high = 0, last_low = 0;
    int last_high_pos = 0, last_low_pos = 0;
-   
+
    for(int i = xInpDepth-1; i < fileSize; i++)  
      {
       double highVal = Highest(highValues, xInpDepth, i);
@@ -1010,13 +1026,13 @@ void CalculateFileZigZag()
             if(last_low == 0 && last_high == 0)
               {
                if(FileHighMapBuffer[i] != 0)
-                 {
+                  {
                   last_high = highValues[i];
                   last_high_pos = i;
                   extreme_search = xBottom;  
                   FileZigzagPeakBuffer[i] = last_high;
                   FileColorBuffer[i] = 0;
-                 }
+                  }
                else if(FileLowMapBuffer[i] != 0)
                  {
                   last_low = lowValues[i];
@@ -1315,7 +1331,8 @@ bool ValidateZigZagPoint(const int pos, const double price, const bool isPeak)
      {
       if(xZigzagPeakBuffer[i] != 0 || xZigzagBottomBuffer[i] != 0)
         {
-         double prevPrice = (xZigzagPeakBuffer[i] != 0) ? xZigzagPeakBuffer[i] : xZigzagBottomBuffer[i];
+         double prevPrice = (xZigzagPeakBuffer[i] != 0) ?
+                            xZigzagPeakBuffer[i] : xZigzagBottomBuffer[i];
          if(MathAbs(price - prevPrice) < minDistance)
             return false;
          break;
@@ -1448,7 +1465,8 @@ void CollectValidPoints(const datetime &time[], const double &close[])
      {
       if(xZigzagPeakBuffer[i] != 0.0 || xZigzagBottomBuffer[i] != 0.0)
         {
-         double price = (xZigzagPeakBuffer[i] != 0) ? xZigzagPeakBuffer[i] : xZigzagBottomBuffer[i];
+         double price = (xZigzagPeakBuffer[i] != 0) ?
+                        xZigzagPeakBuffer[i] : xZigzagBottomBuffer[i];
          bool isPeak = (xZigzagPeakBuffer[i] != 0);
 
          bool safeguardValid = ValidateSafeguards(i, price);
@@ -1513,7 +1531,7 @@ void UpdateZigZagColors()
   {
    int totalPoints = ArraySize(xcollectedPoints);
    if(totalPoints < 2) return;
-
+   
    // Start from second oldest down to newest, mapping currentPctChange
    for(int i = totalPoints - 2; i >= 0; i--)
      {
@@ -1527,14 +1545,14 @@ void UpdateZigZagColors()
 
       // Classify this segment
       int pctClass = GetPercentChangeClassification(i, totalPoints, percentChange, false);
-
+      
       // Assign buffer color index based on class
       int colorIndex = 0; // Normal (0 or 3)
-      if(pctClass == 1 || pctClass == 4) colorIndex = 1;      // Large (1 or 4)
+      if(pctClass == 1 || pctClass == 4) colorIndex = 1; // Large (1 or 4)
       else if(pctClass == 2 || pctClass == 5) colorIndex = 2; // Extreme (2 or 5)
 
       int barIndex = xcollectedPoints[i].bar;
-
+      
       // Assign the respective color to the plot buffer at the newest point of the segment
       if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
         {
