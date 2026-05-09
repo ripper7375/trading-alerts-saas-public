@@ -1,0 +1,44 @@
+Selecting the "best" test depends primarily on your sample size and whether you suspect a specific pattern of error.
+
+1. Homoscedasticity Tests
+These tests check if your model's error variance is constant.
+
+Test	Best Situation	Data Limitation / Weakness
+
+Breusch-Pagan	Large samples with a suspected linear increase/decrease in variance (e.g., as income rises, spending variance rises).	Assumes residuals are normally distributed; if they aren't, the test results are unreliable.
+
+White’s Test	Complex datasets where variance might follow a non-linear pattern (e.g., an "hourglass" shape).	Requires a large sample size because it uses many "degrees of freedom" (it squares every variable).
+
+Goldfeld-Quandt	When you have a clear split or group in your data (e.g., Comparing variance in "Small Firms" vs "Large Firms").	You must manually decide where to "split" the data, which can be arbitrary.
+
+Robust Std Errors	Everyday usage. This isn't a test, but a "fix." Use this when you don't want to worry about homoscedasticity.	It doesn't fix the model's coefficients, only the p-values and confidence intervals.
+
+The Verdict: Use White’s Test if you have plenty of data (N>100). If you have a small dataset and are confident your residuals are normal, use Breusch-Pagan. If you just want reliable p-values despite the variance, use Robust Standard Errors.
+
+2. Normality of Residuals Tests
+These check if your residuals follow a bell curve (required for valid p-values in small samples).
+
+Test	Best Situation	Data Limitation / Weakness
+
+Shapiro-Wilk	Small to Medium samples (N <2000). It is the most powerful test for detecting non-normality.	In very large samples, it becomes too sensitive, flagging tiny, irrelevant deviations as "significant."
+
+Jarque-Bera	Large samples (N > 200) and Econometrics. It focuses specifically on Skewness and Kurtosis.	It has low "power" for small datasets; it might tell you data is normal simply because it doesn't have enough points to prove otherwise.
+
+K-S (Lilliefors)	When you want to compare your data to a general distribution shape in very large samples.	Generally considered less powerful than Shapiro-Wilk for regression residuals.
+
+
+The Verdict: Use Shapiro-Wilk for almost any standard analysis under 2,000 rows. For large-scale financial or economic data, Jarque-Bera is the industry standard.
+
+Summary Recommendation
+
+For Small Data (N < 50): Use Shapiro-Wilk for normality and Breusch-Pagan for homoscedasticity (but rely more on visual plots, as tests lack power here).
+
+For Standard Research (50 < N < 500) : Use Shapiro-Wilk and White's Test.
+
+For Big Data (N > 1000) : Use Jarque-Bera. Don't worry too much about Normality tests here (Central Limit Theorem handles it), but always use Robust Standard Errors for your p-values.
+
+
+
+
+
+
