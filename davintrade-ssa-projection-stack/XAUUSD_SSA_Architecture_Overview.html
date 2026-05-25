@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD SSA System — Architecture Overview</title>
+<style>
+  /* ── Reset & Base ──────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #21262d;
+    --border:    #30363d;
+    --gold:      #d4a017;
+    --gold-dim:  #8b6914;
+    --blue:      #2979ff;
+    --blue-dim:  #1a4fa0;
+    --green:     #3fb950;
+    --red:       #f85149;
+    --purple:    #a371f7;
+    --teal:      #39d0c8;
+    --orange:    #ff9100;
+    --text:      #e6edf3;
+    --text-dim:  #8b949e;
+    --text-xs:   #6e7681;
+    --radius:    10px;
+    --radius-sm: 6px;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 32px 24px 48px;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────────── */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .header p {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .header-meta {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-xs);
+  }
+  .header-meta span { display: flex; align-items: center; gap: 4px; }
+
+  /* ── Main pipeline ───────────────────────────────────────────────────────── */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    max-width: 1300px;
+    margin: 0 auto 36px;
+    position: relative;
+  }
+
+  /* Arrow connector between stages */
+  .arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .arrow svg { display: block; }
+
+  /* Stage card */
+  .stage {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: var(--surface);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .stage:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+
+  .stage-header {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .stage-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .stage-meta { flex: 1; min-width: 0; }
+  .stage-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .stage-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .stage-subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .stage-divider { height: 1px; background: var(--border); margin: 0 16px; }
+
+  .stage-body { padding: 12px 16px; flex: 1; }
+
+  .stage-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin-bottom: 7px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .stage-item:last-child { margin-bottom: 0; }
+  .stage-item-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .stage-item strong { color: var(--text); font-weight: 600; }
+
+  /* Tech pills */
+  .tech-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 10px 16px 14px;
+  }
+  .tech-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+  }
+
+  /* Colour themes per stage */
+  .theme-source  { --accent: #f0a500; --accent-bg: rgba(240,165,0,0.08); }
+  .theme-stacka  { --accent: #2979ff; --accent-bg: rgba(41,121,255,0.08); }
+  .theme-stackb  { --accent: #a371f7; --accent-bg: rgba(163,113,247,0.08); }
+  .theme-stackc  { --accent: #39d0c8; --accent-bg: rgba(57,208,200,0.08); }
+  .theme-front   { --accent: #3fb950; --accent-bg: rgba(63,185,80,0.08); }
+
+  .stage { border-top: 3px solid var(--accent); }
+  .stage-icon { background: var(--accent-bg); color: var(--accent); }
+  .stage-label { color: var(--accent); }
+  .stage-item-dot { background: var(--accent); }
+  .tech-pill { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+
+  /* ── Timing strip ────────────────────────────────────────────────────────── */
+  .timing-strip {
+    max-width: 1300px;
+    margin: 0 auto 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+  .timing-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .timing-rows { display: flex; flex-direction: column; gap: 10px; }
+  .timing-row { display: flex; align-items: center; gap: 0; }
+  .timing-label {
+    width: 220px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .timing-bar-wrap { flex: 1; position: relative; height: 24px; }
+  .timing-bg {
+    position: absolute; inset: 0;
+    background: var(--surface2);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .timing-seg {
+    position: absolute;
+    top: 2px; bottom: 2px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .timing-note {
+    width: 160px;
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--text-xs);
+    padding-left: 12px;
+  }
+
+  /* ── Fillback diagram ────────────────────────────────────────────────────── */
+  .fillback-section {
+    max-width: 1300px;
+    margin: 0 auto 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .info-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .info-card-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+
+  /* fillback grid visual */
+  .fb-grid { display: grid; grid-template-columns: 60px repeat(12, 1fr); gap: 3px; }
+  .fb-cell {
+    height: 26px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .fb-label { background: transparent; color: var(--text-dim); font-size: 10px; }
+  .fb-head  { background: var(--surface2); color: var(--text-xs); border: 1px solid var(--border); }
+  .fb-anchor { background: rgba(41,121,255,0.25); color: #90b8ff; border: 1px solid rgba(41,121,255,0.4); }
+  .fb-null  { background: rgba(248,81,73,0.12); color: #f85149; border: 1px solid rgba(248,81,73,0.3); font-size: 8px; }
+  .fb-filled { background: rgba(63,185,80,0.2); color: #3fb950; border: 1px solid rgba(63,185,80,0.4); }
+  .fb-wait  { background: rgba(255,145,0,0.12); color: var(--orange); border: 1px dashed rgba(255,145,0,0.4); font-size: 8px; }
+
+  /* null chain */
+  .chain-list { display: flex; flex-direction: column; gap: 6px; }
+  .chain-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .chain-col {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    width: 30px;
+    text-align: center;
+    padding: 2px 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .chain-arrow-sm { color: var(--text-xs); font-size: 10px; flex-shrink: 0; }
+  .chain-desc { color: var(--text-dim); font-size: 11px; flex: 1; }
+  .chain-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .ok  { background: rgba(63,185,80,0.15);  color: #3fb950; }
+  .err { background: rgba(248,81,73,0.12);  color: #f85149; }
+  .fwd { background: rgba(255,145,0,0.15);  color: var(--orange); }
+
+  /* ── Output columns table ────────────────────────────────────────────────── */
+  .output-section {
+    max-width: 1300px;
+    margin: 0 auto 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .output-header {
+    padding: 16px 22px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .output-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 1px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .out-cell {
+    background: var(--surface);
+    padding: 12px 14px;
+  }
+  .out-col {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .out-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .out-desc { font-size: 10px; color: var(--text-xs); line-height: 1.4; }
+  .out-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-top: 4px;
+  }
+  .always { background: rgba(63,185,80,0.15); color: #3fb950; }
+  .interp { background: rgba(41,121,255,0.15); color: #90b8ff; }
+  .proj   { background: rgba(163,113,247,0.15); color: #c9a5ff; }
+
+  /* ── Footer ──────────────────────────────────────────────────────────────── */
+  .footer {
+    text-align: center;
+    color: var(--text-xs);
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .pipeline { flex-direction: column; }
+    .arrow { transform: rotate(90deg); justify-content: center; padding: 4px 0; }
+    .fillback-section { grid-template-columns: 1fr; }
+    .output-grid { grid-template-columns: repeat(2,1fr); }
+    .timing-label { width: 140px; font-size: 11px; }
+    .timing-note { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+<div class="header">
+  <div class="header-badge">Executive Architecture Summary</div>
+  <h1>XAUUSD SSA Multi-Timeframe Signal System</h1>
+  <p>End-to-end data pipeline: MQL5 export → Python computation → Nest.js API → Next.js charting</p>
+  <div class="header-meta">
+    <span>📄 Reference: v6.xlsx</span>
+    <span>⏱ H3 (3h) × M15 (15min) — ratio 12:1</span>
+    <span>📊 2,400 M15 rows — 200 H3 groups</span>
+    <span>🔢 BD–BM final output columns</span>
+  </div>
+</div>
+
+<!-- ── PIPELINE ───────────────────────────────────────────────────────────── -->
+<div class="pipeline">
+
+  <!-- SOURCE -->
+  <div class="stage theme-source">
+    <div class="stage-header">
+      <div class="stage-icon">📥</div>
+      <div class="stage-meta">
+        <div class="stage-label">Data Source</div>
+        <div class="stage-title">MQL5 Export</div>
+        <div class="stage-subtitle">MetaTrader 5 / ALGLIB_SSA_XAUUSD</div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-body">
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>H3 data</strong> — cols A–I: timestamp, OHLC, ssa, ema_ssa, ssa_high, ssa_low</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>M15 data</strong> — cols O–W: timestamp, OHLC, ssa, ema_ssa, ssa_high, ssa_low</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Raw timestamps</strong> — Unix integers, ±1 s drift from grid</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Format</strong> — xlsx (openpyxl) or CSV feed</div>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-pill">MQL5</span>
+      <span class="tech-pill">ALGLIB SSA</span>
+      <span class="tech-pill">XAUUSD</span>
+      <span class="tech-pill">openpyxl ≥3.1</span>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg width="28" height="40" viewBox="0 0 28 40">
+      <line x1="2" y1="20" x2="20" y2="20" stroke="#444c56" stroke-width="2"/>
+      <polygon points="20,14 28,20 20,26" fill="#444c56"/>
+    </svg>
+  </div>
+
+  <!-- STACK A -->
+  <div class="stage theme-stacka">
+    <div class="stage-header">
+      <div class="stage-icon">🕐</div>
+      <div class="stage-meta">
+        <div class="stage-label">Stack A · Python</div>
+        <div class="stage-title">Timestamp Normalisation</div>
+        <div class="stage-subtitle">stack_a/normalise.py</div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-body">
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Step 1</strong> — Unix → Excel serial: <code style="font-size:10px;color:#90b8ff">ts/86400+25569</code></div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Step 2</strong> — Round 5-min slot: <code style="font-size:10px;color:#90b8ff">ceil(int(s×1440)/1440×288)/288</code></div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Step 3</strong> — Back to Unix: <code style="font-size:10px;color:#90b8ff">round(…/300)×300</code></div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div>Outputs <strong>ts_adjusted_h3</strong> (col M) and <strong>ts_adjusted_m15</strong> (col AA) — join keys for Stack B</div>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-pill">Python 3.11+</span>
+      <span class="tech-pill">math.ceil</span>
+      <span class="tech-pill">pandas ≥2.0</span>
+      <span class="tech-pill">numpy ≥1.26</span>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg width="28" height="40" viewBox="0 0 28 40">
+      <line x1="2" y1="20" x2="20" y2="20" stroke="#444c56" stroke-width="2"/>
+      <polygon points="20,14 28,20 20,26" fill="#444c56"/>
+    </svg>
+  </div>
+
+  <!-- STACK B -->
+  <div class="stage theme-stackb">
+    <div class="stage-header">
+      <div class="stage-icon">⚙️</div>
+      <div class="stage-meta">
+        <div class="stage-label">Stack B · Python</div>
+        <div class="stage-title">Mapping &amp; Interpolation Engine</div>
+        <div class="stage-subtitle">stack_b/engine.py — cols A→BB → BD–BM</div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-body">
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>H3 lookup</strong> — np.searchsorted (INDEX/MATCH type=1); maps each M15 row to parent H3 bar</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>M15 lookup</strong> — pandas merge on ts_adjusted_m15 (exact XLOOKUP)</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>AND-guard interp</strong> — linear interp for E–I; checks consecutive blocks &amp; non-null guard</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Regression</strong> — scipy linregress on 12-row window → clamped slope → AX/AY projection</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>2-pass model</strong> — Pass 1 every 15 min (INSERT); Pass 2 every 3 h (FILLBACK 11 rows)</div>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-pill">Python 3.11+</span>
+      <span class="tech-pill">pandas ≥2.0</span>
+      <span class="tech-pill">numpy ≥1.26</span>
+      <span class="tech-pill">scipy ≥1.12</span>
+      <span class="tech-pill">APScheduler ≥3.10</span>
+      <span class="tech-pill">httpx ≥0.27</span>
+      <span class="tech-pill">pydantic ≥2.0</span>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg width="28" height="40" viewBox="0 0 28 40">
+      <line x1="2" y1="20" x2="20" y2="20" stroke="#444c56" stroke-width="2"/>
+      <polygon points="20,14 28,20 20,26" fill="#444c56"/>
+    </svg>
+  </div>
+
+  <!-- STACK C -->
+  <div class="stage theme-stackc">
+    <div class="stage-header">
+      <div class="stage-icon">🔌</div>
+      <div class="stage-meta">
+        <div class="stage-label">Stack C · Nest.js</div>
+        <div class="stage-title">REST + WebSocket API</div>
+        <div class="stage-subtitle">bars.controller / bars.gateway</div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-body">
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>POST /bars/batch</strong> — UPSERT from Stack B; supports Pass 2 retroactive fills</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>GET /bars/latest</strong> — last N records; Redis-cached for &lt;10 ms reads</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>WS bars:update</strong> — broadcasts each new M15 bar (Pass 1)</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>WS bars:fillback</strong> — broadcasts 11 retroactively filled bars (Pass 2)</div>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-pill">Nest.js</span>
+      <span class="tech-pill">TypeScript</span>
+      <span class="tech-pill">TypeORM</span>
+      <span class="tech-pill">PostgreSQL</span>
+      <span class="tech-pill">Redis</span>
+      <span class="tech-pill">Socket.IO</span>
+      <span class="tech-pill">class-validator</span>
+    </div>
+  </div>
+
+  <div class="arrow">
+    <svg width="28" height="40" viewBox="0 0 28 40">
+      <line x1="2" y1="20" x2="20" y2="20" stroke="#444c56" stroke-width="2"/>
+      <polygon points="20,14 28,20 20,26" fill="#444c56"/>
+    </svg>
+  </div>
+
+  <!-- FRONTEND -->
+  <div class="stage theme-front">
+    <div class="stage-header">
+      <div class="stage-icon">📈</div>
+      <div class="stage-meta">
+        <div class="stage-label">Frontend · Next.js v16</div>
+        <div class="stage-title">Chart Visualisation</div>
+        <div class="stage-subtitle">SsaChart · TrendBadge · MetricsBar</div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-body">
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>7 chart series</strong> — candles (BG), ssa_interp (BH), ema_interp (BI), ssa_raw (BJ), ema_raw (BK), high_proj (BL), low_proj (BM)</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Trend badge</strong> — Bullish / Bearish from AP (forward-filled, never empty)</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Live update</strong> — bars:update → series.update(); bars:fillback → patch null gaps</div>
+      </div>
+      <div class="stage-item">
+        <div class="stage-item-dot"></div>
+        <div><strong>Null filter</strong> — BH/BI/BL/BM filtered before render; gaps visible during active H3 bar</div>
+      </div>
+    </div>
+    <div class="tech-row">
+      <span class="tech-pill">Next.js v16</span>
+      <span class="tech-pill">React 19</span>
+      <span class="tech-pill">TradingView LW Charts</span>
+      <span class="tech-pill">Zustand</span>
+      <span class="tech-pill">SWR</span>
+      <span class="tech-pill">Socket.IO client</span>
+      <span class="tech-pill">Tailwind v4</span>
+    </div>
+  </div>
+
+</div><!-- /pipeline -->
+
+
+<!-- ── SCHEDULING / TIMING ─────────────────────────────────────────────────── -->
+<div class="timing-strip">
+  <div class="timing-title">⏱ Scheduling — Two-Pass Trigger Model</div>
+  <div class="timing-rows">
+
+    <div class="timing-row">
+      <div class="timing-label">Stack A + B Pass 1<br><span style="font-weight:400;color:var(--text-xs)">cron: */15 * * * *</span></div>
+      <div class="timing-bar-wrap">
+        <div class="timing-bg"></div>
+        <div class="timing-seg" style="left:0%;width:8.33%;background:rgba(41,121,255,0.35);color:#90b8ff">T+0</div>
+        <div class="timing-seg" style="left:8.5%;width:8.33%;background:rgba(41,121,255,0.18);color:#6699cc;font-size:9px">+15m</div>
+        <div class="timing-seg" style="left:17%;width:8.33%;background:rgba(41,121,255,0.18);color:#6699cc;font-size:9px">+30m</div>
+        <div class="timing-seg" style="left:25.5%;width:8.33%;background:rgba(41,121,255,0.18);color:#6699cc;font-size:9px">+45m</div>
+        <div class="timing-seg" style="left:34%;width:50%;background:rgba(41,121,255,0.08);color:#4466aa;font-size:9px">…every 15 min × 11 more bars (E–I = null for pos 1–11)</div>
+      </div>
+      <div class="timing-note">INSERT 1 row each time; anchor gets H3 lookup; non-anchors store null for BH/BI</div>
+    </div>
+
+    <div class="timing-row">
+      <div class="timing-label">Stack B Pass 2<br><span style="font-weight:400;color:var(--text-xs)">cron: 0 */3 * * *</span></div>
+      <div class="timing-bar-wrap">
+        <div class="timing-bg"></div>
+        <div class="timing-seg" style="left:0%;width:83%;background:rgba(255,145,0,0.08);color:#aa7700;font-size:9px;border:1px dashed rgba(255,145,0,0.3)">Waiting — H3 bar still open (up to 2h 45m)</div>
+        <div class="timing-seg" style="left:83.5%;width:16%;background:rgba(63,185,80,0.3);color:#3fb950">T+3h FILLBACK</div>
+      </div>
+      <div class="timing-note">UPDATE 11 prior rows; compute BH/BI/BL/BM; emit bars:fillback WS event</div>
+    </div>
+
+    <div class="timing-row">
+      <div class="timing-label">Batch mode<br><span style="font-weight:400;color:var(--text-xs)">on-demand / restart</span></div>
+      <div class="timing-bar-wrap">
+        <div class="timing-bg"></div>
+        <div class="timing-seg" style="left:0%;width:99%;background:rgba(163,113,247,0.2);color:#c9a5ff">Single-pass — all 2,400 rows at once (all H3 data available, no null gaps)</div>
+      </div>
+      <div class="timing-note">Historical rebuild from v6.xlsx; Pass 1 + Pass 2 collapsed into one loop</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── FILLBACK DETAIL + NULL CHAIN ──────────────────────────────────────────── -->
+<div class="fillback-section">
+
+  <!-- Fillback grid -->
+  <div class="info-card">
+    <div class="info-card-title">
+      <div class="dot" style="background:#ff9100"></div>
+      Fillback: What Each Row Contains Over Time
+    </div>
+    <div class="fb-grid">
+      <!-- Header row -->
+      <div class="fb-cell fb-label"></div>
+      <div class="fb-cell fb-head">p0</div><div class="fb-cell fb-head">p1</div>
+      <div class="fb-cell fb-head">p2</div><div class="fb-cell fb-head">p3</div>
+      <div class="fb-cell fb-head">p4</div><div class="fb-cell fb-head">p5</div>
+      <div class="fb-cell fb-head">p6</div><div class="fb-cell fb-head">p7</div>
+      <div class="fb-cell fb-head">p8</div><div class="fb-cell fb-head">p9</div>
+      <div class="fb-cell fb-head">p10</div><div class="fb-cell fb-head">p11</div>
+      <!-- After Pass 1 (15-min intervals) — before H3 close -->
+      <div class="fb-cell fb-label" style="font-size:9px;justify-content:flex-end;padding-right:4px;color:var(--blue)">After Pass 1</div>
+      <div class="fb-cell fb-anchor">H3 ✓</div>
+      <div class="fb-cell fb-null">null</div><div class="fb-cell fb-null">null</div>
+      <div class="fb-cell fb-null">null</div><div class="fb-cell fb-null">null</div>
+      <div class="fb-cell fb-null">null</div><div class="fb-cell fb-null">null</div>
+      <div class="fb-cell fb-null">null</div><div class="fb-cell fb-null">null</div>
+      <div class="fb-cell fb-null">null</div><div class="fb-cell fb-null">null</div>
+      <div class="fb-cell fb-wait">live</div>
+      <!-- After Pass 2 (H3 bar close, +3h) -->
+      <div class="fb-cell fb-label" style="font-size:9px;justify-content:flex-end;padding-right:4px;color:var(--green)">After Pass 2</div>
+      <div class="fb-cell fb-anchor">H3 ✓</div>
+      <div class="fb-cell fb-filled">✓</div><div class="fb-cell fb-filled">✓</div>
+      <div class="fb-cell fb-filled">✓</div><div class="fb-cell fb-filled">✓</div>
+      <div class="fb-cell fb-filled">✓</div><div class="fb-cell fb-filled">✓</div>
+      <div class="fb-cell fb-filled">✓</div><div class="fb-cell fb-filled">✓</div>
+      <div class="fb-cell fb-filled">✓</div><div class="fb-cell fb-filled">✓</div>
+      <div class="fb-cell fb-filled">✓</div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;font-size:10px;flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(41,121,255,0.25);border:1px solid rgba(41,121,255,0.4);display:inline-block"></span> Anchor (H3 lookup, immediate)</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.3);display:inline-block"></span> Null (waiting for next H3 close)</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(63,185,80,0.2);border:1px solid rgba(63,185,80,0.4);display:inline-block"></span> Filled (after Pass 2 / fillback)</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,145,0,0.12);border:1px dashed rgba(255,145,0,0.4);display:inline-block"></span> Live / in-progress</span>
+    </div>
+  </div>
+
+  <!-- Null chain -->
+  <div class="info-card">
+    <div class="info-card-title">
+      <div class="dot" style="background:#f85149"></div>
+      Null Propagation Chain — When F–I Are Empty
+    </div>
+    <div class="chain-list">
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(163,113,247,0.15);color:#c9a5ff">F/G</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">ssa_h3 / ema_ssa_h3 — AND-guard fails; returns ""</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(163,113,247,0.15);color:#c9a5ff">H/I</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">ssa_high/low_h3 — same guard; I uses L guard</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(41,121,255,0.15);color:#90b8ff">X/Y</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">IF(F="","",F) / IF(G="","",G)</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(41,121,255,0.15);color:#90b8ff">AB/AD</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">IF(H="","",H) / IF(I="","",I)</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(41,121,255,0.15);color:#90b8ff">AL/AM</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">Alias of X/Y — IF(X&lt;&gt;"",X,"")</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(41,121,255,0.15);color:#90b8ff">AQ/AR</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">Alias of AB/AD — regression input Y-range</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(41,121,255,0.15);color:#90b8ff">AN/AO</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">Diff &amp; trend — IF(OR(AL="",AM=""),"",…)</div>
+        <div class="chain-status err">"" not Bullish</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(255,145,0,0.15);color:var(--orange)">AP</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">trend_projection — IF(AO="", AP_prev, AO)</div>
+        <div class="chain-status fwd">forward-fill</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(63,185,80,0.15);color:#3fb950">BH/BI</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">IF(X="","",X) / IF(Y="","",Y) — final output</div>
+        <div class="chain-status err">""</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(63,185,80,0.15);color:#3fb950">BA/BB</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">IFERROR(AX–AQ,"") — AQ="" triggers #VALUE → caught</div>
+        <div class="chain-status ok">IFERROR ✓</div>
+      </div>
+      <div class="chain-item">
+        <div class="chain-col" style="background:rgba(63,185,80,0.15);color:#3fb950">BL/BM</div>
+        <div class="chain-arrow-sm">→</div>
+        <div class="chain-desc">IFERROR(AX,"") + AT IFERROR→0 — v6 two-layer fix</div>
+        <div class="chain-status ok">v6 fixed ✓</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /fillback-section -->
+
+
+<!-- ── FINAL OUTPUT BD–BM ─────────────────────────────────────────────────── -->
+<div class="output-section">
+  <div class="output-header">📤 Final Output Columns BD–BM — Passed to Stack C (Nest.js)</div>
+  <div class="output-grid">
+
+    <div class="out-cell">
+      <div class="out-col" style="color:#f0a500">BD</div>
+      <div class="out-name">timestamp_forward</div>
+      <div class="out-desc">Unix ts, forward-filled, never null. Source: AH</div>
+      <div><span class="out-badge always">always ✓</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#f0a500">BE</div>
+      <div class="out-name">symbol_forward</div>
+      <div class="out-desc">"XAUUSD", forward-filled. Source: AI</div>
+      <div><span class="out-badge always">always ✓</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#f0a500">BF</div>
+      <div class="out-name">timeframe_forward</div>
+      <div class="out-desc">"M15", forward-filled. Source: AJ</div>
+      <div><span class="out-badge always">always ✓</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#f0a500">BG</div>
+      <div class="out-name">close_m15</div>
+      <div class="out-desc">Raw M15 close. Source: L (XLOOKUP). No H3 dependency.</div>
+      <div><span class="out-badge always">always ✓</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#2979ff">BH</div>
+      <div class="out-name">ssa_m15_interpolation</div>
+      <div class="out-desc">H3 SSA → M15 grid. Source: X = IF(F="","",F)</div>
+      <div><span class="out-badge interp">null until fillback</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#2979ff">BI</div>
+      <div class="out-name">ema_ssa_m15_interpolation</div>
+      <div class="out-desc">H3 EMA-SSA → M15 grid. Source: Y = IF(G="","",G)</div>
+      <div><span class="out-badge interp">null until fillback</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#f0a500">BJ</div>
+      <div class="out-name">ssa_m15</div>
+      <div class="out-desc">Raw M15 SSA. Source: Z = M (XLOOKUP). Always populated.</div>
+      <div><span class="out-badge always">always ✓</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#f0a500">BK</div>
+      <div class="out-name">ema_ssa_m15</div>
+      <div class="out-desc">Raw M15 EMA-SSA. Source: AA = N (XLOOKUP). Always populated.</div>
+      <div><span class="out-badge always">always ✓</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#a371f7">BL</div>
+      <div class="out-name">ssa_high_projection</div>
+      <div class="out-desc">Forward SSA upper band. Source: IFERROR(AX,""). None for group 1. v6 fixed.</div>
+      <div><span class="out-badge proj">group 2+ · v6 IFERROR</span></div>
+    </div>
+    <div class="out-cell">
+      <div class="out-col" style="color:#a371f7">BM</div>
+      <div class="out-name">ssa_low_projection</div>
+      <div class="out-desc">Forward SSA lower band. Source: IFERROR(AY,""). None for group 1. v6 fixed.</div>
+      <div><span class="out-badge proj">group 2+ · v6 IFERROR</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<div class="footer">
+  Reference: ALGLIB_SSA_XAUUSD_timeframemapping_H3_M15_v6.xlsx &nbsp;·&nbsp;
+  Architecture Design Document: XAUUSD_SSA_Architecture_Design.docx &nbsp;·&nbsp;
+  XAUUSD · H3/M15 · SSA Multi-Timeframe Signal System
+</div>
+
+</body>
+</html>
