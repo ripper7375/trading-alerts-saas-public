@@ -5,17 +5,17 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
-#property version   "3.895"
-#property description "DavinTrade V3.895: Statistical Sync & Configurable Line Extensions"
+#property version   "3.895_B"
+#property description "DavinTrade V3.895_B: Secondary Instance (Isolated Coexistence)"
 #property indicator_chart_window
 
-// Total Buffers: 17 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 44 Buffers
-#property indicator_buffers 44
-#property indicator_plots   17
+// Total Buffers: 10 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 37 Buffers
+#property indicator_buffers 37
+#property indicator_plots   10
 
 #include <Math/Alglib/alglib.mqh>
 
-#define EXPORT_BUTTON_NAME "V3895ExportButton"
+#define EXPORT_BUTTON_NAME "V3895_B_ExportButton"
 
 //--- Enums
 enum ENUM_CLUSTERING_ALGO {
@@ -39,19 +39,22 @@ enum ENUM_TOLERANCE_TYPE {
 
 //--- INPUT PARAMETERS ---
 input string               Sep0 = "===== Main & SSA Settings =====";
-input int                  InpSSAMathLookback = 3000;
-// Math Engine Lookback
+input int                  InpSSAMathLookback = 3000;      // Math Engine Lookback
 input int                  SSAWindow         = 30;
 input int                  SSARank           = 6;
 input int                  SSASignalPeriod   = 3;
+
 input string               Sep1 = "===== Clustering Settings =====";
 input ENUM_CLUSTERING_ALGO InpAlgo             = ALGO_DBSCAN;
 input int                  InpMinPts           = 5;
+
 input string               SepKM = "--- K-Means Only ---";
 input int                  InpPointsPerCluster = 5;
 input double               InpMaxAvgDistance   = 0.015;
+
 input string               SepDB = "--- DBSCAN Only ---";
 input double               InpEpsilon          = 0.015;
+
 input string               SepColors           = "--- Polygon Colors ---";
 input color  InpClusterColor0  = clrDodgerBlue;
 input color  InpClusterColor1  = clrLimeGreen;
@@ -59,85 +62,76 @@ input color  InpClusterColor2  = clrRed;
 input color  InpClusterColor3  = clrGold;
 input color  InpClusterColor4  = clrMagenta;
 input color  InpClusterColor5  = clrAqua;
+
 input string            Sep3 = "===== Symbol 108 Settings =====";
 input ENUM_FRACTAL_BARS InpFractalBars = BARS_35;
 input ENUM_SYMBOL_SIZE  InpSymbolSize = SIZE_LARGE;
 input int               InpSymbolOffset = 0;
+
 input string            Sep4 = "===== Symbol 119 Settings =====";
 input bool              InpShowSymbol119 = true;
 input ENUM_FRACTAL_BARS_119 InpFractalBars119 = BARS_13;
 input ENUM_SYMBOL_SIZE  InpSymbolSize119 = SIZE_NORMAL;
 input int               InpSymbolOffset119 = 0;
+
 input string            Sep5 = "===== EDT Rules & Tolerance =====";
-input bool              InpShowComments = false;
-// Toggle to prevent comment flickering on Multi-Chart
-input int               InpRegCentroids = 6;
-// Number of Centroids for Regression (3 to 12)
-input int               InpExcludeRecentCentroids = 0;
-// Exclude N most recent centroids (Max 9)
-input int               InpMaxEDTLines = 4;
-// Maximum Total EDTs (Max 8 due to Strict Buffers)
-input int               InpEDTVisualLookback = 500;
-// Visual Drawing Limit
-input bool              InpExtendLinesToCurrent = true;
-// Extend Baseline & EDTs to Live Bar
-input int               InpEDTMinTouches = 1;
-input double            InpMinLineSeparationPercent = 0.5;
-input color             InpBaseLineColor = clrDarkOrange;
-input color             InpEDTColor = clrDarkViolet;
+input bool              InpShowComments = false;           // Toggle to prevent comment flickering on Multi-Chart
+input int               InpRegCentroids = 6;               // Number of Centroids for Regression (3 to 12)
+input int               InpExcludeRecentCentroids = 3;     // Exclude N most recent centroids (Max 9)
+input int               InpEDTVisualLookback = 500;        // Visual Drawing Limit
+input bool              InpExtendLinesToCurrent = true;    // Extend Baseline & EDTs to Live Bar
+input int               InpEDTMinTouches = 3;
+
+input color             InpBaseLineColor = clrPaleTurquoise;
+input color             InpEDTColor = clrDodgerBlue;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
-input double            InpTolerancePercent = 1.00;
+input double            InpTolerancePercent = 0.25;
 input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
+
 input string            Sep6 = "===== Export & Timer Settings =====";
-input string            InpExportFileName = "DavinTrade_V3895_Data";
-input bool              InpAutoExport = true;
-input int               InpExportSecond = 59;
-// Trigger at this second (0-59)
+input string            InpExportFileName = "Non-Recent-B";
+input bool              InpAutoExport = false;
+input int               InpExportSecond = 59;              // Trigger at this second (0-59)
 
 //--- INDICATOR BUFFERS ---
 double ExtSSATrend[];      // 0
 double ExtSSASignal[];     // 1
 double ExtSSACross[];      // 2
-double ExtUpper108[];
-// 3
+double ExtUpper108[];      // 3
 double ExtLower108[];      // 4
 double ExtUpper119[];      // 5
 double ExtLower119[];      // 6
 double ExtBaseLine[];      // 7
-double ExtEDT1[], ExtEDT2[], ExtEDT3[], ExtEDT4[], ExtEDT5[];
-// 8-12
-double ExtEDT6[], ExtEDT7[], ExtEDT8[], ExtEDT9[];            // 13-16
+double ExtUOEDT[];         // 8
+double ExtLOEDT[];         // 9
 
 //--- HIDDEN BUFFERS FOR EA PIPELINE ---
-double ExtCrossInCluster[]; // 17
+double ExtCrossInCluster[]; // 10
 
 // Structural Data
-double ExtTimeframe[];
-// 18
-double ExtSlope[];          // 19
-double ExtIntercept[];      // 20
-double ExtAngle[];          // 21
+double ExtTimeframe[];      // 11
+double ExtSlope[];          // 12
+double ExtIntercept[];      // 13
+double ExtAngle[];          // 14
 
 // Model A: Crossings
-double ExtRSquare_Cross[];  // 22
-double ExtMSE_Cross[];
-// 23
-double ExtVarRatio_Cross[]; // 24
-double ExtSkewness_Cross[]; // 25
-double ExtKurtosis_Cross[]; // 26
+double ExtRSquare_Cross[];  // 15
+double ExtMSE_Cross[];      // 16
+double ExtVarRatio_Cross[]; // 17
+double ExtSkewness_Cross[]; // 18
+double ExtKurtosis_Cross[]; // 19
 
 // Model B: Close Price
-double ExtRSquare_Close[];  // 27
-double ExtMSE_Close[];
-// 28
-double ExtVarRatio_Close[]; // 29
-double ExtSkewness_Close[]; // 30
-double ExtKurtosis_Close[]; // 31
+double ExtRSquare_Close[];  // 20
+double ExtMSE_Close[];      // 21
+double ExtVarRatio_Close[]; // 22
+double ExtSkewness_Close[]; // 23
+double ExtKurtosis_Close[]; // 24
 
 // EA Centroid Streaming
 double ExtCen0[], ExtCen1[], ExtCen2[], ExtCen3[], ExtCen4[], ExtCen5[];
-double ExtCen6[], ExtCen7[], ExtCen8[], ExtCen9[], ExtCen10[], ExtCen11[]; // 32-43
+double ExtCen6[], ExtCen7[], ExtCen8[], ExtCen9[], ExtCen10[], ExtCen11[]; // 25-36
 
 //--- GLOBAL VARIABLES ---
 datetime g_time[];
@@ -170,6 +164,7 @@ struct ClusterPoint {
    double   norm_x;
    double   norm_y;
 };
+
 struct ClusterCentroidInfo {
    double   price;
    int      bar_index;
@@ -183,14 +178,6 @@ struct FractalPoint {
    bool     is_peak;
 };
 
-struct TrendLine {
-   double slope;
-   double y_intercept;
-   int    touches;
-   double score;
-};
-
-
 //+------------------------------------------------------------------+
 //| Initialization                                                   |
 //+------------------------------------------------------------------+
@@ -198,9 +185,9 @@ int OnInit()
 {
    ExtSideBars = ((int)InpFractalBars - 1) / 2;
    ExtSideBars119 = ((int)InpFractalBars119 - 1) / 2;
-   if(InpMaxEDTLines > 8) Print("WARNING: InpMaxEDTLines capped at 8 due to Strict Buffer assignment.");
    
    ExtATRHandle = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
+   
    SetIndexBuffer(0, ExtSSATrend, INDICATOR_DATA);
    SetIndexBuffer(1, ExtSSASignal, INDICATOR_DATA);
    SetIndexBuffer(2, ExtSSACross, INDICATOR_DATA);
@@ -209,60 +196,64 @@ int OnInit()
    SetIndexBuffer(5, ExtUpper119, INDICATOR_DATA);
    SetIndexBuffer(6, ExtLower119, INDICATOR_DATA);
    SetIndexBuffer(7, ExtBaseLine, INDICATOR_DATA);
-   SetIndexBuffer(8, ExtEDT1, INDICATOR_DATA); SetIndexBuffer(9, ExtEDT2, INDICATOR_DATA);
-   SetIndexBuffer(10, ExtEDT3, INDICATOR_DATA); SetIndexBuffer(11, ExtEDT4, INDICATOR_DATA);
-   SetIndexBuffer(12, ExtEDT5, INDICATOR_DATA); SetIndexBuffer(13, ExtEDT6, INDICATOR_DATA);
-   SetIndexBuffer(14, ExtEDT7, INDICATOR_DATA); SetIndexBuffer(15, ExtEDT8, INDICATOR_DATA);
-   SetIndexBuffer(16, ExtEDT9, INDICATOR_DATA);
-   SetIndexBuffer(17, ExtCrossInCluster, INDICATOR_CALCULATIONS);
-   SetIndexBuffer(18, ExtTimeframe, INDICATOR_DATA);
-   SetIndexBuffer(19, ExtSlope, INDICATOR_DATA);
-   SetIndexBuffer(20, ExtIntercept, INDICATOR_DATA);
-   SetIndexBuffer(21, ExtAngle, INDICATOR_DATA);
-   SetIndexBuffer(22, ExtRSquare_Cross, INDICATOR_DATA);
-   SetIndexBuffer(23, ExtMSE_Cross, INDICATOR_DATA);
-   SetIndexBuffer(24, ExtVarRatio_Cross, INDICATOR_DATA);
-   SetIndexBuffer(25, ExtSkewness_Cross, INDICATOR_DATA);
-   SetIndexBuffer(26, ExtKurtosis_Cross, INDICATOR_DATA);
-   SetIndexBuffer(27, ExtRSquare_Close, INDICATOR_DATA);
-   SetIndexBuffer(28, ExtMSE_Close, INDICATOR_DATA);
-   SetIndexBuffer(29, ExtVarRatio_Close, INDICATOR_DATA);
-   SetIndexBuffer(30, ExtSkewness_Close, INDICATOR_DATA);
-   SetIndexBuffer(31, ExtKurtosis_Close, INDICATOR_DATA);
+   SetIndexBuffer(8, ExtUOEDT, INDICATOR_DATA); 
+   SetIndexBuffer(9, ExtLOEDT, INDICATOR_DATA);
+   
+   SetIndexBuffer(10, ExtCrossInCluster, INDICATOR_CALCULATIONS);
+   
+   SetIndexBuffer(11, ExtTimeframe, INDICATOR_DATA);
+   SetIndexBuffer(12, ExtSlope, INDICATOR_DATA);
+   SetIndexBuffer(13, ExtIntercept, INDICATOR_DATA);
+   SetIndexBuffer(14, ExtAngle, INDICATOR_DATA);
+   SetIndexBuffer(15, ExtRSquare_Cross, INDICATOR_DATA);
+   SetIndexBuffer(16, ExtMSE_Cross, INDICATOR_DATA);
+   SetIndexBuffer(17, ExtVarRatio_Cross, INDICATOR_DATA);
+   SetIndexBuffer(18, ExtSkewness_Cross, INDICATOR_DATA);
+   SetIndexBuffer(19, ExtKurtosis_Cross, INDICATOR_DATA);
+   SetIndexBuffer(20, ExtRSquare_Close, INDICATOR_DATA);
+   SetIndexBuffer(21, ExtMSE_Close, INDICATOR_DATA);
+   SetIndexBuffer(22, ExtVarRatio_Close, INDICATOR_DATA);
+   SetIndexBuffer(23, ExtSkewness_Close, INDICATOR_DATA);
+   SetIndexBuffer(24, ExtKurtosis_Close, INDICATOR_DATA);
 
-   SetIndexBuffer(32, ExtCen0, INDICATOR_DATA); SetIndexBuffer(33, ExtCen1, INDICATOR_DATA);
-   SetIndexBuffer(34, ExtCen2, INDICATOR_DATA); SetIndexBuffer(35, ExtCen3, INDICATOR_DATA);
-   SetIndexBuffer(36, ExtCen4, INDICATOR_DATA); SetIndexBuffer(37, ExtCen5, INDICATOR_DATA);
-   SetIndexBuffer(38, ExtCen6, INDICATOR_DATA); SetIndexBuffer(39, ExtCen7, INDICATOR_DATA);
-   SetIndexBuffer(40, ExtCen8, INDICATOR_DATA); SetIndexBuffer(41, ExtCen9, INDICATOR_DATA);
-   SetIndexBuffer(42, ExtCen10, INDICATOR_DATA); SetIndexBuffer(43, ExtCen11, INDICATOR_DATA);
+   SetIndexBuffer(25, ExtCen0, INDICATOR_DATA); SetIndexBuffer(26, ExtCen1, INDICATOR_DATA);
+   SetIndexBuffer(27, ExtCen2, INDICATOR_DATA); SetIndexBuffer(28, ExtCen3, INDICATOR_DATA);
+   SetIndexBuffer(29, ExtCen4, INDICATOR_DATA); SetIndexBuffer(30, ExtCen5, INDICATOR_DATA);
+   SetIndexBuffer(31, ExtCen6, INDICATOR_DATA); SetIndexBuffer(32, ExtCen7, INDICATOR_DATA);
+   SetIndexBuffer(33, ExtCen8, INDICATOR_DATA); SetIndexBuffer(34, ExtCen9, INDICATOR_DATA);
+   SetIndexBuffer(35, ExtCen10, INDICATOR_DATA); SetIndexBuffer(36, ExtCen11, INDICATOR_DATA);
 
-   for(int i = 18; i <= 43; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   for(int i = 11; i <= 36; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
 
    PlotIndexSetInteger(0, PLOT_DRAW_TYPE, DRAW_LINE);
    PlotIndexSetInteger(0, PLOT_LINE_COLOR, clrMagenta); PlotIndexSetInteger(0, PLOT_LINE_WIDTH, 2);
    PlotIndexSetInteger(1, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(1, PLOT_LINE_COLOR, clrBlue); PlotIndexSetInteger(1, PLOT_LINE_STYLE, STYLE_DASH); PlotIndexSetInteger(1, PLOT_LINE_WIDTH, 2);
    PlotIndexSetInteger(2, PLOT_DRAW_TYPE, DRAW_ARROW); PlotIndexSetInteger(2, PLOT_ARROW, 171); PlotIndexSetInteger(2, PLOT_LINE_COLOR, clrBlack); PlotIndexSetInteger(2, PLOT_LINE_WIDTH, 2);
+   
    PlotIndexSetInteger(3, PLOT_DRAW_TYPE, DRAW_ARROW); PlotIndexSetInteger(3, PLOT_ARROW, 108);
    PlotIndexSetInteger(3, PLOT_LINE_COLOR, clrRed); PlotIndexSetInteger(3, PLOT_LINE_WIDTH, (int)InpSymbolSize); PlotIndexSetInteger(3, PLOT_ARROW_SHIFT, -InpSymbolOffset);
+   
    PlotIndexSetInteger(4, PLOT_DRAW_TYPE, DRAW_ARROW); PlotIndexSetInteger(4, PLOT_ARROW, 108); PlotIndexSetInteger(4, PLOT_LINE_COLOR, clrLimeGreen);
    PlotIndexSetInteger(4, PLOT_LINE_WIDTH, (int)InpSymbolSize); PlotIndexSetInteger(4, PLOT_ARROW_SHIFT, InpSymbolOffset);
+   
    PlotIndexSetInteger(5, PLOT_DRAW_TYPE, InpShowSymbol119 ? DRAW_ARROW : DRAW_NONE); PlotIndexSetInteger(5, PLOT_ARROW, 119); PlotIndexSetInteger(5, PLOT_LINE_COLOR, clrRed);
    PlotIndexSetInteger(5, PLOT_LINE_WIDTH, (int)InpSymbolSize119); PlotIndexSetInteger(5, PLOT_ARROW_SHIFT, -InpSymbolOffset119);
+   
    PlotIndexSetInteger(6, PLOT_DRAW_TYPE, InpShowSymbol119 ? DRAW_ARROW : DRAW_NONE); PlotIndexSetInteger(6, PLOT_ARROW, 119); PlotIndexSetInteger(6, PLOT_LINE_COLOR, clrLimeGreen);
    PlotIndexSetInteger(6, PLOT_LINE_WIDTH, (int)InpSymbolSize119); PlotIndexSetInteger(6, PLOT_ARROW_SHIFT, InpSymbolOffset119);
    
    PlotIndexSetInteger(7, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(7, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(7, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(7, PLOT_LINE_COLOR, InpBaseLineColor);
-   PlotIndexSetString(7, PLOT_LABEL, "Regression Base Line");
+   PlotIndexSetString(7, PLOT_LABEL, "Secondary Base Line");
    
-   for(int i = 8; i <= 16; i++) {
-      PlotIndexSetInteger(i, PLOT_DRAW_TYPE, DRAW_LINE);
-      PlotIndexSetInteger(i, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(i, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(i, PLOT_LINE_COLOR, InpEDTColor);
-      PlotIndexSetString(i, PLOT_LABEL, "EDT #" + IntegerToString(i-7));
-   }
-   for(int i=0; i<17; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   PlotIndexSetInteger(8, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(8, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(8, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(8, PLOT_LINE_COLOR, InpEDTColor);
+   PlotIndexSetString(8, PLOT_LABEL, "Secondary Upper UOEDT");
    
-   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA EDT V3.895");
+   PlotIndexSetInteger(9, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(9, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(9, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(9, PLOT_LINE_COLOR, InpEDTColor);
+   PlotIndexSetString(9, PLOT_LABEL, "Secondary Lower LOEDT");
+   
+   for(int i=0; i<10; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   
+   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA EDT V3.895_B");
    CreateExportButton();
    
    if(InpAutoExport) EventSetTimer(1);
@@ -273,8 +264,8 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
-   ObjectsDeleteAll(0, "ClusterHull_V894_");
-   ObjectsDeleteAll(0, "ClusterCentroidStar_V894_");
+   ObjectsDeleteAll(0, "ClusterHull_V895_B_");
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V895_B_");
    ObjectDelete(0, EXPORT_BUTTON_NAME);
    if(InpShowComments) Comment(""); 
    if(InpAutoExport) EventKillTimer();
@@ -307,19 +298,14 @@ void OnTimer()
 string TimeframeToString(ENUM_TIMEFRAMES timeframe)
 {
    switch(timeframe) {
-      case PERIOD_M1:  return "M1";
-      case PERIOD_M2:  return "M2"; case PERIOD_M3:  return "M3";
-      case PERIOD_M4:  return "M4"; case PERIOD_M5:  return "M5";
-      case PERIOD_M6:  return "M6";
+      case PERIOD_M1:  return "M1"; case PERIOD_M2:  return "M2"; case PERIOD_M3:  return "M3";
+      case PERIOD_M4:  return "M4"; case PERIOD_M5:  return "M5"; case PERIOD_M6:  return "M6";
       case PERIOD_M10: return "M10"; case PERIOD_M12: return "M12"; case PERIOD_M15: return "M15";
       case PERIOD_M20: return "M20"; case PERIOD_M30: return "M30"; case PERIOD_H1:  return "H1";
-      case PERIOD_H2:  return "H2";
-      case PERIOD_H3:  return "H3"; case PERIOD_H4:  return "H4";
-      case PERIOD_H6:  return "H6"; case PERIOD_H8:  return "H8";
-      case PERIOD_H12: return "H12";
+      case PERIOD_H2:  return "H2"; case PERIOD_H3:  return "H3"; case PERIOD_H4:  return "H4";
+      case PERIOD_H6:  return "H6"; case PERIOD_H8:  return "H8"; case PERIOD_H12: return "H12";
       case PERIOD_D1:  return "D1"; case PERIOD_W1:  return "W1"; case PERIOD_MN1: return "MN1";
-      default: { string s = EnumToString(timeframe); StringReplace(s, "PERIOD_", ""); return s;
-      }
+      default: { string s = EnumToString(timeframe); StringReplace(s, "PERIOD_", ""); return s; }
    }
 }
 
@@ -327,14 +313,16 @@ void CreateExportButton()
 {
    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0) ObjectDelete(0, EXPORT_BUTTON_NAME);
    ObjectCreate(0, EXPORT_BUTTON_NAME, OBJ_BUTTON, 0, 0, 0);
+   
+   // Relocated to Lower Left Corner for isolated Secondary indicator
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_LEFT_LOWER);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XDISTANCE, 20);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 110);
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 50); 
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XSIZE, 160);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YSIZE, 30);
-   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Export V3.895 Data");
+   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Non-B");
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_COLOR, clrWhite);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BGCOLOR, clrDarkBlue);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BGCOLOR, clrDodgerBlue);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_SELECTABLE, false);
    ChartRedraw(0);
 }
@@ -378,8 +366,7 @@ double CalculateToleranceFast(double reference_price, double current_atr) {
 
 color GetClusterColor(int id) {
    switch(id % 6) {
-      case 0: return InpClusterColor0;
-      case 1: return InpClusterColor1;
+      case 0: return InpClusterColor0; case 1: return InpClusterColor1;
       case 2: return InpClusterColor2; case 3: return InpClusterColor3;
       case 4: return InpClusterColor4; case 5: return InpClusterColor5;
    }
@@ -395,8 +382,7 @@ double HullCrossProduct(const ClusterPoint &o, const ClusterPoint &a, const Clus
 
 void GetConvexHull(const ClusterPoint &points[], ClusterPoint &hull[]) {
    int n = ArraySize(points);
-   if(n < 3) { ArrayCopy(hull, points); return;
-   }
+   if(n < 3) { ArrayCopy(hull, points); return; }
    
    int hull_count = 0; int l = 0;
    for(int i = 1; i < n; i++) if(points[i].norm_x < points[l].norm_x) l = i;
@@ -432,11 +418,9 @@ void CustomKMeans(const ClusterPoint &data[], int f_count, int K, int &assignmen
          int best_k = 0;
          for(int k=0; k<K; k++) {
             double dist = MathSqrt(MathPow(data[i].norm_x - centers_x[k], 2) + MathPow(data[i].norm_y - centers_y[k], 2));
-            if(dist < min_dist) { min_dist = dist; best_k = k;
-            }
+            if(dist < min_dist) { min_dist = dist; best_k = k; }
          }
-         if(assignments[i] != best_k) { assignments[i] = best_k;
-         changed = true; }
+         if(assignments[i] != best_k) { assignments[i] = best_k; changed = true; }
       }
 
       int counts[]; ArrayResize(counts, K);
@@ -448,8 +432,7 @@ void CustomKMeans(const ClusterPoint &data[], int f_count, int K, int &assignmen
          sum_y[k] += data[i].norm_y; counts[k]++;
       }
       for(int k=0; k<K; k++) {
-         if(counts[k] > 0) { centers_x[k] = sum_x[k] / counts[k];
-         centers_y[k] = sum_y[k] / counts[k]; }
+         if(counts[k] > 0) { centers_x[k] = sum_x[k] / counts[k]; centers_y[k] = sum_y[k] / counts[k]; }
       }
    }
 }
@@ -476,10 +459,8 @@ void ExpandCluster(const ClusterPoint &data[], int p_idx, int &neighbors[], int 
             for(int k=0; k<ArraySize(n_neighbors); k++) {
                int candidate = n_neighbors[k];
                bool exists = false;
-               for(int j=0; j<ArraySize(neighbors); j++) { if(neighbors[j] == candidate) { exists = true; break;
-               } }
-               if(!exists) { int sz = ArraySize(neighbors);
-               ArrayResize(neighbors, sz+1); neighbors[sz] = candidate; }
+               for(int j=0; j<ArraySize(neighbors); j++) { if(neighbors[j] == candidate) { exists = true; break; } }
+               if(!exists) { int sz = ArraySize(neighbors); ArrayResize(neighbors, sz+1); neighbors[sz] = candidate; }
             }
          }
       }
@@ -511,8 +492,8 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
 //+------------------------------------------------------------------+
 void PerformClusteringAndEDT(const int rates_total, const datetime &time[], const double &close_arr[])
 {
-   ObjectsDeleteAll(0, "ClusterHull_V894_"); 
-   ObjectsDeleteAll(0, "ClusterCentroidStar_V894_");
+   ObjectsDeleteAll(0, "ClusterHull_V895_B_"); 
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V895_B_");
    ArrayInitialize(ExtCrossInCluster, 0.0);
    ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
    ArrayInitialize(g_cen_prices, 0.0);
@@ -530,7 +511,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
 
    int p_count = ArraySize(points);
    if(p_count < InpMinPts) {
-      if(InpShowComments) Comment("--- DavinTrade V3.895 ---\nAwaiting more data: Points < MinPts");
+      if(InpShowComments) Comment("--- DavinTrade V3.895_B ---\nAwaiting more data: Points < MinPts");
       return;
    }
 
@@ -552,23 +533,18 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
       CustomKMeans(points, p_count, total_clusters, assignments);
       for(int k=0; k<total_clusters; k++) {
          double sum_x=0, sum_y=0; int pt_count=0;
-         for(int i=0; i<p_count; i++) { if(assignments[i] == k) { sum_x += points[i].norm_x; sum_y += points[i].norm_y; pt_count++;
-         } }
-         if(pt_count < InpMinPts) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1;
-         continue; }
+         for(int i=0; i<p_count; i++) { if(assignments[i] == k) { sum_x += points[i].norm_x; sum_y += points[i].norm_y; pt_count++; } }
+         if(pt_count < InpMinPts) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1; continue; }
          
          double center_x = sum_x / pt_count, center_y = sum_y / pt_count, total_dist = 0.0;
-         for(int i=0; i<p_count; i++) { if(assignments[i] == k) total_dist += MathSqrt(MathPow(points[i].norm_x - center_x, 2) + MathPow(points[i].norm_y - center_y, 2));
-         }
-         if((total_dist / pt_count) > InpMaxAvgDistance) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1;
-         }
+         for(int i=0; i<p_count; i++) { if(assignments[i] == k) total_dist += MathSqrt(MathPow(points[i].norm_x - center_x, 2) + MathPow(points[i].norm_y - center_y, 2)); }
+         if((total_dist / pt_count) > InpMaxAvgDistance) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1; }
       }
    } else if (InpAlgo == ALGO_DBSCAN) {
       total_clusters = RunDBSCAN(points, p_count, InpEpsilon, InpMinPts, assignments);
    }
    
-   for(int i = 0; i < p_count; i++) { if(assignments[i] != -1) ExtCrossInCluster[points[i].bar] = 1.0;
-   }
+   for(int i = 0; i < p_count; i++) { if(assignments[i] != -1) ExtCrossInCluster[points[i].bar] = 1.0; }
    
    ClusterCentroidInfo centroids[]; int centroid_count = 0;
    for(int k = 0; k < total_clusters; k++) {
@@ -589,7 +565,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
          
          for(int h = 0; h < h_count; h++) {
             ClusterPoint p1 = hull[h], p2 = hull[(h + 1) % h_count];
-            string line_name = "ClusterHull_V894_" + IntegerToString(k) + "_" + IntegerToString(h);
+            string line_name = "ClusterHull_V895_B_" + IntegerToString(k) + "_" + IntegerToString(h);
             ObjectCreate(0, line_name, OBJ_TREND, 0, p1.time, p1.price, p2.time, p2.price);
             ObjectSetInteger(0, line_name, OBJPROP_COLOR, c_color); ObjectSetInteger(0, line_name, OBJPROP_WIDTH, 2);
             ObjectSetInteger(0, line_name, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, line_name, OBJPROP_BACK, true); ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
@@ -602,7 +578,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
          if(time_index < 0) time_index = 0; if(time_index >= rates_total) time_index = rates_total - 1;
          datetime centroid_time = time[time_index];
          
-         string star_name = "ClusterCentroidStar_V894_" + IntegerToString(k);
+         string star_name = "ClusterCentroidStar_V895_B_" + IntegerToString(k);
          ObjectCreate(0, star_name, OBJ_TEXT, 0, centroid_time, real_centroid_price);
          ObjectSetString(0, star_name, OBJPROP_FONT, "Wingdings");
          ObjectSetString(0, star_name, OBJPROP_TEXT, ShortToString(108));
@@ -638,7 +614,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
    }
    
    if (n_reg < 2) {
-       if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.895 ---\nMath Aborted: Not enough centroids found (%d). Try raising Math Lookback or adjusting clustering Epsilon.", centroid_count));
+       if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.895_B ---\nMath Aborted: Not enough centroids found (%d). Try raising Math Lookback or adjusting clustering Epsilon.", centroid_count));
        return; 
    }
 
@@ -700,20 +676,17 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
           sum_close += close_arr[i];
       }
       
-      double mean_cross = (n_crossings > 0) ?
-      (sum_crossings / n_crossings) : 0.0;
+      double mean_cross = (n_crossings > 0) ? (sum_crossings / n_crossings) : 0.0;
       double mean_close_price = (n_close_bars > 0) ? (sum_close / n_close_bars) : current_intercept_anchored;
       double slope_pct_per_bar = (base_m / mean_close_price) * 100.0;
       current_angle = MathArctan(slope_pct_per_bar * 100.0) * 180.0 / M_PI;
       if(n_crossings >= 3 && n_close_bars >= 3) {
           
-          double res_cross[];
-          ArrayResize(res_cross, n_crossings);
+          double res_cross[]; ArrayResize(res_cross, n_crossings);
           double res_close[]; ArrayResize(res_close, n_close_bars);
           
           int rx = 0; double sum_e_cross = 0;
-          int rc = 0;
-          double sum_e_close = 0;
+          int rc = 0; double sum_e_close = 0;
           
           for(int i = leftmost_bar; i <= rightmost_bar; i++) {
               double pred_y = base_m * i + base_c;
@@ -757,31 +730,25 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
               tot_sq_c += MathPow(actual_close - mean_close_price, 2);
           }
           
-          m2_x /= n_crossings;
-          var_x /= n_crossings; m3_x /= n_crossings; m4_x /= n_crossings;
+          m2_x /= n_crossings; var_x /= n_crossings; m3_x /= n_crossings; m4_x /= n_crossings;
           mse_cross = m2_x;
           if(tot_sq_x != 0) r2_cross = 1.0 - ((m2_x * n_crossings) / tot_sq_x);
-          if(var_x > 0) { skew_cross = m3_x / MathPow(var_x, 1.5); kurt_cross = m4_x / MathPow(var_x, 2.0);
-          }
+          if(var_x > 0) { skew_cross = m3_x / MathPow(var_x, 1.5); kurt_cross = m4_x / MathPow(var_x, 2.0); }
           
-          m2_c /= n_close_bars;
-          var_c /= n_close_bars; m3_c /= n_close_bars; m4_c /= n_close_bars;
+          m2_c /= n_close_bars; var_c /= n_close_bars; m3_c /= n_close_bars; m4_c /= n_close_bars;
           mse_close = m2_c;
           if(tot_sq_c != 0) r2_close = 1.0 - ((m2_c * n_close_bars) / tot_sq_c);
-          if(var_c > 0) { skew_close = m3_c / MathPow(var_c, 1.5); kurt_close = m4_c / MathPow(var_c, 2.0);
-          }
+          if(var_c > 0) { skew_close = m3_c / MathPow(var_c, 1.5); kurt_close = m4_c / MathPow(var_c, 2.0); }
 
           int half_x = n_crossings / 2;
           if(half_x > 1) {
               double mt1=0, mt2=0, vt1=0, vt2=0;
               for(int i=0; i<half_x; i++) mt1 += res_cross[i];
               for(int i=half_x; i<n_crossings; i++) mt2 += res_cross[i];
-              mt1 /= half_x;
-              mt2 /= (n_crossings - half_x);
+              mt1 /= half_x; mt2 /= (n_crossings - half_x);
               for(int i=0; i<half_x; i++) vt1 += MathPow(res_cross[i] - mt1, 2);
               for(int i=half_x; i<n_crossings; i++) vt2 += MathPow(res_cross[i] - mt2, 2);
-              vt1 /= (half_x - 1);
-              vt2 /= (n_crossings - half_x - 1);
+              vt1 /= (half_x - 1); vt2 /= (n_crossings - half_x - 1);
               if(vt1 > 0) var_cross = vt2 / vt1;
           }
           
@@ -790,12 +757,10 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
               double mt1=0, mt2=0, vt1=0, vt2=0;
               for(int i=0; i<half_c; i++) mt1 += res_close[i];
               for(int i=half_c; i<n_close_bars; i++) mt2 += res_close[i];
-              mt1 /= half_c;
-              mt2 /= (n_close_bars - half_c);
+              mt1 /= half_c; mt2 /= (n_close_bars - half_c);
               for(int i=0; i<half_c; i++) vt1 += MathPow(res_close[i] - mt1, 2);
               for(int i=half_c; i<n_close_bars; i++) vt2 += MathPow(res_close[i] - mt2, 2);
-              vt1 /= (half_c - 1);
-              vt2 /= (n_close_bars - half_c - 1);
+              vt1 /= (half_c - 1); vt2 /= (n_close_bars - half_c - 1);
               if(vt1 > 0) var_close = vt2 / vt1;
           }
       }
@@ -848,8 +813,8 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
 
    int drawEndIdx = rightmost_bar;
    if(drawEndIdx < drawStartIdx || drawEndIdx >= rates_total) drawEndIdx = rates_total - 1;
-   // Math Failsafe bounding
 
+   // Math Failsafe bounding
    // Support for Line Extension to Current Bar
    int actualDrawEndIdx = InpExtendLinesToCurrent ? (rates_total - 1) : drawEndIdx;
 
@@ -860,7 +825,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
    
    if(InpShowComments) {
       string comment_text = StringFormat(
-          "--- DavinTrade V3.895 A/B Statistical Pipeline ---\n" +
+          "--- DavinTrade V3.895_B A/B Statistical Pipeline ---\n" +
           "Regression Centroids (Box B): %d (Excluded Box A: %d)\n" +
           "Math Search Window: %d Bars\n" +
           "Visual EDT Window: %d Bars%s\n" +
@@ -915,19 +880,16 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
       }
    }
 
-   BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx, actualDrawEndIdx, min_price, max_price);
+   BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx, actualDrawEndIdx);
 }
 
 //+------------------------------------------------------------------+
-//| Symmetrical EDT Snapping Logic (V3.895 Dynamic Strict Limits)    |
+//| Symmetrical EDT Snapping Logic (Outermost Search ONLY)           |
 //+------------------------------------------------------------------+
-void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &fractals[], int rates_total, double current_close, int drawStartIdx, int drawEndIdx, double channel_min, double channel_max)
+void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &fractals[], int rates_total, double current_close, int drawStartIdx, int drawEndIdx)
 {
-   ArrayInitialize(ExtEDT1, EMPTY_VALUE);
-   ArrayInitialize(ExtEDT2, EMPTY_VALUE);
-   ArrayInitialize(ExtEDT3, EMPTY_VALUE); ArrayInitialize(ExtEDT4, EMPTY_VALUE); 
-   ArrayInitialize(ExtEDT5, EMPTY_VALUE); ArrayInitialize(ExtEDT6, EMPTY_VALUE);
-   ArrayInitialize(ExtEDT7, EMPTY_VALUE); ArrayInitialize(ExtEDT8, EMPTY_VALUE); ArrayInitialize(ExtEDT9, EMPTY_VALUE);
+   ArrayInitialize(ExtUOEDT, EMPTY_VALUE);
+   ArrayInitialize(ExtLOEDT, EMPTY_VALUE);
 
    int f_count = ArraySize(fractals);
    if(f_count == 0) return;
@@ -938,8 +900,10 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
       if(CopyBuffer(ExtATRHandle, 0, 0, 1, atr_array) > 0) current_atr = atr_array[0];
    }
 
-   TrendLine cand_above[]; int count_above = 0;
-   TrendLine cand_below[]; int count_below = 0;
+   double max_above_intercept = -99999999.0;
+   double min_below_intercept = 99999999.0;
+   bool found_above = false;
+   bool found_below = false;
    
    for(int i = 0; i < f_count; i++) {
       double test_intercept = fractals[i].price - base_m * fractals[i].bar;
@@ -952,177 +916,33 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
          }
       }
 
+      // Instead of storing all lines, we only extract the outermost intercept that meets touch criteria
       if(touches >= InpEDTMinTouches) {
-         TrendLine tl;
-         tl.slope = base_m;
-         tl.y_intercept = test_intercept;
-         tl.touches = touches;
-         
-         // --- OPTION 1 FIX: Distance-Based Penalty ---
-         // Prioritize structural proximity over recency. Lines closer to the 
-         // regression base_c intercept receive a higher score during a tie.
-         tl.score = (touches * 10000.0) - MathAbs(test_intercept - base_c);
-         // --------------------------------------------
-
          if(test_intercept > base_c) {
-             ArrayResize(cand_above, count_above + 1);
-             cand_above[count_above] = tl;
-             count_above++;
+             if(test_intercept > max_above_intercept) {
+                 max_above_intercept = test_intercept;
+                 found_above = true;
+             }
          } else if (test_intercept < base_c) {
-             ArrayResize(cand_below, count_below + 1);
-             cand_below[count_below] = tl;
-             count_below++;
-         }
-      }
-   }
-
-   for(int i = 0; i < count_above - 1; i++) {
-      for(int j = i + 1; j < count_above; j++) {
-         if(cand_above[j].score > cand_above[i].score) {
-            TrendLine tmp = cand_above[i];
-            cand_above[i] = cand_above[j]; cand_above[j] = tmp;
-         }
-      }
-   }
-   for(int i = 0; i < count_below - 1; i++) {
-      for(int j = i + 1; j < count_below; j++) {
-         if(cand_below[j].score > cand_below[i].score) {
-            TrendLine tmp = cand_below[i];
-            cand_below[i] = cand_below[j]; cand_below[j] = tmp;
-         }
-      }
-   }
-
-   int max_allowed = (int)MathMin(InpMaxEDTLines, 8);
-   int max_per_side = max_allowed / 2;
-   int remainder = max_allowed % 2; 
-   
-   int extra_above = 0, extra_below = 0;
-   if(remainder > 0) {
-       double max_score_above = (count_above > 0) ? cand_above[0].score : -1;
-       double max_score_below = (count_below > 0) ? cand_below[0].score : -1;
-       if(max_score_above >= max_score_below) extra_above = 1;
-       else extra_below = 1;
-   }
-
-   int target_above = (int)MathMin(4, max_per_side + extra_above);
-   int target_below = (int)MathMin(4, max_per_side + extra_below);
-   double base_price_now = base_m * (rates_total - 1) + base_c;
-
-   double chart_range_pct = (channel_max - channel_min) / current_close * 100.0;
-   double effective_sep = MathMin(InpMinLineSeparationPercent, chart_range_pct * 0.15);
-   if (effective_sep < 0.001) effective_sep = 0.001; 
-   
-   TrendLine final_edts_above[];
-   int picked_above = 0;
-   for(int i = 0; i < count_above && picked_above < target_above; i++) {
-      bool too_close = false;
-      double cand_price_now = base_m * (rates_total - 1) + cand_above[i].y_intercept;
-      if(MathAbs(cand_price_now - base_price_now) / current_close * 100.0 < effective_sep) continue;
-      for(int f = 0; f < picked_above; f++) {
-         double approved_price = base_m * (rates_total - 1) + final_edts_above[f].y_intercept;
-         if(MathAbs(cand_price_now - approved_price) / current_close * 100.0 < effective_sep) { too_close = true; break;
-         }
-      }
-      
-      if(!too_close) {
-         double c = cand_above[i].y_intercept;
-         for(int k = drawStartIdx; k <= drawEndIdx; k++) { // Restricted Loop for Rightmost sync (or extended to live bar)
-             double val = base_m * k + c;
-             if(picked_above == 0) ExtEDT1[k] = val;
-             else if(picked_above == 1) ExtEDT2[k] = val;
-             else if(picked_above == 2) ExtEDT3[k] = val;
-             else if(picked_above == 3) ExtEDT4[k] = val;
-         }
-         ArrayResize(final_edts_above, picked_above + 1);
-         final_edts_above[picked_above] = cand_above[i];
-         picked_above++;
-      }
-   }
-
-   TrendLine final_edts_below[]; int picked_below = 0;
-   for(int i = 0; i < count_below && picked_below < target_below; i++) {
-      bool too_close = false;
-      double cand_price_now = base_m * (rates_total - 1) + cand_below[i].y_intercept;
-      if(MathAbs(cand_price_now - base_price_now) / current_close * 100.0 < effective_sep) continue;
-      for(int f = 0; f < picked_below; f++) {
-         double approved_price = base_m * (rates_total - 1) + final_edts_below[f].y_intercept;
-         if(MathAbs(cand_price_now - approved_price) / current_close * 100.0 < effective_sep) { too_close = true; break;
-         }
-      }
-      
-      if(!too_close) {
-         double c = cand_below[i].y_intercept;
-         for(int k = drawStartIdx; k <= drawEndIdx; k++) { // Restricted Loop for Rightmost sync (or extended to live bar)
-             double val = base_m * k + c;
-             if(picked_below == 0) ExtEDT5[k] = val;
-             else if(picked_below == 1) ExtEDT6[k] = val;
-             else if(picked_below == 2) ExtEDT7[k] = val;
-             else if(picked_below == 3) ExtEDT8[k] = val;
-         }
-         ArrayResize(final_edts_below, picked_below + 1);
-         final_edts_below[picked_below] = cand_below[i];
-         picked_below++;
-      }
-   }
-
-   if (picked_above + picked_below < max_allowed) {
-       int remaining = max_allowed - (picked_above + picked_below);
-       for(int i = 0; i < count_above && remaining > 0 && picked_above < 4; i++) {
-          bool already_picked = false;
-          for(int f=0; f<picked_above; f++) { if (final_edts_above[f].y_intercept == cand_above[i].y_intercept) { already_picked = true; break;
-          } }
-          if (already_picked) continue;
-
-          bool too_close = false;
-          double cand_price_now = base_m * (rates_total - 1) + cand_above[i].y_intercept;
-          if(MathAbs(cand_price_now - base_price_now) / current_close * 100.0 < effective_sep) continue;
-          for(int f = 0; f < picked_above; f++) {
-             double approved_price = base_m * (rates_total - 1) + final_edts_above[f].y_intercept;
-             if(MathAbs(cand_price_now - approved_price) / current_close * 100.0 < effective_sep) { too_close = true; break;
+             if(test_intercept < min_below_intercept) {
+                 min_below_intercept = test_intercept;
+                 found_below = true;
              }
-          }
-          if(!too_close) { 
-              double c = cand_above[i].y_intercept;
-              for(int k = drawStartIdx; k <= drawEndIdx; k++) { // Restricted Loop for Rightmost sync (or extended to live bar)
-                 double val = base_m * k + c;
-                 if(picked_above == 0) ExtEDT1[k] = val;
-                 else if(picked_above == 1) ExtEDT2[k] = val;
-                 else if(picked_above == 2) ExtEDT3[k] = val;
-                 else if(picked_above == 3) ExtEDT4[k] = val;
-              }
-              ArrayResize(final_edts_above, picked_above + 1);
-              final_edts_above[picked_above] = cand_above[i]; 
-              picked_above++; remaining--; 
-          }
+         }
+      }
+   }
+
+   // Draw Upper Outermost
+   if(found_above) {
+       for(int k = drawStartIdx; k <= drawEndIdx; k++) {
+           ExtUOEDT[k] = base_m * k + max_above_intercept;
        }
-       for(int i = 0; i < count_below && remaining > 0 && picked_below < 4; i++) {
-          bool already_picked = false;
-          for(int f=0; f<picked_below; f++) { if (final_edts_below[f].y_intercept == cand_below[i].y_intercept) { already_picked = true; break;
-          } }
-          if (already_picked) continue;
-
-          bool too_close = false;
-          double cand_price_now = base_m * (rates_total - 1) + cand_below[i].y_intercept;
-          if(MathAbs(cand_price_now - base_price_now) / current_close * 100.0 < effective_sep) continue;
-          for(int f = 0; f < picked_below; f++) {
-             double approved_price = base_m * (rates_total - 1) + final_edts_below[f].y_intercept;
-             if(MathAbs(cand_price_now - approved_price) / current_close * 100.0 < effective_sep) { too_close = true; break;
-             }
-          }
-          if(!too_close) { 
-              double c = cand_below[i].y_intercept;
-              for(int k = drawStartIdx; k <= drawEndIdx; k++) { // Restricted Loop for Rightmost sync (or extended to live bar)
-                 double val = base_m * k + c;
-                 if(picked_below == 0) ExtEDT5[k] = val;
-                 else if(picked_below == 1) ExtEDT6[k] = val;
-                 else if(picked_below == 2) ExtEDT7[k] = val;
-                 else if(picked_below == 3) ExtEDT8[k] = val;
-              }
-              ArrayResize(final_edts_below, picked_below + 1);
-              final_edts_below[picked_below] = cand_below[i]; 
-              picked_below++; remaining--; 
-          }
+   }
+   
+   // Draw Lower Outermost
+   if(found_below) {
+       for(int k = drawStartIdx; k <= drawEndIdx; k++) {
+           ExtLOEDT[k] = base_m * k + min_below_intercept;
        }
    }
 }
@@ -1137,85 +957,91 @@ bool ExportData(bool silent = false)
    int dot_pos = StringFind(clean_symbol, ".");
    if(dot_pos > 0) clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
    
-   string filename = StringFormat("%s_%s_%s.txt", InpExportFileName, clean_symbol, tf_str);
-   int fh = FileOpen(filename, FILE_WRITE | FILE_TXT | FILE_ANSI);
-   if(fh == INVALID_HANDLE) { 
-      if(!silent) Print("ERROR: Failed to open file for writing.");
+   // =========================================================
+   // 1) EXPORT STATISTIC DATA FILE
+   // =========================================================
+   string stat_filename = StringFormat("%s_%s_%s_Statistic.txt", InpExportFileName, clean_symbol, tf_str);
+   int fh_stat = FileOpen(stat_filename, FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(fh_stat == INVALID_HANDLE) { 
+      if(!silent) Print("ERROR: Failed to open statistics file for writing.");
       return false; 
    }
    
    int live_idx = g_rates_total - 1;
    datetime gmt_offset = TimeCurrent() - TimeGMT();
-   FileWrite(fh, "Regression Centroids (Box B): " + IntegerToString(g_stat_centroids));
-   FileWrite(fh, "Excluded Recent Centroids (Box A): " + IntegerToString(g_stat_excluded));
-   FileWrite(fh, "Math Search Window (Bars): " + IntegerToString(g_stat_math_window));
-   FileWrite(fh, "Visual EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
-   FileWrite(fh, "Observation Window (Box B Bars): " + IntegerToString(g_stat_obs_window));
-   FileWrite(fh, "Total 171 Crossings (n): " + IntegerToString(g_stat_n_crossings));
-   FileWrite(fh, "Timeframe (Sec): " + IntegerToString((int)ExtTimeframe[live_idx]));
-   FileWrite(fh, "Raw Slope (b): " + DoubleToString(ExtSlope[live_idx], 5));
-   FileWrite(fh, "Regression Angle: " + DoubleToString(ExtAngle[live_idx], 2));
-   FileWrite(fh, "Anchored Y-Int: " + DoubleToString(ExtIntercept[live_idx], 5));
-   FileWrite(fh, "");
    
-   FileWrite(fh, "[MODEL A; CROSSINGS]");
-   FileWrite(fh, "Sample (n): " + IntegerToString(g_stat_n_crossings));
-   FileWrite(fh, "R-Square: " + DoubleToString(ExtRSquare_Cross[live_idx], 4));
-   FileWrite(fh, "MSE: " + DoubleToString(ExtMSE_Cross[live_idx], 4));
-   FileWrite(fh, "Var Ratio: " + DoubleToString(ExtVarRatio_Cross[live_idx], 2));
-   FileWrite(fh, "Skewness: " + DoubleToString(ExtSkewness_Cross[live_idx], 2));
-   FileWrite(fh, "Kurtosis: " + DoubleToString(ExtKurtosis_Cross[live_idx], 2));
-   FileWrite(fh, "");
+   FileWrite(fh_stat, "Regression Centroids (Box B): " + IntegerToString(g_stat_centroids));
+   FileWrite(fh_stat, "Excluded Recent Centroids (Box A): " + IntegerToString(g_stat_excluded));
+   FileWrite(fh_stat, "Math Search Window (Bars): " + IntegerToString(g_stat_math_window));
+   FileWrite(fh_stat, "Visual EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
+   FileWrite(fh_stat, "Observation Window (Box B Bars): " + IntegerToString(g_stat_obs_window));
+   FileWrite(fh_stat, "Total 171 Crossings (n): " + IntegerToString(g_stat_n_crossings));
+   FileWrite(fh_stat, "Timeframe (Sec): " + IntegerToString((int)ExtTimeframe[live_idx]));
+   FileWrite(fh_stat, "Raw Slope (b): " + DoubleToString(ExtSlope[live_idx], 5));
+   FileWrite(fh_stat, "Regression Angle: " + DoubleToString(ExtAngle[live_idx], 2));
+   FileWrite(fh_stat, "Anchored Y-Int: " + DoubleToString(ExtIntercept[live_idx], 5));
+   FileWrite(fh_stat, "");
    
-   FileWrite(fh, "[MODEL B; CLOSE PRICE]");
-   FileWrite(fh, "Sample (n): " + IntegerToString(g_stat_n_close));
-   FileWrite(fh, "R-Square: " + DoubleToString(ExtRSquare_Close[live_idx], 4));
-   FileWrite(fh, "MSE: " + DoubleToString(ExtMSE_Close[live_idx], 4));
-   FileWrite(fh, "Var Ratio: " + DoubleToString(ExtVarRatio_Close[live_idx], 2));
-   FileWrite(fh, "Skewness: " + DoubleToString(ExtSkewness_Close[live_idx], 2));
-   FileWrite(fh, "Kurtosis: " + DoubleToString(ExtKurtosis_Close[live_idx], 2));
-   FileWrite(fh, "");
+   FileWrite(fh_stat, "[MODEL A; CROSSINGS]");
+   FileWrite(fh_stat, "Sample (n): " + IntegerToString(g_stat_n_crossings));
+   FileWrite(fh_stat, "R-Square: " + DoubleToString(ExtRSquare_Cross[live_idx], 4));
+   FileWrite(fh_stat, "MSE: " + DoubleToString(ExtMSE_Cross[live_idx], 4));
+   FileWrite(fh_stat, "Var Ratio: " + DoubleToString(ExtVarRatio_Cross[live_idx], 2));
+   FileWrite(fh_stat, "Skewness: " + DoubleToString(ExtSkewness_Cross[live_idx], 2));
+   FileWrite(fh_stat, "Kurtosis: " + DoubleToString(ExtKurtosis_Cross[live_idx], 2));
+   FileWrite(fh_stat, "");
+   
+   FileWrite(fh_stat, "[MODEL B; CLOSE PRICE]");
+   FileWrite(fh_stat, "Sample (n): " + IntegerToString(g_stat_n_close));
+   FileWrite(fh_stat, "R-Square: " + DoubleToString(ExtRSquare_Close[live_idx], 4));
+   FileWrite(fh_stat, "MSE: " + DoubleToString(ExtMSE_Close[live_idx], 4));
+   FileWrite(fh_stat, "Var Ratio: " + DoubleToString(ExtVarRatio_Close[live_idx], 2));
+   FileWrite(fh_stat, "Skewness: " + DoubleToString(ExtSkewness_Close[live_idx], 2));
+   FileWrite(fh_stat, "Kurtosis: " + DoubleToString(ExtKurtosis_Close[live_idx], 2));
+   FileWrite(fh_stat, "");
+   
+   FileClose(fh_stat);
 
-   FileWrite(fh, "timestamp\tsymbol\ttimeframe\tclose\tCEN_0\tCEN_1\tCEN_2\tCEN_3\tCEN_4\tCEN_5\tCEN_6\tCEN_7\tCEN_8\tCEN_9\tCEN_10\tCEN_11\tBase_FL\tEDT_1\tEDT_2\tEDT_3\tEDT_4\tEDT_5\tEDT_6\tEDT_7\tEDT_8\thoriz_high_map\thoriz_low_map\tssa\tema_ssa\tcrossing");
+   // =========================================================
+   // 2) EXPORT TIMESERIES DATA FILE
+   // =========================================================
+   string data_filename = StringFormat("%s_%s_%s.txt", InpExportFileName, clean_symbol, tf_str);
+   int fh_data = FileOpen(data_filename, FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(fh_data == INVALID_HANDLE) { 
+      if(!silent) Print("ERROR: Failed to open data file for writing.");
+      return false; 
+   }
 
+   // Refactored Export Header (Removed CEN columns, Renamed EDT columns)
+   FileWrite(fh_data, "Non_B_timestamp\tNon_B_symbol\tNon_B_timeframe\tNon_B_close\tNon_B_Base_FL\tNon_B_UOEDT\tNon_B_LOEDT\tNon_B_horiz_high_map\tNon_B_horiz_low_map\tNon_B_ssa\tNon_B_ema_ssa\tNon_B_crossing");
+   
    int max_lookback = MathMax(InpSSAMathLookback, g_rates_total - g_stat_leftmost_bar);
    int start_idx = g_rates_total - max_lookback;
    if(start_idx < 0) start_idx = 0;
+   
    for(int i = start_idx; i < g_rates_total; i++) {
       string line = IntegerToString((long)(g_time[i] - gmt_offset)) + "\t";
       line += symbol + "\t" + tf_str + "\t";
       line += DoubleToString(g_close[i], _Digits) + "\t";
-      for(int c=0; c<12; c++) {
-         if(g_cen_prices[c] != 0.0) line += DoubleToString(g_cen_prices[c], 5) + "\t";
-         else line += "\t";
-      }
       
-      // Because the line loop was structurally capped at the Rightmost crossing in MT5 logic, 
-      // these line evaluations will inherently print the "\t" (blank) after the Rightmost bounds in the output text format
-      // (Unless extended to the live bar via user input)
+      // Data bounds handling (Tabs print empty if out of bounds)
       line += (ExtBaseLine[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtBaseLine[i], 5) + "\t";
-      line += (ExtEDT1[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtEDT1[i], 5) + "\t";
-      line += (ExtEDT2[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT2[i], 5) + "\t";
-      line += (ExtEDT3[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT3[i], 5) + "\t";
-      line += (ExtEDT4[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtEDT4[i], 5) + "\t";
-      line += (ExtEDT5[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT5[i], 5) + "\t";
-      line += (ExtEDT6[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT6[i], 5) + "\t";
-      line += (ExtEDT7[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtEDT7[i], 5) + "\t";
-      line += (ExtEDT8[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtEDT8[i], 5) + "\t";
+      line += (ExtUOEDT[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtUOEDT[i], 5) + "\t";
+      line += (ExtLOEDT[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtLOEDT[i], 5) + "\t";
+      
       line += (ExtUpper108[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtUpper108[i], 5) + "\t";
-      line += (ExtLower108[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtLower108[i], 5) + "\t";
+      line += (ExtLower108[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtLower108[i], 5) + "\t";
+      
       line += (ExtSSATrend[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtSSATrend[i], _Digits+3) + "\t";
       line += (ExtSSASignal[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtSSASignal[i], _Digits+3) + "\t";
       line += (ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) ? "1" : "0";
-      FileWrite(fh, line);
+      
+      FileWrite(fh_data, line);
    }
    
-   FileClose(fh);
-   if(!silent) Print("Export complete to: ", filename);
+   FileClose(fh_data);
+   
+   if(!silent) Print("Export complete to: ", stat_filename, " and ", data_filename);
    return true;
 }
 
@@ -1229,16 +1055,15 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
 
    bool new_bar = false;
    if(prev_calculated == 0) ExtLastBarTime = time[rates_total - 1];
-   else if (time[rates_total - 1] != ExtLastBarTime) { new_bar = true; ExtLastBarTime = time[rates_total - 1];
-   }
+   else if (time[rates_total - 1] != ExtLastBarTime) { new_bar = true; ExtLastBarTime = time[rates_total - 1]; }
 
    int new_bars_start = prev_calculated;
    if(prev_calculated == 0) new_bars_start = 0;
+   
    for(int j = new_bars_start; j < rates_total; j++) {
        ExtBaseLine[j] = EMPTY_VALUE;
-       ExtEDT1[j] = EMPTY_VALUE; ExtEDT2[j] = EMPTY_VALUE; ExtEDT3[j] = EMPTY_VALUE; ExtEDT4[j] = EMPTY_VALUE;
-       ExtEDT5[j] = EMPTY_VALUE; ExtEDT6[j] = EMPTY_VALUE;
-       ExtEDT7[j] = EMPTY_VALUE; ExtEDT8[j] = EMPTY_VALUE; ExtEDT9[j] = EMPTY_VALUE;
+       ExtUOEDT[j] = EMPTY_VALUE; 
+       ExtLOEDT[j] = EMPTY_VALUE; 
        
        ExtTimeframe[j] = EMPTY_VALUE; ExtSlope[j] = EMPTY_VALUE; ExtIntercept[j] = EMPTY_VALUE;
        ExtAngle[j] = EMPTY_VALUE;
@@ -1264,9 +1089,9 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
    g_rates_total = rates_total;
 
-   int startIdx = (rates_total > InpSSAMathLookback) ?
-   rates_total - InpSSAMathLookback : 0;
+   int startIdx = (rates_total > InpSSAMathLookback) ? rates_total - InpSSAMathLookback : 0;
    int len = rates_total - startIdx;
+   
    if(prev_calculated == 0) {
       for(int i = 0; i < startIdx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
       ExtSSASignal[i] = EMPTY_VALUE; ExtSSACross[i] = EMPTY_VALUE; }

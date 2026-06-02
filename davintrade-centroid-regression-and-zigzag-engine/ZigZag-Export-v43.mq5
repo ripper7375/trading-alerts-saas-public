@@ -5,9 +5,9 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2024, Your Name"
 #property link      "https://www.yourwebsite.com"
-#property version   "1.42"
-#property description "Improved ZigZag Color Indicator - V42 BASELINE"
-#property description "Added Equal High/Low Toggle and Memory Optimization"
+#property version   "1.43"
+#property description "Improved ZigZag Color Indicator - V1.43"
+#property description "Restructured export: 15-col schema with BarsClass and PrPerBarClass Z-score"
 
 // Indicator settings
 #property indicator_chart_window
@@ -231,6 +231,128 @@ int GetPercentChangeClassification(int currentIndex, int totalPoints, double cur
   }
 
 //+------------------------------------------------------------------+
+//| Calculate Z-Score Bars Classification                            |
+//| isBullish: true = price moved up this segment, false = down      |
+//+------------------------------------------------------------------+
+int GetBarsClassification(int currentIndex, int totalPoints, int currentBars, bool isBullish, bool isUnconfirmed = false)
+  {
+   double sum = 0, sum2 = 0;
+   int count = 0;
+   int startIdx = isUnconfirmed ? 0 : currentIndex;
+
+   // If it's the live unconfirmed segment, include it as the first data point
+   if(isUnconfirmed)
+     {
+      double val = (double)currentBars;
+      sum  += val;
+      sum2 += val * val;
+      count++;
+     }
+
+   // Loop backwards through confirmed segments for Z-Score calculation
+   for(int j = 0; count < InpZScoreLength && (startIdx + j + 1) < totalPoints; j++)
+     {
+      int segBars = MathAbs(xcollectedPoints[startIdx + j].bar - xcollectedPoints[startIdx + j + 1].bar);
+      double val  = (double)segBars;
+      sum  += val;
+      sum2 += val * val;
+      count++;
+     }
+
+   double mean = 0, stdDev = 0, zScore = 0;
+   if(count > 0)
+     {
+      mean = sum / count;
+      if(count > 1)
+        {
+         double variance = (sum2 - sum * mean) / (count - 1);
+         if(variance > 0) stdDev = MathSqrt(variance);
+        }
+     }
+
+   if(stdDev != 0)
+      zScore = ((double)currentBars - mean) / stdDev;
+
+   if(isBullish)
+     {
+      if(zScore >= InpThresholdZ2) return 2;
+      else if(zScore >= InpThresholdZ1) return 1;
+      else return 0;
+     }
+   else
+     {
+      if(zScore >= InpThresholdZ2) return 5;
+      else if(zScore >= InpThresholdZ1) return 4;
+      else return 3;
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Calculate Z-Score Price-Per-Bar Classification                   |
+//| Sign of currentPrPerBar encodes direction (+ bullish, - bearish) |
+//+------------------------------------------------------------------+
+int GetPrPerBarClassification(int currentIndex, int totalPoints, double currentPrPerBar, bool isUnconfirmed = false)
+  {
+   double sum = 0, sum2 = 0;
+   int count = 0;
+   int startIdx = isUnconfirmed ? 0 : currentIndex;
+
+   // If it's the live unconfirmed segment, include it as the first data point
+   if(isUnconfirmed)
+     {
+      double absVal = MathAbs(currentPrPerBar);
+      sum  += absVal;
+      sum2 += absVal * absVal;
+      count++;
+     }
+
+   // Loop backwards through confirmed segments for Z-Score calculation
+   for(int j = 0; count < InpZScoreLength && (startIdx + j + 1) < totalPoints; j++)
+     {
+      double currP   = xcollectedPoints[startIdx + j].price;
+      double prevP   = xcollectedPoints[startIdx + j + 1].price;
+      int    segBars = MathAbs(xcollectedPoints[startIdx + j].bar - xcollectedPoints[startIdx + j + 1].bar);
+
+      if(prevP == 0 || segBars == 0) continue; // Safety check
+
+      double segPrPerBar = (currP - prevP) / (double)segBars;
+      double absVal      = MathAbs(segPrPerBar);
+      sum  += absVal;
+      sum2 += absVal * absVal;
+      count++;
+     }
+
+   double mean = 0, stdDev = 0, zScore = 0;
+   if(count > 0)
+     {
+      mean = sum / count;
+      if(count > 1)
+        {
+         double variance = (sum2 - sum * mean) / (count - 1);
+         if(variance > 0) stdDev = MathSqrt(variance);
+        }
+     }
+
+   if(stdDev != 0)
+      zScore = (MathAbs(currentPrPerBar) - mean) / stdDev;
+
+   bool isBullish = (currentPrPerBar >= 0);
+
+   if(isBullish)
+     {
+      if(zScore >= InpThresholdZ2) return 2;
+      else if(zScore >= InpThresholdZ1) return 1;
+      else return 0;
+     }
+   else
+     {
+      if(zScore >= InpThresholdZ2) return 5;
+      else if(zScore >= InpThresholdZ1) return 4;
+      else return 3;
+     }
+  }
+
+//+------------------------------------------------------------------+
 //| Export Market Structure Analysis to all files                    |
 //+------------------------------------------------------------------+
 bool ExportMarketStructureData()
@@ -288,26 +410,27 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
    bool write_success = true;
 
    write_success &= FileWrite(file_handle,
-                              "TimeStamp\tsymbol\ttimeframe\tclose\tType\tCurrentPoint\tPreviousPoint\tTwoPreviousPoint\t" +
-                              "ThreePreviousPoint\tFourPreviousPoint\tFivePreviousPoint\t" +
-                              "PriceChange\tPercentChange\tPercentChangeClassification\tBars\tCategory") > 0;
+                              "TimeStamp\tsymbol\ttimeframe\tclose\tType\tCurrentPoint\t" +
+                              "CurrentPrChg\tCurrent%Chg\tCurrent%ChgClass\t" +
+                              "CurrentBars\tCurrentBarsClass\tCurrentPrPerBar\tCurrentPrPerBarClass\t" +
+                              "CurrentSlope\tCurrentCategory") > 0;
 
    int totalPoints = ArraySize(xcollectedPoints);
-   if(totalPoints < 6)
+   if(totalPoints < 3)
      {
       FileClose(file_handle);
-      return true; // Not enough points to structure
+      return true; // Not enough points to structure (need at least i, i+1, i+2)
      }
 
    datetime gmt_offset = TimeCurrent() - TimeGMT();
    int currentChartBar = ArraySize(xZigzagPeakBuffer) - 1; // Used to calculate distance for lookback
 
-   int startIndex = totalPoints - 6; // Default to oldest eligible index to print chronologically
-   
+   int startIndex = totalPoints - 3; // Default to oldest eligible index to print chronologically
+
    // If MaxBars is set, locate the oldest point that is within our max lookback limit
    if(InpMaxBarsExport > 0)
      {
-      for(int i = 0; i <= totalPoints - 6; i++)
+      for(int i = 0; i <= totalPoints - 3; i++)
         {
          if((currentChartBar - xcollectedPoints[i].bar) > InpMaxBarsExport)
            {
@@ -326,24 +449,27 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
    // Iterate from the oldest point (startIndex) down to the newest confirmed point (0)
    for(int i = startIndex; i >= 0; i--)
      {
-      double currentPrice   = xcollectedPoints[i].price;
-      double prevPrice      = xcollectedPoints[i+1].price;
-      double twoPrevPrice   = xcollectedPoints[i+2].price;
-      double threePrevPrice = xcollectedPoints[i+3].price;
-      double fourPrevPrice  = xcollectedPoints[i+4].price;
-      double fivePrevPrice  = xcollectedPoints[i+5].price;
+      double currentPrice = xcollectedPoints[i].price;
+      double prevPrice    = xcollectedPoints[i+1].price;
+      double twoPrevPrice = xcollectedPoints[i+2].price; // needed for Category
 
-      double priceChange = currentPrice - prevPrice;
-      double percentChange = (priceChange / prevPrice) * 100;
-      int barCount = xcollectedPoints[i].bar - xcollectedPoints[i+1].bar;
-      int pctClass = GetPercentChangeClassification(i, totalPoints, percentChange, false);
+      double priceChange   = currentPrice - prevPrice;
+      double percentChange = (prevPrice != 0) ? (priceChange / prevPrice) * 100.0 : 0.0;
+      int    barCount      = xcollectedPoints[i].bar - xcollectedPoints[i+1].bar;
+      bool   isBullish     = (priceChange >= 0);
+
+      int    pctClass      = GetPercentChangeClassification(i, totalPoints, percentChange, false);
+      int    barsClass     = GetBarsClassification(i, totalPoints, barCount, isBullish, false);
+      double prPerBar      = (barCount != 0) ? priceChange / (double)barCount : 0.0;
+      int    prPerBarClass = GetPrPerBarClassification(i, totalPoints, prPerBar, false);
+      double slope         = MathArctan(prPerBar) * (180.0 / M_PI);
 
       string firstStatus;
       if(xInpEnableEqual)
         {
          double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
          double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
-         
+
          if(currentPrice > upperThreshold)
             firstStatus = "Higher";
          else if(currentPrice < lowerThreshold)
@@ -370,25 +496,24 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
       else if(firstStatus == "Equal" && lastStatus == "High") category = "EQH";
       else if(firstStatus == "Equal" && lastStatus == "Low") category = "EQL";
 
-      // Convert local MT5 time to UNIX time 
+      // Convert local MT5 time to UNIX time
       long unixTime = (long)(xcollectedPoints[i].timestamp - gmt_offset);
 
-      string line = StringFormat("%d\t%s\t%s\t%.5f\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.2f\t%d\t%d\t%s",
+      string line = StringFormat("%d\t%s\t%s\t%.5f\t%s\t%.5f\t%.5f\t%.2f\t%d\t%d\t%d\t%.5f\t%d\t%.4f\t%s",
                                  unixTime,
                                  symbol,
                                  timeframe,
                                  xcollectedPoints[i].close,
                                  xcollectedPoints[i].isPeak ? "Peak" : "Bottom",
                                  currentPrice,
-                                 prevPrice,
-                                 twoPrevPrice,
-                                 threePrevPrice,
-                                 fourPrevPrice,
-                                 fivePrevPrice,
                                  priceChange,
                                  percentChange,
                                  pctClass,
                                  barCount,
+                                 barsClass,
+                                 prPerBar,
+                                 prPerBarClass,
+                                 slope,
                                  category
                                 );
 
@@ -396,7 +521,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
      }
 
    // --- UNCONFIRMED ZIGZAG ROW CALCULATION ---
-   if(totalPoints >= 5)
+   if(totalPoints >= 2)
      {
       double unconf_price = 0;
       double unconf_close = 0;
@@ -455,25 +580,27 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
            }
         }
 
-      double currentPrice   = unconf_price;
-      double prevPrice      = xcollectedPoints[0].price;
-      double twoPrevPrice   = xcollectedPoints[1].price;
-      double threePrevPrice = xcollectedPoints[2].price;
-      double fourPrevPrice  = xcollectedPoints[3].price;
-      double fivePrevPrice  = xcollectedPoints[4].price;
+      double currentPrice = unconf_price;
+      double prevPrice    = xcollectedPoints[0].price;
+      double twoPrevPrice = (totalPoints >= 2) ? xcollectedPoints[1].price : 0.0; // needed for Category
 
-      double priceChange = currentPrice - prevPrice;
-      double percentChange = (priceChange / prevPrice) * 100;
-      int barCount = unconf_bars;
+      double priceChange   = currentPrice - prevPrice;
+      double percentChange = (prevPrice != 0) ? (priceChange / prevPrice) * 100.0 : 0.0;
+      int    barCount      = unconf_bars;
+      bool   isBullish     = (priceChange >= 0);
 
-      int pctClass = GetPercentChangeClassification(0, totalPoints, percentChange, true);
-      
+      int    pctClass      = GetPercentChangeClassification(0, totalPoints, percentChange, true);
+      int    barsClass     = GetBarsClassification(0, totalPoints, barCount, isBullish, true);
+      double prPerBar      = (barCount != 0) ? priceChange / (double)barCount : 0.0;
+      int    prPerBarClass = GetPrPerBarClassification(0, totalPoints, prPerBar, true);
+      double slope         = MathArctan(prPerBar) * (180.0 / M_PI);
+
       string firstStatus;
       if(xInpEnableEqual)
         {
          double upperThreshold = twoPrevPrice * (1 + (xInpEqualThreshold / 100));
          double lowerThreshold = twoPrevPrice * (1 - (xInpEqualThreshold / 100));
-         
+
          if(currentPrice > upperThreshold)
             firstStatus = "Higher";
          else if(currentPrice < lowerThreshold)
@@ -500,22 +627,21 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
       else if(firstStatus == "Equal" && lastStatus == "High") category = "EQH";
       else if(firstStatus == "Equal" && lastStatus == "Low") category = "EQL";
 
-      string line = StringFormat("%d\t%s\t%s\t%.5f\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.2f\t%d\t%d\t%s",
+      string line = StringFormat("%d\t%s\t%s\t%.5f\t%s\t%.5f\t%.5f\t%.2f\t%d\t%d\t%d\t%.5f\t%d\t%.4f\t%s",
                                  unconf_time,
                                  symbol,
                                  timeframe,
                                  unconf_close,
                                  unconf_isPeak ? "Peak" : "Bottom",
                                  currentPrice,
-                                 prevPrice,
-                                 twoPrevPrice,
-                                 threePrevPrice,
-                                 fourPrevPrice,
-                                 fivePrevPrice,
                                  priceChange,
                                  percentChange,
                                  pctClass,
                                  barCount,
+                                 barsClass,
+                                 prPerBar,
+                                 prPerBarClass,
+                                 slope,
                                  category
                                 );
 

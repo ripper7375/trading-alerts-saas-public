@@ -947,7 +947,7 @@ bool InsertCandle(int symbolIndex, int tfIndex)
       return false;
    }
 
-   int shift = 0;
+   int shift = 1;
 
    // Collect all indicator values
    double tema = GetIndicatorValue(tfIndicators[slotIndex].h_tema, 0, shift);
