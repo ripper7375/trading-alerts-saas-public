@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DavinTrade — Python Backend Stacks · Executive Summary</title>
+<style>
+  :root{
+    --bg:#0c0f12; --panel:#11161b; --panel-2:#161d24; --border:#1c2229;
+    --border-2:#28323d; --text:#e6edf3; --muted:#9aa7b4; --dim:#6b7785;
+    --accent:#4aa8ff; --accent-2:#7c5cff; --green:#2ecc71; --red:#ff5b6e;
+    --amber:#ff9f43; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;font-size:15px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 28px 80px;}
+  header.hero{border:1px solid var(--border);background:linear-gradient(160deg,#11161b,#0c0f12);
+    border-radius:14px;padding:30px 32px;margin-bottom:34px;}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);border:1px solid var(--border-2);border-radius:999px;padding:4px 12px;margin-bottom:14px;}
+  h1{font-size:27px;margin:0 0 8px;font-weight:650;letter-spacing:-.01em;}
+  h1 .sub{color:var(--muted);font-weight:400;font-size:16px;display:block;margin-top:6px;}
+  h2{font-size:20px;margin:40px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border);font-weight:620;}
+  h3{font-size:15px;margin:22px 0 8px;color:var(--text);font-weight:620;letter-spacing:.01em;}
+  p{color:var(--text);} .muted{color:var(--muted);}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel-2);border:1px solid var(--border);
+    border-radius:5px;padding:1px 6px;color:#cdd9e5;}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+  .meta span{font-size:12.5px;color:var(--muted);background:var(--panel);border:1px solid var(--border);
+    border-radius:7px;padding:6px 11px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:16px 16px 14px;}
+  .card .rq{font-size:11px;color:var(--accent-2);letter-spacing:.08em;text-transform:uppercase;font-weight:700;}
+  .card h4{margin:6px 0 6px;font-size:14.5px;}
+  .card p{margin:0;font-size:12.8px;color:var(--muted);line-height:1.5;}
+  .card .sheet{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:8px;display:block;}
+  /* flow */
+  .flow{display:flex;flex-direction:column;gap:0;margin:20px 0 8px;}
+  .stage{display:grid;grid-template-columns:54px 1fr;gap:0;}
+  .stage .rail{position:relative;display:flex;justify-content:center;}
+  .stage .rail::before{content:"";position:absolute;top:0;bottom:0;width:2px;background:var(--border-2);}
+  .stage:first-child .rail::before{top:22px;}
+  .stage:last-child .rail::before{bottom:calc(100% - 22px);}
+  .dot{position:relative;z-index:1;width:30px;height:30px;border-radius:50%;background:var(--panel-2);
+    border:2px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;margin-top:8px;}
+  .dot.scope{border-color:var(--dim);color:var(--dim);border-style:dashed;}
+  .stage .body{padding:8px 0 22px 16px;}
+  .stage .body .st-title{font-weight:640;font-size:15px;}
+  .stage .body .st-title .oos{font-size:11px;color:var(--dim);border:1px dashed var(--dim);border-radius:6px;
+    padding:1px 7px;margin-left:8px;vertical-align:middle;letter-spacing:.04em;}
+  .stage .body .desc{color:var(--muted);font-size:13px;margin:4px 0 8px;}
+  .libs{display:flex;flex-wrap:wrap;gap:7px;}
+  .lib{font-family:var(--mono);font-size:11.5px;background:var(--panel-2);border:1px solid var(--border-2);
+    border-radius:6px;padding:3px 9px;color:#aeb9c4;}
+  .lib.key{border-color:var(--accent);color:#bfe0ff;}
+  /* table */
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:top;}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;
+    background:var(--panel);}
+  tr:hover td{background:#0f141a;}
+  td code{font-size:.86em;}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 7px;letter-spacing:.04em;}
+  .pill.core{background:rgba(74,168,255,.12);color:var(--accent);border:1px solid rgba(74,168,255,.3);}
+  .pill.oos{background:rgba(107,119,133,.14);color:var(--dim);border:1px solid var(--border-2);}
+  .pill.test{background:rgba(124,92,255,.14);color:#b6a4ff;border:1px solid rgba(124,92,255,.3);}
+  ul{margin:8px 0 8px 2px;padding-left:20px;}
+  li{margin:4px 0;color:var(--text);}
+  .callout{border:1px solid var(--border-2);border-left:3px solid var(--amber);background:var(--panel);
+    border-radius:9px;padding:14px 16px;margin:18px 0;font-size:13.5px;color:var(--muted);}
+  .callout b{color:var(--text);}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);color:var(--dim);font-size:12px;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 0;font-size:12px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block;}
+  @media(max-width:860px){.grid4{grid-template-columns:1fr 1fr;}.two{grid-template-columns:1fr;}
+    .wrap{padding:24px 16px 60px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag">Executive Summary · Implementation-Ready</span>
+    <h1>DavinTrade — Python Backend Stacks
+      <span class="sub">Translating the Excel calculation sheets (Requirements 1–4) into a vectorized Python backend</span>
+    </h1>
+    <div class="meta">
+      <span>📄 Full spec: <code>ARCHITECTURE_Python_Backend_Stacks_Req1-4.md</code></span>
+      <span>🎯 Audience: Claude Code + maintainers</span>
+      <span>🗓️ 2026-06-02</span>
+      <span>🧮 Oracle workbooks: <code>centroid_regression_and-edt.xlsx</code>, <code>zigzag_v43_repaired.xlsx</code></span>
+    </div>
+  </header>
+
+  <h2>1 · What we are building</h2>
+  <p>Six MT5 indicators export market frames to tab-delimited text files every M15 bar. The backend parses
+  them, runs four calculation stacks (each a one-to-one translation of an Excel sheet), and pushes a single
+  JSON payload over WebSocket to the charting frontend. Each requirement maps one Excel sheet to one Python
+  module:</p>
+
+  <div class="grid4">
+    <div class="card">
+      <span class="rq">Req 1</span><h4>Validation</h4>
+      <p>Cross-check that the 6 EDT model exports agree on shared market context. Emits one global
+      <code>all_validation</code> gate.</p>
+      <span class="sheet">Sheet G → <code>calc/validation.py</code></span>
+    </div>
+    <div class="card">
+      <span class="rq">Req 2</span><h4>Combine After Validation</h4>
+      <p>Gate-guarded coalesce of shared columns + per-model EDT geometry. The Top-Canvas dataset.</p>
+      <span class="sheet">Sheet H → <code>calc/combine.py</code></span>
+    </div>
+    <div class="card">
+      <span class="rq">Req 3</span><h4>Timestamp Adjustment</h4>
+      <p>Snap ZigZag pivot timestamps onto the M15 / 5-min grid, with a forming-pivot guard.</p>
+      <span class="sheet">Sheet J → <code>calc/timestamp_adjust.py</code></span>
+    </div>
+    <div class="card">
+      <span class="rq">Req 4</span><h4>EQH / EQL Summary</h4>
+      <p>Detect Equal Highs/Lows, average into S/R levels, emit the 6 most-recent horizontal lines.</p>
+      <span class="sheet">Sheet K → <code>calc/eqh_eql.py</code></span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>Two independent pipelines, one frontend.</b> The centroid workbook drives the
+    <b>Top Canvas</b> (<code>Req 1 → Req 2</code>: EDT channels + SSA). The zigzag workbook drives the
+    <b>Bottom Canvas</b> (<code>Req 3 → Req 4</code>: ZigZag vectors + EQH/EQL lines). They converge only at
+    serialization.
+  </div>
+
+  <h2>2 · Data flow &amp; Python stack technologies by stage</h2>
+  <p class="muted">The pipeline is built bottom-up. Each node below shows the stage, what it does, and the exact
+  libraries used there. Dashed nodes are contract-only (transport/ingestion) — defined here but implemented
+  outside the four calculation stacks.</p>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--accent)"></i> Calculation stack (in scope)</span>
+    <span><i class="swatch" style="background:var(--dim)"></i> Contract-only (out of scope)</span>
+    <span><i class="swatch" style="background:var(--accent-2)"></i> Key library for the stage</span>
+  </div>
+
+  <div class="flow">
+
+    <div class="stage">
+      <div class="rail"><div class="dot scope">0</div></div>
+      <div class="body">
+        <div class="st-title">Ingestion / file-watch <span class="oos">contract only</span></div>
+        <div class="desc">Detect MT5 file writes (emitted on the 59th second of each loop) and trigger a run.</div>
+        <div class="libs"><span class="lib">watchdog</span><span class="lib">pathlib (std-lib)</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">1</div></div>
+      <div class="body">
+        <div class="st-title">Parse &amp; type → <code>io/mt5_reader.py</code></div>
+        <div class="desc">Read tab-delimited UTF-8 (no BOM) into typed DataFrames; MT5 empties → <code>NaN/None</code>;
+          attach M15-snapped timestamp.</div>
+        <div class="libs"><span class="lib key">pandas · read_csv(sep="\t")</span><span class="lib">numpy</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">1b</div></div>
+      <div class="body">
+        <div class="st-title">Input schema validation → <code>io/schemas.py</code></div>
+        <div class="desc">Enforce column names, dtypes and cross-source row-alignment before any calculation. Fail fast.</div>
+        <div class="libs"><span class="lib key">pandera</span><span class="lib">pydantic v2 (alt)</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">★</div></div>
+      <div class="body">
+        <div class="st-title">Shared time helper → <code>calc/timegrid.py</code></div>
+        <div class="desc"><code>snap_timestamp()</code> — exact Excel <code>CEILING / INT / MROUND</code> on the
+          M15 / 5-min grid. Reused by Req 1, 2 &amp; 3.</div>
+        <div class="libs"><span class="lib key">math (std-lib)</span><span class="lib">pandas</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">2</div></div>
+      <div class="body">
+        <div class="st-title">Req 1 · Validation (G) → <code>calc/validation.py</code></div>
+        <div class="desc">Vectorized element-wise equality across the 6 sources; empty-vs-empty = equal;
+          one global <code>all_validation</code> AND.</div>
+        <div class="libs"><span class="lib key">pandas</span><span class="lib key">numpy</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">3</div></div>
+      <div class="body">
+        <div class="st-title">Req 2 · Combine (H) → <code>calc/combine.py</code></div>
+        <div class="desc">Gate-guarded first-non-empty coalesce + per-model EDT passthrough; gate-false ⇒ all 27 columns empty.</div>
+        <div class="libs"><span class="lib key">pandas</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">4a</div></div>
+      <div class="body">
+        <div class="st-title">Req 4 prep · ZigZag features → <code>calc/zigzag_features.py</code></div>
+        <div class="desc">Rebuild V43_New derived columns: lag shifts (2…22) → %Diff → EQHL (±0.25%) → S&amp;R → ImpEQHL.</div>
+        <div class="libs"><span class="lib key">pandas · .shift()</span><span class="lib key">numpy</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">4b</div></div>
+      <div class="body">
+        <div class="st-title">Req 3 · Timestamp Adjustment (J) → <code>calc/timestamp_adjust.py</code></div>
+        <div class="desc">Snap pivot timestamps via the shared helper; next-row guard drops the still-forming pivot.</div>
+        <div class="libs"><span class="lib key">pandas</span><span class="lib">calc/timegrid.py</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">4c</div></div>
+      <div class="body">
+        <div class="st-title">Req 4 · EQH/EQL Summary (K) → <code>calc/eqh_eql.py</code></div>
+        <div class="desc">Count/Average EQHL clusters; publish when ≥3 equal points OR an Important EQHL; emit the
+          6 most-recent horizontal lines (most-recent first).</div>
+        <div class="libs"><span class="lib key">pandas</span><span class="lib key">numpy</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">5</div></div>
+      <div class="body">
+        <div class="st-title">Orchestration → <code>calc/pipeline.py</code></div>
+        <div class="desc">Wire <code>1→2</code> and <code>4a→4b→4c</code> as pure functions; assemble the result object.</div>
+        <div class="libs"><span class="lib key">pandas</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot">6</div></div>
+      <div class="body">
+        <div class="st-title">Serialize → <code>serialize/payload.py</code></div>
+        <div class="desc">DataFrames → WebSocket JSON; every <code>NaN/None</code> becomes JSON <code>null</code> (never <code>""</code>).</div>
+        <div class="libs"><span class="lib key">json (std-lib)</span><span class="lib">orjson (optional, speed)</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="rail"><div class="dot scope">7</div></div>
+      <div class="body">
+        <div class="st-title">Transport <span class="oos">contract only</span></div>
+        <div class="desc">Push the payload over WebSocket to the TradingView Lightweight Charts frontend.</div>
+        <div class="libs"><span class="lib">fastapi</span><span class="lib">uvicorn</span><span class="lib">websockets</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>3 · Stack technology matrix</h2>
+  <table>
+    <thead><tr><th>Stage</th><th>Module</th><th>Libraries</th><th>Tier</th></tr></thead>
+    <tbody>
+      <tr><td>0 · File-watch</td><td><code>io/</code> runtime</td><td><code>watchdog</code>, <code>pathlib</code></td><td><span class="pill oos">out of scope</span></td></tr>
+      <tr><td>1 · Parse &amp; type</td><td><code>io/mt5_reader.py</code></td><td><code>pandas</code>, <code>numpy</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>1b · Schema validation</td><td><code>io/schemas.py</code></td><td><code>pandera</code> / <code>pydantic v2</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>★ · Time helper</td><td><code>calc/timegrid.py</code></td><td><code>math</code>, <code>pandas</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>2 · Req 1 Validation</td><td><code>calc/validation.py</code></td><td><code>pandas</code>, <code>numpy</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>3 · Req 2 Combine</td><td><code>calc/combine.py</code></td><td><code>pandas</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>4a · ZigZag features</td><td><code>calc/zigzag_features.py</code></td><td><code>pandas</code> (<code>.shift()</code>), <code>numpy</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>4b · Req 3 Timestamp</td><td><code>calc/timestamp_adjust.py</code></td><td><code>pandas</code>, <code>timegrid</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>4c · Req 4 EQH/EQL</td><td><code>calc/eqh_eql.py</code></td><td><code>pandas</code>, <code>numpy</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>5 · Orchestration</td><td><code>calc/pipeline.py</code></td><td><code>pandas</code></td><td><span class="pill core">core</span></td></tr>
+      <tr><td>6 · Serialize</td><td><code>serialize/payload.py</code></td><td><code>json</code>, <code>orjson</code> (opt)</td><td><span class="pill core">core</span></td></tr>
+      <tr><td>7 · Transport</td><td>app layer</td><td><code>fastapi</code>, <code>uvicorn</code>, <code>websockets</code></td><td><span class="pill oos">out of scope</span></td></tr>
+      <tr><td>T · Parity tests</td><td><code>tests/</code></td><td><code>pytest</code>, <code>openpyxl</code>, <code>pandas.testing</code></td><td><span class="pill test">dev/test</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="two">
+    <div>
+      <h3>Dependency tiers</h3>
+      <ul>
+        <li><b>Core calc (required):</b> <code>python&gt;=3.11</code>, <code>pandas&gt;=2.0</code>, <code>numpy&gt;=1.24</code></li>
+        <li><b>I/O &amp; validation:</b> <code>pandera&gt;=0.18</code> (or <code>pydantic&gt;=2</code>), <code>watchdog</code></li>
+        <li><b>Transport (out of scope):</b> <code>fastapi</code>, <code>uvicorn[standard]</code>, <code>websockets</code>, <code>orjson</code></li>
+        <li><b>Dev/test:</b> <code>pytest&gt;=8</code>, <code>openpyxl&gt;=3.1</code></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Why pandas / NumPy</h3>
+      <p class="muted">Each sheet is ≤3001 rows and every rule is column-wise — equality, coalesce,
+      <code>shift</code>, masked classification, <code>mean</code>. Vectorized ops deliver exact Excel parity
+      with less code and comfortably meet the per-tick recompute budget. The only sequential reads are the
+      next-row guards (<code>shift(-1)</code>), themselves vectorized.</p>
+    </div>
+  </div>
+
+  <h2>4 · Build order &amp; definition of done</h2>
+  <ul>
+    <li><b>Build bottom-up:</b> Stage 0 → 1 → 2/3 → 4 → 5 → 6, sharing <code>calc/timegrid.py</code> early.</li>
+    <li><b>The workbooks are the oracle.</b> Implement the <code>pytest</code> parity harness <i>first</i> using
+      <code>openpyxl(data_only=True)</code> to extract golden CSVs, then refactor freely.</li>
+    <li><b>Green parity = done.</b> Reproduce the six EQH/EQL line values
+      (<code>4515.51, 4521.39, 4370.90, 4492.21, 4538.40, 4487.80</code>), <code>all_validation = True</code>,
+      and the verified timestamp pairs.</li>
+  </ul>
+
+  <div class="callout">
+    <b>Non-negotiable semantics (full detail in §9 of the spec):</b> Excel <code>CEILING/INT/MROUND</code> ≠ Python
+    banker's rounding · 5-minute grid even on M15 · empty-vs-empty compares equal · <code>all_validation</code> is a
+    single global gate · gate-false blanks all of Combine · EQ tolerance is ±0.25% · publish when Count≥3 OR any
+    Important EQHL · never serialize <code>""</code> (emit <code>null</code>) · all 6 EDT sources are row-aligned.
+  </div>
+
+  <footer>
+    DavinTrade Platform · Python Backend Stacks (Req 1–4). This is an executive summary — the authoritative
+    formulas, exact-Excel translations, code, and test fixtures live in
+    <code>ARCHITECTURE_Python_Backend_Stacks_Req1-4.md</code>. Numerical oracle:
+    <code>centroid_regression_and-edt.xlsx</code> &amp; <code>zigzag_v43_repaired.xlsx</code>.
+  </footer>
+
+</div>
+</body>
+</html>

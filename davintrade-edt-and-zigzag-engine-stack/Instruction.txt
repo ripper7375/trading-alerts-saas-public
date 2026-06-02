@@ -1,0 +1,42 @@
+File : centroid_regression_and-edt.xlsx
+
+2EDT-Centroid-Regression-Most-Recent-Line-Extension.mq5 ---> Export Data ---> (A) Sheet : Most-Recent_XAUUSD_M15_Rev1
+
+2EDT-Centroid-Regression-Non-Most-Recent-Line-Extension-A.mq5 ---> Export Data ---> (B) Sheet : Non-Recent-A_XAUUSD_M15_Rev1
+
+2EDT-Centroid-Regression-Non-Most-Recent-Line-Extension-B.mq5 ---> Export Data ---> (C) Sheet : Non-Recent-B_XAUUSD_M15_rev1
+
+2EDT-Centroid-Regression-Cherry-Pick-A.mq5 ---> Export Data ---> Sheet : (D) Cherry-Pick-A_XAUUSD_M15_Rev1
+
+2EDT-Centroid-Regression-Cherry-Pick-B.mq5 ---> Export Data ---> Sheet : (E) Cherry-Pick-B_XAUUSD_M15_Rev1
+
+2EDT-Centroid-Regression-Best-Fit.mq5 ---> Export Data ---> Sheet : (F) Best-Fit_XAUUSD_M15_Rev1
+
+(A) + (B) + (C) + (D) + (E) + (F) ---> Sheet : (G) Validation ---> Requirement : 1) Please write Python Backend Stacks for (G)
+
+
+(A) + (B) + (C) + (D) + (E) + (F) + (G) ---> Sheet : (H) Combine_After_Validation ---> Requirement : 2) Please write Python Backend Stacks for (H)
+
+
+=========================================================
+
+File : zigzag_v43.xlsx
+
+ZigZag-Export-v43.mq5 ---> Export Data ---> Sheet : (I) V43_New : Column A, B, C, D, E, F, R, AD, AP, BB, BN, BZ, CL, CX, DJ
+
+(I) ---> Sheet : (J) Timestamp_Adjustment ---> Requirement : 3) Please write Python Backend Stacks for (J)
+
+(I) + (J) ---> Sheet : (K) EQH_EQL_Summary ---> Requirement : 4) Please write Python Backend Stacks for (K) [Note : Values in column AC2, AD2, AE2, AF2, AG2, AH2 are for creation of horizontal lines on bottom canvas (see system architecture and ui design specification_davintrade platform_v3.md and DavinTrade Dashboard - Original.html )]
+
+=========================================================
+
+2 files below are UI dashboard (frontend) which are their data come from (G), (H), (J) and (K)
+
+system architecture and ui design specification_davintrade platform_v3.md
+
+DavinTrade Dashboard - Original.html
+
+=========================================================
+
+Your tasks are writing a comprehensive architecture design document for requirement 1), 2), 3), and 4) [Translate/convert excel calculations to Python Backend Stacks] to Claude Code for DavinTrade App Python Backend Stacks implementation. [Note : All files in the working folder are also uploaded to Claude Code together with you created a comprehensive architecture design document]
+
