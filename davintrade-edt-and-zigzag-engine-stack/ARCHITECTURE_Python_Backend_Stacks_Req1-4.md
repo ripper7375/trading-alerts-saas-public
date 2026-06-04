@@ -451,13 +451,15 @@ Snap each ZigZag pivot's raw MT5 epoch timestamp (`V43_New!A`) onto the M15/5-mi
 ### 5.2 Logic (exact Excel)
 
 ```
-A2 = V43_New!A2                                      # raw epoch passthrough
-B2 = IF(A3="", "", (A2/86400)+25569)                 # readable serial date, guarded by NEXT row
-C2 = CEILING(INT(B2*1440)/1440*288, 1) / 288         # snap up to 5-min grid
-D2 = MROUND((C2-25569)*86400, 300)                   # back to epoch, round to 300s
+A2 = V43_New!A2                                                # raw epoch passthrough
+B2 = IF(A3="", "", (A2/86400)+25569)                           # readable serial date, guarded by NEXT row
+C2 = IFERROR(CEILING(INT(B2*1440)/1440*288, 1) / 288, "")      # snap up to 5-min grid (IFERROR-guarded)
+D2 = IFERROR(MROUND((C2-25569)*86400, 300), "")                # back to epoch, round to 300s (IFERROR-guarded)
 ```
 
 This is exactly the shared helper of §2 with **one extra guard**: `B2` is empty when `A3` (the _next_ row) is empty. The ZigZag export ends with a partial/most-recent pivot whose "next" pivot does not yet exist; this look-ahead drops the trailing row so a forming pivot is not snapped and rendered prematurely. **Preserve this.**
+
+> **Excel-error fix (applied to `zigzag_v43_repaired.xlsx`).** When `B` is blank (the last/forming pivot), the original `C`/`D` formulas computed `CEILING(INT(""*1440)…)` and propagated `#VALUE!` into `C183`/`D183`. Both columns are now wrapped in `IFERROR(…, "")` so a blank `B` yields a clean blank `C`/`D` instead of an error. **The Python port already does the right thing** — §5.3 computes the snap _only_ where the next-row guard passes (`next_exists`), returning `NA` otherwise, so it never raises and never needs a separate IFERROR. No code change required; the IFERROR is the spreadsheet-side equivalent of that guard.
 
 ### 5.3 Python implementation (`calc/timestamp_adjust.py`)
 
@@ -782,10 +784,66 @@ Build **golden-fixture parity tests** before/with the implementation. The xlsx f
 - [ ] Req 4 horizontal lines = 6 most-recent published levels, **most-recent first**.
 - [ ] Never serialize `""`; emit `null`.
 - [ ] Inputs are **row-aligned** across the 6 EDT sources (same bar = same row index).
+- [ ] **Every guard in §10 is implemented.** Sparse map empty-passthrough (C-1); Combine gate cascade C-4/C-5; Timestamp next-row guard Z-1 propagating to Z-2; V43_New `IFERROR` %Diff (V-1) feeding the EQHL/S&R/Imp guards (V-2/3/4); Summary timestamp gate K-1; `Count≥3 OR Imp` publish rule K-4.
+- [ ] **Blank ≠ zero ≠ false.** Only the §10.3-listed cells return the blank sentinel; `CountEQHL`/`ImpEQHL` (K-2/K-3) are intentionally numeric `0/1`; validators (C-2/C-3) are booleans.
 
 ---
 
-## 10. Appendix — input data contracts (MT5 exports)
+## 10. Complete validation & empty-return catalogue (AUTHORITATIVE)
+
+> **Why this section exists.** Across both workbooks, _every computed cell that can return a blank does so through an explicit guard_. If any guard is missed, the Python output silently diverges from Excel (wrong levels published, lines drawn from forming pivots, geometry shown when models disagree, etc.). This section enumerates **every** guard in both files — extracted directly from the formulas — so nothing is left implicit. `∅` = Excel empty `""` → Python `None`/`NaN` → JSON `null`.
+
+### 10.1 Workbook `centroid_regression_and-edt.xlsx`
+
+| ID  | Sheet · cols                                                                                                                    | Excel guard (representative)                                               | Returns `∅` (or shown value) when…                                      | Python rule                                                                                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C-1 | **Validation** E,F (and N,O / W,X / AF,AG / AO,AP / AX,AY) — the `horiz_high_map`/`horiz_low_map` pulls for all 6 source blocks | `=IF(src!H2="","",src!H2)`                                                 | source pivot-map cell is empty → pass `∅` through                       | These two map columns are **sparse**; preserve emptiness on pull. All other pulls (timestamp/symbol/timeframe/close/ssa/ema/crossing) are raw, no guard.                  |
+| C-2 | **Validation** BC..BK (9 per-field validators)                                                                                  | `=AND(A2=J2,J2=S2,S2=AB2,AB2=AK2,AK2=AT2)`                                 | returns **FALSE** (not `∅`) if the 6 sources disagree on that field/row | element-wise all-equal; **empty==empty ⇒ TRUE** (see §3.4). Booleans, never blank.                                                                                        |
+| C-3 | **Validation** BL2 (`all_validation`)                                                                                           | `=AND(BC2:BK3001)`                                                         | FALSE if **any** cell in the whole BC..BK matrix is FALSE               | single global boolean gate.                                                                                                                                               |
+| C-4 | **Combine** A,B,C,D and W,X,Y,Z,AA (9 _coalesce_ cols)                                                                          | `=IF(AND($BL$2=TRUE,A2<>""),A2, IF(AND($BL$2=TRUE,J2<>""),J2, … ,""))`     | `∅` if gate FALSE **or** all 6 sources empty for that field             | `value if gate else ∅`; else first-non-empty across the 6 in fixed order.                                                                                                 |
+| C-5 | **Combine** E..V (18 _passthrough_ cols, the per-model Base_FL/UOEDT/LOEDT/CFL)                                                 | `=IF(AND($BL$2=TRUE,src!E2<>""),src!E2, IF(AND($BL$2=TRUE,src!E2=""),""))` | `∅` if gate FALSE **or** that model's source cell is empty              | `src if (gate and src not empty) else ∅`. Note: when gate TRUE and src empty the inner IF yields `∅`; when gate FALSE both IFs fail → Excel `FALSE`/blank — treat as `∅`. |
+
+> **Gate cascade (critical):** guards C-4 and C-5 all hinge on `Validation!$BL$2`. When `all_validation` is FALSE, **all 27 Combine columns are `∅` for every row** → the Top Canvas receives an empty dataset. Implement the gate check once at the top of `run_combine` (already done in §4.5).
+
+### 10.2 Workbook `zigzag_v43_repaired.xlsx`
+
+**Sheet `Timestamp_Adjustment` (J):**
+
+| ID  | Col                                | Excel guard                                                              | Returns `∅` when…                                                                      | Python rule                                                                                                                                                                                           |
+| --- | ---------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Z-1 | B (`convert_to_readable_datetime`) | `=IF(A3="","",(A2/86400)+25569)`                                         | the **next** row's raw timestamp (`A3`) is empty                                       | drop the still-forming last pivot; C and D propagate the blank. `shift(-1)` guard in §5.3.                                                                                                            |
+| Z-2 | C, D                               | `=IFERROR(CEILING(...),"")` / `=IFERROR(MROUND((C−25569)*86400,300),"")` | B is blank (last/forming pivot) → arithmetic on `""` would error → IFERROR returns `∅` | only compute where B is non-empty; Python returns `NA` via the `next_exists` guard (no IFERROR needed). **Fixed:** original C/D lacked IFERROR and produced `#VALUE!` at the last row (e.g. row 183). |
+
+**Sheet `V43_New` (I) — derived columns (raw export columns have no guards):**
+
+| ID  | Cols                            | Excel guard                                                                                                                                      | Returns `∅` when…                                                           | Python rule                                                                          |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| V-1 | DV..EF (`N-Prev%Diff`, N=2..22) | `=IFERROR((PrevPoint−$F)/$F*100,"")`                                                                                                             | division error (no prev pivot / `F`=0) → `∅`                                | `(prev−cur)/cur*100`, mask to `∅` where prev is NaN; wrap in try/IFERROR equivalent. |
+| V-2 | EG..EQ (`N-PrevEQHL`)           | `=IF(%DiffN="","", IF(AND(ABS(%DiffN)<=0.25,Type="Bottom",PrevCatN="LL"),"EQL", IF(AND(ABS(%DiffN)<=0.25,Type="Peak",PrevCatN="HH"),"EQH","")))` | `∅` if `%Diff` is `∅`, **or** tolerance/structure not met (inner else `""`) | two-level guard: outer empties on missing %Diff; inner empties on no-match.          |
+| V-3 | ER..FB (`N-PrevS&R`)            | `=IF(OR(EQHLN="EQL",EQHLN="EQH"),PrevPointN,"")`                                                                                                 | `∅` unless that lag fired an EQH/EQL                                        | publish prev pivot price only when EQHL set.                                         |
+| V-4 | FC..FM (`N-PrevImpEQHL`)        | `=IF(AND(EQHLN="EQL",OR(class∈{4,5})),"IEQL", IF(AND(EQHLN="EQH",OR(class∈{1,2})),"IEQH",""))`                                                   | `∅` unless an EQL/EQH is _important_ (class match)                          | else `∅`.                                                                            |
+
+**Sheet `EQH_EQL_Summary` (K):**
+
+| ID  | Col                         | Excel guard                                                                                       | Returns value when…                                                                  | Python rule                                                                                                     |
+| --- | --------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| K-1 | B, C, and D..Y (24 pulls)   | `=IF(A2="","",V43_New!…)`                                                                         | `∅` if the row's adjusted timestamp `A2` (from J) is empty                           | gate every summary pull on `timestamp_adjusted` present.                                                        |
+| K-2 | Z (`CountEQHL`)             | `=IF(C3<>"",COUNT(C2:N2),0)`                                                                      | **0** (not `∅`) if next-row pivot `C3` empty; else count of numeric cells in `C2:N2` | `COUNT` counts numerics only (blank S&R ignored); range = pivot `C` + 11 S&R `D..N`. Guarded by next-row pivot. |
+| K-3 | AA (`ImpEQHL`)              | `=IF(AND(O2="",…,Y2=""),0,1)`                                                                     | **0** if all 11 ImpEQHL labels (`O..Y`) empty, else **1**                            | flag = any important label present.                                                                             |
+| K-4 | AB (`AvgEQHL`)              | `=IF(OR(Z2>=3,AA2=1),AVERAGE(C2:N2),"")`                                                          | `∅` unless `Count≥3` **OR** `ImpEQHL=1`; else mean of `C2:N2`                        | `AVERAGE` skips blanks (divides by numeric count) — do **not** fill blanks with 0.                              |
+| K-5 | AC..AH (6 horizontal lines) | `{=INDEX(AB$2:AB$183,MATCH(LARGE(IF(AB<>"",ROW−1),k),IF(AB<>"",ROW−1),0))}` array formula, k=1..6 | the k-th most-recent **non-empty** `AB` (AvgEQHL)                                    | take published levels, reverse, head(6); fewer than 6 if not enough levels.                                     |
+
+### 10.3 Consolidated empty-propagation rules (implementation invariants)
+
+1. **One sentinel.** Excel `""` ⇒ Python `None`/`NaN` ⇒ JSON `null`. Never emit `""`, and never coerce a guarded blank to `0` (except K-2/K-3 which are _intentionally_ `0`, and are numeric, not blank).
+2. **Guards propagate downstream.** A blank from V-1 empties V-2 → V-3/V-4 → K-1 (S&R/Imp pulls) → affects K-2/K-4. A blank `A` from Z-1 empties the entire K row (K-1). A FALSE C-3 gate empties all of Combine (C-4/C-5). Implement guards in dependency order so blanks flow naturally.
+3. **Distinguish "blank" from "false/zero".** C-2/C-3 return booleans; K-2/K-3 return `0`/`1`. Only C-1, C-4, C-5, Z-1/Z-2, V-1..V-4, K-1, K-4, K-5 return the blank sentinel.
+4. **`empty == empty ⇒ equal`** (C-2) but in pandas `NaN == NaN` is False — use the `cells_equal` helper (§3.5) wherever Excel compares possibly-blank cells.
+5. **Test every guard.** §8 parity tests must include at least one fixture row that exercises each guard's blank branch _and_ its value branch (e.g. an `all_validation=False` case for C-4/C-5; an unpublished pivot for K-4; the trailing forming pivot for Z-1).
+
+---
+
+## 11. Appendix — input data contracts (MT5 exports)
 
 Both indicator families write **tab-delimited UTF-8 (no BOM)** text files (`FileOpen(..., FILE_TXT|FILE_ANSI, '\t', CP_UTF8)`).
 
