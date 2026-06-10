@@ -1459,3 +1459,4 @@ void PrintCollectionStats()
    g_stats.Reset();
 }
 //+------------------------------------------------------------------+
+// Note: To allow MT5 to use sockets, ensure Allow WebRequest for listed URL is enabled in Tools -> Options -> Expert Advisors, and add http://127.0.0.1 or simply 127.0.0.1 to the list
