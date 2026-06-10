@@ -1262,7 +1262,7 @@ bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
       // Attempt connection to the local relay with extreme timeout
       if(SocketConnect(socket, LocalRelayIP, LocalRelayPort, SocketTimeoutMs))
       {
-         char payload_data[];
+         uchar payload_data[];
          StringToCharArray(payload, payload_data);
          
          // Fire and forget transmission. -1 removes null terminator
