@@ -51,8 +51,8 @@ input double InpThresholdZ2   = 1.88;        // Second threshold (Extreme)
 
 // Input parameters for export functionality
 input group "Data Export Settings"
-input string InpExportFileName = "MarketStructureAnalysis.txt"; // Export file name
-input int    InpMaxBarsExport = 3000;                           // Max lookback bars for export (0 = all bars)
+input string InpExportFileName = "ZigZag.txt"; // Updated default base name
+input int    InpMaxBarsExport = 3000;          // Max lookback bars for export (0 = all bars)
 
 // Structure for storing valid zigzag points
 struct xValidZigZagPoint
@@ -359,7 +359,6 @@ bool ExportMarketStructureData()
   {
    string symbolName = "";
    string timeframeName = "";
-
    if(InpDataSource == DATA_SOURCE_FILE && g_FileDataInitialized)
      {
       symbolName = g_FileSymbol;
@@ -380,7 +379,9 @@ bool ExportMarketStructureData()
          timeframeName = StringSubstr(timeframeName, 7);
      }
 
-   string marketStructureTxtFile = "MarketStructureAnalysis_" + symbolName + "_" + timeframeName + ".txt";
+   // --- UPDATED: New naming convention ---
+   string marketStructureTxtFile = "ZigZag_" + symbolName + "_" + timeframeName + ".txt";
+   
    bool text_success = ExportMarketStructureToText(marketStructureTxtFile, symbolName, timeframeName);
 
    if(text_success)
@@ -409,12 +410,13 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
 
    bool write_success = true;
 
+   // --- UPDATED: Added zigzag_ prefixes to the first 5 columns ---
    write_success &= FileWrite(file_handle,
-                              "TimeStamp\tsymbol\ttimeframe\tclose\tType\tCurrentPoint\t" +
+                              "zigzag_TimeStamp\tzigzag_symbol\tzigzag_timeframe\tzigzag_close\tzigzag_Type\tCurrentPoint\t" +
                               "CurrentPrChg\tCurrent%Chg\tCurrent%ChgClass\t" +
                               "CurrentBars\tCurrentBarsClass\tCurrentPrPerBar\tCurrentPrPerBarClass\t" +
                               "CurrentSlope\tCurrentCategory") > 0;
-
+                              
    int totalPoints = ArraySize(xcollectedPoints);
    if(totalPoints < 3)
      {
@@ -963,6 +965,21 @@ int OnCalculate(const int rates_total,
    if(rates_total < xInpDepth)
       return 0;
 
+   // --- THE FIX: Clean uninitialized memory from newly formed bars ---
+   if(prev_calculated > 0 && rates_total > prev_calculated)
+     {
+      // Loop from the last known calculated bar to the newest bar
+      for(int i = prev_calculated - 1; i < rates_total; i++)
+        {
+         xZigzagPeakBuffer[i] = 0.0;
+         xZigzagBottomBuffer[i] = 0.0;
+         xHighMapBuffer[i] = 0.0;
+         xLowMapBuffer[i] = 0.0;
+         xColorBuffer[i] = 0.0;
+        }
+     }
+   // ------------------------------------------------------------------
+
    int checkStart = (prev_calculated > 0) ? prev_calculated - 1 : 0;
    
    for(int i = checkStart; i < rates_total && i < checkStart + xInpDepth * 2; i++)
@@ -989,7 +1006,7 @@ int OnCalculate(const int rates_total,
 
    // Quietly collect Valid points with Close prices appended
    CollectValidPoints(time, close);
-
+   
    // Update Chart ZigZag Colors based on Z-Score classification
    UpdateZigZagColors();
    

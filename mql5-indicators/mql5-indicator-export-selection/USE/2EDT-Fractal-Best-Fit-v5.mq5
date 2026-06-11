@@ -61,7 +61,7 @@ input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
 
 input string            Sep5 = "===== Export Settings =====";
-input string            InpExportFileName = "Single_Best_FL_EDT_Opt";
+input string            InpExportFileName = "Fractal_EDT";
 input bool              InpIncludeHeader = true;
 
 //--- Indicator buffers 

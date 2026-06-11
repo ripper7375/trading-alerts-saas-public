@@ -51,7 +51,7 @@ input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
 
 input string            Sep5 = "===== Export Settings =====";
-input string            InpExportFileName = "Single_Best_Peaks";
+input string            InpExportFileName = "Resistance_Line";
 input bool              InpIncludeHeader = true;
 
 //--- Indicator buffers 

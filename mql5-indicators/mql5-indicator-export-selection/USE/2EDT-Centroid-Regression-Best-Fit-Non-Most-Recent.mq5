@@ -82,7 +82,7 @@ input double            InpTolerancePercent = 0.25;
 input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
 input string            Sep6 = "===== Export & Timer Settings =====";
-input string            InpExportFileName = "Best-Fit-5L-Ex";
+input string            InpExportFileName = "Centriod_Best_Fit";
 input bool              InpAutoExport = false;
 input int               InpExportSecond = 59;
 

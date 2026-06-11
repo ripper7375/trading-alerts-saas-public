@@ -154,14 +154,15 @@ string GetTimeframeShort()
 }
 
 //+------------------------------------------------------------------+
-//| Export data to text file                                          |
+//| Export data to text file                                         |
 //+------------------------------------------------------------------+
 void ExportData()
 {
    int totalBars = Bars(_Symbol, Period());
    if(totalBars < InpZScoreLength)
    {
-      Alert("Not enough bars to export. Need at least ", InpZScoreLength, " bars.");
+      // Changed from Alert() to Print() for silence
+      Print("Not enough bars to export. Need at least ", InpZScoreLength, " bars.");
       return;
    }
 
@@ -170,57 +171,62 @@ void ExportData()
    int dot_pos = StringFind(clean_symbol, ".");
    if(dot_pos > 0)
       clean_symbol = StringSubstr(clean_symbol, 0, dot_pos);
+      
    string filename = "ZScore_" + clean_symbol + "_" + GetTimeframeShort() + ".txt";
-
+   
    int fileHandle = FileOpen(filename, FILE_WRITE | FILE_TXT | FILE_ANSI, '\t');
+   
    if(fileHandle == INVALID_HANDLE)
    {
-      Alert("Failed to open file for writing: ", filename, " Error: ", GetLastError());
+      // Changed from Alert() to Print() for silence
+      Print("Failed to open file for writing: ", filename, " Error: ", GetLastError());
       return;
    }
 
-   // Write header (FIX 1: no "No" column; FIX 2: renamed columns)
+   // UPDATED: New column headers with "z-score_" prefixes
    FileWrite(fileHandle,
-      "timestamp", "symbol", "timeframe",
-      "close", "open", "high", "low",
+      "z-score_timestamp", "z-score_symbol", "z-score_timeframe",
+      "z-score_close", "z-score_open", "z-score_high", "z-score_low",
       "body_direction", "body_size", "body_classification");
-
+      
    // FIX 2: Use GetTimeframeShort() to produce "M5" style value (not "PERIOD_M5")
    string tfString = GetTimeframeShort();
-
+   
    // Determine export range in shift terms (shift 0 = newest, maxShift = oldest valid)
    int maxShift = totalBars - 1 - InpZScoreLength;
-
+   
    // Apply max bars limit
    if(InpMaxBarsExport > 0 && maxShift + 1 > InpMaxBarsExport)
       maxShift = InpMaxBarsExport - 1;
-
+      
    // FIX 3: Compute broker-to-UTC offset once before the loop
    datetime gmt_offset = TimeCurrent() - TimeGMT();
-
+   
    // FIX 5: Loop oldest first (i = bar shift; bars-1 = oldest, 0 = newest)
    int bars = maxShift + 1;
+   
    int rowNo = 0;
    for(int i = bars-1; i >= 0; i--)
    {
       int bufIdx = totalBars - 1 - i;
-
+      
       // Skip bars where buffers have no data
       if(OpenBuffer[bufIdx] == 0 && HighBuffer[bufIdx] == 0 && LowBuffer[bufIdx] == 0 && CloseBuffer[bufIdx] == 0)
          continue;
-
+         
       // FIX 4: body_direction as integer (1 = bullish, -1 = bearish, 0 = doji)
-      int dir = (CloseBuffer[bufIdx] > OpenBuffer[bufIdx]) ? 1 : (CloseBuffer[bufIdx] < OpenBuffer[bufIdx]) ? -1 : 0;
+      int dir = (CloseBuffer[bufIdx] > OpenBuffer[bufIdx]) ?
+      1 : (CloseBuffer[bufIdx] < OpenBuffer[bufIdx]) ? -1 : 0;
 
       // Z-Score (absolute value)
       double zScore = MathAbs(ZScoreBuffer[bufIdx]);
-
+      
       // Candle classification (integer 0-5)
       int classification = (int)ColorBuffer[bufIdx];
-
+      
       // FIX 3: UTC Unix integer timestamp
       long ts = (long)(iTime(Symbol(), Period(), i) - gmt_offset);
-
+      
       // FIX 1: No row counter written; FIX 2: column order matches new header
       FileWrite(fileHandle,
          IntegerToString(ts),
@@ -238,12 +244,10 @@ void ExportData()
    }
 
    FileClose(fileHandle);
-
    string fullPath = TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + filename;
-   Alert("Data exported successfully!\n",
-         "Rows: ", rowNo, "\n",
-         "File: ", filename, "\n",
-         "Path: ", fullPath);
+   
+   // UPDATED: Changed from Alert() to Print() to remove the pop-up and sound effect
+   Print("Data exported successfully! Rows: ", rowNo, " | File: ", filename);
 }
 
 //+------------------------------------------------------------------+
