@@ -102,9 +102,9 @@ string GetTFStr(ENUM_TIMEFRAMES tf)
 int OnInit()
 {
    // Export buttons hidden — use "Export All" EA instead
-   // CreateExportButton();
-   // if(InpEnableBatchExport)
-   //    CreateBatchExportButton();
+   CreateExportButton();
+   if(InpEnableBatchExport)
+      CreateBatchExportButton();
 
    return(INIT_SUCCEEDED);
 }
@@ -834,8 +834,8 @@ bool ExportToJson(const string symbol,
 void OnDeinit(const int reason)
 {
    // Export buttons hidden — use "Export All" EA instead
-   // ObjectDelete(0, EXPORT_BUTTON_NAME);
-   // ObjectDelete(0, BATCH_EXPORT_BUTTON_NAME);
+   ObjectDelete(0, EXPORT_BUTTON_NAME);
+   ObjectDelete(0, BATCH_EXPORT_BUTTON_NAME);
 
    // Force chart redraw to visually remove deleted objects
    ChartRedraw(0);

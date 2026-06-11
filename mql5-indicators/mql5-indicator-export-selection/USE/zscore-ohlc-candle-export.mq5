@@ -298,6 +298,9 @@ int OnInit()
 
    // Enable chart events for button click
    ChartSetInteger(0, CHART_EVENT_OBJECT_CREATE, true);
+   
+   // --- ADD THIS LINE TO CREATE THE BUTTON ---
+   CreateExportButton();
 
    return(INIT_SUCCEEDED);
 }
