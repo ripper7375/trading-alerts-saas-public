@@ -13,6 +13,12 @@ v4 Changelog (from v4):
 - BACKWARD COMPATIBLE: Works with both v2.26 (60 columns) and v2.27+ (61 columns) databases
 - EA VERSION HEADER: Updated to backfill_worker_v4.py
 
+v4 revision (v2.28 alignment + data preservation):
+- terminal_id is now included in the JSON body (matches the v2.28 relay payload)
+- HTTP 400 rejections are QUARANTINED to rejected_rows.jsonl instead of being
+  permanently deleted, so gateway-side validation bugs can't destroy backups
+- API_KEY can be supplied via the BACKFILL_API_KEY environment variable
+
 v2 Changelog (from v1):
 - CONNECTION POOLING: Uses requests.Session() for TCP connection reuse
 - EXPONENTIAL BACKOFF: Failures increase wait time (30s → 60s → 120s → max 300s)
@@ -31,6 +37,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import json
+import os
 import time
 import signal
 import sys
@@ -44,11 +51,12 @@ from typing import List, Dict, Optional, Tuple
 # CONFIGURATION
 # ============================================================
 API_GATEWAY_URL = 'https://your-api.railway.app'
-API_KEY = 'your_api_key_here'
+API_KEY = os.environ.get('BACKFILL_API_KEY', 'your_api_key_here')
 TERMINAL_ID = 'backfill_worker'
 
 DATABASE_DIR = Path('C:/Scripts/database')
 LOG_DIR = Path('C:/Scripts/logs')
+REJECTED_ROWS_FILE = DATABASE_DIR / 'rejected_rows.jsonl'  # Quarantine for 400-rejected bars
 
 SYMBOLS = [
     'btcusd', 'ethusd', 'xauusd',      # Terminal 1
@@ -206,6 +214,28 @@ def get_row_count(cursor: sqlite3.Cursor, table_name: str) -> int:
     return cursor.fetchone()[0]
 
 
+def quarantine_row(symbol: str, data: Dict, error_msg: str) -> None:
+    """
+    Persist a gateway-rejected row to the dead-letter file instead of losing it.
+
+    SQLite was the backup of last resort, so a permanent delete on HTTP 400
+    would be unrecoverable if the rejection was caused by a gateway-side
+    validation bug rather than genuinely bad data. Quarantined rows can be
+    inspected and replayed manually after the cause is fixed.
+    """
+    try:
+        record = {
+            'quarantined_at': datetime.now().isoformat(),
+            'symbol': symbol,
+            'gateway_error': error_msg,
+            'row': data
+        }
+        with open(REJECTED_ROWS_FILE, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(record) + '\n')
+    except Exception as e:
+        logger.error(f"❌ Failed to quarantine rejected row for {symbol}: {e}")
+
+
 def has_v4_columns(columns: List[str]) -> bool:
     """
     Check whether this table already has the v2.26+ columns.
@@ -287,6 +317,7 @@ def backfill_symbol(session: requests.Session, symbol: str) -> Tuple[int, int, b
             # Convert row to dictionary (generic — includes all present columns)
             data = row_to_dict(row, columns)
             data['symbol'] = symbol
+            data['terminal_id'] = TERMINAL_ID  # Body field matches v2.28 relay payload
 
             try:
                 response = session.post(
@@ -316,7 +347,7 @@ def backfill_symbol(session: requests.Session, symbol: str) -> Tuple[int, int, b
                     break
 
                 elif response.status_code == 400:
-                    # ❌ Validation error — delete bad data permanently
+                    # ❌ Validation error — quarantine, then remove from backfill queue
                     try:
                         error_detail = response.json()
                         error_msg = error_detail.get('message', 'Unknown error')
@@ -325,7 +356,9 @@ def backfill_symbol(session: requests.Session, symbol: str) -> Tuple[int, int, b
 
                     logger.error(f"❌ Validation failed for {symbol}: {error_msg}")
 
-                    # Delete bad data (it will never pass validation)
+                    # Preserve the row in the dead-letter file before deleting it
+                    # from the main table, so gateway-side bugs can't destroy data
+                    quarantine_row(symbol, data, error_msg)
                     rows_to_delete.append((data.get('timestamp'), data.get('timeframe')))
                     validation_errors += 1
 
@@ -366,7 +399,8 @@ def backfill_symbol(session: requests.Session, symbol: str) -> Tuple[int, int, b
             logger.info(f"✅ {symbol}: Backfilled {backfilled} bars")
 
         if validation_errors > 0:
-            logger.warning(f"⚠️ {symbol}: Removed {validation_errors} bars with validation errors")
+            logger.warning(f"⚠️ {symbol}: Quarantined {validation_errors} bars with "
+                           f"validation errors to {REJECTED_ROWS_FILE.name}")
 
         return backfilled, validation_errors, rate_limited
 
@@ -498,6 +532,7 @@ def main():
     logger.info(f"   Idle interval: {IDLE_SLEEP_SEC}s | Active interval: {ACTIVE_SLEEP_SEC}s")
     logger.info(f"   Max bars per symbol per cycle: {MAX_BARS_PER_SYMBOL}")
     logger.info(f"   v4 new columns: {', '.join(sorted(V4_NEW_COLUMNS))}")
+    logger.info(f"   Rejected-row quarantine: {REJECTED_ROWS_FILE}")
     logger.info("=" * 60)
 
     # Verify configuration
@@ -573,7 +608,7 @@ def main():
 
                 if total_backfilled > 0:
                     logger.info(f"✅ Total backfilled: {total_backfilled} bars"
-                                f"{f' ({total_validation_errors} validation errors removed)' if total_validation_errors > 0 else ''}")
+                                f"{f' ({total_validation_errors} validation errors quarantined)' if total_validation_errors > 0 else ''}")
                     consecutive_failures = 0
                     current_backoff = BACKOFF_BASE_SEC
                 else:
