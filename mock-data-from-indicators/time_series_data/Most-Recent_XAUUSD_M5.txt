@@ -1,0 +1,4 @@
+Most_Recent_timestamp	Most_Recent_symbol	Most_Recent_timeframe	Most_Recent_close	Most_Recent_Base_FL	Most_Recent_UOEDT	Most_Recent_LOEDT	Most_Recent_horiz_high_map	Most_Recent_horiz_low_map	Most_Recent_ssa	Most_Recent_ema_ssa	Most_Recent_crossing
+1779870902	XAUUSD	M5	4492.80						4496.71501	4496.71501	0
+1779871202	XAUUSD	M5	4496.24						4496.72698	4496.72099	1
+1779871502	XAUUSD	M5	4496.54						4496.16739	4496.44419	1

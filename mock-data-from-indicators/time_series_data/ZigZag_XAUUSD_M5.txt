@@ -1,0 +1,4 @@
+zigzag_TimeStamp	zigzag_symbol	zigzag_timeframe	zigzag_close	zigzag_Type	CurrentPoint	CurrentPrChg	Current%Chg	Current%ChgClass	CurrentBars	CurrentBarsClass	CurrentPrPerBar	CurrentPrPerBarClass	CurrentSlope	CurrentCategory
+1779882902	XAUUSD	M5	4428.63000	Bottom	4424.89000	-73.78000	-1.64	5	37	5	-1.99405	3	-63.3667	LL
+1779884402	XAUUSD	M5	4454.63000	Peak	4466.28000	41.39000	0.94	0	5	0	8.27800	2	83.1119	LH
+1779888302	XAUUSD	M5	4404.89000	Bottom	4401.50000	-64.78000	-1.45	5	13	3	-4.98308	3	-78.6527	LL

@@ -1,0 +1,4 @@
+Cherry_A_timestamp	Cherry_A_symbol	Cherry_A_timeframe	Cherry_A_close	Cherry_A_Base_FL	Cherry_A_UOEDT	Cherry_A_LOEDT	Cherry_A_horiz_high_map	Cherry_A_horiz_low_map	Cherry_A_ssa	Cherry_A_ema_ssa	Cherry_A_crossing
+1779870003	XAUUSD	M5	4490.74						4490.65155	4490.65155	0
+1779870303	XAUUSD	M5	4489.19						4491.52064	4491.08610	1
+1779870603	XAUUSD	M5	4488.55						4492.70096	4491.89353	0

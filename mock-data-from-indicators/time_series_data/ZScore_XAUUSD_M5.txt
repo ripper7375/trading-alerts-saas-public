@@ -1,0 +1,4 @@
+z-score_timestamp	z-score_symbol	z-score_timeframe	z-score_close	z-score_open	z-score_high	z-score_low	body_direction	body_size	body_classification
+1781001001	XAUUSD	M5	4333.85	4333.91	4335.12	4332.37	-1	1.03013	3
+1781001301	XAUUSD	M5	4331.97	4333.85	4334.00	4331.75	-1	0.32768	3
+1781001601	XAUUSD	M5	4332.65	4331.97	4332.82	4329.79	1	0.79143	0

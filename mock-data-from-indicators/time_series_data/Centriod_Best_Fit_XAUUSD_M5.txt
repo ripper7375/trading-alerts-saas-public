@@ -1,0 +1,4 @@
+Best_Fit_timestamp	Best_Fit_symbol	Best_Fit_timeframe	Best_Fit_close	Best_Fit_Base_FL	Best_Fit_UOEDT	Best_Fit_LOEDT	Best_Fit_horiz_high_map	Best_Fit_horiz_low_map	Best_Fit_ssa	Best_Fit_ema_ssa	Best_Fit_crossing
+1779870003	XAUUSD	M5	4490.74						4490.65135	4490.65135	0
+1779870303	XAUUSD	M5	4489.19						4491.52051	4491.08593	1
+1779870603	XAUUSD	M5	4488.55						4492.70096	4491.89344	0

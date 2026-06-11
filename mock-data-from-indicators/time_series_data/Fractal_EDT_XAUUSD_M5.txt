@@ -1,0 +1,4 @@
+Fractal_timestamp	Fractal_symbol	Fractal_timeframe	Fractal_close	Fractal_Best_FL	Fractal_UOEDT	Fractal_LOEDT
+1780572003	XAUUSD	M5	4478.88			
+1780572303	XAUUSD	M5	4489.58			
+1780572603	XAUUSD	M5	4485.26			

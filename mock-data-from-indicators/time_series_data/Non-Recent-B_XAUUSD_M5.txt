@@ -1,0 +1,4 @@
+Non_B_timestamp	Non_B_symbol	Non_B_timeframe	Non_B_close	Non_B_Base_FL	Non_B_UOEDT	Non_B_LOEDT	Non_B_horiz_high_map	Non_B_horiz_low_map	Non_B_ssa	Non_B_ema_ssa	Non_B_crossing
+1779870003	XAUUSD	M5	4490.74						4490.65103	4490.65103	0
+1779870303	XAUUSD	M5	4489.19						4491.52032	4491.08568	1
+1779870603	XAUUSD	M5	4488.55						4492.70094	4491.89331	0
