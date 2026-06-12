@@ -53,6 +53,8 @@ input int               InpATRPeriod = 12;
 input string            Sep5 = "===== Export Settings =====";
 input string            InpExportFileName = "Support_Line";
 input bool              InpIncludeHeader = true;
+input bool              InpAutoExport = true;              // Automated export every minute at InpExportSecond
+input int               InpExportSecond = 59;              // Export trigger second (0-59)
 
 //--- Indicator buffers 
 double ExtLowerBuffer[];
@@ -113,7 +115,8 @@ int OnInit()
 
    IndicatorSetString(INDICATOR_SHORTNAME, "Opt Trough-to-Trough FL");
    CreateExportButton();
-   
+   if(InpAutoExport) EventSetTimer(1);
+
    return INIT_SUCCEEDED;
   }
 
@@ -123,6 +126,24 @@ void OnDeinit(const int reason)
    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0) ObjectDelete(0, EXPORT_BUTTON_NAME);
    ObjectDelete(0, "ShortTerm_Support_Line");
    ObjectDelete(0, "ShortTerm_Support_Line_Ext"); // Clean up extension trendline
+   if(InpAutoExport) EventKillTimer();
+  }
+
+//+------------------------------------------------------------------+
+//| Timer event — automated export (v5 collection pipeline)          |
+//+------------------------------------------------------------------+
+void OnTimer()
+  {
+   if(!InpAutoExport) return;
+
+   MqlDateTime time_struct;
+   TimeToStruct(TimeLocal(), time_struct);
+   static int last_trigger_min = -1;
+   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
+       last_trigger_min = time_struct.min;
+       if(ExportSingleFLData()) Print("SUCCESS: [Auto Export] Support line exported");
+       else Print("ERROR: [Auto Export] Failed to export support line.");
+   }
   }
 
 void CreateExportButton()

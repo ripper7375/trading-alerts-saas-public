@@ -31,6 +31,8 @@ input bool                 InpCleanFilenames = true;              // Clean filen
 input bool                 InpForceSymbolDownload = true;         // Force download symbol history
 input bool                 InpTryBothSuffixVersions = true;       // Try both with/without .i suffix
 input string               InpSymbolMapping = "USDJPY=USDJPY.i;GBPUSD=GBPUSD.i"; // Symbol mappings (format: "name=actual;")
+input bool                 InpAutoExport = true;                  // Automated export every minute at InpExportSecond
+input int                  InpExportSecond = 59;                  // Export trigger second (0-59)
 
 //+------------------------------------------------------------------+
 //| Generate clean filename with symbol and timeframe                |
@@ -91,7 +93,28 @@ int OnInit()
 {
    // Create manual export button on chart
    CreateExportButton();
+   if(InpAutoExport) EventSetTimer(1);
    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Timer event — automated export (v5 collection pipeline)          |
+//+------------------------------------------------------------------+
+void OnTimer()
+{
+   if(!InpAutoExport) return;
+
+   MqlDateTime time_struct;
+   TimeToStruct(TimeLocal(), time_struct);
+   static int last_trigger_min = -1;
+   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min)
+   {
+      last_trigger_min = time_struct.min;
+      if(ExportPriceData())
+         Print("SUCCESS: [Auto Export] OHLCV data exported");
+      else
+         Print("ERROR: [Auto Export] Failed to export OHLCV data.");
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -515,6 +538,7 @@ bool ExportToTxt(const string symbol,
 void OnDeinit(const int reason)
 {
    ObjectDelete(0, EXPORT_BUTTON_NAME);
+   if(InpAutoExport) EventKillTimer();
    ChartRedraw(0);
 }
 

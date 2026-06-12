@@ -91,7 +91,7 @@ input int               InpATRPeriod = 12;
 
 input string            Sep6 = "===== Export & Timer Settings =====";
 input string            InpExportFileName = "Most-Recent";
-input bool              InpAutoExport = false;
+input bool              InpAutoExport = true;
 input int               InpExportSecond = 59;
 
 //--- INDICATOR BUFFERS ---

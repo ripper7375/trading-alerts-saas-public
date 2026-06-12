@@ -86,7 +86,7 @@ input int               InpATRPeriod = 12;
 input string            Sep6 = "===== Export & Timer Settings =====";
 // CHANGED: Default file name to avoid overwrite collision
 input string            InpExportFileName = "Cherry-Pick-B"; 
-input bool              InpAutoExport = false;
+input bool              InpAutoExport = true;
 input int               InpExportSecond = 59;
 //--- INDICATOR BUFFERS ---
 double ExtSSATrend[];      // 0

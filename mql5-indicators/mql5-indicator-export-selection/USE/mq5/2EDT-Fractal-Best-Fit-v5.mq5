@@ -63,6 +63,8 @@ input int               InpATRPeriod = 12;
 input string            Sep5 = "===== Export Settings =====";
 input string            InpExportFileName = "Fractal_EDT";
 input bool              InpIncludeHeader = true;
+input bool              InpAutoExport = true;              // Automated export every minute at InpExportSecond
+input int               InpExportSecond = 59;              // Export trigger second (0-59)
 
 //--- Indicator buffers 
 double ExtUpperBuffer[];
@@ -165,7 +167,8 @@ int OnInit()
 
    IndicatorSetString(INDICATOR_SHORTNAME, "Opt Single Best S&R FL + EDTs");
    CreateExportButton();
-   
+   if(InpAutoExport) EventSetTimer(1);
+
    return INIT_SUCCEEDED;
   }
 
@@ -173,6 +176,24 @@ void OnDeinit(const int reason)
   {
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0) ObjectDelete(0, EXPORT_BUTTON_NAME);
+   if(InpAutoExport) EventKillTimer();
+  }
+
+//+------------------------------------------------------------------+
+//| Timer event — automated export (v5 collection pipeline)          |
+//+------------------------------------------------------------------+
+void OnTimer()
+  {
+   if(!InpAutoExport) return;
+
+   MqlDateTime time_struct;
+   TimeToStruct(TimeLocal(), time_struct);
+   static int last_trigger_min = -1;
+   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
+       last_trigger_min = time_struct.min;
+       if(ExportSingleFLData()) Print("SUCCESS: [Auto Export] Fractal EDT data exported");
+       else Print("ERROR: [Auto Export] Failed to export Fractal EDT data.");
+   }
   }
 
 void CreateExportButton()

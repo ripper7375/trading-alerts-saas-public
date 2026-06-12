@@ -53,6 +53,8 @@ input double InpThresholdZ2   = 1.88;        // Second threshold (Extreme)
 input group "Data Export Settings"
 input string InpExportFileName = "ZigZag.txt"; // Updated default base name
 input int    InpMaxBarsExport = 3000;          // Max lookback bars for export (0 = all bars)
+input bool   InpAutoExport = true;             // Automated export every minute at InpExportSecond
+input int    InpExportSecond = 59;             // Export trigger second (0-59)
 
 // Structure for storing valid zigzag points
 struct xValidZigZagPoint
@@ -900,6 +902,7 @@ int OnInit()
    PlotIndexSetString(0, PLOT_LABEL, short_name);
 
    CreateExportButton();
+   if(InpAutoExport) EventSetTimer(1);
 
    if(InpDataSource == DATA_SOURCE_FILE)
      {
@@ -917,6 +920,26 @@ int OnInit()
   }
 
 //+------------------------------------------------------------------+
+//| Timer event — automated export (v5 collection pipeline)          |
+//+------------------------------------------------------------------+
+void OnTimer()
+  {
+   if(!InpAutoExport) return;
+
+   MqlDateTime time_struct;
+   TimeToStruct(TimeLocal(), time_struct);
+   static int last_trigger_min = -1;
+   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min)
+     {
+      last_trigger_min = time_struct.min;
+      if(ExportMarketStructureData())
+         Print("SUCCESS: [Auto Export] ZigZag market structure exported");
+      else
+         Print("ERROR: [Auto Export] Failed to export ZigZag market structure.");
+     }
+  }
+
+//+------------------------------------------------------------------+
 //| OnChartEvent handles UI interactions                             |
 //+------------------------------------------------------------------+
 void OnChartEvent(const int id,
@@ -924,6 +947,16 @@ void OnChartEvent(const int id,
                   const double &dparam,
                   const string &sparam)
   {
+   //--- Handle "Export All" custom event from EA (parity with the other export indicators)
+   if(id == CHARTEVENT_CUSTOM + 1000 && sparam == "EXPORT_ALL")
+     {
+      if(ExportMarketStructureData())
+         Print("SUCCESS: [Export All] ZigZag market structure exported");
+      else
+         Print("ERROR: [Export All] Failed to export ZigZag market structure.");
+      return;
+     }
+
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME)
      {
       if(ExportMarketStructureData())
@@ -1728,5 +1761,6 @@ void OnDeinit(const int reason)
      }
 
    ObjectDelete(0, EXPORT_BUTTON_NAME);
+   if(InpAutoExport) EventKillTimer();
   }
 //+------------------------------------------------------------------+

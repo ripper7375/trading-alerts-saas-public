@@ -30,6 +30,8 @@ input color  InpColorDownExtreme = clrFireBrick; // Down Extreme Color
 input int    InpMaxBarsExport = 500;         // Max Bars to Export (0 = all)
 input color  InpBtnColor      = clrDodgerBlue; // Export Button Color
 input color  InpBtnTextColor  = clrWhite;      // Export Button Text Color
+input bool   InpAutoExport    = true;          // Automated export every minute at InpExportSecond
+input int    InpExportSecond  = 59;            // Export trigger second (0-59)
 
 // Indicator buffers
 double OpenBuffer[];      // Open prices
@@ -305,8 +307,27 @@ int OnInit()
    
    // --- ADD THIS LINE TO CREATE THE BUTTON ---
    CreateExportButton();
+   if(InpAutoExport) EventSetTimer(1);
 
    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Timer event — automated export (v5 collection pipeline)          |
+//+------------------------------------------------------------------+
+void OnTimer()
+{
+   if(!InpAutoExport) return;
+
+   MqlDateTime time_struct;
+   TimeToStruct(TimeLocal(), time_struct);
+   static int last_trigger_min = -1;
+   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min)
+   {
+      last_trigger_min = time_struct.min;
+      ExportData();
+      Print("SUCCESS: [Auto Export] Z-Score OHLC data exported");
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -316,6 +337,7 @@ void OnDeinit(const int reason)
 {
    // Remove export button from chart
    ObjectDelete(0, BTN_EXPORT);
+   if(InpAutoExport) EventKillTimer();
    ChartRedraw(0);
 }
 
