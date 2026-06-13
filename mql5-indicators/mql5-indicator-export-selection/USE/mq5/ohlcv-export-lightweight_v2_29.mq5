@@ -23,7 +23,7 @@ enum ENUM_SYMBOL_SELECTION {
 input ENUM_SYMBOL_SELECTION InpSymbolSelection = SYMBOL_CURRENT;  // Symbol Selection
 input string                InpManualSymbol = "";                 // Manual Symbol Entry (if "Enter manually")
 input ENUM_TIMEFRAMES      InpTimeframe = PERIOD_CURRENT;         // Timeframe
-input int                  InpBars = 3000;                         // Number of bars to export
+input int                  InpBars = 3000;                        // Number of bars to export (matches centroid math lookback for the v6 CALCULATE stage)
 input string               InpBaseFileName = "OHLCV";             // Base file name
 input bool                 InpForceTimeframe = true;              // Force timeframe if validation fails
 input bool                 InpIncludeMetadata = false;            // Include metadata in TXT export

@@ -83,6 +83,17 @@ int    ExtMinBars119;
 int    ExtATRHandle = INVALID_HANDLE;
 datetime ExtLastBarTime = 0;
 
+// --- Statistic-export capture (v2.29: makes golden certification self-contained) ---
+bool     g_stat_found              = false; // did a Best FL solve this cycle?
+double   g_stat_slope              = 0.0;   // base_m (price per bar)
+double   g_stat_intercept_anchored = 0.0;   // line value at the live bar
+int      g_stat_touches            = 0;     // touches on the winning Best FL
+long     g_stat_window_start_ts    = 0;     // UTC unix of the older window anchor
+long     g_stat_window_end_ts      = 0;     // UTC unix of the newer window anchor
+long     g_stat_line_start_ts      = 0;     // UTC unix of BestLine.bar_start (line origin)
+double   g_stat_uoedt_offset       = EMPTY_VALUE; // constant (UOEDT - BestFL) gap
+double   g_stat_loedt_offset       = EMPTY_VALUE; // constant (LOEDT - BestFL) gap
+
 //--- Structures
 struct FractalPoint {
    int    bar;
@@ -258,17 +269,19 @@ void BuildBestFlipLine(const int rates_total)
    ArrayInitialize(ExtBestFL, EMPTY_VALUE);
    ArrayInitialize(ExtUOEDT, EMPTY_VALUE);
    ArrayInitialize(ExtLOEDT, EMPTY_VALUE);
-   
+
+   g_stat_found = false;   // reset capture each rebuild
+
    // Apply DateTime anchoring
    int idx1 = iBarShift(_Symbol, _Period, InpStartDateTime, false);
    int idx2 = iBarShift(_Symbol, _Period, InpEndDateTime, false);
-   
+
    if(idx1 < 0) idx1 = rates_total - 1;
    if(idx2 < 0) idx2 = 0;
-   
+
    int start_idx = MathMin(rates_total - 1, MathMax(idx1, idx2));
    int end_idx   = MathMax(0, MathMin(idx1, idx2));
-   
+
    if(start_idx - end_idx < ExtMinBars) return;
 
    FractalPoint fractals[];
@@ -406,14 +419,29 @@ void BuildBestFlipLine(const int rates_total)
       // 4. Fill Buffers for all 3 lines
       for(int i = 0; i <= start_idx; i++) {
          int chrono_bar = rates_total - 1 - i;
-         
+
          if(chrono_bar >= BestLine.bar_start) {
             ExtBestFL[i] = base_m * chrono_bar + base_c;
-            
+
             if(found_above) ExtUOEDT[i] = base_m * chrono_bar + max_above_intercept;
             if(found_below) ExtLOEDT[i] = base_m * chrono_bar + min_below_intercept;
          }
       }
+
+      // --- Capture statistics for the companion stat-export file ---
+      datetime gmt_off = TimeCurrent() - TimeGMT();
+      int line_start_i = rates_total - 1 - BestLine.bar_start;   // buffer index of line origin
+      if(line_start_i < 0) line_start_i = 0;
+      if(line_start_i > start_idx) line_start_i = start_idx;
+      g_stat_found              = true;
+      g_stat_slope              = base_m;
+      g_stat_intercept_anchored = base_m * (rates_total - 1) + base_c;  // value at live bar
+      g_stat_touches            = BestLine.touches;
+      g_stat_window_start_ts    = (long)(iTime(_Symbol, _Period, start_idx) - gmt_off);
+      g_stat_window_end_ts      = (long)(iTime(_Symbol, _Period, end_idx) - gmt_off);
+      g_stat_line_start_ts      = (long)(iTime(_Symbol, _Period, line_start_i) - gmt_off);
+      g_stat_uoedt_offset       = found_above ? (max_above_intercept - base_c) : EMPTY_VALUE;
+      g_stat_loedt_offset       = found_below ? (min_below_intercept - base_c) : EMPTY_VALUE;
    }
   }
 
@@ -521,6 +549,46 @@ bool ExportSingleFLData()
 
     FileClose(file_handle);
     if(write_success) Print("Data exported to: ", filename);
+
+    // Companion statistic file (anchors + params + resolved line) for golden certification
+    WriteFractalStatFile(clean_symbol, tf_str);
+
     return write_success;
+  }
+
+//+------------------------------------------------------------------+
+//| Statistic export — mirrors the centroid variants' stat files so  |
+//| golden certification can reproduce the fit without the MQL5      |
+//| inputs (anchors + parameters are not present in the timeseries). |
+//+------------------------------------------------------------------+
+void WriteFractalStatFile(string clean_symbol, string tf_str)
+  {
+   string filename = StringFormat("%s_%s_%s_Statistic.txt", InpExportFileName, clean_symbol, tf_str);
+   int fh = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
+   if(fh == INVALID_HANDLE) { Print("ERROR: Failed to open Fractal stat file."); return; }
+
+   FileWrite(fh, "[FRACTAL BEST-FIT — PARAMETERS]");
+   FileWrite(fh, "Window Start TS (UTC): " + IntegerToString(g_stat_window_start_ts));
+   FileWrite(fh, "Window End TS (UTC): "   + IntegerToString(g_stat_window_end_ts));
+   FileWrite(fh, "Fractal Bars: "          + IntegerToString((int)InpFractalBars));
+   FileWrite(fh, "Min Touches: "           + IntegerToString(InpMinTouches));
+   FileWrite(fh, "Require Both Sides: "    + (InpRequireBothSides ? "true" : "false"));
+   FileWrite(fh, "Max Line Angle: "        + DoubleToString(InpMaxLineAngle, 4));
+   FileWrite(fh, "Tolerance Type: "        + (InpToleranceType == TOLERANCE_PERCENT ? "PERCENT" : "ATR"));
+   FileWrite(fh, "Tolerance Percent: "     + DoubleToString(InpTolerancePercent, 4));
+   FileWrite(fh, "Tolerance ATR Multiplier: " + DoubleToString(InpToleranceATRMultiplier, 4));
+   FileWrite(fh, "EDT Min Touches: "       + IntegerToString(InpEDTMinTouches));
+   FileWrite(fh, "");
+   FileWrite(fh, "[FRACTAL BEST-FIT — RESOLVED LINE]");
+   FileWrite(fh, "Solution Found: "        + (g_stat_found ? "true" : "false"));
+   FileWrite(fh, "Line Origin TS (UTC): "  + IntegerToString(g_stat_line_start_ts));
+   FileWrite(fh, "Best FL Touches: "       + IntegerToString(g_stat_touches));
+   FileWrite(fh, "Raw Slope (b): "         + DoubleToString(g_stat_slope, 8));
+   FileWrite(fh, "Anchored Y-Int: "        + DoubleToString(g_stat_intercept_anchored, 5));
+   FileWrite(fh, "UOEDT Offset: "          + (g_stat_uoedt_offset == EMPTY_VALUE ? "" : DoubleToString(g_stat_uoedt_offset, 5)));
+   FileWrite(fh, "LOEDT Offset: "          + (g_stat_loedt_offset == EMPTY_VALUE ? "" : DoubleToString(g_stat_loedt_offset, 5)));
+
+   FileClose(fh);
+   Print("Statistic exported to: ", filename);
   }
 //+------------------------------------------------------------------+
