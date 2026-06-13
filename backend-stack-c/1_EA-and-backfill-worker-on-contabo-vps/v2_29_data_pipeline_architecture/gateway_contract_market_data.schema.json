@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-alerts-saas/v6/gateway_contract_market_data.schema.json",
+  "title": "POST /api/v1/market-data — request body (v6 pipeline, XAUUSD)",
+  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway. One JSON object = one validated, calculated market_data bar. Derived/indicator fields are NULLABLE (null = indicator inactive on that bar — never 0). The gateway MUST upsert idempotently on (symbol, timeframe, timestamp).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "terminal_id",
+    "timestamp",
+    "symbol",
+    "timeframe",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+  ],
+  "properties": {
+    "terminal_id": {
+      "type": "string",
+      "description": "Sender id; 'push_worker_v5' from the v6 push worker."
+    },
+
+    "timestamp": {
+      "type": "integer",
+      "description": "ADJUSTED bar timestamp (UTC unix sec), rounded to the bar grid."
+    },
+    "symbol": { "type": "string", "const": "XAUUSD" },
+    "timeframe": { "type": "string", "enum": ["M5", "M15"] },
+
+    "open": { "type": "number" },
+    "high": { "type": "number" },
+    "low": { "type": "number" },
+    "close": { "type": "number" },
+    "volume": { "type": "integer" },
+
+    "_centroid_admin_note": "For each of the 6 variants {best_fit, cherry_a, cherry_b, most_recent, non_a, non_b}: *_horiz_high_map, *_horiz_low_map, *_ssa, *_ema_ssa (number|null), *_crossing (integer|null 0/1) — admin layer, from MQL5; *_base_fl, *_uoedt, *_loedt (number|null) — calculated by Python.",
+
+    "best_fit_horiz_high_map": { "type": ["number", "null"] },
+    "best_fit_horiz_low_map": { "type": ["number", "null"] },
+    "best_fit_ssa": { "type": ["number", "null"] },
+    "best_fit_ema_ssa": { "type": ["number", "null"] },
+    "best_fit_crossing": { "type": ["integer", "null"] },
+    "best_fit_base_fl": { "type": ["number", "null"] },
+    "best_fit_uoedt": { "type": ["number", "null"] },
+    "best_fit_loedt": { "type": ["number", "null"] },
+
+    "cherry_a_horiz_high_map": { "type": ["number", "null"] },
+    "cherry_a_horiz_low_map": { "type": ["number", "null"] },
+    "cherry_a_ssa": { "type": ["number", "null"] },
+    "cherry_a_ema_ssa": { "type": ["number", "null"] },
+    "cherry_a_crossing": { "type": ["integer", "null"] },
+    "cherry_a_base_fl": { "type": ["number", "null"] },
+    "cherry_a_uoedt": { "type": ["number", "null"] },
+    "cherry_a_loedt": { "type": ["number", "null"] },
+
+    "cherry_b_horiz_high_map": { "type": ["number", "null"] },
+    "cherry_b_horiz_low_map": { "type": ["number", "null"] },
+    "cherry_b_ssa": { "type": ["number", "null"] },
+    "cherry_b_ema_ssa": { "type": ["number", "null"] },
+    "cherry_b_crossing": { "type": ["integer", "null"] },
+    "cherry_b_base_fl": { "type": ["number", "null"] },
+    "cherry_b_uoedt": { "type": ["number", "null"] },
+    "cherry_b_loedt": { "type": ["number", "null"] },
+
+    "most_recent_horiz_high_map": { "type": ["number", "null"] },
+    "most_recent_horiz_low_map": { "type": ["number", "null"] },
+    "most_recent_ssa": { "type": ["number", "null"] },
+    "most_recent_ema_ssa": { "type": ["number", "null"] },
+    "most_recent_crossing": { "type": ["integer", "null"] },
+    "most_recent_base_fl": { "type": ["number", "null"] },
+    "most_recent_uoedt": { "type": ["number", "null"] },
+    "most_recent_loedt": { "type": ["number", "null"] },
+
+    "non_a_horiz_high_map": { "type": ["number", "null"] },
+    "non_a_horiz_low_map": { "type": ["number", "null"] },
+    "non_a_ssa": { "type": ["number", "null"] },
+    "non_a_ema_ssa": { "type": ["number", "null"] },
+    "non_a_crossing": { "type": ["integer", "null"] },
+    "non_a_base_fl": { "type": ["number", "null"] },
+    "non_a_uoedt": { "type": ["number", "null"] },
+    "non_a_loedt": { "type": ["number", "null"] },
+
+    "non_b_horiz_high_map": { "type": ["number", "null"] },
+    "non_b_horiz_low_map": { "type": ["number", "null"] },
+    "non_b_ssa": { "type": ["number", "null"] },
+    "non_b_ema_ssa": { "type": ["number", "null"] },
+    "non_b_crossing": { "type": ["integer", "null"] },
+    "non_b_base_fl": { "type": ["number", "null"] },
+    "non_b_uoedt": { "type": ["number", "null"] },
+    "non_b_loedt": { "type": ["number", "null"] },
+
+    "fractal_best_fl": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "fractal_uoedt": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "fractal_loedt": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "best_resistance": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "best_support": { "type": ["number", "null"], "description": "calculated" },
+
+    "body_direction": {
+      "type": ["integer", "null"],
+      "enum": [-1, 0, 1, null],
+      "description": "calculated"
+    },
+    "body_size": {
+      "type": ["number", "null"],
+      "description": "calculated; |z-score| (export convention)"
+    },
+    "body_classification": {
+      "type": ["integer", "null"],
+      "description": "calculated; 0-5"
+    },
+
+    "zigzag_point_type": {
+      "type": ["string", "null"],
+      "enum": ["Peak", "Bottom", null],
+      "description": "admin (pivot event); null on non-pivot bars"
+    },
+    "zigzag_current_point": {
+      "type": ["number", "null"],
+      "description": "admin (pivot price)"
+    },
+    "zigzag_price_change": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "zigzag_pct_change": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "zigzag_pct_change_class": {
+      "type": ["integer", "null"],
+      "description": "calculated"
+    },
+    "zigzag_bars": { "type": ["integer", "null"], "description": "calculated" },
+    "zigzag_bars_class": {
+      "type": ["integer", "null"],
+      "description": "calculated"
+    },
+    "zigzag_price_per_bar": {
+      "type": ["number", "null"],
+      "description": "calculated"
+    },
+    "zigzag_price_per_bar_class": {
+      "type": ["integer", "null"],
+      "description": "calculated"
+    },
+    "zigzag_slope": { "type": ["number", "null"], "description": "calculated" },
+    "zigzag_category": {
+      "type": ["string", "null"],
+      "enum": ["HH", "HL", "LH", "LL", "EQH", "EQL", null],
+      "description": "calculated"
+    },
+
+    "cycle_id": {
+      "type": ["integer", "null"],
+      "description": "provenance: collection_cycles.cycle_id"
+    },
+    "collected_at": {
+      "type": ["integer", "null"],
+      "description": "provenance: promote time (unix)"
+    },
+    "calculated_at": {
+      "type": ["integer", "null"],
+      "description": "provenance: CALCULATE stage time (unix)"
+    }
+  },
+  "x-gateway-requirements": {
+    "idempotency": "Upsert on (symbol, timeframe, timestamp). Duplicate delivery is by design (push retries); MUST NOT create double rows.",
+    "responses": {
+      "200/201": "Accepted/upserted. Worker stamps market_data.synced_at.",
+      "400": "Validation failure with JSON {message}. Worker quarantines to rejected_rows.jsonl AND stamps synced_at (poison-row guard); replay via replay_quarantine.py after fix.",
+      "401/403": "Auth failure — worker halts. Operator action.",
+      "429": "Rate limited; honor Retry-After.",
+      "5xx": "Transient; worker retries with backoff."
+    }
+  }
+}

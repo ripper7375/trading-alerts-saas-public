@@ -1,6 +1,0 @@
-Further Fine-Tuning Recommendations:
-To ensure smooth and uninterrupted system operation, there are two small points to check:
-
-Upstash Redis Network Latency: Since Upstash is a serverless Redis and your infrastructure is distributed across multiple clouds (Contabo → Upstash → Railway), ensure that Upstash Redis and Railway Workers are configured in the region closest to your Contabo VPS to prevent accumulated network latency on HTTP POST requests.
-
-SQLite Concurrency Mode: In the 0.1% chance that Redis experiences an issue and all five EAs attempt to write to SQLite simultaneously (even if separated into 15 files as per the design), it is recommended to enable WAL (Write-Ahead Logging) mode on SQLite beforehand. This ensures that recovery searches can read data to backfill without blocking writes coming from the front-end.
