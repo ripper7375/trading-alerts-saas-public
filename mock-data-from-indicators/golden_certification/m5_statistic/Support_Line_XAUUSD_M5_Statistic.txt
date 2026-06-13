@@ -1,0 +1,17 @@
+[SUPPORT LINE — PARAMETERS]
+Window Start TS (UTC): 1780716048
+Window End TS (UTC): 1781062548
+Fractal Bars: 13
+Min Touches: 2
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 0.5000
+Tolerance ATR Multiplier: 1.0000
+Extend To Current: true
+
+[SUPPORT LINE — RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1780910748
+Best FL Touches: 21
+Raw Slope (b): 0.03376214
+Anchored Y-Int: 4356.81422

@@ -1,0 +1,17 @@
+[RESISTANCE LINE — PARAMETERS]
+Window Start TS (UTC): 1780715996
+Window End TS (UTC): 1781062496
+Fractal Bars: 13
+Min Touches: 2
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 0.5000
+Tolerance ATR Multiplier: 1.0000
+Extend To Current: true
+
+[RESISTANCE LINE — RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1780910396
+Best FL Touches: 28
+Raw Slope (b): 0.02074561
+Anchored Y-Int: 4364.67820
