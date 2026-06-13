@@ -1,0 +1,54 @@
+
+=== M5: 3000 OHLCV bars (1780057200 .. 1781338500) ===
+  [PASS] zscore       body_direction               compared=500    fail=0     maxdiff=0.00e+00
+  [PASS] zscore       body_size (|z|)              compared=500    fail=0     maxdiff=5.00e-06
+  [PASS] zscore       body_classification          compared=500    fail=0     maxdiff=0.00e+00
+  [PASS] zigzag       price_change                 compared=174    fail=0     maxdiff=8.38e-13
+  [PASS] zigzag       pct_change                   compared=174    fail=0     maxdiff=4.99e-03
+  [PASS] zigzag       bars                         compared=174    fail=0     maxdiff=0.00e+00
+  [PASS] zigzag       price_per_bar                compared=174    fail=0     maxdiff=5.00e-06
+  [PASS] zigzag       slope                        compared=174    fail=0     maxdiff=5.00e-05
+  [PASS] zigzag       category                     compared=174    fail=0     maxdiff=0.00e+00
+  [PASS] zigzag       pct_change_class             compared=125    fail=0     maxdiff=0.00e+00
+  [PASS] zigzag       bars_class                   compared=125    fail=0     maxdiff=0.00e+00
+  [PASS] zigzag       price_per_bar_class          compared=125    fail=0     maxdiff=0.00e+00
+  [PASS] lines        resistance stat slope        compared=1      fail=0     maxdiff=4.04e-09
+  [PASS] lines        best_resistance              compared=1380   fail=0     maxdiff=4.91e-06
+  [PASS] lines        support stat slope           compared=1      fail=0     maxdiff=4.08e-09
+  [PASS] lines        best_support                 compared=1379   fail=0     maxdiff=4.95e-06
+  [PASS] lines        fractal stat slope           compared=1      fail=0     maxdiff=4.13e-09
+  [PASS] lines        Fractal_Best_FL              compared=1680   fail=0     maxdiff=4.98e-06
+  [PASS] lines        Fractal_UOEDT                compared=1680   fail=0     maxdiff=4.98e-06
+  [PASS] lines        Fractal_LOEDT                compared=1680   fail=0     maxdiff=4.98e-06
+  [PASS] best_fit     Base_FL                      compared=545    fail=0     maxdiff=5.00e-06
+  [PASS] best_fit     UOEDT                        compared=545    fail=0     maxdiff=4.99e-06
+  [PASS] best_fit     LOEDT                        compared=545    fail=0     maxdiff=4.99e-06
+  [PASS] best_fit     stat slope                   compared=1      fail=0     maxdiff=4.42e-06
+  [PASS] best_fit     stat anchored Y-int          compared=1      fail=0     maxdiff=2.12e-06
+  [FAIL] cherry_a     Base_FL                      compared=1115   fail=1115  maxdiff=9.76e-02
+  [FAIL] cherry_a     UOEDT                        compared=1115   fail=1114  maxdiff=1.60e-01
+  [FAIL] cherry_a     LOEDT                        compared=1115   fail=1114  maxdiff=1.20e-01
+  [FAIL] cherry_a     stat slope                   compared=1      fail=1     maxdiff=1.57e-04
+  [FAIL] cherry_a     stat anchored Y-int          compared=1      fail=1     maxdiff=7.94e-02
+  [PASS] cherry_b     Base_FL                      compared=867    fail=0     maxdiff=4.99e-06
+  [PASS] cherry_b     UOEDT                        compared=867    fail=0     maxdiff=5.00e-06
+  [PASS] cherry_b     LOEDT                        compared=867    fail=0     maxdiff=5.00e-06
+  [PASS] cherry_b     stat slope                   compared=1      fail=0     maxdiff=3.93e-06
+  [PASS] cherry_b     stat anchored Y-int          compared=1      fail=0     maxdiff=5.32e-07
+  [PASS] most_recent  Base_FL                      compared=773    fail=0     maxdiff=5.00e-06
+  [FAIL] most_recent  UOEDT                        compared=773    fail=773   maxdiff=3.25e+01
+  [PASS] most_recent  LOEDT                        compared=773    fail=0     maxdiff=4.99e-06
+  [PASS] most_recent  stat slope                   compared=1      fail=0     maxdiff=1.91e-06
+  [PASS] most_recent  stat anchored Y-int          compared=1      fail=0     maxdiff=1.06e-06
+  [PASS] non_a        Base_FL                      compared=773    fail=0     maxdiff=5.00e-06
+  [FAIL] non_a        UOEDT                        compared=773    fail=773   maxdiff=3.25e+01
+  [PASS] non_a        LOEDT                        compared=773    fail=0     maxdiff=4.99e-06
+  [PASS] non_a        stat slope                   compared=1      fail=0     maxdiff=1.91e-06
+  [PASS] non_a        stat anchored Y-int          compared=1      fail=0     maxdiff=1.06e-06
+  [FAIL] non_b        Base_FL                      compared=1603   fail=1603  maxdiff=7.77e-02
+  [FAIL] non_b        UOEDT                        compared=1603   fail=1594  maxdiff=7.51e-03
+  [FAIL] non_b        LOEDT                        compared=1603   fail=1594  maxdiff=6.29e-03
+  [PASS] non_b        stat slope                   compared=1      fail=0     maxdiff=7.44e-06
+  [FAIL] non_b        stat anchored Y-int          compared=1      fail=1     maxdiff=7.77e-02
+
+==== M5 SUMMARY: 39 PASS, 11 FAIL, 0 SKIP ====

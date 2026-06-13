@@ -1,0 +1,26 @@
+Python stacks calculation (use data received from mql5 export and do calculation):
+==========================================================
+
+Best_Fit_Base_FL	Best_Fit_UOEDT	Best_Fit_LOEDT
+
+Cherry_A_Base_FL	Cherry_A_UOEDT	Cherry_A_LOEDT
+
+Cherry_B_Base_FL	Cherry_B_UOEDT	Cherry_B_LOEDT
+
+Fractal_Best_FL	Fractal_UOEDT	Fractal_LOEDT
+
+Most_Recent_Base_FL	Most_Recent_UOEDT	Most_Recent_LOEDT
+
+Non_A_Base_FL	Non_A_UOEDT	Non_A_LOEDT
+
+Non_B_Base_FL	Non_B_UOEDT	Non_B_LOEDT
+
+Best_Resistance
+
+Best_Support
+
+CurrentPrChg	Current%Chg	Current%ChgClass	CurrentBars	CurrentBarsClass	CurrentPrPerBar	CurrentPrPerBarClass	CurrentSlope	CurrentCategory
+
+body_direction	body_size	body_classification
+
+Note : calculation logic of all mql5 indicators must be thoroughly studied then build python calculation stacks to calculate all above values instead of mql5 calculation

@@ -1,0 +1,32 @@
+Export Data from MQL5 indicators (MQL5 indicators calculation and export to downstream stacks) :
+==================================================================
+
+Best_Fit_timestamp	Best_Fit_symbol	Best_Fit_timeframe	Best_Fit_close
+Best_Fit_horiz_high_map	Best_Fit_horiz_low_map	Best_Fit_ssa	Best_Fit_ema_ssa	Best_Fit_crossing
+
+Cherry_A_timestamp	Cherry_A_symbol	Cherry_A_timeframe	Cherry_A_close
+Cherry_A_horiz_high_map	Cherry_A_horiz_low_map	Cherry_A_ssa	Cherry_A_ema_ssa	Cherry_A_crossing
+
+Cherry_B_timestamp	Cherry_B_symbol	Cherry_B_timeframe	Cherry_B_close
+Cherry_B_horiz_high_map	Cherry_B_horiz_low_map	Cherry_B_ssa	Cherry_B_ema_ssa	Cherry_B_crossing
+
+Fractal_timestamp	Fractal_symbol	Fractal_timeframe	Fractal_close
+
+Most_Recent_timestamp	Most_Recent_symbol	Most_Recent_timeframe	Most_Recent_close
+Most_Recent_horiz_high_map	Most_Recent_horiz_low_map	Most_Recent_ssa	Most_Recent_ema_ssa	Most_Recent_crossing
+
+Non_A_timestamp	Non_A_symbol	Non_A_timeframe	Non_A_close
+	Non_A_horiz_high_map	Non_A_horiz_low_map	Non_A_ssa	Non_A_ema_ssa	Non_A_crossing
+
+Non_B_timestamp	Non_B_symbol	Non_B_timeframe	Non_B_close
+Non_B_horiz_high_map	Non_B_horiz_low_map	Non_B_ssa	Non_B_ema_ssa	Non_B_crossing
+
+ohlcv_timestamp	ohlcv_symbol	ohlcv_timeframe	ohlcv_close	ohlcv_open	ohlcv_high	ohlcv_low	ohlcv_volume
+
+Resistance_timestamp	Resistance_symbol	Resistance_timeframe	Resistance_close
+
+Support_timestamp	Support_symbol	Support_timeframe	Support_close
+
+zigzag_TimeStamp	zigzag_symbol	zigzag_timeframe	zigzag_close	zigzag_Type	CurrentPoint
+
+z-score_timestamp	z-score_symbol	z-score_timeframe	z-score_close	z-score_open	z-score_high	z-score_low
