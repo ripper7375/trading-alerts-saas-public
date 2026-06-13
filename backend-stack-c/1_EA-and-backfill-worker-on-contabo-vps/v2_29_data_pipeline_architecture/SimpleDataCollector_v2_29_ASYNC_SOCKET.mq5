@@ -598,7 +598,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
    // 1. Centroid Regression — Best Fit (Non-Most-Recent)
    //    Also supplies the shared SSA trend/signal/cross and fractal 108/119 markers
    tfIndicators[slotIndex].h_cr_bestfit = iCustom(
-      sym, tf, "2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent_v2_29",
+      sym, tf, "2EDTCentroidRegressionBestFitNonMostRecent_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
@@ -606,7 +606,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 2. Centroid Regression — Cherry Pick A
    tfIndicators[slotIndex].h_cr_cherry_a = iCustom(
-      sym, tf, "2EDT-Centroid-Regression-Cherry-Pick-A_v2_29",
+      sym, tf, "2EDTCentroidRegressionCherryPickA_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
@@ -614,7 +614,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 3. Centroid Regression — Cherry Pick B
    tfIndicators[slotIndex].h_cr_cherry_b = iCustom(
-      sym, tf, "2EDT-Centroid-Regression-Cherry-Pick-B_v2_29",
+      sym, tf, "2EDTCentroidRegressionCherryPickB_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
@@ -622,7 +622,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 4. Centroid Regression — Most Recent Line Extension
    tfIndicators[slotIndex].h_cr_mostrecent = iCustom(
-      sym, tf, "2EDT-Centroid-Regression-Most-Recent-Line-Extension_v2_29",
+      sym, tf, "2EDTCentroidRegressionMostRecentLineExtension_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
@@ -630,7 +630,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 5. Centroid Regression — Non-Most-Recent Line Extension A
    tfIndicators[slotIndex].h_cr_nonrecent_a = iCustom(
-      sym, tf, "2EDT-Centroid-Regression-Non-Most-Recent-Line-Extension-A_v2_29",
+      sym, tf, "2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
@@ -638,7 +638,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 6. Centroid Regression — Non-Most-Recent Line Extension B
    tfIndicators[slotIndex].h_cr_nonrecent_b = iCustom(
-      sym, tf, "2EDT-Centroid-Regression-Non-Most-Recent-Line-Extension-B_v2_29",
+      sym, tf, "2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
@@ -646,7 +646,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 7. 2EDT Fractal Best Fit v5 (fixed window anchors)
    tfIndicators[slotIndex].h_fractal_bestfit = iCustom(
-      sym, tf, "2EDT-Fractal-Best-Fit-v5_v2_29",
+      sym, tf, "2EDTFractalBestFitv5_v2_29",
       "===== Window Period (Fixed Anchors) =====",
       InpFBF_StartDateTime, InpFBF_EndDateTime
    );
@@ -654,7 +654,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 8. Single Best Resistance Line v3
    tfIndicators[slotIndex].h_best_resistance = iCustom(
-      sym, tf, "Single-Best-Resistance-Line-v3_v2_29",
+      sym, tf, "SingleBestResistanceLinev3_v2_29",
       "===== Window Period =====",
       InpSBL_StartDateTime, InpSBL_EndDateTime,
       "===== Line Extension =====",
@@ -664,7 +664,7 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 9. Single Best Support Line v3
    tfIndicators[slotIndex].h_best_support = iCustom(
-      sym, tf, "Single-Best-Support-Line-v3_v2_29",
+      sym, tf, "SingleBestSupportLinev3_v2_29",
       "===== Window Period =====",
       InpSBL_StartDateTime, InpSBL_EndDateTime,
       "===== Line Extension =====",
@@ -674,14 +674,14 @@ bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 
    // 10. ZigZag Export v43
    tfIndicators[slotIndex].h_zigzag = iCustom(
-      sym, tf, "ZigZag-Export-v43_v2_29",
+      sym, tf, "ZigZagExportv43_v2_29",
       InpZZ_Depth, InpZZ_Deviation, InpZZ_Backstep
    );
    if(tfIndicators[slotIndex].h_zigzag == INVALID_HANDLE) return false;
 
    // 11. Z-Score OHLC Candle Export
    tfIndicators[slotIndex].h_zscore_candle = iCustom(
-      sym, tf, "zscore-ohlc-candle-export_v2_29",
+      sym, tf, "zscoreohlccandleexport_v2_29",
       InpZScoreLength, InpThresholdZ1, InpThresholdZ2, InpCandleWidth
    );
    if(tfIndicators[slotIndex].h_zscore_candle == INVALID_HANDLE) return false;

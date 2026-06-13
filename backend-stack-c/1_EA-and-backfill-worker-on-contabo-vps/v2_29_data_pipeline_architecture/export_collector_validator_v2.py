@@ -41,8 +41,13 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # --- Python calc stack (CALCULATE stage) ---
-CALC_STACK_DIR = Path(__file__).resolve().parents[1] / '2_python-calc-stack'
-sys.path.insert(0, str(CALC_STACK_DIR))
+# Locate the calc modules whether they sit alongside this file (consolidated
+# v2_29_data_pipeline_architecture/) or in the sibling 2_python-calc-stack/.
+_HERE = Path(__file__).resolve().parent
+for _cand in (_HERE, _HERE.parents[1] / '2_python-calc-stack'):
+    if (_cand / 'centroid_regression.py').exists():
+        sys.path.insert(0, str(_cand))
+        break
 from zscore_candle import calculate as zscore_calculate                      # noqa: E402
 from zigzag_metrics import ZigZagPivot, segment_metrics                      # noqa: E402
 from fractal_lines import (FractalLinesParams, single_best_resistance,       # noqa: E402
@@ -161,6 +166,16 @@ def parse_export_file(path: Path, spec: dict, timeframe: str) -> List[dict]:
                 ts_raw = int(parts[0])
                 row = {
                     'timestamp_raw': ts_raw,
+                    # PLACEHOLDER grid (nearest tf). Adequate ONLY when every
+                    # source shares the same sub-bar phase (production: all 12
+                    # indicators export the same bar's iTime simultaneously).
+                    # Across heterogeneous exports the sources carry DIFFERENT
+                    # constant phases (observed %300: ohlcv 206, best_fit 4,
+                    # cherry_a 240, cherry_b 288, …) which scrambles simple
+                    # gridding — bars align by SEQUENCE, not absolute rounding.
+                    # The dedicated raw->adjusted timestamp-conversion stack
+                    # (sequence/OHLCV-spine snap) must populate timestamp_adj
+                    # before cross-source close validation can pass on such data.
                     'timestamp_adj': round(ts_raw / tf_sec) * tf_sec,
                     'symbol': parts[1].strip(),
                     'timeframe': parts[2].strip(),
