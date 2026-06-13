@@ -1,0 +1,28 @@
+Regression Centroids (Best WLS CFL): 4
+Excluded Recent Centroids (Box A): 0
+Time-Decay Lambda: 0.0010
+Math Search Window (Bars): 3000
+Visual CFL/EDT Window (Bars): 745
+Observation Window (Bars): 437
+Total 171 Crossings (n): 46
+Timeframe (Sec): 900
+Raw Slope (b): -0.40239
+Regression Angle: -42.40
+Anchored Y-Int: 4200.91297
+
+[MODEL A; CROSSINGS]
+Sample (n): 46
+R-Square: 0.6800
+MSE: 1636.4439
+Var Ratio: 1.88
+Skewness: 0.22
+Kurtosis: 2.27
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 437
+R-Square: 0.6842
+MSE: 1530.1815
+Var Ratio: 1.79
+Skewness: 0.10
+Kurtosis: 2.26
+
