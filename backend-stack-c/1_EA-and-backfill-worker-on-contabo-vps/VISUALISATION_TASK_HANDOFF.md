@@ -22,12 +22,15 @@ A DavinTrade UI with **three chart canvases**:
 - **Chart C — always XAUUSD M15.** Same as B (a second M15 canvas so users can
   compare different overlays/strategies).
 
-**User workflow (buttons in the UI):**
+**User workflow shown in the image (UI — OUT OF SCOPE, context only; see §3):**
 
 1. User creates UOEDT/LOEDT on the M5 chart (Chart A).
 2. "Copy M5 EDT" button.
 3. "Paste M5 EDT to Chart B" and/or "Paste M5 EDT to Chart C".
 4. The M5 channel is plotted on B and/or C per the clicks.
+
+This task does NOT build that UI — only the backend rendering of the charts
+(§3). The workflow above just explains which channel ends up on which chart.
 
 **Key property:** the SAME equal-distance channel (blue lines) appears on all
 three charts — the M5-computed channel is reused on the M15 panels (not
@@ -57,19 +60,23 @@ develop the renderer without standing up the DB.
 
 ---
 
-## 3. FIRST decision to confirm with the user (don't assume)
+## 3. Scope — BACKEND ONLY (decided; do not build UI)
 
-**Is this a Python image-rendering module or a web-frontend (Next.js) feature?**
-The image says "DavinTrade App UI" with buttons (suggests the web app), but the
-working folder is backend Python. This determines the whole approach:
+This task is a **backend Python rendering stack**: read `market_data` and
+produce the multi-timeframe chart visualisation (e.g. matplotlib / mplfinance
+PNGs), fitting the `render_alternatives` component in the decision-layer
+blueprint.
 
-- **Python render** (matplotlib / mplfinance over `market_data`) → produces PNGs;
-  fits the `render_alternatives` component in the decision-layer blueprint.
-- **Web frontend** (the repo's Next.js app + a charting lib like lightweight-
-  charts/TradingView) → the live 3-canvas UI with copy/paste buttons; reads
-  `market_data` via an API.
+**The UI is explicitly OUT OF SCOPE — it is a separate frontend stack built
+later.** The "DavinTrade App UI", the buttons ("Copy M5 EDT", "Paste M5 EDT to
+Chart B/C"), and the live interactive 3-canvas display in the target image are
+**context only** — they tell you _what data to render and how the M5 channel
+maps onto the M15 charts_. Do **not** build any UI, buttons, API endpoints, or
+web frontend in this task.
 
-Ask the user which, before writing code.
+So: produce the three rendered charts (A = M5 with its channel; B & C = M15 with
+the M5 channel overlaid) as a backend module/output. How a future UI triggers
+copy/paste is not your concern here.
 
 **MTF alignment caveat (carry-over dependency):** overlaying the M5 channel on
 M15 needs M5↔M15 time alignment. The pipeline's `timestamp_adj` is currently a
@@ -102,8 +109,8 @@ files, gateway contract, install/replay scripts, and the full pipeline blueprint
 
 ## 5. Suggested opening prompt for the new session
 
-> "Build the multi-timeframe visualisation in
+> "Build the multi-timeframe visualisation (BACKEND Python rendering only — UI
+> is out of scope, a separate stack) in
 > `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/`.
 > Read `VISUALISATION_TASK_HANDOFF.md` first, then only the files it lists.
-> First confirm with me: Python image-rendering module or web-frontend feature?
-> Then propose a plan before coding."
+> Propose a plan before writing code, and ask me anything ambiguous first."
