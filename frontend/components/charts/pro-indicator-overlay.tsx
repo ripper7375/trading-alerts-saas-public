@@ -1,5 +1,6 @@
 'use client';
 
+import { LineSeries } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi, LineData, Time } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 
@@ -78,7 +79,7 @@ export function ProIndicatorOverlay({
         if (!values || values.length === 0) return;
 
         try {
-          const series = chart.addLineSeries({
+          const series = chart.addSeries(LineSeries, {
             color: KELTNER_COLORS[band],
             lineWidth: band.includes('Middle') ? 3 : 2,
             priceLineVisible: false,
@@ -117,10 +118,11 @@ export function ProIndicatorOverlay({
       data: (number | undefined)[],
       color: string
     ): void => {
-      if (!selectedIndicators.includes('moving_averages') || data.length === 0) return;
+      if (!selectedIndicators.includes('moving_averages') || data.length === 0)
+        return;
 
       try {
-        const series = chart.addLineSeries({
+        const series = chart.addSeries(LineSeries, {
           color,
           lineWidth: 2,
           priceLineVisible: false,
@@ -168,7 +170,7 @@ export function ProIndicatorOverlay({
       if (allPoints.length > 1) {
         try {
           // ZigZag line connecting peaks and bottoms
-          const zigzagSeries = chart.addLineSeries({
+          const zigzagSeries = chart.addSeries(LineSeries, {
             color: ZIGZAG_COLORS.line,
             lineWidth: 2,
             priceLineVisible: false,
@@ -201,7 +203,7 @@ export function ProIndicatorOverlay({
       // Render peak markers
       if (peaks.length > 0) {
         try {
-          const peakSeries = chart.addLineSeries({
+          const peakSeries = chart.addSeries(LineSeries, {
             color: ZIGZAG_COLORS.peaks,
             lineWidth: 1,
             lineVisible: false,
@@ -236,7 +238,7 @@ export function ProIndicatorOverlay({
       // Render bottom markers
       if (bottoms.length > 0) {
         try {
-          const bottomSeries = chart.addLineSeries({
+          const bottomSeries = chart.addSeries(LineSeries, {
             color: ZIGZAG_COLORS.bottoms,
             lineWidth: 1,
             lineVisible: false,

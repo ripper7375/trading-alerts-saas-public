@@ -1,0 +1,43 @@
+components/charts/drawing/geometry/
+├── types.ts
+├── trendline.ts
+├── horizontal.ts
+├── channel.ts
+├── fib.ts
+├── levels.ts
+└── index.ts
+
+__tests__/drawing/geometry/
+└── geometry.test.ts
+
+
+===========================================
+
+
+package.json                                          ← ONE-LINE edit (see below)
+components/charts/
+├── trading-chart.tsx                                 ← MODIFIED (overwrite)
+├── pro-indicator-overlay.tsx                         ← MODIFIED (overwrite)
+└── drawing/
+    ├── types.ts                                      ← NEW
+    ├── engine/
+    │   ├── coords.ts                                 ← NEW
+    │   └── pixelMath.ts                              ← NEW
+    └── marks/
+        ├── BaseMark.ts                               ← NEW
+        ├── HorizontalLineMark.ts                     ← NEW
+        └── TrendlineMark.ts                          ← NEW
+__tests__/drawing/engine/
+└── pixelMath.test.ts                                 ← NEW
+
+
+===============================
+
+package.json
+
+-    "lightweight-charts": "^4.1.1",
++    "lightweight-charts": "^5.2.0",
+
+===============================
+
+

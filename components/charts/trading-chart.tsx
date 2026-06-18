@@ -2,6 +2,7 @@
 
 import {
   createChart,
+  CandlestickSeries,
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
@@ -91,7 +92,7 @@ export function TradingChart({
       },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#26a69a',
       downColor: '#ef5350',
       borderVisible: false,
@@ -170,7 +171,7 @@ export function TradingChart({
       {/* Chart container */}
       <div className="relative rounded-lg border bg-card p-4">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">
@@ -181,7 +182,7 @@ export function TradingChart({
         )}
 
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
             <div className="text-center text-destructive">
               <p className="font-semibold">Error loading chart</p>
               <p className="text-sm">{error}</p>
