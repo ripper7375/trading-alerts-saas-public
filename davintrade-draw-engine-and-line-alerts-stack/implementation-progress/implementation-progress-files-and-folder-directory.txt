@@ -40,4 +40,18 @@ package.json
 
 ===============================
 
+components/charts/
+├── trading-chart.tsx                         ← MODIFIED (overwrite)
+└── drawing/
+    ├── Toolbar.tsx                            ← NEW
+    ├── DrawingLayer.tsx                       ← NEW
+    ├── tools/index.ts                         ← NEW
+    └── engine/
+        ├── DrawingEngine.ts                   ← NEW
+        └── PointerController.ts               ← NEW
+
+===============================
+
+__tests__/drawing/engine/DrawingEngine.test.ts
+
 
