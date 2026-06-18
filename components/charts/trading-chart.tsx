@@ -8,9 +8,11 @@ import {
   type UTCTimestamp,
   ColorType,
 } from 'lightweight-charts';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
+
+import { DrawingLayer } from './drawing/DrawingLayer';
 
 /**
  * TradingChart Props
@@ -37,6 +39,12 @@ export function TradingChart({
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const isFirstLoadRef = useRef(true);
+
+  // Exposed once the chart + series exist, so the drawing layer can mount.
+  const [chartApi, setChartApi] = useState<IChartApi | null>(null);
+  const [seriesApi, setSeriesApi] = useState<ISeriesApi<'Candlestick'> | null>(
+    null
+  );
 
   const { data, isConnected, isLoading, error } = useOhlcvSocket(
     symbol,
@@ -102,6 +110,8 @@ export function TradingChart({
 
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
+    setChartApi(chart);
+    setSeriesApi(candleSeries);
 
     const handleResize = (): void => {
       if (chartContainerRef.current && chartRef.current) {
@@ -121,6 +131,8 @@ export function TradingChart({
         chartRef.current.remove();
         chartRef.current = null;
         candleSeriesRef.current = null;
+        setChartApi(null);
+        setSeriesApi(null);
       }
     };
   }, []);
@@ -190,7 +202,12 @@ export function TradingChart({
           </div>
         )}
 
-        <div ref={chartContainerRef} className="w-full" />
+        <div className="relative w-full">
+          <div ref={chartContainerRef} className="w-full" />
+          {chartApi && seriesApi && (
+            <DrawingLayer chart={chartApi} series={seriesApi} />
+          )}
+        </div>
       </div>
 
       {/* Chart info */}
