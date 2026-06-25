@@ -68,5 +68,3 @@ components/charts/drawing/
 
 __tests__/drawing/marks/
 └── newMarks.test.ts                   ← NEW
-
-
