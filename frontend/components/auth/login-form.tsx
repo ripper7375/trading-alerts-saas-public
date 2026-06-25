@@ -194,9 +194,9 @@ export default function LoginForm(): JSX.Element {
                 {errorConfig?.action === 'verify' && currentEmail && (
                   <Link
                     href={`/verify-email/pending?email=${encodeURIComponent(currentEmail)}`}
-                    className="inline-block text-blue-600 hover:text-blue-700 underline text-sm mt-2 font-medium"
+                    className="text-blue-600 underline text-sm mt-2 hover:text-blue-700 block"
                   >
-                    → Resend verification email
+                    Resend verification email
                   </Link>
                 )}
                 {errorConfig?.action === 'reset' && (
@@ -211,7 +211,6 @@ export default function LoginForm(): JSX.Element {
               <button
                 onClick={() => setError(null)}
                 className={`${errorConfig.icon} hover:opacity-70 text-xl font-bold cursor-pointer`}
-                aria-label="Close error message"
               >
                 ×
               </button>
@@ -294,7 +293,6 @@ export default function LoginForm(): JSX.Element {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                 tabIndex={-1}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>

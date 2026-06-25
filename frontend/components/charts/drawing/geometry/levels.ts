@@ -81,7 +81,15 @@ export function levelsForMark(snap: MarkSnapshot): AlertLevel[] {
       const a1 = anchors[0];
       const a2 = anchors[1];
       if (!a1 || !a2) return [];
-      const ch = channelLevels(a1, a2, readNumber(style, 'offset', 0));
+      // A drawn channel carries a 3rd anchor on the parallel line; derive the
+      // vertical price offset from it. Falls back to style.offset otherwise.
+      const a3 = anchors[2];
+      let offset = readNumber(style, 'offset', 0);
+      if (a3) {
+        const base = channelLevels(a1, a2, 0).median(a3.time);
+        if (base !== null) offset = a3.price - base;
+      }
+      const ch = channelLevels(a1, a2, offset);
       return [
         { id: 'channel_top', label: 'Channel Top', valueAt: ch.top },
         { id: 'channel_bottom', label: 'Channel Bottom', valueAt: ch.bottom },
