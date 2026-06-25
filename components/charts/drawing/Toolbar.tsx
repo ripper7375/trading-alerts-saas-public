@@ -7,7 +7,16 @@
  * @module components/charts/drawing/Toolbar
  */
 
-import { Minus, MousePointer2, Trash2, TrendingUp } from 'lucide-react';
+import {
+  Minus,
+  MousePointer2,
+  MoveDiagonal,
+  Ruler,
+  Spline,
+  Trash2,
+  TrendingUp,
+  Type,
+} from 'lucide-react';
 import type { JSX } from 'react';
 
 import { DRAWABLE_TOOLS, TOOL_DEFINITIONS } from './tools';
@@ -23,6 +32,10 @@ interface ToolbarProps {
 const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
   HLINE: <Minus className="h-4 w-4" />,
   TRENDLINE: <TrendingUp className="h-4 w-4" />,
+  CHANNEL: <Spline className="h-4 w-4" />,
+  FIB_RETRACE: <Ruler className="h-4 w-4" />,
+  FIB_EXT: <MoveDiagonal className="h-4 w-4" />,
+  TEXT: <Type className="h-4 w-4" />,
 };
 
 export function Toolbar({

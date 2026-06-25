@@ -54,4 +54,19 @@ components/charts/
 
 __tests__/drawing/engine/DrawingEngine.test.ts
 
+===============================
+
+components/charts/drawing/
+├── marks/
+│   ├── ChannelMark.ts                 ← NEW
+│   ├── FibRetracementMark.ts          ← NEW
+│   ├── FibExtensionMark.ts            ← NEW
+│   └── TextMark.ts                    ← NEW
+├── geometry/levels.ts                 ← MODIFIED (overwrite)
+├── tools/index.ts                     ← MODIFIED (overwrite)
+└── Toolbar.tsx                        ← MODIFIED (overwrite)
+
+__tests__/drawing/marks/
+└── newMarks.test.ts                   ← NEW
+
 

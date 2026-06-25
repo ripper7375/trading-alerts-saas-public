@@ -6,7 +6,11 @@
  * @module components/charts/drawing/tools
  */
 
+import { ChannelMark } from '../marks/ChannelMark';
+import { FibExtensionMark } from '../marks/FibExtensionMark';
+import { FibRetracementMark } from '../marks/FibRetracementMark';
 import { HorizontalLineMark } from '../marks/HorizontalLineMark';
+import { TextMark } from '../marks/TextMark';
 import { TrendlineMark } from '../marks/TrendlineMark';
 import type { Anchor, DrawingMark, DrawingStyle, DrawingType } from '../types';
 
@@ -45,10 +49,41 @@ export const TOOL_DEFINITIONS: Partial<Record<DrawingType, ToolDefinition>> = {
     anchorCount: 2,
     create: (id, anchors, style) => new TrendlineMark(id, anchors, style),
   },
+  CHANNEL: {
+    type: 'CHANNEL',
+    label: 'Parallel Channel',
+    anchorCount: 3,
+    create: (id, anchors, style) => new ChannelMark(id, anchors, style),
+  },
+  FIB_RETRACE: {
+    type: 'FIB_RETRACE',
+    label: 'Fib Retracement',
+    anchorCount: 2,
+    create: (id, anchors, style) => new FibRetracementMark(id, anchors, style),
+  },
+  FIB_EXT: {
+    type: 'FIB_EXT',
+    label: 'Fib Extension',
+    anchorCount: 3,
+    create: (id, anchors, style) => new FibExtensionMark(id, anchors, style),
+  },
+  TEXT: {
+    type: 'TEXT',
+    label: 'Text',
+    anchorCount: 1,
+    create: (id, anchors, style) => new TextMark(id, anchors, style),
+  },
 };
 
 /** Ordered list of tools to show in the toolbar. */
-export const DRAWABLE_TOOLS: DrawingType[] = ['HLINE', 'TRENDLINE'];
+export const DRAWABLE_TOOLS: DrawingType[] = [
+  'HLINE',
+  'TRENDLINE',
+  'CHANNEL',
+  'FIB_RETRACE',
+  'FIB_EXT',
+  'TEXT',
+];
 
 /** Map a mark handle id to the anchor index it controls. */
 export function handleToAnchorIndex(handleId: string): number {
