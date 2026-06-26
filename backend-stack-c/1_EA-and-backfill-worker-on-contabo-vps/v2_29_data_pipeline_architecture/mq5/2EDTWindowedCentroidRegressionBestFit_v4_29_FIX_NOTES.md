@@ -12,8 +12,15 @@ selection #6..#10, CFL found, baseline + EDT + hulls drawn and stable).
    (#1 = newest), per `InpShowCentroidNumbers` / `InpCentroidNumberColor`.
 3. **Selects a contiguous batch by recency rank**: skip `InpExcludeRecentCentroids`
    newest, then take `InpRegCentroids`. Defaults `5 / 5` => centroids **#6..#10**.
-4. **Force-fits the baseline to ALL selected centroids** (WLS through the whole
-   batch — no best-subset search), then builds the two outermost EDTs around it.
+4. **Fits the baseline to the selected centroids**, controlled by
+   `InpForceFitAllCentroids`:
+   - `false` (default) = **best-subset**: searches every >=3 subset of the batch
+     and keeps the highest weighted-R² line (tightest, robust to a stray centroid;
+     proven foundation behaviour; `centroids_used` may be < batch).
+   - `true` = **force-fit all**: one WLS through every selected centroid
+     (predictable, honours your exact selection, moves smoothly; sensitive to a
+     stray centroid; `centroids_used` == InpRegCentroids).
+   Then builds the two outermost EDTs around the baseline.
 5. Baseline drawn over `InpCFLVisualLookback` (500), auto-extended to the oldest
    selected centroid; optionally extended to the current bar.
 

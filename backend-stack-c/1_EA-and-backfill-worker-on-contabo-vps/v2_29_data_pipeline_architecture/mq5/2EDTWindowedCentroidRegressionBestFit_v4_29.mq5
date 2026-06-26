@@ -75,6 +75,7 @@ input string            Sep5 = "===== CFL Base & EDT Rules (Centroid-Specific) =
 input bool              InpShowComments = false;
 input int               InpRegCentroids = 5;            // Centroids to regress (the selected batch size)
 input int               InpExcludeRecentCentroids = 5;  // Skip N most-recent centroids (Max 9). 5 -> start at #6
+input bool              InpForceFitAllCentroids = false; // false=Best-subset (tightest >=3 fit); true=force-fit ALL selected
 input bool              InpShowCentroidNumbers = true;  // Label every centroid with its recency rank (#1 = newest)
 input color             InpCentroidNumberColor = clrBlack;
 input int               InpCFLVisualLookback = 500;     // Bars to draw the baseline over (auto-extended to fit centroids)
@@ -728,11 +729,11 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    best_cfl.centroids_used = 0;
    bool cfl_found = false;
 
-   // --- FORCE-FIT: regress ALL selected centroids (no best-subset search). ---
-   // The baseline is the WLS fit through the entire selected batch
-   // (#actual_exclude+1 .. #actual_exclude+n_reg), so every chosen centroid
-   // contributes regardless of how it affects R-squared.
-   {
+   if(InpForceFitAllCentroids) {
+       // --- FORCE-FIT: single WLS through ALL selected centroids. ---
+       // Every chosen centroid (#actual_exclude+1 .. #actual_exclude+n_reg)
+       // contributes regardless of how it affects R-squared. Predictable, moves
+       // smoothly, honours your exact selection; sensitive to a stray centroid.
        double sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWX2 = 0;
        int leftmost_bar = rates_total, rightmost_bar = -1;
 
@@ -786,6 +787,76 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
                    best_cfl.centroids_used = n_reg;
                    cfl_found = true;
                }
+           }
+       }
+   } else {
+       // --- BEST-SUBSET: search every >=3 subset of the selected batch and keep
+       // the highest weighted R-squared fit. Tightest line, robust to a stray
+       // centroid (it is dropped); may use fewer than n_reg, and can change which
+       // subset wins between updates. This is the proven foundation behaviour.
+       int total_combos = 1 << n_reg;
+       for(int mask = 1; mask < total_combos; mask++) {
+           int bits = 0;
+           for(int b=0; b<n_reg; b++) { if((mask & (1<<b)) != 0) bits++; }
+           if(bits < 3) continue;
+
+           double sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWX2 = 0;
+           int leftmost_bar = rates_total, rightmost_bar = -1;
+           for(int b=0; b<n_reg; b++) {
+               if((mask & (1<<b)) != 0) {
+                   double w  = cen_weights[b];
+                   double cx = centroids[b + actual_exclude].bar_index;
+                   double cy = centroids[b + actual_exclude].price;
+                   sumW   += w;
+                   sumWX  += w * cx;
+                   sumWY  += w * cy;
+                   sumWXY += w * cx * cy;
+                   sumWX2 += w * cx * cx;
+                   if(cl_left[b]  < leftmost_bar)  leftmost_bar  = cl_left[b];
+                   if(cl_right[b] > rightmost_bar) rightmost_bar = cl_right[b];
+               }
+           }
+           if(leftmost_bar >= rightmost_bar) continue;
+
+           double D = sumW * sumWX2 - sumWX * sumWX;
+           if(D == 0) continue;
+           double cand_m = (sumW * sumWXY - sumWX * sumWY) / D;
+           double cand_c = (sumWY - cand_m * sumWX) / sumW;
+
+           int start_idx_p = -1, end_idx_p = -1;
+           for(int p=0; p<p_count; p++) {
+               if(points[p].bar >= leftmost_bar && start_idx_p == -1) start_idx_p = p;
+               if(points[p].bar <= rightmost_bar) end_idx_p = p;
+           }
+           if(start_idx_p == -1 || end_idx_p == -1) continue;
+
+           int n_crossings = 0;
+           double sum_w_cross = 0, sum_w_price = 0;
+           for(int p = start_idx_p; p <= end_idx_p; p++) {
+               sum_w_price += points[p].price * pt_weights[p];
+               sum_w_cross += pt_weights[p];
+               n_crossings++;
+           }
+           if(n_crossings < 3 || sum_w_cross == 0) continue;
+
+           double w_mean_cross = sum_w_price / sum_w_cross;
+           double res_sq = 0, tot_sq = 0;
+           for(int p = start_idx_p; p <= end_idx_p; p++) {
+               double pred_y = cand_m * points[p].bar + cand_c;
+               res_sq += pt_weights[p] * MathPow(points[p].price - pred_y, 2);
+               tot_sq += pt_weights[p] * MathPow(points[p].price - w_mean_cross, 2);
+           }
+           double r2 = (tot_sq != 0) ? 1.0 - (res_sq / tot_sq) : 0.0;
+
+           if(r2 > best_cfl.r2_cross) {
+               best_cfl.mask = mask;
+               best_cfl.m = cand_m;
+               best_cfl.c = cand_c;
+               best_cfl.r2_cross = r2;
+               best_cfl.leftmost = leftmost_bar;
+               best_cfl.rightmost = rightmost_bar;
+               best_cfl.centroids_used = bits;
+               cfl_found = true;
            }
        }
    }
