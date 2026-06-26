@@ -1,66 +1,44 @@
-# Switched to the CENTROID-SPECIFIC approach (root-cause cure)
+# Centroid-Specific CFL — PRODUCTION build
 
 **File:** `2EDTWindowedCentroidRegressionBestFit_v4_29.mq5`
+**Status:** verified working on XAUUSD M15 (raw=18 clusters, 18 centroids,
+selection #6..#10, CFL found, baseline + EDT + hulls drawn and stable).
 
-## Why the date-window approach could not be saved
+## What this indicator now does
+1. **Clusters the recent `InpSSAWaveLookback` (3000) bars** on a fresh, well-
+   conditioned SSA (the proven foundation pattern). No fixed date window, so the
+   SSA basis no longer drifts the clustering into collapse.
+2. **Finds all centroids, sorts them most-recent-first, and numbers them on chart**
+   (#1 = newest), per `InpShowCentroidNumbers` / `InpCentroidNumberColor`.
+3. **Selects a contiguous batch by recency rank**: skip `InpExcludeRecentCentroids`
+   newest, then take `InpRegCentroids`. Defaults `5 / 5` => centroids **#6..#10**.
+4. **Force-fits the baseline to ALL selected centroids** (WLS through the whole
+   batch — no best-subset search), then builds the two outermost EDTs around it.
+5. Baseline drawn over `InpCFLVisualLookback` (500), auto-extended to the oldest
+   selected centroid; optionally extended to the current bar.
 
-The diagnostic proved the collapse was *not* missing data: the window had 133
-crossings, but DBSCAN merged them into a single cluster (`raw=1`) -> failed the
-`n_reg >= 3` gate -> no baseline/EDT. Root reason: the live SSA basis is rebuilt
-from all loaded history and analyses the bars ending at the CURRENT bar. A FIXED
-historical date band drifts into the stale tail of that rolling SSA as live
-history accumulates, so the crossing geometry inside the band keeps shifting until
-clustering degenerates. There is no cheap, robust fix for clustering a far-past
-fixed date band with a forward-rolling SSA.
+## Key inputs
+- `InpRegCentroids = 5` — batch size to regress.
+- `InpExcludeRecentCentroids = 5` — skip N newest centroids (max 9). 0 = use newest.
+- `InpCFLVisualLookback = 500` — baseline draw length (auto-extended to fit the batch).
+- `InpShowCentroidNumbers = true`, `InpCentroidNumberColor = clrBlack`.
 
-## The new approach (matches your AFTER mockup, mirrors the foundation)
+## Changes from the broken date-window version
+- Removed the fixed date window (`InpStartDateTime` / `InpEndDateTime`) and all
+  windowing logic — that was the root cause of the collapse (clustering a far-past
+  date band with a forward-rolling SSA degenerated DBSCAN to a single cluster).
+- Replaced best-subset CFL search with a **force-fit over all selected centroids**.
+- Restored the `OnTimer` (per-minute) and `OnChartEvent` (button) recompute that
+  the earlier "Gemini fix" wrongly removed — these refresh the math/export even
+  when ticks are sparse. (The working foundation indicators do exactly this; it is
+  safe — buffers are still only written from inside MT5 event handlers.)
+- Removed all temporary diagnostic instrumentation (`g_dbg_*`, `DbgRender`,
+  on-chart readout, Experts-log trace).
 
-Reference: `2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`
-(`InpExcludeRecentCentroids` + `InpRegCentroids`).
-
-1. **Cluster the recent `InpSSAWaveLookback` (3000) bars** — fresh, well-conditioned
-   SSA, the same data region the SSA is computed on. No date window, no basis drift.
-2. **All centroids are found and sorted most-recent-first** and **numbered on chart**
-   (#1 = newest), exactly like your AFTER image.
-3. **Select a contiguous batch by recency rank**: skip the `InpExcludeRecentCentroids`
-   newest, then regress the next `InpRegCentroids`. Defaults `5 / 5` => **centroids
-   #6..#10**. The WLS/combinatorial CFL + EDTs are built from that batch only.
-4. Baseline is drawn over `InpCFLVisualLookback` (default 500), auto-extended back to
-   the oldest selected centroid.
-
-Because the cluster region == the SSA region (recent), the result is deterministic
-and stable regardless of how much live history loads. This is the same reason your
-foundation indicators are stable.
-
-### New / changed inputs
-- `InpRegCentroids = 5`  (was 9) — batch size to regress.
-- `InpExcludeRecentCentroids = 5` — skip N newest centroids (max 9). 5 => start at #6.
-- `InpShowCentroidNumbers = true`, `InpCentroidNumberColor = clrBlack` — on-chart ranks.
-- `InpCFLVisualLookback = 500` — baseline draw length (auto-extended to fit centroids).
-- Removed: `InpStartDateTime` / `InpEndDateTime` and all date-window logic
-  (and the temporary `RefreshWindowSSA`).
-
-To reproduce the AFTER picture exactly, leave the defaults (exclude 5, regress 5).
-To use the 5 most-recent centroids instead, set `InpExcludeRecentCentroids = 0`.
-
-## This build is still INSTRUMENTED — please verify
-
-Compile, attach to XAUUSD M15, read the top-left readout / Experts log. Expected:
-
-```
-CLUSTER REGION (recent): bars [..]   crossings(p_count)= ~100+
-CLUSTERS: raw= <several>   CENTROIDS found= <~10-18>
-SELECTION: exclude newest=5, regress=5  => centroids #6..#10
-CFL: found=YES   best_r2= ...
-EXIT: OK: drew baseline + EDT + hulls
-```
-
-You should see: every centroid numbered, the GreenYellow baseline through the
-selected batch, both SpringGreen EDT lines, and the picture **staying** across
-INIT / TIMER59 / NEWBAR. Adjust `InpExcludeRecentCentroids` to slide which batch is
-used and watch the baseline move accordingly.
-
-## After you confirm
-I will ship the clean build: remove all `g_dbg_*` instrumentation + `DbgRender()`,
-and restore the `OnTimer`/`OnChartEvent` recompute Gemini removed (the foundation
-keeps it; it refreshes the per-minute export even when ticks are sparse).
+## Behaviour notes
+- `g_stat_centroids` (exported) now equals the number of centroids regressed
+  (= the selected batch size), since all selected centroids are used.
+- The export filename (`InpExportFileName = "Centriod_Windowed"`) was left
+  unchanged for downstream-pipeline compatibility; change it in inputs if desired.
+- Centroid rank numbers are anchored on the centroid markers. If you want them
+  lifted just above the dots, say so and I'll switch the anchor.

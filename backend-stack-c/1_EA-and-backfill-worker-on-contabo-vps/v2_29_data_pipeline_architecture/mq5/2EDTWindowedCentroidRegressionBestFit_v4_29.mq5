@@ -6,7 +6,7 @@
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
 #property version   "3.00"
-#property description "DavinTrade V3.00: Centroid-Specific WLS CFL + Outermost EDTs [DIAGNOSTIC BUILD - on-chart readout + Experts-log trace]"
+#property description "DavinTrade V3.00: Centroid-Specific WLS CFL + Outermost EDTs"
 #property indicator_chart_window
 
 // Total Buffers: 10 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 37 Buffers
@@ -156,55 +156,6 @@ double g_cen_prices[12];
 long g_stat_window_start_ts = 0;
 long g_stat_window_end_ts = 0;
 
-//--- DIAGNOSTIC GLOBALS (temporary instrumentation build) ---
-int      g_dbg_pass        = 0;     // math-pass counter
-int      g_dbg_prev_calc   = -1;    // prev_calculated of the pass
-string   g_dbg_trigger     = "";    // INIT / NEWBAR / TIMER59
-int      g_dbg_rates_total = 0;
-int      g_dbg_ssa_start   = 0;     // effective ssa_start_idx
-int      g_dbg_eff_lookback= 0;     // effective SSA lookback (bars)
-int      g_dbg_win_start   = 0;     // window_start_idx
-int      g_dbg_win_end     = 0;     // window_end_idx
-int      g_dbg_orig_ssa_start = 0;  // what ssa_start_idx WOULD be with the fixed 3000 lookback
-int      g_dbg_p_count     = 0;     // crossings gathered inside window
-double   g_dbg_min_bar=0, g_dbg_max_bar=0, g_dbg_min_price=0, g_dbg_max_price=0; // normalization bounds
-int      g_dbg_total_clusters = 0;  // raw clusters from DBSCAN/KMeans
-int      g_dbg_centroid_count = 0;  // clusters that produced a hull (>=3 pts) = total centroids found
-int      g_dbg_n_reg       = 0;     // selected batch size actually regressed
-int      g_dbg_exclude     = 0;     // most-recent centroids actually skipped
-bool     g_dbg_cfl_found   = false;
-double   g_dbg_best_r2     = 0.0;
-int      g_dbg_centroids_used = 0;
-string   g_dbg_exit        = "";    // where the pass ended
-
-void DbgRender()
-{
-   int sel_from = g_dbg_exclude + 1;
-   int sel_to   = g_dbg_exclude + g_dbg_n_reg;
-   string s = StringFormat(
-      "===== CENTROID-SPECIFIC CFL DIAGNOSTIC =====\n" +
-      "pass #%d  trigger=%s  prev_calc=%d  rates_total=%d\n" +
-      "CLUSTER REGION (recent): bars [%d .. %d]   crossings(p_count)=%d  (MinPts=%d)\n" +
-      "NORM bounds: bar[%.0f..%.0f]  price[%.5f..%.5f]\n" +
-      "CLUSTERS: raw=%d   CENTROIDS found=%d\n" +
-      "SELECTION: exclude newest=%d, regress=%d  => centroids #%d..#%d\n" +
-      "CFL: found=%s  best_r2=%.4f  centroids_used=%d\n" +
-      "EXIT: %s",
-      g_dbg_pass, g_dbg_trigger, g_dbg_prev_calc, g_dbg_rates_total,
-      g_dbg_win_start, g_dbg_win_end, g_dbg_p_count, InpMinPts,
-      g_dbg_min_bar, g_dbg_max_bar, g_dbg_min_price, g_dbg_max_price,
-      g_dbg_total_clusters, g_dbg_centroid_count,
-      g_dbg_exclude, g_dbg_n_reg, sel_from, sel_to,
-      (g_dbg_cfl_found ? "YES" : "NO"), g_dbg_best_r2, g_dbg_centroids_used,
-      g_dbg_exit);
-   Comment(s);
-   Print("DBG pass#", g_dbg_pass, " trig=", g_dbg_trigger, " prevc=", g_dbg_prev_calc,
-         " rt=", g_dbg_rates_total, " region[", g_dbg_win_start, "..", g_dbg_win_end, "] pcount=", g_dbg_p_count,
-         " raw=", g_dbg_total_clusters, " centroids=", g_dbg_centroid_count,
-         " excl=", g_dbg_exclude, " nreg=", g_dbg_n_reg, " sel#", sel_from, "..#", sel_to,
-         " cfl=", g_dbg_cfl_found, " r2=", DoubleToString(g_dbg_best_r2,4), " EXIT=", g_dbg_exit);
-}
-
 //--- STRUCTURES ---
 struct ClusterPoint {
    int      bar;
@@ -343,8 +294,11 @@ void OnTimer()
    if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
        last_trigger_min = time_struct.min;
        if(g_rates_total > 0) {
-           // CRITICAL FIX: Do NOT recalculate math/buffers in OnTimer. 
-           // MQL5 will corrupt/block indicator buffers written outside OnCalculate.
+           // Refresh the centroid math then export (keeps the per-minute export
+           // current even when ticks are sparse). Clustering now runs on the
+           // recent SSA region, so this is deterministic and safe.
+           PerformClusteringAndCFL(g_rates_total, g_time, g_close);
+           ChartRedraw(0);
            ExportData(true);
        }
    }
@@ -392,8 +346,12 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 {
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME) {
       ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
-      
-      // CRITICAL FIX: Do NOT recalculate math/buffers in OnChartEvent.
+
+      // Recompute then export on demand.
+      if(g_rates_total > 0) {
+         PerformClusteringAndCFL(g_rates_total, g_time, g_close);
+         ChartRedraw(0);
+      }
       ExportData(false);
    }
 }
@@ -586,19 +544,10 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
 
    int p_count = ArraySize(points);
 
-   // --- diagnostics ---
-   g_dbg_win_start = window_start_idx;
-   g_dbg_win_end   = window_end_idx;
-   g_dbg_p_count   = p_count;
-   g_dbg_total_clusters = 0; g_dbg_centroid_count = 0; g_dbg_n_reg = 0;
-   g_dbg_cfl_found = false;   g_dbg_best_r2 = 0.0;     g_dbg_centroids_used = 0;
-   g_dbg_min_bar = 0; g_dbg_max_bar = 0; g_dbg_min_price = 0; g_dbg_max_price = 0;
-
    if(p_count < InpMinPts) {
-      // Not enough crossings in the window on THIS pass. Keep the previously
-      // drawn lines/centroids on screen rather than flashing them away.
-      g_dbg_exit = "RETURN: p_count < MinPts (kept previous display)";
-      DbgRender();
+      // Not enough crossings on THIS pass. Keep the previously drawn
+      // lines/centroids on screen rather than flashing them away.
+      if(InpShowComments) Comment("--- DavinTrade V3.00 (Centroid-Specific) ---\nAwaiting more data: crossings < MinPts");
       return;
    }
 
@@ -619,7 +568,6 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
       if(points[i].price < min_price) min_price = points[i].price; if(points[i].price > max_price) max_price = points[i].price;
    }
    if(max_bar == min_bar) max_bar += 1; if(max_price == min_price) max_price += 0.00001;
-   g_dbg_min_bar = min_bar; g_dbg_max_bar = max_bar; g_dbg_min_price = min_price; g_dbg_max_price = max_price;
    for(int i = 0; i < p_count; i++) {
       points[i].norm_x = (points[i].bar - min_bar) / (max_bar - min_bar);
       points[i].norm_y = (points[i].price - min_price) / (max_price - min_price);
@@ -645,7 +593,6 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    } else if (InpAlgo == ALGO_DBSCAN) {
       total_clusters = RunDBSCAN(points, p_count, InpEpsilon, InpMinPts, assignments);
    }
-   g_dbg_total_clusters = total_clusters;
 
    for(int i = 0; i < p_count; i++) { if(assignments[i] != -1) ExtCrossInCluster[points[i].bar] = 1.0;
    }
@@ -723,8 +670,6 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
       }
    }
 
-   g_dbg_centroid_count = centroid_count;
-
    // --- CENTROID-SPECIFIC SELECTION (skip N newest, then take InpRegCentroids) ---
    int user_target_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12));
    int user_exclude    = (int)MathMax(0, MathMin(InpExcludeRecentCentroids, 9));
@@ -737,12 +682,10 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
        actual_exclude = (int)MathMax(0, centroid_count - user_target_reg);
        n_reg = centroid_count - actual_exclude;
    }
-   g_dbg_n_reg     = n_reg;
-   g_dbg_exclude   = actual_exclude;
 
    if (n_reg < 3) {
-      g_dbg_exit = "RETURN: n_reg < 3 (need >=3 selected centroids; hulls/numbers drawn, no baseline/EDT)";
-      DbgRender();
+      // Fewer than 3 selectable centroids: keep hulls/numbers, skip baseline/EDT.
+      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.00 (Centroid-Specific) ---\nNeed >=3 selected centroids; have %d.", n_reg));
       return;
    }
 
@@ -785,82 +728,67 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    best_cfl.centroids_used = 0;
    bool cfl_found = false;
 
-   int total_combos = 1 << n_reg;
-   for(int mask = 1; mask < total_combos; mask++) {
-       int bits = 0;
-       for(int b=0; b<n_reg; b++) { if((mask & (1<<b)) != 0) bits++;
-       }
-       if(bits < 3) continue;
+   // --- FORCE-FIT: regress ALL selected centroids (no best-subset search). ---
+   // The baseline is the WLS fit through the entire selected batch
+   // (#actual_exclude+1 .. #actual_exclude+n_reg), so every chosen centroid
+   // contributes regardless of how it affects R-squared.
+   {
        double sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWX2 = 0;
        int leftmost_bar = rates_total, rightmost_bar = -1;
-       
+
        for(int b=0; b<n_reg; b++) {
-           if((mask & (1<<b)) != 0) {
-               double w = cen_weights[b];
-               double cx = centroids[b + actual_exclude].bar_index;
-               double cy = centroids[b + actual_exclude].price;
-               
-               sumW   += w;
-               sumWX  += w * cx;
-               sumWY  += w * cy;
-               sumWXY += w * cx * cy;
-               sumWX2 += w * cx * cx;
-               if(cl_left[b] < leftmost_bar) leftmost_bar = cl_left[b];
-               if(cl_right[b] > rightmost_bar) rightmost_bar = cl_right[b];
+           double w  = cen_weights[b];
+           double cx = centroids[b + actual_exclude].bar_index;
+           double cy = centroids[b + actual_exclude].price;
+
+           sumW   += w;
+           sumWX  += w * cx;
+           sumWY  += w * cy;
+           sumWXY += w * cx * cy;
+           sumWX2 += w * cx * cx;
+           if(cl_left[b]  < leftmost_bar)  leftmost_bar  = cl_left[b];
+           if(cl_right[b] > rightmost_bar) rightmost_bar = cl_right[b];
+       }
+
+       double D = sumW * sumWX2 - sumWX * sumWX;
+       if(D != 0 && leftmost_bar < rightmost_bar) {
+           double cand_m = (sumW * sumWXY - sumWX * sumWY) / D;
+           double cand_c = (sumWY - cand_m * sumWX) / sumW;
+
+           // Weighted R-squared over the crossings spanned by the selected clusters.
+           int start_idx_p = -1, end_idx_p = -1;
+           for(int p=0; p<p_count; p++) {
+               if(points[p].bar >= leftmost_bar && start_idx_p == -1) start_idx_p = p;
+               if(points[p].bar <= rightmost_bar) end_idx_p = p;
+           }
+           if(start_idx_p != -1 && end_idx_p != -1) {
+               int n_crossings = 0;
+               double sum_w_cross = 0, sum_w_price = 0;
+               for(int p = start_idx_p; p <= end_idx_p; p++) {
+                   sum_w_price += points[p].price * pt_weights[p];
+                   sum_w_cross += pt_weights[p];
+                   n_crossings++;
+               }
+               if(n_crossings >= 3 && sum_w_cross != 0) {
+                   double w_mean_cross = sum_w_price / sum_w_cross;
+                   double res_sq = 0, tot_sq = 0;
+                   for(int p = start_idx_p; p <= end_idx_p; p++) {
+                       double pred_y = cand_m * points[p].bar + cand_c;
+                       res_sq += pt_weights[p] * MathPow(points[p].price - pred_y, 2);
+                       tot_sq += pt_weights[p] * MathPow(points[p].price - w_mean_cross, 2);
+                   }
+                   best_cfl.mask = (1 << n_reg) - 1;
+                   best_cfl.m = cand_m;
+                   best_cfl.c = cand_c;
+                   best_cfl.r2_cross = (tot_sq != 0) ? 1.0 - (res_sq / tot_sq) : 0.0;
+                   best_cfl.leftmost = leftmost_bar;
+                   best_cfl.rightmost = rightmost_bar;
+                   best_cfl.centroids_used = n_reg;
+                   cfl_found = true;
+               }
            }
        }
-
-       if(leftmost_bar >= rightmost_bar) continue;
-       // Calculate Weighted Least Squares (WLS) Regression
-       double D = sumW * sumWX2 - sumWX * sumWX;
-       double cand_m = 0, cand_c = 0;
-       if(D != 0) {
-           cand_m = (sumW * sumWXY - sumWX * sumWY) / D;
-           cand_c = (sumWY - cand_m * sumWX) / sumW;
-       } else { continue;
-       }
-
-       int start_idx_p = -1, end_idx_p = -1;
-       for(int p=0; p<p_count; p++) {
-           if(points[p].bar >= leftmost_bar && start_idx_p == -1) start_idx_p = p;
-           if(points[p].bar <= rightmost_bar) end_idx_p = p;
-       }
-       if(start_idx_p == -1 || end_idx_p == -1) continue;
-       int n_crossings = 0;
-       double sum_w_cross = 0, sum_w_price = 0;
-       for(int p = start_idx_p; p <= end_idx_p; p++) {
-           sum_w_price += points[p].price * pt_weights[p];
-           sum_w_cross += pt_weights[p];
-           n_crossings++;
-       }
-       if(n_crossings < 3 || sum_w_cross == 0) continue;
-       double w_mean_cross = sum_w_price / sum_w_cross;
-       double res_sq = 0, tot_sq = 0;
-       // Calculate Weighted R-Squared
-       for(int p = start_idx_p; p <= end_idx_p; p++) {
-           double pred_y = cand_m * points[p].bar + cand_c;
-           res_sq += pt_weights[p] * MathPow(points[p].price - pred_y, 2);
-           tot_sq += pt_weights[p] * MathPow(points[p].price - w_mean_cross, 2);
-       }
-       
-       double r2 = (tot_sq != 0) ?
-       1.0 - (res_sq / tot_sq) : 0.0;
-       
-       if(r2 > best_cfl.r2_cross) {
-           best_cfl.mask = mask;
-           best_cfl.m = cand_m;
-           best_cfl.c = cand_c;
-           best_cfl.r2_cross = r2;
-           best_cfl.leftmost = leftmost_bar;
-           best_cfl.rightmost = rightmost_bar;
-           best_cfl.centroids_used = bits;
-           cfl_found = true;
-       }
    }
-
-   g_dbg_cfl_found      = cfl_found;
-   g_dbg_best_r2        = best_cfl.r2_cross;
-   g_dbg_centroids_used = best_cfl.centroids_used;
 
    double mse_cross = 0, r2_cross = 0, skew_cross = 0, kurt_cross = 0, var_cross = 1.0;
    double mse_close = 0, r2_close = 0, skew_close = 0, kurt_close = 0, var_close = 1.0;
@@ -1088,10 +1016,6 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
        );
        Comment(comment_text);
    }
-
-   // Diagnostic render always wins (overwrites the optional comment above).
-   g_dbg_exit = cfl_found ? "OK: drew baseline + EDT + hulls" : "OK-ish: clusters drawn but NO CFL found (no baseline/EDT)";
-   DbgRender();
 }
 
 //+------------------------------------------------------------------+
@@ -1295,11 +1219,6 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    int ssa_start_idx = (rates_total > InpSSAWaveLookback) ? rates_total - InpSSAWaveLookback : 0;
    int len = rates_total - ssa_start_idx;
 
-   // --- diagnostics: record SSA coverage for this pass ---
-   g_dbg_ssa_start    = ssa_start_idx;
-   g_dbg_eff_lookback = InpSSAWaveLookback;
-   g_dbg_orig_ssa_start = ssa_start_idx;
-
    if(prev_calculated == 0) {
       for(int i = 0; i < ssa_start_idx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
       ExtSSASignal[i] = EMPTY_VALUE; ExtSSACross[i] = EMPTY_VALUE; }
@@ -1363,28 +1282,18 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
 
    static datetime last_math_time = 0;
    bool math_update_due = false;
-   string trigger = "";
    if(prev_calculated == 0) {
        math_update_due = true;
-       trigger = "INIT(prev_calc=0)";
        last_math_time = TimeLocal();
    } else if (new_bar) {
        math_update_due = true;
-       trigger = "NEWBAR";
        last_math_time = TimeLocal();
    } else if (TimeLocal() - last_math_time >= 59) {
        math_update_due = true;
-       trigger = "TIMER59";
        last_math_time = TimeLocal();
    }
 
    if(math_update_due) {
-      // --- diagnostics: record pass context just before the math runs ---
-      g_dbg_pass++;
-      g_dbg_prev_calc   = prev_calculated;
-      g_dbg_trigger     = trigger;
-      g_dbg_rates_total = rates_total;
-
       PerformClusteringAndCFL(rates_total, time, close);
       ChartRedraw(0);
    }
