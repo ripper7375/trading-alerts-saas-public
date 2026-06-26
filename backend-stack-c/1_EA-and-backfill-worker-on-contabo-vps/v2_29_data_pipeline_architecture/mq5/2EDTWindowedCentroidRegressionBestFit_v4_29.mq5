@@ -554,6 +554,77 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
 
 
 //+------------------------------------------------------------------+
+//| Window-anchored SSA (stable crossings for the FIXED window)      |
+//|                                                                  |
+//| ROOT-CAUSE FIX. The live SSA basis is rebuilt from however much  |
+//| history is loaded, and analyses the last InpSSAWaveLookback bars |
+//| ending at the CURRENT bar. As live history accumulates, the      |
+//| fixed historical window drifts deep into that range, the basis   |
+//| drifts, the crossing geometry inside the window shifts, and      |
+//| DBSCAN eventually chains every crossing into ONE cluster (n_reg  |
+//| < 3 -> no baseline/EDT). The foundation indicators never see     |
+//| this because they cluster the RECENT 3000 bars (fresh SSA).      |
+//|                                                                  |
+//| Here we run a SEPARATE SSA over a FIXED range that ENDS at the   |
+//| window's last bar, so the window always sits in the reliable     |
+//| (recent) part of that decomposition and the basis is determined  |
+//| solely by data up to the window end -> deterministic, stable     |
+//| crossings regardless of how much live history is loaded. Only    |
+//| trend/signal/cross INSIDE the window are written (display +      |
+//| clustering both read these); the lead-in is computed locally so  |
+//| the EMA signal is correctly seeded entering the window.          |
+//+------------------------------------------------------------------+
+void RefreshWindowSSA(const int rates_total, const datetime &time_arr[], const double &close_arr[])
+{
+   int w_start = -1, w_end = -1;
+   for(int i = 0; i < rates_total; i++) {
+      if(time_arr[i] >= InpStartDateTime) { w_start = i; break; }
+   }
+   for(int i = rates_total - 1; i >= 0; i--) {
+      if(time_arr[i] <= InpEndDateTime) { w_end = i; break; }
+   }
+   if(w_start < 0 || w_end < 0) return;
+   if(w_start > w_end) { int t = w_start; w_start = w_end; w_end = t; }
+
+   // Fixed analysis range ENDING at the window's last bar.
+   int wlen = (int)MathMin(InpSSAWaveLookback, w_end + 1);
+   if(wlen < SSAWindow * 2) return;            // not enough data for a meaningful SSA
+   int ws = w_end - wlen + 1;
+   if(ws < 0) ws = 0;
+
+   vector<double> v(wlen);
+   for(int i = 0; i < wlen; i++) v[i] = close_arr[ws + i];
+
+   CSSAModel m; CAlglib::SSACreate(m); CRowDouble row(v);
+   CAlglib::SSAAddSequence(m, row);
+   CAlglib::SSASetAlgoTopKRealtime(m, SSARank);
+   CAlglib::SSASetWindow(m, SSAWindow);
+
+   CRowDouble tr, ns;
+   CAlglib::SSAAnalyzeLast(m, wlen, tr, ns);
+   if(tr.Size() != wlen) return;
+   vector<double> vt = tr.ToVector();
+
+   double alpha = 2.0 / (SSASignalPeriod + 1.0);
+   double sig_prev   = vt[0];
+   double trend_prev = vt[0];
+   for(int i = 1; i < wlen; i++) {
+      int idx = ws + i;
+      double trend_cur = vt[i];
+      double sig_cur   = alpha * trend_cur + (1.0 - alpha) * sig_prev;
+      if(idx >= w_start && idx <= w_end) {
+         ExtSSATrend[idx]  = trend_cur;
+         ExtSSASignal[idx] = sig_cur;
+         bool crossUp   = (trend_cur > sig_cur) && (trend_prev <= sig_prev);
+         bool crossDown = (trend_cur < sig_cur) && (trend_prev >= sig_prev);
+         ExtSSACross[idx] = (crossUp || crossDown) ? trend_cur : EMPTY_VALUE;
+      }
+      sig_prev   = sig_cur;
+      trend_prev = trend_cur;
+   }
+}
+
+//+------------------------------------------------------------------+
 //| Core: Temporal Windowing -> Clustering -> Combinatorics -> CFL   |
 //+------------------------------------------------------------------+
 void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], const double &close_arr[])
@@ -1383,6 +1454,9 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       g_dbg_trigger     = trigger;
       g_dbg_rates_total = rates_total;
 
+      // Stabilize the crossings INSIDE the fixed window with a window-anchored
+      // SSA (fixed range ending at the window) BEFORE clustering reads them.
+      RefreshWindowSSA(rates_total, time, close);
       PerformClusteringAndCFL(rates_total, time, close);
       ChartRedraw(0);
    }

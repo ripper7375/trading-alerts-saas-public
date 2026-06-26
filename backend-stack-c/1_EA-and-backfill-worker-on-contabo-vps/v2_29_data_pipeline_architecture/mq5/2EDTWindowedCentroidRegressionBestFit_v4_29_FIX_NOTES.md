@@ -1,80 +1,77 @@
-# Centroid / Baseline / EDT "show then disappear" — investigation & DIAGNOSTIC build
+# Centroid / Baseline / EDT "show then disappear" — ROOT CAUSE FOUND + FIX
 
 **File:** `2EDTWindowedCentroidRegressionBestFit_v4_29.mq5`
 
-## Status: diagnostic build (not the final fix yet)
+## Confirmed root cause (from the diagnostic run)
 
-The current `.mq5` is an **instrumented build**. It still runs normally, but on
-every math pass it writes a readout to the chart (top-left `Comment`) and to the
-**Experts** log. We use it to capture exactly what changes at the moment the
-display collapses, so the real fix is certain instead of a guess.
+Diagnostic readout at the collapse (XAUUSD M15):
 
-## What was already ruled out
+```
+rates_total=100001   ssa_start=97001   (fixed-3000 start)
+WINDOW: start_idx=97256  end_idx=98533   | start<ssa_start? no
+POINTS in window (p_count)=133   (MinPts=5)
+CLUSTERS: raw=1  with_hull(centroid_count)=1  n_reg=1
+EXIT: RETURN: n_reg < 3 (only drew hulls, no baseline/EDT)
+```
 
-1. **Gemini's "asynchronous buffer corruption" theory is false.** It claimed that
-   calling `PerformClusteringAndCFL()` from `OnTimer()`/`OnChartEvent()` corrupts
-   indicator buffers. The working sibling in this repo,
-   `2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`, **does exactly that**
-   (see its `OnTimer` line ~288 and `OnChartEvent` line ~337) and displays fine.
-   Removing those calls did not fix the bug and also disabled the per-minute
-   export refresh.
+So:
+- The window is fully covered and has **133 crossings** — data is fine (this is why
+  the black crossing dots stay visible). Truncation/coverage was NOT the cause.
+- **DBSCAN collapses all 133 window crossings into a single cluster** (`raw=1`),
+  which fails the `n_reg >= 3` gate, so no baseline/EDT and one stray hull. That is
+  exactly the broken screenshot.
 
-2. **"Window crossings truncated to empty" is not the cause.** In the broken
-   screenshot the black SSA-crossing markers are still present inside the window,
-   and the user confirmed the crossing dots remain. So the clustering *input*
-   exists; the clustering *result* collapses (only ~1 cluster -> fails the
-   `n_reg < 3` gate -> one stray hull, no baseline/EDT).
+### Why it happens
+The live SSA analyses the last `InpSSAWaveLookback` (3000) bars **ending at the
+current bar**, and its basis is rebuilt from whatever history is loaded. With
+`rates_total=100001` the fixed historical window sits ~1,467–2,745 bars away from
+the live edge and only ~255 bars from the old edge of the rolling SSA range. As you
+accumulate live history, the SSA basis drifts and the crossing geometry **inside
+the fixed window** shifts until the points chain into one DBSCAN blob. The good
+multi-cluster display you saw was when the live edge was still near the window end
+(just after June 4); it degraded as history piled up.
 
-## Leading hypothesis being tested
+The foundation indicators
+(`2EDTCentroidRegressionBestFitNonMostRecent_v2_29`, `2EDTFractalBestFitv5_v2_29`)
+never hit this because they cluster the **recent** 3000 bars — their clustered
+region and their SSA region are the same fresh data.
 
-The sibling clusters the **recent** ~3000 bars (sliding, near the live edge) and
-is stable. This indicator clusters a **fixed historical date window**. Both derive
-crossings from a global SSA whose basis depends on how much history is loaded. As
-MT5 streams history in after attach, the SSA basis shifts, the crossing positions
-**inside the fixed window** move, and the clustering flips from "many clusters"
-(what you saw) to a collapsed result (what persists). i.e. the good display is the
-transient partial-history state; the collapsed one is the stable full-history state.
+## The fix — window-anchored SSA
 
-## How to run the diagnostic and what to send back
+New function `RefreshWindowSSA()` runs a **separate SSA over a FIXED range that ENDS
+at the window's last bar** (not at the current bar). The window therefore always
+sits in the reliable/recent part of *that* decomposition, and the basis is
+determined solely by data up to the window end — so the crossings inside the window
+are **deterministic and stable no matter how much live history is loaded**. It
+overwrites trend/signal/cross only inside the window (the lead-in is computed
+locally so the EMA signal is seeded correctly entering the window). It is called in
+`OnCalculate` immediately before `PerformClusteringAndCFL`, so clustering reads the
+stabilized crossings.
 
-1. Compile and attach to the **same chart/timeframe** where the bug happens.
-2. Open **Toolbox -> Experts** (the log).
-3. Watch the top-left on-chart readout and the log as it transitions from the
-   full display to the collapsed display.
-4. Send back the **log lines around the moment it collapses** (a few `DBG ...`
-   lines before and after). Each line shows:
+This both (a) makes the result permanent/stable and (b) reproduces the basis from
+"data ending at the window" — i.e. the good multi-cluster state you originally saw.
 
-   - `trig` = INIT / NEWBAR / TIMER59  (which event ran the math)
-   - `prevc` = `prev_calculated`        (0 means a full recalc / history re-sync)
-   - `rt` = rates_total                 (grows as history loads)
-   - `effLB` / `ssaStart`               (SSA coverage; and whether the fixed-3000
-                                          lookback *would* have truncated the window)
-   - `win[start..end]`                  (window bar indices)
-   - `pcount`                           (crossings gathered inside the window)
-   - `raw`                              (clusters from DBSCAN/KMeans)
-   - `hulls`                            (clusters with >=3 pts -> centroid_count)
-   - `nreg`, `cfl`, `r2`                (regression gate + result)
-   - `EXIT`                             (which branch ended the pass)
+The earlier defensive change (don't wipe a good display on a pass with too few
+points) and the SSA-coverage guard remain in place; they are harmless.
 
-### What each pattern will tell us
-- `pcount` stays high but `raw`/`hulls` drop at the collapse  -> the crossings
-  shifted enough to break DBSCAN clustering (confirms the SSA-basis-shift theory).
-  Fix: give the windowed clustering its own deterministic, fixed-range crossing
-  computation (decoupled from total loaded history), and/or freeze the static
-  window result.
-- `pcount` itself drops at the collapse                       -> window losing
-  crossings after all (coverage/normalisation). Fix targets coverage + an outlier
-  affecting normalisation.
-- collapse coincides with a specific `trig`/`prevc`           -> tells us the exact
-  trigger to guard.
+## This build is still INSTRUMENTED — please verify
 
-## Note on the SSA-coverage change already in this file
-`OnCalculate` was already changed so the SSA region extends back to cover the
-window start (`eff_lookback = max(InpSSAWaveLookback, bars-to-window-start + warm-up)`).
-It is harmless and the diagnostic reports both `effLB` and what the fixed-3000
-start *would* have been, so we can see whether coverage was ever the issue.
+Compile, attach to the same XAUUSD M15 chart, and read the top-left readout / the
+Experts log. **Expected after the fix:**
 
-## Reverting the diagnostic later
-All instrumentation is isolated: the `g_dbg_*` globals, the `DbgRender()` function,
-the three `g_dbg_exit/DbgRender()` calls inside `PerformClusteringAndCFL`, and the
-`g_dbg_*` assignments in `OnCalculate`. Removing those restores a clean build.
+- `POINTS in window (p_count)` still healthy (~100+),
+- `CLUSTERS: raw=` **now > 1** (several), `with_hull` >= 3, `n_reg >= 3`,
+- `CFL: found=YES`,
+- `EXIT: OK: drew baseline + EDT + hulls`,
+- baseline (GreenYellow) + both EDT lines (SpringGreen) + multiple centroids visible
+  and **staying** put across `INIT` / `TIMER59` / `NEWBAR` passes.
+
+If `raw` is still `1`, send me the new readout — that would mean the window basis is
+genuinely single-cluster for this data and we tune clustering (e.g. cluster on price
+levels / adjust epsilon) instead.
+
+## After you confirm
+I will ship a clean build: remove all `g_dbg_*` instrumentation and `DbgRender()`,
+and restore the `OnTimer`/`OnChartEvent` recompute that Gemini wrongly removed (the
+foundation indicators keep it; it refreshes your per-minute export even when ticks
+are sparse).
