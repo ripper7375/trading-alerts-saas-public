@@ -275,7 +275,7 @@ void OnDeinit(const int reason)
    ObjectsDeleteAll(0, "ClusterCentroidStar_V3_");
    ObjectsDeleteAll(0, "ClusterCentroidNum_V3_");
    ObjectDelete(0, EXPORT_BUTTON_NAME);
-   if(InpShowComments) Comment("");
+   Comment("");                 // always clear, regardless of InpShowComments
    if(InpAutoExport) EventKillTimer();
    ChartRedraw(0);
 }
