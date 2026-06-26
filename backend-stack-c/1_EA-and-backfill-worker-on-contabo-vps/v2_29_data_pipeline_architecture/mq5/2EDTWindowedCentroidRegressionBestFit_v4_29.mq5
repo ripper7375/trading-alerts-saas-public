@@ -6,7 +6,7 @@
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
 #property version   "3.00"
-#property description "DavinTrade V3.00: Windowed WLS CFL + Outermost EDTs"
+#property description "DavinTrade V3.00: Windowed WLS CFL + Outermost EDTs [DIAGNOSTIC BUILD - on-chart readout + Experts-log trace]"
 #property indicator_chart_window
 
 // Total Buffers: 10 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 37 Buffers
@@ -155,6 +155,54 @@ double g_stat_lambda = 0.0;
 double g_cen_prices[12];
 long g_stat_window_start_ts = 0;
 long g_stat_window_end_ts = 0;
+
+//--- DIAGNOSTIC GLOBALS (temporary instrumentation build) ---
+int      g_dbg_pass        = 0;     // math-pass counter
+int      g_dbg_prev_calc   = -1;    // prev_calculated of the pass
+string   g_dbg_trigger     = "";    // INIT / NEWBAR / TIMER59
+int      g_dbg_rates_total = 0;
+int      g_dbg_ssa_start   = 0;     // effective ssa_start_idx
+int      g_dbg_eff_lookback= 0;     // effective SSA lookback (bars)
+int      g_dbg_win_start   = 0;     // window_start_idx
+int      g_dbg_win_end     = 0;     // window_end_idx
+int      g_dbg_orig_ssa_start = 0;  // what ssa_start_idx WOULD be with the fixed 3000 lookback
+int      g_dbg_p_count     = 0;     // crossings gathered inside window
+double   g_dbg_min_bar=0, g_dbg_max_bar=0, g_dbg_min_price=0, g_dbg_max_price=0; // normalization bounds
+int      g_dbg_total_clusters = 0;  // raw clusters from DBSCAN/KMeans
+int      g_dbg_centroid_count = 0;  // clusters that produced a hull (>=3 pts)
+int      g_dbg_n_reg       = 0;
+bool     g_dbg_cfl_found   = false;
+double   g_dbg_best_r2     = 0.0;
+int      g_dbg_centroids_used = 0;
+string   g_dbg_exit        = "";    // where the pass ended
+
+void DbgRender()
+{
+   string s = StringFormat(
+      "===== WINDOWED CFL DIAGNOSTIC =====\n" +
+      "pass #%d  trigger=%s  prev_calc=%d  rates_total=%d\n" +
+      "SSA: eff_lookback=%d  ssa_start=%d  (fixed-3000 start would be=%d)\n" +
+      "WINDOW: start_idx=%d  end_idx=%d  | start<ssa_start? %s\n" +
+      "POINTS in window (p_count)=%d  (MinPts=%d)\n" +
+      "NORM bounds: bar[%.0f..%.0f]  price[%.5f..%.5f]\n" +
+      "CLUSTERS: raw=%d  with_hull(centroid_count)=%d  n_reg=%d\n" +
+      "CFL: found=%s  best_r2=%.4f  centroids_used=%d\n" +
+      "EXIT: %s",
+      g_dbg_pass, g_dbg_trigger, g_dbg_prev_calc, g_dbg_rates_total,
+      g_dbg_eff_lookback, g_dbg_ssa_start, g_dbg_orig_ssa_start,
+      g_dbg_win_start, g_dbg_win_end, (g_dbg_win_start < g_dbg_orig_ssa_start ? "YES (would truncate)" : "no"),
+      g_dbg_p_count, InpMinPts,
+      g_dbg_min_bar, g_dbg_max_bar, g_dbg_min_price, g_dbg_max_price,
+      g_dbg_total_clusters, g_dbg_centroid_count, g_dbg_n_reg,
+      (g_dbg_cfl_found ? "YES" : "NO"), g_dbg_best_r2, g_dbg_centroids_used,
+      g_dbg_exit);
+   Comment(s);
+   Print("DBG pass#", g_dbg_pass, " trig=", g_dbg_trigger, " prevc=", g_dbg_prev_calc,
+         " rt=", g_dbg_rates_total, " effLB=", g_dbg_eff_lookback, " ssaStart=", g_dbg_ssa_start,
+         " win[", g_dbg_win_start, "..", g_dbg_win_end, "] pcount=", g_dbg_p_count,
+         " raw=", g_dbg_total_clusters, " hulls=", g_dbg_centroid_count, " nreg=", g_dbg_n_reg,
+         " cfl=", g_dbg_cfl_found, " r2=", DoubleToString(g_dbg_best_r2,4), " EXIT=", g_dbg_exit);
+}
 
 //--- STRUCTURES ---
 struct ClusterPoint {
@@ -550,10 +598,20 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    }
 
    int p_count = ArraySize(points);
+
+   // --- diagnostics ---
+   g_dbg_win_start = window_start_idx;
+   g_dbg_win_end   = window_end_idx;
+   g_dbg_p_count   = p_count;
+   g_dbg_total_clusters = 0; g_dbg_centroid_count = 0; g_dbg_n_reg = 0;
+   g_dbg_cfl_found = false;   g_dbg_best_r2 = 0.0;     g_dbg_centroids_used = 0;
+   g_dbg_min_bar = 0; g_dbg_max_bar = 0; g_dbg_min_price = 0; g_dbg_max_price = 0;
+
    if(p_count < InpMinPts) {
       // Not enough crossings in the window on THIS pass. Keep the previously
       // drawn lines/centroids on screen rather than flashing them away.
-      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.00 (Windowed) ---\nAwaiting more data inside window [%s - %s]: Points < MinPts", TimeToString(InpStartDateTime), TimeToString(InpEndDateTime)));
+      g_dbg_exit = "RETURN: p_count < MinPts (kept previous display)";
+      DbgRender();
       return;
    }
 
@@ -573,6 +631,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
       if(points[i].price < min_price) min_price = points[i].price; if(points[i].price > max_price) max_price = points[i].price;
    }
    if(max_bar == min_bar) max_bar += 1; if(max_price == min_price) max_price += 0.00001;
+   g_dbg_min_bar = min_bar; g_dbg_max_bar = max_bar; g_dbg_min_price = min_price; g_dbg_max_price = max_price;
    for(int i = 0; i < p_count; i++) {
       points[i].norm_x = (points[i].bar - min_bar) / (max_bar - min_bar);
       points[i].norm_y = (points[i].price - min_price) / (max_price - min_price);
@@ -598,10 +657,11 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    } else if (InpAlgo == ALGO_DBSCAN) {
       total_clusters = RunDBSCAN(points, p_count, InpEpsilon, InpMinPts, assignments);
    }
-   
+   g_dbg_total_clusters = total_clusters;
+
    for(int i = 0; i < p_count; i++) { if(assignments[i] != -1) ExtCrossInCluster[points[i].bar] = 1.0;
    }
-   
+
    ClusterCentroidInfo centroids[]; int centroid_count = 0;
    for(int k = 0; k < total_clusters; k++) {
       ClusterPoint cluster_points[];
@@ -659,11 +719,17 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
       }
    }
 
+   g_dbg_centroid_count = centroid_count;
+
    int n_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12));
    if (centroid_count < n_reg) n_reg = centroid_count;
+   g_dbg_n_reg = n_reg;
    if (n_reg < 3) {
-      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.00 (Windowed) ---\nAwaiting more data: Found %d / 3 needed in Window.", centroid_count));
-      return; 
+      // Hulls/stars for the few clusters found were already drawn above, but
+      // we bail before the baseline/EDT -> classic "one stray hull, no lines".
+      g_dbg_exit = "RETURN: n_reg < 3 (only drew hulls, no baseline/EDT)";
+      DbgRender();
+      return;
    }
 
    for(int c = 0; c < n_reg; c++) {
@@ -775,6 +841,10 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
            cfl_found = true;
        }
    }
+
+   g_dbg_cfl_found      = cfl_found;
+   g_dbg_best_r2        = best_cfl.r2_cross;
+   g_dbg_centroids_used = best_cfl.centroids_used;
 
    double mse_cross = 0, r2_cross = 0, skew_cross = 0, kurt_cross = 0, var_cross = 1.0;
    double mse_close = 0, r2_close = 0, skew_close = 0, kurt_close = 0, var_close = 1.0;
@@ -997,6 +1067,10 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
        );
        Comment(comment_text);
    }
+
+   // Diagnostic render always wins (overwrites the optional comment above).
+   g_dbg_exit = cfl_found ? "OK: drew baseline + EDT + hulls" : "OK-ish: clusters drawn but NO CFL found (no baseline/EDT)";
+   DbgRender();
 }
 
 //+------------------------------------------------------------------+
@@ -1218,6 +1292,12 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    int eff_lookback   = MathMax(InpSSAWaveLookback, cover_lookback);
    int ssa_start_idx  = (rates_total > eff_lookback) ? rates_total - eff_lookback : 0;
    int len = rates_total - ssa_start_idx;
+
+   // --- diagnostics: record SSA coverage for this pass ---
+   g_dbg_ssa_start    = ssa_start_idx;
+   g_dbg_eff_lookback = eff_lookback;
+   g_dbg_orig_ssa_start = (rates_total > InpSSAWaveLookback) ? rates_total - InpSSAWaveLookback : 0;
+
    if(prev_calculated == 0) {
       for(int i = 0; i < ssa_start_idx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
       ExtSSASignal[i] = EMPTY_VALUE; ExtSSACross[i] = EMPTY_VALUE; }
@@ -1281,20 +1361,29 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
 
    static datetime last_math_time = 0;
    bool math_update_due = false;
+   string trigger = "";
    if(prev_calculated == 0) {
        math_update_due = true;
+       trigger = "INIT(prev_calc=0)";
        last_math_time = TimeLocal();
    } else if (new_bar) {
        math_update_due = true;
+       trigger = "NEWBAR";
        last_math_time = TimeLocal();
    } else if (TimeLocal() - last_math_time >= 59) {
        math_update_due = true;
+       trigger = "TIMER59";
        last_math_time = TimeLocal();
    }
 
-   if(math_update_due) { 
-      // ONLY OnCalculate is allowed to trigger this function, protecting the buffers.
-      PerformClusteringAndCFL(rates_total, time, close); 
+   if(math_update_due) {
+      // --- diagnostics: record pass context just before the math runs ---
+      g_dbg_pass++;
+      g_dbg_prev_calc   = prev_calculated;
+      g_dbg_trigger     = trigger;
+      g_dbg_rates_total = rates_total;
+
+      PerformClusteringAndCFL(rates_total, time, close);
       ChartRedraw(0);
    }
 
