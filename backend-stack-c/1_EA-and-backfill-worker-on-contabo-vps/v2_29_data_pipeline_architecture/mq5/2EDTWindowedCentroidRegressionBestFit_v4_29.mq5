@@ -6,7 +6,7 @@
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
 #property version   "3.00"
-#property description "DavinTrade V3.00: Windowed WLS CFL + Outermost EDTs [DIAGNOSTIC BUILD - on-chart readout + Experts-log trace]"
+#property description "DavinTrade V3.00: Centroid-Specific WLS CFL + Outermost EDTs [DIAGNOSTIC BUILD - on-chart readout + Experts-log trace]"
 #property indicator_chart_window
 
 // Total Buffers: 10 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 37 Buffers
@@ -38,10 +38,6 @@ enum ENUM_TOLERANCE_TYPE {
 };
 
 //--- INPUT PARAMETERS ---
-input string               SepWin = "===== Window Period (Fixed Anchors) =====";
-input datetime             InpStartDateTime = D'2026.05.15 00:00'; 
-input datetime             InpEndDateTime   = D'2026.06.04 00:00'; 
-
 input string               Sep0 = "===== SSA Wave Settings =====";
 input int                  InpSSAWaveLookback = 3000; // Lookback for raw wave generation (do not window this)
 input int                  SSAWindow         = 30;
@@ -75,9 +71,13 @@ input ENUM_FRACTAL_BARS_119 InpFractalBars119 = BARS_13;
 input ENUM_SYMBOL_SIZE  InpSymbolSize119 = SIZE_NORMAL;
 input int               InpSymbolOffset119 = 0;
 
-input string            Sep5 = "===== CFL Base & EDT Rules =====";
+input string            Sep5 = "===== CFL Base & EDT Rules (Centroid-Specific) =====";
 input bool              InpShowComments = false;
-input int               InpRegCentroids = 9;   // Number of centroids to regress
+input int               InpRegCentroids = 5;            // Centroids to regress (the selected batch size)
+input int               InpExcludeRecentCentroids = 5;  // Skip N most-recent centroids (Max 9). 5 -> start at #6
+input bool              InpShowCentroidNumbers = true;  // Label every centroid with its recency rank (#1 = newest)
+input color             InpCentroidNumberColor = clrBlack;
+input int               InpCFLVisualLookback = 500;     // Bars to draw the baseline over (auto-extended to fit centroids)
 input double            InpTimeDecayLambda = 0.001;
 input bool              InpExtendLinesToCurrent = true;
 input color             InpCFLColor = clrGreenYellow;
@@ -169,8 +169,9 @@ int      g_dbg_orig_ssa_start = 0;  // what ssa_start_idx WOULD be with the fixe
 int      g_dbg_p_count     = 0;     // crossings gathered inside window
 double   g_dbg_min_bar=0, g_dbg_max_bar=0, g_dbg_min_price=0, g_dbg_max_price=0; // normalization bounds
 int      g_dbg_total_clusters = 0;  // raw clusters from DBSCAN/KMeans
-int      g_dbg_centroid_count = 0;  // clusters that produced a hull (>=3 pts)
-int      g_dbg_n_reg       = 0;
+int      g_dbg_centroid_count = 0;  // clusters that produced a hull (>=3 pts) = total centroids found
+int      g_dbg_n_reg       = 0;     // selected batch size actually regressed
+int      g_dbg_exclude     = 0;     // most-recent centroids actually skipped
 bool     g_dbg_cfl_found   = false;
 double   g_dbg_best_r2     = 0.0;
 int      g_dbg_centroids_used = 0;
@@ -178,29 +179,29 @@ string   g_dbg_exit        = "";    // where the pass ended
 
 void DbgRender()
 {
+   int sel_from = g_dbg_exclude + 1;
+   int sel_to   = g_dbg_exclude + g_dbg_n_reg;
    string s = StringFormat(
-      "===== WINDOWED CFL DIAGNOSTIC =====\n" +
+      "===== CENTROID-SPECIFIC CFL DIAGNOSTIC =====\n" +
       "pass #%d  trigger=%s  prev_calc=%d  rates_total=%d\n" +
-      "SSA: eff_lookback=%d  ssa_start=%d  (fixed-3000 start would be=%d)\n" +
-      "WINDOW: start_idx=%d  end_idx=%d  | start<ssa_start? %s\n" +
-      "POINTS in window (p_count)=%d  (MinPts=%d)\n" +
+      "CLUSTER REGION (recent): bars [%d .. %d]   crossings(p_count)=%d  (MinPts=%d)\n" +
       "NORM bounds: bar[%.0f..%.0f]  price[%.5f..%.5f]\n" +
-      "CLUSTERS: raw=%d  with_hull(centroid_count)=%d  n_reg=%d\n" +
+      "CLUSTERS: raw=%d   CENTROIDS found=%d\n" +
+      "SELECTION: exclude newest=%d, regress=%d  => centroids #%d..#%d\n" +
       "CFL: found=%s  best_r2=%.4f  centroids_used=%d\n" +
       "EXIT: %s",
       g_dbg_pass, g_dbg_trigger, g_dbg_prev_calc, g_dbg_rates_total,
-      g_dbg_eff_lookback, g_dbg_ssa_start, g_dbg_orig_ssa_start,
-      g_dbg_win_start, g_dbg_win_end, (g_dbg_win_start < g_dbg_orig_ssa_start ? "YES (would truncate)" : "no"),
-      g_dbg_p_count, InpMinPts,
+      g_dbg_win_start, g_dbg_win_end, g_dbg_p_count, InpMinPts,
       g_dbg_min_bar, g_dbg_max_bar, g_dbg_min_price, g_dbg_max_price,
-      g_dbg_total_clusters, g_dbg_centroid_count, g_dbg_n_reg,
+      g_dbg_total_clusters, g_dbg_centroid_count,
+      g_dbg_exclude, g_dbg_n_reg, sel_from, sel_to,
       (g_dbg_cfl_found ? "YES" : "NO"), g_dbg_best_r2, g_dbg_centroids_used,
       g_dbg_exit);
    Comment(s);
    Print("DBG pass#", g_dbg_pass, " trig=", g_dbg_trigger, " prevc=", g_dbg_prev_calc,
-         " rt=", g_dbg_rates_total, " effLB=", g_dbg_eff_lookback, " ssaStart=", g_dbg_ssa_start,
-         " win[", g_dbg_win_start, "..", g_dbg_win_end, "] pcount=", g_dbg_p_count,
-         " raw=", g_dbg_total_clusters, " hulls=", g_dbg_centroid_count, " nreg=", g_dbg_n_reg,
+         " rt=", g_dbg_rates_total, " region[", g_dbg_win_start, "..", g_dbg_win_end, "] pcount=", g_dbg_p_count,
+         " raw=", g_dbg_total_clusters, " centroids=", g_dbg_centroid_count,
+         " excl=", g_dbg_exclude, " nreg=", g_dbg_n_reg, " sel#", sel_from, "..#", sel_to,
          " cfl=", g_dbg_cfl_found, " r2=", DoubleToString(g_dbg_best_r2,4), " EXIT=", g_dbg_exit);
 }
 
@@ -309,7 +310,7 @@ int OnInit()
    
    for(int i=0; i<10; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
    
-   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA Windowed CFL WLS V3.00");
+   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA Centroid-Specific CFL WLS V3.00");
    CreateExportButton();
    if(InpAutoExport) EventSetTimer(1);
    
@@ -321,6 +322,7 @@ void OnDeinit(const int reason)
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
    ObjectsDeleteAll(0, "ClusterHull_V3_");
    ObjectsDeleteAll(0, "ClusterCentroidStar_V3_");
+   ObjectsDeleteAll(0, "ClusterCentroidNum_V3_");
    ObjectDelete(0, EXPORT_BUTTON_NAME);
    if(InpShowComments) Comment("");
    if(InpAutoExport) EventKillTimer();
@@ -554,110 +556,24 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
 
 
 //+------------------------------------------------------------------+
-//| Window-anchored SSA (stable crossings for the FIXED window)      |
-//|                                                                  |
-//| ROOT-CAUSE FIX. The live SSA basis is rebuilt from however much  |
-//| history is loaded, and analyses the last InpSSAWaveLookback bars |
-//| ending at the CURRENT bar. As live history accumulates, the      |
-//| fixed historical window drifts deep into that range, the basis   |
-//| drifts, the crossing geometry inside the window shifts, and      |
-//| DBSCAN eventually chains every crossing into ONE cluster (n_reg  |
-//| < 3 -> no baseline/EDT). The foundation indicators never see     |
-//| this because they cluster the RECENT 3000 bars (fresh SSA).      |
-//|                                                                  |
-//| Here we run a SEPARATE SSA over a FIXED range that ENDS at the   |
-//| window's last bar, so the window always sits in the reliable     |
-//| (recent) part of that decomposition and the basis is determined  |
-//| solely by data up to the window end -> deterministic, stable     |
-//| crossings regardless of how much live history is loaded. Only    |
-//| trend/signal/cross INSIDE the window are written (display +      |
-//| clustering both read these); the lead-in is computed locally so  |
-//| the EMA signal is correctly seeded entering the window.          |
-//+------------------------------------------------------------------+
-void RefreshWindowSSA(const int rates_total, const datetime &time_arr[], const double &close_arr[])
-{
-   int w_start = -1, w_end = -1;
-   for(int i = 0; i < rates_total; i++) {
-      if(time_arr[i] >= InpStartDateTime) { w_start = i; break; }
-   }
-   for(int i = rates_total - 1; i >= 0; i--) {
-      if(time_arr[i] <= InpEndDateTime) { w_end = i; break; }
-   }
-   if(w_start < 0 || w_end < 0) return;
-   if(w_start > w_end) { int t = w_start; w_start = w_end; w_end = t; }
-
-   // Fixed analysis range ENDING at the window's last bar.
-   int wlen = (int)MathMin(InpSSAWaveLookback, w_end + 1);
-   if(wlen < SSAWindow * 2) return;            // not enough data for a meaningful SSA
-   int ws = w_end - wlen + 1;
-   if(ws < 0) ws = 0;
-
-   vector<double> v(wlen);
-   for(int i = 0; i < wlen; i++) v[i] = close_arr[ws + i];
-
-   CSSAModel m; CAlglib::SSACreate(m); CRowDouble row(v);
-   CAlglib::SSAAddSequence(m, row);
-   CAlglib::SSASetAlgoTopKRealtime(m, SSARank);
-   CAlglib::SSASetWindow(m, SSAWindow);
-
-   CRowDouble tr, ns;
-   CAlglib::SSAAnalyzeLast(m, wlen, tr, ns);
-   if(tr.Size() != wlen) return;
-   vector<double> vt = tr.ToVector();
-
-   double alpha = 2.0 / (SSASignalPeriod + 1.0);
-   double sig_prev   = vt[0];
-   double trend_prev = vt[0];
-   for(int i = 1; i < wlen; i++) {
-      int idx = ws + i;
-      double trend_cur = vt[i];
-      double sig_cur   = alpha * trend_cur + (1.0 - alpha) * sig_prev;
-      if(idx >= w_start && idx <= w_end) {
-         ExtSSATrend[idx]  = trend_cur;
-         ExtSSASignal[idx] = sig_cur;
-         bool crossUp   = (trend_cur > sig_cur) && (trend_prev <= sig_prev);
-         bool crossDown = (trend_cur < sig_cur) && (trend_prev >= sig_prev);
-         ExtSSACross[idx] = (crossUp || crossDown) ? trend_cur : EMPTY_VALUE;
-      }
-      sig_prev   = sig_cur;
-      trend_prev = trend_cur;
-   }
-}
-
-//+------------------------------------------------------------------+
-//| Core: Temporal Windowing -> Clustering -> Combinatorics -> CFL   |
+//| Core: Recent-lookback Clustering -> Centroid Selection -> CFL    |
 //+------------------------------------------------------------------+
 void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], const double &close_arr[])
 {
-   // --- APPLY STRICT TEMPORAL WINDOWING ---
-   // NOTE: All reads below are non-destructive. We deliberately do NOT delete
-   // the existing hull/centroid objects or clear the line buffers yet. If this
-   // pass cannot produce a valid result (e.g. MT5 just re-synced history and
-   // the window momentarily has too few crossings), we must leave the last
-   // good display untouched instead of wiping it and bailing out.
-   int window_start_idx = 0;
-   int window_end_idx = rates_total - 1;
-
-   // Extract indices directly from synchronized time_arr
-   for(int i = 0; i < rates_total; i++) {
-      if(time_arr[i] >= InpStartDateTime) {
-         window_start_idx = i;
-         break;
-      }
-   }
-
-   for(int i = rates_total - 1; i >= 0; i--) {
-      if(time_arr[i] <= InpEndDateTime) {
-         window_end_idx = i;
-         break;
-      }
-   }
-
-   if(window_start_idx > window_end_idx) {
-      int temp = window_start_idx;
-      window_start_idx = window_end_idx;
-      window_end_idx = temp;
-   }
+   // --- CENTROID-SPECIFIC APPROACH (no date window) ---
+   // Cluster the RECENT InpSSAWaveLookback bars where the SSA is fresh and
+   // well-conditioned (exactly like the proven foundation indicators). The
+   // baseline is then fit to a contiguous batch of centroids chosen by recency
+   // rank (skip InpExcludeRecentCentroids newest, then take InpRegCentroids),
+   // NOT by a fixed date band. This removes the SSA-basis drift that collapsed
+   // DBSCAN to a single cluster.
+   //
+   // NOTE: All reads below are non-destructive. We do NOT delete the existing
+   // hull/centroid objects or clear the line buffers until we know this pass
+   // will produce a valid result, so a transient empty pass cannot wipe a good
+   // display.
+   int window_start_idx = (rates_total > InpSSAWaveLookback) ? rates_total - InpSSAWaveLookback : 0;
+   int window_end_idx   = rates_total - 1;
 
    ClusterPoint points[];
    for(int i = window_start_idx; i <= window_end_idx; i++) {
@@ -689,6 +605,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    // We now have a usable point set => it is safe to wipe and redraw.
    ObjectsDeleteAll(0, "ClusterHull_V3_");
    ObjectsDeleteAll(0, "ClusterCentroidStar_V3_");
+   ObjectsDeleteAll(0, "ClusterCentroidNum_V3_");
    ArrayInitialize(ExtCrossInCluster, 0.0);
    ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
    ArrayInitialize(ExtUOEDT, EMPTY_VALUE);
@@ -780,6 +697,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
       }
    }
 
+   // Sort centroids MOST-RECENT-FIRST (descending bar_index): centroids[0] = #1.
    for(int i = 0; i < centroid_count - 1; i++) {
       for(int j = 0; j < centroid_count - i - 1; j++) {
          if(centroids[j].bar_index < centroids[j+1].bar_index) {
@@ -790,21 +708,48 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
       }
    }
 
+   // Label every centroid with its recency rank (#1 = newest), like the AFTER mockup.
+   if(InpShowCentroidNumbers) {
+      for(int c = 0; c < centroid_count; c++) {
+         string num_name = "ClusterCentroidNum_V3_" + IntegerToString(c);
+         ObjectCreate(0, num_name, OBJ_TEXT, 0, centroids[c].time, centroids[c].price);
+         ObjectSetString(0, num_name, OBJPROP_TEXT, IntegerToString(c + 1));
+         ObjectSetString(0, num_name, OBJPROP_FONT, "Arial Black");
+         ObjectSetInteger(0, num_name, OBJPROP_FONTSIZE, 9);
+         ObjectSetInteger(0, num_name, OBJPROP_ANCHOR, ANCHOR_CENTER);
+         ObjectSetInteger(0, num_name, OBJPROP_COLOR, InpCentroidNumberColor);
+         ObjectSetInteger(0, num_name, OBJPROP_SELECTABLE, false);
+         ObjectSetInteger(0, num_name, OBJPROP_BACK, false);
+      }
+   }
+
    g_dbg_centroid_count = centroid_count;
 
-   int n_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12));
-   if (centroid_count < n_reg) n_reg = centroid_count;
-   g_dbg_n_reg = n_reg;
+   // --- CENTROID-SPECIFIC SELECTION (skip N newest, then take InpRegCentroids) ---
+   int user_target_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12));
+   int user_exclude    = (int)MathMax(0, MathMin(InpExcludeRecentCentroids, 9));
+
+   int actual_exclude = user_exclude;
+   int n_reg = user_target_reg;
+
+   // Not enough centroids to honour exclude+reg: shrink the exclusion first.
+   if (centroid_count < user_target_reg + user_exclude) {
+       actual_exclude = (int)MathMax(0, centroid_count - user_target_reg);
+       n_reg = centroid_count - actual_exclude;
+   }
+   g_dbg_n_reg     = n_reg;
+   g_dbg_exclude   = actual_exclude;
+
    if (n_reg < 3) {
-      // Hulls/stars for the few clusters found were already drawn above, but
-      // we bail before the baseline/EDT -> classic "one stray hull, no lines".
-      g_dbg_exit = "RETURN: n_reg < 3 (only drew hulls, no baseline/EDT)";
+      g_dbg_exit = "RETURN: n_reg < 3 (need >=3 selected centroids; hulls/numbers drawn, no baseline/EDT)";
       DbgRender();
       return;
    }
 
+   // Selected batch = centroids[actual_exclude .. actual_exclude + n_reg - 1]
+   // i.e. ranks #(actual_exclude+1) .. #(actual_exclude+n_reg).
    for(int c = 0; c < n_reg; c++) {
-       g_cen_prices[c] = centroids[c].price;
+       g_cen_prices[c] = centroids[c + actual_exclude].price;
    }
 
    // --- PRE-CALCULATE TIME-DECAY WEIGHTS (WLS) ---
@@ -813,10 +758,10 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
        int dist_p = rates_total - 1 - points[p].bar;
        pt_weights[p] = MathExp(-InpTimeDecayLambda * dist_p);
    }
-   
+
    double cen_weights[]; ArrayResize(cen_weights, n_reg);
    for(int c=0; c<n_reg; c++) {
-       int dist_c = rates_total - 1 - centroids[c].bar_index;
+       int dist_c = rates_total - 1 - centroids[c + actual_exclude].bar_index;
        cen_weights[c] = MathExp(-InpTimeDecayLambda * dist_c);
    }
 
@@ -826,7 +771,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    int cl_right[12]; ArrayInitialize(cl_right, -1);
    
    for(int c=0; c<n_reg; c++) {
-      int cid = centroids[c].cluster_id;
+      int cid = centroids[c + actual_exclude].cluster_id;
       for(int p=0; p<p_count; p++) {
          if(assignments[p] == cid) {
             if(points[p].bar < cl_left[c]) cl_left[c] = points[p].bar;
@@ -852,8 +797,8 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
        for(int b=0; b<n_reg; b++) {
            if((mask & (1<<b)) != 0) {
                double w = cen_weights[b];
-               double cx = centroids[b].bar_index;
-               double cy = centroids[b].price;
+               double cx = centroids[b + actual_exclude].bar_index;
+               double cy = centroids[b + actual_exclude].price;
                
                sumW   += w;
                sumWX  += w * cx;
@@ -1065,18 +1010,25 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    g_stat_n_crossings = n_crossings_eval;
    g_stat_n_close = n_close_bars;
    g_stat_lambda = InpTimeDecayLambda;
-   g_stat_window_start_idx = window_start_idx;
-   g_stat_window_end_idx = window_end_idx;
-   
-   datetime gmt_off = TimeCurrent() - TimeGMT();
-   g_stat_window_start_ts = (long)(time_arr[window_start_idx] - gmt_off);
-   g_stat_window_end_ts   = (long)(time_arr[window_end_idx] - gmt_off);
 
-   // Draw from the start of the window
-   int drawStartIdx = window_start_idx;
-   int cflDrawEndIdx = InpExtendLinesToCurrent ? (rates_total - 1) : window_end_idx;
+   // --- Draw the baseline over the visual lookback, auto-extended so it always
+   // reaches the oldest selected centroid (leftmost_eval). ---
+   int distance_to_leftmost = (cfl_found) ? (rates_total - leftmost_eval) : 0;
+   int active_visual_lookback = InpCFLVisualLookback;
+   if(active_visual_lookback < distance_to_leftmost) active_visual_lookback = distance_to_leftmost;
+
+   int drawStartIdx = rates_total - active_visual_lookback;
+   if(drawStartIdx < 0) drawStartIdx = 0;
+   int cflDrawEndIdx = InpExtendLinesToCurrent ? (rates_total - 1) : rightmost_eval;
    if(cflDrawEndIdx < drawStartIdx || cflDrawEndIdx >= rates_total) cflDrawEndIdx = rates_total - 1;
-   
+
+   // Export window = the drawn region.
+   g_stat_window_start_idx = drawStartIdx;
+   g_stat_window_end_idx   = cflDrawEndIdx;
+   datetime gmt_off = TimeCurrent() - TimeGMT();
+   g_stat_window_start_ts = (long)(time_arr[drawStartIdx] - gmt_off);
+   g_stat_window_end_ts   = (long)(time_arr[cflDrawEndIdx] - gmt_off);
+
    if(cfl_found) {
        double m = best_cfl.m;
        double c = best_cfl.c;
@@ -1102,8 +1054,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
    
    if(InpShowComments) {
        string comment_text = StringFormat(
-           "--- DavinTrade V3.00 (Windowed) ---\n" +
-           "Window: %s to %s\n" +
+           "--- DavinTrade V3.00 (Centroid-Specific) ---\n" +
            "Centroids in Top WLS CFL: %d\n" +
            "Time-Decay Lambda: %.4f\n" +
            "Observation Window: %d Bars\n" +
@@ -1121,7 +1072,6 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time_arr[], 
            "Var Ratio  : %-16.2f %.2f\n" +
            "Skewness   : %-16.2f %.2f\n" +
            "Kurtosis   : %-16.2f %.2f",
-           TimeToString(InpStartDateTime), TimeToString(InpEndDateTime),
            g_stat_centroids,
            InpTimeDecayLambda,
            n_close_bars,
@@ -1338,36 +1288,17 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
    g_rates_total = rates_total;
 
-   // SSA REQUIRES A LARGE CONTINUOUS LOOKBACK - DO NOT WINDOW THIS PART
-   //
-   // CRITICAL FIX (display collapse):
-   // The crossings (ExtSSACross) that feed the clustering/CFL/EDT engine are
-   // ONLY computed for bars in [ssa_start_idx, rates_total). Anything older is
-   // forced to EMPTY_VALUE below. The analysis window (InpStartDateTime ..
-   // InpEndDateTime) is a FIXED historical range, so as soon as MT5 finishes
-   // syncing history and re-runs OnCalculate with prev_calculated==0 and a much
-   // larger rates_total, a fixed lookback of InpSSAWaveLookback can push the
-   // whole window BEFORE ssa_start_idx. The window bars then hold EMPTY_VALUE,
-   // clustering finds almost nothing, and PerformClusteringAndCFL collapses to a
-   // single stray cluster (no baseline / no EDT). That is exactly the "shows in
-   // full for a few seconds, then disappears" behaviour.
-   //
-   // Fix: extend the SSA lookback so it ALWAYS reaches back past the window
-   // start (plus the SSA warm-up window), regardless of how much history loads.
-   int win_start_idx = rates_total - 1;
-   for(int i = 0; i < rates_total; i++) {
-      if(time[i] >= InpStartDateTime) { win_start_idx = i; break; }
-   }
-   // Bars needed to cover the window start + SSA warm-up margin.
-   int cover_lookback = (rates_total - win_start_idx) + SSAWindow + 10;
-   int eff_lookback   = MathMax(InpSSAWaveLookback, cover_lookback);
-   int ssa_start_idx  = (rates_total > eff_lookback) ? rates_total - eff_lookback : 0;
+   // SSA over the RECENT InpSSAWaveLookback bars (fresh, well-conditioned).
+   // The clustering region is this same recent range, so the SSA basis is
+   // always computed on the data being clustered (the proven foundation
+   // pattern). No date window, no basis drift.
+   int ssa_start_idx = (rates_total > InpSSAWaveLookback) ? rates_total - InpSSAWaveLookback : 0;
    int len = rates_total - ssa_start_idx;
 
    // --- diagnostics: record SSA coverage for this pass ---
    g_dbg_ssa_start    = ssa_start_idx;
-   g_dbg_eff_lookback = eff_lookback;
-   g_dbg_orig_ssa_start = (rates_total > InpSSAWaveLookback) ? rates_total - InpSSAWaveLookback : 0;
+   g_dbg_eff_lookback = InpSSAWaveLookback;
+   g_dbg_orig_ssa_start = ssa_start_idx;
 
    if(prev_calculated == 0) {
       for(int i = 0; i < ssa_start_idx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
@@ -1454,9 +1385,6 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       g_dbg_trigger     = trigger;
       g_dbg_rates_total = rates_total;
 
-      // Stabilize the crossings INSIDE the fixed window with a window-anchored
-      // SSA (fixed range ending at the window) BEFORE clustering reads them.
-      RefreshWindowSSA(rates_total, time, close);
       PerformClusteringAndCFL(rates_total, time, close);
       ChartRedraw(0);
    }
