@@ -1,22 +1,36 @@
 /**
- * Fire dispatcher — persists a Notification, updates the Alert, and pushes a
- * live notification.
- *
- * Note: live Socket.IO push only reaches the user if this runs in (or shares an
- * adapter with) the web process. In a standalone worker the persisted
- * Notification row is the durable record; cross-process live delivery is a
- * Phase 5 concern (Socket.IO Redis adapter).
+ * Fire dispatcher — persists a Notification, updates the Alert, and publishes a
+ * cross-process fired-alert message (delivered live by the web process bridge).
  *
  * @module lib/alert-engine/dispatcher
  */
 
 import { prisma } from '@/lib/db/prisma';
-import { sendNotificationToUser } from '@/lib/websocket/server';
+import { getRedisClient } from '@/lib/redis/client';
 
 import type { Dispatch } from './evaluator';
+import {
+  buildAlertFiredMessage,
+  publishAlertFired,
+  type AlertFiredMessage,
+} from './notify-bridge';
 import type { FireEvent } from './types';
 
-export function createPrismaDispatcher(): Dispatch {
+export type AlertPublisher = (msg: AlertFiredMessage) => Promise<void>;
+
+/** Default publisher: best-effort Redis publish (no-op without REDIS_URL). */
+async function defaultPublish(msg: AlertFiredMessage): Promise<void> {
+  if (!process.env['REDIS_URL']) return;
+  try {
+    await publishAlertFired(getRedisClient(), msg);
+  } catch (error) {
+    console.error('alert publish failed:', error);
+  }
+}
+
+export function createPrismaDispatcher(
+  publish: AlertPublisher = defaultPublish
+): Dispatch {
   return async (fire: FireEvent): Promise<void> => {
     const title = `${fire.symbol} ${fire.timeframe} alert`;
     const body = `Price ${fire.touchPrice} touched ${fire.levelId} @ ${fire.levelPrice}`;
@@ -43,18 +57,6 @@ export function createPrismaDispatcher(): Dispatch {
       });
     });
 
-    try {
-      sendNotificationToUser(fire.userId, {
-        id: `alert_${fire.alertId}_${fire.time}`,
-        type: 'ALERT',
-        title,
-        body,
-        priority: 'HIGH',
-        link,
-        createdAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('alert live push failed:', error);
-    }
+    await publish(buildAlertFiredMessage(fire, new Date().toISOString()));
   };
 }

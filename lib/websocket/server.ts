@@ -1,5 +1,7 @@
 import type { Server as HTTPServer } from 'http';
 
+import { startAlertDeliveryBridge } from '@/lib/alert-engine/notify-bridge';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -155,6 +157,20 @@ export async function initWebSocketServer(
   });
 
   ioInstance = io;
+
+  // Phase 5: deliver fired alerts published by the (separate) alert worker.
+  void startAlertDeliveryBridge({
+    deliver: (msg) => {
+      sendNotificationToUser(msg.userId, msg.notification);
+      io.to(`user:${msg.userId}`).emit('alert_fired', {
+        type: 'alert_fired',
+        data: msg.marker,
+      });
+    },
+  }).catch((error) => {
+    console.error('alert delivery bridge failed to start:', error);
+  });
+
   return io;
 }
 

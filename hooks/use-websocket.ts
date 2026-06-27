@@ -22,6 +22,16 @@ interface NotificationData {
   createdAt: string;
 }
 
+/** Payload for an "alert fired here" chart marker (Phase 5). */
+interface AlertFiredMarker {
+  symbol: string;
+  timeframe: string;
+  levelId: string;
+  levelPrice: number;
+  touchPrice: number;
+  time: number;
+}
+
 interface UseWebSocketOptions {
   /** Callback when a new notification is received */
   onNotification?: (notification: NotificationData) => void;
@@ -29,6 +39,8 @@ interface UseWebSocketOptions {
   onConnectionChange?: (connected: boolean) => void;
   /** Callback when a notification is marked as read (from another tab) */
   onNotificationRead?: (notificationId: string) => void;
+  /** Callback when a line-touch alert fires (for the chart marker) */
+  onAlertFired?: (marker: AlertFiredMarker) => void;
   /** Auto-reconnect on disconnect (default: true) */
   autoReconnect?: boolean;
   /** Reconnect interval in ms (default: 5000) */
@@ -85,6 +97,7 @@ export function useWebSocket(
     onNotification,
     onConnectionChange,
     onNotificationRead,
+    onAlertFired,
     autoReconnect = true,
     reconnectInterval = 5000,
   } = options;
@@ -177,6 +190,16 @@ export function useWebSocket(
               }
               break;
 
+            case 'alert_fired':
+              if (message.data && typeof message.data === 'object') {
+                const marker = (message.data as { data?: AlertFiredMarker })
+                  .data;
+                if (marker) {
+                  onAlertFired?.(marker);
+                }
+              }
+              break;
+
             case 'pong':
               // Keep-alive response received
               break;
@@ -238,6 +261,7 @@ export function useWebSocket(
     onNotification,
     onConnectionChange,
     onNotificationRead,
+    onAlertFired,
   ]);
 
   /**

@@ -115,3 +115,16 @@ scripts/alert-worker.ts                  ← standalone entrypoint
 __tests__/alert-engine/*.test.ts         ← 3 test files (20 tests)
 mt5-service/REDIS-PUBLISH-SNIPPET.md      ← the ~5-line Flask producer
 
+==================================
+
+lib/alert-engine/notify-bridge.ts                    ← NEW
+lib/alert-engine/dispatcher.ts                        ← MODIFIED
+lib/websocket/server.ts                               ← MODIFIED
+hooks/use-websocket.ts                                ← MODIFIED
+components/charts/drawing/firedMarkers.ts             ← NEW
+components/charts/drawing/useFiredAlertMarkers.ts     ← NEW
+components/charts/trading-chart.tsx                   ← MODIFIED
+__tests__/alert-engine/notify-bridge.test.ts          ← NEW
+__tests__/drawing/firedMarkers.test.ts                ← NEW
+docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md            ← NEW
+
