@@ -205,7 +205,12 @@ export function TradingChart({
         <div className="relative w-full">
           <div ref={chartContainerRef} className="w-full" />
           {chartApi && seriesApi && (
-            <DrawingLayer chart={chartApi} series={seriesApi} />
+            <DrawingLayer
+              chart={chartApi}
+              series={seriesApi}
+              symbol={symbol}
+              timeframe={timeframe}
+            />
           )}
         </div>
       </div>

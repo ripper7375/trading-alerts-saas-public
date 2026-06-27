@@ -83,3 +83,11 @@ app/api/alerts/line/
 ├── route.ts                               ← NEW (GET, POST)
 └── [id]/route.ts                          ← NEW (PATCH, DELETE)
 
+==================================
+
+components/charts/drawing/
+├── persistence.ts                    ← NEW
+└── DrawingLayer.tsx                  ← MODIFIED (overwrite)
+components/charts/trading-chart.tsx   ← MODIFIED (overwrite)
+__tests__/drawing/persistence.test.ts ← NEW
+

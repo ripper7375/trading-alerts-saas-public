@@ -26,19 +26,24 @@ import { useEffect, useRef, useState, type JSX } from 'react';
 
 import { DrawingEngine } from './engine/DrawingEngine';
 import { PointerController } from './engine/PointerController';
+import { createDrawingPersistence } from './persistence';
 import { Toolbar } from './Toolbar';
 import type { DrawingType, MarkSnapshot } from './types';
 
 interface DrawingLayerProps {
   chart: IChartApi;
   series: ISeriesApi<'Candlestick'>;
-  /** Optional: receive snapshots when marks change (persistence hook). */
+  symbol: string;
+  timeframe: string;
+  /** Optional: receive snapshots when marks change (in addition to autosave). */
   onMarksChange?: (snapshots: MarkSnapshot[]) => void;
 }
 
 export function DrawingLayer({
   chart,
   series,
+  symbol,
+  timeframe,
   onMarksChange,
 }: DrawingLayerProps): JSX.Element {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -52,13 +57,24 @@ export function DrawingLayer({
     const overlay = overlayRef.current;
     if (!overlay) return;
 
+    let cancelled = false;
+    const persistence = createDrawingPersistence(symbol, timeframe);
+
     const engine = new DrawingEngine(chart, series, {
       onOverlayActiveChange: setOverlayActive,
       onSelectionChange: (id) => setHasSelection(id !== null),
       onActiveToolChange: setActiveTool,
-      onMarksChange,
+      onMarksChange: (snaps) => {
+        void persistence.sync(snaps); // autosave (create/update/delete diff)
+        onMarksChange?.(snaps);
+      },
     });
     engineRef.current = engine;
+
+    // Load saved drawings for this symbol/timeframe.
+    void persistence.load().then((snaps) => {
+      if (!cancelled && snaps.length > 0) engine.loadMarks(snaps);
+    });
 
     const pointer = new PointerController(overlay, engine);
 
@@ -69,12 +85,13 @@ export function DrawingLayer({
     chart.subscribeClick(clickHandler);
 
     return (): void => {
+      cancelled = true;
       chart.unsubscribeClick(clickHandler);
       pointer.destroy();
       engine.destroy();
       engineRef.current = null;
     };
-  }, [chart, series, onMarksChange]);
+  }, [chart, series, symbol, timeframe, onMarksChange]);
 
   const handleSelectTool = (tool: DrawingType | null): void => {
     setActiveTool(tool);
