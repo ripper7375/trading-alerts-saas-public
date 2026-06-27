@@ -128,6 +128,7 @@ model User {
   accounts          Account[]
   alerts            Alert[]
   watchlists        Watchlist[]
+  drawings          Drawing[]
   subscription      Subscription?
   payments          Payment[]
   fraudAlerts       FraudAlert[]
@@ -396,7 +397,10 @@ model Alert {
   isActive    Boolean  @default(true)
   lastTriggered DateTime?
   triggerCount Int     @default(0)
-  
+
+  // Optional link to a chart drawing (line-touch alerts)
+  drawingAlert DrawingAlert?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1086,4 +1090,51 @@ model SystemConfigHistory {
   @@index([configKey])
   @@index([changedBy])
   @@index([changedAt])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CHART DRAWINGS & LINE-TOUCH ALERTS (Drawing Engine — Phase 2/3)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// A user-drawn chart object. Geometry is stored as price/time anchors (never
+// pixels) so the server can recompute level values headlessly (Phase 4).
+model Drawing {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  symbol    String
+  timeframe String
+  type      String   // TRENDLINE | HLINE | CHANNEL | FIB_RETRACE | FIB_EXT | TEXT
+  anchors   Json     // [{ time, price }, ...] (1-3 anchors)
+  style     Json     // color, width, dash + tool-specific extras
+
+  alerts    DrawingAlert[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([symbol, timeframe])
+  @@index([userId, symbol, timeframe])
+}
+
+// Links an Alert to a specific level of a Drawing (the watched price line).
+model DrawingAlert {
+  id          String   @id @default(cuid())
+  drawingId   String
+  drawing     Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  alertId     String   @unique
+  alert       Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  targetLevel String   // 'line' | 'channel_top' | 'fib_0.618' | 'fib_ext_1.618' ...
+  direction   String   @default("either") // cross_up | cross_down | either
+  tolerance   Float    @default(0)         // price units; 0 = pure cross
+  cooldownSec Int      @default(60)
+  oneShot     Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([drawingId])
 }

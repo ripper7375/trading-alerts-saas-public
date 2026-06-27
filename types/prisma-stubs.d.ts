@@ -407,6 +407,7 @@ declare module '@prisma/client' {
     accounts?: Account[];
     alerts?: Alert[];
     watchlists?: Watchlist[];
+    drawings?: Drawing[];
     subscription?: Subscription | null;
     payments?: Payment[];
     fraudAlerts?: FraudAlert[];
@@ -531,6 +532,36 @@ declare module '@prisma/client' {
     createdAt: Date;
     updatedAt: Date;
     user?: User;
+    drawingAlert?: DrawingAlert | null;
+  }
+
+  export interface Drawing {
+    id: string;
+    userId: string;
+    symbol: string;
+    timeframe: string;
+    type: string;
+    anchors: JsonValue;
+    style: JsonValue;
+    createdAt: Date;
+    updatedAt: Date;
+    user?: User;
+    alerts?: DrawingAlert[];
+  }
+
+  export interface DrawingAlert {
+    id: string;
+    drawingId: string;
+    alertId: string;
+    targetLevel: string;
+    direction: string;
+    tolerance: number;
+    cooldownSec: number;
+    oneShot: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    drawing?: Drawing;
+    alert?: Alert;
   }
 
   export interface Watchlist {
@@ -1161,6 +1192,8 @@ declare module '@prisma/client' {
     accountDeletionRequest: ModelDelegate<AccountDeletionRequest>;
     subscription: ModelDelegate<Subscription>;
     alert: ModelDelegate<Alert>;
+    drawing: ModelDelegate<Drawing>;
+    drawingAlert: ModelDelegate<DrawingAlert>;
     watchlist: ModelDelegate<Watchlist>;
     watchlistItem: ModelDelegate<WatchlistItem>;
     payment: ModelDelegate<Payment>;

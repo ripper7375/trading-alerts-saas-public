@@ -68,3 +68,18 @@ components/charts/drawing/
 
 __tests__/drawing/marks/
 └── newMarks.test.ts                   ← NEW
+
+==================================
+
+prisma/schema.prisma                      ← MODIFIED (Drawing + DrawingAlert models, relations)
+types/prisma-stubs.d.ts                    ← MODIFIED (mirror new models/delegates)
+lib/drawing/
+├── schema.ts                              ← NEW (shared Zod + tier limits)
+└── invalidate.ts                          ← NEW (alerts:changed publisher)
+app/api/drawings/
+├── route.ts                               ← NEW (GET, POST)
+└── [id]/route.ts                          ← NEW (PATCH, DELETE)
+app/api/alerts/line/
+├── route.ts                               ← NEW (GET, POST)
+└── [id]/route.ts                          ← NEW (PATCH, DELETE)
+
