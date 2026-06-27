@@ -101,3 +101,17 @@ components/charts/drawing/
 └── engine/DrawingEngine.ts           ← MODIFIED
 __tests__/drawing/marks/newMarks.test.ts  ← MODIFIED
 
+==================================
+
+lib/alert-engine/
+├── types.ts          ← PriceEvent / AlertWatch / FireEvent
+├── detect.ts         ← cross + intrabar-touch detection (pure)
+├── state.ts          ← Redis-backed prev/cooldown/fired (+ in-memory for tests)
+├── watches.ts        ← build watches from DrawingAlert via shared geometry
+├── evaluator.ts      ← evaluate → cross → gate → fire
+├── dispatcher.ts     ← Notification + Alert update + live push
+└── worker.ts         ← ioredis ingest + watch cache + invalidation
+scripts/alert-worker.ts                  ← standalone entrypoint
+__tests__/alert-engine/*.test.ts         ← 3 test files (20 tests)
+mt5-service/REDIS-PUBLISH-SNIPPET.md      ← the ~5-line Flask producer
+
