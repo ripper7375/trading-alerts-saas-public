@@ -194,7 +194,6 @@ export default async function ChartPage({
       <TradingChartClient
         symbol={upperSymbol}
         timeframe={upperTimeframe}
-        tier={tier}
       />
     </div>
   );

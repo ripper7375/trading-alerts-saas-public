@@ -77,5 +77,17 @@ Per the repo convention used by `backend-file-inventory.md` and `frontend-ui-fil
 
 ---
 
-**Compiled:** 2026-06-26
+## Root ↔ frontend/ Parity Note (2026-06-27)
+
+Verified that the drawing-engine code is **in sync** between the root monolith and the
+transitional `frontend/` clone: all 22 `components/charts/drawing/*` files are byte-identical, as
+are the modified `components/charts/trading-chart.tsx` and `components/charts/pro-indicator-overlay.tsx`.
+
+One related dependency was reconciled separately: the WebSocket-migrated `trading-chart.tsx`
+imports `@/hooks/use-ohlcv-socket`, which was missing from `frontend/` and has now been added
+there (tracked in `backend-file-inventory.md`, row 89). No drawing-engine file needed changes.
+
+---
+
+**Compiled:** 2026-06-27
 **Status:** Complete ✅

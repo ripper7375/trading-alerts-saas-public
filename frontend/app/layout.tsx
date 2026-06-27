@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import './globals.css';
 
-// Temporarily using system fonts to avoid Google Fonts network dependency
-// This allows the build to proceed without requiring external font fetching
-// Can be re-enabled later when network access to Google Fonts is available
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -63,7 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }): React.ReactElement {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>{children}</Providers>
       </body>

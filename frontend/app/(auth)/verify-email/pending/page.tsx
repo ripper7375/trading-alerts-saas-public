@@ -9,7 +9,7 @@ function VerifyEmailPendingContent(): JSX.Element {
   const searchParams = useSearchParams();
   // ✅ FIX: Decode URL-encoded email parameter (e.g., ripper7375%40gmail.com → ripper7375@gmail.com)
   const emailFromUrl = decodeURIComponent(searchParams.get('email') || '');
-  
+
   // State for email - allows manual entry if missing from URL
   const [email, setEmail] = useState(emailFromUrl);
   const [showEmailInput, setShowEmailInput] = useState(!emailFromUrl);
@@ -98,7 +98,7 @@ function VerifyEmailPendingContent(): JSX.Element {
           <p className="text-gray-600 mb-2">
             We&apos;ve sent a verification link to:
           </p>
-          
+
           {/* Email Display or Input */}
           {!showEmailInput && email ? (
             <div className="mb-6">
@@ -173,9 +173,9 @@ function VerifyEmailPendingContent(): JSX.Element {
             <button
               onClick={handleResendEmail}
               disabled={
-                resendStatus === 'loading' || 
-                resendStatus === 'rate_limited' || 
-                !email || 
+                resendStatus === 'loading' ||
+                resendStatus === 'rate_limited' ||
+                !email ||
                 !email.includes('@')
               }
               className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
@@ -197,7 +197,7 @@ function VerifyEmailPendingContent(): JSX.Element {
                 </>
               )}
             </button>
-            
+
             {!email && (
               <p className="text-xs text-red-600 mt-2">
                 Please enter your email address above
