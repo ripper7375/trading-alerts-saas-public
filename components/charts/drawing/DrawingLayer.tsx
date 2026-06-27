@@ -22,17 +22,21 @@ import type {
   MouseEventParams,
   Time,
 } from 'lightweight-charts';
+import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState, type JSX } from 'react';
 
 import { AlertDialog, type LineAlertValues } from './AlertDialog';
+import { AlertsPanel } from './AlertsPanel';
 import { DrawingEngine } from './engine/DrawingEngine';
 import { PointerController } from './engine/PointerController';
 import {
   createDrawingPersistence,
   type DrawingPersistence,
 } from './persistence';
+import { StyleEditor } from './StyleEditor';
 import { Toolbar } from './Toolbar';
-import type { DrawingType, MarkSnapshot } from './types';
+import { type Tier } from './tierUsage';
+import type { DrawingStyle, DrawingType, MarkSnapshot } from './types';
 
 interface DrawingLayerProps {
   chart: IChartApi;
@@ -67,6 +71,20 @@ export function DrawingLayer({
   const [alertError, setAlertError] = useState<string | null>(null);
   const alertDrawingLocalId = useRef<string | null>(null);
 
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [styleType, setStyleType] = useState<DrawingType | null>(null);
+  const [styleValue, setStyleValue] = useState<DrawingStyle | null>(null);
+
+  const [alertsPanelOpen, setAlertsPanelOpen] = useState(false);
+  const [drawingCount, setDrawingCount] = useState(0);
+  const [alertsRefreshKey, setAlertsRefreshKey] = useState(0);
+
+  const { data: session } = useSession();
+  const tier: Tier =
+    session?.user?.tier === 'PRO' || session?.user?.tier === 'FREE'
+      ? session.user.tier
+      : 'FREE';
+
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -86,6 +104,7 @@ export function DrawingLayer({
       onActiveToolChange: setActiveTool,
       onMarksChange: (snaps) => {
         void persistence.sync(snaps); // autosave (create/update/delete diff)
+        setDrawingCount(snaps.length);
         onMarksChange?.(snaps);
       },
     });
@@ -93,7 +112,9 @@ export function DrawingLayer({
 
     // Load saved drawings for this symbol/timeframe.
     void persistence.load().then((snaps) => {
-      if (!cancelled && snaps.length > 0) engine.loadMarks(snaps);
+      if (cancelled) return;
+      if (snaps.length > 0) engine.loadMarks(snaps);
+      setDrawingCount(snaps.length);
     });
 
     const pointer = new PointerController(overlay, engine);
@@ -161,11 +182,28 @@ export function DrawingLayer({
         return;
       }
       setAlertOpen(false);
+      setAlertsRefreshKey((k) => k + 1);
+      setAlertsPanelOpen(true);
     } catch {
       setAlertError('Network error — please try again.');
     } finally {
       setAlertSubmitting(false);
     }
+  };
+
+  const handleEditStyle = (): void => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const style = engine.getSelectedStyle();
+    if (!style) return;
+    setStyleType(engine.getSelectedType());
+    setStyleValue(style);
+    setStyleOpen(true);
+  };
+
+  const handleStyleChange = (patch: Partial<DrawingStyle>): void => {
+    engineRef.current?.updateSelectedStyle(patch);
+    setStyleValue((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
   const cursor = activeTool !== null ? 'crosshair' : 'default';
@@ -176,9 +214,12 @@ export function DrawingLayer({
         activeTool={activeTool}
         hasSelection={hasSelection}
         canAddAlert={canAddAlert}
+        alertsOpen={alertsPanelOpen}
         onSelectTool={handleSelectTool}
         onDelete={handleDelete}
         onAddAlert={handleAddAlert}
+        onEditStyle={handleEditStyle}
+        onToggleAlerts={() => setAlertsPanelOpen((o) => !o)}
       />
       <div
         ref={overlayRef}
@@ -187,6 +228,23 @@ export function DrawingLayer({
           pointerEvents: overlayActive ? 'auto' : 'none',
           cursor,
         }}
+      />
+      {alertsPanelOpen && (
+        <AlertsPanel
+          symbol={symbol}
+          timeframe={timeframe}
+          tier={tier}
+          drawingCount={drawingCount}
+          refreshKey={alertsRefreshKey}
+          onClose={() => setAlertsPanelOpen(false)}
+        />
+      )}
+      <StyleEditor
+        open={styleOpen}
+        onOpenChange={setStyleOpen}
+        type={styleType}
+        style={styleValue}
+        onChange={handleStyleChange}
       />
       <AlertDialog
         open={alertOpen}

@@ -9,9 +9,11 @@
 
 import {
   Bell,
+  ListChecks,
   Minus,
   MousePointer2,
   MoveDiagonal,
+  Palette,
   Ruler,
   Spline,
   Trash2,
@@ -27,9 +29,12 @@ interface ToolbarProps {
   activeTool: DrawingType | null;
   hasSelection: boolean;
   canAddAlert: boolean;
+  alertsOpen: boolean;
   onSelectTool: (tool: DrawingType | null) => void;
   onDelete: () => void;
   onAddAlert: () => void;
+  onEditStyle: () => void;
+  onToggleAlerts: () => void;
 }
 
 const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
@@ -45,9 +50,12 @@ export function Toolbar({
   activeTool,
   hasSelection,
   canAddAlert,
+  alertsOpen,
   onSelectTool,
   onDelete,
   onAddAlert,
+  onEditStyle,
+  onToggleAlerts,
 }: ToolbarProps): JSX.Element {
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';
@@ -84,6 +92,31 @@ export function Toolbar({
       })}
 
       <div className="my-1 h-px bg-[#2a2e39]" />
+
+      <button
+        type="button"
+        aria-label="Edit style"
+        title="Edit style"
+        disabled={!hasSelection}
+        className={`${buttonBase} ${
+          hasSelection
+            ? 'border-transparent text-[#d1d4dc] hover:bg-[#2a2e39]'
+            : 'cursor-not-allowed border-transparent text-[#4a4e59]'
+        }`}
+        onClick={onEditStyle}
+      >
+        <Palette className="h-4 w-4" />
+      </button>
+
+      <button
+        type="button"
+        aria-label="Toggle alerts panel"
+        title="Alerts"
+        className={`${buttonBase} ${alertsOpen ? active : idle}`}
+        onClick={onToggleAlerts}
+      >
+        <ListChecks className="h-4 w-4" />
+      </button>
 
       <button
         type="button"

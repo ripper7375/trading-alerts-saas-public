@@ -128,3 +128,17 @@ __tests__/alert-engine/notify-bridge.test.ts          ← NEW
 __tests__/drawing/firedMarkers.test.ts                ← NEW
 docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md            ← NEW
 
+==================================
+
+components/charts/drawing/
+├── alertsApi.ts            ← NEW  (list/pause/delete client wrapper)
+├── tierUsage.ts            ← NEW  (used/limit helpers)
+├── StyleEditor.tsx         ← NEW  (color/width/dash + TEXT label editor)
+├── AlertsPanel.tsx         ← NEW  (the side-panel)
+├── engine/DrawingEngine.ts ← MODIFIED (selected style getters/update)
+├── Toolbar.tsx             ← MODIFIED (Palette + ListChecks buttons)
+└── DrawingLayer.tsx        ← MODIFIED (wires all three)
+__tests__/drawing/alertsApi.test.ts      ← NEW
+__tests__/drawing/tierUsage.test.ts      ← NEW
+__tests__/drawing/marks/newMarks.test.ts ← MODIFIED (engine style tests)
+
