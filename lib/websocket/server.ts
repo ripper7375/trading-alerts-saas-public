@@ -1,5 +1,8 @@
 import type { Server as HTTPServer } from 'http';
 
+import { createAdapter } from '@socket.io/redis-adapter';
+import IORedis from 'ioredis';
+
 import { startAlertDeliveryBridge } from '@/lib/alert-engine/notify-bridge';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -86,6 +89,19 @@ export async function initWebSocketServer(
     pingTimeout: 60000,
     pingInterval: 25000,
   });
+
+  // Multi-node fan-out: route room emits across web instances via Redis so a
+  // notification reaches the user regardless of which node holds their socket.
+  const redisUrl = process.env['REDIS_URL'];
+  if (redisUrl) {
+    try {
+      const pubClient = new IORedis(redisUrl);
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+    } catch (error) {
+      console.error('Socket.IO Redis adapter failed to attach:', error);
+    }
+  }
 
   io.on('connection', (socket: SocketIOSocket) => {
     console.info(`WebSocket client connected: ${socket.id}`);

@@ -142,3 +142,10 @@ __tests__/drawing/alertsApi.test.ts      ← NEW
 __tests__/drawing/tierUsage.test.ts      ← NEW
 __tests__/drawing/marks/newMarks.test.ts ← MODIFIED (engine style tests)
 
+==================================
+
+lib/alert-engine/queue.ts                       ← NEW
+lib/alert-engine/worker.ts                      ← MODIFIED
+lib/websocket/server.ts                         ← MODIFIED
+docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md       ← NEW
+

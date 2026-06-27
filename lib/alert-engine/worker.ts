@@ -17,7 +17,8 @@ import Redis from 'ioredis';
 import { prisma } from '@/lib/db/prisma';
 
 import { createPrismaDispatcher } from './dispatcher';
-import { evaluatePriceEvent } from './evaluator';
+import { evaluatePriceEvent, type Dispatch } from './evaluator';
+import { createFireQueue, enqueueFire, startFireWorker } from './queue';
 import { createRedisStateStore, type RedisLike } from './state';
 import type { AlertWatch, PriceEvent } from './types';
 import { buildWatch, type DrawingAlertRow } from './watches';
@@ -34,8 +35,22 @@ export async function startAlertWorker(): Promise<AlertWorkerHandle> {
   const subscriber = new Redis(url);
   const ops = new Redis(url);
   const state = createRedisStateStore(ops as unknown as RedisLike);
-  const dispatch = createPrismaDispatcher();
   const finalOnly = process.env['EVAL_ON_FINAL_BAR_ONLY'] === 'true';
+
+  // Durable fire delivery via BullMQ (default on); falls back to direct dispatch.
+  const directDispatch = createPrismaDispatcher();
+  const useQueue = process.env['ALERT_USE_QUEUE'] !== 'false';
+  const fireQueue = useQueue ? createFireQueue(url) : null;
+  const fireWorker = useQueue
+    ? startFireWorker(
+        url,
+        directDispatch,
+        Number(process.env['ALERT_FIRE_CONCURRENCY'] ?? 10)
+      )
+    : null;
+  const dispatch: Dispatch = fireQueue
+    ? (fire) => enqueueFire(fireQueue, fire)
+    : directDispatch;
 
   // symbol|timeframe -> watches
   let cache = new Map<string, AlertWatch[]>();
@@ -86,13 +101,17 @@ export async function startAlertWorker(): Promise<AlertWorkerHandle> {
     if (channel === 'alerts:changed') void reload();
   });
 
-  console.info('[alert-worker] subscribed to prices:* and alerts:changed');
+  console.info(
+    `[alert-worker] subscribed to prices:* and alerts:changed (queue: ${useQueue ? 'on' : 'off'})`
+  );
 
   return {
     reload,
     async stop() {
       await subscriber.quit();
       await ops.quit();
+      if (fireWorker) await fireWorker.close();
+      if (fireQueue) await fireQueue.close();
     },
   };
 }
