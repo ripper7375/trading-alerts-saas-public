@@ -8,6 +8,7 @@
  */
 
 import {
+  Bell,
   Minus,
   MousePointer2,
   MoveDiagonal,
@@ -25,8 +26,10 @@ import type { DrawingType } from './types';
 interface ToolbarProps {
   activeTool: DrawingType | null;
   hasSelection: boolean;
+  canAddAlert: boolean;
   onSelectTool: (tool: DrawingType | null) => void;
   onDelete: () => void;
+  onAddAlert: () => void;
 }
 
 const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
@@ -41,8 +44,10 @@ const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
 export function Toolbar({
   activeTool,
   hasSelection,
+  canAddAlert,
   onSelectTool,
   onDelete,
+  onAddAlert,
 }: ToolbarProps): JSX.Element {
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';
@@ -79,6 +84,21 @@ export function Toolbar({
       })}
 
       <div className="my-1 h-px bg-[#2a2e39]" />
+
+      <button
+        type="button"
+        aria-label="Add price alert"
+        title="Add price alert"
+        disabled={!canAddAlert}
+        className={`${buttonBase} ${
+          canAddAlert
+            ? 'border-transparent text-[#26a69a] hover:bg-[#2a2e39]'
+            : 'cursor-not-allowed border-transparent text-[#4a4e59]'
+        }`}
+        onClick={onAddAlert}
+      >
+        <Bell className="h-4 w-4" />
+      </button>
 
       <button
         type="button"

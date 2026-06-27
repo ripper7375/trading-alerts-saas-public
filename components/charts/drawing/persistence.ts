@@ -33,6 +33,8 @@ interface DrawingDTO {
 export interface DrawingPersistence {
   load(): Promise<MarkSnapshot[]>;
   sync(snapshots: MarkSnapshot[]): Promise<void>;
+  /** Server drawing id for a local mark id (awaits any in-flight create). */
+  resolveServerId(localId: string): Promise<string | null>;
 }
 
 function serialize(snap: MarkSnapshot): string {
@@ -153,6 +155,8 @@ export function createDrawingPersistence(
         return [];
       }
     },
+
+    resolveServerId,
 
     async sync(snapshots: MarkSnapshot[]): Promise<void> {
       const currentIds = new Set(snapshots.map((s) => s.id));

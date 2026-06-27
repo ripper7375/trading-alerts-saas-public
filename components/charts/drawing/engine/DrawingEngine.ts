@@ -102,6 +102,18 @@ export class DrawingEngine {
     return this.selectedId !== null;
   }
 
+  public getSelectedId(): string | null {
+    return this.selectedId;
+  }
+
+  /** Alert levels of the selected mark (empty for none / non-alertable). */
+  public getSelectedAlertLevels(): { id: string; label: string }[] {
+    if (!this.selectedId) return [];
+    const mark = this.marks.get(this.selectedId);
+    if (!mark) return [];
+    return mark.alertLevels().map((l) => ({ id: l.id, label: l.label }));
+  }
+
   /** Load persisted marks (snapshots) and attach them. */
   public loadMarks(snapshots: MarkSnapshot[]): void {
     for (const snap of snapshots) {

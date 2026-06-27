@@ -24,9 +24,13 @@ import type {
 } from 'lightweight-charts';
 import { useEffect, useRef, useState, type JSX } from 'react';
 
+import { AlertDialog, type LineAlertValues } from './AlertDialog';
 import { DrawingEngine } from './engine/DrawingEngine';
 import { PointerController } from './engine/PointerController';
-import { createDrawingPersistence } from './persistence';
+import {
+  createDrawingPersistence,
+  type DrawingPersistence,
+} from './persistence';
 import { Toolbar } from './Toolbar';
 import type { DrawingType, MarkSnapshot } from './types';
 
@@ -48,10 +52,20 @@ export function DrawingLayer({
 }: DrawingLayerProps): JSX.Element {
   const overlayRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DrawingEngine | null>(null);
+  const persistenceRef = useRef<DrawingPersistence | null>(null);
 
   const [activeTool, setActiveTool] = useState<DrawingType | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
+  const [canAddAlert, setCanAddAlert] = useState(false);
   const [overlayActive, setOverlayActive] = useState(false);
+
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertLevels, setAlertLevels] = useState<
+    { id: string; label: string }[]
+  >([]);
+  const [alertSubmitting, setAlertSubmitting] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
+  const alertDrawingLocalId = useRef<string | null>(null);
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -59,10 +73,16 @@ export function DrawingLayer({
 
     let cancelled = false;
     const persistence = createDrawingPersistence(symbol, timeframe);
+    persistenceRef.current = persistence;
 
     const engine = new DrawingEngine(chart, series, {
       onOverlayActiveChange: setOverlayActive,
-      onSelectionChange: (id) => setHasSelection(id !== null),
+      onSelectionChange: (id) => {
+        setHasSelection(id !== null);
+        setCanAddAlert(
+          id !== null && engine.getSelectedAlertLevels().length > 0
+        );
+      },
       onActiveToolChange: setActiveTool,
       onMarksChange: (snaps) => {
         void persistence.sync(snaps); // autosave (create/update/delete diff)
@@ -90,6 +110,7 @@ export function DrawingLayer({
       pointer.destroy();
       engine.destroy();
       engineRef.current = null;
+      persistenceRef.current = null;
     };
   }, [chart, series, symbol, timeframe, onMarksChange]);
 
@@ -102,6 +123,51 @@ export function DrawingLayer({
     engineRef.current?.deleteSelected();
   };
 
+  const handleAddAlert = (): void => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const levels = engine.getSelectedAlertLevels();
+    if (levels.length === 0) return;
+    alertDrawingLocalId.current = engine.getSelectedId();
+    setAlertLevels(levels);
+    setAlertError(null);
+    setAlertOpen(true);
+  };
+
+  const handleAlertSubmit = async (values: LineAlertValues): Promise<void> => {
+    const persistence = persistenceRef.current;
+    const localId = alertDrawingLocalId.current;
+    if (!persistence || !localId) return;
+
+    setAlertSubmitting(true);
+    setAlertError(null);
+    try {
+      const drawingId = await persistence.resolveServerId(localId);
+      if (!drawingId) {
+        setAlertError('Drawing is still saving — try again in a moment.');
+        return;
+      }
+      const res = await fetch('/api/alerts/line', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ drawingId, ...values }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as {
+          message?: string;
+          error?: string;
+        };
+        setAlertError(data.message ?? data.error ?? 'Failed to create alert.');
+        return;
+      }
+      setAlertOpen(false);
+    } catch {
+      setAlertError('Network error — please try again.');
+    } finally {
+      setAlertSubmitting(false);
+    }
+  };
+
   const cursor = activeTool !== null ? 'crosshair' : 'default';
 
   return (
@@ -109,8 +175,10 @@ export function DrawingLayer({
       <Toolbar
         activeTool={activeTool}
         hasSelection={hasSelection}
+        canAddAlert={canAddAlert}
         onSelectTool={handleSelectTool}
         onDelete={handleDelete}
+        onAddAlert={handleAddAlert}
       />
       <div
         ref={overlayRef}
@@ -118,6 +186,16 @@ export function DrawingLayer({
         style={{
           pointerEvents: overlayActive ? 'auto' : 'none',
           cursor,
+        }}
+      />
+      <AlertDialog
+        open={alertOpen}
+        onOpenChange={setAlertOpen}
+        levels={alertLevels}
+        submitting={alertSubmitting}
+        error={alertError}
+        onSubmit={(values) => {
+          void handleAlertSubmit(values);
         }}
       />
     </>

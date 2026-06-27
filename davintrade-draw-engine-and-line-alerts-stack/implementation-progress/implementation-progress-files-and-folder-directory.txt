@@ -91,3 +91,13 @@ components/charts/drawing/
 components/charts/trading-chart.tsx   ← MODIFIED (overwrite)
 __tests__/drawing/persistence.test.ts ← NEW
 
+==================================
+
+components/charts/drawing/
+├── AlertDialog.tsx                   ← NEW
+├── DrawingLayer.tsx                  ← MODIFIED
+├── Toolbar.tsx                       ← MODIFIED
+├── persistence.ts                    ← MODIFIED
+└── engine/DrawingEngine.ts           ← MODIFIED
+__tests__/drawing/marks/newMarks.test.ts  ← MODIFIED
+

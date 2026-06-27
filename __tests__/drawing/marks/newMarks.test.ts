@@ -111,6 +111,24 @@ describe('DrawingEngine — new tool creation', () => {
   });
 });
 
+describe('DrawingEngine — selected alert levels', () => {
+  it('exposes alert levels for an alertable selected mark', () => {
+    const h = makeHarness();
+    const engine = new DrawingEngine(h.chart, h.series);
+    engine.setActiveTool('HLINE');
+    engine.handlePointerDown(100, 300); // finalizes + selects
+    expect(engine.getSelectedAlertLevels().map((l) => l.id)).toEqual(['line']);
+  });
+
+  it('returns no levels for a selected text mark', () => {
+    const h = makeHarness();
+    const engine = new DrawingEngine(h.chart, h.series);
+    engine.setActiveTool('TEXT');
+    engine.handlePointerDown(100, 300);
+    expect(engine.getSelectedAlertLevels()).toEqual([]);
+  });
+});
+
 describe('shared geometry for new marks', () => {
   const baseStyle = {
     color: '#2962FF',
