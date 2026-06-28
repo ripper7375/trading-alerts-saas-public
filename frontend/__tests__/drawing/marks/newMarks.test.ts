@@ -111,6 +111,58 @@ describe('DrawingEngine — new tool creation', () => {
   });
 });
 
+describe('DrawingEngine — selected alert levels', () => {
+  it('exposes alert levels for an alertable selected mark', () => {
+    const h = makeHarness();
+    const engine = new DrawingEngine(h.chart, h.series);
+    engine.setActiveTool('HLINE');
+    engine.handlePointerDown(100, 300); // finalizes + selects
+    expect(engine.getSelectedAlertLevels().map((l) => l.id)).toEqual(['line']);
+  });
+
+  it('returns no levels for a selected text mark', () => {
+    const h = makeHarness();
+    const engine = new DrawingEngine(h.chart, h.series);
+    engine.setActiveTool('TEXT');
+    engine.handlePointerDown(100, 300);
+    expect(engine.getSelectedAlertLevels()).toEqual([]);
+  });
+});
+
+describe('DrawingEngine — selected style', () => {
+  it('reads and updates the selected mark style (and emits onMarksChange)', () => {
+    const h = makeHarness();
+    const snaps: { id: string; style: { color?: unknown } }[][] = [];
+    const engine = new DrawingEngine(h.chart, h.series, {
+      onMarksChange: (s) =>
+        snaps.push(
+          s as unknown as { id: string; style: { color?: unknown } }[]
+        ),
+    });
+    engine.setActiveTool('HLINE');
+    engine.handlePointerDown(100, 300); // finalize + select (1 onMarksChange)
+
+    expect(engine.getSelectedType()).toBe('HLINE');
+    expect(engine.getSelectedStyle()?.color).toBe('#2962FF');
+
+    engine.updateSelectedStyle({ color: '#ff0000', lineWidth: 4 });
+    expect(engine.getSelectedStyle()).toMatchObject({
+      color: '#ff0000',
+      lineWidth: 4,
+    });
+    // onMarksChange fired again on style update -> autosave
+    expect(snaps.length).toBeGreaterThanOrEqual(2);
+    expect(snaps[snaps.length - 1]?.[0]?.style.color).toBe('#ff0000');
+  });
+
+  it('returns null style/type when nothing selected', () => {
+    const h = makeHarness();
+    const engine = new DrawingEngine(h.chart, h.series);
+    expect(engine.getSelectedStyle()).toBeNull();
+    expect(engine.getSelectedType()).toBeNull();
+  });
+});
+
 describe('shared geometry for new marks', () => {
   const baseStyle = {
     color: '#2962FF',

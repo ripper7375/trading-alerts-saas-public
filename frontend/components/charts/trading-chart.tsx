@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
 
 import { DrawingLayer } from './drawing/DrawingLayer';
+import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
 
 /**
  * TradingChart Props
@@ -50,6 +51,9 @@ export function TradingChart({
     symbol,
     timeframe
   );
+
+  // Render "alert fired here" markers when a line-touch alert fires.
+  useFiredAlertMarkers(seriesApi, symbol, timeframe);
 
   /**
    * Initialize chart when container is available
@@ -205,7 +209,12 @@ export function TradingChart({
         <div className="relative w-full">
           <div ref={chartContainerRef} className="w-full" />
           {chartApi && seriesApi && (
-            <DrawingLayer chart={chartApi} series={seriesApi} />
+            <DrawingLayer
+              chart={chartApi}
+              series={seriesApi}
+              symbol={symbol}
+              timeframe={timeframe}
+            />
           )}
         </div>
       </div>

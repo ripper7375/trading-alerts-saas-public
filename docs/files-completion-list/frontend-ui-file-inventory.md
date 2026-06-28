@@ -1,7 +1,7 @@
 # Frontend UI Files Inventory
 
-**Last Updated:** 2026-06-27
-**Total Files:** 154
+**Last Updated:** 2026-06-28
+**Total Files:** 157
 **Purpose:** Complete inventory of all frontend UI files that create user visualization and/or allow user interaction
 
 ---
@@ -172,16 +172,19 @@
 | 152 | Part 16 | `components/ui/tabs.tsx` | YES | YES |
 | 153 | Part 16 | `components/ui/toast-container.tsx` | YES | YES |
 | 154 | Part 16 | `components/ui/upgrade-button.tsx` | YES | YES |
+| 155 | Drawing Engine | `components/charts/drawing/AlertDialog.tsx` | YES | YES |
+| 156 | Drawing Engine | `components/charts/drawing/AlertsPanel.tsx` | YES | YES |
+| 157 | Drawing Engine | `components/charts/drawing/StyleEditor.tsx` | YES | YES |
 
 ---
 
 ## Summary Statistics
 
 ### Total Counts
-- **Total Frontend UI Files:** 154
-- **Files with Interactive Elements:** 119
-- **Files with Readable Elements:** 152
-- **Interactive + Readable:** 117
+- **Total Frontend UI Files:** 157
+- **Files with Interactive Elements:** 122
+- **Files with Readable Elements:** 155
+- **Interactive + Readable:** 120
 - **Readable Only:** 35
 - **Interactive Only:** 2
 
@@ -202,14 +205,14 @@
 | Part 17B-1 (Admin Affiliate) | 7 | 4.5% |
 | Part 18C (Payment UX) | 7 | 4.5% |
 | Part 19D (Disbursement UI) | 9 | 5.8% |
-| Drawing Engine (Chart Drawing Tools) | 2 | 1.3% |
+| Drawing Engine (Chart Drawing Tools + Line Alerts) | 5 | 3.2% |
 
 ### Distribution by Type
 
 | Category | File Count | Percentage |
 |----------|------------|------------|
 | Pages | 56 | 36.4% |
-| Components | 81 | 52.6% |
+| Components | 84 | 53.5% |
 | Layouts | 11 | 7.1% |
 | Loading states | 6 | 3.9% |
 
@@ -217,7 +220,7 @@
 
 | User Role | File Count | Key Areas |
 |-----------|------------|-----------|
-| **End Users** | 57 | Dashboard, Alerts, Charts (incl. drawing tools), Watchlist, Settings |
+| **End Users** | 60 | Dashboard, Alerts, Charts (incl. drawing tools + line alerts), Watchlist, Settings |
 | **Affiliates** | 14 | Registration, Dashboard, Commissions, Profile |
 | **Admins** | 38 | User Management, Fraud Detection, Disbursements, Reports |
 | **Public/Marketing** | 4 | Landing Page, Pricing |
@@ -270,6 +273,15 @@ content edits to already-listed files, so **no table rows changed** and counts a
 
 `app/api-test/page.tsx` (row 130) remains intentionally `frontend/`-only — it exercises the
 api-client layer that the root monolith does not have.
+
+## Reconciliation Note (2026-06-28) — Phase 5 (drawing persistence + line alerts)
+
+Added the 3 new drawing-engine **UI** components from the Phase 5 work (rows 155–157):
+`AlertDialog.tsx`, `AlertsPanel.tsx`, `StyleEditor.tsx`. The rest of Phase 5 is backend (api
+routes, alert-engine, `lib/drawing/*`) or `.ts` client helpers (`persistence.ts`, `alertsApi.ts`,
+`tierUsage.ts`, `firedMarkers.ts`, `useFiredAlertMarkers.ts`) — those are tracked in
+`backend-file-inventory.md` per the `.tsx`=UI / `.ts`=backend convention. All three were also
+mirrored into the transitional `frontend/` UI stack.
 
 ---
 
