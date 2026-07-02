@@ -3,9 +3,26 @@
 //|                                      Trading Alerts SaaS V7      |
 //+------------------------------------------------------------------+
 #property copyright "Trading Alerts SaaS"
-#property version   "2.29"
+#property version   "2.29.1"
 #property strict
 
+// Version 2.29.1 Changelog (from v2.29):
+// - SCHEMA FIX: v2.29 below still read/stored the OLD v2.28 45-column schema
+//   (bestfit_baseline/UOEDT/LOEDT etc., computed by MQL5). The CURRENT v6
+//   architecture only has MQL5 own the "admin layer" per centroid variant
+//   (horiz_high_map, horiz_low_map, ssa, ema_ssa, crossing); Python
+//   (centroid_regression.py) computes base_fl/uoedt/loedt separately. This
+//   file's SQLite schema, JSON payload, and buffer reads are now aligned with
+//   gateway_contract_market_data.schema.json / sqlite_schema_v6_xauusd.sql
+//   (79 market_data fields). Fields that require the Python calc stack
+//   (centroid base_fl/uoedt/loedt, fractal/resistance/support lines, zigzag
+//   segment metrics, z-score candle classification) are sent as NULL — never
+//   fabricated from the old computed buffers. See InsertCandle() and the
+//   CentroidFields helpers below for the corrected buffer map.
+// - Still legacy/optional: this socket-push path is NOT wired into the v6
+//   production data flow (see note below). This fix only makes it internally
+//   consistent with the current schema in case it is ever revived.
+//
 // Version 2.29 Changelog (from v2.28):
 // - ROLE IN v6 PIPELINE: the validated export-file pipeline (see
 //   DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md §12) is the source of truth for
@@ -29,14 +46,9 @@
 //    10. ZigZag-Export-v43
 //    11. ohlcv-export-lightweight   (no buffers - OHLCV is collected natively via CopyRates)
 //    12. zscore-ohlc-candle-export
-// - SCHEMA UPDATE (45 columns): SSA trend/signal/cross, fractal 108/119 markers,
-//   6x centroid-regression (baseline/UOEDT/LOEDT), fractal best-fit lines,
-//   single best resistance/support, zigzag peak/bottom/class, candle body z-score set.
-// - SSA trend/signal/cross and fractal 108/119 markers are read once from the
+// - SSA trend/signal/cross and fractal 108 markers are read once from the
 //   Best-Fit variant handle (all 6 centroid variants compute them identically
 //   from the same shared SSA / fractal default settings).
-// - Relay JSON payload and SQLite fallback schema updated to match. The relay
-//   gateway and backfill worker must be migrated to the new column set.
 //
 // Version 2.28-ASYNC-SOCKET (preserved architecture):
 // - ARCHITECTURE SHIFT: Replaced synchronous blocking WebRequest with native MQL5 TCP Sockets.
@@ -113,10 +125,25 @@ struct SymbolInfo
    string sanitizedName;   // Sanitized for database (e.g., "eurusd")
 };
 
+// v6 admin-layer fields shared by all 6 centroid-regression variants.
+// Buffer layout (identical across all 6 *_v2_29 centroid indicators):
+//   0=SSA Trend(ssa), 1=SSA Signal(ema_ssa), 2=SSA Cross(crossing),
+//   3=Upper108(horiz_high_map), 4=Lower108(horiz_low_map),
+//   5=Upper119, 6=Lower119 (not part of the v6 admin-layer contract - unused),
+//   7=BaseLine, 8=UOEDT, 9=LOEDT (OLD v2.28 MQL5-computed lines - Python owns
+//   base_fl/uoedt/loedt in v6; never read here).
+struct CentroidFields
+{
+   double horiz_high_map;
+   double horiz_low_map;
+   double ssa;
+   double ema_ssa;
+   int    crossing;        // always 0/1 (never null - "no crossing" is a real value)
+};
+
 // Timeframe indicators structure
-// All 6 centroid-regression variants share the same buffer layout:
-//   0=SSA Trend, 1=SSA Signal, 2=SSA Cross, 3=Upper108, 4=Lower108,
-//   5=Upper119, 6=Lower119, 7=BaseLine, 8=UOEDT, 9=LOEDT
+// All 6 centroid-regression variants share the same buffer layout (see
+// CentroidFields comment above).
 struct TimeframeIndicators
 {
    int h_cr_bestfit;        // 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent
@@ -125,11 +152,22 @@ struct TimeframeIndicators
    int h_cr_mostrecent;     // 2EDT-Centroid-Regression-Most-Recent-Line-Extension
    int h_cr_nonrecent_a;    // 2EDT-Centroid-Regression-Non-Most-Recent-Line-Extension-A
    int h_cr_nonrecent_b;    // 2EDT-Centroid-Regression-Non-Most-Recent-Line-Extension-B
-   int h_fractal_bestfit;   // 2EDT-Fractal-Best-Fit-v5 (4=BestFL, 5=UOEDT, 6=LOEDT)
-   int h_best_resistance;   // Single-Best-Resistance-Line-v3 (buffer 2 = ExtBestFL)
-   int h_best_support;      // Single-Best-Support-Line-v3 (buffer 2 = ExtBestFL)
-   int h_zigzag;            // ZigZag-Export-v43 (0=peak, 1=bottom, 2=color class)
-   int h_zscore_candle;     // zscore-ohlc-candle-export (4=class, 5=body size, 6=z-score)
+   int h_fractal_bestfit;   // 2EDT-Fractal-Best-Fit-v5 - buffers 4/5/6 (BestFL/UOEDT/LOEDT) are the
+                             // OLD MQL5-computed lines; v6's fractal_best_fl/uoedt/loedt are Python-
+                             // calculated (fractal_lines.py), so this handle's buffers are never read
+                             // for market_data fields. Kept attached only so the indicator itself
+                             // keeps computing/exporting on the chart.
+   int h_best_resistance;   // Single-Best-Resistance-Line-v3 - buffer 2 (ExtBestFL) is the OLD
+                             // MQL5-computed line; v6's best_resistance is Python-calculated. Same
+                             // "kept attached, never read" rationale as h_fractal_bestfit.
+   int h_best_support;      // Single-Best-Support-Line-v3 - same rationale as h_best_resistance.
+   int h_zigzag;            // ZigZag-Export-v43 (0=peak price, 1=bottom price) - only the pivot
+                             // type/price are admin-layer in v6 (zigzag_point_type/current_point).
+                             // The 9 derived metrics (price/pct change, bars, slope, category, ...)
+                             // are Python-calculated (zigzag_metrics.py) and never read here.
+   int h_zscore_candle;     // zscore-ohlc-candle-export - v6's body_direction/body_size/
+                             // body_classification are all Python-calculated (zscore_candle.py) from
+                             // OHLC; this handle's buffers are never read for market_data fields.
    // ohlcv-export-lightweight has no indicator buffers; OHLCV comes from CopyRates
 };
 
@@ -229,7 +267,7 @@ int g_timerTickCount = 0;     // Counter for hourly stats in timer
 int OnInit()
 {
    Print("========================================");
-   Print("SimpleDataCollector v2.29-ASYNC-SOCKET");
+   Print("SimpleDataCollector v2.29.1-ASYNC-SOCKET");
    Print("========================================");
 
    // Verify Socket Relay configuration
@@ -517,7 +555,7 @@ bool ParseSymbolsList()
 }
 
 //+------------------------------------------------------------------+
-//| Detect broker-specific symbol name                               |
+//| Detect broker-specific symbol name                                |
 //+------------------------------------------------------------------+
 string DetectBrokerSymbol(string baseSymbol)
 {
@@ -559,6 +597,18 @@ string SanitizeSymbolName(string symbol)
 }
 
 //+------------------------------------------------------------------+
+//| Convert an ENUM_TIMEFRAMES to the short string form used by the  |
+//| gateway_contract_market_data.schema.json "timeframe" enum        |
+//| (e.g. PERIOD_M5 -> "M5"), matching the *_v2_29 export indicators.|
+//+------------------------------------------------------------------+
+string TimeframeToShortString(ENUM_TIMEFRAMES tf)
+{
+   string s = EnumToString(tf);
+   StringReplace(s, "PERIOD_", "");
+   return s;
+}
+
+//+------------------------------------------------------------------+
 //| Initialize indicators for all symbols and timeframes             |
 //+------------------------------------------------------------------+
 bool InitializeIndicators()
@@ -596,7 +646,7 @@ bool InitializeIndicators()
 bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 {
    // 1. Centroid Regression — Best Fit (Non-Most-Recent)
-   //    Also supplies the shared SSA trend/signal/cross and fractal 108/119 markers
+   //    Also supplies the shared SSA trend/signal/cross and fractal 108 markers
    tfIndicators[slotIndex].h_cr_bestfit = iCustom(
       sym, tf, "2EDTCentroidRegressionBestFitNonMostRecent_v2_29",
       "===== Main & SSA Settings =====",
@@ -733,7 +783,7 @@ bool InitializeDatabases()
          return false;
       }
 
-      // Migrate existing databases to add v2.29 columns if missing
+      // Migrate existing databases to add v6-aligned columns if missing
       MigrateSymbolTable(i);
 
       Print("✓ Database ready: ", symbolDatabases[i].sanitizedName, ".db");
@@ -743,7 +793,12 @@ bool InitializeDatabases()
 }
 
 //+------------------------------------------------------------------+
-//| Create table for symbol (v2.29 schema, 45 columns)               |
+//| Create table for symbol.                                         |
+//| Column set and names mirror gateway_contract_market_data.schema  |
+//| .json 1:1 (79 fields) so a row here is schema-compatible with    |
+//| market_data if this push path is ever reactivated. terminal_id   |
+//| is added on top since the gateway contract requires it on POST   |
+//| but the server-side market_data table does not persist it.       |
 //+------------------------------------------------------------------+
 bool CreateSymbolTable(int dbIndex)
 {
@@ -751,51 +806,42 @@ bool CreateSymbolTable(int dbIndex)
 
    string createTableSQL = StringFormat(
       "CREATE TABLE IF NOT EXISTS [%s] ("
-      "timestamp INTEGER, "
-      "symbol TEXT, "
+      "timestamp INTEGER NOT NULL, "
+      "symbol TEXT NOT NULL, "
+      "timeframe TEXT NOT NULL, "
+      "terminal_id TEXT, "
       "open REAL NOT NULL, "
       "high REAL NOT NULL, "
       "low REAL NOT NULL, "
       "close REAL NOT NULL, "
-      "volume INTEGER, "
-      "timeframe TEXT, "
-      "ssa_trend REAL, "
-      "ssa_signal REAL, "
-      "ssa_cross INTEGER, "
-      "fractal_upper_108 REAL, "
-      "fractal_lower_108 REAL, "
-      "fractal_upper_119 REAL, "
-      "fractal_lower_119 REAL, "
-      "bestfit_baseline REAL, "
-      "bestfit_uoedt REAL, "
-      "bestfit_loedt REAL, "
-      "cherry_a_baseline REAL, "
-      "cherry_a_uoedt REAL, "
-      "cherry_a_loedt REAL, "
-      "cherry_b_baseline REAL, "
-      "cherry_b_uoedt REAL, "
-      "cherry_b_loedt REAL, "
-      "mostrecent_baseline REAL, "
-      "mostrecent_uoedt REAL, "
-      "mostrecent_loedt REAL, "
-      "nonrecent_a_baseline REAL, "
-      "nonrecent_a_uoedt REAL, "
-      "nonrecent_a_loedt REAL, "
-      "nonrecent_b_baseline REAL, "
-      "nonrecent_b_uoedt REAL, "
-      "nonrecent_b_loedt REAL, "
-      "fbf_best_fl REAL, "
-      "fbf_uoedt REAL, "
-      "fbf_loedt REAL, "
-      "best_resistance REAL, "
-      "best_support REAL, "
-      "zigzag_peak REAL, "
-      "zigzag_bottom REAL, "
-      "zigzag_class INTEGER, "
-      "body_size REAL, "
-      "body_zscore REAL, "
-      "candle_classification INTEGER, "
-      "collected_at INTEGER, "
+      "volume INTEGER NOT NULL, "
+      "best_fit_horiz_high_map REAL, best_fit_horiz_low_map REAL, best_fit_ssa REAL, "
+      "best_fit_ema_ssa REAL, best_fit_crossing INTEGER, "
+      "best_fit_base_fl REAL, best_fit_uoedt REAL, best_fit_loedt REAL, "
+      "cherry_a_horiz_high_map REAL, cherry_a_horiz_low_map REAL, cherry_a_ssa REAL, "
+      "cherry_a_ema_ssa REAL, cherry_a_crossing INTEGER, "
+      "cherry_a_base_fl REAL, cherry_a_uoedt REAL, cherry_a_loedt REAL, "
+      "cherry_b_horiz_high_map REAL, cherry_b_horiz_low_map REAL, cherry_b_ssa REAL, "
+      "cherry_b_ema_ssa REAL, cherry_b_crossing INTEGER, "
+      "cherry_b_base_fl REAL, cherry_b_uoedt REAL, cherry_b_loedt REAL, "
+      "most_recent_horiz_high_map REAL, most_recent_horiz_low_map REAL, most_recent_ssa REAL, "
+      "most_recent_ema_ssa REAL, most_recent_crossing INTEGER, "
+      "most_recent_base_fl REAL, most_recent_uoedt REAL, most_recent_loedt REAL, "
+      "non_a_horiz_high_map REAL, non_a_horiz_low_map REAL, non_a_ssa REAL, "
+      "non_a_ema_ssa REAL, non_a_crossing INTEGER, "
+      "non_a_base_fl REAL, non_a_uoedt REAL, non_a_loedt REAL, "
+      "non_b_horiz_high_map REAL, non_b_horiz_low_map REAL, non_b_ssa REAL, "
+      "non_b_ema_ssa REAL, non_b_crossing INTEGER, "
+      "non_b_base_fl REAL, non_b_uoedt REAL, non_b_loedt REAL, "
+      "fractal_best_fl REAL, fractal_uoedt REAL, fractal_loedt REAL, "
+      "best_resistance REAL, best_support REAL, "
+      "body_direction INTEGER, body_size REAL, body_classification INTEGER, "
+      "zigzag_point_type TEXT, zigzag_current_point REAL, "
+      "zigzag_price_change REAL, zigzag_pct_change REAL, zigzag_pct_change_class INTEGER, "
+      "zigzag_bars INTEGER, zigzag_bars_class INTEGER, "
+      "zigzag_price_per_bar REAL, zigzag_price_per_bar_class INTEGER, "
+      "zigzag_slope REAL, zigzag_category TEXT, "
+      "cycle_id INTEGER, collected_at INTEGER, calculated_at INTEGER, "
       "PRIMARY KEY (timestamp, timeframe)"
       ")",
       tableName
@@ -814,7 +860,7 @@ bool CreateSymbolTable(int dbIndex)
 }
 
 //+------------------------------------------------------------------+
-//| Migrate existing table to add v2.29 columns if missing           |
+//| Migrate existing table to add v6-aligned columns if missing      |
 //| (ALTER TABLE fails silently when a column already exists)        |
 //+------------------------------------------------------------------+
 void MigrateSymbolTable(int dbIndex)
@@ -822,19 +868,34 @@ void MigrateSymbolTable(int dbIndex)
    string tableName = symbolDatabases[dbIndex].sanitizedName;
 
    string newColumns[] = {
-      "ssa_trend REAL", "ssa_signal REAL", "ssa_cross INTEGER",
-      "fractal_upper_108 REAL", "fractal_lower_108 REAL",
-      "fractal_upper_119 REAL", "fractal_lower_119 REAL",
-      "bestfit_baseline REAL", "bestfit_uoedt REAL", "bestfit_loedt REAL",
-      "cherry_a_baseline REAL", "cherry_a_uoedt REAL", "cherry_a_loedt REAL",
-      "cherry_b_baseline REAL", "cherry_b_uoedt REAL", "cherry_b_loedt REAL",
-      "mostrecent_baseline REAL", "mostrecent_uoedt REAL", "mostrecent_loedt REAL",
-      "nonrecent_a_baseline REAL", "nonrecent_a_uoedt REAL", "nonrecent_a_loedt REAL",
-      "nonrecent_b_baseline REAL", "nonrecent_b_uoedt REAL", "nonrecent_b_loedt REAL",
-      "fbf_best_fl REAL", "fbf_uoedt REAL", "fbf_loedt REAL",
+      "terminal_id TEXT",
+      "best_fit_horiz_high_map REAL", "best_fit_horiz_low_map REAL", "best_fit_ssa REAL",
+      "best_fit_ema_ssa REAL", "best_fit_crossing INTEGER",
+      "best_fit_base_fl REAL", "best_fit_uoedt REAL", "best_fit_loedt REAL",
+      "cherry_a_horiz_high_map REAL", "cherry_a_horiz_low_map REAL", "cherry_a_ssa REAL",
+      "cherry_a_ema_ssa REAL", "cherry_a_crossing INTEGER",
+      "cherry_a_base_fl REAL", "cherry_a_uoedt REAL", "cherry_a_loedt REAL",
+      "cherry_b_horiz_high_map REAL", "cherry_b_horiz_low_map REAL", "cherry_b_ssa REAL",
+      "cherry_b_ema_ssa REAL", "cherry_b_crossing INTEGER",
+      "cherry_b_base_fl REAL", "cherry_b_uoedt REAL", "cherry_b_loedt REAL",
+      "most_recent_horiz_high_map REAL", "most_recent_horiz_low_map REAL", "most_recent_ssa REAL",
+      "most_recent_ema_ssa REAL", "most_recent_crossing INTEGER",
+      "most_recent_base_fl REAL", "most_recent_uoedt REAL", "most_recent_loedt REAL",
+      "non_a_horiz_high_map REAL", "non_a_horiz_low_map REAL", "non_a_ssa REAL",
+      "non_a_ema_ssa REAL", "non_a_crossing INTEGER",
+      "non_a_base_fl REAL", "non_a_uoedt REAL", "non_a_loedt REAL",
+      "non_b_horiz_high_map REAL", "non_b_horiz_low_map REAL", "non_b_ssa REAL",
+      "non_b_ema_ssa REAL", "non_b_crossing INTEGER",
+      "non_b_base_fl REAL", "non_b_uoedt REAL", "non_b_loedt REAL",
+      "fractal_best_fl REAL", "fractal_uoedt REAL", "fractal_loedt REAL",
       "best_resistance REAL", "best_support REAL",
-      "zigzag_peak REAL", "zigzag_bottom REAL", "zigzag_class INTEGER",
-      "body_size REAL", "body_zscore REAL", "candle_classification INTEGER"
+      "body_direction INTEGER", "body_size REAL", "body_classification INTEGER",
+      "zigzag_point_type TEXT", "zigzag_current_point REAL",
+      "zigzag_price_change REAL", "zigzag_pct_change REAL", "zigzag_pct_change_class INTEGER",
+      "zigzag_bars INTEGER", "zigzag_bars_class INTEGER",
+      "zigzag_price_per_bar REAL", "zigzag_price_per_bar_class INTEGER",
+      "zigzag_slope REAL", "zigzag_category TEXT",
+      "cycle_id INTEGER", "collected_at INTEGER", "calculated_at INTEGER"
    };
 
    for(int i = 0; i < ArraySize(newColumns); i++)
@@ -862,6 +923,109 @@ double GetIndicatorValue(int handle, int buffer, int shift)
 }
 
 //+------------------------------------------------------------------+
+//| Read the v6 admin-layer fields for one centroid-regression       |
+//| variant handle: horiz_high_map(3), horiz_low_map(4), ssa(0),     |
+//| ema_ssa(1), crossing(2, collapsed to 0/1). Buffers 5/6 (119) and |
+//| 7/8/9 (OLD computed BaseLine/UOEDT/LOEDT) are intentionally not  |
+//| read - Python owns base_fl/uoedt/loedt in v6.                    |
+//+------------------------------------------------------------------+
+CentroidFields GetCentroidFields(int handle, int shift)
+{
+   CentroidFields f;
+   f.ssa            = GetIndicatorValue(handle, 0, shift);
+   f.ema_ssa        = GetIndicatorValue(handle, 1, shift);
+   double crossRaw  = GetIndicatorValue(handle, 2, shift);
+   f.crossing       = (crossRaw != EMPTY_VALUE && crossRaw != 0.0) ? 1 : 0;
+   f.horiz_high_map = GetIndicatorValue(handle, 3, shift);
+   f.horiz_low_map  = GetIndicatorValue(handle, 4, shift);
+   return f;
+}
+
+//+------------------------------------------------------------------+
+//| Read the v6 admin-layer zigzag pivot (buffer 0=peak price,       |
+//| buffer 1=bottom price; both use 0.0 as "no pivot on this bar").  |
+//| point_type is "" and current_point is EMPTY_VALUE when this bar  |
+//| is not a pivot - both serialize to null downstream.              |
+//+------------------------------------------------------------------+
+void GetZigZagAdmin(int handle, int shift, string &pointType, double &currentPoint)
+{
+   double peak   = GetIndicatorValue(handle, 0, shift);
+   double bottom = GetIndicatorValue(handle, 1, shift);
+
+   if(peak != EMPTY_VALUE && peak != 0.0)
+   {
+      pointType = "Peak";
+      currentPoint = peak;
+   }
+   else if(bottom != EMPTY_VALUE && bottom != 0.0)
+   {
+      pointType = "Bottom";
+      currentPoint = bottom;
+   }
+   else
+   {
+      pointType = "";
+      currentPoint = EMPTY_VALUE;
+   }
+}
+
+//+------------------------------------------------------------------+
+//| JSON/SQL null-safe formatting helpers                            |
+//| (gateway_contract_market_data.schema.json: "empty export fields  |
+//| are stored as NULL, not 0")                                      |
+//+------------------------------------------------------------------+
+string DoubleOrNull(double v)
+{
+   return (v == EMPTY_VALUE) ? "null" : DoubleToString(v, 5);
+}
+
+string StrOrNull(string v)
+{
+   return (v == "") ? "null" : ("\"" + v + "\"");
+}
+
+string SqlNumOrNull(double v)
+{
+   return (v == EMPTY_VALUE) ? "NULL" : DoubleToString(v, 5);
+}
+
+string SqlStrOrNull(string v)
+{
+   return (v == "") ? "NULL" : ("'" + v + "'");
+}
+
+//+------------------------------------------------------------------+
+//| One centroid variant's admin fields as a JSON fragment (no       |
+//| surrounding braces). base_fl/uoedt/loedt are always null - they  |
+//| are Python-calculated (centroid_regression.py), never MQL5.      |
+//+------------------------------------------------------------------+
+string CentroidToJson(string prefix, CentroidFields &c)
+{
+   return StringFormat(
+      "\"%s_horiz_high_map\":%s,\"%s_horiz_low_map\":%s,\"%s_ssa\":%s,\"%s_ema_ssa\":%s,\"%s_crossing\":%d,"
+      "\"%s_base_fl\":null,\"%s_uoedt\":null,\"%s_loedt\":null",
+      prefix, DoubleOrNull(c.horiz_high_map),
+      prefix, DoubleOrNull(c.horiz_low_map),
+      prefix, DoubleOrNull(c.ssa),
+      prefix, DoubleOrNull(c.ema_ssa),
+      prefix, c.crossing,
+      prefix, prefix, prefix
+   );
+}
+
+//+------------------------------------------------------------------+
+//| One centroid variant's admin fields as SQL VALUES fragment, in   |
+//| the same column order as CreateSymbolTable's *_horiz_high_map .. |
+//| *_loedt block.                                                   |
+//+------------------------------------------------------------------+
+string CentroidToSqlValues(CentroidFields &c)
+{
+   return SqlNumOrNull(c.horiz_high_map) + "," + SqlNumOrNull(c.horiz_low_map) + "," +
+          SqlNumOrNull(c.ssa) + "," + SqlNumOrNull(c.ema_ssa) + "," +
+          IntegerToString(c.crossing) + ",NULL,NULL,NULL";
+}
+
+//+------------------------------------------------------------------+
 //| Insert candle data for one symbol/timeframe                      |
 //+------------------------------------------------------------------+
 bool InsertCandle(int symbolIndex, int tfIndex)
@@ -882,63 +1046,30 @@ bool InsertCandle(int symbolIndex, int tfIndex)
 
    int shift = 1;
 
-   // --- Shared SSA + fractal markers (identical in all 6 centroid variants;
-   //     read once from the Best-Fit handle) ---
-   double ssa_trend  = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 0, shift);
-   double ssa_signal = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 1, shift);
-   double ssa_cross_raw = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 2, shift);
-   int ssa_cross = (ssa_cross_raw != EMPTY_VALUE && ssa_cross_raw != 0.0) ? 1 : 0;
+   // --- Centroid-regression admin layer (horiz_high_map/horiz_low_map/ssa/
+   //     ema_ssa/crossing) per variant. base_fl/uoedt/loedt are Python-only
+   //     and always sent as null (see CentroidToJson/CentroidToSqlValues). ---
+   CentroidFields best_fit    = GetCentroidFields(tfIndicators[slotIndex].h_cr_bestfit, shift);
+   CentroidFields cherry_a    = GetCentroidFields(tfIndicators[slotIndex].h_cr_cherry_a, shift);
+   CentroidFields cherry_b    = GetCentroidFields(tfIndicators[slotIndex].h_cr_cherry_b, shift);
+   CentroidFields most_recent = GetCentroidFields(tfIndicators[slotIndex].h_cr_mostrecent, shift);
+   CentroidFields non_a       = GetCentroidFields(tfIndicators[slotIndex].h_cr_nonrecent_a, shift);
+   CentroidFields non_b       = GetCentroidFields(tfIndicators[slotIndex].h_cr_nonrecent_b, shift);
 
-   double fractal_upper_108 = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 3, shift);
-   double fractal_lower_108 = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 4, shift);
-   double fractal_upper_119 = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 5, shift);
-   double fractal_lower_119 = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 6, shift);
+   // --- ZigZag admin layer: pivot type/price only. ---
+   string zigzag_point_type;
+   double zigzag_current_point;
+   GetZigZagAdmin(tfIndicators[slotIndex].h_zigzag, shift, zigzag_point_type, zigzag_current_point);
 
-   // --- Centroid regression variants: BaseLine(7), UOEDT(8), LOEDT(9) ---
-   double bestfit_baseline = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 7, shift);
-   double bestfit_uoedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 8, shift);
-   double bestfit_loedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_bestfit, 9, shift);
-
-   double cherry_a_baseline = GetIndicatorValue(tfIndicators[slotIndex].h_cr_cherry_a, 7, shift);
-   double cherry_a_uoedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_cherry_a, 8, shift);
-   double cherry_a_loedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_cherry_a, 9, shift);
-
-   double cherry_b_baseline = GetIndicatorValue(tfIndicators[slotIndex].h_cr_cherry_b, 7, shift);
-   double cherry_b_uoedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_cherry_b, 8, shift);
-   double cherry_b_loedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_cherry_b, 9, shift);
-
-   double mostrecent_baseline = GetIndicatorValue(tfIndicators[slotIndex].h_cr_mostrecent, 7, shift);
-   double mostrecent_uoedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_mostrecent, 8, shift);
-   double mostrecent_loedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_mostrecent, 9, shift);
-
-   double nonrecent_a_baseline = GetIndicatorValue(tfIndicators[slotIndex].h_cr_nonrecent_a, 7, shift);
-   double nonrecent_a_uoedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_nonrecent_a, 8, shift);
-   double nonrecent_a_loedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_nonrecent_a, 9, shift);
-
-   double nonrecent_b_baseline = GetIndicatorValue(tfIndicators[slotIndex].h_cr_nonrecent_b, 7, shift);
-   double nonrecent_b_uoedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_nonrecent_b, 8, shift);
-   double nonrecent_b_loedt    = GetIndicatorValue(tfIndicators[slotIndex].h_cr_nonrecent_b, 9, shift);
-
-   // --- 2EDT Fractal Best Fit v5: BestFL(4), UOEDT(5), LOEDT(6) ---
-   double fbf_best_fl = GetIndicatorValue(tfIndicators[slotIndex].h_fractal_bestfit, 4, shift);
-   double fbf_uoedt   = GetIndicatorValue(tfIndicators[slotIndex].h_fractal_bestfit, 5, shift);
-   double fbf_loedt   = GetIndicatorValue(tfIndicators[slotIndex].h_fractal_bestfit, 6, shift);
-
-   // --- Single Best Resistance/Support Line v3: ExtBestFL(2) ---
-   double best_resistance = GetIndicatorValue(tfIndicators[slotIndex].h_best_resistance, 2, shift);
-   double best_support    = GetIndicatorValue(tfIndicators[slotIndex].h_best_support, 2, shift);
-
-   // --- ZigZag Export v43: peak(0), bottom(1), classification color index(2) ---
-   double zigzag_peak   = GetIndicatorValue(tfIndicators[slotIndex].h_zigzag, 0, shift);
-   double zigzag_bottom = GetIndicatorValue(tfIndicators[slotIndex].h_zigzag, 1, shift);
-   double zz_class_raw  = GetIndicatorValue(tfIndicators[slotIndex].h_zigzag, 2, shift);
-   int zigzag_class = (int)(zz_class_raw != EMPTY_VALUE ? zz_class_raw : 0);
-
-   // --- Z-Score OHLC Candle: class(4), body size(5), z-score(6) ---
-   double candle_class_raw = GetIndicatorValue(tfIndicators[slotIndex].h_zscore_candle, 4, shift);
-   int candle_classification = (int)(candle_class_raw != EMPTY_VALUE ? candle_class_raw : 0);
-   double body_size   = GetIndicatorValue(tfIndicators[slotIndex].h_zscore_candle, 5, shift);
-   double body_zscore = GetIndicatorValue(tfIndicators[slotIndex].h_zscore_candle, 6, shift);
+   // NOTE: h_fractal_bestfit, h_best_resistance, h_best_support, and
+   // h_zscore_candle stay attached (see TimeframeIndicators comments) but are
+   // deliberately never read here. Every field they could supply
+   // (fractal_best_fl/uoedt/loedt, best_resistance, best_support,
+   // body_direction/body_size/body_classification) is Python-only in v6 -
+   // computed by fractal_lines.py / zscore_candle.py from OHLC, not by MQL5.
+   // Reading their old buffers would silently push wrong numbers under
+   // right-sounding column names, so PublishToLocalRelay/WriteSQLiteBackup
+   // send those fields as NULL instead.
 
    // ============================================================
    // PRIMARY PATH: Local Async Socket Fire & Forget
@@ -954,18 +1085,8 @@ bool InsertCandle(int symbolIndex, int tfIndex)
       {
          bool socketSuccess = PublishToLocalRelay(
             sanitizedName, tf, rate[0],
-            ssa_trend, ssa_signal, ssa_cross,
-            fractal_upper_108, fractal_lower_108, fractal_upper_119, fractal_lower_119,
-            bestfit_baseline, bestfit_uoedt, bestfit_loedt,
-            cherry_a_baseline, cherry_a_uoedt, cherry_a_loedt,
-            cherry_b_baseline, cherry_b_uoedt, cherry_b_loedt,
-            mostrecent_baseline, mostrecent_uoedt, mostrecent_loedt,
-            nonrecent_a_baseline, nonrecent_a_uoedt, nonrecent_a_loedt,
-            nonrecent_b_baseline, nonrecent_b_uoedt, nonrecent_b_loedt,
-            fbf_best_fl, fbf_uoedt, fbf_loedt,
-            best_resistance, best_support,
-            zigzag_peak, zigzag_bottom, zigzag_class,
-            body_size, body_zscore, candle_classification
+            best_fit, cherry_a, cherry_b, most_recent, non_a, non_b,
+            zigzag_point_type, zigzag_current_point
          );
 
          if(socketSuccess)
@@ -1012,19 +1133,9 @@ bool InsertCandle(int symbolIndex, int tfIndex)
    }
 
    bool sqliteSuccess = WriteSQLiteBackup(
-      dbIndex, tf, rate[0],
-      ssa_trend, ssa_signal, ssa_cross,
-      fractal_upper_108, fractal_lower_108, fractal_upper_119, fractal_lower_119,
-      bestfit_baseline, bestfit_uoedt, bestfit_loedt,
-      cherry_a_baseline, cherry_a_uoedt, cherry_a_loedt,
-      cherry_b_baseline, cherry_b_uoedt, cherry_b_loedt,
-      mostrecent_baseline, mostrecent_uoedt, mostrecent_loedt,
-      nonrecent_a_baseline, nonrecent_a_uoedt, nonrecent_a_loedt,
-      nonrecent_b_baseline, nonrecent_b_uoedt, nonrecent_b_loedt,
-      fbf_best_fl, fbf_uoedt, fbf_loedt,
-      best_resistance, best_support,
-      zigzag_peak, zigzag_bottom, zigzag_class,
-      body_size, body_zscore, candle_classification
+      dbIndex, sanitizedName, tf, rate[0],
+      best_fit, cherry_a, cherry_b, most_recent, non_a, non_b,
+      zigzag_point_type, zigzag_current_point
    );
 
    if(sqliteSuccess)
@@ -1041,120 +1152,55 @@ bool InsertCandle(int symbolIndex, int tfIndex)
 }
 
 //+------------------------------------------------------------------+
-//| Publish to Async TCP Socket Relay (v2.29 schema)                 |
+//| Publish to Async TCP Socket Relay.                                |
+//| JSON field set/names match gateway_contract_market_data.schema   |
+//| .json exactly (additionalProperties:false - 79 fields, no more,  |
+//| no less). Python-only fields are emitted as JSON null, never 0.  |
 //+------------------------------------------------------------------+
 bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
-                        double ssa_trend, double ssa_signal, int ssa_cross,
-                        double fractal_upper_108, double fractal_lower_108,
-                        double fractal_upper_119, double fractal_lower_119,
-                        double bestfit_baseline, double bestfit_uoedt, double bestfit_loedt,
-                        double cherry_a_baseline, double cherry_a_uoedt, double cherry_a_loedt,
-                        double cherry_b_baseline, double cherry_b_uoedt, double cherry_b_loedt,
-                        double mostrecent_baseline, double mostrecent_uoedt, double mostrecent_loedt,
-                        double nonrecent_a_baseline, double nonrecent_a_uoedt, double nonrecent_a_loedt,
-                        double nonrecent_b_baseline, double nonrecent_b_uoedt, double nonrecent_b_loedt,
-                        double fbf_best_fl, double fbf_uoedt, double fbf_loedt,
-                        double best_resistance, double best_support,
-                        double zigzag_peak, double zigzag_bottom, int zigzag_class,
-                        double body_size, double body_zscore, int candle_classification)
+                          CentroidFields &best_fit, CentroidFields &cherry_a, CentroidFields &cherry_b,
+                          CentroidFields &most_recent, CentroidFields &non_a, CentroidFields &non_b,
+                          string zigzag_point_type, double zigzag_current_point)
 {
-   // Build complete JSON payload with all columns
-   string payload = StringFormat(
-      "{"
-      "\"terminal_id\":\"%s\","
-      "\"symbol\":\"%s\","
-      "\"timeframe\":\"%s\","
-      "\"timestamp\":%d,"
-      "\"open\":%.5f,"
-      "\"high\":%.5f,"
-      "\"low\":%.5f,"
-      "\"close\":%.5f,"
-      "\"volume\":%d,"
-      "\"ssa_trend\":%.5f,"
-      "\"ssa_signal\":%.5f,"
-      "\"ssa_cross\":%d,"
-      "\"fractal_upper_108\":%.5f,"
-      "\"fractal_lower_108\":%.5f,"
-      "\"fractal_upper_119\":%.5f,"
-      "\"fractal_lower_119\":%.5f,"
-      "\"bestfit_baseline\":%.5f,"
-      "\"bestfit_uoedt\":%.5f,"
-      "\"bestfit_loedt\":%.5f,"
-      "\"cherry_a_baseline\":%.5f,"
-      "\"cherry_a_uoedt\":%.5f,"
-      "\"cherry_a_loedt\":%.5f,"
-      "\"cherry_b_baseline\":%.5f,"
-      "\"cherry_b_uoedt\":%.5f,"
-      "\"cherry_b_loedt\":%.5f,"
-      "\"mostrecent_baseline\":%.5f,"
-      "\"mostrecent_uoedt\":%.5f,"
-      "\"mostrecent_loedt\":%.5f,"
-      "\"nonrecent_a_baseline\":%.5f,"
-      "\"nonrecent_a_uoedt\":%.5f,"
-      "\"nonrecent_a_loedt\":%.5f,"
-      "\"nonrecent_b_baseline\":%.5f,"
-      "\"nonrecent_b_uoedt\":%.5f,"
-      "\"nonrecent_b_loedt\":%.5f,"
-      "\"fbf_best_fl\":%.5f,"
-      "\"fbf_uoedt\":%.5f,"
-      "\"fbf_loedt\":%.5f,"
-      "\"best_resistance\":%.5f,"
-      "\"best_support\":%.5f,"
-      "\"zigzag_peak\":%.5f,"
-      "\"zigzag_bottom\":%.5f,"
-      "\"zigzag_class\":%d,"
-      "\"body_size\":%.5f,"
-      "\"body_zscore\":%.5f,"
-      "\"candle_classification\":%d,"
-      "\"collected_at\":%d"
-      "}\n",  // CRITICAL: The \n delimiter allows Python to readline()
-      TerminalID,
-      symbol,
-      EnumToString(tf),
-      (long)rate.time,
-      rate.open,
-      rate.high,
-      rate.low,
-      rate.close,
-      (long)rate.tick_volume,
-      (ssa_trend != EMPTY_VALUE ? ssa_trend : 0),
-      (ssa_signal != EMPTY_VALUE ? ssa_signal : 0),
-      ssa_cross,
-      (fractal_upper_108 != EMPTY_VALUE ? fractal_upper_108 : 0),
-      (fractal_lower_108 != EMPTY_VALUE ? fractal_lower_108 : 0),
-      (fractal_upper_119 != EMPTY_VALUE ? fractal_upper_119 : 0),
-      (fractal_lower_119 != EMPTY_VALUE ? fractal_lower_119 : 0),
-      (bestfit_baseline != EMPTY_VALUE ? bestfit_baseline : 0),
-      (bestfit_uoedt != EMPTY_VALUE ? bestfit_uoedt : 0),
-      (bestfit_loedt != EMPTY_VALUE ? bestfit_loedt : 0),
-      (cherry_a_baseline != EMPTY_VALUE ? cherry_a_baseline : 0),
-      (cherry_a_uoedt != EMPTY_VALUE ? cherry_a_uoedt : 0),
-      (cherry_a_loedt != EMPTY_VALUE ? cherry_a_loedt : 0),
-      (cherry_b_baseline != EMPTY_VALUE ? cherry_b_baseline : 0),
-      (cherry_b_uoedt != EMPTY_VALUE ? cherry_b_uoedt : 0),
-      (cherry_b_loedt != EMPTY_VALUE ? cherry_b_loedt : 0),
-      (mostrecent_baseline != EMPTY_VALUE ? mostrecent_baseline : 0),
-      (mostrecent_uoedt != EMPTY_VALUE ? mostrecent_uoedt : 0),
-      (mostrecent_loedt != EMPTY_VALUE ? mostrecent_loedt : 0),
-      (nonrecent_a_baseline != EMPTY_VALUE ? nonrecent_a_baseline : 0),
-      (nonrecent_a_uoedt != EMPTY_VALUE ? nonrecent_a_uoedt : 0),
-      (nonrecent_a_loedt != EMPTY_VALUE ? nonrecent_a_loedt : 0),
-      (nonrecent_b_baseline != EMPTY_VALUE ? nonrecent_b_baseline : 0),
-      (nonrecent_b_uoedt != EMPTY_VALUE ? nonrecent_b_uoedt : 0),
-      (nonrecent_b_loedt != EMPTY_VALUE ? nonrecent_b_loedt : 0),
-      (fbf_best_fl != EMPTY_VALUE ? fbf_best_fl : 0),
-      (fbf_uoedt != EMPTY_VALUE ? fbf_uoedt : 0),
-      (fbf_loedt != EMPTY_VALUE ? fbf_loedt : 0),
-      (best_resistance != EMPTY_VALUE ? best_resistance : 0),
-      (best_support != EMPTY_VALUE ? best_support : 0),
-      (zigzag_peak != EMPTY_VALUE ? zigzag_peak : 0),
-      (zigzag_bottom != EMPTY_VALUE ? zigzag_bottom : 0),
-      zigzag_class,
-      (body_size != EMPTY_VALUE ? body_size : 0),
-      (body_zscore != EMPTY_VALUE ? body_zscore : 0),
-      candle_classification,
-      (long)TimeCurrent()
-   );
+   string payload = "{";
+
+   payload += "\"terminal_id\":\"" + TerminalID + "\",";
+   payload += "\"timestamp\":" + IntegerToString((long)rate.time) + ",";
+   payload += "\"symbol\":\"" + symbol + "\",";
+   payload += "\"timeframe\":\"" + TimeframeToShortString(tf) + "\",";
+   payload += "\"open\":" + DoubleToString(rate.open, 5) + ",";
+   payload += "\"high\":" + DoubleToString(rate.high, 5) + ",";
+   payload += "\"low\":" + DoubleToString(rate.low, 5) + ",";
+   payload += "\"close\":" + DoubleToString(rate.close, 5) + ",";
+   payload += "\"volume\":" + IntegerToString((long)rate.tick_volume) + ",";
+
+   payload += CentroidToJson("best_fit", best_fit) + ",";
+   payload += CentroidToJson("cherry_a", cherry_a) + ",";
+   payload += CentroidToJson("cherry_b", cherry_b) + ",";
+   payload += CentroidToJson("most_recent", most_recent) + ",";
+   payload += CentroidToJson("non_a", non_a) + ",";
+   payload += CentroidToJson("non_b", non_b) + ",";
+
+   // Fractal/resistance/support/body classification — Python-only in v6.
+   payload += "\"fractal_best_fl\":null,\"fractal_uoedt\":null,\"fractal_loedt\":null,";
+   payload += "\"best_resistance\":null,\"best_support\":null,";
+   payload += "\"body_direction\":null,\"body_size\":null,\"body_classification\":null,";
+
+   // ZigZag: pivot type/price are admin (MQL5); the 9 segment metrics are Python-only.
+   payload += "\"zigzag_point_type\":" + StrOrNull(zigzag_point_type) + ",";
+   payload += "\"zigzag_current_point\":" + DoubleOrNull(zigzag_current_point) + ",";
+   payload += "\"zigzag_price_change\":null,\"zigzag_pct_change\":null,\"zigzag_pct_change_class\":null,";
+   payload += "\"zigzag_bars\":null,\"zigzag_bars_class\":null,\"zigzag_price_per_bar\":null,";
+   payload += "\"zigzag_price_per_bar_class\":null,\"zigzag_slope\":null,\"zigzag_category\":null,";
+
+   // Provenance: cycle_id/calculated_at belong to the export-file pipeline's
+   // COLLECT/CALCULATE stages, which this direct-push EA bypasses entirely.
+   // collected_at is this push's own timestamp (this EA's closest analog).
+   payload += "\"cycle_id\":null,";
+   payload += "\"collected_at\":" + IntegerToString((long)TimeCurrent()) + ",";
+   payload += "\"calculated_at\":null";
+
+   payload += "}\n";  // CRITICAL: The \n delimiter allows Python to readline()
 
    // --- NATIVE MQL5 SOCKET IMPLEMENTATION ---
    int socket = SocketCreate();
@@ -1183,101 +1229,61 @@ bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
 }
 
 //+------------------------------------------------------------------+
-//| Write to SQLite backup (Fallback only)                           |
+//| Write to SQLite backup (Fallback only).                          |
+//| Column set/order matches CreateSymbolTable, which mirrors        |
+//| gateway_contract_market_data.schema.json. Python-only fields are |
+//| written as SQL NULL, never 0 (sqlite_schema_v6_xauusd.sql:       |
+//| "Empty export fields are stored as NULL, not 0").                |
 //+------------------------------------------------------------------+
-bool WriteSQLiteBackup(int dbIndex, ENUM_TIMEFRAMES tf, MqlRates &rate,
-                       double ssa_trend, double ssa_signal, int ssa_cross,
-                       double fractal_upper_108, double fractal_lower_108,
-                       double fractal_upper_119, double fractal_lower_119,
-                       double bestfit_baseline, double bestfit_uoedt, double bestfit_loedt,
-                       double cherry_a_baseline, double cherry_a_uoedt, double cherry_a_loedt,
-                       double cherry_b_baseline, double cherry_b_uoedt, double cherry_b_loedt,
-                       double mostrecent_baseline, double mostrecent_uoedt, double mostrecent_loedt,
-                       double nonrecent_a_baseline, double nonrecent_a_uoedt, double nonrecent_a_loedt,
-                       double nonrecent_b_baseline, double nonrecent_b_uoedt, double nonrecent_b_loedt,
-                       double fbf_best_fl, double fbf_uoedt, double fbf_loedt,
-                       double best_resistance, double best_support,
-                       double zigzag_peak, double zigzag_bottom, int zigzag_class,
-                       double body_size, double body_zscore, int candle_classification)
+bool WriteSQLiteBackup(int dbIndex, string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
+                        CentroidFields &best_fit, CentroidFields &cherry_a, CentroidFields &cherry_b,
+                        CentroidFields &most_recent, CentroidFields &non_a, CentroidFields &non_b,
+                        string zigzag_point_type, double zigzag_current_point)
 {
    string tableName = symbolDatabases[dbIndex].sanitizedName;
 
-   // Build complete INSERT statement with all columns
-   string insertSQL = StringFormat(
-      "INSERT OR REPLACE INTO [%s] "
-      "(timestamp, symbol, open, high, low, close, volume, timeframe, "
-      "ssa_trend, ssa_signal, ssa_cross, "
-      "fractal_upper_108, fractal_lower_108, fractal_upper_119, fractal_lower_119, "
-      "bestfit_baseline, bestfit_uoedt, bestfit_loedt, "
-      "cherry_a_baseline, cherry_a_uoedt, cherry_a_loedt, "
-      "cherry_b_baseline, cherry_b_uoedt, cherry_b_loedt, "
-      "mostrecent_baseline, mostrecent_uoedt, mostrecent_loedt, "
-      "nonrecent_a_baseline, nonrecent_a_uoedt, nonrecent_a_loedt, "
-      "nonrecent_b_baseline, nonrecent_b_uoedt, nonrecent_b_loedt, "
-      "fbf_best_fl, fbf_uoedt, fbf_loedt, "
+   string columns =
+      "timestamp, symbol, timeframe, terminal_id, open, high, low, close, volume, "
+      "best_fit_horiz_high_map, best_fit_horiz_low_map, best_fit_ssa, best_fit_ema_ssa, best_fit_crossing, "
+      "best_fit_base_fl, best_fit_uoedt, best_fit_loedt, "
+      "cherry_a_horiz_high_map, cherry_a_horiz_low_map, cherry_a_ssa, cherry_a_ema_ssa, cherry_a_crossing, "
+      "cherry_a_base_fl, cherry_a_uoedt, cherry_a_loedt, "
+      "cherry_b_horiz_high_map, cherry_b_horiz_low_map, cherry_b_ssa, cherry_b_ema_ssa, cherry_b_crossing, "
+      "cherry_b_base_fl, cherry_b_uoedt, cherry_b_loedt, "
+      "most_recent_horiz_high_map, most_recent_horiz_low_map, most_recent_ssa, most_recent_ema_ssa, most_recent_crossing, "
+      "most_recent_base_fl, most_recent_uoedt, most_recent_loedt, "
+      "non_a_horiz_high_map, non_a_horiz_low_map, non_a_ssa, non_a_ema_ssa, non_a_crossing, "
+      "non_a_base_fl, non_a_uoedt, non_a_loedt, "
+      "non_b_horiz_high_map, non_b_horiz_low_map, non_b_ssa, non_b_ema_ssa, non_b_crossing, "
+      "non_b_base_fl, non_b_uoedt, non_b_loedt, "
+      "fractal_best_fl, fractal_uoedt, fractal_loedt, "
       "best_resistance, best_support, "
-      "zigzag_peak, zigzag_bottom, zigzag_class, "
-      "body_size, body_zscore, candle_classification, collected_at) "
-      "VALUES (%d, '%s', %.5f, %.5f, %.5f, %.5f, %d, '%s', "
-      "%.5f, %.5f, %d, "
-      "%.5f, %.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, %.5f, "
-      "%.5f, %.5f, "
-      "%.5f, %.5f, %d, "
-      "%.5f, %.5f, %d, %d)",
-      tableName,
-      (long)rate.time,
-      tableName,
-      rate.open,
-      rate.high,
-      rate.low,
-      rate.close,
-      (long)rate.tick_volume,
-      EnumToString(tf),
-      (ssa_trend != EMPTY_VALUE ? ssa_trend : 0),
-      (ssa_signal != EMPTY_VALUE ? ssa_signal : 0),
-      ssa_cross,
-      (fractal_upper_108 != EMPTY_VALUE ? fractal_upper_108 : 0),
-      (fractal_lower_108 != EMPTY_VALUE ? fractal_lower_108 : 0),
-      (fractal_upper_119 != EMPTY_VALUE ? fractal_upper_119 : 0),
-      (fractal_lower_119 != EMPTY_VALUE ? fractal_lower_119 : 0),
-      (bestfit_baseline != EMPTY_VALUE ? bestfit_baseline : 0),
-      (bestfit_uoedt != EMPTY_VALUE ? bestfit_uoedt : 0),
-      (bestfit_loedt != EMPTY_VALUE ? bestfit_loedt : 0),
-      (cherry_a_baseline != EMPTY_VALUE ? cherry_a_baseline : 0),
-      (cherry_a_uoedt != EMPTY_VALUE ? cherry_a_uoedt : 0),
-      (cherry_a_loedt != EMPTY_VALUE ? cherry_a_loedt : 0),
-      (cherry_b_baseline != EMPTY_VALUE ? cherry_b_baseline : 0),
-      (cherry_b_uoedt != EMPTY_VALUE ? cherry_b_uoedt : 0),
-      (cherry_b_loedt != EMPTY_VALUE ? cherry_b_loedt : 0),
-      (mostrecent_baseline != EMPTY_VALUE ? mostrecent_baseline : 0),
-      (mostrecent_uoedt != EMPTY_VALUE ? mostrecent_uoedt : 0),
-      (mostrecent_loedt != EMPTY_VALUE ? mostrecent_loedt : 0),
-      (nonrecent_a_baseline != EMPTY_VALUE ? nonrecent_a_baseline : 0),
-      (nonrecent_a_uoedt != EMPTY_VALUE ? nonrecent_a_uoedt : 0),
-      (nonrecent_a_loedt != EMPTY_VALUE ? nonrecent_a_loedt : 0),
-      (nonrecent_b_baseline != EMPTY_VALUE ? nonrecent_b_baseline : 0),
-      (nonrecent_b_uoedt != EMPTY_VALUE ? nonrecent_b_uoedt : 0),
-      (nonrecent_b_loedt != EMPTY_VALUE ? nonrecent_b_loedt : 0),
-      (fbf_best_fl != EMPTY_VALUE ? fbf_best_fl : 0),
-      (fbf_uoedt != EMPTY_VALUE ? fbf_uoedt : 0),
-      (fbf_loedt != EMPTY_VALUE ? fbf_loedt : 0),
-      (best_resistance != EMPTY_VALUE ? best_resistance : 0),
-      (best_support != EMPTY_VALUE ? best_support : 0),
-      (zigzag_peak != EMPTY_VALUE ? zigzag_peak : 0),
-      (zigzag_bottom != EMPTY_VALUE ? zigzag_bottom : 0),
-      zigzag_class,
-      (body_size != EMPTY_VALUE ? body_size : 0),
-      (body_zscore != EMPTY_VALUE ? body_zscore : 0),
-      candle_classification,
-      (long)TimeCurrent()
-   );
+      "body_direction, body_size, body_classification, "
+      "zigzag_point_type, zigzag_current_point, zigzag_price_change, zigzag_pct_change, zigzag_pct_change_class, "
+      "zigzag_bars, zigzag_bars_class, zigzag_price_per_bar, zigzag_price_per_bar_class, zigzag_slope, zigzag_category, "
+      "cycle_id, collected_at, calculated_at";
+
+   string values =
+      IntegerToString((long)rate.time) + ",'" + symbol + "','" + TimeframeToShortString(tf) + "','" + TerminalID + "'," +
+      DoubleToString(rate.open, 5) + "," + DoubleToString(rate.high, 5) + "," +
+      DoubleToString(rate.low, 5) + "," + DoubleToString(rate.close, 5) + "," +
+      IntegerToString((long)rate.tick_volume) + "," +
+      CentroidToSqlValues(best_fit) + "," +
+      CentroidToSqlValues(cherry_a) + "," +
+      CentroidToSqlValues(cherry_b) + "," +
+      CentroidToSqlValues(most_recent) + "," +
+      CentroidToSqlValues(non_a) + "," +
+      CentroidToSqlValues(non_b) + "," +
+      "NULL,NULL,NULL," +                              // fractal_best_fl/uoedt/loedt — Python-only
+      "NULL,NULL," +                                   // best_resistance/best_support — Python-only
+      "NULL,NULL,NULL," +                              // body_direction/body_size/body_classification — Python-only
+      SqlStrOrNull(zigzag_point_type) + "," + SqlNumOrNull(zigzag_current_point) + "," +
+      "NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL," + // zigzag_price_change .. zigzag_category — Python-only
+      "NULL," +                                        // cycle_id — COLLECT-stage provenance, not applicable
+      IntegerToString((long)TimeCurrent()) + "," +      // collected_at — this push's own timestamp
+      "NULL";                                           // calculated_at — CALCULATE-stage provenance, not applicable
+
+   string insertSQL = StringFormat("INSERT OR REPLACE INTO [%s] (%s) VALUES (%s)", tableName, columns, values);
 
    int result = symbolDatabases[dbIndex].db.Exec(insertSQL);
 
