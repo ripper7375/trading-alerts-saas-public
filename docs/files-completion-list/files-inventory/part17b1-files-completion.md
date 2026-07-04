@@ -1,7 +1,7 @@
 # Part 17B-1: Admin Portal - Backend & Reports with TDD - List of files completion
 
-**Last Updated:** 2026-01-24
-**Total Files:** 20 files (18 implementation + 2 test files)
+**Last Updated:** 2026-07-04
+**Total Files:** 21 files (19 implementation + 2 test files)
 
 ---
 
@@ -44,8 +44,12 @@
 │ └─ GET: Top performers by conversions with conversion rates
 ├─ Step 12: F9 - ✅ `app/api/admin/affiliates/reports/commission-owings/route.ts`
 │ └─ GET: Affiliates with pending balance >= minimum payout ($50)
-└─ Step 13: F10 - ✅ `app/api/admin/affiliates/reports/code-inventory/route.ts`
-└─ GET: Global code inventory stats (distributed, active, used, expired)
+├─ Step 13: F10 - ✅ `app/api/admin/affiliates/reports/code-inventory/route.ts`
+│ └─ GET: Global code inventory stats (distributed, active, used, expired)
+└─ Step 13b: F10b - ✅ `app/api/admin/affiliates/reports/code-flows/route.ts` (NEW 2026-07-04)
+└─ GET: Global code FLOWS for a period (opening + additions by reason − reductions);
+period reconciliation complementing the point-in-time code-inventory census. Uses
+`buildGlobalCodeInventoryReport()` from `lib/affiliate/report-builder.ts`.
 
 #### Admin Settings API (1 file)
 
@@ -91,11 +95,11 @@
 | Dependency Verification | 3      | ✅ Complete |
 | Admin Library           | 1      | ✅ Complete |
 | Admin Affiliate APIs    | 5      | ✅ Complete |
-| Admin Report APIs       | 4      | ✅ Complete |
+| Admin Report APIs       | 5      | ✅ Complete |
 | Admin Settings API      | 1      | ✅ Complete |
 | Admin Test Files        | 1      | ✅ Complete |
 | Admin Pages             | 7      | ✅ Complete |
-| **TOTAL**               | **20** | **100%**    |
+| **TOTAL**               | **21** | **100%**    |
 
 ---
 
@@ -117,7 +121,8 @@ POST /api/admin/affiliates/:id/reactivate # Reactivate account
 GET /api/admin/affiliates/reports/profit-loss       # P&L report
 GET /api/admin/affiliates/reports/sales-performance # Top performers
 GET /api/admin/affiliates/reports/commission-owings # Pending payments
-GET /api/admin/affiliates/reports/code-inventory    # Code stats
+GET /api/admin/affiliates/reports/code-inventory    # Code stats (point-in-time census)
+GET /api/admin/affiliates/reports/code-flows        # Code flows (period reconciliation)
 ```
 
 ### Settings Endpoint
@@ -204,3 +209,6 @@ PATCH /api/admin/settings/affiliate    # Update config (audited)
 - Reports support period filtering (3mo, 6mo, 1yr)
 - Minimum payout threshold configurable via SystemConfig
 - All monetary values in USD with 2 decimal precision
+- **Updated 2026-07-04:** added `app/api/admin/affiliates/reports/code-flows/route.ts` — a
+  period-based code-flow reconciliation report (opening + additions − reductions) to complement
+  the existing point-in-time `code-inventory` census

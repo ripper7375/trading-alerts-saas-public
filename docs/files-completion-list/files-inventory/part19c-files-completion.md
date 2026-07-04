@@ -244,3 +244,11 @@ Part 19C uses these components:
 - All Part 19A types, constants, providers
 - Part 19B services (batch-manager, payment-orchestrator, transaction-service)
 - Part 19B API patterns for authentication/authorization
+
+---
+
+## Update 2026-07-04
+
+No new files; `lib/disbursement/cron/disbursement-processor.ts` and
+`lib/disbursement/webhook/event-processor.ts` were **modified** (still complete) in the
+2026-07-04 batch.

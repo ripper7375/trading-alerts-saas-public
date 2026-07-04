@@ -149,3 +149,9 @@ app/affiliate/
 - Only users with `isAffiliate: true` can access dashboard
 - Registration available to any authenticated user
 - Email verification required before code distribution
+
+## Update 2026-07-04
+
+Reviewed — **no changes** in the 2026-07-04 batch. All 21 affiliate-portal frontend files remain
+complete; the batch's affiliate work was backend-only (conversion processor + admin code-flows
+report, tracked in Part 17A-1 / Part 17B-1).

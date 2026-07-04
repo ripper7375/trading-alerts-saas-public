@@ -392,3 +392,10 @@ export { PaymentButton } from './PaymentButton';
 | 18C              | User Experience & Admin        | 22         | 3      | 25     |
 | **Total**        | **dLocal Payment Integration** | **52**     | **15** | **67** |
 | Frontend Mirrors | All Parts                      | 21         | 0      | 21     |
+
+---
+
+## Update 2026-07-04
+
+No new files; `app/api/payments/dlocal/validate-discount/route.ts` was **modified** (still
+complete) as part of the shared affiliate-conversion refactor.

@@ -232,3 +232,10 @@ The affiliate system integrates with Part 19 (Disbursement/RiseWorks) for:
 - Email sending uses queue for reliability
 - Component tests use React Testing Library
 - Disbursement integration requires Part 19 to be complete
+
+## Update 2026-07-04
+
+No new files; the cron endpoints were **modified** (still ✅ complete) alongside the affiliate
+conversion refactor: `app/api/cron/distribute-codes/route.ts`,
+`app/api/cron/expire-codes/route.ts`, `app/api/cron/send-monthly-reports/route.ts`, and the
+`vercel.json` cron schedule.

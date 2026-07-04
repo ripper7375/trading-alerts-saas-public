@@ -196,3 +196,11 @@ These files mirror the backend services for frontend deployment:
 | Phase E: Documentation  | 1          | 0     | 1      |
 | **Total**               | **15**     | **8** | **23** |
 | Frontend Mirrors        | 13         | 0     | 13     |
+
+---
+
+## Update 2026-07-04
+
+No new files; `app/api/payments/dlocal/create/route.ts` and `app/api/webhooks/dlocal/route.ts`
+were **modified** (still complete) so the dLocal webhook routes affiliate conversions through the
+shared `lib/affiliate/conversion-processor.ts`.

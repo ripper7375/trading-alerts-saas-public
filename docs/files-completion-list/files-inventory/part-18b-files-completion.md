@@ -255,3 +255,10 @@ Or if not eligible:
 | Phase G: Configuration       | 1          | 0     | 1      |
 | Phase H: Documentation       | 1          | 0     | 1      |
 | **Total**                    | **15**     | **4** | **19** |
+
+---
+
+## Update 2026-07-04
+
+No new files; `app/api/webhooks/dlocal/route.ts` and `vercel.json` were **modified** (still
+complete) as part of the shared affiliate-conversion refactor and cron-schedule touch-up.

@@ -1,7 +1,7 @@
 # Part 17A-1: Affiliate Portal - Foundation & Backend APIs with TDD - List of files completion
 
-**Last Updated:** 2026-01-24
-**Total Files:** 26 files (19 implementation + 7 test files)
+**Last Updated:** 2026-07-04
+**Total Files:** 27 files (20 implementation + 7 test files)
 
 ---
 
@@ -93,6 +93,15 @@
 └─ Step 27: F22 - ✅ `app/api/config/affiliate/route.ts`
 └─ GET: Public affiliate config (no auth, cached 5 min) - discountPercent, commissionPercent, codesPerMonth
 
+### UPDATE 2026-07-04: Shared Conversion Processing (1 file) ✅
+
+└─ F23 - ✅ `lib/affiliate/conversion-processor.ts` (NEW)
+└─ Provider-agnostic affiliate-conversion handler called by BOTH Stripe and dLocal
+webhooks when a payment carrying an affiliate code completes: marks the code USED
+(idempotent), creates the PENDING Commission, updates AffiliateProfile counters, and
+sends the `code-used` email. Base price via `getBasePriceUsd()`; discount/commission
+% snapshotted from the code. Extracted so both payment providers share one code path.
+
 ---
 
 ## Status Summary
@@ -100,11 +109,11 @@
 | Category            | Count  | Status      |
 | ------------------- | ------ | ----------- |
 | Test Infrastructure | 2      | ✅ Complete |
-| Foundation Library  | 8      | ✅ Complete |
+| Foundation Library  | 9      | ✅ Complete |
 | Email Templates     | 3      | ✅ Complete |
 | Foundation Tests    | 3      | ✅ Complete |
 | Backend APIs        | 11     | ✅ Complete |
-| **TOTAL**           | **26** | **100%**    |
+| **TOTAL**           | **27** | **100%**    |
 
 ---
 
@@ -151,3 +160,7 @@ The affiliate system uses a **normalized flat-column structure** (not the old JS
 - All configuration values are dynamic via SystemConfig table
 - Checkout integration (Steps 25-26) adds affiliate code support to existing checkout flow
 - Public config endpoint allows frontend to display discount info without authentication
+- **Updated 2026-07-04:** added `lib/affiliate/conversion-processor.ts` (shared Stripe/dLocal
+  conversion handler); modified `lib/affiliate/report-builder.ts` (added
+  `buildGlobalCodeInventoryReport()` for the new admin code-flows report),
+  `app/api/checkout/route.ts` and `app/api/checkout/validate-code/route.ts`

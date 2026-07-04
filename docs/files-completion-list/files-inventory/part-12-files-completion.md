@@ -76,3 +76,14 @@
 - Full webhook handling for both Stripe and dLocal
 - Currency conversion and exchange rate tracking
 - Email notifications for subscription events
+
+## Update 2026-07-04
+
+No new files; the following existing Part 12 files were **modified** (all still ✅ complete) as
+part of the shared affiliate-conversion refactor (Stripe + dLocal now call
+`lib/affiliate/conversion-processor.ts`):
+
+- `app/api/checkout/route.ts`, `app/api/checkout/validate-code/route.ts`
+- `app/api/webhooks/dlocal/route.ts`
+- `app/api/payments/dlocal/create/route.ts`, `app/api/payments/dlocal/validate-discount/route.ts`
+- `lib/stripe/stripe.ts`, `lib/stripe/webhook-handlers.ts`
