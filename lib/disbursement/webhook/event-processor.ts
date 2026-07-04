@@ -106,22 +106,37 @@ export class WebhookEventProcessor {
       };
     }
 
-    // Update transaction status
-    await this.prisma.disbursementTransaction.update({
-      where: { id: transaction.id },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      },
-    });
+    // Atomically: complete transaction, mark commission PAID, and move the
+    // affiliate's balance from pending to paid so dashboards stay accurate.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.disbursementTransaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+        },
+      });
 
-    // Update commission status to PAID
-    await this.prisma.commission.update({
-      where: { id: transaction.commissionId },
-      data: {
-        status: 'PAID',
-        paidAt: new Date(),
-      },
+      const commission = await tx.commission.update({
+        where: { id: transaction.commissionId },
+        data: {
+          status: 'PAID',
+          paidAt: new Date(),
+        },
+        select: {
+          affiliateProfileId: true,
+          commissionAmount: true,
+        },
+      });
+
+      // Move balance: pendingCommissions -> paidCommissions
+      await tx.affiliateProfile.update({
+        where: { id: commission.affiliateProfileId },
+        data: {
+          pendingCommissions: { decrement: commission.commissionAmount },
+          paidCommissions: { increment: commission.commissionAmount },
+        },
+      });
     });
 
     await this.logger.logPaymentCompleted(

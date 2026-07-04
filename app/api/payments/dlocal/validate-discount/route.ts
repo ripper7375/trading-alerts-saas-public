@@ -17,8 +17,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, type RateLimitConfig } from '@/lib/rate-limit';
+
+/** 10 validation attempts per minute per user (anti code-enumeration) */
+const DISCOUNT_VALIDATE_RATE_LIMIT: RateLimitConfig = {
+  limit: 10,
+  windowSeconds: 60,
+  prefix: 'ratelimit:discount-validate',
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -30,11 +39,23 @@ interface ValidateDiscountRequest {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    // Rate limit per user to prevent affiliate-code enumeration
+    const rateLimit = await checkRateLimit(
+      session.user.id,
+      DISCOUNT_VALIDATE_RATE_LIMIT
+    );
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { valid: false, message: 'Too many attempts. Please try again later.' },
+        { status: 429 }
       );
     }
 
@@ -111,8 +132,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    // Get discount percentage from system config or use default
-    const discountPercent = 10; // Default 10% affiliate discount
+    // Use the discount snapshotted on the code at distribution time
+    // (kept in sync with SystemConfig; matches commission calculation)
+    const discountPercent = affiliateCode.discountPercent;
 
     logger.info('Discount code validated successfully', {
       code: normalizedCode,

@@ -46,6 +46,50 @@ export class DisbursementProcessor {
   }
 
   /**
+   * Auto-approve PENDING commissions whose refund window has passed.
+   *
+   * The window (in days) is read from SystemConfig key
+   * `affiliate_commission_approval_days` (default: 14) so admins can tune
+   * it without redeploying. Idempotent: approved commissions are skipped.
+   *
+   * @returns Number of commissions transitioned PENDING -> APPROVED
+   */
+  async approveMaturedCommissions(): Promise<number> {
+    // Read approval window from SystemConfig (dynamic, admin-tunable)
+    let approvalDays = 14;
+    try {
+      const config = await this.prisma.systemConfig.findUnique({
+        where: { key: 'affiliate_commission_approval_days' },
+      });
+      if (config?.value) {
+        const parsed = parseInt(String(config.value), 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          approvalDays = parsed;
+        }
+      }
+    } catch {
+      // Fall back to default window if config lookup fails
+    }
+
+    const maturityDate = new Date(
+      Date.now() - approvalDays * 24 * 60 * 60 * 1000
+    );
+
+    const result = await this.prisma.commission.updateMany({
+      where: {
+        status: 'PENDING',
+        earnedAt: { lte: maturityDate },
+      },
+      data: {
+        status: 'APPROVED',
+        approvedAt: new Date(),
+      },
+    });
+
+    return result.count;
+  }
+
+  /**
    * Process automated disbursements (idempotent)
    * Safe to run multiple times - will only process eligible commissions
    *
@@ -66,6 +110,16 @@ export class DisbursementProcessor {
         status: 'INFO',
         details: { startTime: startTime.toISOString() },
       });
+
+      // Step 0: Auto-approve matured PENDING commissions (refund window passed)
+      const approvedCount = await this.approveMaturedCommissions();
+      if (approvedCount > 0) {
+        await this.logger.log({
+          action: 'cron.commissions_auto_approved',
+          status: 'SUCCESS',
+          details: { approvedCount },
+        });
+      }
 
       // Get all payable affiliates
       const aggregator = new CommissionAggregator(this.prisma);

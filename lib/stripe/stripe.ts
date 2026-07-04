@@ -70,6 +70,10 @@ export const PRO_TIER_PRICE = 29;
  * @param successUrl - URL to redirect after successful payment
  * @param cancelUrl - URL to redirect if user cancels
  * @param affiliateCode - Optional affiliate code for discount tracking
+ * @param discountPercent - Optional discount percent to APPLY to the charge
+ *   (from the affiliate code; validated by the caller). When > 0, a
+ *   one-time Stripe coupon is created and attached to the session so the
+ *   customer actually pays the discounted price.
  * @returns Stripe Checkout Session
  */
 export async function createCheckoutSession(
@@ -77,7 +81,8 @@ export async function createCheckoutSession(
   userEmail: string,
   successUrl: string,
   cancelUrl: string,
-  affiliateCode?: string
+  affiliateCode?: string,
+  discountPercent?: number
 ): Promise<Stripe.Checkout.Session> {
   if (!STRIPE_PRO_PRICE_ID) {
     throw new Error('STRIPE_PRO_PRICE_ID environment variable is not set');
@@ -107,8 +112,23 @@ export async function createCheckoutSession(
       },
       trial_period_days: 7, // 7-day free trial
     },
-    allow_promotion_codes: true, // Allow Stripe coupon codes
   };
+
+  if (affiliateCode && discountPercent && discountPercent > 0) {
+    // Apply the affiliate discount to the first invoice via a one-time
+    // coupon. Note: Stripe does not allow `discounts` together with
+    // `allow_promotion_codes`, so promotion codes are disabled when an
+    // affiliate discount is applied.
+    const coupon = await getStripeClient().coupons.create({
+      percent_off: discountPercent,
+      duration: 'once',
+      name: `Affiliate ${affiliateCode}`,
+      metadata: { affiliateCode },
+    });
+    sessionParams.discounts = [{ coupon: coupon.id }];
+  } else {
+    sessionParams.allow_promotion_codes = true; // Allow Stripe coupon codes
+  }
 
   const session =
     await getStripeClient().checkout.sessions.create(sessionParams);

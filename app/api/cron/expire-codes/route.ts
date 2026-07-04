@@ -86,3 +86,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Cron job failed' }, { status: 500 });
   }
 }
+
+/**
+ * GET handler for Vercel Cron (which invokes cron endpoints via GET).
+ * Delegates to the POST implementation.
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  return POST(request);
+}

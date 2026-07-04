@@ -22,7 +22,7 @@ import {
 } from '@/lib/email/subscription-emails';
 import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { AFFILIATE_CONFIG, getBasePriceUsd } from '@/lib/affiliate/constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT COMPLETED
@@ -503,9 +503,19 @@ async function processAffiliateCommission(
       return;
     }
 
-    // Calculate commission using percentage-based model
+    // Calculate commission using percentage-based model.
+    // Base price comes from SystemConfig (dynamic) with the static
+    // AFFILIATE_CONFIG value as fallback; percentages come from the code
+    // itself (snapshotted at distribution time).
+    let basePriceUsd = AFFILIATE_CONFIG.BASE_PRICE_USD;
+    try {
+      basePriceUsd = await getBasePriceUsd();
+    } catch {
+      // Keep static fallback if SystemConfig lookup fails
+    }
+
     const breakdown = calculateFullBreakdown(
-      AFFILIATE_CONFIG.BASE_PRICE_USD,
+      basePriceUsd,
       affiliateCode.discountPercent,
       affiliateCode.commissionPercent
     );

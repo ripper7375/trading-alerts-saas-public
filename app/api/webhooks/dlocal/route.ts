@@ -25,6 +25,8 @@ import {
   mapDLocalStatus,
 } from '@/lib/dlocal/dlocal-payment.service';
 import { markThreeDayPlanUsed } from '@/lib/dlocal/three-day-validator.service';
+import { processAffiliateConversion } from '@/lib/affiliate/conversion-processor';
+import { PRICING } from '@/lib/dlocal/constants';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { DLocalWebhookPayload } from '@/types/dlocal';
@@ -127,10 +129,12 @@ interface PaymentRecord {
   userId: string;
   planType: string | null;
   amount: unknown;
+  amountUSD?: unknown;
   currency: string;
   country: string | null;
   paymentMethod: string | null;
   providerPaymentId: string;
+  discountCode?: string | null;
 }
 
 /**
@@ -154,6 +158,13 @@ async function handlePaymentCompleted(
     payment.planType === 'THREE_DAY'
       ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) // 3 days
       : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+  // Actual USD amount for this plan (fixes hardcoded $29 for 3-day plans)
+  const planAmountUsd =
+    Number(payment.amountUSD) ||
+    (payment.planType === 'THREE_DAY'
+      ? PRICING.THREE_DAY_USD
+      : PRICING.MONTHLY_USD);
 
   // Use a transaction to ensure all updates succeed or fail together
   await prisma.$transaction(async (tx) => {
@@ -191,7 +202,7 @@ async function handlePaymentCompleted(
           dLocalCurrency: payment.currency,
           expiresAt,
           renewalReminderSent: false,
-          amountUsd: 29, // Standard PRO price
+          amountUsd: planAmountUsd,
         },
       });
     } else {
@@ -207,7 +218,7 @@ async function handlePaymentCompleted(
           dLocalCurrency: payment.currency,
           expiresAt,
           renewalReminderSent: false,
-          amountUsd: 29,
+          amountUsd: planAmountUsd,
         },
       });
     }
@@ -229,6 +240,47 @@ async function handlePaymentCompleted(
   if (payment.planType === 'THREE_DAY') {
     await markThreeDayPlanUsed(payment.userId);
     logger.info('3-day plan marked as used', { userId: payment.userId });
+  }
+
+  // 5b. Process affiliate conversion if a discount code was used (Part 17 seam)
+  // Mirrors the Stripe webhook path; idempotent on webhook retries.
+  if (payment.discountCode && payment.planType === 'MONTHLY') {
+    try {
+      const linkedSubscription = await prisma.subscription.findUnique({
+        where: { userId: payment.userId },
+        select: { id: true },
+      });
+
+      const conversion = await processAffiliateConversion({
+        code: payment.discountCode,
+        userId: payment.userId,
+        subscriptionId: linkedSubscription?.id ?? null,
+        grossRevenueUsd: planAmountUsd,
+        provider: 'DLOCAL',
+      });
+
+      if (conversion.processed) {
+        logger.info('Affiliate commission created for dLocal payment', {
+          paymentId: payment.id,
+          commissionId: conversion.commissionId,
+          commissionAmount: conversion.commissionAmount,
+        });
+      } else {
+        logger.warn('Affiliate conversion not processed', {
+          paymentId: payment.id,
+          reason: conversion.reason,
+        });
+      }
+    } catch (conversionError) {
+      // Never fail the payment webhook because of commission bookkeeping
+      logger.error('Affiliate conversion processing failed', {
+        paymentId: payment.id,
+        error:
+          conversionError instanceof Error
+            ? conversionError.message
+            : 'Unknown error',
+      });
+    }
   }
 
   // 6. Create success notification

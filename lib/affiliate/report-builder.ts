@@ -134,6 +134,16 @@ export async function buildDashboardStats(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
+ * Global code flows report structure (all affiliates)
+ *
+ * Same reconciliation shape as CodeInventoryReport, plus the number
+ * of affiliates that had code activity during the period.
+ */
+export interface GlobalCodeFlowsReport extends CodeInventoryReport {
+  affiliatesWithActivity: number;
+}
+
+/**
  * Build code inventory report for a time period
  *
  * Shows opening balance, additions, reductions, and closing balance.
@@ -244,6 +254,109 @@ export async function buildCodeInventoryReport(
       total: totalReductions,
     },
     closingBalance,
+  };
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GLOBAL CODE FLOWS REPORT (ALL AFFILIATES)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Build the GLOBAL code flows report for a time period, across all
+ * affiliates. Mirrors buildCodeInventoryReport without the per-affiliate
+ * filter: closing = opening + additions − (used + expired + cancelled),
+ * where the balance counts ACTIVE (distributed, unused) codes.
+ *
+ * @param period - Start and end dates for the report
+ * @returns Global code flows report
+ */
+export async function buildGlobalCodeInventoryReport(period: {
+  start: Date;
+  end: Date;
+}): Promise<GlobalCodeFlowsReport> {
+  // Codes that existed before period start and weren't used before it
+  const openingBalance = await prisma.affiliateCode.count({
+    where: {
+      distributedAt: { lt: period.start },
+      OR: [{ usedAt: null }, { usedAt: { gte: period.start } }],
+      status: { not: 'CANCELLED' },
+    },
+  });
+
+  // Additions during period, grouped by distribution reason
+  const additionsByReason = await prisma.affiliateCode.groupBy({
+    by: ['distributionReason'],
+    where: {
+      distributedAt: { gte: period.start, lte: period.end },
+    },
+    _count: { _all: true },
+  });
+
+  const countForReason = (reason: string): number =>
+    (
+      additionsByReason.find(
+        (a: Record<string, unknown>) => a['distributionReason'] === reason
+      )?.['_count'] as { _all: number } | undefined
+    )?.['_all'] ?? 0;
+
+  const monthlyDistribution = countForReason('MONTHLY');
+  const initialDistribution = countForReason('INITIAL');
+  const bonusDistribution = countForReason('ADMIN_BONUS');
+  const totalAdditions =
+    monthlyDistribution + initialDistribution + bonusDistribution;
+
+  // Reductions during period + distinct affiliates with activity
+  const [usedCount, expiredCount, cancelledCount, activeAffiliateGroups] =
+    await Promise.all([
+      prisma.affiliateCode.count({
+        where: {
+          status: 'USED',
+          usedAt: { gte: period.start, lte: period.end },
+        },
+      }),
+      prisma.affiliateCode.count({
+        where: {
+          status: 'EXPIRED',
+          expiresAt: { gte: period.start, lte: period.end },
+        },
+      }),
+      prisma.affiliateCode.count({
+        where: {
+          status: 'CANCELLED',
+          cancelledAt: { gte: period.start, lte: period.end },
+        },
+      }),
+      prisma.affiliateCode.groupBy({
+        by: ['affiliateProfileId'],
+        where: {
+          OR: [
+            { distributedAt: { gte: period.start, lte: period.end } },
+            { usedAt: { gte: period.start, lte: period.end } },
+          ],
+        },
+      }),
+    ]);
+
+  const totalReductions = usedCount + expiredCount + cancelledCount;
+  const closingBalance = openingBalance + totalAdditions - totalReductions;
+
+  return {
+    period,
+    openingBalance,
+    additions: {
+      monthlyDistribution,
+      initialDistribution,
+      bonusDistribution,
+      total: totalAdditions,
+    },
+    reductions: {
+      used: usedCount,
+      expired: expiredCount,
+      cancelled: cancelledCount,
+      total: totalReductions,
+    },
+    closingBalance,
+    affiliatesWithActivity: activeAffiliateGroups.length,
   };
 }
 

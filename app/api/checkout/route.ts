@@ -12,6 +12,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { createCheckoutSession } from '@/lib/stripe/stripe';
+import { prisma } from '@/lib/db/prisma';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST /api/checkout
@@ -87,6 +88,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // No body or invalid JSON - that's fine, affiliateCode is optional
     }
 
+    // Validate the affiliate code and resolve its discount BEFORE creating
+    // the Stripe session, so the customer is actually charged the
+    // discounted price (and invalid codes are rejected up front).
+    let discountPercent = 0;
+    let normalizedAffiliateCode: string | undefined;
+
+    if (affiliateCode) {
+      normalizedAffiliateCode = String(affiliateCode).trim().toUpperCase();
+
+      const codeRecord = await prisma.affiliateCode.findFirst({
+        where: {
+          code: normalizedAffiliateCode,
+          status: 'ACTIVE',
+          expiresAt: { gt: new Date() },
+        },
+        include: {
+          affiliateProfile: { select: { status: true } },
+        },
+      });
+
+      if (!codeRecord || codeRecord.affiliateProfile?.status !== 'ACTIVE') {
+        return NextResponse.json(
+          {
+            error: 'Invalid code',
+            message: 'This affiliate code is invalid or expired',
+            code: 'INVALID_AFFILIATE_CODE',
+          },
+          { status: 400 }
+        );
+      }
+
+      discountPercent = codeRecord.discountPercent;
+    }
+
     // Build success and cancel URLs
     const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
     const successUrl = `${baseUrl}/dashboard?upgrade=success`;
@@ -98,7 +133,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       email,
       successUrl,
       cancelUrl,
-      affiliateCode
+      normalizedAffiliateCode,
+      discountPercent
     );
 
     // Return session details

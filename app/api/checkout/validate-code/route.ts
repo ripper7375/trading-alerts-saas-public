@@ -12,6 +12,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { affiliateCodeSchema } from '@/lib/affiliate/validators';
+import { checkRateLimit, type RateLimitConfig } from '@/lib/rate-limit';
+
+/** 10 validation attempts per minute per IP (anti code-enumeration) */
+const CODE_VALIDATE_RATE_LIMIT: RateLimitConfig = {
+  limit: 10,
+  windowSeconds: 60,
+  prefix: 'ratelimit:code-validate',
+};
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST /api/checkout/validate-code
@@ -31,6 +39,23 @@ import { affiliateCodeSchema } from '@/lib/affiliate/validators';
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Rate limit per IP to prevent affiliate-code enumeration
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      'unknown';
+    const rateLimit = await checkRateLimit(clientIp, CODE_VALIDATE_RATE_LIMIT);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: 'Rate limited',
+          message: 'Too many attempts. Please try again later.',
+          code: 'RATE_LIMITED',
+        },
+        { status: 429 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const rawCode = body?.code;

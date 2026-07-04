@@ -116,18 +116,51 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Get USD pricing
+    // Get USD pricing (gross, before discount)
     const usdAmount =
       planType === 'THREE_DAY' ? PRICING.THREE_DAY_USD : PRICING.MONTHLY_USD;
 
-    // Convert to local currency
+    // Validate affiliate/discount code and calculate the discount actually
+    // applied to the charge (Part 17 integration).
+    let discountAmount = 0;
+    let normalizedDiscountCode: string | null = null;
+
+    if (discountCode && planType === 'MONTHLY') {
+      normalizedDiscountCode = discountCode.trim().toUpperCase();
+
+      const affiliateCode = await prisma.affiliateCode.findFirst({
+        where: {
+          code: normalizedDiscountCode,
+          status: 'ACTIVE',
+          expiresAt: { gt: new Date() },
+        },
+        include: {
+          affiliateProfile: { select: { status: true } },
+        },
+      });
+
+      if (
+        !affiliateCode ||
+        affiliateCode.affiliateProfile?.status !== 'ACTIVE'
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid or expired discount code' },
+          { status: 400 }
+        );
+      }
+
+      discountAmount =
+        Math.round(usdAmount * affiliateCode.discountPercent) / 100;
+    }
+
+    // Amount the customer is actually charged (USD), after discount
+    const chargeUsd = Math.round((usdAmount - discountAmount) * 100) / 100;
+
+    // Convert the discounted amount to local currency
     const { localAmount, exchangeRate } = await convertUSDToLocal(
-      usdAmount,
+      chargeUsd,
       currency as DLocalCurrency
     );
-
-    // Calculate discount amount (full discount validation would be in Part 18B)
-    const discountAmount = 0;
 
     logger.info('Creating payment', {
       userId,
@@ -152,7 +185,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         paymentMethod,
         planType,
         duration: getPlanDuration(planType),
-        discountCode: discountCode || null,
+        discountCode: normalizedDiscountCode,
         discountAmount: discountAmount,
         status: 'PENDING',
       },
@@ -163,12 +196,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Create payment with dLocal
     const dLocalPayment = await createPayment({
       userId,
-      amount: usdAmount,
+      amount: chargeUsd,
       currency: currency as DLocalCurrency,
       country: country as DLocalCountry,
       paymentMethod,
       planType,
-      discountCode,
+      discountCode: normalizedDiscountCode || undefined,
       email: session.user.email || undefined,
       name: session.user.name || undefined,
     });
