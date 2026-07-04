@@ -161,7 +161,7 @@ The four keys appear on every source and are the validation contract. SSA is exp
 
 ### 4.4 Architecture decision (resolved, June 2026)
 
-Cross-source validation only makes sense on the export-file path — the legacy EA's socket path reads every buffer from one chart at one instant, so there is nothing to cross-validate. **The validated export-file pipeline is the source of truth for XAUUSD M5/M15.** Where the EA still runs on that terminal, its only real job is keeping the charts/indicators alive so they continue auto-exporting; its own socket/SQLite/circuit-breaker machinery is inert in production (§10).
+Cross-source validation only makes sense on the export-file path — the legacy EA's socket path reads every buffer from one chart at one instant, so there is nothing to cross-validate. **The validated export-file pipeline is the source of truth for XAUUSD M5/M15.** The EA is not required for this path to function at all: each of the 12 indicators auto-exports independently of any EA (§5.6). Where the EA still runs on that terminal, it is retained for reasons that have nothing to do with keeping the indicators alive — see §10.4.
 
 ---
 
@@ -203,6 +203,26 @@ Not every source feeds a calculation. Grouped by actual function:
 | `zigzag`      | `ZigZag`            | `raw_zigzag`      | point_type, current_point                             |
 
 Parsing is **header-name based**, not positional, so the collector accepts both the current full MQL5 exports and a future slimmed export without a code change.
+
+### 5.6 Indicator self-sufficiency — no EA required
+
+Every one of the 12 `.mq5` files is itself compiled as an MQL5 **indicator** (`#property indicator_chart_window`), not an Expert Advisor, and each carries its own auto-export logic entirely self-contained:
+
+```
+input bool InpAutoExport = true;
+input int  InpExportSecond = 59;
+
+int OnInit()  { if (InpAutoExport) EventSetTimer(1); ... }
+void OnTimer() {
+   if (!InpAutoExport) return;
+   if (time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min)
+      // ... write the .txt file
+}
+```
+
+`EventSetTimer()`/`OnTimer()` are available to any MQL5 program type, not just Expert Advisors. Once an indicator is attached to a chart, it starts its own 1-second timer and writes its `.txt` file the moment the clock hits `InpExportSecond`, once a minute, entirely on its own. Confirmed directly in source for both the OHLCV export indicator and a centroid-regression variant, and consistent with the near-identical `InpAutoExport`/`InpExportSecond` pattern documented for all 12 sources.
+
+**Practical consequence:** `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5` could be deleted entirely and the First Path (§10.1) would keep exporting exactly as it does today, as long as the 12 indicators stay attached to the XAUUSD M5 and M15 charts in a running terminal. The EA has no role whatsoever in the txt-export mechanism — it is a fully independent second consumer of the same indicators (§10).
 
 ---
 
@@ -393,7 +413,7 @@ Each of the 12 indicators computes its own buffers and writes them to a `.txt` f
 
 `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5` attaches an `iCustom()` handle to 11 of the 12 indicators in `InitializeIndicatorsForSlot()` (OHLCV is the only one skipped — its price data comes natively from `CopyRates`). On every new completed bar, `InsertCandle()` calls `CopyBuffer()` through a `GetIndicatorValue()` helper to pull specific buffer indices straight out of each indicator's memory. The row is then either fired over a local TCP socket to `mt5_api_relay_for_v2_29.py` (fire-and-forget, <1ms, with a circuit breaker: 10 consecutive socket failures opens the breaker for a cooldown period), or written to a per-symbol SQLite database with a `backfill_queue.csv` for later replay if the socket path is unavailable. This path is scoped more broadly than the production pipeline — up to 15 symbols across 9 timeframes (M5 through D1), a vestige of an older, more general multi-symbol architecture — versus the txt/v6 pipeline's XAUUSD M5/M15-only scope.
 
-**This path is not wired into `market_data` and is not part of the v6 production data flow.** Where the EA runs at all, its production job is simply keeping the 12 indicators alive on the chart so they continue auto-exporting.
+**This path is not wired into `market_data`, is not part of the v6 production data flow, and is not required for the First Path to function.** Each of the 12 indicators auto-exports on its own timer whether or not any EA is attached (§5.6) — the "keeps the indicators alive" framing found in earlier descriptions of this architecture does not hold up under inspection of the indicator source, and is corrected in §10.4.
 
 ### 10.3 The v2.29 → v2.29.1 schema fix
 
@@ -408,6 +428,29 @@ v2.29.1 corrected this. The fix, verified directly in the source:
 - **`mt5_api_relay_for_v2_29.py` required no changes** — confirmed schema-agnostic; it forwards whatever JSON the EA sends unchanged and only reads `terminal_id` for a header.
 
 The result is internally consistent with v6 and safe to reactivate later, but it is still, deliberately, not part of the production flow today.
+
+### 10.4 Why keep both paths?
+
+Neither path needs the other, and only one of them is required. The First Path alone is sufficient for the architecture to function completely — everything that reaches `market_data`, the gateway, and the rendered charts flows through it, and nothing downstream ever reads the Second Path's socket relay or SQLite fallback. If the EA were deleted tomorrow, the First Path would be unaffected (§5.6).
+
+The two paths also do not "work together" in any collaborative sense. They are two independent consumers of the same 12 upstream indicators, with no handoff, merge, or coordination between them anywhere in the code — closer to two readers of the same newspaper than two halves of one system.
+
+Given that, the Second Path is retained for two legitimate but non-essential reasons:
+
+1. **Historical continuity.** It is the pre-v6 (v2.28) architecture. When the file-export design replaced it, the EA was deprecated rather than deleted — cheap to keep as a reference point or rollback option during the transition.
+2. **Optionality for a future low-latency path.** The socket push can reach the relay in under a millisecond of a bar closing (§10.5), versus the First Path's file-export-and-collect cadence. If a future consumer ever needs near-real-time data (e.g. alerting), that infrastructure already exists and, as of v2.29.1, is schema-correct (§10.3) — it would just need to be wired up, and would still need its own validation story built from scratch, since it inherits none of the First Path's cross-source checks (§10.5).
+
+A third reason has circulated in earlier discussion of this architecture — that the EA's job is "keeping the indicators alive" — and it does not hold up. Each indicator is self-sufficient (§5.6): it exports on its own timer whether or not any EA is attached. If the EA is left running today, that is most likely a holdover from how the terminal was operated under the older architecture, not a functional requirement of the current one.
+
+### 10.5 Speed vs. validation trade-off
+
+The two paths trade speed for integrity in a way that is structural, not incidental.
+
+**Second Path — fast, unvalidated.** `OnTick()` fires on every incoming price tick and checks whether the last-closed bar has changed; the instant it has, the row is pushed over the socket in under a millisecond — typically within a few seconds of the bar closing. But there is no cross-source key agreement (nothing to compare a single buffer read against), no completeness/staleness check, and no reject-and-retry. What it does have — null-safety (`EMPTY_VALUE` sent as an explicit `null`, never fabricated as `0`) and a circuit breaker — is network-failure resilience, not data-quality validation, and the two should not be conflated.
+
+**First Path — validated, near-real-time in the normal case.** Each indicator auto-exports at most 60 seconds after bar-close (its own `:59` timer), and the collector wakes up just 5 seconds after every 5-minute boundary to read the files — normal-case latency is under a minute past bar-close, not the full 5-minute cycle interval that "batch pipeline" framing might suggest. That 5-minute number is the cadence at which a _new_ bar exists to promote at all — a property of the M5/M15 timeframe itself, not an artificial validation delay layered on top. Where the First Path genuinely gets slower is when a cycle fails validation: up to 3 retries × 65 seconds adds several minutes before that bar is promoted, or the cycle is abandoned (§6.3).
+
+**Why this trade-off can't be cheaply avoided.** Cross-source validation is structurally a batch operation — it requires multiple independently-timed files to have actually landed before they can be compared, and that comparison is what costs the extra time. The Second Path's speed comes precisely from skipping that step: it reads one indicator's buffer with nothing to check it against. Making it both fast and validated would require either redesigning it to also wait for and cross-check other sources (which erases the speed advantage and effectively reinvents the First Path), or accepting a different, lesser guarantee — e.g. single-source sanity/outlier bounds instead of true cross-source agreement.
 
 ---
 

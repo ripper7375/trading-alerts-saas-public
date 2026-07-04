@@ -15,6 +15,18 @@
 --                  centroid_regression.py) from the staged admin-layer data.
 --   5. PROMOTE   — admin-layer columns + Python-calculated columns merge into
 --                  market_data, the single wide table consumed downstream.
+--   6. RETAIN    — OHLCV export depth (InpBars) and every centroid variant's
+--                  SSA math lookback (InpSSAMathLookback) are both pinned to
+--                  3000 bars per timeframe (see ohlcvexportlightweight_v2_29.mq5
+--                  and the 2EDTCentroidRegression*_v2_29.mq5 indicators). MT5
+--                  never re-exports a bar once it scrolls out of that window,
+--                  so market_data rows beyond 3000 bars back are a frozen
+--                  last-known snapshot that will never be corrected again —
+--                  keeping them indefinitely has no analytical value. A
+--                  trigger (§5 below) prunes rows outside that window, but
+--                  ONLY once they have been pushed to the API gateway
+--                  (synced_at IS NOT NULL), so the sync guarantee for the
+--                  gateway push worker is never compromised by pruning.
 --
 -- v6 staging stores ONLY the admin layer (MQL5-owned inputs): OHLCV, the
 -- centroid variants' fractal maps / ssa / ema_ssa / crossing, and zigzag
@@ -28,6 +40,19 @@
 --   * Run with:  PRAGMA foreign_keys = ON;  (required for cascades)
 -- ============================================================================
 
+-- INCREMENTAL auto_vacuum lets the pruning trigger (§5, below) actually
+-- reclaim disk space via periodic `PRAGMA incremental_vacuum;`, instead of
+-- only freeing pages for internal reuse. MUST run before `journal_mode=WAL`
+-- and before any table exists — switching journal modes first silently
+-- locks auto_vacuum to NONE (verified: reordering these two lines is not
+-- cosmetic). NOTE: on an xauusd.db that already exists and has tables, this
+-- line is a silent no-op regardless of order — run `VACUUM;` ONCE by hand
+-- against the existing file to convert it into incremental_vacuum mode,
+-- after which `PRAGMA incremental_vacuum;` works going forward. VACUUM
+-- needs an exclusive lock and up to ~2x the DB's disk space during the
+-- rebuild, so do that one-time conversion during a maintenance window, not
+-- while the collector is running.
+PRAGMA auto_vacuum = INCREMENTAL;
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
@@ -360,7 +385,10 @@ CREATE TABLE IF NOT EXISTS market_data (
     calculated_at       INTEGER,                      -- unix, CALCULATE stage time (NULL = calc skipped)
 
     -- Sync state for the gateway push worker (backfill worker v5).
-    -- market_data is a permanent store: rows are marked synced, never deleted.
+    -- A row is permanent (never deleted) UNTIL it has been synced AND has
+    -- scrolled outside the live 3000-bar window (see §5 RETAIN, above, and
+    -- trg_market_data_prune, below). Unsynced rows are never pruned, no
+    -- matter their age — the sync guarantee always wins over retention.
     synced_at           INTEGER,                      -- NULL = not yet pushed to API gateway
 
     PRIMARY KEY (timestamp, timeframe)
@@ -369,3 +397,37 @@ CREATE TABLE IF NOT EXISTS market_data (
 CREATE INDEX IF NOT EXISTS idx_market_data_tf_ts ON market_data (timeframe, timestamp);
 CREATE INDEX IF NOT EXISTS idx_market_data_unsynced ON market_data (timeframe, timestamp)
     WHERE synced_at IS NULL;
+
+-- ============================================================================
+-- 5. RETENTION — prune market_data to the 3000-bar window MT5 itself keeps
+-- ============================================================================
+-- Fires after every promoted row. Deletes rows for that (symbol, timeframe)
+-- that have BOTH (a) fallen outside the most-recent-3000 window AND (b)
+-- already been synced to the API gateway. Unsynced rows are exempt at any
+-- age, so a gateway outage can never cause data loss before it's delivered.
+--
+-- Cost: one indexed LIMIT-3000 scan per insert (idx_market_data_tf_ts),
+-- and inserts only happen once per validated cycle (every 5 or 15 min) — so
+-- this is cheap relative to the collection cadence.
+--
+-- Note: DELETE reclaims logical space but SQLite will not shrink the .db
+-- file on disk by itself. Run `PRAGMA incremental_vacuum;` (or `VACUUM;`)
+-- periodically (e.g. daily, from a maintenance cron/task) if file size needs
+-- to be reclaimed — this schema does not do so automatically.
+CREATE TRIGGER IF NOT EXISTS trg_market_data_prune
+AFTER INSERT ON market_data
+BEGIN
+    DELETE FROM market_data
+    WHERE symbol = NEW.symbol
+      AND timeframe = NEW.timeframe
+      AND synced_at IS NOT NULL
+      AND timestamp NOT IN (
+          SELECT timestamp FROM market_data
+          WHERE symbol = NEW.symbol AND timeframe = NEW.timeframe
+          ORDER BY timestamp DESC
+          LIMIT 3000
+      );
+END;
+3000
+      );
+END;
