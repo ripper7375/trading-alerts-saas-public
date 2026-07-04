@@ -1,7 +1,7 @@
 # Backend Files Inventory
 
-**Last Updated:** 2026-06-28
-**Total Files:** 561
+**Last Updated:** 2026-07-04
+**Total Files:** 563
 **Purpose:** Complete inventory of all backend files (non-UI) that handle business logic, data processing, and infrastructure
 
 ---
@@ -26,7 +26,7 @@
 > so the same file appears on multiple rows when more than one build Part touches it (e.g.
 > `lib/tier-config.ts` is listed under Parts 04, 08, 11 and 16). As a result:
 >
-> - **Row count ≠ file count.** There are **532 numbered rows** but only **~420 unique file paths**
+> - **Row count ≠ file count.** There are **534 numbered rows** but only **~422 unique file paths**
 >   (~112 rows are cross-Part duplicates).
 > - The **headline totals** (Total Files / Backend / Tests / Grand Total) and the
 >   **Distribution by Category / Part** numbers below are **approximate editorial estimates**, not
@@ -536,58 +536,60 @@
 | 498 | Drawing Engine | `__tests__/drawing/engine/pixelMath.test.ts`                            | Other (tests)               |
 | 499 | Drawing Engine | `__tests__/drawing/engine/DrawingEngine.test.ts`                        | Other (tests)               |
 | 500 | Drawing Engine | `__tests__/drawing/marks/newMarks.test.ts`                              | Other (tests)               |
-| 501 | Drawing Engine | `components/charts/drawing/persistence.ts` | Libraries/Utilities |
-| 502 | Drawing Engine | `components/charts/drawing/alertsApi.ts` | Libraries/Utilities |
-| 503 | Drawing Engine | `components/charts/drawing/tierUsage.ts` | Libraries/Utilities |
-| 504 | Drawing Engine | `components/charts/drawing/firedMarkers.ts` | Libraries/Utilities |
-| 505 | Drawing Engine | `components/charts/drawing/useFiredAlertMarkers.ts` | React hooks |
-| 506 | Drawing Engine | `lib/drawing/schema.ts` | Validation schemas |
-| 507 | Drawing Engine | `lib/drawing/invalidate.ts` | Libraries/Utilities |
-| 508 | Drawing Engine | `app/api/drawings/route.ts` | API routes |
-| 509 | Drawing Engine | `app/api/drawings/[id]/route.ts` | API routes |
-| 510 | Drawing Engine | `__tests__/drawing/persistence.test.ts` | Other (tests) |
-| 511 | Drawing Engine | `__tests__/drawing/alertsApi.test.ts` | Other (tests) |
-| 512 | Drawing Engine | `__tests__/drawing/tierUsage.test.ts` | Other (tests) |
-| 513 | Drawing Engine | `__tests__/drawing/firedMarkers.test.ts` | Other (tests) |
-| 514 | Line Alerts | `app/api/alerts/line/route.ts` | API routes |
-| 515 | Line Alerts | `app/api/alerts/line/[id]/route.ts` | API routes |
-| 516 | Line Alerts | `lib/alert-engine/types.ts` | Type Definitions |
-| 517 | Line Alerts | `lib/alert-engine/detect.ts` | Libraries/Utilities |
-| 518 | Line Alerts | `lib/alert-engine/state.ts` | Libraries/Utilities |
-| 519 | Line Alerts | `lib/alert-engine/watches.ts` | Libraries/Utilities |
-| 520 | Line Alerts | `lib/alert-engine/evaluator.ts` | Libraries/Utilities |
-| 521 | Line Alerts | `lib/alert-engine/dispatcher.ts` | Libraries/Utilities |
-| 522 | Line Alerts | `lib/alert-engine/worker.ts` | Other (background jobs) |
-| 523 | Line Alerts | `lib/alert-engine/notify-bridge.ts` | Libraries/Utilities |
-| 524 | Line Alerts | `lib/alert-engine/queue.ts` | Other (background jobs) |
-| 525 | Line Alerts | `scripts/alert-worker.ts` | Other (scripts) |
-| 526 | Line Alerts | `__tests__/alert-engine/detect.test.ts` | Other (tests) |
-| 527 | Line Alerts | `__tests__/alert-engine/evaluator.test.ts` | Other (tests) |
-| 528 | Line Alerts | `__tests__/alert-engine/notify-bridge.test.ts` | Other (tests) |
-| 529 | Line Alerts | `__tests__/alert-engine/watches.test.ts` | Other (tests) |
-| 530 | Line Alerts | `mt5-service/REDIS-PUBLISH-SNIPPET.md` | Other (documentation) |
-| 531 | Line Alerts | `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md` | Other (documentation) |
-| 532 | Line Alerts | `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md` | Other (documentation) |
+| 501 | Drawing Engine | `components/charts/drawing/persistence.ts`                              | Libraries/Utilities         |
+| 502 | Drawing Engine | `components/charts/drawing/alertsApi.ts`                                | Libraries/Utilities         |
+| 503 | Drawing Engine | `components/charts/drawing/tierUsage.ts`                                | Libraries/Utilities         |
+| 504 | Drawing Engine | `components/charts/drawing/firedMarkers.ts`                             | Libraries/Utilities         |
+| 505 | Drawing Engine | `components/charts/drawing/useFiredAlertMarkers.ts`                     | React hooks                 |
+| 506 | Drawing Engine | `lib/drawing/schema.ts`                                                 | Validation schemas          |
+| 507 | Drawing Engine | `lib/drawing/invalidate.ts`                                             | Libraries/Utilities         |
+| 508 | Drawing Engine | `app/api/drawings/route.ts`                                             | API routes                  |
+| 509 | Drawing Engine | `app/api/drawings/[id]/route.ts`                                        | API routes                  |
+| 510 | Drawing Engine | `__tests__/drawing/persistence.test.ts`                                 | Other (tests)               |
+| 511 | Drawing Engine | `__tests__/drawing/alertsApi.test.ts`                                   | Other (tests)               |
+| 512 | Drawing Engine | `__tests__/drawing/tierUsage.test.ts`                                   | Other (tests)               |
+| 513 | Drawing Engine | `__tests__/drawing/firedMarkers.test.ts`                                | Other (tests)               |
+| 514 | Line Alerts    | `app/api/alerts/line/route.ts`                                          | API routes                  |
+| 515 | Line Alerts    | `app/api/alerts/line/[id]/route.ts`                                     | API routes                  |
+| 516 | Line Alerts    | `lib/alert-engine/types.ts`                                             | Type Definitions            |
+| 517 | Line Alerts    | `lib/alert-engine/detect.ts`                                            | Libraries/Utilities         |
+| 518 | Line Alerts    | `lib/alert-engine/state.ts`                                             | Libraries/Utilities         |
+| 519 | Line Alerts    | `lib/alert-engine/watches.ts`                                           | Libraries/Utilities         |
+| 520 | Line Alerts    | `lib/alert-engine/evaluator.ts`                                         | Libraries/Utilities         |
+| 521 | Line Alerts    | `lib/alert-engine/dispatcher.ts`                                        | Libraries/Utilities         |
+| 522 | Line Alerts    | `lib/alert-engine/worker.ts`                                            | Other (background jobs)     |
+| 523 | Line Alerts    | `lib/alert-engine/notify-bridge.ts`                                     | Libraries/Utilities         |
+| 524 | Line Alerts    | `lib/alert-engine/queue.ts`                                             | Other (background jobs)     |
+| 525 | Line Alerts    | `scripts/alert-worker.ts`                                               | Other (scripts)             |
+| 526 | Line Alerts    | `__tests__/alert-engine/detect.test.ts`                                 | Other (tests)               |
+| 527 | Line Alerts    | `__tests__/alert-engine/evaluator.test.ts`                              | Other (tests)               |
+| 528 | Line Alerts    | `__tests__/alert-engine/notify-bridge.test.ts`                          | Other (tests)               |
+| 529 | Line Alerts    | `__tests__/alert-engine/watches.test.ts`                                | Other (tests)               |
+| 530 | Line Alerts    | `mt5-service/REDIS-PUBLISH-SNIPPET.md`                                  | Other (documentation)       |
+| 531 | Line Alerts    | `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md`                            | Other (documentation)       |
+| 532 | Line Alerts    | `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`                             | Other (documentation)       |
+| 533 | Part 14        | `app/api/admin/affiliates/reports/code-flows/route.ts`                  | API routes                  |
+| 534 | Part 17A-1     | `lib/affiliate/conversion-processor.ts`                                 | Libraries/Utilities         |
 
 ---
 
 ## Summary Statistics
 
-> _Approximate figures — see the counting note above the inventory table. The table has 532
-> per-Part rows / ~420 unique files; the numbers below are editorial estimates, not derived counts._
+> _Approximate figures — see the counting note above the inventory table. The table has 534
+> per-Part rows / ~422 unique files; the numbers below are editorial estimates, not derived counts._
 
 ### Total Counts
 
-- **Total Backend Files:** 520 (excluding tests)
+- **Total Backend Files:** 522 (excluding tests)
 - **Test Files:** 116
-- **Grand Total:** 561 files
+- **Grand Total:** 563 files
 
 ### Distribution by Category
 
 | Category                           | File Count | Percentage |
 | ---------------------------------- | ---------- | ---------- |
-| API routes                         | 163        | 29.1%      |
-| Libraries/Utilities                | 164        | 29.2%      |
+| API routes                         | 164        | 29.1%      |
+| Libraries/Utilities                | 165        | 29.3%      |
 | Type Definitions                   | 45         | 8.0%       |
 | Configuration files                | 34         | 6.4%       |
 | Templates                          | 28         | 5.3%       |
@@ -603,51 +605,51 @@
 
 ### Distribution by Part
 
-| Part                                 | File Count | Percentage |
-| ------------------------------------ | ---------- | ---------- |
-| Part 02 (Database)                   | 8          | 1.6%       |
-| Part 03 (Types)                      | 12         | 2.4%       |
-| Part 04 (Tier System)                | 13         | 2.6%       |
-| Part 05 (Authentication)             | 11         | 2.2%       |
-| Part 06 (Flask MT5)                  | 29         | 5.8%       |
-| Part 07 (Tier Routes)                | 3          | 0.6%       |
-| Part 08 (Dashboard Backend)          | 11         | 2.2%       |
-| Part 09 (Charts Backend)             | 3          | 0.6%       |
-| Part 10 (Watchlist Backend)          | 4          | 0.8%       |
-| Part 11 (Alerts Backend)             | 8          | 1.6%       |
-| Part 12 (E-commerce Backend)         | 21         | 4.2%       |
-| Part 13 (Settings Backend)           | 16         | 3.2%       |
-| Part 14 (Admin Backend)              | 21         | 4.2%       |
-| Part 15 (Notifications Backend)      | 8          | 1.6%       |
-| Part 16 (Infrastructure)             | 129        | 25.6%      |
-| Part 17A-1 (Affiliate Foundation)    | 22         | 4.4%       |
-| Part 17A-2 (Affiliate UI Tests)      | 7          | 1.4%       |
-| Part 17B-1 (Admin Affiliate)         | 12         | 2.4%       |
-| Part 17B-2 (Admin Automation)        | 10         | 2.0%       |
-| Part 18A (dLocal Payment Creation)   | 36         | 7.1%       |
-| Part 18B (dLocal Subscription)       | 17         | 3.4%       |
-| Part 18C (dLocal UX)                 | 10         | 2.0%       |
-| Part 19A (Disbursement Foundation)   | 18         | 3.6%       |
-| Part 19B (Disbursement Execution)    | 19         | 3.8%       |
-| Part 19C (Disbursement Automation)   | 18         | 3.6%       |
+| Part                                               | File Count | Percentage |
+| -------------------------------------------------- | ---------- | ---------- |
+| Part 02 (Database)                                 | 8          | 1.6%       |
+| Part 03 (Types)                                    | 12         | 2.4%       |
+| Part 04 (Tier System)                              | 13         | 2.6%       |
+| Part 05 (Authentication)                           | 11         | 2.2%       |
+| Part 06 (Flask MT5)                                | 29         | 5.8%       |
+| Part 07 (Tier Routes)                              | 3          | 0.6%       |
+| Part 08 (Dashboard Backend)                        | 11         | 2.2%       |
+| Part 09 (Charts Backend)                           | 3          | 0.6%       |
+| Part 10 (Watchlist Backend)                        | 4          | 0.8%       |
+| Part 11 (Alerts Backend)                           | 8          | 1.6%       |
+| Part 12 (E-commerce Backend)                       | 21         | 4.2%       |
+| Part 13 (Settings Backend)                         | 16         | 3.2%       |
+| Part 14 (Admin Backend)                            | 22         | 3.9%       |
+| Part 15 (Notifications Backend)                    | 8          | 1.6%       |
+| Part 16 (Infrastructure)                           | 129        | 25.6%      |
+| Part 17A-1 (Affiliate Foundation)                  | 23         | 4.1%       |
+| Part 17A-2 (Affiliate UI Tests)                    | 7          | 1.4%       |
+| Part 17B-1 (Admin Affiliate)                       | 12         | 2.4%       |
+| Part 17B-2 (Admin Automation)                      | 10         | 2.0%       |
+| Part 18A (dLocal Payment Creation)                 | 36         | 7.1%       |
+| Part 18B (dLocal Subscription)                     | 17         | 3.4%       |
+| Part 18C (dLocal UX)                               | 10         | 2.0%       |
+| Part 19A (Disbursement Foundation)                 | 18         | 3.6%       |
+| Part 19B (Disbursement Execution)                  | 19         | 3.8%       |
+| Part 19C (Disbursement Automation)                 | 18         | 3.6%       |
 | Drawing Engine (Chart Drawing Tools + Persistence) | 37         | 6.6%       |
 | Line Alerts (Alert Engine + Realtime)              | 19         | 3.4%       |
 
 ### Key Backend Components
 
-| Component Type           | Count | Purpose                                                                  |
-| ------------------------ | ----- | ------------------------------------------------------------------------ |
-| **API Endpoints**        | 163   | REST API routes handling HTTP requests                                   |
-| **Database Models**      | 30+   | Prisma schema models                                                     |
-| **Services & Libraries** | 164   | Business logic, utilities, helpers (incl. drawing + alert-engine)        |
-| **Type Definitions**     | 44    | TypeScript type safety                                                   |
-| **Background Jobs**      | 16    | Cron jobs and async processing                                           |
-| **React Hooks**          | 35    | State management (also used server-side)                                 |
-| **Email Templates**      | 28    | Transactional emails                                                     |
-| **Validation Schemas**   | 18    | Zod schemas for input validation                                         |
-| **Security Modules**     | 21    | Auth, 2FA, fraud detection                                               |
-| **Configuration**        | 34    | App config, CI/CD, Docker                                                |
-| **Test Files**           | 116   | Unit, integration, E2E tests                                             |
+| Component Type           | Count | Purpose                                                           |
+| ------------------------ | ----- | ----------------------------------------------------------------- |
+| **API Endpoints**        | 164   | REST API routes handling HTTP requests                            |
+| **Database Models**      | 30+   | Prisma schema models                                              |
+| **Services & Libraries** | 165   | Business logic, utilities, helpers (incl. drawing + alert-engine) |
+| **Type Definitions**     | 44    | TypeScript type safety                                            |
+| **Background Jobs**      | 16    | Cron jobs and async processing                                    |
+| **React Hooks**          | 35    | State management (also used server-side)                          |
+| **Email Templates**      | 28    | Transactional emails                                              |
+| **Validation Schemas**   | 18    | Zod schemas for input validation                                  |
+| **Security Modules**     | 21    | Auth, 2FA, fraud detection                                        |
+| **Configuration**        | 34    | App config, CI/CD, Docker                                         |
+| **Test Files**           | 116   | Unit, integration, E2E tests                                      |
 
 ---
 
@@ -782,7 +784,26 @@ Modified-not-new (already inventoried): `prisma/schema.prisma`, `types/prisma-st
 `lib/websocket/server.ts`, `hooks/use-websocket.ts`. The `package.json` `bullmq` +
 `@socket.io/redis-adapter` deps support the alert-engine worker/scaling (backend only).
 
+## Reconciliation Note (2026-07-04) — affiliate code-flows report + conversion processor
+
+Added **2 new backend rows** (533–534) for work pushed to `main`:
+
+- `app/api/admin/affiliates/reports/code-flows/route.ts` (Part 14, API routes)
+- `lib/affiliate/conversion-processor.ts` (Part 17A-1, Libraries/Utilities)
+
+**Modified-not-new** (already inventoried, content changed only — no rows added):
+`app/api/checkout/{route,validate-code/route}.ts`,
+`app/api/cron/{distribute-codes,expire-codes,send-monthly-reports}/route.ts`,
+`app/api/payments/dlocal/{create,validate-discount}/route.ts`,
+`app/api/webhooks/dlocal/route.ts`, `lib/affiliate/report-builder.ts`,
+`lib/disbursement/cron/disbursement-processor.ts`,
+`lib/disbursement/webhook/event-processor.ts`, `lib/stripe/{stripe,webhook-handlers}.ts`,
+`vercel.json`.
+
+This batch is **backend-only** — no frontend UI files were added or changed, so
+`frontend-ui-file-inventory.md` is unchanged and nothing was synced into `frontend/`.
+
 ---
 
-**Compiled:** 2026-06-28
+**Compiled:** 2026-07-04
 **Status:** Complete ✅
