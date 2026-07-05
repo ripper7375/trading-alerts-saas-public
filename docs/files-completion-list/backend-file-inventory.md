@@ -1,7 +1,7 @@
 # Backend Files Inventory
 
-**Last Updated:** 2026-07-04
-**Total Files:** 563
+**Last Updated:** 2026-07-05
+**Total Files:** 652
 **Purpose:** Complete inventory of all backend files (non-UI) that handle business logic, data processing, and infrastructure
 
 ---
@@ -26,7 +26,7 @@
 > so the same file appears on multiple rows when more than one build Part touches it (e.g.
 > `lib/tier-config.ts` is listed under Parts 04, 08, 11 and 16). As a result:
 >
-> - **Row count ≠ file count.** There are **534 numbered rows** but only **~422 unique file paths**
+> - **Row count ≠ file count.** There are **623 numbered rows** but only **~511 unique file paths**
 >   (~112 rows are cross-Part duplicates).
 > - The **headline totals** (Total Files / Backend / Tests / Grand Total) and the
 >   **Distribution by Category / Part** numbers below are **approximate editorial estimates**, not
@@ -570,44 +570,133 @@
 | 532 | Line Alerts    | `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`                             | Other (documentation)       |
 | 533 | Part 14        | `app/api/admin/affiliates/reports/code-flows/route.ts`                  | API routes                  |
 | 534 | Part 17A-1     | `lib/affiliate/conversion-processor.ts`                                 | Libraries/Utilities         |
+| 535 | Backend Stack C — Data Pipeline (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` | Other (documentation) |
+| 536 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/export_collector_validator_v2.py` | Other (background jobs)     |
+| 537 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/centroid_regression.py`          | Libraries/Utilities         |
+| 538 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/fractal_lines.py`                | Libraries/Utilities         |
+| 539 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/zigzag_metrics.py`               | Libraries/Utilities         |
+| 540 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/zscore_candle.py`                | Libraries/Utilities         |
+| 541 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql`     | Database operations         |
+| 542 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd_preview.txt` | Other (documentation)   |
+| 543 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/backfill_worker_api_gateway_v5.py` | Other (background jobs)    |
+| 544 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/gateway_contract_market_data.schema.json` | Configuration files  |
+| 545 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/replay_quarantine.py`            | Other (scripts)              |
+| 546 | Backend Stack C — Data Pipeline (v2.29) | `.../v2_29_data_pipeline_architecture/install_services.bat`            | Configuration files          |
+| 547 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`         | Other (MQL5 indicator source) |
+| 548 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTCentroidRegressionCherryPickA_v2_29.mq5`                  | Other (MQL5 indicator source) |
+| 549 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTCentroidRegressionCherryPickB_v2_29.mq5`                  | Other (MQL5 indicator source) |
+| 550 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTCentroidRegressionMostRecentLineExtension_v2_29.mq5`      | Other (MQL5 indicator source) |
+| 551 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29.mq5`  | Other (MQL5 indicator source) |
+| 552 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29.mq5`  | Other (MQL5 indicator source) |
+| 553 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/2EDTFractalBestFitv5_v2_29.mq5`                               | Other (MQL5 indicator source) |
+| 554 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/SingleBestResistanceLinev3_v2_29.mq5`                         | Other (MQL5 indicator source) |
+| 555 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/SingleBestSupportLinev3_v2_29.mq5`                            | Other (MQL5 indicator source) |
+| 556 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/ZigZagExportv43_v2_29.mq5`                                    | Other (MQL5 indicator source) |
+| 557 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/ohlcvexportlightweight_v2_29.mq5`                             | Other (MQL5 indicator source) |
+| 558 | Backend Stack C — Data Pipeline (v2.29) | `.../mq5/zscoreohlccandleexport_v2_29.mq5`                             | Other (MQL5 indicator source) |
+| 559 | Backend Stack C — Data Pipeline (v2.29) | `.../SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5` (legacy)              | Other (documentation)        |
+| 560 | Backend Stack C — Data Pipeline (v2.29) | `.../SimpleDataCollector_v2_29_ASYNC_SOCKET.ex5` (legacy, compiled)    | Other (documentation)        |
+| 561 | Backend Stack C — Data Pipeline (v2.29) | `.../mt5_api_relay_for_v2_29.py` (legacy)                              | Other (background jobs)      |
+| 562 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/golden_certification.py`          | Other (tests)                |
+| 563 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/golden_certification_report_M5.txt` | Other (tests)               |
+| 564 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/golden_certification_report_M15.txt` | Other (tests)              |
+| 565 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/test_phase1_golden.py`            | Other (tests)                |
+| 566 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/test_phase2_lines.py`             | Other (tests)                |
+| 567 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/test_phase3_centroid.py`          | Other (tests)                |
+| 568 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/CERTIFICATION.md`                 | Other (documentation)        |
+| 569 | Backend Stack C — Data Pipeline (v2.29) | `.../mql5-to-python-transliteration/README.md`                        | Other (documentation)        |
+| 570 | Backend Stack C — Data Pipeline (v2.29) | `.../data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt` | Other (documentation) |
+| 571 | Backend Stack C — Data Pipeline (v2.29) | `.../data-split-between-mql5-and-python/Python stacks calculation.txt` | Other (documentation)       |
+| 572 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/__init__.py`  | Libraries/Utilities          |
+| 573 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/__main__.py`  | Other (scripts)              |
+| 574 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/data_source.py` | Database operations        |
+| 575 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/fixture.py`   | Libraries/Utilities          |
+| 576 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/renderer.py`  | Libraries/Utilities          |
+| 577 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/test_mtf_render.py`      | Other (tests)                |
+| 578 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/requirements.txt`        | Configuration files          |
+| 579 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/Multi-Timeframe-Visualisation-Architecture-Design.md` | Other (documentation) |
+| 580 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/VISUALISATION_TASK_HANDOFF.md` | Other (documentation)  |
+| 581 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/cover-prompt.md`     | Other (documentation)        |
+| 582 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/mtf_demo.png`        | Other (documentation)        |
+| 583 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/multi-timeframe-visualisation.jpg` | Other (documentation) |
+| 584 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/.env.example`                                              | Configuration files          |
+| 585 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/README.md`                                                 | Other (documentation)        |
+| 586 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/docker-compose.yml`                                        | Configuration files          |
+| 587 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/jest.config.js`                                            | Configuration files          |
+| 588 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/nest-cli.json`                                             | Configuration files          |
+| 589 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/package.json`                                              | Configuration files          |
+| 590 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/package-lock.json`                                         | Configuration files          |
+| 591 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/railway.toml`                                              | Configuration files          |
+| 592 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/tsconfig.json`                                             | Configuration files          |
+| 593 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/prisma/schema.prisma`                                      | Database operations          |
+| 594 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/scripts/generate-market-data-dto.js`                       | Other (scripts)              |
+| 595 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/scripts/seed_local_xauusd_db.py`                           | Other (scripts)              |
+| 596 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/main.ts`                                               | Other (documentation)        |
+| 597 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/app.module.ts`                                         | Middleware & Infrastructure  |
+| 598 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/auth/api-key.guard.ts`                                 | Security & Fraud Detection  |
+| 599 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/gateway/dto/market-data.dto.ts`                        | Type Definitions             |
+| 600 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/gateway/gateway.module.ts`                             | Middleware & Infrastructure  |
+| 601 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/gateway/market-data.controller.ts`                     | API routes                   |
+| 602 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/gateway/validation.service.ts`                         | Validation schemas            |
+| 603 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/health/health.controller.ts`                          | API routes                   |
+| 604 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/health/health.module.ts`                              | Middleware & Infrastructure  |
+| 605 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/prisma/prisma.module.ts`                              | Database operations           |
+| 606 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/prisma/prisma.service.ts`                             | Database operations           |
+| 607 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/worker/market-data.processor.ts`                      | Other (background jobs)      |
+| 608 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/src/worker/worker.module.ts`                              | Middleware & Infrastructure  |
+| 609 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/test/dto-contract.spec.ts`                                | Other (tests)                 |
+| 610 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/test/jest-e2e.json`                                       | Configuration files            |
+| 611 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/test/local-e2e-harness.md`                                | Other (documentation)         |
+| 612 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/test/market-data.e2e-spec.ts`                             | Other (tests)                  |
+| 613 | Railway Gateway (NestJS v6 Ingest) | `railway-gateway/test/validation.service.spec.ts`                          | Other (tests)                  |
+| 614 | Line Alerts    | `railway-worker.json`                                                   | Configuration files          |
+| 615 | Line Alerts    | `mt5-service/app/redis_pub.py`                                          | Libraries/Utilities          |
+| 616 | Line Alerts    | `mt5-service/tests/test_redis_pub.py`                                   | Other (tests)                |
+| 617 | Part 02        | `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`     | Database operations          |
+| 618 | Part 02        | `prisma/migrations/20260705010000_drop_market_data/migration.sql`       | Database operations          |
+| 619 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md` | Other (documentation) |
+| 620 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/implementation-progress/implementation-progress-files-and-folder-directory.txt` | Other (documentation) |
+| 621 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/Drawing-Engine-Line-Alerts-Architecture-Overview.pptx` | Other (documentation) |
+| 622 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/PHASE-4-SMOKE-TEST-RUNBOOK.md` | Other (documentation) |
+| 623 | Backend Stack C — Data Pipeline (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/old-architecture/README.md` | Other (documentation) |
 
 ---
 
 ## Summary Statistics
 
-> _Approximate figures — see the counting note above the inventory table. The table has 534
-> per-Part rows / ~422 unique files; the numbers below are editorial estimates, not derived counts._
+> _Approximate figures — see the counting note above the inventory table. The table has 623
+> per-Part rows / ~511 unique files; the numbers below are editorial estimates, not derived counts._
 
 ### Total Counts
 
-- **Total Backend Files:** 522 (excluding tests)
-- **Test Files:** 116
-- **Grand Total:** 563 files
+- **Total Backend Files:** 600 (excluding tests)
+- **Test Files:** 127
+- **Grand Total:** 652 files
 
 ### Distribution by Category
 
 | Category                           | File Count | Percentage |
 | ---------------------------------- | ---------- | ---------- |
-| API routes                         | 164        | 29.1%      |
-| Libraries/Utilities                | 165        | 29.3%      |
-| Type Definitions                   | 45         | 8.0%       |
-| Configuration files                | 34         | 6.4%       |
-| Templates                          | 28         | 5.3%       |
-| Other (tests)                      | 116        | 20.7%      |
-| Security & Fraud Detection         | 21         | 4.4%       |
-| Validation schemas                 | 19         | 3.4%       |
-| Database operations                | 10         | 2.1%       |
-| React hooks                        | 35         | 6.2%       |
-| Middleware & Infrastructure        | 7          | 1.5%       |
-| Other (background jobs)            | 18         | 3.2%       |
-| Other (scripts)                    | 19         | 3.4%       |
-| Other (documentation/exports/etc.) | 12         | 2.1%       |
+| API routes                         | 166        | 25.7%      |
+| Libraries/Utilities                | 173        | 26.7%      |
+| Type Definitions                   | 46         | 7.1%       |
+| Configuration files                | 47         | 7.3%       |
+| Templates                          | 28         | 4.3%       |
+| Other (tests)                      | 127        | 19.6%      |
+| Security & Fraud Detection         | 22         | 3.4%       |
+| Validation schemas                 | 20         | 3.1%       |
+| Database operations                | 17         | 2.6%       |
+| React hooks                        | 35         | 5.4%       |
+| Middleware & Infrastructure        | 11         | 1.7%       |
+| Other (background jobs)            | 22         | 3.4%       |
+| Other (scripts)                    | 23         | 3.6%       |
+| Other (documentation/exports/etc.) | 45         | 6.9%       |
 
 ### Distribution by Part
 
 | Part                                               | File Count | Percentage |
 | -------------------------------------------------- | ---------- | ---------- |
-| Part 02 (Database)                                 | 8          | 1.6%       |
+| Part 02 (Database)                                 | 10         | 1.5%       |
 | Part 03 (Types)                                    | 12         | 2.4%       |
 | Part 04 (Tier System)                              | 13         | 2.6%       |
 | Part 05 (Authentication)                           | 11         | 2.2%       |
@@ -633,7 +722,10 @@
 | Part 19B (Disbursement Execution)                  | 19         | 3.8%       |
 | Part 19C (Disbursement Automation)                 | 18         | 3.6%       |
 | Drawing Engine (Chart Drawing Tools + Persistence) | 37         | 6.6%       |
-| Line Alerts (Alert Engine + Realtime)              | 19         | 3.4%       |
+| Line Alerts (Alert Engine + Realtime)              | 26         | 4.0%       |
+| Backend Stack C — Data Pipeline (v2.29)            | 38         | 5.8%       |
+| Backend Stack C — MTF Visualisation (v2.29)        | 12         | 1.9%       |
+| Railway Gateway (NestJS v6 Ingest)                  | 30         | 4.6%       |
 
 ### Key Backend Components
 
@@ -750,6 +842,8 @@ This inventory was compiled from the following source documents:
 25. `docs/files-completion-list/files-inventory/part19c-files-completion.md`
 26. `docs/files-completion-list/files-inventory/part19d-files-completion.md`
 27. `docs/files-completion-list/files-inventory/drawing-engine-line-alerts-files-completion.md`
+28. `docs/files-completion-list/files-inventory/v2_29_data_pipeline_architecture-files-completion.md`
+29. `docs/files-completion-list/files-inventory/v2_29_multi-timeframe-visualisation-files-completion.md`
 
 ---
 
@@ -803,7 +897,117 @@ Added **2 new backend rows** (533–534) for work pushed to `main`:
 This batch is **backend-only** — no frontend UI files were added or changed, so
 `frontend-ui-file-inventory.md` is unchanged and nothing was synced into `frontend/`.
 
+## Reconciliation Note (2026-07-05) — v6 XAUUSD pipeline: gateway + backend-stack-c inventory
+
+Added **84 new backend rows** (535–618) — the largest single reconciliation to date. Two
+`backend-stack-c` stacks that existed on disk but had never been inventoried are now tracked, plus
+the new Railway ingest service and its supporting DB/worker plumbing:
+
+- **Backend Stack C — Data Pipeline (v2.29)** (rows 535–571, 37 files) — the XAUUSD
+  MT5-indicators-to-SQLite-to-gateway pipeline: 12 `mq5/` export indicators, the
+  collect/validate/calculate/promote engine (`export_collector_validator_v2.py`) + 4 calc modules,
+  the v6 SQLite schema, the push worker, the legacy EA/relay (reference only), and the
+  certification/test suite (93/93 passing; M15 50/50 exact, M5 39/50 + accepted tolerance). Full
+  detail: `files-inventory/v2_29_data_pipeline_architecture-files-completion.md`.
+- **Backend Stack C — MTF Visualisation (v2.29)** (rows 572–583, 12 files) — the `mtf_render`
+  Python package: reads `market_data`'s computed channel columns and renders the DavinTrade
+  3-panel (M5 + 2×M15) chart as a PNG. Backend rendering only; no UI. Full detail:
+  `files-inventory/v2_29_multi-timeframe-visualisation-files-completion.md`.
+- **Railway Gateway (NestJS v6 Ingest)** (rows 584–613, 30 files, `railway-gateway/`, excludes
+  `node_modules/`/`dist/` build output) — new NestJS microservice that receives the Push Worker's
+  POSTs, validates against `gateway_contract_market_data.schema.json`, and idempotently upserts
+  into the new `market_data_v6` Postgres table (shared with the root Next.js app). This resolves
+  the data-pipeline blueprint's "gateway migration" remaining-work item.
+- **Line Alerts** (rows 614–616, 3 files) — `railway-worker.json` (Railway deploy config for
+  `npm run worker:alerts`, wiring the already-inventoried `scripts/alert-worker.ts` to a real
+  deploy target), `mt5-service/app/redis_pub.py` + `mt5-service/tests/test_redis_pub.py` (Flask
+  service now publishes each finalized bar/tick to Redis `prices:{symbol}:{timeframe}` for the
+  Node alert-engine worker to consume — best-effort, non-blocking on the Socket.IO feed).
+- **Part 02** (rows 617–618, 2 files) — the two new Prisma migrations:
+  `20260705000000_add_market_data_v6` (additive `market_data_v6` table, 79 gateway-contract
+  fields) and `20260705010000_drop_market_data` (drops the old 63-column `MarketData` model —
+  EA v2.27-era indicators; confirmed unused by any live app/api route before dropping).
+
+**Modified-not-new** (already inventoried, content changed only — no rows added):
+
+- `prisma/schema.prisma` — `MarketData` model replaced by `MarketDataV6` (`@@map("market_data_v6")`,
+  written by both this app's migration and `railway-gateway`'s own Prisma client).
+- `types/prisma-stubs.d.ts` — stub type updated from `MarketData` to `MarketDataV6`.
+- `__mocks__/@prisma/client.ts` — added `marketDataV6` mock delegate.
+- `lib/jobs/alert-checker.ts` — for XAUUSD only, now tries `market_data_v6` (via
+  `fetchXauusdPriceFromGatewayPipeline`) before falling back to the Flask MT5 service; every other
+  symbol is unaffected.
+- `__tests__/lib/db/prisma.test.ts` — removed the retired `marketData` model test suite.
+- `__tests__/lib/db/seed.test.ts`, `lib/db/prisma.ts`, `lib/db/seed.ts` — removed stale doc
+  comments referencing the retired 63-column schema (no behavior change).
+- `__tests__/lib/jobs/alert-checker.test.ts` — added the XAUUSD gateway-first/Flask-fallback test
+  suite.
+- `package.json` — added the `worker:alerts` script.
+- `docker-compose.yml` — added the `alert-worker` service (runs `npm run worker:alerts`, depends on
+  `postgres` + `redis`).
+- `tsconfig.json` — excludes `railway-gateway` (separate TS project with its own config).
+- `backend-stack-c/.../backfill_worker_api_gateway_v5.py` — `API_GATEWAY_URL` now read from env;
+  added a startup schema-contract self-check; dropped custom `X-Terminal-ID`/`X-EA-Version`
+  headers (`terminal_id` now travels in the POST body).
+- `backend-stack-c/.../install_services.bat` — wires `API_GATEWAY_URL` into the `MT5PushWorker`
+  service environment.
+- `backend-stack-c/.../sqlite_schema_v6_xauusd.sql` — trivial dedup fix, no semantic change.
+- `mt5-service/app/websocket.py`, `mt5-service/requirements.txt`, `mt5-service/.env.example` —
+  wired in the new `redis_pub.py` publish call, the `redis` dependency, and `REDIS_URL` config.
+
+This batch is **backend-only** — no frontend UI files were added or changed, so
+`frontend-ui-file-inventory.md` is unaffected (see its own 2026-07-05 note).
+
+## Reconciliation Note (2026-07-05, addendum) — drawing-engine/line-alerts docs + legacy decommission note
+
+Follow-up sweep caught **5 more files** (rows 619–623) from the same working-tree snapshot that
+the first 2026-07-05 pass missed because they weren't in the original change list supplied:
+
+- **`davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/
+  DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md`** (row 619, modified) — backfilled; this
+  Phase 0–5 architecture blueprint existed since 2026-06-18 but had never been given its own
+  inventory row. The 2026-07-05 edit adds a source-verified status callout confirming the same
+  gap-closing work as the main 2026-07-05 note above: the Node worker
+  (`lib/alert-engine/*` + `scripts/alert-worker.ts`) and the Flask publisher (`redis_pub.py`) are
+  both built and unit-tested, deployment is wired (`docker-compose.yml`'s `alert-worker` service +
+  `railway-worker.json`), but the live cross-process round trip (Flask → Redis → Node, over real
+  infra) has not been run — no Docker/root Redis access and the project's Railway Postgres was
+  unreachable in that environment. Also documents that Phase 5's tool-set gating by tier and the
+  draw→alert→fire Playwright e2e are **not** implemented (quotas/ownership checks are real; tool
+  gating and e2e coverage are gaps), and flags that the `sync/` "Price persistence pipeline" row in
+  its own tech-stack table imports modules not present in this repo (deployed separately as
+  "Part 20" on the Contabo VPS per `sync/claude-code-windows-deployment-guide.md`).
+- **`davintrade-draw-engine-and-line-alerts-stack/implementation-progress/
+  implementation-progress-files-and-folder-directory.txt`** (row 620, modified) — backfilled;
+  already referenced as this stack's "source directory listing" in
+  `files-inventory/drawing-engine-line-alerts-files-completion.md` but never given its own
+  inventory row. The edit only trims a stale terminal-transcript scratch log (pnpm/git commands
+  from installing `bullmq`) off the end of the file — no informational content change.
+- **`davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/
+  Drawing-Engine-Line-Alerts-Architecture-Overview.pptx`** (row 621, new) — slide-deck companion
+  to the architecture blueprint.
+- **`davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/
+  PHASE-4-SMOKE-TEST-RUNBOOK.md`** (row 622, new) — manual runbook for the live cross-process
+  verification called out as not-yet-run above (docker compose up → migrate → `npm run
+  worker:alerts` → cross a price → confirm `Notification` row + `triggerCount`). Documents the
+  same environment blockers and the `fakeredis` TCP-delivery limitation hit while trying anyway.
+- **`backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/
+  old-architecture/README.md`** (row 623, new) — decommission note for the pre-v6 EA lineage
+  (`SimpleDataCollector_v2_25/26/27_API_GATEWAY.mq5/.ex5`, `backfill_worker_api_gateway_v2/v3.py`
+  — the tema/hrma/smma/Keltner/Heiken-Ashi/8-level-S-R/zigzag_high-low/pinbar/fractal indicator
+  set), superseded by `v2_29_data_pipeline_architecture/`. The other 8 files in that
+  `old-architecture/` folder it describes are pre-existing (untouched in this change, not newly
+  added) and are **not** individually inventoried here, consistent with this batch's scope being
+  limited to what actually changed.
+
+Companion doc updated to match:
+`files-inventory/drawing-engine-line-alerts-files-completion.md` (2026-07-05 update section added)
+and `files-inventory/v2_29_data_pipeline_architecture-files-completion.md` (legacy note
+cross-reference added).
+
+Still **backend-only** — `frontend-ui-file-inventory.md` unaffected.
+
 ---
 
-**Compiled:** 2026-07-04
+**Compiled:** 2026-07-05
 **Status:** Complete ✅

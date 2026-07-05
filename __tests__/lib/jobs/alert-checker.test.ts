@@ -4,10 +4,13 @@
  * Tests for the background job that checks alert conditions.
  *
  * Note: Integration tests removed after Part 20 migration.
- * Implementation now uses Flask MT5 service instead of PostgreSQL.
+ * Implementation now uses Flask MT5 service instead of PostgreSQL — except
+ * for XAUUSD, which now also tries the v6 Railway Gateway pipeline's
+ * market_data_v6 table first (see the "XAUUSD price source" suite below).
  */
 
-import { checkAlertCondition } from '@/lib/jobs/alert-checker';
+import { checkAlertCondition, checkAlerts } from '@/lib/jobs/alert-checker';
+import { prisma } from '@/lib/db/prisma';
 
 describe('Alert Checker Job', () => {
   beforeEach(() => {
@@ -85,6 +88,79 @@ describe('Alert Checker Job', () => {
         expect(checkAlertCondition(1900, 'price_crosses', 1900)).toBe(false);
         expect(checkAlertCondition(1900, 'invalid', 1900)).toBe(false);
         expect(checkAlertCondition(1900, '', 1900)).toBe(false);
+      });
+    });
+
+    describe('XAUUSD price source (v6 Gateway pipeline)', () => {
+      const mockAlert = {
+        id: 'alert-1',
+        userId: 'user-1',
+        symbol: 'XAUUSD',
+        timeframe: 'M5',
+        condition: JSON.stringify({ type: 'price_above', targetValue: 1900 }),
+        isActive: true,
+        lastTriggered: null,
+        triggerCount: 0,
+        user: { email: 'a@b.com', name: 'Test' },
+      };
+
+      let fetchSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        fetchSpy = jest.spyOn(global, 'fetch');
+        (prisma.alert.findMany as jest.Mock).mockResolvedValue([mockAlert]);
+        (prisma.alert.update as jest.Mock).mockResolvedValue({});
+      });
+
+      afterEach(() => {
+        fetchSpy.mockRestore();
+      });
+
+      it('uses market_data_v6 and never calls Flask when a synced row exists', async () => {
+        (prisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue({
+          close: 1950.5,
+        });
+
+        await checkAlerts();
+
+        expect(prisma.marketDataV6.findFirst).toHaveBeenCalledWith({
+          where: { symbol: 'XAUUSD', timeframe: 'M5' },
+          orderBy: { timestamp: 'desc' },
+        });
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(prisma.alert.update).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: 'alert-1' } })
+        );
+      });
+
+      it('falls back to Flask when market_data_v6 has no synced row yet', async () => {
+        (prisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue(null);
+        fetchSpy.mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ price: 1950.5 }),
+        } as Response);
+
+        await checkAlerts();
+
+        expect(prisma.marketDataV6.findFirst).toHaveBeenCalled();
+        expect(fetchSpy).toHaveBeenCalledWith(
+          expect.stringContaining('/api/mt5/price?symbol=XAUUSD'),
+          expect.any(Object)
+        );
+      });
+
+      it('falls back to Flask when market_data_v6 query throws', async () => {
+        (prisma.marketDataV6.findFirst as jest.Mock).mockRejectedValue(
+          new Error('db unreachable')
+        );
+        fetchSpy.mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ price: 1950.5 }),
+        } as Response);
+
+        await checkAlerts();
+
+        expect(fetchSpy).toHaveBeenCalled();
       });
     });
 

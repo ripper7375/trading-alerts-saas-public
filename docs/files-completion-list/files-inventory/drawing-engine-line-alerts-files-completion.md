@@ -136,5 +136,43 @@ client-side files were mirrored into `frontend/`.
 
 ---
 
-**Compiled:** 2026-06-28
+---
+
+## Update 2026-07-05 — Phase 4 gap-closing verification + companion docs
+
+The alert-engine wiring described in Phase 4/5 above (`lib/alert-engine/*`, `scripts/alert-worker.ts`,
+the Flask→Redis publish leg) was code-completed and verified against source in this pass — see the
+full detail in `backend-file-inventory.md`'s 2026-07-05 reconciliation notes (main + addendum).
+Short version:
+
+- ✅ Node worker + Flask publisher (`mt5-service/app/redis_pub.py`) both built and unit-tested
+  (`mt5-service/tests/test_redis_pub.py` 3/3, existing `__tests__/alert-engine/*` 23/23 untouched).
+- ✅ Deployment wired: `npm run worker:alerts`, `docker-compose.yml`'s `alert-worker` service,
+  `railway-worker.json`.
+- ⚠️ Live cross-process round trip (Flask → Redis → Node, over real infra) not run — no
+  Docker/root Redis access and Railway Postgres was unreachable in that environment. Manual
+  verification steps recorded in the new `PHASE-4-SMOKE-TEST-RUNBOOK.md`.
+- ❌ Confirmed still not implemented: tool-set gating by tier (all 6 drawing tools available to
+  every tier) and the draw→alert→fire Playwright e2e spec.
+
+**Files added to `backend-file-inventory.md` this pass** (rows 619–623, Part "Line Alerts" except
+where noted):
+
+- `DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md` (row 619) — backfilled (existed since
+  2026-06-18, never had its own row) + modified with the status callout above
+- `implementation-progress/implementation-progress-files-and-folder-directory.txt` (row 620) —
+  backfilled (already cited as this doc's "source directory listing" above, line 4, but never
+  given its own row); this pass's edit only trimmed a stale terminal-transcript tail, no content
+  change
+- `Drawing-Engine-Line-Alerts-Architecture-Overview.pptx` (row 621) — new slide-deck companion
+- `PHASE-4-SMOKE-TEST-RUNBOOK.md` (row 622) — new manual verification runbook
+- (Part "Backend Stack C — Data Pipeline (v2.29)", row 623) —
+  `backend-stack-c/.../architecture-document/old-architecture/README.md`, a decommission note for
+  the pre-v6 EA lineage this stack's `sync/`-pipeline caveat (§14 of the architecture doc) is
+  adjacent to but does not itself cover — unrelated to this stack's own files, listed here only
+  because it was reconciled in the same pass.
+
+---
+
+**Compiled:** 2026-06-28 (updated 2026-07-05)
 **Status:** Complete ✅

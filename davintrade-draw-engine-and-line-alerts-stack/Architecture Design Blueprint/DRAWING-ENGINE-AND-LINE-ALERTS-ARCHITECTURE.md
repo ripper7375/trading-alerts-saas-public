@@ -1,10 +1,17 @@
 # DavinTrade — Drawing Engine & Line-Touch Alerts: Architecture Design
 
-**Status:** Blueprint (pre-implementation)
-**Last updated:** 2026-06-18
+**Status:** Phases 0–5 implemented (see companion doc below, compiled 2026-06-28); one
+integration gap remains before this is live end-to-end — see the Phase 4 status callout in §7
+and §14 Verification Notes.
+**Last updated:** 2026-07-05 (status verified against source code; original design unchanged
+since 2026-06-18)
 **Owner:** DavinTrade
 **Scope:** A clean-room drawing engine on TradingView Lightweight Charts v5 (6 tools) plus a
 server-side "price touches drawn line → alert fires" engine, delivered across 6 phases.
+**Companion doc:** `docs/files-completion-list/files-inventory/drawing-engine-line-alerts-files-completion.md`
+— the authoritative list of files created for Phases 1–5. Read it alongside this blueprint: this
+document describes the design and what's still disconnected; that document lists exactly which
+files exist.
 
 ---
 
@@ -65,8 +72,13 @@ Lightweight Charts.
 | Deployment                 | Railway, Vercel, Docker, nixpacks                                         | `railway.json`, `vercel.json`, `docker-compose.yml`, `nixpacks.toml`         |
 | Quality gates              | `npm run validate` (tsc + ESLint + policy + Jest)                         | `CLAUDE.md`                                                                  |
 
+*Note on the "Price persistence pipeline" (`sync/`) row above — see §14 for a verification note;*
+*the implementation files it imports aren't present in this repo (deployed separately).*
+
 **Key takeaway:** the only net-new infra for the whole feature is a **job queue** (BullMQ) and using
-the **already-present Redis** for pub/sub. Everything else is already in your stack.
+the **already-present Redis** for pub/sub. Everything else is already in your stack. **As of
+2026-07-05, the BullMQ worker is built but the Redis pub/sub leg (Flask's publish side) is not —
+see the Phase 4 status callout in §7.**
 
 ---
 
@@ -235,6 +247,34 @@ model DrawingAlert {
   Recommended path is the Node/BullMQ worker to share Prisma + types.)_
 - **Risk:** worker→price reachability (see §11); idempotency of crossing across restarts.
 
+> **Current Implementation Status (updated 2026-07-05 — gap closed):**
+>
+> - ✅ **Worker (Node) — built.** `lib/alert-engine/{types,detect,state,watches,evaluator,
+>   dispatcher,queue,worker,notify-bridge}.ts` + entrypoint `scripts/alert-worker.ts` are
+>   implemented and match this section's design: it `psubscribe`s `prices:*` and `alerts:changed`,
+>   loads active `DrawingAlert`+`Drawing` via Prisma, and dispatches fires through the BullMQ queue.
+> - ✅ **Producer (Flask) — built.** `redis==5.0.1` added to `mt5-service/requirements.txt`;
+>   `REDIS_URL` added to `mt5-service/.env.example`; `app/redis_pub.py` (new) implements the
+>   publish call from `REDIS-PUBLISH-SNIPPET.md` and is called from `background_update_loop` in
+>   `mt5-service/app/websocket.py`, right next to the existing `socketio.emit('ohlcv_update', ...)`
+>   — best-effort, never blocks the live feed. Unit-tested against a mocked Redis client
+>   (`mt5-service/tests/test_redis_pub.py`, 3/3 passing) confirming the payload matches
+>   `lib/alert-engine/types.ts`'s `PriceEvent` exactly.
+> - ✅ **Deployment — wired.** `npm run worker:alerts` runs `scripts/alert-worker.ts`; added as
+>   its own service in `docker-compose.yml` (`alert-worker`) and a standalone Railway config
+>   (`railway-worker.json`, to be pointed at by a second Railway service in the dashboard).
+> - ⚠️ **Live cross-process round trip — not run in this pass.** No Docker, no root access to
+>   install a real `redis-server`, and the project's live Railway Postgres was unreachable from
+>   that environment (TCP connects; Postgres protocol handshake fails — looks paused). What
+>   *was* verified: the existing `__tests__/alert-engine/*.test.ts` suite (23/23, untouched),
+>   the new `test_redis_pub.py` (3/3), and a `fakeredis`-based attempt that got as far as
+>   confirming `PUBLISH` is acknowledged with the correct subscriber count before hitting a
+>   known `fakeredis` TCP-server limitation (doesn't push messages across separate connections)
+>   — an environment/tooling limitation, not a code defect. See
+>   `PHASE-4-SMOKE-TEST-RUNBOOK.md` (same folder) for the manual steps to run this for real
+>   once Docker or the Contabo VPS itself is reachable.
+> - See §14 for the `sync/` pipeline note and the companion files-completion doc.
+
 ### Phase 5 — Delivery & realtime (3–4 d)
 
 - **In-app:** `Notification` rows (existing model :666) + live push over **Socket.IO** (existing
@@ -252,6 +292,32 @@ model DrawingAlert {
 - **Tests:** Jest unit tests for §5 geometry (pure, high value), worker integration tests,
   **Playwright** e2e (draw → alert → fire), Newman for the new API routes.
 - **Gates:** `npm run validate` green; CI license scan green (§12).
+
+> **Status (verified 2026-07-05 against source):** partially done — quotas are real and
+> enforced; tool-set gating and e2e coverage are not.
+>
+> - ✅ **Max drawings/alerts by tier — enforced, but not via `lib/auth/permissions.ts`.**
+>   That file has no drawing/alert-specific permissions at all (its `Permission` union only
+>   covers dashboard/alerts-generic/watchlist/symbols/timeframes/affiliate/admin). The real
+>   enforcement lives in the route handlers directly: `app/api/drawings/route.ts`'s `POST`
+>   checks `canAccessSymbol`/`validateTimeframeAccess` (symbol/timeframe) and
+>   `DRAWING_LIMITS[tier]` from `lib/drawing/schema.ts` (a real `prisma.drawing.count()` quota
+>   check, 403 if at limit) before creating; `app/api/alerts/line/route.ts`'s `POST` does the
+>   same for alerts via `getAlertLimit(tier)` from `lib/tier-validation.ts`. Both also check
+>   session + ownership. `components/charts/drawing/tierUsage.ts` is a separate, pure UI-label
+>   helper (`"3 / 10"` display) built on the same limits — it does not itself enforce anything.
+> - ❌ **Tool-set gating by tier — not implemented anywhere.** `DrawingCreateZ`
+>   (`lib/drawing/schema.ts`) accepts all 6 `DRAWING_TYPES` for any tier; `Toolbar.tsx` has no
+>   tier/FREE/PRO reference at all. Every tier can currently use all 6 tools — only quantity and
+>   symbol/timeframe access differ by tier.
+> - ❌ **Playwright e2e (draw → alert → fire) — does not exist.** The only alert-related e2e
+>   spec is `e2e/archive/tests/path7-alert-notifications.spec.ts`, which is (a) in an `archive/`
+>   folder and (b) tests the older generic alert flow, not line-touch alerts on drawings.
+> - ✅ **Jest coverage for §5 geometry + worker logic — real and passing.**
+>   `__tests__/drawing/*` (67 tests, 8 suites) and `__tests__/alert-engine/*` (23 tests, 4
+>   suites) all pass.
+> - Not independently re-checked this pass: Newman coverage for the new API routes, and the
+>   CI license scan (§12).
 
 ---
 
@@ -328,6 +394,30 @@ P0 ─► P1 (drawing) ─► P2 (persist) ─► P3 (attach alerts) ─┐
 ```
 
 §5 geometry and P4's worker are independent of P1 rendering and can be built in parallel.
+
+---
+
+## 14. Verification Notes (2026-07-05)
+
+This section records findings from a source-code verification pass done before handing this
+blueprint (together with the companion files-completion doc) to Claude Code for further build
+work. The design in §1–§13 is unchanged; this records what's actually true in the repo today.
+
+- **Phase 4 producer/consumer split** — see the status callout in §7 Phase 4 for full detail.
+  Short version: the Node worker is built and correct; the Flask→Redis publish step is not, and
+  `scripts/alert-worker.ts` is not wired into any deploy process yet. This is the one remaining
+  blocker to a live end-to-end alert.
+- **`sync/` pipeline (§3 table, "Price persistence pipeline" row)** — `sync/__init__.py` in this
+  repo imports `sync_to_postgresql.py`, `db_connections.py`, `timeframe_filter.py`, and `config.py`,
+  none of which are present in `sync/`. Per `sync/claude-code-windows-deployment-guide.md`, the real
+  implementation ("Part 20") is deployed separately onto the Contabo VPS
+  (`C:\Scripts\sync_package\`) and isn't committed to this repo. This doesn't block the Redis
+  pub/sub path (§11's recommended approach), but if the DB-tail fallback is ever chosen instead,
+  confirm the deployed sync cadence directly on the VPS — don't assume this repo's `sync/` folder
+  is the complete picture.
+- **Everything else checked out.** The `Drawing`/`DrawingAlert` models (§6), the drawing engine and
+  all 6 tools (Phase 1), and the persistence/alert-attachment API routes (Phase 2–3) all match the
+  files listed in the companion completion doc.
 
 ```
 

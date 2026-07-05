@@ -443,5 +443,16 @@ This inventory was compiled from the following source documents:
 
 ---
 
+## Reconciliation Note (2026-07-05) — v6 XAUUSD pipeline: gateway + backend-stack-c inventory
+
+Reviewed — **no changes**. The 2026-07-05 batch (backend-stack-c's `v2_29_data_pipeline_architecture`
+and `v2_29_multi-timeframe-visualisation` stacks, the new `railway-gateway/` NestJS service, the
+`market_data_v6` Prisma migrations, and the mt5-service Redis publish bridge) is entirely backend
+infrastructure — Python, MQL5, NestJS, SQL, and config. None of it creates or modifies a React/TSX
+UI file, so this inventory is unaffected. Full detail in `backend-file-inventory.md`'s own
+2026-07-05 reconciliation note.
+
+---
+
 **Compiled:** 2026-06-26
 **Status:** Complete ✅

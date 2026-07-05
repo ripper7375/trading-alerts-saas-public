@@ -1,0 +1,121 @@
+-- ============================================================
+-- Migration: 20260705000000_add_market_data_v6
+--
+-- Adds market_data_v6: downstream store for the backend-stack-c v6
+-- XAUUSD pipeline (Push Worker -> Railway Gateway -> here). Field
+-- names/types mirror gateway_contract_market_data.schema.json (79
+-- fields) exactly. This is a NEW, additive table — it does not touch
+-- the existing "MarketData" table (a different, older indicator
+-- schema; see prisma/schema.prisma's MarketDataV6 doc comment).
+--
+-- Table name is lowercase/unquoted-safe (@@map("market_data_v6"))
+-- because it is written to by two independent Prisma clients: this
+-- app (owns this migration) and railway-gateway's own queue consumer
+-- (its schema.prisma mirrors this model for `prisma generate` only —
+-- it must never run `prisma migrate` against this table).
+-- ============================================================
+
+-- CreateTable
+CREATE TABLE "market_data_v6" (
+    "id" TEXT NOT NULL,
+    "terminal_id" TEXT NOT NULL,
+    "timestamp" INTEGER NOT NULL,
+    "symbol" TEXT NOT NULL,
+    "timeframe" TEXT NOT NULL,
+    "open" DOUBLE PRECISION NOT NULL,
+    "high" DOUBLE PRECISION NOT NULL,
+    "low" DOUBLE PRECISION NOT NULL,
+    "close" DOUBLE PRECISION NOT NULL,
+    "volume" INTEGER NOT NULL,
+
+    "best_fit_horiz_high_map" DOUBLE PRECISION,
+    "best_fit_horiz_low_map" DOUBLE PRECISION,
+    "best_fit_ssa" DOUBLE PRECISION,
+    "best_fit_ema_ssa" DOUBLE PRECISION,
+    "best_fit_crossing" INTEGER,
+    "best_fit_base_fl" DOUBLE PRECISION,
+    "best_fit_uoedt" DOUBLE PRECISION,
+    "best_fit_loedt" DOUBLE PRECISION,
+
+    "cherry_a_horiz_high_map" DOUBLE PRECISION,
+    "cherry_a_horiz_low_map" DOUBLE PRECISION,
+    "cherry_a_ssa" DOUBLE PRECISION,
+    "cherry_a_ema_ssa" DOUBLE PRECISION,
+    "cherry_a_crossing" INTEGER,
+    "cherry_a_base_fl" DOUBLE PRECISION,
+    "cherry_a_uoedt" DOUBLE PRECISION,
+    "cherry_a_loedt" DOUBLE PRECISION,
+
+    "cherry_b_horiz_high_map" DOUBLE PRECISION,
+    "cherry_b_horiz_low_map" DOUBLE PRECISION,
+    "cherry_b_ssa" DOUBLE PRECISION,
+    "cherry_b_ema_ssa" DOUBLE PRECISION,
+    "cherry_b_crossing" INTEGER,
+    "cherry_b_base_fl" DOUBLE PRECISION,
+    "cherry_b_uoedt" DOUBLE PRECISION,
+    "cherry_b_loedt" DOUBLE PRECISION,
+
+    "most_recent_horiz_high_map" DOUBLE PRECISION,
+    "most_recent_horiz_low_map" DOUBLE PRECISION,
+    "most_recent_ssa" DOUBLE PRECISION,
+    "most_recent_ema_ssa" DOUBLE PRECISION,
+    "most_recent_crossing" INTEGER,
+    "most_recent_base_fl" DOUBLE PRECISION,
+    "most_recent_uoedt" DOUBLE PRECISION,
+    "most_recent_loedt" DOUBLE PRECISION,
+
+    "non_a_horiz_high_map" DOUBLE PRECISION,
+    "non_a_horiz_low_map" DOUBLE PRECISION,
+    "non_a_ssa" DOUBLE PRECISION,
+    "non_a_ema_ssa" DOUBLE PRECISION,
+    "non_a_crossing" INTEGER,
+    "non_a_base_fl" DOUBLE PRECISION,
+    "non_a_uoedt" DOUBLE PRECISION,
+    "non_a_loedt" DOUBLE PRECISION,
+
+    "non_b_horiz_high_map" DOUBLE PRECISION,
+    "non_b_horiz_low_map" DOUBLE PRECISION,
+    "non_b_ssa" DOUBLE PRECISION,
+    "non_b_ema_ssa" DOUBLE PRECISION,
+    "non_b_crossing" INTEGER,
+    "non_b_base_fl" DOUBLE PRECISION,
+    "non_b_uoedt" DOUBLE PRECISION,
+    "non_b_loedt" DOUBLE PRECISION,
+
+    "fractal_best_fl" DOUBLE PRECISION,
+    "fractal_uoedt" DOUBLE PRECISION,
+    "fractal_loedt" DOUBLE PRECISION,
+    "best_resistance" DOUBLE PRECISION,
+    "best_support" DOUBLE PRECISION,
+
+    "body_direction" INTEGER,
+    "body_size" DOUBLE PRECISION,
+    "body_classification" INTEGER,
+
+    "zigzag_point_type" TEXT,
+    "zigzag_current_point" DOUBLE PRECISION,
+    "zigzag_price_change" DOUBLE PRECISION,
+    "zigzag_pct_change" DOUBLE PRECISION,
+    "zigzag_pct_change_class" INTEGER,
+    "zigzag_bars" INTEGER,
+    "zigzag_bars_class" INTEGER,
+    "zigzag_price_per_bar" DOUBLE PRECISION,
+    "zigzag_price_per_bar_class" INTEGER,
+    "zigzag_slope" DOUBLE PRECISION,
+    "zigzag_category" TEXT,
+
+    "cycle_id" INTEGER,
+    "collected_at" INTEGER,
+    "calculated_at" INTEGER,
+
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "market_data_v6_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "market_data_v6_symbol_timeframe_timestamp_key" ON "market_data_v6"("symbol", "timeframe", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "market_data_v6_symbol_timeframe_timestamp_idx" ON "market_data_v6"("symbol", "timeframe", "timestamp");

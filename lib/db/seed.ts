@@ -7,9 +7,6 @@ import bcrypt from 'bcryptjs';
  * Provides reusable functions for programmatically seeding the database
  * Used by both the seed script and application initialization
  * Follows Prisma best practices for database operations
- *
- * Schema: 63-column MarketData flat schema (v4.0 — EA v2.27+)
- * MarketData columns: 9 system + 16 FREE + 38 PRO = 63 total
  */
 
 /**

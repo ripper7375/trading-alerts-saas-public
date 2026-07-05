@@ -23,6 +23,10 @@ numpy>=1.24.0
 # Database
 psycopg2-binary==2.9.9
 
+# Redis (publishes live bars to the Node alert-engine worker — see
+# REDIS-PUBLISH-SNIPPET.md and app/websocket.py's background_update_loop)
+redis==5.0.1
+
 # API utilities
 requests==2.31.0
 python-dotenv==1.0.0

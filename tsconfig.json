@@ -132,6 +132,7 @@
     "build", // Build artifacts
     "seed-code", // Seed/template code
     "frontend", // Separate Next.js project (has own tsconfig.json)
+    "railway-gateway", // Separate NestJS project (has own tsconfig.json + package.json)
     "e2e", // E2E tests (use Playwright's TypeScript handling)
     "**/*.test.ts", // Test files (checked separately by Jest)
     "**/*.test.tsx",

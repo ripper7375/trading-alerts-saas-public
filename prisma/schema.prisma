@@ -925,110 +925,137 @@ model DisbursementAuditLog {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// MARKET DATA (63-COLUMN SCHEMA)
+// MARKET DATA V6 (XAUUSD Railway Gateway pipeline)
+//
+// Decommissioned 2026-07-05: the old 63-column MarketData model (EA v2.27+:
+// tema/hrma/smma, Keltner Channels, Heiken Ashi, sr_1-8, zigzag_high/low,
+// pinbar, fractal diag/horiz lines) was removed here — see migration
+// 20260705010000_drop_market_data. It was never read/written by any live
+// app/api route (only by tests and this file's own seed helpers), and its
+// EA v2.27 source has always lived under
+// backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/old-architecture/,
+// which now carries its own decommission note.
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/// Market data with 63-column flat schema
-/// Structure: 9 system + 16 FREE tier + 38 PRO tier = 63 columns
-/// Updated: v4.0 — Body Momentum +1 col (body_classification), Heiken Ashi +1 col (ha_body_zscore),
-///          ha_strength→ha_body_size, ha_classification→ha_color, KC 10 bands renamed,
-///          sr_support/resistance→sr_1-8, zigzag_peak/bottom→zigzag_high/low (EA v2.27+)
-model MarketData {
-  id           String   @id @default(cuid())
-  symbol       String
+/// Downstream store for the backend-stack-c v6 XAUUSD pipeline (Push Worker ->
+/// Railway Gateway -> here). Field names/types are a direct 1:1 mirror of
+/// gateway_contract_market_data.schema.json (79 fields) — a different indicator
+/// methodology (centroid-regression variants, EDT channels, ZigZag
+/// categorization, cycle provenance) than the now-decommissioned MarketData
+/// model this replaces (see the section comment above). Written by
+/// railway-gateway's queue consumer (its own
+/// prisma/schema.prisma mirrors this model for `prisma generate` only — this
+/// schema, in the Next.js app, owns the actual migration for this table).
+/// @@map to a lowercase, unquoted-safe table name since two independent
+/// Prisma clients (this app + railway-gateway) write/read the same table.
+model MarketDataV6 {
+  id          String @id @default(cuid())
+  terminal_id String
+  timestamp   Int
+  symbol      String
+  timeframe   String
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Int
 
-  // System columns (9) - Always accessible to all tiers (includes symbol above)
-  timestamp    Int      // Unix timestamp (seconds)
-  open         Float
-  high         Float
-  low          Float
-  close        Float
-  volume       Float
-  timeframe    String   // M1, M5, M15, H1, H4, D1
-  collected_at DateTime @default(now())
+  // Centroid-regression variant: best_fit (admin layer + calculated lines)
+  best_fit_horiz_high_map Float?
+  best_fit_horiz_low_map  Float?
+  best_fit_ssa            Float?
+  best_fit_ema_ssa        Float?
+  best_fit_crossing       Int?
+  best_fit_base_fl        Float?
+  best_fit_uoedt          Float?
+  best_fit_loedt          Float?
 
-  // FREE tier indicators - Group 1: Fractal Diagonal Lines (8 columns)
-  diag_asc_line_1      Float?
-  diag_asc_line_2      Float?
-  diag_asc_line_3      Float?
-  diag_desc_line_1     Float?
-  diag_desc_line_2     Float?
-  diag_desc_line_3     Float?
-  diag_high_map        Float?
-  diag_low_map         Float?
+  // Centroid-regression variant: cherry_a
+  cherry_a_horiz_high_map Float?
+  cherry_a_horiz_low_map  Float?
+  cherry_a_ssa            Float?
+  cherry_a_ema_ssa        Float?
+  cherry_a_crossing       Int?
+  cherry_a_base_fl        Float?
+  cherry_a_uoedt          Float?
+  cherry_a_loedt          Float?
 
-  // FREE tier indicators - Group 2: Fractal Horizontal Lines (8 columns)
-  horiz_peak_line_1    Float?
-  horiz_peak_line_2    Float?
-  horiz_peak_line_3    Float?
-  horiz_bottom_line_1  Float?
-  horiz_bottom_line_2  Float?
-  horiz_bottom_line_3  Float?
-  horiz_high_map       Float?
-  horiz_low_map        Float?
+  // Centroid-regression variant: cherry_b
+  cherry_b_horiz_high_map Float?
+  cherry_b_horiz_low_map  Float?
+  cherry_b_ssa            Float?
+  cherry_b_ema_ssa        Float?
+  cherry_b_crossing       Int?
+  cherry_b_base_fl        Float?
+  cherry_b_uoedt          Float?
+  cherry_b_loedt          Float?
 
-  // PRO tier indicators - Group 3: Moving Averages (3 columns)
-  tema                 Float?
-  hrma                 Float?
-  smma                 Float?
+  // Centroid-regression variant: most_recent
+  most_recent_horiz_high_map Float?
+  most_recent_horiz_low_map  Float?
+  most_recent_ssa            Float?
+  most_recent_ema_ssa        Float?
+  most_recent_crossing       Int?
+  most_recent_base_fl        Float?
+  most_recent_uoedt          Float?
+  most_recent_loedt          Float?
 
-  // PRO tier indicators - Group 4: Body Momentum (3 columns)
-  body_direction       Int?    // 1 = bullish, -1 = bearish, 0 = neutral
-  body_size            Float?  // Z-score of candle body size
-  body_classification  Int?    // Candle classification bucket (0–5)
+  // Centroid-regression variant: non_a
+  non_a_horiz_high_map Float?
+  non_a_horiz_low_map  Float?
+  non_a_ssa            Float?
+  non_a_ema_ssa        Float?
+  non_a_crossing       Int?
+  non_a_base_fl        Float?
+  non_a_uoedt          Float?
+  non_a_loedt          Float?
 
-  // PRO tier indicators - Group 5: Heiken Ashi (8 columns)
-  ha_open              Float?
-  ha_high              Float?
-  ha_low               Float?
-  ha_close             Float?
-  ha_color             Int?    // 1 = bullish (green), -1 = bearish (red)
-  ha_body_size         Float?  // Heiken Ashi body size
-  ha_body_zscore       Float?  // Z-score of HA body size
-  ha_trend             Int?    // Consecutive streak count with direction sign (+N bullish, -N bearish)
+  // Centroid-regression variant: non_b
+  non_b_horiz_high_map Float?
+  non_b_horiz_low_map  Float?
+  non_b_ssa            Float?
+  non_b_ema_ssa        Float?
+  non_b_crossing       Int?
+  non_b_base_fl        Float?
+  non_b_uoedt          Float?
+  non_b_loedt          Float?
 
-  // PRO tier indicators - Group 6: Keltner Channels (10 columns)
-  kc_ultra_extreme_upper  Float?
-  kc_extreme_upper        Float?
-  kc_uppermost            Float?
-  kc_upper                Float?
-  kc_upper_middle         Float?
-  kc_lower_middle         Float?
-  kc_lower                Float?
-  kc_lowermost            Float?
-  kc_extreme_lower        Float?
-  kc_ultra_extreme_lower  Float?
+  // Fractal EDT + single best lines (calculated)
+  fractal_best_fl Float?
+  fractal_uoedt   Float?
+  fractal_loedt   Float?
+  best_resistance Float?
+  best_support    Float?
 
-  // PRO tier indicators - Group 7: Support/Resistance (8 columns)
-  sr_1                 Float?  // Support/Resistance level 1 (strongest)
-  sr_2                 Float?
-  sr_3                 Float?
-  sr_4                 Float?
-  sr_5                 Float?
-  sr_6                 Float?
-  sr_7                 Float?
-  sr_8                 Float?  // Support/Resistance level 8 (weakest)
+  // Z-Score candle (calculated)
+  body_direction      Int? // -1, 0, 1
+  body_size           Float? // |z-score| (export convention)
+  body_classification Int? // 0-5
 
-  // PRO tier indicators - Group 8: ZigZag + EMA (3 columns)
-  zigzag_high          Float?
-  zigzag_low           Float?
-  ema                  Float?  // Exponential Moving Average (renamed from ema_26 in v3.0)
+  // ZigZag (pivot = admin layer; metrics + category calculated)
+  zigzag_point_type          String? // "Peak" | "Bottom"
+  zigzag_current_point       Float?
+  zigzag_price_change        Float?
+  zigzag_pct_change          Float?
+  zigzag_pct_change_class    Int?
+  zigzag_bars                Int?
+  zigzag_bars_class          Int?
+  zigzag_price_per_bar       Float?
+  zigzag_price_per_bar_class Int?
+  zigzag_slope               Float?
+  zigzag_category            String? // HH | HL | LH | LL | EQH | EQL
 
-  // PRO tier indicators - Group 9: Dual TEMA High/Low (2 columns) — NEW in v2.0 / EA v2.26
-  dual_tema_high       Float?  // TEMA of bar highs (Dual_TEMA_High_Low buffer 0)
-  dual_tema_low        Float?  // TEMA of bar lows  (Dual_TEMA_High_Low buffer 1)
+  // Provenance
+  cycle_id      Int?
+  collected_at  Int?
+  calculated_at Int?
 
-  // PRO tier indicators - Group 10: Pinbar Detection (1 column) — NEW in v2.0 / EA v2.26
-  pinbar               Int?    // 1 = any pinbar on this bar (bull or bear), 0 = none
-
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([symbol, timeframe, timestamp])
   @@index([symbol, timeframe, timestamp])
-  @@index([symbol])
-  @@index([timeframe])
-  @@index([timestamp])
+  @@map("market_data_v6")
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

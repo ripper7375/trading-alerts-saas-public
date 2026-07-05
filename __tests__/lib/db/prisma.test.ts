@@ -253,23 +253,6 @@ const createMockPrismaClient = () => ({
     delete: jest.fn(),
   },
 
-  // Market Data model (63-column schema: 9 system + 16 FREE + 38 PRO)
-  marketData: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    update: jest.fn(),
-    updateMany: jest.fn(),
-    upsert: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-    count: jest.fn(),
-    aggregate: jest.fn(),
-    groupBy: jest.fn(),
-  },
-
   // System Configuration models
   systemConfig: {
     findUnique: jest.fn(),
@@ -791,30 +774,6 @@ describe('Prisma Client Singleton', () => {
       expect(typeof prismaModule.prisma.systemConfigHistory.deleteMany).toBe(
         'function'
       );
-    });
-  });
-
-  describe('Market Data Model (63-Column Schema)', () => {
-    beforeEach(async () => {
-      prismaModule = await import('@/lib/db/prisma');
-    });
-
-    it('should have marketData model', () => {
-      expect(prismaModule.prisma.marketData).toBeDefined();
-    });
-
-    it('should have marketData CRUD methods', () => {
-      expect(typeof prismaModule.prisma.marketData.findUnique).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.findFirst).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.findMany).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.create).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.createMany).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.update).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.upsert).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.delete).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.deleteMany).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.count).toBe('function');
-      expect(typeof prismaModule.prisma.marketData.aggregate).toBe('function');
     });
   });
 

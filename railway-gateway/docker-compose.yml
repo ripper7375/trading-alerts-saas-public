@@ -1,0 +1,22 @@
+# Local-only Postgres + Redis for manual/integration verification (not used
+# in CI — Jest specs mock Prisma/Bull, matching the root repo's convention).
+# Start with: docker compose up -d
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: trading_alerts
+    ports:
+      - '5432:5432'
+    volumes:
+      - gateway_pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+volumes:
+  gateway_pg_data:

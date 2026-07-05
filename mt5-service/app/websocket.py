@@ -209,6 +209,7 @@ def background_update_loop():
     """
     from app.services.indicator_reader import fetch_ohlcv_data
     from app.services.mt5_connection_pool import get_connection_pool
+    from app.redis_pub import publish_price_event
 
     logger.info("Starting background update loop")
 
@@ -260,6 +261,15 @@ def background_update_loop():
                                 'data': data,
                                 'timestamp': time.time()
                             }, room=room)
+
+                            # Best-effort fan-out to the Node alert-engine worker
+                            # (lib/alert-engine/worker.ts) — never blocks or breaks
+                            # the Socket.IO feed above on failure.
+                            last_bar = ohlcv_bars[-1] if ohlcv_bars else {}
+                            publish_price_event(
+                                symbol, timeframe, current_timestamp,
+                                current_close, last_timestamp, last_bar,
+                            )
 
                             last_updates[room] = {
                                 'timestamp': current_timestamp,

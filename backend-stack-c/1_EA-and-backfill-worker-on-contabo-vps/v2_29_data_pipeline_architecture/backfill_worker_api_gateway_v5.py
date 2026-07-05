@@ -38,9 +38,32 @@ from urllib3.util.retry import Retry
 # ============================================================
 # CONFIGURATION
 # ============================================================
-API_GATEWAY_URL = 'https://your-api.railway.app'
+API_GATEWAY_URL = os.environ.get('API_GATEWAY_URL', 'https://your-api.railway.app')
 API_KEY = os.environ.get('BACKFILL_API_KEY', 'your_api_key_here')
 TERMINAL_ID = 'push_worker_v5'
+
+# The 79 fields gateway_contract_market_data.schema.json requires, as posted
+# (i.e. after dropping market_data's own synced_at and adding terminal_id).
+# Checked once at startup against the real market_data table so drift between
+# this SQLite schema and the JSON contract fails loudly instead of silently
+# producing 400s at the gateway.
+EXPECTED_CONTRACT_FIELDS = frozenset({
+    'terminal_id', 'timestamp', 'symbol', 'timeframe',
+    'open', 'high', 'low', 'close', 'volume',
+    *(f'{variant}_{suffix}'
+      for variant in ('best_fit', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b')
+      for suffix in ('horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa',
+                     'crossing', 'base_fl', 'uoedt', 'loedt')),
+    'fractal_best_fl', 'fractal_uoedt', 'fractal_loedt',
+    'best_resistance', 'best_support',
+    'body_direction', 'body_size', 'body_classification',
+    'zigzag_point_type', 'zigzag_current_point', 'zigzag_price_change',
+    'zigzag_pct_change', 'zigzag_pct_change_class', 'zigzag_bars',
+    'zigzag_bars_class', 'zigzag_price_per_bar', 'zigzag_price_per_bar_class',
+    'zigzag_slope', 'zigzag_category',
+    'cycle_id', 'collected_at', 'calculated_at',
+})
+assert len(EXPECTED_CONTRACT_FIELDS) == 79, len(EXPECTED_CONTRACT_FIELDS)
 
 DB_PATH = Path('C:/Scripts/database/xauusd.db')      # the v6 pipeline database
 LOG_DIR = Path('C:/Scripts/logs')
@@ -97,11 +120,12 @@ def create_http_session() -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry, pool_connections=5, pool_maxsize=10)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
+    # terminal_id travels in the request body only (gateway_contract_market_data
+    # .schema.json); the gateway has no EA-version concept, so no extra headers
+    # are sent beyond auth.
     session.headers.update({
         'Authorization': f'Bearer {API_KEY}',
         'Content-Type': 'application/json',
-        'X-Terminal-ID': TERMINAL_ID,
-        'X-EA-Version': 'push_worker_v5.py',
     })
     return session
 
@@ -120,6 +144,29 @@ def open_db() -> sqlite3.Connection:
 def unsynced_count(conn) -> int:
     return conn.execute(
         "SELECT COUNT(*) FROM market_data WHERE synced_at IS NULL").fetchone()[0]
+
+
+def verify_schema_contract(conn) -> bool:
+    """Confirm market_data's columns match gateway_contract_market_data.schema.json
+    exactly (79 fields posted = table columns minus synced_at plus terminal_id).
+    Run once at startup so a future drift between the SQL schema and the JSON
+    contract fails loudly here instead of surfacing as silent 400s at the gateway.
+    """
+    table_columns = {row[1] for row in conn.execute("PRAGMA table_info(market_data)")}
+    posted_fields = (table_columns - {'synced_at'}) | {'terminal_id'}
+
+    missing = EXPECTED_CONTRACT_FIELDS - posted_fields
+    unexpected = posted_fields - EXPECTED_CONTRACT_FIELDS
+    if missing or unexpected:
+        logger.error("❌ market_data columns do not match gateway_contract_market_data.schema.json:")
+        if missing:
+            logger.error(f"   Missing (in contract, not in table): {sorted(missing)}")
+        if unexpected:
+            logger.error(f"   Unexpected (in table, not in contract): {sorted(unexpected)}")
+        return False
+
+    logger.info(f"✅ Schema contract verified: {len(posted_fields)} fields match gateway_contract_market_data.schema.json")
+    return True
 
 
 def quarantine_row(data: dict, error_msg: str) -> None:
@@ -228,6 +275,14 @@ def main():
     if not DB_PATH.exists():
         logger.error(f"❌ ERROR: {DB_PATH} not found — run export_collector_validator_v2.py first")
         return
+
+    contract_conn = open_db()
+    try:
+        if not verify_schema_contract(contract_conn):
+            logger.error("❌ ERROR: refusing to start until market_data matches the gateway contract")
+            return
+    finally:
+        contract_conn.close()
 
     session = create_http_session()
     check_api_health(session)

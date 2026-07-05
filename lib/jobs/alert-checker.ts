@@ -90,18 +90,50 @@ function parseCondition(conditionJson: string): AlertCondition | null {
 }
 
 /**
+ * Fetch the latest XAUUSD close price from the v6 Railway Gateway pipeline's
+ * market_data_v6 table. Distinct from the Part 20 Postgres path removed in
+ * favor of Flask (see this file's test suite) — this reads a different,
+ * newer table (backend-stack-c's Gateway) and only for XAUUSD; every other
+ * symbol is unaffected. Returns null (not 0) when there's no synced row yet,
+ * so callers can fall back to the Flask service.
+ */
+async function fetchXauusdPriceFromGatewayPipeline(
+  timeframe: string
+): Promise<number | null> {
+  try {
+    const row = await prisma.marketDataV6.findFirst({
+      where: { symbol: 'XAUUSD', timeframe },
+      orderBy: { timestamp: 'desc' },
+    });
+    return row?.close ?? null;
+  } catch (error) {
+    console.error('[AlertChecker] Error querying market_data_v6:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch current price for a symbol/timeframe
  *
- * Queries Flask MT5 service for real-time price data.
+ * Queries Flask MT5 service for real-time price data. For XAUUSD, tries the
+ * v6 Gateway pipeline's table first (keyed on timeframe) and falls back to
+ * Flask (which ignores timeframe, kept as a param for that call's shape).
  *
  * @param symbol - Trading symbol (e.g., XAUUSD)
- * @param _timeframe - Timeframe (unused, kept for API compatibility)
+ * @param timeframe - Timeframe (e.g., M5); only used for the XAUUSD gateway lookup
  * @returns Current price or 0 if fetch fails
  */
 async function fetchCurrentPrice(
   symbol: string,
-  _timeframe: string
+  timeframe: string
 ): Promise<number> {
+  if (symbol === 'XAUUSD') {
+    const gatewayPrice = await fetchXauusdPriceFromGatewayPipeline(timeframe);
+    if (gatewayPrice !== null) {
+      return gatewayPrice;
+    }
+  }
+
   try {
     // Query Flask MT5 service for real-time price
     const response = await fetch(`${MT5_API_URL}/api/mt5/price?symbol=${symbol}`, {

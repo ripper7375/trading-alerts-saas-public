@@ -188,6 +188,7 @@ export class PrismaClient {
   disbursementAuditLog = createMockDelegate();
   systemConfig = createMockDelegate();
   systemConfigHistory = createMockDelegate();
+  marketDataV6 = createMockDelegate();
 
   constructor(_options?: unknown) {
     // Constructor accepts options but ignores them in mock

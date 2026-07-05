@@ -103,6 +103,29 @@ services:
       timeout: 10s
       retries: 3
 
+  # ============================================================================
+  # Alert Worker (line-touch alerts — architecture doc §9 Deployment Topology)
+  # ============================================================================
+  # Long-running process: psubscribes Redis prices:* (published by mt5-service,
+  # see app/redis_pub.py) and alerts:changed, evaluates DrawingAlert crossings,
+  # dispatches fires via BullMQ. Must NOT run on serverless/Vercel — this is
+  # the real deploy target for scripts/alert-worker.ts (npm run worker:alerts).
+  alert-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['npm', 'run', 'worker:alerts']
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/trading_alerts
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

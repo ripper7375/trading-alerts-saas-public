@@ -1,0 +1,24 @@
+# Single-service deployment: this app runs both the HTTP ingest layer
+# (MarketDataController) and the Bull queue consumer (MarketDataProcessor)
+# in one Nest process. The build doc's §9.1 illustrates a 2-service split
+# (separate `gateway`/`worker` Railway services) for larger-scale setups;
+# at this pipeline's actual volume (one job per timeframe every 5-15 min,
+# concurrency:1 either way) a single service is simpler to deploy and
+# operate, and nothing about the contract (idempotency, response codes,
+# queue draining) depends on the split. Revisit only if real load justifies it.
+
+[build]
+builder = "nixpacks"
+
+[[services]]
+name = "gateway"
+command = "npm run start:prod"
+
+[services.environment]
+NODE_ENV = "production"
+PORT = "3000"
+
+[[services]]
+name = "redis"
+type = "redis"
+plan = "hobby"

@@ -1,0 +1,122 @@
+// This schema exists ONLY so this service can `prisma generate` a typed
+// client for the one table it writes to. It is NOT the source of truth for
+// migrations — the root Next.js app (`prisma/schema.prisma`) owns the actual
+// `market_data_v6` table and its migration history. NEVER run
+// `prisma migrate` from this package: two independent Prisma projects
+// managing migrations against the same physical table would fight over the
+// `_prisma_migrations` bookkeeping table.
+//
+// Keep this model definition byte-for-byte in sync with the `MarketDataV6`
+// model in the root schema (`../../prisma/schema.prisma`) — the dto-contract
+// test in this package's test suite does not check this file, so any change
+// to the field list must be applied in both places by hand.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MarketDataV6 {
+  id          String @id @default(cuid())
+  terminal_id String
+  timestamp   Int
+  symbol      String
+  timeframe   String
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Int
+
+  best_fit_horiz_high_map Float?
+  best_fit_horiz_low_map  Float?
+  best_fit_ssa            Float?
+  best_fit_ema_ssa        Float?
+  best_fit_crossing       Int?
+  best_fit_base_fl        Float?
+  best_fit_uoedt          Float?
+  best_fit_loedt          Float?
+
+  cherry_a_horiz_high_map Float?
+  cherry_a_horiz_low_map  Float?
+  cherry_a_ssa            Float?
+  cherry_a_ema_ssa        Float?
+  cherry_a_crossing       Int?
+  cherry_a_base_fl        Float?
+  cherry_a_uoedt          Float?
+  cherry_a_loedt          Float?
+
+  cherry_b_horiz_high_map Float?
+  cherry_b_horiz_low_map  Float?
+  cherry_b_ssa            Float?
+  cherry_b_ema_ssa        Float?
+  cherry_b_crossing       Int?
+  cherry_b_base_fl        Float?
+  cherry_b_uoedt          Float?
+  cherry_b_loedt          Float?
+
+  most_recent_horiz_high_map Float?
+  most_recent_horiz_low_map  Float?
+  most_recent_ssa            Float?
+  most_recent_ema_ssa        Float?
+  most_recent_crossing       Int?
+  most_recent_base_fl        Float?
+  most_recent_uoedt          Float?
+  most_recent_loedt          Float?
+
+  non_a_horiz_high_map Float?
+  non_a_horiz_low_map  Float?
+  non_a_ssa            Float?
+  non_a_ema_ssa        Float?
+  non_a_crossing       Int?
+  non_a_base_fl        Float?
+  non_a_uoedt          Float?
+  non_a_loedt          Float?
+
+  non_b_horiz_high_map Float?
+  non_b_horiz_low_map  Float?
+  non_b_ssa            Float?
+  non_b_ema_ssa        Float?
+  non_b_crossing       Int?
+  non_b_base_fl        Float?
+  non_b_uoedt          Float?
+  non_b_loedt          Float?
+
+  fractal_best_fl Float?
+  fractal_uoedt   Float?
+  fractal_loedt   Float?
+  best_resistance Float?
+  best_support    Float?
+
+  body_direction      Int?
+  body_size           Float?
+  body_classification Int?
+
+  zigzag_point_type          String?
+  zigzag_current_point       Float?
+  zigzag_price_change        Float?
+  zigzag_pct_change          Float?
+  zigzag_pct_change_class    Int?
+  zigzag_bars                Int?
+  zigzag_bars_class          Int?
+  zigzag_price_per_bar       Float?
+  zigzag_price_per_bar_class Int?
+  zigzag_slope               Float?
+  zigzag_category            String?
+
+  cycle_id      Int?
+  collected_at  Int?
+  calculated_at Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([symbol, timeframe, timestamp])
+  @@index([symbol, timeframe, timestamp])
+  @@map("market_data_v6")
+}

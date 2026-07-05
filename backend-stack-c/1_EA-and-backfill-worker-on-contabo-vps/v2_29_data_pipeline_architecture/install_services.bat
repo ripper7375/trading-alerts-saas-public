@@ -30,6 +30,7 @@ set EXPORT_DIR=C:\MT5\MQL5\Files
 set DB=%ROOT%\database\xauusd.db
 set LOGS=%ROOT%\logs
 set BACKFILL_API_KEY=PUT_REAL_KEY_HERE
+set API_GATEWAY_URL=PUT_REAL_RAILWAY_GATEWAY_URL_HERE
 REM -------------------------------------------
 
 if not exist "%LOGS%" mkdir "%LOGS%"
@@ -53,7 +54,7 @@ nssm set MT5Collector Start SERVICE_AUTO_START
 echo === Installing MT5PushWorker (market_data -> gateway) ===
 nssm install MT5PushWorker "%PYTHON%" "%PUSHWORKER%"
 nssm set MT5PushWorker AppDirectory "%ROOT%\backfill"
-nssm set MT5PushWorker AppEnvironmentExtra BACKFILL_API_KEY=%BACKFILL_API_KEY%
+nssm set MT5PushWorker AppEnvironmentExtra BACKFILL_API_KEY=%BACKFILL_API_KEY% API_GATEWAY_URL=%API_GATEWAY_URL%
 nssm set MT5PushWorker AppStdout "%LOGS%\push_worker.log"
 nssm set MT5PushWorker AppStderr "%LOGS%\push_worker.err.log"
 nssm set MT5PushWorker AppExit Default Restart
