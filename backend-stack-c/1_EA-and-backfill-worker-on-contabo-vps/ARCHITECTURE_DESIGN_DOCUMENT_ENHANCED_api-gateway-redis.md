@@ -4,6 +4,8 @@
 
 This document specifies the Railway-hosted NestJS API Gateway that receives validated XAUUSD `market_data` rows from the v6 data pipeline's Push Worker (and, optionally, its legacy Relay), and forwards them to whatever downstream product consumes them beyond this pipeline's scope. It is a revision of an earlier draft that was written against a different, since-superseded design (15 symbols, 5 MT5 terminals on EA v2.24, a Direct-Redis-vs-API-Gateway comparison, and an Upstash→Railway migration). That comparison is resolved — the Gateway pattern is what this pipeline already sends to — so this revision describes the chosen design directly rather than re-litigating the choice, and corrects every component spec to match the pipeline's actual current contract (`gateway_contract_market_data.schema.json`, 79 fields, single symbol XAUUSD, M5/M15 only).
 
+**What this Gateway is for, in one sentence:** it gives some other backend system — an alerts engine, an analytics store, or any other consumer sitting downstream of its queue — a durable, validated copy of `market_data`, delivered over HTTP with idempotent upsert semantics. That is a distinct job from rendering the chart: the chart-visualization path (`mtf-panels` Read API → Vercel) never touches this Gateway, reads `xauusd.db` directly instead, and would keep working even if this Gateway were removed entirely. See the companion blueprint's §6–§7.4 and §12 for why the two paths don't compose.
+
 **Complementary document:** `MT5_to_LightweightCharts_Architecture_Blueprint.md` — that document covers the whole system (MT5 → Collector → SQLite → the two independent outbound paths); this document is the detailed build spec for one box on its diagram: "Railway Gateway — Internal Stack" (companion deck, slide 5). Where the two overlap (§6/§8 of the blueprint), this document is the authoritative source for Gateway-specific detail; the blueprint remains authoritative for how the Gateway fits into the larger system and for confirming what the Gateway is _not_ connected to (it does not feed the chart-visualization path — see the blueprint's §7.4).
 
 **Architecture in one line:** MT5 Terminal (Contabo VPS) → Collector/Calc Stack → `xauusd.db` → Push Worker (+ optional Relay) → HTTPS POST → **this Gateway** (NestJS, Railway) → internal Bull/Redis queue → the Gateway's own downstream consumer (out of scope here).
@@ -65,8 +67,9 @@ This document specifies the Railway-hosted NestJS API Gateway that receives vali
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ THIS GATEWAY'S DOWNSTREAM CONSUMER — out of scope here         │
-│ Whatever product this Gateway serves beyond the XAUUSD         │
-│ pipeline; not specified in this document (§2.4).               │
+│ e.g. an alerts engine, an analytics store, or any other        │
+│ consumer needing a durable, validated copy of market_data;     │
+│ not specified in this document (§2.4).                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
