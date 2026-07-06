@@ -13,6 +13,7 @@ Usage:
 from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
 from flask import request
 from threading import Thread, Lock
+import os
 import time
 import logging
 from typing import Dict, Set, Optional
@@ -24,6 +25,18 @@ socketio = None
 # Format: {'EURUSD_M5': set('sid1', 'sid2'), ...}
 subscriptions: Dict[str, Set[str]] = {}
 subscriptions_lock = Lock()
+
+# Rooms the background loop always polls + publishes to Redis, even with no
+# browser subscriber. Without this, line-touch alerts (lib/alert-engine) only
+# receive price events while someone has that chart open — a server-side alert
+# that dies when the tab closes. Comma-separated SYMBOL_TIMEFRAME pairs, e.g.
+#   ALERT_PUBLISH_ROOMS=XAUUSD_M5,EURUSD_M15
+# Empty (default) = original behavior: publish only for active browser rooms.
+ALERT_PUBLISH_ROOMS: Set[str] = {
+    room.strip().upper()
+    for room in os.environ.get('ALERT_PUBLISH_ROOMS', '').split(',')
+    if room.strip()
+}
 
 # Background thread for pushing updates
 update_thread: Optional[Thread] = None
@@ -217,13 +230,18 @@ def background_update_loop():
     # Format: {'EURUSD_M5': {'timestamp': int, 'close': float}, ...}
     last_updates = {}
 
-    # Get connection pool
-    connection_pool = get_connection_pool()
-
     while True:
         try:
+            # Fetched inside the loop so a not-yet-initialized pool (e.g. when
+            # the loop is started at boot for ALERT_PUBLISH_ROOMS) retries
+            # instead of killing the thread.
+            connection_pool = get_connection_pool()
+
             with subscriptions_lock:
                 active_rooms = list(subscriptions.keys())
+            # Always-on alert rooms are polled/published even with no browser
+            # subscriber (socketio.emit to an empty room is a harmless no-op).
+            active_rooms = list(set(active_rooms) | ALERT_PUBLISH_ROOMS)
 
             for room in active_rooms:
                 try:
@@ -350,5 +368,6 @@ def get_websocket_status():
         'active': update_thread_started,
         'rooms': len(active_rooms),
         'clients': total_clients,
-        'subscriptions': {room: len(clients) for room, clients in subscriptions.items()}
+        'subscriptions': {room: len(clients) for room, clients in subscriptions.items()},
+        'alert_publish_rooms': sorted(ALERT_PUBLISH_ROOMS),
     }

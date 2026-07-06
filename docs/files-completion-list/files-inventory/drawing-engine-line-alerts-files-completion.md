@@ -174,5 +174,39 @@ where noted):
 
 ---
 
+## Update 2026-07-05 (later) — Cross-stack system audit fixes
+
+Audit across this stack + Part 6 + both v2.29 stacks found and fixed:
+
+- **`lib/jobs/alert-checker.ts`** — Flask fallback called `/api/mt5/price`, a route that does
+  not exist in `mt5-service`; now calls the real `/api/indicators/{symbol}/{timeframe}?bars=100`
+  (X-User-Tier: PRO) and uses the latest bar's close. Its test suite mocked the same phantom
+  endpoint (so it passed while the integration was broken) — updated to the real contract.
+- **Room-gated publish shortfall** — Flask only published `prices:*` events for rooms with an
+  active browser subscriber, so line-touch alerts went silent with no tab open. Added env-gated
+  `ALERT_PUBLISH_ROOMS` (mt5-service `websocket.py` + `__init__.py` boot start; default off =
+  unchanged behavior). Documented in `.env.example` and `PHASE-4-SMOKE-TEST-RUNBOOK.md`.
+- **Architecture doc §3 stale line** — still claimed the Flask publish leg was unbuilt,
+  contradicting §7's same-day "gap closed" callout; corrected.
+
+Verified intact: `prices:{symbol}:{timeframe}` / `alerts:changed` / `alerts:fired` channel and
+payload contracts across `redis_pub.py` ↔ `worker.ts` ↔ `notify-bridge.ts` ↔ `lib/websocket/
+server.ts` (`alert_fired`) ↔ `use-websocket.ts`; Socket.IO event names ↔ `use-ohlcv-socket.ts`;
+root ↔ `frontend/` drawing-folder parity (byte-identical).
+
+**⚠️ PENDING VERIFICATION (audit environment could not execute these — run on next dev session):**
+
+1. `npx jest __tests__/lib/jobs/alert-checker.test.ts` — the fixed test suite (logic verified
+   in an isolated harness; the project Jest run itself was blocked by a sandbox file-sync
+   issue, not a code problem). Expect all passing.
+2. `cd railway-gateway && npm run build && npm test` — confirms the
+   `@Process({ name: 'process' })` fix compiles and the existing specs stay green.
+3. The live Flask → Redis → Node worker round trip per `PHASE-4-SMOKE-TEST-RUNBOOK.md`
+   (davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/), now with
+   `ALERT_PUBLISH_ROOMS=XAUUSD_M5` set in mt5-service's env — this was already the runbook's
+   open item and remains the one true end-to-end test still outstanding.
+
+---
+
 **Compiled:** 2026-06-28 (updated 2026-07-05)
 **Status:** Complete ✅

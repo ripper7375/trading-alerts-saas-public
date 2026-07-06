@@ -214,6 +214,30 @@ Initial inventory entry — this stack existed on disk prior to this date but ha
 to the project's files-completion tracking system. All 37 files confirmed present and complete.
 Companion stack: `v2_29_multi-timeframe-visualisation-files-completion.md`.
 
+### Addendum — 2026-07-05 cross-stack system audit
+
+- 🐛 **Fixed (critical): `railway-gateway/src/worker/market-data.processor.ts`** — the
+  controller enqueues Bull jobs **named** `'process'` (`queue.add('process', data, {jobId})`)
+  but the processor used an unnamed `@Process({ concurrency: 1 })`, which only handles
+  *unnamed* jobs. Every row would have been accepted with a 200 "queued" and then failed in
+  the queue with "Missing process handler for job type process" — nothing would ever reach
+  `market_data_v6` (and the push worker would still stamp `synced_at`, believing it synced).
+  The e2e spec mocks the queue, so tests couldn't catch it. Fixed:
+  `@Process({ name: 'process', concurrency: 1 })`.
+- ✅ Verified end-to-end contract coherence: push worker `EXPECTED_CONTRACT_FIELDS` (79) ==
+  `gateway_contract_market_data.schema.json` (79 + `_centroid_admin_note` doc key) ==
+  `market_data` SQLite columns (−`synced_at` +`terminal_id`) == gateway `MarketDataDto` (79)
+  == both Prisma `MarketDataV6` models == `20260705000000_add_market_data_v6` migration.
+  Auth (`Authorization: Bearer` ↔ `API_KEYS`), endpoint paths (`/api/v1/market-data`,
+  `/api/v1/health`), and the upsert key (`symbol_timeframe_timestamp` == Bull jobId) all line
+  up. `lib/jobs/alert-checker.ts` reads `marketDataV6` gateway-first as documented (its
+  Flask *fallback* route was broken and fixed — see the drawing-engine/Part-06 audit notes).
+- **⚠️ PENDING VERIFICATION:** `cd railway-gateway && npm run build && npm test` after the
+  processor-name fix (the audit environment could not execute the build). Also redeploy the
+  gateway — the committed `dist/` predates this fix, so a deploy from stale `dist/` would
+  still carry the bug. See the matching pending-verification list in
+  `drawing-engine-line-alerts-files-completion.md`.
+
 ### Addendum — legacy decommission note
 
 The sibling `../architecture-document/old-architecture/README.md` (backend-file-inventory.md row

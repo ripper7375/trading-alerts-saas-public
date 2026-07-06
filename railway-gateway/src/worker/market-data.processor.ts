@@ -20,7 +20,13 @@ export class MarketDataProcessor {
   // throughput reason to process jobs in parallel, and doing so only adds a
   // class of ordering bugs (e.g. an M15 row processed before the M5 row it
   // depends on) that a single worker avoids by construction.
-  @Process({ concurrency: 1 })
+  //
+  // The name MUST match the job name the controller enqueues
+  // (`queue.add('process', ...)` in market-data.controller.ts). An unnamed
+  // @Process() only handles unnamed jobs — named jobs would sit in the queue
+  // failing with "Missing process handler for job type process" while the
+  // gateway still returns 200 "queued" (found in the 2026-07-05 system audit).
+  @Process({ name: 'process', concurrency: 1 })
   async process(job: Job<MarketDataDto>): Promise<{ success: true }> {
     const data = job.data;
     const { symbol, timeframe, timestamp } = data;

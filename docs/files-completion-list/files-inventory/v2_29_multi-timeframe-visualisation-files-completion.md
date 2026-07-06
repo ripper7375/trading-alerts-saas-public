@@ -122,3 +122,12 @@ the backend PNG rendering from already-computed data.
 Initial inventory entry — this stack existed on disk prior to this date but had never been added
 to the project's files-completion tracking system. All 12 files confirmed present and complete.
 Companion stack: `v2_29_data_pipeline_architecture-files-completion.md`.
+
+### Addendum — 2026-07-05 cross-stack system audit
+
+No flaws found in this stack. `data_source.py`'s column contract (`{variant}_uoedt` /
+`_base_fl` / `_loedt`, OHLCV spine, `symbol`/`timeframe`/`timestamp` filters) verified against
+`sqlite_schema_v6_xauusd.sql`'s 79-column `market_data`. Smoke suite re-run in this audit:
+`test_mtf_render.py` 3/3 passing (fixture build → load → render round-trip). The
+`timestamp_adj` carry-over limitation (open item #1 in the companion stack) remains the only
+known caveat for live-data overlays.

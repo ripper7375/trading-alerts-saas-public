@@ -137,15 +137,27 @@ describe('Alert Checker Job', () => {
         (prisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue(null);
         fetchSpy.mockResolvedValue({
           ok: true,
-          json: () => Promise.resolve({ price: 1950.5 }),
+          json: () =>
+            Promise.resolve({
+              success: true,
+              data: { ohlcv: [{ close: 1949.0 }, { close: 1950.5 }] },
+            }),
         } as Response);
 
         await checkAlerts();
 
         expect(prisma.marketDataV6.findFirst).toHaveBeenCalled();
+        // Real Flask route: /api/indicators/{symbol}/{timeframe} (there is no
+        // /api/mt5/price endpoint in mt5-service — 2026-07-05 audit fix).
         expect(fetchSpy).toHaveBeenCalledWith(
-          expect.stringContaining('/api/mt5/price?symbol=XAUUSD'),
-          expect.any(Object)
+          expect.stringContaining('/api/indicators/XAUUSD/M5'),
+          expect.objectContaining({
+            headers: expect.objectContaining({ 'X-User-Tier': 'PRO' }),
+          })
+        );
+        // Latest bar's close is used as the current price.
+        expect(prisma.alert.update).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: 'alert-1' } })
         );
       });
 
@@ -155,7 +167,11 @@ describe('Alert Checker Job', () => {
         );
         fetchSpy.mockResolvedValue({
           ok: true,
-          json: () => Promise.resolve({ price: 1950.5 }),
+          json: () =>
+            Promise.resolve({
+              success: true,
+              data: { ohlcv: [{ close: 1950.5 }] },
+            }),
         } as Response);
 
         await checkAlerts();

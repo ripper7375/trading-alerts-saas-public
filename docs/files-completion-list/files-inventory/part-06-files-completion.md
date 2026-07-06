@@ -91,3 +91,20 @@ Real-world push frequency depends on market activity:
 - Active liquid pairs (EURUSD during London/NY session): multiple pushes per second
 - Quiet pairs or off-hours: sparse pushes, possibly minutes apart
 - Subscription rooms are only active when a user's browser tab is open on that chart
+
+## Update 2026-07-05 — Cross-stack system audit
+
+- ✅ **`ALERT_PUBLISH_ROOMS` added** (`app/websocket.py`, `app/__init__.py`, `.env.example`):
+  optional comma-separated `SYMBOL_TIMEFRAME` list the background loop always polls and
+  publishes to Redis, independent of browser subscriptions. Fixes the audit finding that
+  line-touch alerts (`lib/alert-engine`) received no price events once the last chart tab
+  closed. Default (unset) preserves the original rooms-only behavior. When set, the loop now
+  starts at app boot instead of on first subscription, and the connection pool is fetched
+  inside the loop so a late-initializing pool retries instead of killing the thread.
+- ✅ Confirmed the `redis_pub.py` → `prices:{symbol}:{timeframe}` payload still matches
+  `lib/alert-engine/types.ts` `PriceEvent` field-for-field.
+- ✅ Confirmed Socket.IO event contract (`subscribe`/`initial_data`/`ohlcv_update`/`error`)
+  matches `hooks/use-ohlcv-socket.ts`.
+- ℹ️ For `lib/jobs/alert-checker.ts` (Next.js side), its Flask fallback previously targeted a
+  nonexistent `/api/mt5/price` route — fixed to use this service's real
+  `/api/indicators/{symbol}/{timeframe}` endpoint. No Flask-side change was needed.

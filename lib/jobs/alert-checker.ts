@@ -117,10 +117,11 @@ async function fetchXauusdPriceFromGatewayPipeline(
  *
  * Queries Flask MT5 service for real-time price data. For XAUUSD, tries the
  * v6 Gateway pipeline's table first (keyed on timeframe) and falls back to
- * Flask (which ignores timeframe, kept as a param for that call's shape).
+ * the Flask OHLCV endpoint (`/api/indicators/{symbol}/{timeframe}`), taking
+ * the latest bar's close.
  *
  * @param symbol - Trading symbol (e.g., XAUUSD)
- * @param timeframe - Timeframe (e.g., M5); only used for the XAUUSD gateway lookup
+ * @param timeframe - Timeframe (e.g., M5)
  * @returns Current price or 0 if fetch fails
  */
 async function fetchCurrentPrice(
@@ -135,13 +136,21 @@ async function fetchCurrentPrice(
   }
 
   try {
-    // Query Flask MT5 service for real-time price
-    const response = await fetch(`${MT5_API_URL}/api/mt5/price?symbol=${symbol}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // Query the Flask MT5 service's OHLCV endpoint (the service has no
+    // dedicated /price route) and use the latest bar's close as the current
+    // price. `bars` is clamped to >= 100 server-side, so request the minimum.
+    // X-User-Tier: PRO — this is a trusted server-side job; tier gating is a
+    // per-user browser concern, and FREE would block most symbols/timeframes.
+    const response = await fetch(
+      `${MT5_API_URL}/api/indicators/${symbol}/${timeframe}?bars=100`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Tier': 'PRO',
+        },
+      }
+    );
 
     if (!response.ok) {
       console.error(
@@ -150,8 +159,9 @@ async function fetchCurrentPrice(
       return 0;
     }
 
-    const data = await response.json();
-    return data?.price ?? 0;
+    const json = await response.json();
+    const ohlcv: Array<{ close?: number }> = json?.data?.ohlcv ?? [];
+    return ohlcv[ohlcv.length - 1]?.close ?? 0;
   } catch (error) {
     console.error(`[AlertChecker] Error fetching price for ${symbol}:`, error);
     return 0;

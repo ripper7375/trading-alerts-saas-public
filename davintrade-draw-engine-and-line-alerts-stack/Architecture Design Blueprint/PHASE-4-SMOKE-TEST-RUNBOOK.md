@@ -35,6 +35,11 @@ REDIS_URL=redis://localhost:6379 DATABASE_URL=<your local postgres> \
 
 # 5. Start mt5-service pointed at the SAME REDIS_URL and let a live (or mocked, via
 #    USE_MOCK_MT5=true per docker-compose.yml) MT5 feed cross price X on XAUUSD/M5.
+#    IMPORTANT: either keep a browser tab subscribed to XAUUSD/M5, or set
+#    ALERT_PUBLISH_ROOMS=XAUUSD_M5 in mt5-service's env — by default the Flask
+#    background loop only polls/publishes rooms with an active browser
+#    subscriber, so with no tab open and no ALERT_PUBLISH_ROOMS the worker
+#    receives no price events at all (2026-07-05 audit finding + fix).
 
 # 6. Confirm:
 #    - Worker log: "[alert-worker] ..." shows the watch evaluated

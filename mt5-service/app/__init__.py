@@ -88,11 +88,27 @@ def create_app(config_path: str = 'config/mt5_terminals.json') -> Flask:
     # Initialize WebSocket support
     logger.info("Initializing WebSocket server...")
     try:
-        from app.websocket import init_socketio, register_handlers
+        from app.websocket import (
+            ALERT_PUBLISH_ROOMS,
+            init_socketio,
+            register_handlers,
+            start_update_thread,
+        )
         socketio = init_socketio(app)
         register_handlers(socketio)
         app.socketio = socketio  # Store socketio instance on app
         logger.info("WebSocket server initialized successfully")
+
+        # If always-on alert rooms are configured, start the background
+        # update loop at boot (normally it starts on the first browser
+        # subscription) so the Redis price feed for line-touch alerts runs
+        # even when no chart tab is open.
+        if ALERT_PUBLISH_ROOMS:
+            logger.info(
+                f"Starting background loop at boot for alert rooms: "
+                f"{sorted(ALERT_PUBLISH_ROOMS)}"
+            )
+            start_update_thread()
     except Exception as e:
         logger.error(f"Failed to initialize WebSocket: {e}")
         app.socketio = None

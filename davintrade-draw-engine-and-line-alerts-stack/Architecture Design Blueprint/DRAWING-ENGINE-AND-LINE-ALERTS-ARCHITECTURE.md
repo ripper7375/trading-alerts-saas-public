@@ -77,8 +77,10 @@ Lightweight Charts.
 
 **Key takeaway:** the only net-new infra for the whole feature is a **job queue** (BullMQ) and using
 the **already-present Redis** for pub/sub. Everything else is already in your stack. **As of
-2026-07-05, the BullMQ worker is built but the Redis pub/sub leg (Flask's publish side) is not —
-see the Phase 4 status callout in §7.**
+2026-07-05 (gap closed later the same day), both the BullMQ worker AND the Redis pub/sub leg
+(Flask's publish side, `mt5-service/app/redis_pub.py`) are built — see the Phase 4 status
+callout in §7. Only the live cross-process round trip over real infra remains unverified
+(see `PHASE-4-SMOKE-TEST-RUNBOOK.md`).**
 
 ---
 
