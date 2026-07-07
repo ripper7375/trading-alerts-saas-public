@@ -3,23 +3,17 @@ import { redirect } from 'next/navigation';
 
 import { UpgradeButton } from '@/components/ui/upgrade-button';
 import { getSession } from '@/lib/auth/session';
-import {
-  FREE_SYMBOLS,
-  FREE_TIMEFRAMES,
-  PRO_SYMBOLS,
-  PRO_TIMEFRAMES,
-  type Tier,
-} from '@/lib/tier-config';
+import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
 
 // Force dynamic rendering since this page uses headers via getSession
 export const dynamic = 'force-dynamic';
 
 /**
- * Charts Page
+ * Charts Page — V8 single-symbol architecture
  *
- * Displays symbol/timeframe selectors with tier-based filtering.
- * FREE tier: 5 symbols, 3 timeframes (15 combinations)
- * PRO tier: 15 symbols, 9 timeframes (135 combinations)
+ * Both tiers have identical chart access: XAUUSD on M5 and M15.
+ * PRO differentiation (alerts, multi-timeframe visualization, drawing
+ * line alerts) is surfaced contextually, not by locking chart data.
  */
 export default async function ChartsPage(): Promise<React.JSX.Element> {
   const session = await getSession();
@@ -29,14 +23,14 @@ export default async function ChartsPage(): Promise<React.JSX.Element> {
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
-  const symbols: readonly string[] =
-    tier === 'PRO' ? PRO_SYMBOLS : FREE_SYMBOLS;
-  const timeframes: readonly string[] =
-    tier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
 
   // Default chart selection
   const defaultSymbol = 'XAUUSD';
-  const defaultTimeframe = 'H1';
+
+  const timeframeLabels: Record<string, string> = {
+    M5: '5 Min',
+    M15: '15 Min',
+  };
 
   return (
     <div className="space-y-6">
@@ -44,7 +38,7 @@ export default async function ChartsPage(): Promise<React.JSX.Element> {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Trading Charts</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Select a symbol and timeframe to view charts with indicator overlays
+          XAUUSD (Gold) charts on M5 and M15 with full indicator overlays
         </p>
       </div>
 
@@ -55,11 +49,12 @@ export default async function ChartsPage(): Promise<React.JSX.Element> {
             <span className="text-2xl">⚡</span>
             <div className="flex-1">
               <p className="font-semibold text-amber-900">
-                Upgrade to PRO for more charts
+                Upgrade to PRO for alerts and advanced tools
               </p>
               <p className="text-sm text-amber-700 mt-1">
-                Access all 15 symbols and 9 timeframes (135 combinations) plus
-                faster 30s data updates.
+                Create up to 100 price alerts, unlock multi-timeframe
+                visualization, and set line alerts directly from chart
+                drawings.
               </p>
               <UpgradeButton variant="amber" className="mt-2 text-sm" />
             </div>
@@ -67,167 +62,71 @@ export default async function ChartsPage(): Promise<React.JSX.Element> {
         </div>
       )}
 
-      {/* Tier Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Available Symbols</p>
-          <p className="text-2xl font-bold text-gray-900">{symbols.length}</p>
-          <p className="text-xs text-gray-500 mt-1">
-            {tier === 'FREE' ? 'of 15' : 'all symbols'}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Available Timeframes</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {timeframes.length}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {tier === 'FREE' ? 'of 9' : 'all timeframes'}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">Chart Combinations</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {symbols.length * timeframes.length}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {tier === 'FREE' ? 'of 135' : 'all combinations'}
-          </p>
-        </div>
-      </div>
-
-      {/* Symbol Grid */}
+      {/* Chart Selection */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Select a Symbol
-        </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {PRO_SYMBOLS.map((symbol) => {
-            const isAvailable = symbols.includes(symbol);
-            return (
-              <div key={symbol} className="relative">
-                {isAvailable ? (
-                  <Link
-                    href={`/charts/${symbol}/${defaultTimeframe}`}
-                    className="block px-4 py-3 text-center rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                  >
-                    <span className="font-semibold text-gray-900">
-                      {symbol}
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="px-4 py-3 text-center rounded-lg border-2 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed relative">
-                    <span className="font-semibold text-gray-400">
-                      {symbol}
-                    </span>
-                    <span className="absolute top-1 right-1 px-1.5 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded">
-                      PRO
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Timeframe Grid */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Select a Timeframe
+          Select a Chart
         </h2>
         <div className="flex flex-wrap gap-3">
-          {PRO_TIMEFRAMES.map((tf) => {
-            const isAvailable = timeframes.includes(tf);
-            const timeframeLabels: Record<string, string> = {
-              M5: '5 Min',
-              M15: '15 Min',
-              M30: '30 Min',
-              H1: '1 Hour',
-              H2: '2 Hours',
-              H4: '4 Hours',
-              H8: '8 Hours',
-              H12: '12 Hours',
-              D1: 'Daily',
-            };
-            return (
-              <div key={tf} className="relative">
-                {isAvailable ? (
-                  <Link
-                    href={`/charts/${defaultSymbol}/${tf}`}
-                    className="block px-6 py-3 text-center rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors min-w-[100px]"
-                  >
-                    <span className="font-bold text-lg text-gray-900">
-                      {tf}
-                    </span>
-                    <span className="block text-xs text-gray-500 mt-0.5">
-                      {timeframeLabels[tf]}
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="px-6 py-3 text-center rounded-lg border-2 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed relative min-w-[100px]">
-                    <span className="font-bold text-lg text-gray-400">
-                      {tf}
-                    </span>
-                    <span className="block text-xs text-gray-400 mt-0.5">
-                      {timeframeLabels[tf]}
-                    </span>
-                    <span className="absolute top-1 right-1 px-1.5 py-0.5 text-xs font-semibold bg-blue-600 text-white rounded">
-                      PRO
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {SYMBOLS.map((symbol) =>
+            TIMEFRAMES.map((tf) => (
+              <Link
+                key={`${symbol}-${tf}`}
+                href={`/charts/${symbol}/${tf}`}
+                className="block px-6 py-4 text-center rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors min-w-[160px]"
+              >
+                <span className="font-bold text-lg text-gray-900">
+                  {symbol} / {tf}
+                </span>
+                <span className="block text-xs text-gray-500 mt-0.5">
+                  Gold — {timeframeLabels[tf]}
+                </span>
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Quick Access - Popular Charts */}
+      {/* Quick Access */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Quick Access
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {[
-            { symbol: 'XAUUSD', timeframe: 'H1', label: 'Gold - 1 Hour' },
-            { symbol: 'BTCUSD', timeframe: 'H4', label: 'Bitcoin - 4 Hours' },
-            { symbol: 'EURUSD', timeframe: 'D1', label: 'EUR/USD - Daily' },
-            { symbol: 'US30', timeframe: 'H1', label: 'Dow Jones - 1 Hour' },
-          ].map(({ symbol, timeframe, label }) => {
-            const symbolAvailable = symbols.includes(symbol);
-            const tfAvailable = timeframes.includes(timeframe);
-            const isAvailable = symbolAvailable && tfAvailable;
-
-            return (
-              <div key={`${symbol}-${timeframe}`}>
-                {isAvailable ? (
-                  <Link
-                    href={`/charts/${symbol}/${timeframe}`}
-                    className="block p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                  >
-                    <span className="font-bold text-gray-900">
-                      {symbol}/{timeframe}
-                    </span>
-                    <span className="block text-sm text-gray-500 mt-1">
-                      {label}
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="p-4 rounded-lg border-2 border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed">
-                    <span className="font-bold text-gray-400">
-                      {symbol}/{timeframe}
-                    </span>
-                    <span className="block text-sm text-gray-400 mt-1">
-                      {label}
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+            {
+              symbol: defaultSymbol,
+              timeframe: 'M5',
+              label: 'Gold — 5 Minutes (scalping)',
+            },
+            {
+              symbol: defaultSymbol,
+              timeframe: 'M15',
+              label: 'Gold — 15 Minutes',
+            },
+          ].map(({ symbol, timeframe, label }) => (
+            <Link
+              key={`${symbol}-${timeframe}`}
+              href={`/charts/${symbol}/${timeframe}`}
+              className="block p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+            >
+              <span className="font-bold text-gray-900">
+                {symbol}/{timeframe}
+              </span>
+              <span className="block text-sm text-gray-500 mt-1">{label}</span>
+            </Link>
+          ))}
         </div>
       </div>
+
+      {/* PRO feature hint */}
+      {tier === 'PRO' && (
+        <p className="text-sm text-gray-500">
+          PRO: use the drawing toolbar on any chart to draw lines and convert
+          them into line-touch alerts, or enable multi-timeframe view to
+          overlay M5 structure on M15.
+        </p>
+      )}
     </div>
   );
 }

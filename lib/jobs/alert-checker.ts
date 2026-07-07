@@ -282,7 +282,7 @@ export async function checkAlerts(): Promise<void> {
       // Fetch current price for this symbol (using first alert's timeframe)
       const currentPrice = await fetchCurrentPrice(
         symbol,
-        alerts[0]?.timeframe || 'H1'
+        alerts[0]?.timeframe || 'M5' // V8 default timeframe
       );
 
       if (currentPrice === 0) {

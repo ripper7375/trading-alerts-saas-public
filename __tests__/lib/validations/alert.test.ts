@@ -22,7 +22,7 @@ describe('Alert Validation Schemas', () => {
     it('should validate valid alert creation data', () => {
       const valid = {
         symbol: 'XAUUSD',
-        timeframe: 'H1',
+        timeframe: 'M5',
         conditionType: 'price_above',
         targetValue: 2000,
       };
@@ -34,7 +34,7 @@ describe('Alert Validation Schemas', () => {
 
     it('should validate all optional fields', () => {
       const valid = {
-        symbol: 'EURUSD',
+        symbol: 'XAUUSD',
         timeframe: 'M15',
         conditionType: 'price_below',
         targetValue: 1.085,
@@ -131,7 +131,7 @@ describe('Alert Validation Schemas', () => {
     it('should default enabled to true', () => {
       const input = {
         symbol: 'XAUUSD',
-        timeframe: 'H1',
+        timeframe: 'M5',
         conditionType: 'price_above',
         targetValue: 2000,
       };
@@ -170,8 +170,8 @@ describe('Alert Validation Schemas', () => {
     it('should validate all updatable fields', () => {
       const valid = {
         id: 'alert-123',
-        symbol: 'EURUSD',
-        timeframe: 'M30',
+        symbol: 'XAUUSD',
+        timeframe: 'M15',
         conditionType: 'price_below',
         targetValue: 1.09,
         name: 'Updated Alert',
@@ -201,7 +201,7 @@ describe('Alert Validation Schemas', () => {
     it('should validate filter options', () => {
       const valid = {
         symbol: 'XAUUSD',
-        timeframe: 'H1',
+        timeframe: 'M5',
         enabled: true,
         triggered: false,
         limit: 10,
@@ -269,7 +269,7 @@ describe('Alert Validation Schemas', () => {
       const symbols = getAllowedSymbols('PRO');
 
       expect(symbols).toEqual(SYMBOLS);
-      expect(symbols.length).toBe(10);
+      expect(symbols.length).toBe(1);
     });
   });
 
@@ -278,7 +278,7 @@ describe('Alert Validation Schemas', () => {
       const schema = createAlertSchemaForTier('FREE');
       const valid = {
         symbol: 'XAUUSD',
-        timeframe: 'H1',
+        timeframe: 'M5',
         conditionType: 'price_above',
         targetValue: 2000,
       };
@@ -288,11 +288,11 @@ describe('Alert Validation Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should reject PRO symbols for FREE tier', () => {
+    it('should reject unsupported symbols regardless of tier (V8: no FREE/PRO symbol split)', () => {
       const schema = createAlertSchemaForTier('FREE');
       const invalid = {
         symbol: 'EURUSD',
-        timeframe: 'H1',
+        timeframe: 'M5',
         conditionType: 'price_above',
         targetValue: 1.085,
       };
@@ -300,9 +300,6 @@ describe('Alert Validation Schemas', () => {
       const result = schema.safeParse(invalid);
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toContain('FREE tier');
-      }
     });
 
     it('should allow all symbols for PRO tier', () => {
@@ -311,7 +308,7 @@ describe('Alert Validation Schemas', () => {
       SYMBOLS.forEach((symbol) => {
         const result = schema.safeParse({
           symbol,
-          timeframe: 'H1',
+          timeframe: 'M5',
           conditionType: 'price_above',
           targetValue: 1000,
         });
@@ -321,18 +318,15 @@ describe('Alert Validation Schemas', () => {
   });
 
   describe('Constants', () => {
-    it('should export correct SYMBOLS', () => {
+    it('should export correct SYMBOLS (V8: XAUUSD only)', () => {
       expect(SYMBOLS).toContain('XAUUSD');
-      expect(SYMBOLS).toContain('EURUSD');
-      expect(SYMBOLS).toContain('BTCUSD');
-      expect(SYMBOLS.length).toBe(10);
+      expect(SYMBOLS.length).toBe(1);
     });
 
-    it('should export correct TIMEFRAMES', () => {
+    it('should export correct TIMEFRAMES (V8: M5/M15 only)', () => {
+      expect(TIMEFRAMES).toContain('M5');
       expect(TIMEFRAMES).toContain('M15');
-      expect(TIMEFRAMES).toContain('H1');
-      expect(TIMEFRAMES).toContain('D1');
-      expect(TIMEFRAMES.length).toBe(7);
+      expect(TIMEFRAMES.length).toBe(2);
     });
 
     it('should export correct CONDITION_TYPES', () => {

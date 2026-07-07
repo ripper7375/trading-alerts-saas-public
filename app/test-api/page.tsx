@@ -51,13 +51,6 @@ export default function TestAPIPage() {
             GET /api/alerts
           </button>
           <button
-            onClick={() => testEndpoint('Get Watchlist', () => api.stackA.getWatchlist())}
-            disabled={loading}
-            style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}
-          >
-            GET /api/watchlist
-          </button>
-          <button
             onClick={() => testEndpoint('Get Chart Data', () => api.stackA.getChartData('XAUUSD'))}
             disabled={loading}
             style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}

@@ -96,45 +96,42 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
   });
 
   describe('Workflow 1: User Registration → Tier Assignment → Permission Validation', () => {
-    it('should assign FREE tier by default and grant appropriate permissions', () => {
+    it('should assign FREE tier by default and grant appropriate permissions (V8)', () => {
       const newUser = { tier: 'FREE' as const, role: 'USER' };
 
       // Verify FREE tier permissions
       expect(hasPermission(newUser, 'view_dashboard')).toBe(true);
-      expect(hasPermission(newUser, 'create_alerts')).toBe(true);
-      expect(hasPermission(newUser, 'view_watchlist')).toBe(true);
+      expect(hasPermission(newUser, 'view_symbols')).toBe(true);
 
-      // Verify FREE tier symbol access
+      // Verify FREE tier symbol access (V8: XAUUSD only, for everyone)
       expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
-      expect(canAccessSymbol('FREE', 'EURUSD')).toBe(true);
-      expect(canAccessSymbol('FREE', 'BTCUSD')).toBe(true);
+      expect(canAccessSymbol('FREE', 'EURUSD')).toBe(false);
+      expect(canAccessSymbol('FREE', 'BTCUSD')).toBe(false);
 
       // Verify PRO features are blocked
-      expect(hasPermission(newUser, 'view_all_symbols')).toBe(false);
+      expect(hasPermission(newUser, 'create_alerts')).toBe(false);
+      expect(hasPermission(newUser, 'drawing_line_alerts')).toBe(false);
       expect(hasPermission(newUser, 'export_data')).toBe(false);
-      expect(canAccessSymbol('FREE', 'GBPUSD')).toBe(false);
     });
 
-    it('should grant correct alert limits for FREE tier', () => {
-      const freeUser = { tier: 'FREE' as const };
+    it('should block alert creation entirely for FREE tier (V8)', () => {
+      // V8: alerts are a PRO feature — FREE can never create
+      expect(canCreateAlert('FREE', 0).allowed).toBe(false);
+      expect(canCreateAlert('FREE', 0).reason).toContain('PRO');
 
-      // Can create alerts under limit
-      expect(canCreateAlert('FREE', 0).allowed).toBe(true);
-      expect(canCreateAlert('FREE', 4).allowed).toBe(true);
-
-      // Cannot exceed limit
-      expect(canCreateAlert('FREE', 5).allowed).toBe(false);
-      expect(canCreateAlert('FREE', 5).reason).toContain('Alert limit reached');
+      // PRO can create up to 100
+      expect(canCreateAlert('PRO', 0).allowed).toBe(true);
+      expect(canCreateAlert('PRO', 100).allowed).toBe(false);
     });
 
     it('should validate permissions match tier configuration', () => {
       const freeUser = { tier: 'FREE' as const };
       const permissions = getUserPermissions(freeUser);
 
-      // Permissions should match FREE tier config
-      expect(permissions.length).toBe(5); // 5 FREE tier permissions
+      // Permissions should match FREE tier config (V8: 3 permissions)
+      expect(permissions.length).toBe(3);
       expect(permissions).toContain('view_dashboard');
-      expect(permissions).toContain('create_alerts');
+      expect(permissions).not.toContain('create_alerts');
     });
   });
 
@@ -147,10 +144,10 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
     } as unknown as Stripe.Checkout.Session;
 
     it('should upgrade user to PRO and expand permissions after checkout', async () => {
-      // Setup: User starts as FREE
+      // Setup: User starts as FREE (V8: no alerts, no line alerts)
       const freeUser = { tier: 'FREE' as const, role: 'USER' };
-      expect(hasPermission(freeUser, 'view_all_symbols')).toBe(false);
-      expect(canAccessSymbol('FREE', 'GBPUSD')).toBe(false);
+      expect(hasPermission(freeUser, 'create_alerts')).toBe(false);
+      expect(hasPermission(freeUser, 'drawing_line_alerts')).toBe(false);
 
       // Mock successful checkout
       mockUserUpdate.mockResolvedValue({
@@ -175,35 +172,32 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
         }),
       });
 
-      // After upgrade: PRO user has expanded permissions
+      // After upgrade: PRO user has expanded permissions (V8 feature set)
       const proUser = { tier: 'PRO' as const, role: 'USER' };
-      expect(hasPermission(proUser, 'view_all_symbols')).toBe(true);
+      expect(hasPermission(proUser, 'create_alerts')).toBe(true);
+      expect(hasPermission(proUser, 'drawing_line_alerts')).toBe(true);
+      expect(hasPermission(proUser, 'multi_timeframe_visualization')).toBe(
+        true
+      );
       expect(hasPermission(proUser, 'export_data')).toBe(true);
-      expect(canAccessSymbol('PRO', 'GBPUSD')).toBe(true);
-      expect(canAccessSymbol('PRO', 'ETHUSD')).toBe(true);
     });
 
-    it('should expand alert limits after upgrade', async () => {
-      // FREE tier limit is 5
-      expect(canCreateAlert('FREE', 5).allowed).toBe(false);
+    it('should unlock alert creation after upgrade (V8: 0 -> 100)', async () => {
+      // FREE tier: alerts blocked entirely
+      expect(canCreateAlert('FREE', 0).allowed).toBe(false);
 
-      // PRO tier limit is 20
+      // PRO tier limit is 100
       expect(canCreateAlert('PRO', 5).allowed).toBe(true);
-      expect(canCreateAlert('PRO', 19).allowed).toBe(true);
-      expect(canCreateAlert('PRO', 20).allowed).toBe(false);
+      expect(canCreateAlert('PRO', 99).allowed).toBe(true);
+      expect(canCreateAlert('PRO', 100).allowed).toBe(false);
     });
 
-    it('should expand timeframe access after upgrade', () => {
-      // FREE tier: limited timeframes
-      const freeAccess = validateTierAccess('FREE', 'XAUUSD');
-      expect(freeAccess.allowed).toBe(true);
-
-      const freeM5 = validateTierAccess('FREE', 'GBPUSD');
-      expect(freeM5.allowed).toBe(false);
-
-      // PRO tier: all timeframes
-      const proAccess = validateTierAccess('PRO', 'GBPUSD');
-      expect(proAccess.allowed).toBe(true);
+    it('should keep data access identical after upgrade (V8)', () => {
+      // Both tiers: XAUUSD allowed, everything else rejected
+      expect(validateTierAccess('FREE', 'XAUUSD').allowed).toBe(true);
+      expect(validateTierAccess('PRO', 'XAUUSD').allowed).toBe(true);
+      expect(validateTierAccess('FREE', 'GBPUSD').allowed).toBe(false);
+      expect(validateTierAccess('PRO', 'GBPUSD').allowed).toBe(false);
     });
   });
 
@@ -216,8 +210,8 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
     it('should downgrade user to FREE and revoke PRO permissions', async () => {
       // Setup: User is PRO
       const proUser = { tier: 'PRO' as const, role: 'USER' };
-      expect(hasPermission(proUser, 'view_all_symbols')).toBe(true);
-      expect(canAccessSymbol('PRO', 'GBPUSD')).toBe(true);
+      expect(hasPermission(proUser, 'create_alerts')).toBe(true);
+      expect(hasPermission(proUser, 'drawing_line_alerts')).toBe(true);
 
       // Mock subscription cancellation
       const mockDbSubscription = {
@@ -243,49 +237,45 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
         }),
       });
 
-      // After downgrade: User loses PRO permissions
+      // After downgrade: User loses PRO permissions (V8)
       const downgradedUser = { tier: 'FREE' as const, role: 'USER' };
-      expect(hasPermission(downgradedUser, 'view_all_symbols')).toBe(false);
+      expect(hasPermission(downgradedUser, 'create_alerts')).toBe(false);
+      expect(hasPermission(downgradedUser, 'drawing_line_alerts')).toBe(false);
       expect(hasPermission(downgradedUser, 'export_data')).toBe(false);
-      expect(canAccessSymbol('FREE', 'GBPUSD')).toBe(false);
     });
 
-    it('should reduce alert limits after downgrade', () => {
-      // Before downgrade (PRO): can have 20 alerts
+    it('should block alert creation entirely after downgrade (V8)', () => {
+      // Before downgrade (PRO): can have up to 100 alerts
       expect(canCreateAlert('PRO', 15).allowed).toBe(true);
 
-      // After downgrade (FREE): limit reduced to 5
-      // If user had 15 alerts, they cannot create new ones
-      expect(canCreateAlert('FREE', 6).allowed).toBe(false);
-      expect(canCreateAlert('FREE', 5).allowed).toBe(false);
-      expect(canCreateAlert('FREE', 4).allowed).toBe(true);
+      // After downgrade (FREE): alerts are a PRO feature - always blocked
+      expect(canCreateAlert('FREE', 0).allowed).toBe(false);
+      expect(canCreateAlert('FREE', 15).allowed).toBe(false);
     });
   });
 
   describe('Workflow 4: Tier Configuration Consistency', () => {
     it('should have consistent limits across auth and tier modules', () => {
-      // FREE tier consistency
-      expect(FREE_TIER_CONFIG.maxAlerts).toBe(5);
-      expect(FREE_TIER_CONFIG.symbols).toBe(5);
-      expect(FREE_TIER_CONFIG.timeframes).toBe(3);
+      // FREE tier consistency (V8)
+      expect(FREE_TIER_CONFIG.maxAlerts).toBe(0);
+      expect(FREE_TIER_CONFIG.symbols).toBe(1);
+      expect(FREE_TIER_CONFIG.timeframes).toBe(2);
 
-      // PRO tier consistency
-      expect(PRO_TIER_CONFIG.maxAlerts).toBe(20);
-      expect(PRO_TIER_CONFIG.symbols).toBe(15);
-      expect(PRO_TIER_CONFIG.timeframes).toBe(9);
+      // PRO tier consistency (V8)
+      expect(PRO_TIER_CONFIG.maxAlerts).toBe(100);
+      expect(PRO_TIER_CONFIG.symbols).toBe(1);
+      expect(PRO_TIER_CONFIG.timeframes).toBe(2);
     });
 
     it('should validate tier access matches config limits', () => {
-      // Validate symbol counts match
-      const freeSymbols = ['BTCUSD', 'EURUSD', 'USDJPY', 'US30', 'XAUUSD'];
-      freeSymbols.forEach((symbol) => {
-        expect(canAccessSymbol('FREE', symbol)).toBe(true);
-      });
-      expect(freeSymbols.length).toBe(FREE_TIER_CONFIG.symbols);
+      // V8: single symbol for both tiers
+      expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
+      expect(canAccessSymbol('PRO', 'XAUUSD')).toBe(true);
+      expect(FREE_TIER_CONFIG.symbols).toBe(1);
 
-      // PRO should have access to more symbols
-      expect(canAccessSymbol('PRO', 'GBPUSD')).toBe(true);
-      expect(canAccessSymbol('PRO', 'ETHUSD')).toBe(true);
+      // No tier unlocks additional symbols
+      expect(canAccessSymbol('PRO', 'GBPUSD')).toBe(false);
+      expect(canAccessSymbol('PRO', 'ETHUSD')).toBe(false);
     });
 
     it('should enforce rate limits per tier', () => {
@@ -303,7 +293,7 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
 
       // Admin has all permissions even on FREE tier
       expect(hasPermission(adminUser, 'view_dashboard')).toBe(true);
-      expect(hasPermission(adminUser, 'view_all_symbols')).toBe(true);
+      expect(hasPermission(adminUser, 'create_alerts')).toBe(true);
       expect(hasPermission(adminUser, 'admin_dashboard')).toBe(true);
       expect(hasPermission(adminUser, 'admin_users')).toBe(true);
     });
@@ -330,8 +320,9 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
 
       const permissions = getUserPermissions(superUser);
 
-      // Should have PRO permissions
-      expect(permissions).toContain('view_all_symbols');
+      // Should have PRO permissions (V8)
+      expect(permissions).toContain('create_alerts');
+      expect(permissions).toContain('drawing_line_alerts');
       expect(permissions).toContain('export_data');
 
       // Should have affiliate permissions

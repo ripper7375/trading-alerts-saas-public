@@ -406,7 +406,6 @@ declare module '@prisma/client' {
     updatedAt: Date;
     accounts?: Account[];
     alerts?: Alert[];
-    watchlists?: Watchlist[];
     drawings?: Drawing[];
     subscription?: Subscription | null;
     payments?: Payment[];
@@ -416,7 +415,6 @@ declare module '@prisma/client' {
     sessions?: Session[];
     _count?: {
       alerts: number;
-      watchlists: number;
       payments: number;
       [key: string]: number;
     };
@@ -564,27 +562,7 @@ declare module '@prisma/client' {
     alert?: Alert;
   }
 
-  export interface Watchlist {
-    id: string;
-    userId: string;
-    name: string;
-    order: number;
-    createdAt: Date;
-    updatedAt: Date;
-    user?: User;
-    items?: WatchlistItem[];
-  }
-
-  export interface WatchlistItem {
-    id: string;
-    watchlistId: string;
-    userId: string;
-    symbol: string;
-    timeframe: string;
-    order: number;
-    createdAt: Date;
-    watchlist?: Watchlist;
-  }
+  // V8: Watchlist / WatchlistItem models removed (watchlists eliminated)
 
   export interface Payment {
     id: string;
@@ -1097,8 +1075,6 @@ declare module '@prisma/client' {
     export type AccountDeletionRequestUpdateInput = Record<string, unknown>;
     export type AlertCreateInput = Record<string, unknown>;
     export type AlertUpdateInput = Record<string, unknown>;
-    export type WatchlistCreateInput = Record<string, unknown>;
-    export type WatchlistItemCreateInput = Record<string, unknown>;
     export type SystemConfigWhereInput = Record<string, unknown>;
     export type SystemConfigCreateInput = Record<string, unknown>;
     export type SystemConfigUpdateInput = Record<string, unknown>;
@@ -1209,8 +1185,6 @@ declare module '@prisma/client' {
     alert: ModelDelegate<Alert>;
     drawing: ModelDelegate<Drawing>;
     drawingAlert: ModelDelegate<DrawingAlert>;
-    watchlist: ModelDelegate<Watchlist>;
-    watchlistItem: ModelDelegate<WatchlistItem>;
     payment: ModelDelegate<Payment>;
     fraudAlert: ModelDelegate<FraudAlert>;
     affiliateProfile: ModelDelegate<AffiliateProfile>;

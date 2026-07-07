@@ -116,6 +116,21 @@ export async function PATCH(
       );
     }
 
+    // V8: Alerts are PRO-exclusive. FREE users (e.g. after a downgrade)
+    // cannot modify or re-enable leftover alerts — only DELETE them.
+    if (((session.user.tier as string) || 'FREE') !== 'PRO') {
+      return NextResponse.json(
+        {
+          error: 'Alerts are a PRO feature',
+          message:
+            'Your plan cannot modify alerts. Upgrade to PRO to manage alerts, or delete this alert.',
+          code: 'PRO_FEATURE',
+          upgradeUrl: '/pricing',
+        },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
 
     // Check if alert exists and belongs to user

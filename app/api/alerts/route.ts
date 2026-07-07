@@ -13,21 +13,23 @@ import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import {
-  FREE_TIER_CONFIG,
   PRO_TIER_CONFIG,
-  FREE_SYMBOLS,
-  PRO_SYMBOLS,
-  FREE_TIMEFRAMES,
-  PRO_TIMEFRAMES,
+  SYMBOLS,
+  TIMEFRAMES,
   type Tier,
 } from '@/lib/tier-config';
 
 /**
- * Zod schema for creating an alert
+ * Zod schema for creating an alert.
+ * V8: symbol locked to XAUUSD, timeframe locked to M5/M15.
  */
 const createAlertSchema = z.object({
-  symbol: z.string().min(1, 'Symbol is required'),
-  timeframe: z.string().min(1, 'Timeframe is required'),
+  symbol: z.enum(SYMBOLS, {
+    errorMap: () => ({ message: 'Only XAUUSD is supported' }),
+  }),
+  timeframe: z.enum(TIMEFRAMES, {
+    errorMap: () => ({ message: 'Only M5 and M15 timeframes are supported' }),
+  }),
   conditionType: z.enum(['price_above', 'price_below', 'price_equals'], {
     errorMap: () => ({ message: 'Invalid condition type' }),
   }),
@@ -36,22 +38,6 @@ const createAlertSchema = z.object({
 });
 
 type CreateAlertInput = z.infer<typeof createAlertSchema>;
-
-/**
- * Check if symbol is allowed for tier
- */
-function canAccessSymbol(tier: Tier, symbol: string): boolean {
-  const allowedSymbols = tier === 'PRO' ? PRO_SYMBOLS : FREE_SYMBOLS;
-  return (allowedSymbols as readonly string[]).includes(symbol);
-}
-
-/**
- * Check if timeframe is allowed for tier
- */
-function canAccessTimeframe(tier: Tier, timeframe: string): boolean {
-  const allowedTimeframes = tier === 'PRO' ? PRO_TIMEFRAMES : FREE_TIMEFRAMES;
-  return (allowedTimeframes as readonly string[]).includes(timeframe);
-}
 
 /**
  * GET /api/alerts
@@ -129,7 +115,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 /**
  * POST /api/alerts
  *
- * Create a new alert with tier validation
+ * Create a new alert.
+ * V8: Alerts are a PRO-exclusive feature — FREE users are blocked with 403.
+ * PRO users may hold up to 100 alerts on XAUUSD M5/M15.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -139,6 +127,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
+      );
+    }
+
+    const tier = (session.user.tier as Tier) || 'FREE';
+
+    // V8: strict block — alerts are a PRO feature
+    if (tier === 'FREE') {
+      return NextResponse.json(
+        {
+          error: 'Alerts are a PRO feature',
+          message: `Price alerts are exclusive to the PRO tier. Upgrade to create up to ${PRO_TIER_CONFIG.maxAlerts} alerts on XAUUSD M5/M15, plus drawing-engine line alerts and multi-timeframe visualization.`,
+          code: 'PRO_FEATURE',
+          upgradeUrl: '/pricing',
+        },
+        { status: 403 }
       );
     }
 
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Validate input
+    // Validate input (symbol/timeframe enums enforce XAUUSD + M5/M15)
     const validation = createAlertSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
@@ -168,37 +171,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { symbol, timeframe, conditionType, targetValue, name } =
       validation.data as CreateAlertInput;
-    const tier = (session.user.tier as Tier) || 'FREE';
 
-    // Validate symbol access
-    if (!canAccessSymbol(tier, symbol)) {
-      return NextResponse.json(
-        {
-          error: 'Symbol not allowed',
-          message: `${symbol} is not available on the ${tier} tier`,
-          code: 'SYMBOL_NOT_ALLOWED',
-          upgradeUrl: '/pricing',
-        },
-        { status: 403 }
-      );
-    }
-
-    // Validate timeframe access
-    if (!canAccessTimeframe(tier, timeframe)) {
-      return NextResponse.json(
-        {
-          error: 'Timeframe not allowed',
-          message: `${timeframe} is not available on the ${tier} tier`,
-          code: 'TIMEFRAME_NOT_ALLOWED',
-          upgradeUrl: '/pricing',
-        },
-        { status: 403 }
-      );
-    }
-
-    // Check alert limit
-    const limit =
-      tier === 'PRO' ? PRO_TIER_CONFIG.maxAlerts : FREE_TIER_CONFIG.maxAlerts;
+    // Check alert limit (PRO: 100)
+    const limit = PRO_TIER_CONFIG.maxAlerts;
 
     const currentAlertCount = await prisma.alert.count({
       where: {
@@ -211,11 +186,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'Alert limit exceeded',
-          message: `You have reached your ${tier} tier limit of ${limit} alerts`,
+          message: `You have reached your PRO tier limit of ${limit} alerts`,
           code: 'ALERT_LIMIT_EXCEEDED',
           currentCount: currentAlertCount,
           limit,
-          upgradeUrl: '/pricing',
         },
         { status: 403 }
       );

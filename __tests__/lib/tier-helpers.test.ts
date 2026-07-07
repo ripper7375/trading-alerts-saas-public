@@ -9,88 +9,78 @@ import {
   getUpgradePath,
 } from '@/lib/tier-helpers';
 
+// V8: symbol/timeframe access is identical for both tiers (XAUUSD, M5/M15
+// only) — see lib/tier-validation.ts. The old multi-symbol/timeframe tier
+// gating tested here has been removed; these describe the current shared
+// access instead.
 describe('Tier Helpers - hasChartAccess', () => {
-  it('should allow FREE tier access to XAUUSD H1', () => {
-    expect(hasChartAccess('FREE', 'XAUUSD', 'H1')).toBe(true);
+  it('should allow FREE tier access to XAUUSD M5', () => {
+    expect(hasChartAccess('FREE', 'XAUUSD', 'M5')).toBe(true);
   });
 
-  it('should allow FREE tier access to BTCUSD D1', () => {
-    expect(hasChartAccess('FREE', 'BTCUSD', 'D1')).toBe(true);
+  it('should allow PRO tier access to XAUUSD M15', () => {
+    expect(hasChartAccess('PRO', 'XAUUSD', 'M15')).toBe(true);
   });
 
-  it('should deny FREE tier access to GBPUSD H1 (PRO symbol)', () => {
-    expect(hasChartAccess('FREE', 'GBPUSD', 'H1')).toBe(false);
+  it('should deny access to unsupported symbols for any tier', () => {
+    expect(hasChartAccess('FREE', 'EURUSD', 'M5')).toBe(false);
+    expect(hasChartAccess('PRO', 'EURUSD', 'M5')).toBe(false);
   });
 
-  it('should deny FREE tier access to XAUUSD M5 (PRO timeframe)', () => {
-    expect(hasChartAccess('FREE', 'XAUUSD', 'M5')).toBe(false);
-  });
-
-  it('should allow PRO tier access to any combination', () => {
-    expect(hasChartAccess('PRO', 'GBPUSD', 'M5')).toBe(true);
-    expect(hasChartAccess('PRO', 'ETHUSD', 'M15')).toBe(true);
+  it('should deny access to unsupported timeframes for any tier', () => {
+    expect(hasChartAccess('FREE', 'XAUUSD', 'H1')).toBe(false);
+    expect(hasChartAccess('PRO', 'XAUUSD', 'H1')).toBe(false);
   });
 });
 
 describe('Tier Helpers - getAvailableSymbols', () => {
-  it('should return 5 symbols for FREE tier', () => {
+  it('should return only XAUUSD for FREE tier', () => {
     const symbols = getAvailableSymbols('FREE');
-    expect(symbols).toHaveLength(5);
-    expect(symbols).toContain('XAUUSD');
-    expect(symbols).toContain('BTCUSD');
+    expect(symbols).toEqual(['XAUUSD']);
   });
 
-  it('should return wildcard for PRO tier (unlimited access)', () => {
+  it('should return only XAUUSD for PRO tier', () => {
     const symbols = getAvailableSymbols('PRO');
-    expect(symbols).toContain('*');
+    expect(symbols).toEqual(['XAUUSD']);
   });
 });
 
 describe('Tier Helpers - getAvailableTimeframes', () => {
-  it('should return 3 timeframes for FREE tier', () => {
+  it('should return M5 and M15 for FREE tier', () => {
     const timeframes = getAvailableTimeframes('FREE');
-    expect(timeframes).toHaveLength(3);
-    expect(timeframes).toContain('H1');
-    expect(timeframes).toContain('H4');
-    expect(timeframes).toContain('D1');
+    expect(timeframes).toEqual(['M5', 'M15']);
   });
 
-  it('should return wildcard for PRO tier (unlimited access)', () => {
+  it('should return M5 and M15 for PRO tier', () => {
     const timeframes = getAvailableTimeframes('PRO');
-    expect(timeframes).toContain('*');
+    expect(timeframes).toEqual(['M5', 'M15']);
   });
 });
 
 describe('Tier Helpers - getChartCombinations', () => {
-  it('should return 15 combinations for FREE tier (5 symbols x 3 timeframes)', () => {
-    expect(getChartCombinations('FREE')).toBe(15);
+  it('should return 2 combinations for FREE tier (1 symbol x 2 timeframes)', () => {
+    expect(getChartCombinations('FREE')).toBe(2);
   });
 
-  it('should return -1 (unlimited) for PRO tier', () => {
-    expect(getChartCombinations('PRO')).toBe(-1);
+  it('should return 2 combinations for PRO tier (1 symbol x 2 timeframes)', () => {
+    expect(getChartCombinations('PRO')).toBe(2);
   });
 });
 
 describe('Tier Helpers - allowsCombination', () => {
-  it('should allow FREE tier valid combinations', () => {
-    expect(allowsCombination('FREE', 'XAUUSD', 'H1')).toBe(true);
-    expect(allowsCombination('FREE', 'EURUSD', 'H4')).toBe(true);
-    expect(allowsCombination('FREE', 'BTCUSD', 'D1')).toBe(true);
+  it('should allow the supported combination for any tier', () => {
+    expect(allowsCombination('FREE', 'XAUUSD', 'M5')).toBe(true);
+    expect(allowsCombination('PRO', 'XAUUSD', 'M15')).toBe(true);
   });
 
-  it('should deny FREE tier PRO symbols', () => {
-    expect(allowsCombination('FREE', 'GBPUSD', 'H1')).toBe(false);
-    expect(allowsCombination('FREE', 'ETHUSD', 'H4')).toBe(false);
+  it('should deny unsupported symbols for any tier', () => {
+    expect(allowsCombination('FREE', 'GBPUSD', 'M5')).toBe(false);
+    expect(allowsCombination('PRO', 'ETHUSD', 'M5')).toBe(false);
   });
 
-  it('should deny FREE tier PRO timeframes', () => {
-    expect(allowsCombination('FREE', 'XAUUSD', 'M5')).toBe(false);
-    expect(allowsCombination('FREE', 'BTCUSD', 'M15')).toBe(false);
-  });
-
-  it('should allow PRO tier all combinations', () => {
-    expect(allowsCombination('PRO', 'GBPUSD', 'M5')).toBe(true);
-    expect(allowsCombination('PRO', 'ETHUSD', 'M15')).toBe(true);
+  it('should deny unsupported timeframes for any tier', () => {
+    expect(allowsCombination('FREE', 'XAUUSD', 'H1')).toBe(false);
+    expect(allowsCombination('PRO', 'XAUUSD', 'D1')).toBe(false);
   });
 });
 

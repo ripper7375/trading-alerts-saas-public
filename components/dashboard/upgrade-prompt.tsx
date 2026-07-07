@@ -29,18 +29,18 @@ export function UpgradePrompt(): React.ReactElement {
               Upgrade to PRO
             </h2>
             <p className="text-white/90 mb-4">
-              Get 15 symbols, 9 timeframes, and 20 alerts for just $
+              Get the full alert system and advanced chart tools for just $
               {regularPrice}/month
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-white/80 mb-4">
               <li className="flex items-center gap-2">
-                <span>✓</span> 15 trading symbols
+                <span>✓</span> 100 price alerts (XAUUSD M5/M15)
               </li>
               <li className="flex items-center gap-2">
-                <span>✓</span> 9 timeframes (M5-D1)
+                <span>✓</span> Drawing engine line alerts
               </li>
               <li className="flex items-center gap-2">
-                <span>✓</span> 20 active alerts
+                <span>✓</span> Multi-timeframe visualization
               </li>
               <li className="flex items-center gap-2">
                 <span>✓</span> Priority updates (30s)

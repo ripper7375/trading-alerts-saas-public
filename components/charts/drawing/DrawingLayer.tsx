@@ -145,6 +145,8 @@ export function DrawingLayer({
   };
 
   const handleAddAlert = (): void => {
+    // V8: line alerts are PRO-exclusive (server enforces too).
+    if (tier !== 'PRO') return;
     const engine = engineRef.current;
     if (!engine) return;
     const levels = engine.getSelectedAlertLevels();
@@ -214,6 +216,7 @@ export function DrawingLayer({
         activeTool={activeTool}
         hasSelection={hasSelection}
         canAddAlert={canAddAlert}
+        isPro={tier === 'PRO'}
         alertsOpen={alertsPanelOpen}
         onSelectTool={handleSelectTool}
         onDelete={handleDelete}

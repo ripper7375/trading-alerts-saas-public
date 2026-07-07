@@ -29,17 +29,6 @@ export interface User {
 }
 
 /**
- * Watchlist type
- */
-export interface Watchlist {
-  id: string;
-  userId: string;
-  name: string;
-  order: number;
-  createdAt: Date;
-}
-
-/**
  * Subscription type
  */
 export interface Subscription {
@@ -105,7 +94,6 @@ export interface UserStats {
   totalAlerts: number;
   activeAlerts: number;
   triggeredAlerts: number;
-  totalWatchlists: number;
   joinedDate: Date;
   lastLogin: Date | null;
 }
@@ -115,7 +103,6 @@ export interface UserStats {
  */
 export interface UserWithRelations extends User {
   alerts?: Alert[];
-  watchlists?: Watchlist[];
   subscription?: Subscription | null;
 }
 

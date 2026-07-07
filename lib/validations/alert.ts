@@ -8,30 +8,19 @@
 import { z } from 'zod';
 
 /**
- * All supported symbols
+ * All supported symbols (V8: XAUUSD only)
  */
-export const SYMBOLS = [
-  'XAUUSD', // Gold
-  'EURUSD', // Euro/USD
-  'GBPUSD', // Pound/USD
-  'USDJPY', // USD/Yen
-  'AUDUSD', // Aussie/USD
-  'BTCUSD', // Bitcoin/USD
-  'ETHUSD', // Ethereum/USD
-  'XAGUSD', // Silver
-  'NDX100', // Nasdaq 100
-  'US30', // Dow Jones
-] as const;
+export const SYMBOLS = ['XAUUSD'] as const;
 
 /**
- * FREE tier symbols
+ * @deprecated V8: both tiers share the same symbol list. Use SYMBOLS.
  */
-export const FREE_SYMBOLS = ['XAUUSD'] as const;
+export const FREE_SYMBOLS = SYMBOLS;
 
 /**
- * All supported timeframes
+ * All supported timeframes (V8: M5 and M15 only)
  */
-export const TIMEFRAMES = ['M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'D1'] as const;
+export const TIMEFRAMES = ['M5', 'M15'] as const;
 
 /**
  * Alert condition types
@@ -135,49 +124,32 @@ export const listAlertsSchema = z.object({
 });
 
 /**
- * Validate symbol for tier
- *
- * @param symbol - Symbol to validate
- * @param tier - User tier ('FREE' | 'PRO')
- * @returns true if symbol is valid for tier
+ * Validate symbol for tier.
+ * V8: tier-independent — XAUUSD is the only valid symbol for everyone.
+ * (Alert CREATION is gated separately: FREE users cannot create alerts.)
  */
 export function isSymbolValidForTier(
   symbol: string,
-  tier: 'FREE' | 'PRO'
+  _tier: 'FREE' | 'PRO'
 ): boolean {
-  if (tier === 'PRO') {
-    return SYMBOLS.includes(symbol as (typeof SYMBOLS)[number]);
-  }
-  return FREE_SYMBOLS.includes(symbol as (typeof FREE_SYMBOLS)[number]);
+  return SYMBOLS.includes(symbol as (typeof SYMBOLS)[number]);
 }
 
 /**
- * Get allowed symbols for tier
- *
- * @param tier - User tier
- * @returns Array of allowed symbols
+ * Get allowed symbols for tier.
+ * V8: identical for both tiers.
  */
-export function getAllowedSymbols(tier: 'FREE' | 'PRO'): readonly string[] {
-  return tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
+export function getAllowedSymbols(_tier: 'FREE' | 'PRO'): readonly string[] {
+  return SYMBOLS;
 }
 
 /**
- * Create alert schema with tier validation
- *
- * @param tier - User tier for validation
- * @returns Zod schema with tier-specific symbol validation
+ * Create alert schema with tier validation.
+ * V8: symbol validation is tier-independent; the FREE-tier block on alert
+ * creation is enforced in the API route via canCreateAlert().
  */
-export function createAlertSchemaForTier(tier: 'FREE' | 'PRO') {
-  const allowedSymbols: readonly string[] =
-    tier === 'PRO' ? SYMBOLS : FREE_SYMBOLS;
-
-  return createAlertSchema.refine(
-    (data) => allowedSymbols.includes(data.symbol),
-    {
-      message: `Symbol not available for ${tier} tier`,
-      path: ['symbol'],
-    }
-  );
+export function createAlertSchemaForTier(_tier: 'FREE' | 'PRO') {
+  return createAlertSchema;
 }
 
 // Type exports

@@ -68,7 +68,8 @@ export function CreateAlertClient({
   const router = useRouter();
 
   // Form state
-  const [symbol, setSymbol] = useState<string>('');
+  // V8: single-symbol platform — symbol is fixed to XAUUSD
+  const symbol = availableSymbols[0] ?? 'XAUUSD';
   const [timeframe, setTimeframe] = useState<string>('');
   const [conditionType, setConditionType] =
     useState<ConditionType>('price_above');
@@ -88,10 +89,6 @@ export function CreateAlertClient({
     setError(null);
 
     // Validate form
-    if (!symbol) {
-      setError('Please select a symbol');
-      return;
-    }
     if (!timeframe) {
       setError('Please select a timeframe');
       return;
@@ -149,8 +146,7 @@ export function CreateAlertClient({
               </h2>
               <p className="text-gray-600 mb-6">
                 You have reached your {userTier} tier limit of {limit} active
-                alerts.
-                {userTier === 'FREE' && ' Upgrade to PRO for 20 alerts.'}
+                alerts. Delete or pause existing alerts to create new ones.
               </p>
               <div className="flex gap-4 justify-center">
                 {userTier === 'FREE' && (
@@ -230,29 +226,20 @@ export function CreateAlertClient({
                 </div>
               )}
 
-              {/* Symbol Selector */}
+              {/* Symbol (fixed — V8 single-symbol platform) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Symbol <span className="text-red-500">*</span>
+                  Symbol
                 </label>
-                <Select value={symbol} onValueChange={setSymbol}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a symbol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSymbols.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {availableSymbols.length} symbols available on {userTier} tier
-                </p>
+                <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                  <span className="font-semibold text-gray-900">{symbol}</span>
+                  <span className="text-xs text-gray-500">
+                    Gold — the only symbol on this platform
+                  </span>
+                </div>
               </div>
 
-              {/* Timeframe Selector */}
+              {/* Timeframe Selector (M5 / M15) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Timeframe <span className="text-red-500">*</span>
@@ -264,7 +251,7 @@ export function CreateAlertClient({
                   <SelectContent>
                     {availableTimeframes.map((tf) => (
                       <SelectItem key={tf} value={tf}>
-                        {tf}
+                        {tf === 'M5' ? 'M5 — 5 Minutes' : 'M15 — 15 Minutes'}
                       </SelectItem>
                     ))}
                   </SelectContent>

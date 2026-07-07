@@ -184,7 +184,7 @@ export class TierAccessError extends APIError {
 }
 
 /**
- * Resource Limit Error - for exceeded limits (alerts, watchlist items)
+ * Resource Limit Error - for exceeded limits (alerts, drawings)
  */
 export class ResourceLimitError extends APIError {
   constructor(

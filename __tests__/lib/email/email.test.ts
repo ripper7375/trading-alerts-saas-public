@@ -139,24 +139,22 @@ describe('Email Service', () => {
       expect(html).toContain('7-Day Free Trial');
     });
 
-    it('should include PRO features', () => {
+    it('should include PRO features (V8)', () => {
       const html = getSubscriptionConfirmationEmail('User', 'PRO', 'yearly');
 
-      expect(html).toContain('15 Symbols');
-      expect(html).toContain('9 Timeframes');
-      expect(html).toContain('135 Chart Combinations');
-      expect(html).toContain('20 Alerts');
+      expect(html).toContain('100 Price Alerts');
+      expect(html).toContain('Drawing Engine Line Alerts');
+      expect(html).toContain('Multi-Timeframe Visualization');
       expect(html).toContain('$290/year');
     });
 
-    it('should generate FREE subscription email with correct limits', () => {
+    it('should generate FREE subscription email with correct limits (V8)', () => {
       const html = getSubscriptionConfirmationEmail('Jane Doe', 'FREE', 'monthly');
 
       expect(html).toContain('FREE');
-      expect(html).toContain('5 Symbols');
-      expect(html).toContain('3 Timeframes');
-      expect(html).toContain('15 Chart Combinations');
-      expect(html).toContain('5 Alerts');
+      expect(html).toContain('XAUUSD (Gold)');
+      expect(html).toContain('M5 and M15');
+      expect(html).toContain('Full Indicator Data');
     });
 
     it('should not include trial info for FREE plan', () => {
@@ -191,33 +189,33 @@ describe('Email Service', () => {
   });
 
   describe('getUpgradePromptEmail', () => {
-    it('should generate upgrade email for alert limit', () => {
+    it('should generate upgrade email for alert limit (V8)', () => {
       const html = getUpgradePromptEmail('John Doe', 'alert_limit');
 
       expect(html).toContain('Upgrade to Pro');
-      expect(html).toContain('5 alert limit');
-      expect(html).toContain('5 to 20 alerts');
+      expect(html).toContain('Pro feature');
+      expect(html).toContain('100 price alerts');
     });
 
-    it('should generate upgrade email for symbol limit', () => {
+    it('should generate upgrade email for symbol limit (V8)', () => {
       const html = getUpgradePromptEmail('User', 'symbol_limit');
 
-      expect(html).toContain('PRO-exclusive symbols');
-      expect(html).toContain('all 15 symbols');
+      expect(html).toContain('Pro-exclusive features');
+      expect(html).toContain('line alerts');
     });
 
-    it('should generate upgrade email for timeframe limit', () => {
+    it('should generate upgrade email for timeframe limit (V8)', () => {
       const html = getUpgradePromptEmail('User', 'timeframe_limit');
 
-      expect(html).toContain('PRO-exclusive timeframes');
-      expect(html).toContain('all 9 timeframes');
+      expect(html).toContain('Pro-exclusive features');
+      expect(html).toContain('Multi-timeframe visualization');
     });
 
-    it('should generate upgrade email for indicator limit', () => {
+    it('should generate upgrade email for indicator limit (V8)', () => {
       const html = getUpgradePromptEmail('User', 'indicator_limit');
 
-      expect(html).toContain('PRO-exclusive indicators');
-      expect(html).toContain('all 8 indicators');
+      expect(html).toContain('Pro-exclusive features');
+      expect(html).toContain('alert');
     });
 
     it('should include correct pricing and trial info', () => {

@@ -127,7 +127,6 @@ model User {
   
   accounts          Account[]
   alerts            Alert[]
-  watchlists        Watchlist[]
   drawings          Drawing[]
   subscription      Subscription?
   payments          Payment[]
@@ -409,35 +408,9 @@ model Alert {
   @@index([isActive])
 }
 
-model Watchlist {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  order     Int      @default(0)
-  items     WatchlistItem[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, name])  // <-- ADD THIS LINE
-  @@index([userId])
-}
-
-model WatchlistItem {
-  id          String   @id @default(cuid())
-  watchlistId String
-  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
-  userId      String
-  symbol      String
-  timeframe   String
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  @@unique([userId, symbol, timeframe])
-  @@index([watchlistId])
-  @@index([userId])
-}
+// V8 migration (2026-07): Watchlist and WatchlistItem models removed —
+// watchlists were eliminated from the product for all tiers.
+// See migration 20260706000000_drop_watchlists.
 
 model Payment {
   id                 String   @id @default(cuid())

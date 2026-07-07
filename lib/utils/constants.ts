@@ -9,32 +9,21 @@ import type { Tier } from '@/lib/tier-config';
 export type { Tier };
 
 /**
- * All supported timeframes (7 total)
+ * All supported timeframes (V8: M5 and M15 only, both tiers)
  */
-export const TIMEFRAMES = ['M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'D1'] as const;
+export const TIMEFRAMES = ['M5', 'M15'] as const;
 export type Timeframe = (typeof TIMEFRAMES)[number];
 
 /**
- * All supported symbols (10 total for PRO)
+ * All supported symbols (V8: XAUUSD only, both tiers)
  */
-export const SYMBOLS = [
-  'XAUUSD', // Gold
-  'EURUSD', // Euro/USD
-  'GBPUSD', // Pound/USD
-  'USDJPY', // USD/Yen
-  'AUDUSD', // Aussie/USD
-  'BTCUSD', // Bitcoin/USD
-  'ETHUSD', // Ethereum/USD
-  'XAGUSD', // Silver
-  'NDX100', // Nasdaq 100
-  'US30', // Dow Jones
-] as const;
+export const SYMBOLS = ['XAUUSD'] as const;
 export type Symbol = (typeof SYMBOLS)[number];
 
 /**
- * FREE tier symbols (1 only)
+ * @deprecated V8: both tiers share the same symbol list. Use SYMBOLS.
  */
-export const FREE_SYMBOLS = ['XAUUSD'] as const;
+export const FREE_SYMBOLS = SYMBOLS;
 export type FreeSymbol = (typeof FREE_SYMBOLS)[number];
 
 /**
@@ -42,28 +31,14 @@ export type FreeSymbol = (typeof FREE_SYMBOLS)[number];
  */
 export const SYMBOL_NAMES: Record<Symbol, string> = {
   XAUUSD: 'Gold (XAU/USD)',
-  EURUSD: 'Euro/US Dollar',
-  GBPUSD: 'British Pound/US Dollar',
-  USDJPY: 'US Dollar/Japanese Yen',
-  AUDUSD: 'Australian Dollar/US Dollar',
-  BTCUSD: 'Bitcoin/US Dollar',
-  ETHUSD: 'Ethereum/US Dollar',
-  XAGUSD: 'Silver (XAG/USD)',
-  NDX100: 'Nasdaq 100 Index',
-  US30: 'Dow Jones Industrial Average',
 };
 
 /**
  * Timeframe display names
  */
 export const TIMEFRAME_NAMES: Record<Timeframe, string> = {
+  M5: '5 Minutes',
   M15: '15 Minutes',
-  M30: '30 Minutes',
-  H1: '1 Hour',
-  H2: '2 Hours',
-  H4: '4 Hours',
-  H8: '8 Hours',
-  D1: 'Daily',
 };
 
 /**
@@ -76,15 +51,15 @@ export const TIERS = ['FREE', 'PRO'] as const satisfies readonly Tier[];
  */
 export const TIER_LIMITS = {
   FREE: {
-    symbols: FREE_SYMBOLS as readonly string[],
+    symbols: SYMBOLS as readonly string[],
     timeframes: TIMEFRAMES as readonly string[],
-    maxAlerts: 5,
-    maxWatchlists: 3,
-    maxWatchlistItems: 5,
-    rateLimit: 100, // requests per hour
+    maxAlerts: 0, // Alerts are a PRO feature
+    rateLimit: 60, // requests per hour (matches lib/tier-config.ts)
     features: {
-      emailAlerts: true,
+      emailAlerts: false, // No alerts on FREE tier
       pushNotifications: false,
+      multiTimeframe: false,
+      drawingLineAlerts: false,
       exportData: false,
       prioritySupport: false,
       advancedCharts: false,
@@ -93,13 +68,13 @@ export const TIER_LIMITS = {
   PRO: {
     symbols: SYMBOLS as readonly string[],
     timeframes: TIMEFRAMES as readonly string[],
-    maxAlerts: 20,
-    maxWatchlists: 10,
-    maxWatchlistItems: 50,
-    rateLimit: 1000, // requests per hour
+    maxAlerts: 100,
+    rateLimit: 300, // requests per hour (matches lib/tier-config.ts)
     features: {
       emailAlerts: true,
       pushNotifications: true,
+      multiTimeframe: true,
+      drawingLineAlerts: true,
       exportData: true,
       prioritySupport: true,
       advancedCharts: true,
@@ -109,6 +84,7 @@ export const TIER_LIMITS = {
 
 /**
  * Pricing configuration (in USD)
+ * PRO monthly price is configurable via NEXT_PUBLIC_PRO_PRICE_MONTHLY.
  */
 export const PRICING = {
   FREE: {
@@ -118,8 +94,8 @@ export const PRICING = {
     description: 'For casual traders',
   },
   PRO: {
-    monthly: 29,
-    yearly: 290, // ~$24/month billed annually
+    monthly: Number(process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ?? '29'),
+    yearly: Number(process.env['NEXT_PUBLIC_PRO_PRICE_YEARLY'] ?? '290'),
     name: 'Pro',
     description: 'For serious traders',
   },

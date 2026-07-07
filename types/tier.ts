@@ -1,24 +1,21 @@
 /**
- * Tier System Types for V7
+ * Tier System Types for V8
  *
- * V7 uses a simplified 2-tier system:
- * - FREE: 5 symbols × 3 timeframes (H1, H4, D1) = 15 combinations
- * - PRO: 15 symbols × 9 timeframes (all) = 135 combinations
+ * V8 single-symbol architecture:
+ * - One symbol (XAUUSD) and two timeframes (M5, M15) for BOTH tiers.
+ * - Identical market data access for both tiers (all market_data_v6 columns).
+ * - Tier differentiation: Alerts (FREE 0 / PRO 100), multi-timeframe
+ *   visualization, and drawing-engine line alerts (PRO only).
  *
- * NOTE: The canonical `Tier` type is defined in `lib/tier-config.ts`.
- * This file re-exports it for convenience and provides additional types.
+ * NOTE: The canonical `Tier` type and tier limits are defined in
+ * `lib/tier-config.ts`. This file re-exports and derives from it.
  */
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TIER TYPE (Re-exported from lib/tier-config)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/**
- * User tier levels - imported and re-exported from lib/tier-config.ts
- *
- * Note: ENTERPRISE tier removed in V7
- */
-import type { Tier } from '@/lib/tier-config';
+import { PRO_MONTHLY_PRICE, type Tier } from '@/lib/tier-config';
 export type { Tier };
 
 /**
@@ -40,7 +37,6 @@ export type TrialStatus =
  */
 export interface TierLimits {
   maxAlerts: number;
-  maxWatchlists: number;
   allowedSymbols: string[];
   allowedTimeframes: Timeframe[];
   pricing: {
@@ -50,9 +46,10 @@ export interface TierLimits {
     trialDays?: number; // number of trial days
   };
   features: {
-    advancedCharts: boolean;
+    alerts: boolean; // Alert creation (PRO only)
+    multiTimeframe: boolean; // Multi-timeframe visualization (PRO only)
+    drawingLineAlerts: boolean; // Drawing-engine line alerts (PRO only)
     exportData: boolean;
-    apiAccess: boolean;
     prioritySupport: boolean;
   };
 }
@@ -62,21 +59,9 @@ export interface TierLimits {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * All supported timeframes in V7
- *
- * FREE tier: H1, H4, D1 only
- * PRO tier: All 9 timeframes
+ * Supported timeframes in V8 — M5 and M15 only, both tiers.
  */
-export type Timeframe =
-  | 'M5' // PRO only
-  | 'M15' // PRO only
-  | 'M30' // PRO only
-  | 'H1' // FREE + PRO
-  | 'H2' // PRO only
-  | 'H4' // FREE + PRO
-  | 'H8' // PRO only
-  | 'H12' // PRO only
-  | 'D1'; // FREE + PRO
+export type Timeframe = 'M5' | 'M15';
 
 /**
  * Timeframe display labels
@@ -84,13 +69,6 @@ export type Timeframe =
 export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
   M5: '5 Minutes',
   M15: '15 Minutes',
-  M30: '30 Minutes',
-  H1: '1 Hour',
-  H2: '2 Hours',
-  H4: '4 Hours',
-  H8: '8 Hours',
-  H12: '12 Hours',
-  D1: '1 Day',
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -98,105 +76,70 @@ export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * FREE tier symbols (5 symbols)
+ * All supported symbols in V8 — XAUUSD only, both tiers.
  */
-export const FREE_TIER_SYMBOLS = [
-  'BTCUSD', // Bitcoin
-  'EURUSD', // Euro
-  'USDJPY', // Yen
-  'US30', // Dow Jones
-  'XAUUSD', // Gold
-] as const;
+export const ALL_SYMBOLS = ['XAUUSD'] as const;
 
 /**
- * PRO tier exclusive symbols (10 additional)
- * NOTE: This list MUST match PRO_EXCLUSIVE_SYMBOLS in lib/tier-config.ts
+ * The single supported symbol (union type)
  */
-export const PRO_TIER_EXCLUSIVE_SYMBOLS = [
-  'AUDJPY', // Forex Cross - Australian Dollar/Japanese Yen
-  'AUDUSD', // Forex Major - Australian Dollar/US Dollar
-  'ETHUSD', // Crypto - Ethereum
-  'GBPJPY', // Forex Cross - British Pound/Japanese Yen
-  'GBPUSD', // Forex Major - British Pound/US Dollar
-  'NDX100', // Index - Nasdaq 100
-  'NZDUSD', // Forex Major - New Zealand Dollar/US Dollar
-  'USDCAD', // Forex Major - US Dollar/Canadian Dollar
-  'USDCHF', // Forex Major - US Dollar/Swiss Franc
-  'XAGUSD', // Commodities - Silver
-] as const;
+export type Symbol = (typeof ALL_SYMBOLS)[number];
 
-/**
- * All PRO tier symbols (15 total)
- */
-export const PRO_TIER_SYMBOLS = [
-  ...FREE_TIER_SYMBOLS,
-  ...PRO_TIER_EXCLUSIVE_SYMBOLS,
-] as const;
-
-/**
- * All available symbols (union type)
- */
-export type Symbol = (typeof PRO_TIER_SYMBOLS)[number];
+/** @deprecated V8: both tiers share the same symbol list. Use ALL_SYMBOLS. */
+export const FREE_TIER_SYMBOLS = ALL_SYMBOLS;
+/** @deprecated V8: no PRO-exclusive symbols. Always empty. */
+export const PRO_TIER_EXCLUSIVE_SYMBOLS = [] as const;
+/** @deprecated V8: both tiers share the same symbol list. Use ALL_SYMBOLS. */
+export const PRO_TIER_SYMBOLS = ALL_SYMBOLS;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TIER CONFIGURATION
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * FREE tier timeframes (3 timeframes)
+ * All supported timeframes (both tiers)
  */
-export const FREE_TIER_TIMEFRAMES: Timeframe[] = ['H1', 'H4', 'D1'];
+export const ALL_TIMEFRAMES: Timeframe[] = ['M5', 'M15'];
 
-/**
- * PRO tier timeframes (all 9 timeframes)
- */
-export const PRO_TIER_TIMEFRAMES: Timeframe[] = [
-  'M5',
-  'M15',
-  'M30',
-  'H1',
-  'H2',
-  'H4',
-  'H8',
-  'H12',
-  'D1',
-];
+/** @deprecated V8: both tiers share the same timeframes. Use ALL_TIMEFRAMES. */
+export const FREE_TIER_TIMEFRAMES: Timeframe[] = ALL_TIMEFRAMES;
+/** @deprecated V8: both tiers share the same timeframes. Use ALL_TIMEFRAMES. */
+export const PRO_TIER_TIMEFRAMES: Timeframe[] = ALL_TIMEFRAMES;
 
 /**
  * Complete tier configuration
  */
 export const TIER_CONFIG: Record<Tier, TierLimits> = {
   FREE: {
-    maxAlerts: 5,
-    maxWatchlists: 1,
-    allowedSymbols: [...FREE_TIER_SYMBOLS],
-    allowedTimeframes: FREE_TIER_TIMEFRAMES,
+    maxAlerts: 0, // Alerts are a PRO feature
+    allowedSymbols: [...ALL_SYMBOLS],
+    allowedTimeframes: ALL_TIMEFRAMES,
     pricing: {
       monthlyPrice: 0,
       hasFreeTrial: false,
     },
     features: {
-      advancedCharts: false,
+      alerts: false,
+      multiTimeframe: false,
+      drawingLineAlerts: false,
       exportData: false,
-      apiAccess: false,
       prioritySupport: false,
     },
   },
   PRO: {
-    maxAlerts: 20,
-    maxWatchlists: 5,
-    allowedSymbols: [...PRO_TIER_SYMBOLS],
-    allowedTimeframes: PRO_TIER_TIMEFRAMES,
+    maxAlerts: 100,
+    allowedSymbols: [...ALL_SYMBOLS],
+    allowedTimeframes: ALL_TIMEFRAMES,
     pricing: {
-      monthlyPrice: 29,
-      yearlyPrice: 290,
+      monthlyPrice: PRO_MONTHLY_PRICE,
       hasFreeTrial: true,
       trialDays: 7,
     },
     features: {
-      advancedCharts: true,
+      alerts: true,
+      multiTimeframe: true,
+      drawingLineAlerts: true,
       exportData: true,
-      apiAccess: true,
       prioritySupport: true,
     },
   },
@@ -220,8 +163,6 @@ export interface ChartCombination {
 export interface TierUpgradeInfo {
   currentTier: Tier;
   targetTier: Tier;
-  additionalSymbols: number;
-  additionalTimeframes: number;
   additionalAlerts: number;
   pricePerMonth: number;
 }

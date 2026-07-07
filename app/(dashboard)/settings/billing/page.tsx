@@ -39,7 +39,7 @@ import { TIER_CONFIG, type Tier } from '@/types/tier';
  * - Upgrade/Cancel buttons
  * - Payment method display
  * - Invoice history table
- * - Usage statistics (alerts, watchlist, API calls)
+ * - Usage statistics (alerts, API calls)
  * - Affiliate discount display
  */
 
@@ -54,7 +54,6 @@ interface InvoiceRecord {
 
 interface UsageStats {
   alerts: { current: number; max: number };
-  watchlist: { current: number; max: number };
   apiCalls: { current: number; max: number };
 }
 
@@ -99,7 +98,6 @@ export default function BillingSettingsPage(): React.ReactElement {
   // Mock usage data - in real app, fetch from API
   const [usageStats] = useState<UsageStats>({
     alerts: { current: 3, max: tierConfig.maxAlerts },
-    watchlist: { current: 12, max: tierConfig.maxWatchlists * 10 },
     apiCalls: { current: 42, max: 60 },
   });
 
@@ -161,20 +159,30 @@ export default function BillingSettingsPage(): React.ReactElement {
           <ul className="mb-6 space-y-2">
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              {tierConfig.allowedSymbols.length} Symbols
+              XAUUSD (Gold) — M5 &amp; M15
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              {tierConfig.allowedTimeframes.length} Timeframes
+              Full market data &amp; indicators
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              {tierConfig.maxAlerts} Alerts
+              {userTier === 'PRO'
+                ? `${tierConfig.maxAlerts} Price Alerts`
+                : 'No Alerts (PRO feature)'}
             </li>
-            <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              {tierConfig.maxWatchlists * 10} Watchlist Items
-            </li>
+            {userTier === 'PRO' && (
+              <>
+                <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Drawing Engine Line Alerts
+                </li>
+                <li className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Multi-Timeframe Visualization
+                </li>
+              </>
+            )}
           </ul>
 
           {/* Action Buttons */}
@@ -302,24 +310,6 @@ export default function BillingSettingsPage(): React.ReactElement {
             />
           </div>
 
-          {/* Watchlist */}
-          <div>
-            <div className="mb-2 flex justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Watchlist Items
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {usageStats.watchlist.current}/{usageStats.watchlist.max}
-              </span>
-            </div>
-            <Progress
-              value={
-                (usageStats.watchlist.current / usageStats.watchlist.max) * 100
-              }
-              className="h-2"
-            />
-          </div>
-
           {/* API Calls */}
           <div>
             <div className="mb-2 flex justify-between">
@@ -430,8 +420,9 @@ export default function BillingSettingsPage(): React.ReactElement {
               <div className="flex-1 text-center sm:text-left">
                 <h3 className="mb-2 text-xl font-bold">Unlock More with PRO</h3>
                 <p className="mb-4 text-white/90">
-                  Get 15 symbols, 9 timeframes, 20 alerts, and priority support
-                  for just ${regularPrice}/month.
+                  Get 100 price alerts, drawing engine line alerts,
+                  multi-timeframe visualization, and priority support for just
+                  ${regularPrice}/month.
                 </p>
                 <Link href="/pricing">
                   <Button className="bg-white font-semibold text-blue-600 hover:bg-white/90">

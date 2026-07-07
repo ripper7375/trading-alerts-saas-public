@@ -109,67 +109,7 @@ describe('StackAClient - Corrected Endpoints', () => {
     });
   });
 
-  // ===== Watchlist (Part 10) - 3 methods =====
-  describe('Watchlist API', () => {
-    it('should GET /watchlist - getWatchlist()', async () => {
-      const mockWatchlist = [
-        { id: '1', symbol: 'XAUUSD', timeframe: 'H1' },
-        { id: '2', symbol: 'EURUSD', timeframe: 'H4' },
-      ];
-
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockWatchlist,
-      } as Response);
-
-      const { api } = await import('@/lib/api');
-      const watchlist = await api.stackA.getWatchlist();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/watchlist',
-        expect.objectContaining({ method: 'GET' })
-      );
-      expect(watchlist).toEqual(mockWatchlist);
-    });
-
-    it('should POST /watchlist - addToWatchlist()', async () => {
-      const newEntry = { symbol: 'XAUUSD', timeframe: 'H1' };
-
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
-        ok: true,
-        status: 201,
-        json: async () => ({ id: '1', ...newEntry }),
-      } as Response);
-
-      const { api } = await import('@/lib/api');
-      const entry = await api.stackA.addToWatchlist(newEntry);
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/watchlist',
-        expect.objectContaining({ method: 'POST' })
-      );
-      expect(entry).toHaveProperty('id');
-    });
-
-    it('should DELETE /watchlist/[id] - removeFromWatchlist()', async () => {
-      const entryId = '123';
-
-      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true }),
-      } as Response);
-
-      const { api } = await import('@/lib/api');
-      await api.stackA.removeFromWatchlist(entryId);
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        `/api/watchlist/${entryId}`,
-        expect.objectContaining({ method: 'DELETE' })
-      );
-    });
-  });
+  // Watchlist API removed in V8 (watchlists eliminated from the product)
 
   // ===== Charts (Part 9) - CORRECTED ENDPOINT =====
   describe('Charts API - CORRECTED', () => {

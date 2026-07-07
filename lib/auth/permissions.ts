@@ -22,22 +22,16 @@ import { getSession } from './session';
  * Defines what features each tier can access
  */
 export const TIER_PERMISSIONS = {
-  FREE: [
-    'view_dashboard',
-    'create_alerts',
-    'view_watchlist',
-    'view_symbols',
-    'view_timeframes',
-  ],
+  // V8: watchlists removed; alerts are a PRO-only feature
+  FREE: ['view_dashboard', 'view_symbols', 'view_timeframes'],
   PRO: [
     'view_dashboard',
-    'create_alerts',
-    'view_watchlist',
     'view_symbols',
     'view_timeframes',
-    'view_all_symbols',
-    'view_all_timeframes',
+    'create_alerts',
     'create_advanced_alerts',
+    'multi_timeframe_visualization',
+    'drawing_line_alerts',
     'export_data',
     'priority_support',
   ],
@@ -164,8 +158,9 @@ export async function checkFeatureAccess(
       } else if (permission.startsWith('affiliate_')) {
         errorMessage = 'Affiliate access required';
       } else if (
-        permission.includes('all_symbols') ||
-        permission.includes('all_timeframes')
+        // V8: PRO-exclusive = in PRO list but not in FREE list
+        (TIER_PERMISSIONS.PRO as readonly string[]).includes(permission) &&
+        !(TIER_PERMISSIONS.FREE as readonly string[]).includes(permission)
       ) {
         errorMessage = 'PRO subscription required for this feature';
       }
@@ -427,9 +422,12 @@ export const requireAffiliateDashboard = createPermissionMiddleware(
   'affiliate_dashboard'
 );
 export const requireProTier = requirePro;
-export const requireViewAllSymbols =
-  createPermissionMiddleware('view_all_symbols');
-export const requireViewAllTimeframes = createPermissionMiddleware(
-  'view_all_timeframes'
+// V8: PRO-exclusive feature middlewares
+export const requireCreateAlerts = createPermissionMiddleware('create_alerts');
+export const requireDrawingLineAlerts = createPermissionMiddleware(
+  'drawing_line_alerts'
+);
+export const requireMultiTimeframe = createPermissionMiddleware(
+  'multi_timeframe_visualization'
 );
 export const requireExportData = createPermissionMiddleware('export_data');

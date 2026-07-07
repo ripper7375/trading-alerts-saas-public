@@ -35,7 +35,6 @@ interface AdminUser {
   createdAt: string;
   lastLoginAt: string | null;
   alertCount: number;
-  watchlistCount: number;
 }
 
 interface UsersResponse {

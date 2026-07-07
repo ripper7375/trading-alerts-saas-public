@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Bell,
   LineChart,
-  Eye,
   BarChart3,
   Zap,
   Settings,
@@ -53,13 +52,6 @@ const navigationItems: NavItem[] = [
     icon: Bell,
     tier: 'FREE',
     testId: 'mobile-nav-alerts',
-  },
-  {
-    name: 'Watchlist',
-    href: '/watchlist',
-    icon: Eye,
-    tier: 'FREE',
-    testId: 'mobile-nav-watchlist',
   },
   {
     name: 'Analytics',
@@ -204,7 +196,7 @@ export function MobileNav({
             <div className="mx-3 mb-4 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
               <p className="text-sm font-semibold mb-1">Upgrade to PRO</p>
               <p className="text-xs opacity-90 mb-3">
-                Get 15 symbols, 9 timeframes, and 20 alerts
+                Get 100 alerts, line alerts & multi-timeframe view
               </p>
               <Link
                 href="/settings/billing"

@@ -82,6 +82,19 @@ export async function POST(
       );
     }
 
+    // V8: drawing-engine line alerts are PRO-exclusive.
+    if (((session.user.tier as Tier) || 'FREE') !== 'PRO') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Line alerts are a PRO feature',
+          message:
+            'Drawing-engine line alerts are exclusive to the PRO tier. Upgrade to attach alerts to your chart drawings.',
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const parsed = AlertAttachZ.safeParse(body);
     if (!parsed.success) {
@@ -151,9 +164,8 @@ export async function POST(
       );
     }
 
-    // Alert quota by tier.
-    const tier = (session.user.tier as Tier) || 'FREE';
-    const limit = getAlertLimit(tier);
+    // Alert quota (PRO: 100 — shared with price alerts).
+    const limit = getAlertLimit('PRO');
     const current = await prisma.alert.count({
       where: { userId: session.user.id },
     });
@@ -162,9 +174,7 @@ export async function POST(
         {
           success: false,
           error: 'Alert limit reached',
-          message: `${tier} tier allows ${limit} alerts.${
-            tier === 'FREE' ? ' Upgrade to PRO for more.' : ''
-          }`,
+          message: `PRO tier allows ${limit} alerts. Delete or pause existing alerts to create new ones.`,
         },
         { status: 403 }
       );

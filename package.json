@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "(rm -rf .next tsconfig.tsbuildinfo node_modules/.prisma || true) && prisma generate",
+    "prebuild": "rimraf .next tsconfig.tsbuildinfo node_modules/.prisma && prisma generate",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
     "start": "next start",
@@ -163,6 +163,7 @@
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.7.1",
     "prisma": "^6.19.2",
+    "rimraf": "^5.0.5",
     "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.2",

@@ -21,58 +21,38 @@ export const TIER_CONFIG = {
   FREE: {
     name: 'Free',
     price: 0,
-    symbolCount: 5,
-    indicatorCount: 2,
+    symbolCount: 1,
+    maxAlerts: 0, // Alerts are a PRO feature
     requestsPerHour: 60,
   },
   PRO: {
     name: 'Pro',
-    monthlyPrice: 29,
-    yearlyPrice: 290,
-    symbolCount: 15,
-    indicatorCount: 8,
+    monthlyPrice: Number(process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ?? '29'),
+    symbolCount: 1,
+    maxAlerts: 100,
     requestsPerHour: 300,
     trialDays: 7,
   },
 } as const;
 
 // ============================================================================
-// SYMBOLS
+// SYMBOLS (V8: XAUUSD only, both tiers)
 // ============================================================================
 
 /**
- * FREE tier symbols (5 total)
- * All users have access to these
+ * The single supported symbol — identical for both tiers
  */
-export const FREE_SYMBOLS = [
-  'XAUUSD', // Gold - Primary symbol
-  'BTCUSD', // Bitcoin
-  'EURUSD', // Euro/USD
-  'USDJPY', // USD/Yen
-  'US30', // Dow Jones
-] as const;
+export const FREE_SYMBOLS = ['XAUUSD'] as const;
 
 /**
- * PRO tier exclusive symbols (10 additional)
- * Only PRO tier users can access these
+ * @deprecated V8: no PRO-exclusive symbols. Always empty.
  */
-export const PRO_SYMBOLS = [
-  'AUDJPY', // Aussie/Yen
-  'AUDUSD', // Aussie/USD
-  'ETHUSD', // Ethereum
-  'GBPJPY', // Pound/Yen
-  'GBPUSD', // Pound/USD
-  'NDX100', // Nasdaq 100
-  'NZDUSD', // Kiwi/USD
-  'USDCAD', // USD/Canadian
-  'USDCHF', // USD/Swiss
-  'XAGUSD', // Silver
-] as const;
+export const PRO_SYMBOLS = [] as const;
 
 /**
- * All valid symbols (15 total)
+ * All valid symbols (1 total)
  */
-export const VALID_SYMBOLS = [...FREE_SYMBOLS, ...PRO_SYMBOLS] as const;
+export const VALID_SYMBOLS = ['XAUUSD'] as const;
 
 export type Symbol = (typeof VALID_SYMBOLS)[number];
 export type FreeSymbol = (typeof FREE_SYMBOLS)[number];
@@ -91,20 +71,11 @@ export const SYMBOLS_BY_TIER: Record<Tier, readonly string[]> = {
 // ============================================================================
 
 /**
- * Valid timeframes (9 total)
- *
- * IMPORTANT: M1 (1 minute) and W1 (1 week) are NOT supported
+ * Valid timeframes (V8: M5 and M15 only, both tiers)
  */
 export const VALID_TIMEFRAMES = [
   'M5', // 5 minutes
   'M15', // 15 minutes
-  'M30', // 30 minutes
-  'H1', // 1 hour
-  'H2', // 2 hours
-  'H4', // 4 hours
-  'H8', // 8 hours
-  'H12', // 12 hours
-  'D1', // 1 day
 ] as const;
 
 export type Timeframe = (typeof VALID_TIMEFRAMES)[number];
@@ -115,13 +86,6 @@ export type Timeframe = (typeof VALID_TIMEFRAMES)[number];
 export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
   M5: '5 Minutes',
   M15: '15 Minutes',
-  M30: '30 Minutes',
-  H1: '1 Hour',
-  H2: '2 Hours',
-  H4: '4 Hours',
-  H8: '8 Hours',
-  H12: '12 Hours',
-  D1: '1 Day',
 } as const;
 
 // ============================================================================
@@ -198,10 +162,11 @@ export const INDICATOR_INFO: Record<
 } as const;
 
 /**
- * Get accessible indicators for a tier
+ * Get accessible indicators for a tier.
+ * V8: identical for both tiers — no indicator gating.
  */
 export const INDICATORS_BY_TIER: Record<Tier, readonly Indicator[]> = {
-  FREE: BASIC_INDICATORS,
+  FREE: ALL_INDICATORS,
   PRO: ALL_INDICATORS,
 } as const;
 
@@ -239,13 +204,6 @@ export const RATE_LIMITS = {
 export const CACHE_TTL: Record<Timeframe, number> = {
   M5: 15, // 15 seconds - allows real-time updates
   M15: 15, // 15 seconds
-  M30: 15, // 15 seconds
-  H1: 15, // 15 seconds
-  H2: 15, // 15 seconds
-  H4: 15, // 15 seconds
-  H8: 15, // 15 seconds
-  H12: 15, // 15 seconds
-  D1: 15, // 15 seconds
 } as const;
 
 /**
@@ -324,25 +282,19 @@ export function isValidIndicator(indicator: string): indicator is Indicator {
 }
 
 /**
- * Check if a symbol is accessible for a tier
+ * Check if a symbol is accessible for a tier.
+ * V8: tier-independent — any valid symbol (XAUUSD) is accessible to all.
  */
-export function canAccessSymbol(symbol: string, tier: Tier): boolean {
-  const upperSymbol = symbol.toUpperCase();
-  if (!isValidSymbol(upperSymbol)) return false;
-
-  if (tier === 'PRO') return true;
-  return ([...FREE_SYMBOLS] as string[]).includes(upperSymbol);
+export function canAccessSymbol(symbol: string, _tier: Tier): boolean {
+  return isValidSymbol(symbol.toUpperCase());
 }
 
 /**
- * Check if an indicator is accessible for a tier
+ * Check if an indicator is accessible for a tier.
+ * V8: tier-independent — any valid indicator is accessible to all.
  */
-export function canAccessIndicator(indicator: string, tier: Tier): boolean {
-  const lowerIndicator = indicator.toLowerCase();
-  if (!isValidIndicator(lowerIndicator)) return false;
-
-  if (tier === 'PRO') return true;
-  return ([...BASIC_INDICATORS] as string[]).includes(lowerIndicator);
+export function canAccessIndicator(indicator: string, _tier: Tier): boolean {
+  return isValidIndicator(indicator.toLowerCase());
 }
 
 /**

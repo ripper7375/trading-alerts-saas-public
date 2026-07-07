@@ -98,7 +98,7 @@ const createMockPrismaClient = () => ({
     count: jest.fn(),
   },
 
-  // Alert & Watchlist models
+  // Alert model
   alert: {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
@@ -109,27 +109,6 @@ const createMockPrismaClient = () => ({
     deleteMany: jest.fn(),
     count: jest.fn(),
   },
-  watchlist: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    upsert: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  watchlistItem: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-
   // Notification model
   notification: {
     findUnique: jest.fn(),
@@ -525,7 +504,7 @@ describe('Prisma Client Singleton', () => {
     });
   });
 
-  describe('Alert & Watchlist Models', () => {
+  describe('Alert Model', () => {
     beforeEach(async () => {
       prismaModule = await import('@/lib/db/prisma');
     });
@@ -540,25 +519,6 @@ describe('Prisma Client Singleton', () => {
       expect(typeof prismaModule.prisma.alert.count).toBe('function');
     });
 
-    it('should have watchlist model with all methods', () => {
-      expect(prismaModule.prisma.watchlist).toBeDefined();
-      expect(typeof prismaModule.prisma.watchlist.findUnique).toBe('function');
-      expect(typeof prismaModule.prisma.watchlist.findMany).toBe('function');
-      expect(typeof prismaModule.prisma.watchlist.create).toBe('function');
-      expect(typeof prismaModule.prisma.watchlist.upsert).toBe('function');
-    });
-
-    it('should have watchlistItem model with all methods', () => {
-      expect(prismaModule.prisma.watchlistItem).toBeDefined();
-      expect(typeof prismaModule.prisma.watchlistItem.findMany).toBe(
-        'function'
-      );
-      expect(typeof prismaModule.prisma.watchlistItem.create).toBe('function');
-      expect(typeof prismaModule.prisma.watchlistItem.createMany).toBe(
-        'function'
-      );
-      expect(typeof prismaModule.prisma.watchlistItem.delete).toBe('function');
-    });
   });
 
   describe('Notification Model', () => {

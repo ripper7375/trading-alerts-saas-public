@@ -35,10 +35,20 @@ const config = {
     '^@/(.*)$': '<rootDir>/$1',
     '^lucide-react/dist/esm/icons/(.*)$':
       '<rootDir>/__mocks__/lucide-react-icon.js',
-    // Mock next-auth and related packages to prevent ESM parsing issues
+    // Mock next-auth and related packages to prevent ESM parsing issues.
+    // next-auth/react MUST map to its own file, separate from next-auth
+    // itself: jest.setup.js does a global jest.mock('next-auth', ...), and
+    // Jest's mock registry keys mocks by *resolved file path*. If both
+    // specifiers resolved to the same file, that global factory (which has
+    // no useSession) would shadow the next-auth/react mock everywhere.
+    '^next-auth/react$': '<rootDir>/__mocks__/next-auth-react.js',
     '^next-auth$': '<rootDir>/__mocks__/next-auth.js',
     '^next-auth/(.*)$': '<rootDir>/__mocks__/next-auth.js',
     '^@auth/prisma-adapter$': '<rootDir>/__mocks__/@auth/prisma-adapter.js',
+    // Mock lightweight-charts: it ships ESM-only (no "require" export
+    // condition), which Jest's CJS resolver can't load even though the
+    // package is correctly installed. See __mocks__/lightweight-charts.js.
+    '^lightweight-charts$': '<rootDir>/__mocks__/lightweight-charts.js',
   },
 
   // ============================================================================
@@ -49,6 +59,10 @@ const config = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/coverage/',
+    '<rootDir>/frontend/', // Stale pre-V8 snapshot (has own package.json, no independent jest config); excluded from tsconfig.json for the same reason
+    '<rootDir>/railway-gateway/', // Separate NestJS project (has own tsconfig.json + package.json)
+    '<rootDir>/frontend-and-backend-python-stack/', // Prototype sub-projects (davintrade-prototype has own tsconfig.json + package.json)
+    '<rootDir>/seed-code/', // Seed/template code
   ],
 
   // ============================================================================

@@ -12,14 +12,14 @@
 **File 1/8:** ✅ `prisma/schema.prisma`
 
 - **Status:** Complete
-- **Description:** Complete Prisma schema with 30+ models, 60-column MarketData schema
-- **Models:** User, Subscription, Alert, Watchlist, MarketData, Affiliate, Disbursement, etc.
+- **Description:** Complete Prisma schema with 30+ models, including MarketDataV6 schema
+- **Models:** User, Subscription, Alert, Watchlist, MarketDataV6, Affiliate, Disbursement, etc.
 - **Features:**
   - 15 enums (UserTier, SubscriptionStatus, etc.)
   - 30+ database models
   - Complete indexes and relationships
   - Support for Stripe and dLocal payments
-  - 60-column market data schema (8 system + 16 FREE + 36 PRO indicators)
+  - MarketDataV6 downstream store (79-field centroid-regression/EDT-channel/ZigZag schema)
   - Affiliate marketing system
   - RiseWorks disbursement integration
   - Security and fraud detection models
@@ -52,21 +52,41 @@
 - **Description:** Prisma seed script entry point
 - **Uses:** Functions from `lib/db/seed.ts`
 
-**File 5/8:** ✅ `prisma/migrations/20251227000000_init/migration.sql`
+**File 5/12:** ✅ `prisma/migrations/20251227000000_init/migration.sql`
 
 - **Status:** Complete
 - **Description:** Initial database migration
 - **Contents:** SQL schema creation statements for all models
 
+**File 6/12:** ✅ `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
+
+- **Status:** Complete
+- **Description:** RAG dual memory database migration
+
+**File 7/12:** ✅ `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`
+
+- **Status:** Complete
+- **Description:** Update KC HA body columns migration
+
+**File 8/12:** ✅ `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`
+
+- **Status:** Complete
+- **Description:** Migration adding MarketDataV6 table
+
+**File 9/12:** ✅ `prisma/migrations/20260705010000_drop_market_data/migration.sql`
+
+- **Status:** Complete
+- **Description:** Migration dropping the old MarketData table
+
 ### Test Files
 
-**File 6/8:** ✅ `__tests__/lib/db/prisma.test.ts`
+**File 10/12:** ✅ `__tests__/lib/db/prisma.test.ts`
 
 - **Status:** Complete
 - **Description:** Prisma client singleton tests
 - **Coverage:** Client instantiation, development mode logging
 
-**File 7/8:** ✅ `__tests__/lib/db/seed.test.ts`
+**File 11/12:** ✅ `__tests__/lib/db/seed.test.ts`
 
 - **Status:** Complete
 - **Description:** Comprehensive seed function tests
@@ -79,7 +99,7 @@
 
 ### Documentation
 
-**File 8/8:** ✅ `docs/open-api-documents/part-02-database-schema-openapi.yaml`
+**File 12/12:** ✅ `docs/open-api-documents/part-02-database-schema-openapi.yaml`
 
 - **Status:** ✅ **NEW** - Created 2026-01-24
 - **Description:** Complete OpenAPI 3.0 specification for database schema
@@ -89,15 +109,15 @@
   - Relationship documentation
   - Index specifications
   - Tier access rules (FREE vs PRO)
-  - 60-column MarketData schema detailed
+  - 79-column MarketDataV6 schema detailed
   - Security, affiliate, and disbursement models
 
 ---
 
 ## 📊 Status Summary
 
-- **Total Files:** 8/8 (100%)
-- **Core Database:** 5/5 files ✅
+- **Total Files:** 12/12 (100%)
+- **Core Database:** 9/9 files ✅
 - **Tests:** 2/2 files ✅
 - **Documentation:** 1/1 files ✅
 
@@ -135,10 +155,13 @@
 
 ### Market Data (1 model)
 
-1. **MarketData** - 60-column schema for FREE and PRO tier indicators
-   - 8 system columns (OHLCV + metadata)
-   - 16 FREE tier columns (fractal_diagonal, fractal_horizontal)
-   - 36 PRO tier columns (8 indicator groups)
+1. **MarketDataV6** - 79-column schema downstream store for XAUUSD Railway Gateway pipeline
+   - 10 system columns (OHLCV + metadata)
+   - 32 centroid-regression columns (best_fit, cherry_a, cherry_b, most_recent, non_a, non_b)
+   - 5 fractal EDT columns
+   - 3 Z-Score candle columns
+   - 11 ZigZag columns
+   - 3 provenance columns
 
 ### Affiliate Marketing (3 models)
 
@@ -169,24 +192,18 @@
 - **ORM:** Prisma 5.x
 - **Migration Strategy:** Prisma Migrate
 
-### MarketData Schema Details
+### MarketDataV6 Schema Details
 
-- **Total Columns:** 60
-- **FREE Tier Access:** 24 columns (8 system + 16 FREE indicators)
-- **PRO Tier Access:** 60 columns (8 system + 16 FREE + 36 PRO indicators)
+- **Total Columns:** 79
+- **Purpose:** Downstream store for Railway Gateway pipeline (supersedes old MarketData model).
 
 **Indicator Groups:**
 
-1. fractal_diagonal (8 columns) - FREE
-2. fractal_horizontal (8 columns) - FREE
-3. moving_averages (3 columns) - PRO
-4. body_momentum (2 columns) - PRO
-5. heiken_ashi (7 columns) - PRO
-6. keltner_channels (10 columns) - PRO
-7. support_resistance (8 columns) - PRO
-8. zigzag (3 columns) - PRO
-9. dual_tema_hl (2 columns) - PRO *(NEW — EA v2.26+)*
-10. pinbar_detection (1 column) - PRO *(NEW — EA v2.26+)*
+1. Centroid-regression variants (32 columns) - best_fit, cherry_a, cherry_b, most_recent, non_a, non_b
+2. Fractal EDT + single best lines (5 columns)
+3. Z-Score candle (3 columns)
+4. ZigZag (11 columns)
+5. Provenance (3 columns)
 
 ---
 

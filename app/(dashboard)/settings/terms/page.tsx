@@ -68,7 +68,7 @@ export default function TermsPage(): React.ReactElement {
           <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-2 ml-4">
             <li>Real-time price charts with fractal analysis</li>
             <li>Custom price alert notifications</li>
-            <li>Watchlist management for trading symbols</li>
+            <li>Multi-timeframe visualization and drawing tools (PRO)</li>
             <li>API access for programmatic trading signals</li>
           </ul>
         </div>

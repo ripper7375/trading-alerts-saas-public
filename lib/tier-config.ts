@@ -1,7 +1,13 @@
 /**
  * Trading Alerts SaaS - Tier Configuration
- * Centralized constants for tier system
- * Based on 00-tier-specifications.md requirements
+ * Centralized constants for tier system — SINGLE SOURCE OF TRUTH.
+ *
+ * V8 single-symbol architecture:
+ * - One symbol (XAUUSD) and two timeframes (M5, M15) for BOTH tiers.
+ * - Both tiers have full access to all market_data_v6 columns.
+ * - Watchlists removed from the product entirely.
+ * - Tier differentiation: Alerts (FREE 0 / PRO 100), notifications,
+ *   multi-timeframe visualization, and drawing-engine line alerts (PRO only).
  */
 
 export type Tier = 'FREE' | 'PRO';
@@ -13,48 +19,63 @@ export interface TierConfig {
   timeframes: number;
   chartCombinations: number;
   maxAlerts: number;
-  maxWatchlistItems: number;
   rateLimit: number; // requests per hour
 }
 
 /**
+ * PRO monthly price (USD).
+ * Configurable via env so the marketed price can be changed without a deploy.
+ * NEXT_PUBLIC_ so both server and client bundles agree on the displayed price.
+ * The authoritative billing amount remains the Stripe/dLocal Price ID.
+ */
+export const PRO_MONTHLY_PRICE: number = Number(
+  process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ?? '29'
+);
+
+/**
+ * The single supported symbol (V8 architecture)
+ */
+export const SYMBOLS = ['XAUUSD'] as const;
+
+/**
+ * The two supported timeframes (V8 architecture)
+ */
+export const TIMEFRAMES = ['M5', 'M15'] as const;
+
+/**
  * FREE Tier Configuration
- * - 5 symbols: BTCUSD, EURUSD, USDJPY, US30, XAUUSD
- * - 3 timeframes: H1, H4, D1
- * - 15 chart combinations (5 × 3)
- * - 5 alerts, 5 watchlist items
+ * - XAUUSD only, M5 + M15
+ * - Full market data column access (all 79 market_data_v6 columns)
+ * - 0 alerts (Alerts are a PRO feature)
  * - 60 requests/hour
  * - $0/month
  */
 export const FREE_TIER_CONFIG: TierConfig = {
   name: 'FREE',
   price: 0,
-  symbols: 5,
-  timeframes: 3,
-  chartCombinations: 15,
-  maxAlerts: 5,
-  maxWatchlistItems: 5,
+  symbols: 1,
+  timeframes: 2,
+  chartCombinations: 2,
+  maxAlerts: 0,
   rateLimit: 60,
 };
 
 /**
  * PRO Tier Configuration
- * - 15 symbols: AUDJPY, AUDUSD, BTCUSD, ETHUSD, EURUSD, GBPJPY, GBPUSD, NDX100, NZDUSD, US30, USDCAD, USDCHF, USDJPY, XAGUSD, XAUUSD
- * - 9 timeframes: M5, M15, M30, H1, H2, H4, H8, H12, D1
- * - 135 chart combinations (15 × 9)
- * - 20 alerts, 50 watchlist items
+ * - XAUUSD only, M5 + M15 (same data access as FREE)
+ * - 100 alerts
+ * - Multi-timeframe visualization + drawing-engine line alerts
  * - 300 requests/hour
- * - $29/month
+ * - Configurable price/month (env NEXT_PUBLIC_PRO_PRICE_MONTHLY, default $29)
  * - 7-day free trial with full PRO access
  */
 export const PRO_TIER_CONFIG: TierConfig = {
   name: 'PRO',
-  price: 29,
-  symbols: 15,
-  timeframes: 9,
-  chartCombinations: 135,
-  maxAlerts: 20,
-  maxWatchlistItems: 50,
+  price: PRO_MONTHLY_PRICE,
+  symbols: 1,
+  timeframes: 2,
+  chartCombinations: 2,
+  maxAlerts: 100,
   rateLimit: 300,
 };
 
@@ -66,74 +87,22 @@ export const TIER_CONFIGS: Record<Tier, TierConfig> = {
   PRO: PRO_TIER_CONFIG,
 };
 
-/**
- * FREE Tier Symbols (5 total)
- * Only these symbols can be accessed by FREE tier users
- */
-export const FREE_SYMBOLS = [
-  'BTCUSD', // Crypto - Bitcoin
-  'EURUSD', // Forex Major - Euro/Dollar
-  'USDJPY', // Forex Major - Dollar/Yen
-  'US30', // Index - Dow Jones Industrial Average
-  'XAUUSD', // Commodities - Gold
-] as const;
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SYMBOL / TIMEFRAME ALIASES
+// Both tiers share identical symbol/timeframe access in V8.
+// The FREE_*/PRO_* names are kept so existing imports keep working;
+// they all point at the same canonical lists.
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/**
- * PRO Tier Exclusive Symbols (10 additional symbols)
- * These symbols are only available to PRO tier users
- * Combined with FREE_SYMBOLS makes 15 total PRO symbols
- */
-export const PRO_EXCLUSIVE_SYMBOLS = [
-  'AUDJPY', // Forex Cross - Australian Dollar/Japanese Yen
-  'AUDUSD', // Forex Major - Australian Dollar/US Dollar
-  'ETHUSD', // Crypto - Ethereum
-  'GBPJPY', // Forex Cross - British Pound/Japanese Yen
-  'GBPUSD', // Forex Major - British Pound/Dollar
-  'NDX100', // Index - Nasdaq 100
-  'NZDUSD', // Forex Major - New Zealand Dollar/US Dollar
-  'USDCAD', // Forex Major - US Dollar/Canadian Dollar
-  'USDCHF', // Forex Major - US Dollar/Swiss Franc
-  'XAGUSD', // Commodities - Silver
-] as const;
+export const FREE_SYMBOLS = SYMBOLS;
+export const PRO_SYMBOLS = SYMBOLS;
+/** @deprecated No PRO-exclusive symbols in V8. Always empty. */
+export const PRO_EXCLUSIVE_SYMBOLS = [] as const;
 
-/**
- * All PRO Tier Symbols (15 total)
- * Combines FREE_SYMBOLS + PRO_EXCLUSIVE_SYMBOLS
- */
-export const PRO_SYMBOLS = [...FREE_SYMBOLS, ...PRO_EXCLUSIVE_SYMBOLS] as const;
-
-/**
- * FREE Tier Timeframes (3 total)
- * Only these timeframes can be accessed by FREE tier users
- */
-export const FREE_TIMEFRAMES = [
-  'H1', // 1 Hour
-  'H4', // 4 Hours
-  'D1', // Daily
-] as const;
-
-/**
- * PRO Tier Exclusive Timeframes (6 additional timeframes)
- * These timeframes are only available to PRO tier users
- * Combined with FREE_TIMEFRAMES makes 9 total PRO timeframes
- */
-export const PRO_EXCLUSIVE_TIMEFRAMES = [
-  'M5', // 5 Minutes (scalping)
-  'M15', // 15 Minutes
-  'M30', // 30 Minutes
-  'H2', // 2 Hours
-  'H8', // 8 Hours
-  'H12', // 12 Hours (swing trading)
-] as const;
-
-/**
- * All PRO Tier Timeframes (9 total)
- * Combines FREE_TIMEFRAMES + PRO_EXCLUSIVE_TIMEFRAMES
- */
-export const PRO_TIMEFRAMES = [
-  ...FREE_TIMEFRAMES,
-  ...PRO_EXCLUSIVE_TIMEFRAMES,
-] as const;
+export const FREE_TIMEFRAMES = TIMEFRAMES;
+export const PRO_TIMEFRAMES = TIMEFRAMES;
+/** @deprecated No PRO-exclusive timeframes in V8. Always empty. */
+export const PRO_EXCLUSIVE_TIMEFRAMES = [] as const;
 
 /**
  * Trial Period Configuration
@@ -146,9 +115,6 @@ export const TRIAL_CONFIG = {
 
 /**
  * Get tier configuration by tier name
- * @param tier - Tier name ('FREE' or 'PRO')
- * @returns Tier configuration object
- * @throws Error if tier is invalid
  */
 export function getTierConfig(tier: Tier): TierConfig {
   const config = TIER_CONFIGS[tier];
@@ -161,72 +127,40 @@ export function getTierConfig(tier: Tier): TierConfig {
 }
 
 /**
- * Get all symbols accessible by a tier
- * @param tier - Tier name
- * @returns Array of accessible symbols
- * @throws Error if tier is invalid
+ * Get all symbols accessible by a tier.
+ * V8: identical for both tiers (XAUUSD only).
  */
-export function getAccessibleSymbols(tier: Tier): readonly string[] {
-  if (tier === 'FREE') {
-    return FREE_SYMBOLS;
-  }
-  if (tier === 'PRO') {
-    return PRO_SYMBOLS;
-  }
-  throw new Error(`Invalid tier: ${tier}`);
+export function getAccessibleSymbols(_tier: Tier): readonly string[] {
+  return SYMBOLS;
 }
 
 /**
- * Get all timeframes accessible by a tier
- * @param tier - Tier name
- * @returns Array of accessible timeframes
- * @throws Error if tier is invalid
+ * Get all timeframes accessible by a tier.
+ * V8: identical for both tiers (M5, M15).
  */
-export function getAccessibleTimeframes(tier: Tier): readonly string[] {
-  if (tier === 'FREE') {
-    return FREE_TIMEFRAMES;
-  }
-  if (tier === 'PRO') {
-    return PRO_TIMEFRAMES;
-  }
-  throw new Error(`Invalid tier: ${tier}`);
+export function getAccessibleTimeframes(_tier: Tier): readonly string[] {
+  return TIMEFRAMES;
 }
 
 /**
- * Get chart combination count for a tier
- * @param tier - Tier name
- * @returns Number of possible symbol × timeframe combinations
- * @throws Error if tier is invalid
+ * Get chart combination count for a tier (V8: always 2 — XAUUSD × M5/M15)
  */
 export function getChartCombinations(tier: Tier): number {
-  const config = getTierConfig(tier);
-  return config.chartCombinations;
+  return getTierConfig(tier).chartCombinations;
 }
 
 /**
- * Check if a tier can access a specific symbol
- * @param symbol - Symbol to check (case insensitive)
- * @param tier - User's tier
- * @returns true if the tier can access the symbol
+ * Check if a tier can access a specific symbol.
+ * V8: tier-independent — XAUUSD only.
  */
-export function canAccessSymbol(symbol: string, tier: Tier): boolean {
-  const upperSymbol = symbol.toUpperCase();
-  if (tier === 'PRO') {
-    return (PRO_SYMBOLS as readonly string[]).includes(upperSymbol);
-  }
-  return (FREE_SYMBOLS as readonly string[]).includes(upperSymbol);
+export function canAccessSymbol(symbol: string, _tier: Tier): boolean {
+  return (SYMBOLS as readonly string[]).includes(symbol.toUpperCase());
 }
 
 /**
- * Check if a tier can access a specific timeframe
- * @param timeframe - Timeframe to check (case insensitive)
- * @param tier - User's tier
- * @returns true if the tier can access the timeframe
+ * Check if a tier can access a specific timeframe.
+ * V8: tier-independent — M5 and M15 only.
  */
-export function canAccessTimeframe(timeframe: string, tier: Tier): boolean {
-  const upperTF = timeframe.toUpperCase();
-  if (tier === 'PRO') {
-    return (PRO_TIMEFRAMES as readonly string[]).includes(upperTF);
-  }
-  return (FREE_TIMEFRAMES as readonly string[]).includes(upperTF);
+export function canAccessTimeframe(timeframe: string, _tier: Tier): boolean {
+  return (TIMEFRAMES as readonly string[]).includes(timeframe.toUpperCase());
 }

@@ -100,7 +100,7 @@ describe('Tier API Routes', () => {
       expect(data.error).toBe('Unauthorized');
     });
 
-    it('should return FREE tier symbols for FREE user', async () => {
+    it('should return XAUUSD for FREE user (V8: identical for both tiers)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'FREE' },
         expires: '2025-12-31',
@@ -112,14 +112,11 @@ describe('Tier API Routes', () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.tier).toBe('FREE');
-      expect(data.count).toBe(5);
-      expect(data.symbols).toContain('XAUUSD');
-      expect(data.symbols).toContain('BTCUSD');
-      expect(data.symbols).toContain('EURUSD');
-      expect(data.symbols).not.toContain('GBPUSD'); // PRO only
+      expect(data.count).toBe(1);
+      expect(data.symbols).toEqual(['XAUUSD']);
     });
 
-    it('should return PRO tier symbols for PRO user', async () => {
+    it('should return XAUUSD for PRO user (V8: identical for both tiers)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'PRO' },
         expires: '2025-12-31',
@@ -131,10 +128,8 @@ describe('Tier API Routes', () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.tier).toBe('PRO');
-      expect(data.count).toBe(15);
-      expect(data.symbols).toContain('GBPUSD');
-      expect(data.symbols).toContain('ETHUSD');
-      expect(data.symbols).toContain('NDX100');
+      expect(data.count).toBe(1);
+      expect(data.symbols).toEqual(['XAUUSD']);
     });
 
     it('should default to FREE tier when tier not specified', async () => {
@@ -148,7 +143,7 @@ describe('Tier API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.tier).toBe('FREE');
-      expect(data.count).toBe(5);
+      expect(data.count).toBe(1);
     });
 
     it('should include symbol metadata', async () => {
@@ -161,7 +156,7 @@ describe('Tier API Routes', () => {
       const data = await response.json();
 
       expect(data.symbolsInfo).toBeDefined();
-      expect(data.symbolsInfo.length).toBe(5);
+      expect(data.symbolsInfo.length).toBe(1);
 
       // Check symbol info structure
       const goldSymbol = data.symbolsInfo.find(
@@ -173,7 +168,7 @@ describe('Tier API Routes', () => {
       expect(goldSymbol.proOnly).toBe(false);
     });
 
-    it('should show totalAvailable count', async () => {
+    it('should show totalAvailable count (V8: 1)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'FREE' },
         expires: '2025-12-31',
@@ -182,7 +177,7 @@ describe('Tier API Routes', () => {
       const response = await getSymbols();
       const data = await response.json();
 
-      expect(data.totalAvailable).toBe(15); // Total PRO symbols
+      expect(data.totalAvailable).toBe(1);
     });
   });
 
@@ -198,7 +193,7 @@ describe('Tier API Routes', () => {
       expect(data.error).toBe('Unauthorized');
     });
 
-    it('should return FREE tier combinations for FREE user', async () => {
+    it('should return the 2 combinations for FREE user (V8)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'FREE' },
         expires: '2025-12-31',
@@ -210,11 +205,14 @@ describe('Tier API Routes', () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.tier).toBe('FREE');
-      expect(data.count).toBe(15); // 5 symbols × 3 timeframes
-      expect(data.combinations).toHaveLength(15);
+      expect(data.count).toBe(2); // XAUUSD x M5/M15
+      expect(data.combinations).toEqual([
+        { symbol: 'XAUUSD', timeframe: 'M5' },
+        { symbol: 'XAUUSD', timeframe: 'M15' },
+      ]);
     });
 
-    it('should return PRO tier combinations for PRO user', async () => {
+    it('should return the same 2 combinations for PRO user (V8)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'PRO' },
         expires: '2025-12-31',
@@ -226,8 +224,8 @@ describe('Tier API Routes', () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(data.tier).toBe('PRO');
-      expect(data.count).toBe(135); // 15 symbols × 9 timeframes
-      expect(data.combinations).toHaveLength(135);
+      expect(data.count).toBe(2);
+      expect(data.combinations).toHaveLength(2);
     });
 
     it('should return correct combination structure', async () => {
@@ -245,7 +243,7 @@ describe('Tier API Routes', () => {
       expect(firstCombination).toHaveProperty('timeframe');
     });
 
-    it('should include limits in response', async () => {
+    it('should include limits in response (V8)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'FREE' },
         expires: '2025-12-31',
@@ -255,30 +253,14 @@ describe('Tier API Routes', () => {
       const data = await response.json();
 
       expect(data.limits).toBeDefined();
-      expect(data.limits.symbolCount).toBe(5);
-      expect(data.limits.timeframeCount).toBe(3);
-      expect(data.limits.totalCombinations).toBe(15);
+      expect(data.limits.symbolCount).toBe(1);
+      expect(data.limits.timeframeCount).toBe(2);
+      expect(data.limits.totalCombinations).toBe(2);
     });
 
-    it('should include upgrade info for FREE users', async () => {
+    it('should NOT include upgrade info (V8: chart access is not gated)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'FREE' },
-        expires: '2025-12-31',
-      });
-
-      const response = await getCombinations();
-      const data = await response.json();
-
-      expect(data.upgrade).toBeDefined();
-      expect(data.upgrade.additionalSymbols).toBe(10); // 15 - 5
-      expect(data.upgrade.additionalTimeframes).toBe(6); // 9 - 3
-      expect(data.upgrade.additionalCombinations).toBe(120); // 135 - 15
-      expect(data.upgrade.message).toContain('Upgrade to PRO');
-    });
-
-    it('should not include upgrade info for PRO users', async () => {
-      mockGetServerSession.mockResolvedValue({
-        user: { id: 'user-123', tier: 'PRO' },
         expires: '2025-12-31',
       });
 
@@ -288,7 +270,7 @@ describe('Tier API Routes', () => {
       expect(data.upgrade).toBeUndefined();
     });
 
-    it('should include timeframe metadata', async () => {
+    it('should include timeframe metadata (V8: M5/M15)', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123', tier: 'FREE' },
         expires: '2025-12-31',
@@ -298,14 +280,14 @@ describe('Tier API Routes', () => {
       const data = await response.json();
 
       expect(data.timeframes).toBeDefined();
-      expect(data.timeframes).toHaveLength(3); // FREE has 3 timeframes
+      expect(data.timeframes).toHaveLength(2);
 
-      const h1 = data.timeframes.find(
-        (tf: { value: string }) => tf.value === 'H1'
+      const m5 = data.timeframes.find(
+        (tf: { value: string }) => tf.value === 'M5'
       );
-      expect(h1).toBeDefined();
-      expect(h1.label).toBe('1 Hour');
-      expect(h1.proOnly).toBe(false);
+      expect(m5).toBeDefined();
+      expect(m5.label).toBe('5 Minutes');
+      expect(m5.proOnly).toBe(false);
     });
   });
 });

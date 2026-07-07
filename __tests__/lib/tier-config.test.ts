@@ -1,6 +1,9 @@
 /**
- * Unit Tests: Tier Configuration
+ * Unit Tests: Tier Configuration (V8 single-symbol architecture)
  * Tests tier constants and configuration functions in lib/tier-config.ts
+ *
+ * V8: XAUUSD only, M5/M15 only, identical data access for both tiers.
+ * Tier differentiation: alerts (FREE 0 / PRO 100) and rate limits.
  */
 
 import { describe, it, expect } from '@jest/globals';
@@ -9,22 +12,25 @@ import {
   FREE_TIER_CONFIG,
   PRO_TIER_CONFIG,
   TIER_CONFIGS,
+  SYMBOLS,
+  TIMEFRAMES,
   FREE_SYMBOLS,
-  PRO_EXCLUSIVE_SYMBOLS,
   PRO_SYMBOLS,
+  PRO_EXCLUSIVE_SYMBOLS,
   FREE_TIMEFRAMES,
-  PRO_EXCLUSIVE_TIMEFRAMES,
   PRO_TIMEFRAMES,
+  PRO_EXCLUSIVE_TIMEFRAMES,
   TRIAL_CONFIG,
   getTierConfig,
   getAccessibleSymbols,
   getAccessibleTimeframes,
   getChartCombinations,
+  canAccessSymbol,
+  canAccessTimeframe,
   type Tier,
-  type TierConfig,
 } from '@/lib/tier-config';
 
-describe('Tier Configuration Constants', () => {
+describe('Tier Configuration Constants (V8)', () => {
   describe('FREE_TIER_CONFIG', () => {
     it('should have correct name', () => {
       expect(FREE_TIER_CONFIG.name).toBe('FREE');
@@ -34,24 +40,20 @@ describe('Tier Configuration Constants', () => {
       expect(FREE_TIER_CONFIG.price).toBe(0);
     });
 
-    it('should have 5 symbols', () => {
-      expect(FREE_TIER_CONFIG.symbols).toBe(5);
+    it('should have 1 symbol', () => {
+      expect(FREE_TIER_CONFIG.symbols).toBe(1);
     });
 
-    it('should have 3 timeframes', () => {
-      expect(FREE_TIER_CONFIG.timeframes).toBe(3);
+    it('should have 2 timeframes', () => {
+      expect(FREE_TIER_CONFIG.timeframes).toBe(2);
     });
 
-    it('should have 15 chart combinations (5 × 3)', () => {
-      expect(FREE_TIER_CONFIG.chartCombinations).toBe(15);
+    it('should have 2 chart combinations (1 × 2)', () => {
+      expect(FREE_TIER_CONFIG.chartCombinations).toBe(2);
     });
 
-    it('should have 5 max alerts', () => {
-      expect(FREE_TIER_CONFIG.maxAlerts).toBe(5);
-    });
-
-    it('should have 5 max watchlist items', () => {
-      expect(FREE_TIER_CONFIG.maxWatchlistItems).toBe(5);
+    it('should have 0 max alerts (alerts are a PRO feature)', () => {
+      expect(FREE_TIER_CONFIG.maxAlerts).toBe(0);
     });
 
     it('should have 60 requests/hour rate limit', () => {
@@ -64,28 +66,24 @@ describe('Tier Configuration Constants', () => {
       expect(PRO_TIER_CONFIG.name).toBe('PRO');
     });
 
-    it('should have $29 price', () => {
-      expect(PRO_TIER_CONFIG.price).toBe(29);
+    it('should have a configurable positive price (default $29)', () => {
+      expect(PRO_TIER_CONFIG.price).toBeGreaterThan(0);
     });
 
-    it('should have 15 symbols', () => {
-      expect(PRO_TIER_CONFIG.symbols).toBe(15);
+    it('should have 1 symbol (same as FREE)', () => {
+      expect(PRO_TIER_CONFIG.symbols).toBe(1);
     });
 
-    it('should have 9 timeframes', () => {
-      expect(PRO_TIER_CONFIG.timeframes).toBe(9);
+    it('should have 2 timeframes (same as FREE)', () => {
+      expect(PRO_TIER_CONFIG.timeframes).toBe(2);
     });
 
-    it('should have 135 chart combinations (15 × 9)', () => {
-      expect(PRO_TIER_CONFIG.chartCombinations).toBe(135);
+    it('should have 2 chart combinations (1 × 2)', () => {
+      expect(PRO_TIER_CONFIG.chartCombinations).toBe(2);
     });
 
-    it('should have 20 max alerts', () => {
-      expect(PRO_TIER_CONFIG.maxAlerts).toBe(20);
-    });
-
-    it('should have 50 max watchlist items', () => {
-      expect(PRO_TIER_CONFIG.maxWatchlistItems).toBe(50);
+    it('should have 100 max alerts', () => {
+      expect(PRO_TIER_CONFIG.maxAlerts).toBe(100);
     });
 
     it('should have 300 requests/hour rate limit', () => {
@@ -108,155 +106,33 @@ describe('Tier Configuration Constants', () => {
   });
 });
 
-describe('Symbol Constants', () => {
-  describe('FREE_SYMBOLS', () => {
-    it('should contain exactly 5 symbols', () => {
-      expect(FREE_SYMBOLS).toHaveLength(5);
-    });
-
-    it('should contain BTCUSD (crypto)', () => {
-      expect(FREE_SYMBOLS).toContain('BTCUSD');
-    });
-
-    it('should contain EURUSD (forex major)', () => {
-      expect(FREE_SYMBOLS).toContain('EURUSD');
-    });
-
-    it('should contain USDJPY (forex major)', () => {
-      expect(FREE_SYMBOLS).toContain('USDJPY');
-    });
-
-    it('should contain US30 (index)', () => {
-      expect(FREE_SYMBOLS).toContain('US30');
-    });
-
-    it('should contain XAUUSD (gold)', () => {
-      expect(FREE_SYMBOLS).toContain('XAUUSD');
-    });
+describe('Symbol Constants (V8: XAUUSD only)', () => {
+  it('SYMBOLS should contain exactly XAUUSD', () => {
+    expect([...SYMBOLS]).toEqual(['XAUUSD']);
   });
 
-  describe('PRO_EXCLUSIVE_SYMBOLS', () => {
-    it('should contain exactly 10 symbols', () => {
-      expect(PRO_EXCLUSIVE_SYMBOLS).toHaveLength(10);
-    });
-
-    it('should contain AUDJPY (forex cross)', () => {
-      expect(PRO_EXCLUSIVE_SYMBOLS).toContain('AUDJPY');
-    });
-
-    it('should contain ETHUSD (crypto)', () => {
-      expect(PRO_EXCLUSIVE_SYMBOLS).toContain('ETHUSD');
-    });
-
-    it('should contain GBPUSD (forex major)', () => {
-      expect(PRO_EXCLUSIVE_SYMBOLS).toContain('GBPUSD');
-    });
-
-    it('should contain NDX100 (index)', () => {
-      expect(PRO_EXCLUSIVE_SYMBOLS).toContain('NDX100');
-    });
-
-    it('should contain XAGUSD (silver)', () => {
-      expect(PRO_EXCLUSIVE_SYMBOLS).toContain('XAGUSD');
-    });
-
-    it('should not overlap with FREE_SYMBOLS', () => {
-      PRO_EXCLUSIVE_SYMBOLS.forEach((symbol) => {
-        expect(FREE_SYMBOLS).not.toContain(symbol);
-      });
-    });
+  it('FREE_SYMBOLS and PRO_SYMBOLS should be identical (aliases of SYMBOLS)', () => {
+    expect([...FREE_SYMBOLS]).toEqual([...SYMBOLS]);
+    expect([...PRO_SYMBOLS]).toEqual([...SYMBOLS]);
   });
 
-  describe('PRO_SYMBOLS', () => {
-    it('should contain exactly 15 symbols', () => {
-      expect(PRO_SYMBOLS).toHaveLength(15);
-    });
-
-    it('should include all FREE_SYMBOLS', () => {
-      FREE_SYMBOLS.forEach((symbol) => {
-        expect(PRO_SYMBOLS).toContain(symbol);
-      });
-    });
-
-    it('should include all PRO_EXCLUSIVE_SYMBOLS', () => {
-      PRO_EXCLUSIVE_SYMBOLS.forEach((symbol) => {
-        expect(PRO_SYMBOLS).toContain(symbol);
-      });
-    });
+  it('PRO_EXCLUSIVE_SYMBOLS should be empty (no symbol gating)', () => {
+    expect(PRO_EXCLUSIVE_SYMBOLS).toHaveLength(0);
   });
 });
 
-describe('Timeframe Constants', () => {
-  describe('FREE_TIMEFRAMES', () => {
-    it('should contain exactly 3 timeframes', () => {
-      expect(FREE_TIMEFRAMES).toHaveLength(3);
-    });
-
-    it('should contain H1 (1 hour)', () => {
-      expect(FREE_TIMEFRAMES).toContain('H1');
-    });
-
-    it('should contain H4 (4 hours)', () => {
-      expect(FREE_TIMEFRAMES).toContain('H4');
-    });
-
-    it('should contain D1 (daily)', () => {
-      expect(FREE_TIMEFRAMES).toContain('D1');
-    });
+describe('Timeframe Constants (V8: M5 and M15 only)', () => {
+  it('TIMEFRAMES should contain exactly M5 and M15', () => {
+    expect([...TIMEFRAMES]).toEqual(['M5', 'M15']);
   });
 
-  describe('PRO_EXCLUSIVE_TIMEFRAMES', () => {
-    it('should contain exactly 6 timeframes', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toHaveLength(6);
-    });
-
-    it('should contain M5 (5 minutes)', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toContain('M5');
-    });
-
-    it('should contain M15 (15 minutes)', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toContain('M15');
-    });
-
-    it('should contain M30 (30 minutes)', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toContain('M30');
-    });
-
-    it('should contain H2 (2 hours)', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toContain('H2');
-    });
-
-    it('should contain H8 (8 hours)', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toContain('H8');
-    });
-
-    it('should contain H12 (12 hours)', () => {
-      expect(PRO_EXCLUSIVE_TIMEFRAMES).toContain('H12');
-    });
-
-    it('should not overlap with FREE_TIMEFRAMES', () => {
-      PRO_EXCLUSIVE_TIMEFRAMES.forEach((tf) => {
-        expect(FREE_TIMEFRAMES).not.toContain(tf);
-      });
-    });
+  it('FREE_TIMEFRAMES and PRO_TIMEFRAMES should be identical (aliases)', () => {
+    expect([...FREE_TIMEFRAMES]).toEqual([...TIMEFRAMES]);
+    expect([...PRO_TIMEFRAMES]).toEqual([...TIMEFRAMES]);
   });
 
-  describe('PRO_TIMEFRAMES', () => {
-    it('should contain exactly 9 timeframes', () => {
-      expect(PRO_TIMEFRAMES).toHaveLength(9);
-    });
-
-    it('should include all FREE_TIMEFRAMES', () => {
-      FREE_TIMEFRAMES.forEach((tf) => {
-        expect(PRO_TIMEFRAMES).toContain(tf);
-      });
-    });
-
-    it('should include all PRO_EXCLUSIVE_TIMEFRAMES', () => {
-      PRO_EXCLUSIVE_TIMEFRAMES.forEach((tf) => {
-        expect(PRO_TIMEFRAMES).toContain(tf);
-      });
-    });
+  it('PRO_EXCLUSIVE_TIMEFRAMES should be empty (no timeframe gating)', () => {
+    expect(PRO_EXCLUSIVE_TIMEFRAMES).toHaveLength(0);
   });
 });
 
@@ -276,13 +152,11 @@ describe('TRIAL_CONFIG', () => {
 
 describe('getTierConfig', () => {
   it('should return FREE_TIER_CONFIG for FREE tier', () => {
-    const config = getTierConfig('FREE');
-    expect(config).toBe(FREE_TIER_CONFIG);
+    expect(getTierConfig('FREE')).toBe(FREE_TIER_CONFIG);
   });
 
   it('should return PRO_TIER_CONFIG for PRO tier', () => {
-    const config = getTierConfig('PRO');
-    expect(config).toBe(PRO_TIER_CONFIG);
+    expect(getTierConfig('PRO')).toBe(PRO_TIER_CONFIG);
   });
 
   it('should throw error for invalid tier', () => {
@@ -299,76 +173,89 @@ describe('getTierConfig', () => {
   });
 });
 
-describe('getAccessibleSymbols', () => {
-  it('should return FREE_SYMBOLS for FREE tier', () => {
-    const symbols = getAccessibleSymbols('FREE');
-    expect(symbols).toBe(FREE_SYMBOLS);
+describe('getAccessibleSymbols (V8: tier-independent)', () => {
+  it('should return XAUUSD for FREE tier', () => {
+    expect([...getAccessibleSymbols('FREE')]).toEqual(['XAUUSD']);
   });
 
-  it('should return PRO_SYMBOLS for PRO tier', () => {
-    const symbols = getAccessibleSymbols('PRO');
-    expect(symbols).toBe(PRO_SYMBOLS);
+  it('should return XAUUSD for PRO tier', () => {
+    expect([...getAccessibleSymbols('PRO')]).toEqual(['XAUUSD']);
   });
 
-  it('should return 5 symbols for FREE tier', () => {
-    const symbols = getAccessibleSymbols('FREE');
-    expect(symbols).toHaveLength(5);
+  it('should return identical lists for both tiers', () => {
+    expect(getAccessibleSymbols('FREE')).toEqual(getAccessibleSymbols('PRO'));
+  });
+});
+
+describe('getAccessibleTimeframes (V8: tier-independent)', () => {
+  it('should return M5 and M15 for FREE tier', () => {
+    expect([...getAccessibleTimeframes('FREE')]).toEqual(['M5', 'M15']);
   });
 
-  it('should return 15 symbols for PRO tier', () => {
-    const symbols = getAccessibleSymbols('PRO');
-    expect(symbols).toHaveLength(15);
+  it('should return M5 and M15 for PRO tier', () => {
+    expect([...getAccessibleTimeframes('PRO')]).toEqual(['M5', 'M15']);
   });
 
-  it('should throw error for invalid tier', () => {
-    expect(() => getAccessibleSymbols('INVALID' as Tier)).toThrow(
-      'Invalid tier'
+  it('should return identical lists for both tiers', () => {
+    expect(getAccessibleTimeframes('FREE')).toEqual(
+      getAccessibleTimeframes('PRO')
     );
   });
 });
 
-describe('getAccessibleTimeframes', () => {
-  it('should return FREE_TIMEFRAMES for FREE tier', () => {
-    const timeframes = getAccessibleTimeframes('FREE');
-    expect(timeframes).toBe(FREE_TIMEFRAMES);
+describe('getChartCombinations (V8: 2 for both tiers)', () => {
+  it('should return 2 for FREE tier (1 symbol × 2 timeframes)', () => {
+    expect(getChartCombinations('FREE')).toBe(2);
   });
 
-  it('should return PRO_TIMEFRAMES for PRO tier', () => {
-    const timeframes = getAccessibleTimeframes('PRO');
-    expect(timeframes).toBe(PRO_TIMEFRAMES);
-  });
-
-  it('should return 3 timeframes for FREE tier', () => {
-    const timeframes = getAccessibleTimeframes('FREE');
-    expect(timeframes).toHaveLength(3);
-  });
-
-  it('should return 9 timeframes for PRO tier', () => {
-    const timeframes = getAccessibleTimeframes('PRO');
-    expect(timeframes).toHaveLength(9);
-  });
-
-  it('should throw error for invalid tier', () => {
-    expect(() => getAccessibleTimeframes('INVALID' as Tier)).toThrow(
-      'Invalid tier'
-    );
-  });
-});
-
-describe('getChartCombinations', () => {
-  it('should return 15 for FREE tier (5 symbols × 3 timeframes)', () => {
-    const combinations = getChartCombinations('FREE');
-    expect(combinations).toBe(15);
-  });
-
-  it('should return 135 for PRO tier (15 symbols × 9 timeframes)', () => {
-    const combinations = getChartCombinations('PRO');
-    expect(combinations).toBe(135);
+  it('should return 2 for PRO tier (1 symbol × 2 timeframes)', () => {
+    expect(getChartCombinations('PRO')).toBe(2);
   });
 
   it('should throw error for invalid tier', () => {
     expect(() => getChartCombinations('INVALID' as Tier)).toThrow(
       'Invalid tier'
     );
+  });
+});
+
+describe('canAccessSymbol (V8: XAUUSD only, any tier)', () => {
+  it('should allow XAUUSD for FREE tier', () => {
+    expect(canAccessSymbol('XAUUSD', 'FREE')).toBe(true);
+  });
+
+  it('should allow XAUUSD for PRO tier', () => {
+    expect(canAccessSymbol('XAUUSD', 'PRO')).toBe(true);
+  });
+
+  it('should be case insensitive', () => {
+    expect(canAccessSymbol('xauusd', 'FREE')).toBe(true);
+  });
+
+  it('should reject former symbols for BOTH tiers', () => {
+    for (const symbol of ['EURUSD', 'BTCUSD', 'US30', 'XAGUSD', 'NDX100']) {
+      expect(canAccessSymbol(symbol, 'FREE')).toBe(false);
+      expect(canAccessSymbol(symbol, 'PRO')).toBe(false);
+    }
+  });
+});
+
+describe('canAccessTimeframe (V8: M5/M15 only, any tier)', () => {
+  it('should allow M5 and M15 for both tiers', () => {
+    for (const tf of ['M5', 'M15']) {
+      expect(canAccessTimeframe(tf, 'FREE')).toBe(true);
+      expect(canAccessTimeframe(tf, 'PRO')).toBe(true);
+    }
+  });
+
+  it('should be case insensitive', () => {
+    expect(canAccessTimeframe('m5', 'FREE')).toBe(true);
+  });
+
+  it('should reject former timeframes for BOTH tiers', () => {
+    for (const tf of ['M30', 'H1', 'H2', 'H4', 'H8', 'H12', 'D1']) {
+      expect(canAccessTimeframe(tf, 'FREE')).toBe(false);
+      expect(canAccessTimeframe(tf, 'PRO')).toBe(false);
+    }
   });
 });

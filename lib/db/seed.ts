@@ -85,107 +85,7 @@ export async function seedAdmin(
   return admin;
 }
 
-/**
- * Created watchlist result
- */
-interface SeedWatchlistResult {
-  id: string;
-  name: string;
-  createdAt: Date;
-}
-
-/**
- * Creates a default watchlist for a user
- * @param prisma - PrismaClient instance
- * @param userId - User ID to create watchlist for
- * @param name - Watchlist name (defaults to 'My Watchlist')
- * @returns Promise resolving to created watchlist
- */
-export async function seedDefaultWatchlist(
-  prisma: PrismaClient,
-  userId: string,
-  name: string = 'My Watchlist'
-): Promise<SeedWatchlistResult> {
-  const watchlist = await prisma.watchlist.upsert({
-    where: {
-      userId_name: {
-        userId,
-        name,
-      },
-    },
-    update: {},
-    create: {
-      userId,
-      name,
-      order: 0,
-    },
-    select: {
-      id: true,
-      name: true,
-      createdAt: true,
-    },
-  });
-
-  return watchlist;
-}
-
-/**
- * Created watchlist item result
- */
-interface SeedWatchlistItemResult {
-  id: string;
-  symbol: string;
-  timeframe: string;
-  order: number;
-  createdAt: Date;
-}
-
-/**
- * Adds sample watchlist items for FREE tier symbols
- * @param prisma - PrismaClient instance
- * @param watchlistId - Watchlist ID to add items to
- * @param userId - User ID for ownership
- * @returns Promise resolving to array of created items
- */
-export async function seedSampleWatchlistItems(
-  prisma: PrismaClient,
-  watchlistId: string,
-  userId: string
-): Promise<SeedWatchlistItemResult[]> {
-  // FREE tier symbols as defined in tier specifications
-  const freeTierSymbols = [
-    { symbol: 'BTCUSD', timeframe: 'H1' },
-    { symbol: 'EURUSD', timeframe: 'H1' },
-    { symbol: 'USDJPY', timeframe: 'H1' },
-    { symbol: 'US30', timeframe: 'H1' },
-    { symbol: 'XAUUSD', timeframe: 'H1' },
-  ];
-
-  const createdItems = [];
-  let orderIndex = 0;
-
-  for (const item of freeTierSymbols) {
-    const createdItem = await prisma.watchlistItem.create({
-      data: {
-        watchlistId,
-        userId,
-        symbol: item.symbol,
-        timeframe: item.timeframe,
-        order: orderIndex++,
-      },
-      select: {
-        id: true,
-        symbol: true,
-        timeframe: true,
-        order: true,
-        createdAt: true,
-      },
-    });
-    createdItems.push(createdItem);
-  }
-
-  return createdItems;
-}
+// V8: watchlist seed helpers removed — watchlists eliminated from the product.
 
 /**
  * Created alert result
@@ -211,28 +111,28 @@ export async function seedSampleAlerts(
 ): Promise<SeedAlertResult[]> {
   const sampleAlerts = [
     {
-      symbol: 'BTCUSD',
-      timeframe: 'H1',
+      symbol: 'XAUUSD',
+      timeframe: 'M5',
       condition: JSON.stringify({
         type: 'price_touch_line',
         line: 'horizontal',
         direction: 'resistance',
-        description: 'Price approaches BTCUSD horizontal resistance',
+        description: 'Price approaches XAUUSD M5 horizontal resistance',
       }),
       alertType: 'PRICE_TOUCH_LINE',
-      name: 'BTCUSD Resistance Alert',
+      name: 'XAUUSD M5 Resistance Alert',
     },
     {
-      symbol: 'EURUSD',
-      timeframe: 'H1',
+      symbol: 'XAUUSD',
+      timeframe: 'M15',
       condition: JSON.stringify({
         type: 'fractal_signal',
         fractal: 'diagonal',
         direction: 'support',
-        description: 'EURUSD diagonal support line touch',
+        description: 'XAUUSD M15 diagonal support line touch',
       }),
       alertType: 'FRACTAL_NEW',
-      name: 'EURUSD Support Alert',
+      name: 'XAUUSD M15 Support Alert',
     },
   ];
 
@@ -269,14 +169,12 @@ export async function seedSampleAlerts(
  */
 interface SeedCompleteSetupResult {
   admin: SeedAdminResult | null;
-  watchlist: SeedWatchlistResult | null;
-  watchlistItems: SeedWatchlistItemResult[];
   alerts: SeedAlertResult[];
 }
 
 /**
  * Complete seeding setup for a new admin user
- * Creates admin user, default watchlist, sample items, and demonstration alerts
+ * Creates admin user and demonstration alerts (V8: no watchlists)
  * @param prisma - PrismaClient instance
  * @param email - Admin email
  * @param password - Admin password
@@ -291,8 +189,6 @@ export async function seedCompleteSetup(
 ): Promise<SeedCompleteSetupResult> {
   const results: SeedCompleteSetupResult = {
     admin: null,
-    watchlist: null,
-    watchlistItems: [],
     alerts: [],
   };
 
@@ -300,17 +196,7 @@ export async function seedCompleteSetup(
     // Step 1: Create admin user
     results.admin = await seedAdmin(prisma, email, password, name);
 
-    // Step 2: Create default watchlist
-    results.watchlist = await seedDefaultWatchlist(prisma, results.admin.id);
-
-    // Step 3: Add sample watchlist items
-    results.watchlistItems = await seedSampleWatchlistItems(
-      prisma,
-      results.watchlist.id,
-      results.admin.id
-    );
-
-    // Step 4: Create sample alerts
+    // Step 2: Create sample alerts
     results.alerts = await seedSampleAlerts(prisma, results.admin.id);
 
     return results;
@@ -335,11 +221,6 @@ export async function cleanupTestData(
       where: { email },
       include: {
         alerts: true,
-        watchlists: {
-          include: {
-            items: true,
-          },
-        },
         payments: true,
         fraudAlerts: true,
       },
@@ -352,14 +233,6 @@ export async function cleanupTestData(
     // Delete in reverse dependency order
     await prisma.fraudAlert.deleteMany({ where: { userId: user.id } });
     await prisma.payment.deleteMany({ where: { userId: user.id } });
-
-    // Delete watchlist items first
-    for (const watchlist of user.watchlists ?? []) {
-      await prisma.watchlistItem.deleteMany({
-        where: { watchlistId: watchlist.id },
-      });
-    }
-    await prisma.watchlist.deleteMany({ where: { userId: user.id } });
     await prisma.alert.deleteMany({ where: { userId: user.id } });
 
     // Delete user last

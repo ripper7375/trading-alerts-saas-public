@@ -1,21 +1,19 @@
 /**
- * Alerts List Page (Server Component)
+ * Alerts List Page (Server Component) — V8
  *
- * Displays user's price alerts with filtering and management options.
- * Tier-based limits: FREE: 5 alerts, PRO: 20 alerts
+ * Alerts are a PRO-exclusive feature: FREE users see a dedicated
+ * PRO-upgrade landing instead of the alerts UI.
+ * PRO limit: 100 alerts on XAUUSD M5/M15.
  *
  * @module app/(dashboard)/alerts/page
  */
 
 import { redirect } from 'next/navigation';
 
+import { AlertsProUpgrade } from '@/components/alerts/alerts-pro-upgrade';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import {
-  FREE_TIER_CONFIG,
-  PRO_TIER_CONFIG,
-  type Tier,
-} from '@/lib/tier-config';
+import { PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
 
 import { AlertsClient } from './alerts-client';
 
@@ -97,8 +95,13 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
-  const limit =
-    tier === 'PRO' ? PRO_TIER_CONFIG.maxAlerts : FREE_TIER_CONFIG.maxAlerts;
+
+  // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
+  if (tier !== 'PRO') {
+    return <AlertsProUpgrade />;
+  }
+
+  const limit = PRO_TIER_CONFIG.maxAlerts;
 
   // Fetch user's alerts
   const alerts = await prisma.alert.findMany({

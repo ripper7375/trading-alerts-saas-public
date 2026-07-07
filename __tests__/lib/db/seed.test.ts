@@ -19,10 +19,6 @@ jest.mock('bcryptjs', () => ({
 const mockUserUpsert = jest.fn();
 const mockUserFindUnique = jest.fn();
 const mockUserDelete = jest.fn();
-const mockWatchlistUpsert = jest.fn();
-const mockWatchlistDeleteMany = jest.fn();
-const mockWatchlistItemCreate = jest.fn();
-const mockWatchlistItemDeleteMany = jest.fn();
 const mockAlertCreate = jest.fn();
 const mockAlertDeleteMany = jest.fn();
 const mockFraudAlertDeleteMany = jest.fn();
@@ -34,14 +30,6 @@ const createMockPrisma = () => ({
     upsert: mockUserUpsert,
     findUnique: mockUserFindUnique,
     delete: mockUserDelete,
-  },
-  watchlist: {
-    upsert: mockWatchlistUpsert,
-    deleteMany: mockWatchlistDeleteMany,
-  },
-  watchlistItem: {
-    create: mockWatchlistItemCreate,
-    deleteMany: mockWatchlistItemDeleteMany,
   },
   alert: {
     create: mockAlertCreate,
@@ -57,8 +45,6 @@ const createMockPrisma = () => ({
 
 describe('Database Seed Functions', () => {
   let seedAdmin: typeof import('@/lib/db/seed').seedAdmin;
-  let seedDefaultWatchlist: typeof import('@/lib/db/seed').seedDefaultWatchlist;
-  let seedSampleWatchlistItems: typeof import('@/lib/db/seed').seedSampleWatchlistItems;
   let seedSampleAlerts: typeof import('@/lib/db/seed').seedSampleAlerts;
   let seedCompleteSetup: typeof import('@/lib/db/seed').seedCompleteSetup;
   let cleanupTestData: typeof import('@/lib/db/seed').cleanupTestData;
@@ -73,8 +59,6 @@ describe('Database Seed Functions', () => {
     // Import seed functions
     const seedModule = await import('@/lib/db/seed');
     seedAdmin = seedModule.seedAdmin;
-    seedDefaultWatchlist = seedModule.seedDefaultWatchlist;
-    seedSampleWatchlistItems = seedModule.seedSampleWatchlistItems;
     seedSampleAlerts = seedModule.seedSampleAlerts;
     seedCompleteSetup = seedModule.seedCompleteSetup;
     cleanupTestData = seedModule.cleanupTestData;
@@ -200,219 +184,6 @@ describe('Database Seed Functions', () => {
     });
   });
 
-  describe('seedDefaultWatchlist', () => {
-    it('should create a default watchlist for user', async () => {
-      const mockPrisma = createMockPrisma();
-      const expectedWatchlist = {
-        id: 'watchlist-123',
-        name: 'My Watchlist',
-        createdAt: new Date(),
-      };
-      mockWatchlistUpsert.mockResolvedValue(expectedWatchlist);
-
-      const result = await seedDefaultWatchlist(
-        mockPrisma as never,
-        'user-123'
-      );
-
-      expect(mockWatchlistUpsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            userId_name: {
-              userId: 'user-123',
-              name: 'My Watchlist',
-            },
-          },
-          create: expect.objectContaining({
-            userId: 'user-123',
-            name: 'My Watchlist',
-            order: 0,
-          }),
-        })
-      );
-      expect(result).toEqual(expectedWatchlist);
-    });
-
-    it('should allow custom watchlist name', async () => {
-      const mockPrisma = createMockPrisma();
-      mockWatchlistUpsert.mockResolvedValue({
-        id: 'watchlist-123',
-        name: 'Custom Watchlist',
-        createdAt: new Date(),
-      });
-
-      await seedDefaultWatchlist(
-        mockPrisma as never,
-        'user-123',
-        'Custom Watchlist'
-      );
-
-      expect(mockWatchlistUpsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            userId_name: {
-              userId: 'user-123',
-              name: 'Custom Watchlist',
-            },
-          },
-        })
-      );
-    });
-
-    it('should not update existing watchlist', async () => {
-      const mockPrisma = createMockPrisma();
-      mockWatchlistUpsert.mockResolvedValue({
-        id: 'watchlist-123',
-        name: 'My Watchlist',
-        createdAt: new Date(),
-      });
-
-      await seedDefaultWatchlist(mockPrisma as never, 'user-123');
-
-      expect(mockWatchlistUpsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          update: {},
-        })
-      );
-    });
-  });
-
-  describe('seedSampleWatchlistItems', () => {
-    it('should create 5 FREE tier watchlist items', async () => {
-      const mockPrisma = createMockPrisma();
-      mockWatchlistItemCreate.mockImplementation(
-        (args: {
-          data: { symbol: string; timeframe: string; order: number };
-        }) =>
-          Promise.resolve({
-            id: `item-${args.data.order}`,
-            symbol: args.data.symbol,
-            timeframe: args.data.timeframe,
-            order: args.data.order,
-            createdAt: new Date(),
-          })
-      );
-
-      const result = await seedSampleWatchlistItems(
-        mockPrisma as never,
-        'watchlist-123',
-        'user-123'
-      );
-
-      expect(result).toHaveLength(5);
-      expect(mockWatchlistItemCreate).toHaveBeenCalledTimes(5);
-    });
-
-    it('should include BTCUSD as first item', async () => {
-      const mockPrisma = createMockPrisma();
-      mockWatchlistItemCreate.mockImplementation(
-        (args: {
-          data: { symbol: string; timeframe: string; order: number };
-        }) =>
-          Promise.resolve({
-            id: `item-${args.data.order}`,
-            symbol: args.data.symbol,
-            timeframe: args.data.timeframe,
-            order: args.data.order,
-            createdAt: new Date(),
-          })
-      );
-
-      const result = await seedSampleWatchlistItems(
-        mockPrisma as never,
-        'watchlist-123',
-        'user-123'
-      );
-
-      expect(result[0].symbol).toBe('BTCUSD');
-      expect(result[0].order).toBe(0);
-    });
-
-    it('should use H1 timeframe for all items', async () => {
-      const mockPrisma = createMockPrisma();
-      mockWatchlistItemCreate.mockImplementation(
-        (args: {
-          data: { symbol: string; timeframe: string; order: number };
-        }) =>
-          Promise.resolve({
-            id: `item-${args.data.order}`,
-            symbol: args.data.symbol,
-            timeframe: args.data.timeframe,
-            order: args.data.order,
-            createdAt: new Date(),
-          })
-      );
-
-      const result = await seedSampleWatchlistItems(
-        mockPrisma as never,
-        'watchlist-123',
-        'user-123'
-      );
-
-      result.forEach((item) => {
-        expect(item.timeframe).toBe('H1');
-      });
-    });
-
-    it('should include all FREE tier symbols', async () => {
-      const mockPrisma = createMockPrisma();
-      const createdSymbols: string[] = [];
-      mockWatchlistItemCreate.mockImplementation(
-        (args: {
-          data: { symbol: string; timeframe: string; order: number };
-        }) => {
-          createdSymbols.push(args.data.symbol);
-          return Promise.resolve({
-            id: `item-${args.data.order}`,
-            symbol: args.data.symbol,
-            timeframe: args.data.timeframe,
-            order: args.data.order,
-            createdAt: new Date(),
-          });
-        }
-      );
-
-      await seedSampleWatchlistItems(
-        mockPrisma as never,
-        'watchlist-123',
-        'user-123'
-      );
-
-      expect(createdSymbols).toContain('BTCUSD');
-      expect(createdSymbols).toContain('EURUSD');
-      expect(createdSymbols).toContain('USDJPY');
-      expect(createdSymbols).toContain('US30');
-      expect(createdSymbols).toContain('XAUUSD');
-    });
-
-    it('should set correct order for each item', async () => {
-      const mockPrisma = createMockPrisma();
-      const orders: number[] = [];
-      mockWatchlistItemCreate.mockImplementation(
-        (args: {
-          data: { symbol: string; timeframe: string; order: number };
-        }) => {
-          orders.push(args.data.order);
-          return Promise.resolve({
-            id: `item-${args.data.order}`,
-            symbol: args.data.symbol,
-            timeframe: args.data.timeframe,
-            order: args.data.order,
-            createdAt: new Date(),
-          });
-        }
-      );
-
-      await seedSampleWatchlistItems(
-        mockPrisma as never,
-        'watchlist-123',
-        'user-123'
-      );
-
-      expect(orders).toEqual([0, 1, 2, 3, 4]);
-    });
-  });
-
   describe('seedSampleAlerts', () => {
     it('should create 2 sample alerts', async () => {
       const mockPrisma = createMockPrisma();
@@ -434,7 +205,7 @@ describe('Database Seed Functions', () => {
       expect(mockAlertCreate).toHaveBeenCalledTimes(2);
     });
 
-    it('should create BTCUSD resistance alert', async () => {
+    it('should create XAUUSD M5 resistance alert', async () => {
       const mockPrisma = createMockPrisma();
       const createdAlerts: { symbol: string; name: string }[] = [];
       mockAlertCreate.mockImplementation(
@@ -457,12 +228,12 @@ describe('Database Seed Functions', () => {
       await seedSampleAlerts(mockPrisma as never, 'user-123');
 
       expect(createdAlerts).toContainEqual({
-        symbol: 'BTCUSD',
-        name: 'BTCUSD Resistance Alert',
+        symbol: 'XAUUSD',
+        name: 'XAUUSD M5 Resistance Alert',
       });
     });
 
-    it('should create EURUSD support alert', async () => {
+    it('should create XAUUSD M15 support alert', async () => {
       const mockPrisma = createMockPrisma();
       const createdAlerts: { symbol: string; name: string }[] = [];
       mockAlertCreate.mockImplementation(
@@ -485,8 +256,8 @@ describe('Database Seed Functions', () => {
       await seedSampleAlerts(mockPrisma as never, 'user-123');
 
       expect(createdAlerts).toContainEqual({
-        symbol: 'EURUSD',
-        name: 'EURUSD Support Alert',
+        symbol: 'XAUUSD',
+        name: 'XAUUSD M15 Support Alert',
       });
     });
 
@@ -537,7 +308,7 @@ describe('Database Seed Functions', () => {
   });
 
   describe('seedCompleteSetup', () => {
-    it('should create admin, watchlist, items, and alerts', async () => {
+    it('should create admin and alerts (V8: no watchlists)', async () => {
       const mockPrisma = createMockPrisma();
       const adminResult = {
         id: 'admin-123',
@@ -548,23 +319,6 @@ describe('Database Seed Functions', () => {
         createdAt: new Date(),
       };
       mockUserUpsert.mockResolvedValue(adminResult);
-      mockWatchlistUpsert.mockResolvedValue({
-        id: 'watchlist-123',
-        name: 'My Watchlist',
-        createdAt: new Date(),
-      });
-      mockWatchlistItemCreate.mockImplementation(
-        (args: {
-          data: { order: number; symbol: string; timeframe: string };
-        }) =>
-          Promise.resolve({
-            id: `item-${args.data.order}`,
-            symbol: args.data.symbol,
-            timeframe: args.data.timeframe,
-            order: args.data.order,
-            createdAt: new Date(),
-          })
-      );
       mockAlertCreate.mockImplementation(
         (args: { data: { symbol: string; name: string } }) =>
           Promise.resolve({
@@ -585,8 +339,6 @@ describe('Database Seed Functions', () => {
       );
 
       expect(result.admin).toEqual(adminResult);
-      expect(result.watchlist).toBeDefined();
-      expect(result.watchlistItems).toHaveLength(5);
       expect(result.alerts).toHaveLength(2);
     });
 
@@ -609,22 +361,10 @@ describe('Database Seed Functions', () => {
         role: 'ADMIN',
         createdAt: new Date(),
       });
-      mockWatchlistUpsert.mockResolvedValue({
-        id: 'watchlist-123',
-        name: 'My Watchlist',
-        createdAt: new Date(),
-      });
-      mockWatchlistItemCreate.mockResolvedValue({
-        id: 'item-1',
-        symbol: 'BTCUSD',
-        timeframe: 'H1',
-        order: 0,
-        createdAt: new Date(),
-      });
       mockAlertCreate.mockResolvedValue({
         id: 'alert-123',
-        symbol: 'BTCUSD',
-        timeframe: 'H1',
+        symbol: 'XAUUSD',
+        timeframe: 'M5',
         name: 'Test',
         isActive: true,
         createdAt: new Date(),
@@ -636,13 +376,11 @@ describe('Database Seed Functions', () => {
         'password123'
       );
 
-      // Watchlist should use admin ID
-      expect(mockWatchlistUpsert).toHaveBeenCalledWith(
+      // Alerts should use admin ID
+      expect(mockAlertCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({
-            userId_name: expect.objectContaining({
-              userId: 'admin-xyz-789',
-            }),
+          data: expect.objectContaining({
+            userId: 'admin-xyz-789',
           }),
         })
       );
@@ -656,7 +394,6 @@ describe('Database Seed Functions', () => {
         id: 'user-123',
         email: 'test@test.com',
         alerts: [],
-        watchlists: [],
         payments: [],
         fraudAlerts: [],
       });
@@ -690,7 +427,6 @@ describe('Database Seed Functions', () => {
         id: 'user-123',
         email: 'test@test.com',
         alerts: [],
-        watchlists: [],
         payments: [],
         fraudAlerts: [{ id: 'fraud-1' }],
       });
@@ -708,7 +444,6 @@ describe('Database Seed Functions', () => {
         id: 'user-123',
         email: 'test@test.com',
         alerts: [],
-        watchlists: [],
         payments: [{ id: 'payment-1' }],
         fraudAlerts: [],
       });
@@ -720,40 +455,12 @@ describe('Database Seed Functions', () => {
       });
     });
 
-    it('should delete watchlist items before watchlists', async () => {
-      const mockPrisma = createMockPrisma();
-      mockUserFindUnique.mockResolvedValue({
-        id: 'user-123',
-        email: 'test@test.com',
-        alerts: [],
-        watchlists: [
-          { id: 'watchlist-1', items: [{ id: 'item-1' }] },
-          { id: 'watchlist-2', items: [{ id: 'item-2' }] },
-        ],
-        payments: [],
-        fraudAlerts: [],
-      });
-
-      await cleanupTestData(mockPrisma as never, 'test@test.com');
-
-      expect(mockWatchlistItemDeleteMany).toHaveBeenCalledWith({
-        where: { watchlistId: 'watchlist-1' },
-      });
-      expect(mockWatchlistItemDeleteMany).toHaveBeenCalledWith({
-        where: { watchlistId: 'watchlist-2' },
-      });
-      expect(mockWatchlistDeleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-123' },
-      });
-    });
-
     it('should delete alerts before user', async () => {
       const mockPrisma = createMockPrisma();
       mockUserFindUnique.mockResolvedValue({
         id: 'user-123',
         email: 'test@test.com',
         alerts: [{ id: 'alert-1' }],
-        watchlists: [],
         payments: [],
         fraudAlerts: [],
       });
@@ -771,7 +478,6 @@ describe('Database Seed Functions', () => {
         id: 'user-123',
         email: 'test@test.com',
         alerts: [],
-        watchlists: [],
         payments: [],
         fraudAlerts: [],
       });

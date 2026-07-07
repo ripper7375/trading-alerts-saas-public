@@ -6,13 +6,11 @@ import { Button } from '@/components/ui/button';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 /**
- * TierComparison Component
+ * TierComparison Component — V8 single-symbol architecture
  *
- * Displays a comparison table of FREE vs PRO tier features.
- * Uses correct values from tier configuration:
- *
- * FREE: 5 symbols, 3 timeframes, 15 combinations
- * PRO: 15 symbols, 9 timeframes, 135 combinations
+ * FREE and PRO share identical data access (XAUUSD, M5/M15, all columns).
+ * PRO adds: 100 alerts, drawing-engine line alerts, multi-timeframe
+ * visualization, notifications, higher rate limit, export, support.
  *
  * Pricing is fetched dynamically from SystemConfig via useAffiliateConfig hook.
  */
@@ -38,72 +36,65 @@ export function TierComparison(): React.ReactElement {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-          {/* Symbol counts */}
+          {/* Symbol */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
-              Trading Symbols
+              Trading Symbol
             </td>
             <td className="p-4 text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">
-                5
+                XAUUSD
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                BTCUSD, EURUSD, USDJPY, US30, XAUUSD
+                Gold — our specialist focus
               </div>
             </td>
             <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
               <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                15
+                XAUUSD
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                All forex majors & crosses, crypto (BTC, ETH), indices (US30,
-                NDX100), commodities (Gold, Silver)
+                Gold — our specialist focus
               </div>
             </td>
           </tr>
 
-          {/* Timeframe counts */}
+          {/* Timeframes */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
               Timeframes
             </td>
             <td className="p-4 text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">
-                3
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                H1, H4, D1
+                M5, M15
               </div>
             </td>
             <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
               <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                9
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                M5, M15, M30, H1, H2, H4, H8, H12, D1
+                M5, M15
               </div>
             </td>
           </tr>
 
-          {/* Chart combinations */}
+          {/* Market data */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
-              Chart Combinations
+              Market Data & Indicators
             </td>
             <td className="p-4 text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">
-                15
+                Full access
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                5 symbols × 3 timeframes
+                Every indicator column — same data as Pro
               </div>
             </td>
             <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
               <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                135
+                Full access
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                15 symbols × 9 timeframes
+                Every indicator column
               </div>
             </td>
           </tr>
@@ -111,63 +102,59 @@ export function TierComparison(): React.ReactElement {
           {/* Alert limits */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
-              Trading Alerts
+              Price Alerts
             </td>
             <td className="p-4 text-center">
               <div className="text-lg font-bold text-gray-900 dark:text-white">
-                5
+                —
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                PRO feature
               </div>
             </td>
             <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
               <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                20
+                100
               </div>
             </td>
           </tr>
 
-          {/* Watchlist limits */}
+          {/* Drawing line alerts */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
-              Watchlists
+              Drawing Engine Line Alerts
             </td>
-            <td className="p-4 text-center">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">
-                1
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Max 5 items
-              </div>
+            <td className="p-4 text-center text-red-500">
+              <span className="text-xl">✗</span>
             </td>
-            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
-              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                5
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Max 50 items each
-              </div>
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
+              <span className="text-xl">✓</span>
             </td>
           </tr>
 
-          {/* Indicator counts */}
+          {/* Multi-timeframe visualization */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
-              Technical Indicators
+              Multi-Timeframe Visualization
             </td>
-            <td className="p-4 text-center">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">
-                0
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                No indicators
-              </div>
+            <td className="p-4 text-center text-red-500">
+              <span className="text-xl">✗</span>
             </td>
-            <td className="bg-blue-50 p-4 text-center dark:bg-blue-900/30">
-              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                6
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag
-              </div>
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
+              <span className="text-xl">✓</span>
+            </td>
+          </tr>
+
+          {/* Notifications */}
+          <tr className="border-b dark:border-gray-700">
+            <td className="p-4 font-medium text-gray-900 dark:text-white">
+              Alert Notifications (Email, Push, SMS)
+            </td>
+            <td className="p-4 text-center text-red-500">
+              <span className="text-xl">✗</span>
+            </td>
+            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
+              <span className="text-xl">✓</span>
             </td>
           </tr>
 
@@ -194,36 +181,10 @@ export function TierComparison(): React.ReactElement {
             </td>
           </tr>
 
-          {/* Advanced Charts */}
-          <tr className="border-b dark:border-gray-700">
-            <td className="p-4 font-medium text-gray-900 dark:text-white">
-              Advanced Charts
-            </td>
-            <td className="p-4 text-center text-red-500">
-              <span className="text-xl">✗</span>
-            </td>
-            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
-              <span className="text-xl">✓</span>
-            </td>
-          </tr>
-
           {/* Data Export */}
           <tr className="border-b dark:border-gray-700">
             <td className="p-4 font-medium text-gray-900 dark:text-white">
               Data Export
-            </td>
-            <td className="p-4 text-center text-red-500">
-              <span className="text-xl">✗</span>
-            </td>
-            <td className="bg-blue-50 p-4 text-center text-green-600 dark:bg-blue-900/30">
-              <span className="text-xl">✓</span>
-            </td>
-          </tr>
-
-          {/* API Access */}
-          <tr className="border-b dark:border-gray-700">
-            <td className="p-4 font-medium text-gray-900 dark:text-white">
-              API Access
             </td>
             <td className="p-4 text-center text-red-500">
               <span className="text-xl">✗</span>

@@ -250,7 +250,7 @@ export default function PrivacySettingsPage(): React.ReactElement {
           <CardContent className="p-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Request a copy of all your data including your profile
-              information, alerts, watchlists, and activity history. We&apos;ll
+              information, alerts, and activity history. We&apos;ll
               prepare your data and send you a download link via email.
             </p>
             <Button

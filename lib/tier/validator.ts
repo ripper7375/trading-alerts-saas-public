@@ -1,7 +1,11 @@
 /**
- * Indicator Tier Validator - 63-Column Schema
+ * Indicator Tier Validator — V8 (ungated)
  *
- * Provides access control for tier-gated indicators and database columns.
+ * V8 single-symbol architecture: BOTH tiers have full access to all
+ * indicators and all market_data_v6 columns. This module keeps its original
+ * API surface so existing callers compile, but every access check now
+ * resolves to "allowed". Tier differentiation lives elsewhere (Alerts,
+ * multi-timeframe visualization, drawing-engine line alerts).
  *
  * @module lib/tier/validator
  */
@@ -10,8 +14,6 @@ import type { Tier } from '@/lib/tier-config';
 
 import {
   ALL_INDICATORS,
-  FREE_TIER_INDICATORS,
-  PRO_ONLY_INDICATORS,
   SYSTEM_COLUMNS,
   INDICATOR_METADATA,
   type FreeTierIndicator,
@@ -21,210 +23,104 @@ import {
 } from './constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// INDICATOR ACCESS CONTROL
+// INDICATOR ACCESS CONTROL (V8: no gating)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * Check if a user tier can access a specific indicator
- *
- * @param tier - User tier (FREE or PRO)
- * @param indicator - Indicator ID to check
- * @returns True if tier has access, false otherwise
- *
- * @example
- * ```typescript
- * canAccessIndicator('FREE', 'fractal_diagonal');    // true
- * canAccessIndicator('FREE', 'keltner_channels');    // false
- * canAccessIndicator('PRO', 'keltner_channels');     // true
- * ```
+ * Check if a user tier can access a specific indicator.
+ * V8: true for every valid indicator, regardless of tier.
  */
-export function canAccessIndicator(tier: Tier, indicator: string): boolean {
-  // PRO tier can access all indicators
-  if (tier === 'PRO') {
-    return ALL_INDICATORS.includes(indicator as IndicatorId);
-  }
-
-  // FREE tier can only access free indicators
-  if (PRO_ONLY_INDICATORS.includes(indicator as ProOnlyIndicator)) {
-    return false;
-  }
-
-  return FREE_TIER_INDICATORS.includes(indicator as FreeTierIndicator);
+export function canAccessIndicator(_tier: Tier, indicator: string): boolean {
+  return ALL_INDICATORS.includes(indicator as IndicatorId);
 }
 
 /**
- * Check if an indicator requires PRO tier
- *
- * @param indicator - Indicator ID to check
- * @returns True if indicator is PRO-only
+ * Check if an indicator requires PRO tier.
+ * V8: no indicator is PRO-only.
  */
-export function isProOnlyIndicator(indicator: string): boolean {
-  return PRO_ONLY_INDICATORS.includes(indicator as ProOnlyIndicator);
-}
-
-/**
- * Get all accessible indicators for a tier
- *
- * @param tier - User tier (FREE or PRO)
- * @returns Array of accessible indicator IDs
- */
-export function getAccessibleIndicators(tier: Tier): IndicatorId[] {
-  if (tier === 'PRO') {
-    return [...ALL_INDICATORS];
-  }
-  return [...FREE_TIER_INDICATORS];
-}
-
-/**
- * Get all locked indicators for a tier
- *
- * @param tier - User tier (FREE or PRO)
- * @returns Array of locked indicator IDs
- */
-export function getLockedIndicators(tier: Tier): IndicatorId[] {
-  if (tier === 'PRO') {
-    return [];
-  }
-  return [...PRO_ONLY_INDICATORS];
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COLUMN-LEVEL ACCESS CONTROL (NEW)
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/**
- * Check if user's tier can access a specific database column
- *
- * @param tier - User tier (FREE or PRO)
- * @param columnName - Database column name
- * @returns True if tier can access the column
- *
- * @example
- * ```typescript
- * canAccessColumn('FREE', 'timestamp');         // true (system column)
- * canAccessColumn('FREE', 'diag_asc_line_1');   // true (FREE indicator)
- * canAccessColumn('FREE', 'tema');              // false (PRO only)
- * canAccessColumn('PRO', 'tema');               // true
- * ```
- */
-export function canAccessColumn(tier: Tier, columnName: string): boolean {
-  // System columns: Always accessible (FREE + PRO)
-  if (SYSTEM_COLUMNS.includes(columnName as SystemColumn)) {
-    return true;
-  }
-
-  // Check which indicator owns this column
-  for (const [indicatorId, metadata] of Object.entries(INDICATOR_METADATA)) {
-    if (metadata.columns.includes(columnName)) {
-      // Found the indicator - check if tier can access it
-      return canAccessIndicator(tier, indicatorId);
-    }
-  }
-
-  // Column not found in schema
+export function isProOnlyIndicator(_indicator: string): boolean {
   return false;
 }
 
 /**
- * Get list of accessible columns for a tier
- *
- * @param tier - User tier (FREE or PRO)
- * @returns Array of accessible column names
- *
- * FREE tier: 25 columns (9 system + 16 indicators)
- * PRO tier: 63 columns (9 system + 54 indicators)
+ * Get all accessible indicators for a tier.
+ * V8: every indicator, for every tier.
  */
-export function getAccessibleColumns(tier: Tier): string[] {
-  const columns: string[] = [...SYSTEM_COLUMNS];
+export function getAccessibleIndicators(_tier: Tier): IndicatorId[] {
+  return [...ALL_INDICATORS];
+}
 
-  if (tier === 'FREE') {
-    // Add FREE tier indicator columns
-    FREE_TIER_INDICATORS.forEach((indicator) => {
-      columns.push(...INDICATOR_METADATA[indicator].columns);
-    });
-  } else {
-    // PRO tier gets all indicator columns
-    ALL_INDICATORS.forEach((indicator) => {
-      columns.push(...INDICATOR_METADATA[indicator].columns);
-    });
+/**
+ * Get all locked indicators for a tier.
+ * V8: always empty.
+ */
+export function getLockedIndicators(_tier: Tier): IndicatorId[] {
+  return [];
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COLUMN-LEVEL ACCESS CONTROL (V8: no gating)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Check if user's tier can access a specific database column.
+ * V8: true for every column known to the schema.
+ */
+export function canAccessColumn(_tier: Tier, columnName: string): boolean {
+  if (SYSTEM_COLUMNS.includes(columnName as SystemColumn)) {
+    return true;
   }
 
+  for (const metadata of Object.values(INDICATOR_METADATA)) {
+    if (metadata.columns.includes(columnName)) {
+      return true;
+    }
+  }
+
+  // Unknown column — not part of the schema
+  return false;
+}
+
+/**
+ * Get list of accessible columns for a tier.
+ * V8: all columns, for every tier.
+ */
+export function getAccessibleColumns(_tier: Tier): string[] {
+  const columns: string[] = [...SYSTEM_COLUMNS];
+  ALL_INDICATORS.forEach((indicator) => {
+    columns.push(...INDICATOR_METADATA[indicator].columns);
+  });
   return columns;
 }
 
 /**
- * Get columns that are locked for a tier
- *
- * @param tier - User tier
- * @returns Array of locked column names (empty for PRO)
+ * Get columns that are locked for a tier.
+ * V8: always empty.
  */
-export function getLockedColumns(tier: Tier): string[] {
-  if (tier === 'PRO') {
-    return [];
-  }
-
-  const locked: string[] = [];
-  PRO_ONLY_INDICATORS.forEach((indicator) => {
-    locked.push(...INDICATOR_METADATA[indicator].columns);
-  });
-
-  return locked;
+export function getLockedColumns(_tier: Tier): string[] {
+  return [];
 }
 
 /**
- * Filter API response data based on user's tier
- * Removes columns the user doesn't have access to
- *
- * @param tier - User tier
- * @param data - Raw data object with all columns
- * @returns Filtered data object with only accessible columns
- *
- * @example
- * ```typescript
- * const rawData = {
- *   timestamp: 1705324800,
- *   close: 43265,
- *   tema: 43260,        // PRO only
- *   diag_asc_line_1: 43200,  // FREE
- * };
- *
- * const freeData = filterDataByTier('FREE', rawData);
- * // { timestamp: 1705324800, close: 43265, diag_asc_line_1: 43200 }
- * // tema removed
- *
- * const proData = filterDataByTier('PRO', rawData);
- * // { timestamp: 1705324800, close: 43265, tema: 43260, diag_asc_line_1: 43200 }
- * // All columns included
- * ```
+ * Filter API response data based on user's tier.
+ * V8: no filtering — returns data unchanged.
  */
 export function filterDataByTier<T extends Record<string, unknown>>(
-  tier: Tier,
+  _tier: Tier,
   data: T
 ): Partial<T> {
-  const accessibleColumns = getAccessibleColumns(tier);
-  const filtered: Partial<T> = {};
-
-  for (const [key, value] of Object.entries(data)) {
-    if (accessibleColumns.includes(key)) {
-      (filtered as Record<string, unknown>)[key] = value;
-    }
-  }
-
-  return filtered;
+  return data;
 }
 
 /**
- * Filter multiple data records by tier
- *
- * @param tier - User tier
- * @param dataArray - Array of data objects
- * @returns Array of filtered data objects
+ * Filter multiple data records by tier.
+ * V8: no filtering — returns array unchanged.
  */
 export function filterDataArrayByTier<T extends Record<string, unknown>>(
-  tier: Tier,
+  _tier: Tier,
   dataArray: T[]
 ): Partial<T>[] {
-  return dataArray.map((data) => filterDataByTier(tier, data));
+  return dataArray;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -232,29 +128,20 @@ export function filterDataArrayByTier<T extends Record<string, unknown>>(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * Validate a list of indicator IDs and filter to accessible ones
- *
- * @param tier - User tier
- * @param indicators - Array of indicator IDs to validate
- * @returns Filtered array of accessible indicator IDs
+ * Validate a list of indicator IDs and filter to valid ones.
+ * V8: filters only on validity, not tier.
  */
 export function filterAccessibleIndicators(
-  tier: Tier,
+  _tier: Tier,
   indicators: string[]
 ): IndicatorId[] {
-  return indicators.filter(
-    (indicator): indicator is IndicatorId =>
-      ALL_INDICATORS.includes(indicator as IndicatorId) &&
-      canAccessIndicator(tier, indicator)
+  return indicators.filter((indicator): indicator is IndicatorId =>
+    ALL_INDICATORS.includes(indicator as IndicatorId)
   );
 }
 
 /**
- * Validate a list of column names and filter to accessible ones
- *
- * @param tier - User tier
- * @param columns - Array of column names to validate
- * @returns Filtered array of accessible column names
+ * Validate a list of column names and filter to schema-valid ones.
  */
 export function filterAccessibleColumns(
   tier: Tier,
@@ -264,49 +151,27 @@ export function filterAccessibleColumns(
 }
 
 /**
- * Get upgrade information for locked indicators
- *
- * @param tier - User tier
- * @param requestedIndicators - Indicators user wants to access
- * @returns Object with upgrade required flag and locked indicator list
+ * Get upgrade information for locked indicators.
+ * V8: upgrade never required — nothing is locked.
  */
 export function getIndicatorUpgradeInfo(
-  tier: Tier,
+  _tier: Tier,
   requestedIndicators: string[]
 ): {
   upgradeRequired: boolean;
   lockedIndicators: string[];
   accessibleIndicators: string[];
 } {
-  const accessible: string[] = [];
-  const locked: string[] = [];
-
-  for (const indicator of requestedIndicators) {
-    // Only consider valid indicators
-    if (!isValidIndicatorId(indicator)) {
-      continue;
-    }
-
-    if (canAccessIndicator(tier, indicator)) {
-      accessible.push(indicator);
-    } else {
-      locked.push(indicator);
-    }
-  }
-
   return {
-    upgradeRequired: locked.length > 0,
-    lockedIndicators: locked,
-    accessibleIndicators: accessible,
+    upgradeRequired: false,
+    lockedIndicators: [],
+    accessibleIndicators: requestedIndicators.filter(isValidIndicatorId),
   };
 }
 
 /**
- * Get upgrade information for locked columns
- *
- * @param tier - User tier
- * @param requestedColumns - Columns user wants to access
- * @returns Object with upgrade details
+ * Get upgrade information for locked columns.
+ * V8: upgrade never required — nothing is locked.
  */
 export function getColumnUpgradeInfo(
   tier: Tier,
@@ -316,21 +181,12 @@ export function getColumnUpgradeInfo(
   lockedColumns: string[];
   accessibleColumns: string[];
 } {
-  const accessible: string[] = [];
-  const locked: string[] = [];
-
-  for (const column of requestedColumns) {
-    if (canAccessColumn(tier, column)) {
-      accessible.push(column);
-    } else {
-      locked.push(column);
-    }
-  }
-
   return {
-    upgradeRequired: locked.length > 0,
-    lockedColumns: locked,
-    accessibleColumns: accessible,
+    upgradeRequired: false,
+    lockedColumns: [],
+    accessibleColumns: requestedColumns.filter((column) =>
+      canAccessColumn(tier, column)
+    ),
   };
 }
 
@@ -353,15 +209,17 @@ export function isSystemColumn(column: string): column is SystemColumn {
 }
 
 /**
- * Type guard to check if a string is a FREE tier indicator
+ * Type guard to check if a string is a FREE tier indicator.
+ * V8: every valid indicator is available to FREE tier.
  */
 export function isFreeTierIndicator(id: string): id is FreeTierIndicator {
-  return FREE_TIER_INDICATORS.includes(id as FreeTierIndicator);
+  return isValidIndicatorId(id);
 }
 
 /**
- * Type guard to check if a string is a PRO-only indicator
+ * Type guard to check if a string is a PRO-only indicator.
+ * V8: no indicator is PRO-only.
  */
-export function isProIndicator(id: string): id is ProOnlyIndicator {
-  return PRO_ONLY_INDICATORS.includes(id as ProOnlyIndicator);
+export function isProIndicator(_id: string): _id is ProOnlyIndicator {
+  return false;
 }

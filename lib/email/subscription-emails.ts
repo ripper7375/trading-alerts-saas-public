@@ -83,10 +83,9 @@ export function getUpgradeEmailTemplate(
     <p style="font-size: 16px;">Your account has been successfully upgraded. You now have access to:</p>
 
     <ul style="font-size: 16px; padding-left: 20px;">
-      <li style="margin-bottom: 10px;"><strong>15 trading symbols</strong> - All major pairs + crypto + indices</li>
-      <li style="margin-bottom: 10px;"><strong>9 timeframes</strong> - From M5 to D1</li>
-      <li style="margin-bottom: 10px;"><strong>20 price alerts</strong></li>
-      <li style="margin-bottom: 10px;"><strong>50 watchlist items</strong></li>
+      <li style="margin-bottom: 10px;"><strong>100 price alerts</strong> on XAUUSD M5/M15</li>
+      <li style="margin-bottom: 10px;"><strong>Drawing engine line alerts</strong> - alerts from your chart drawings</li>
+      <li style="margin-bottom: 10px;"><strong>Multi-timeframe visualization</strong></li>
       <li style="margin-bottom: 10px;"><strong>Priority support</strong></li>
     </ul>
 
@@ -115,10 +114,9 @@ export function getUpgradeEmailTemplate(
 Hi ${name},
 
 Your account has been successfully upgraded. You now have access to:
-- 15 trading symbols - All major pairs + crypto + indices
-- 9 timeframes - From M5 to D1
-- 20 price alerts
-- 50 watchlist items
+- 100 price alerts on XAUUSD M5/M15
+- Drawing engine line alerts - alerts from your chart drawings
+- Multi-timeframe visualization
 - Priority support
 
 Your subscription: $${monthlyPrice}/month
@@ -163,10 +161,9 @@ export function getCancellationEmailTemplate(name: string): EmailTemplate {
     <p style="font-size: 16px;">You now have FREE tier access:</p>
 
     <ul style="font-size: 16px; padding-left: 20px;">
-      <li style="margin-bottom: 10px;">5 trading symbols</li>
-      <li style="margin-bottom: 10px;">3 timeframes (H1, H4, D1)</li>
-      <li style="margin-bottom: 10px;">5 price alerts</li>
-      <li style="margin-bottom: 10px;">5 watchlist items</li>
+      <li style="margin-bottom: 10px;">XAUUSD (Gold) on M5 and M15</li>
+      <li style="margin-bottom: 10px;">Full market data and indicator overlays</li>
+      <li style="margin-bottom: 10px;">No price alerts (PRO feature)</li>
     </ul>
 
     <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #22c55e;">
@@ -196,10 +193,9 @@ Hi ${name},
 Your ${APP_NAME} PRO subscription has been cancelled.
 
 You now have FREE tier access:
-- 5 trading symbols
-- 3 timeframes (H1, H4, D1)
-- 5 price alerts
-- 5 watchlist items
+- XAUUSD (Gold) on M5 and M15
+- Full market data and indicator overlays
+- No price alerts (PRO feature)
 
 Changed your mind? You can upgrade again anytime: ${APP_URL}/pricing
 
@@ -542,10 +538,9 @@ export function getSubscriptionCanceledEmailTemplate(
     <p style="font-size: 16px;">After that, your account will revert to the <strong>Free</strong> plan with:</p>
 
     <ul style="font-size: 16px; padding-left: 20px;">
-      <li style="margin-bottom: 8px;">5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)</li>
-      <li style="margin-bottom: 8px;">3 timeframes (H1, H4, D1)</li>
-      <li style="margin-bottom: 8px;">5 alerts</li>
-      <li style="margin-bottom: 8px;">2 basic indicators (Fractals, Trendlines)</li>
+      <li style="margin-bottom: 8px;">XAUUSD (Gold) on M5 and M15</li>
+      <li style="margin-bottom: 8px;">Full market data and indicator overlays</li>
+      <li style="margin-bottom: 8px;">No price alerts (PRO feature)</li>
     </ul>
 
     <p style="font-size: 16px;">
@@ -570,10 +565,9 @@ Access Until: ${formattedDate}
 You'll continue to have ${plan} access until ${formattedDate}.
 
 After that, your account will revert to the Free plan with:
-- 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
-- 3 timeframes (H1, H4, D1)
-- 5 alerts
-- 2 basic indicators (Fractals, Trendlines)
+- XAUUSD (Gold) on M5 and M15
+- Full market data and indicator overlays
+- No price alerts (PRO feature)
 
 Changed your mind? Reactivate: ${APP_URL}/settings/billing
 

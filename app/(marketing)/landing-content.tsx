@@ -204,19 +204,20 @@ export default function LandingPageContent(): React.ReactElement {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Multiple Markets
+                Focused Gold Trading
               </h3>
               <ul className="space-y-2 text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  10 Major Symbols
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>7 Timeframe Options
+                  XAUUSD (Gold) Specialist Data
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  Watchlist Management
+                  M5 &amp; M15 Timeframes
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  Full Indicator Suite
                 </li>
               </ul>
             </div>
@@ -279,7 +280,7 @@ export default function LandingPageContent(): React.ReactElement {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  All 7 Timeframes
+                  M5 &amp; M15 Timeframes
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
                   <svg
@@ -295,39 +296,7 @@ export default function LandingPageContent(): React.ReactElement {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  5 Alerts
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg
-                    className="w-5 h-5 text-green-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  3 Watchlists
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg
-                    className="w-5 h-5 text-green-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  Email Alerts
+                  Full Market Data &amp; Indicators
                 </li>
               </ul>
               <Link
@@ -383,7 +352,7 @@ export default function LandingPageContent(): React.ReactElement {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  All 10 Symbols
+                  100 Price Alerts
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
                   <svg
@@ -399,7 +368,7 @@ export default function LandingPageContent(): React.ReactElement {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  All 7 Timeframes
+                  Drawing Engine Line Alerts
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
                   <svg
@@ -415,23 +384,7 @@ export default function LandingPageContent(): React.ReactElement {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  20 Alerts
-                </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg
-                    className="w-5 h-5 text-primary"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  10 Watchlists (50 items each)
+                  Multi-Timeframe Visualization
                 </li>
                 <li className="flex items-center gap-2 text-muted-foreground">
                   <svg

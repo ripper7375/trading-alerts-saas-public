@@ -42,6 +42,20 @@ export async function PATCH(
       );
     }
 
+    // V8: line alerts are PRO-exclusive — FREE users (e.g. after downgrade)
+    // cannot modify or re-enable them; DELETE remains available for cleanup.
+    if (((session.user.tier as string) || 'FREE') !== 'PRO') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Line alerts are a PRO feature',
+          message:
+            'Your plan cannot modify line alerts. Upgrade to PRO, or delete this alert.',
+        },
+        { status: 403 }
+      );
+    }
+
     const { id } = await params;
     const existing = await prisma.drawingAlert.findUnique({
       where: { id },

@@ -170,7 +170,11 @@ describe('IndicatorToggles Component - 63-Column Schema', () => {
       expect(fractalDiagCheckbox).not.toBeDisabled();
     });
 
-    it('should not allow toggling PRO indicators when FREE', () => {
+    // V8: no indicator is PRO-only (see lib/tier/validator.ts
+    // canAccessIndicator / isProOnlyIndicator) — FREE users can toggle every
+    // indicator. The "Pro Indicators" section/badge is cosmetic messaging
+    // only, not an access gate.
+    it('should allow toggling PRO-labeled indicators when FREE', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -178,14 +182,13 @@ describe('IndicatorToggles Component - 63-Column Schema', () => {
         />
       );
 
-      // PRO indicators should be disabled for FREE users
       const movingAvgCheckbox = screen.getByRole('checkbox', {
         name: /moving averages/i,
       });
-      expect(movingAvgCheckbox).toBeDisabled();
+      expect(movingAvgCheckbox).not.toBeDisabled();
     });
 
-    it('should not call onToggle for PRO indicators when FREE', () => {
+    it('should call onToggle for PRO-labeled indicators when FREE', () => {
       render(
         <IndicatorToggles
           selectedIndicators={[]}
@@ -193,28 +196,12 @@ describe('IndicatorToggles Component - 63-Column Schema', () => {
         />
       );
 
-      // Find a PRO indicator checkbox (should be disabled)
       const movingAvgCheckbox = screen.getByRole('checkbox', {
         name: /moving averages/i,
       });
       fireEvent.click(movingAvgCheckbox);
 
-      // Should not be called because indicator is locked
-      expect(mockOnToggle).not.toHaveBeenCalledWith('moving_averages');
-    });
-
-    it('should have disabled checkboxes for PRO indicators', () => {
-      render(
-        <IndicatorToggles
-          selectedIndicators={[]}
-          onIndicatorToggle={mockOnToggle}
-        />
-      );
-
-      const movingAvgCheckbox = screen.getByRole('checkbox', {
-        name: /moving averages/i,
-      });
-      expect(movingAvgCheckbox).toBeDisabled();
+      expect(mockOnToggle).toHaveBeenCalledWith('moving_averages');
     });
   });
 

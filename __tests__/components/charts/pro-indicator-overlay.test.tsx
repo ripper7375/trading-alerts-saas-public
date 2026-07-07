@@ -14,6 +14,9 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 import type { ProIndicatorData } from '@/types/indicator';
 
 // Mock chart series methods
+// Note: the component uses the lightweight-charts v5 API —
+// chart.addSeries(LineSeries, options) — not the legacy v4
+// chart.addLineSeries(options).
 const mockSetData = jest.fn();
 const mockRemoveSeries = jest.fn();
 const mockAddLineSeries = jest.fn(() => ({
@@ -22,7 +25,7 @@ const mockAddLineSeries = jest.fn(() => ({
 
 // Mock IChartApi
 const mockChart = {
-  addLineSeries: mockAddLineSeries,
+  addSeries: mockAddLineSeries,
   removeSeries: mockRemoveSeries,
 };
 

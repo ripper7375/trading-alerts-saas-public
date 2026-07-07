@@ -80,7 +80,11 @@ const getTierConfig = (proPrice: number) =>
       price: '$0/month',
       badgeColor: 'bg-gray-100 text-gray-800',
       borderColor: '',
-      features: ['5 symbols', '3 timeframes', '5 alerts', '5 watchlist items'],
+      features: [
+        'XAUUSD (Gold) charts',
+        'M5 & M15 timeframes',
+        'Full market data & indicators',
+      ],
     },
     PRO: {
       label: 'PRO',
@@ -88,10 +92,10 @@ const getTierConfig = (proPrice: number) =>
       badgeColor: 'bg-blue-100 text-blue-800',
       borderColor: 'border-2 border-blue-500',
       features: [
-        '15 symbols',
-        '9 timeframes',
-        '20 alerts',
-        '50 watchlist items',
+        '100 price alerts',
+        'Drawing engine line alerts',
+        'Multi-timeframe visualization',
+        'Full alert & notification system',
         'Priority support',
       ],
     },

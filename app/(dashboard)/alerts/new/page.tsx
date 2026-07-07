@@ -1,23 +1,21 @@
 /**
- * Create Alert Page (Server Component)
+ * Create Alert Page (Server Component) — V8
  *
- * Page for creating new price alerts with tier-based symbol filtering.
- * Validates tier limits before allowing creation.
+ * Alerts are a PRO-exclusive feature: FREE users see the PRO-upgrade
+ * landing. PRO users create alerts on XAUUSD (fixed) with M5/M15.
  *
  * @module app/(dashboard)/alerts/new/page
  */
 
 import { redirect } from 'next/navigation';
 
+import { AlertsProUpgrade } from '@/components/alerts/alerts-pro-upgrade';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import {
-  FREE_TIER_CONFIG,
   PRO_TIER_CONFIG,
-  FREE_SYMBOLS,
-  PRO_SYMBOLS,
-  FREE_TIMEFRAMES,
-  PRO_TIMEFRAMES,
+  SYMBOLS,
+  TIMEFRAMES,
   type Tier,
 } from '@/lib/tier-config';
 
@@ -28,9 +26,6 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Create Alert Page
- *
- * Server component that validates tier limits and renders
- * the create alert form.
  */
 export default async function CreateAlertPage(): Promise<React.JSX.Element> {
   const session = await getSession();
@@ -40,8 +35,13 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
-  const limit =
-    tier === 'PRO' ? PRO_TIER_CONFIG.maxAlerts : FREE_TIER_CONFIG.maxAlerts;
+
+  // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
+  if (tier !== 'PRO') {
+    return <AlertsProUpgrade />;
+  }
+
+  const limit = PRO_TIER_CONFIG.maxAlerts;
 
   // Count existing active alerts
   const activeAlertCount = await prisma.alert.count({
@@ -51,12 +51,6 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
     },
   });
 
-  // Get tier-allowed symbols and timeframes
-  const availableSymbols =
-    tier === 'PRO' ? [...PRO_SYMBOLS] : [...FREE_SYMBOLS];
-  const availableTimeframes =
-    tier === 'PRO' ? [...PRO_TIMEFRAMES] : [...FREE_TIMEFRAMES];
-
   const canCreate = activeAlertCount < limit;
 
   return (
@@ -65,8 +59,8 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
       limit={limit}
       currentCount={activeAlertCount}
       canCreate={canCreate}
-      availableSymbols={availableSymbols}
-      availableTimeframes={availableTimeframes}
+      availableSymbols={[...SYMBOLS]}
+      availableTimeframes={[...TIMEFRAMES]}
     />
   );
 }

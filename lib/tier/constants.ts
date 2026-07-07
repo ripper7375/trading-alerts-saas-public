@@ -19,21 +19,13 @@ import type { Tier } from '@/lib/tier-config';
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * FREE tier indicators (2 groups, 16 columns total)
- * Available to both FREE and PRO tier users
+ * All indicators — V8: available to BOTH tiers (no gating).
+ * The FREE/PRO split below is retained only as aliases so existing
+ * imports keep compiling; there are no PRO-only indicators anymore.
  */
-export const FREE_TIER_INDICATORS = [
+export const ALL_INDICATORS = [
   'fractal_diagonal', // 8 columns: diag_asc_line_1-3, diag_desc_line_1-3, diag_high/low_map
   'fractal_horizontal', // 8 columns: horiz_peak_line_1-3, horiz_bottom_line_1-3, horiz_high/low_map
-] as const;
-
-export type FreeTierIndicator = (typeof FREE_TIER_INDICATORS)[number];
-
-/**
- * PRO-only indicators (8 groups, 38 columns total)
- * Requires PRO tier subscription to access
- */
-export const PRO_ONLY_INDICATORS = [
   'moving_averages', // 3 columns: tema, hrma, smma
   'body_momentum', // 3 columns: body_size, body_direction, body_classification
   'heiken_ashi', // 8 columns: ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_body_size, ha_body_zscore
@@ -44,18 +36,19 @@ export const PRO_ONLY_INDICATORS = [
   'pinbar_detection', // 1 column: pinbar
 ] as const;
 
-export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
+export type IndicatorId = (typeof ALL_INDICATORS)[number];
 
 /**
- * All available indicators (FREE + PRO = 10 groups, 54 indicator columns)
- * System columns (9) + Indicator columns (54) = 63 total columns
+ * @deprecated V8: all indicators are available to every tier. Use ALL_INDICATORS.
  */
-export const ALL_INDICATORS = [
-  ...FREE_TIER_INDICATORS,
-  ...PRO_ONLY_INDICATORS,
-] as const;
+export const FREE_TIER_INDICATORS = ALL_INDICATORS;
+export type FreeTierIndicator = (typeof FREE_TIER_INDICATORS)[number];
 
-export type IndicatorId = (typeof ALL_INDICATORS)[number];
+/**
+ * @deprecated V8: no PRO-only indicators. Always empty.
+ */
+export const PRO_ONLY_INDICATORS = [] as const;
+export type ProOnlyIndicator = (typeof PRO_ONLY_INDICATORS)[number];
 
 // Legacy types and constants for backward compatibility
 export type BasicIndicator = FreeTierIndicator;
@@ -151,7 +144,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Moving Averages (TEMA/HRMA/SMMA)',
     description: 'Triple exponential, hull-like, and smoothed moving averages',
     category: 'trend',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: ['tema', 'hrma', 'smma'],
     colors: {
       tema: '#808080',
@@ -166,7 +159,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Body Size Momentum',
     description: 'Candle body size analysis with Z-score classification',
     category: 'momentum',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: ['body_size', 'body_direction', 'body_classification'],
     colors: {
       up_normal: '#90ee90',
@@ -184,7 +177,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Heiken Ashi',
     description: 'Smoothed candlesticks with body size classification',
     category: 'candlesticks',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: [
       'ha_open',
       'ha_high',
@@ -207,7 +200,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Keltner Channels',
     description: '10-band volatility channel system',
     category: 'volatility',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: [
       'kc_ultra_extreme_upper',
       'kc_extreme_upper',
@@ -235,7 +228,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Support & Resistance',
     description: 'Fractal-based support and resistance levels',
     category: 'support_resistance',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: ['sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8'],
     colors: {
       support: '#00c853',
@@ -249,7 +242,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'ZigZag + EMA',
     description: 'Market structure with swing highs/lows and EMA trend',
     category: 'trend',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: ['zigzag_high', 'zigzag_low', 'ema'],
     colors: {
       peaks: '#f23645',
@@ -264,7 +257,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Dual TEMA High/Low',
     description: 'Dual TEMA applied to highs and lows for dynamic channel',
     category: 'trend',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: ['dual_tema_high', 'dual_tema_low'],
     colors: {
       high: '#00CED1',
@@ -278,7 +271,7 @@ export const INDICATOR_METADATA: Record<IndicatorId, IndicatorMetadata> = {
     label: 'Pinbar Detection',
     description: 'Detects pinbar reversal candlestick patterns',
     category: 'candlesticks',
-    tier: 'PRO',
+    tier: 'FREE', // V8: ungated — available to both tiers
     columns: ['pinbar'],
     colors: {
       bullish: '#00c853',
@@ -404,23 +397,13 @@ export function isValidColumnName(columnName: string): boolean {
 }
 
 /**
- * Get total column count for a tier
- * FREE: 9 system + 16 indicator = 25 columns
- * PRO: 9 system + 54 indicator = 63 columns
+ * Get total column count for a tier.
+ * V8: identical for both tiers — all columns.
  */
-export function getTierColumnCount(tier: Tier): number {
-  if (tier === 'FREE') {
-    const freeIndicatorColumns = FREE_TIER_INDICATORS.reduce(
-      (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
-      0
-    );
-    return SYSTEM_COLUMNS.length + freeIndicatorColumns; // 9 + 16 = 25
-  }
-
-  // PRO tier
+export function getTierColumnCount(_tier: Tier): number {
   const allIndicatorColumns = ALL_INDICATORS.reduce(
     (count, ind) => count + INDICATOR_METADATA[ind].columns.length,
     0
   );
-  return SYSTEM_COLUMNS.length + allIndicatorColumns; // 9 + 54 = 63
+  return SYSTEM_COLUMNS.length + allIndicatorColumns;
 }

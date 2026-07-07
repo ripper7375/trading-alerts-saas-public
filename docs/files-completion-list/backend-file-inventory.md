@@ -41,6 +41,10 @@
 | 3   | Part 02        | `lib/db/seed.ts`                                                        | Database operations         |
 | 4   | Part 02        | `prisma/seed.ts`                                                        | Database operations         |
 | 5   | Part 02        | `prisma/migrations/20251227000000_init/migration.sql`                   | Database operations         |
+| 5A  | Part 02        | `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`        | Database operations         |
+| 5B  | Part 02        | `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`| Database operations         |
+| 5C  | Part 02        | `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`     | Database operations         |
+| 5D  | Part 02        | `prisma/migrations/20260705010000_drop_market_data/migration.sql`       | Database operations         |
 | 6   | Part 02        | `__tests__/lib/db/prisma.test.ts`                                       | Other (tests)               |
 | 7   | Part 02        | `__tests__/lib/db/seed.test.ts`                                         | Other (tests)               |
 | 8   | Part 02        | `docs/open-api-documents/part-02-database-schema-openapi.yaml`          | Other (documentation)       |

@@ -84,62 +84,27 @@ export interface FilterParams {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TIER-AWARE MARKET DATA RESPONSES (57-COLUMN SCHEMA)
+// MARKET DATA RESPONSES (V8 — market_data_v6, no tier filtering)
+//
+// Both tiers receive identical data: all market_data_v6 columns for
+// XAUUSD M5/M15. The old ColumnAccessInfo / IndicatorAccessInfo /
+// TierUpgradePrompt types were removed — column/indicator gating no
+// longer exists.
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 import type { Tier, Symbol, Timeframe } from './tier';
-import type { CompleteMarketData, FreeMarketData } from './indicator';
+import type { MarketDataV6 } from './indicator';
 
 /**
- * Market data response - automatically filtered by user's tier
+ * Market data response — identical shape for both tiers
  */
 export interface MarketDataResponse {
   symbol: Symbol;
   timeframe: Timeframe;
   tier: Tier;
-  data: CompleteMarketData[] | FreeMarketData[]; // Type depends on tier
-  filteredColumns?: string[]; // Which columns were removed (for FREE tier)
+  data: MarketDataV6[];
   metadata: {
     total: number;
     returned: number;
-    columnCount: number; // 24 for FREE, 57 for PRO
   };
-}
-
-/**
- * Indicator access info for tier upgrade prompts
- */
-export interface IndicatorAccessInfo {
-  indicator: string;
-  accessible: boolean;
-  tier: Tier;
-  requiredTier?: Tier;
-  columns: string[];
-  description: string;
-  label: string;
-}
-
-/**
- * Column access info for tier upgrade prompts
- */
-export interface ColumnAccessInfo {
-  columnName: string;
-  accessible: boolean;
-  tier: Tier;
-  requiredTier?: Tier;
-  indicator: string;
-  description: string;
-}
-
-/**
- * Tier upgrade prompt response
- */
-export interface TierUpgradePrompt {
-  upgradeRequired: boolean;
-  currentTier: Tier;
-  lockedIndicators: string[];
-  lockedColumns: string[];
-  accessibleIndicators: string[];
-  accessibleColumns: string[];
-  message: string;
 }

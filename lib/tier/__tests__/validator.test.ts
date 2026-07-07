@@ -1,7 +1,18 @@
 /**
- * Tests for Indicator Tier Validator - 63-Column Schema
+ * Unit Tests: Indicator Tier Validator — V8 (ungated)
+ *
+ * V8: BOTH tiers have full access to all indicators and all columns.
+ * Every access check resolves to "allowed"; nothing is locked; data is
+ * never filtered by tier.
  */
 
+import { describe, it, expect } from '@jest/globals';
+
+import {
+  ALL_INDICATORS,
+  SYSTEM_COLUMNS,
+  INDICATOR_METADATA,
+} from '../constants';
 import {
   canAccessIndicator,
   isProOnlyIndicator,
@@ -22,342 +33,149 @@ import {
   isProIndicator,
 } from '../validator';
 
-describe('Indicator Tier Validator - 63-Column Schema', () => {
-  describe('Indicator Access Control', () => {
-    describe('canAccessIndicator', () => {
-      it('FREE tier can access FREE indicators', () => {
-        expect(canAccessIndicator('FREE', 'fractal_diagonal')).toBe(true);
-        expect(canAccessIndicator('FREE', 'fractal_horizontal')).toBe(true);
-      });
-
-      it('FREE tier CANNOT access PRO indicators', () => {
-        expect(canAccessIndicator('FREE', 'moving_averages')).toBe(false);
-        expect(canAccessIndicator('FREE', 'body_momentum')).toBe(false);
-        expect(canAccessIndicator('FREE', 'heiken_ashi')).toBe(false);
-        expect(canAccessIndicator('FREE', 'keltner_channels')).toBe(false);
-        expect(canAccessIndicator('FREE', 'support_resistance')).toBe(false);
-        expect(canAccessIndicator('FREE', 'zigzag')).toBe(false);
-        expect(canAccessIndicator('FREE', 'dual_tema_hl')).toBe(false);
-        expect(canAccessIndicator('FREE', 'pinbar_detection')).toBe(false);
-      });
-
-      it('PRO tier can access all indicators', () => {
-        expect(canAccessIndicator('PRO', 'fractal_diagonal')).toBe(true);
-        expect(canAccessIndicator('PRO', 'fractal_horizontal')).toBe(true);
-        expect(canAccessIndicator('PRO', 'moving_averages')).toBe(true);
-        expect(canAccessIndicator('PRO', 'body_momentum')).toBe(true);
-        expect(canAccessIndicator('PRO', 'heiken_ashi')).toBe(true);
-        expect(canAccessIndicator('PRO', 'keltner_channels')).toBe(true);
-        expect(canAccessIndicator('PRO', 'support_resistance')).toBe(true);
-        expect(canAccessIndicator('PRO', 'zigzag')).toBe(true);
-        expect(canAccessIndicator('PRO', 'dual_tema_hl')).toBe(true);
-        expect(canAccessIndicator('PRO', 'pinbar_detection')).toBe(true);
-      });
-
-      it('should return false for invalid indicators', () => {
-        expect(canAccessIndicator('FREE', 'invalid_indicator')).toBe(false);
-        expect(canAccessIndicator('PRO', 'invalid_indicator')).toBe(false);
-      });
+describe('Indicator Tier Validator — V8 (ungated)', () => {
+  describe('canAccessIndicator', () => {
+    it('allows every known indicator for both tiers', () => {
+      for (const indicator of ALL_INDICATORS) {
+        expect(canAccessIndicator('FREE', indicator)).toBe(true);
+        expect(canAccessIndicator('PRO', indicator)).toBe(true);
+      }
     });
 
-    describe('isProOnlyIndicator', () => {
-      it('should return true for PRO indicators', () => {
-        expect(isProOnlyIndicator('moving_averages')).toBe(true);
-        expect(isProOnlyIndicator('keltner_channels')).toBe(true);
-      });
-
-      it('should return false for FREE indicators', () => {
-        expect(isProOnlyIndicator('fractal_diagonal')).toBe(false);
-        expect(isProOnlyIndicator('fractal_horizontal')).toBe(false);
-      });
-    });
-
-    describe('getAccessibleIndicators', () => {
-      it('FREE tier should get 2 indicators', () => {
-        const indicators = getAccessibleIndicators('FREE');
-        expect(indicators).toHaveLength(2);
-        expect(indicators).toContain('fractal_diagonal');
-        expect(indicators).toContain('fractal_horizontal');
-      });
-
-      it('PRO tier should get all 10 indicators', () => {
-        const indicators = getAccessibleIndicators('PRO');
-        expect(indicators).toHaveLength(10);
-      });
-    });
-
-    describe('getLockedIndicators', () => {
-      it('FREE tier should have 8 locked indicators', () => {
-        const locked = getLockedIndicators('FREE');
-        expect(locked).toHaveLength(8);
-        expect(locked).toContain('moving_averages');
-        expect(locked).toContain('keltner_channels');
-        expect(locked).toContain('dual_tema_hl');
-        expect(locked).toContain('pinbar_detection');
-      });
-
-      it('PRO tier should have no locked indicators', () => {
-        const locked = getLockedIndicators('PRO');
-        expect(locked).toHaveLength(0);
-      });
+    it('rejects unknown indicators for both tiers', () => {
+      expect(canAccessIndicator('FREE', 'nonexistent')).toBe(false);
+      expect(canAccessIndicator('PRO', 'nonexistent')).toBe(false);
     });
   });
 
-  describe('Column-Level Access Control', () => {
-    describe('canAccessColumn', () => {
-      it('FREE tier can access system columns', () => {
-        expect(canAccessColumn('FREE', 'timestamp')).toBe(true);
-        expect(canAccessColumn('FREE', 'symbol')).toBe(true);
-        expect(canAccessColumn('FREE', 'open')).toBe(true);
-        expect(canAccessColumn('FREE', 'close')).toBe(true);
-        expect(canAccessColumn('FREE', 'volume')).toBe(true);
-      });
-
-      it('FREE tier can access FREE indicator columns', () => {
-        expect(canAccessColumn('FREE', 'diag_asc_line_1')).toBe(true);
-        expect(canAccessColumn('FREE', 'horiz_peak_line_1')).toBe(true);
-      });
-
-      it('FREE tier CANNOT access PRO-only columns', () => {
-        expect(canAccessColumn('FREE', 'tema')).toBe(false);
-        expect(canAccessColumn('FREE', 'hrma')).toBe(false);
-        expect(canAccessColumn('FREE', 'kc_upper')).toBe(false);
-        expect(canAccessColumn('FREE', 'zigzag_high')).toBe(false);
-        expect(canAccessColumn('FREE', 'ema')).toBe(false);
-      });
-
-      it('PRO tier can access all columns', () => {
-        expect(canAccessColumn('PRO', 'timestamp')).toBe(true);
-        expect(canAccessColumn('PRO', 'symbol')).toBe(true);
-        expect(canAccessColumn('PRO', 'tema')).toBe(true);
-        expect(canAccessColumn('PRO', 'kc_upper')).toBe(true);
-        expect(canAccessColumn('PRO', 'zigzag_high')).toBe(true);
-        expect(canAccessColumn('PRO', 'ema')).toBe(true);
-      });
-
-      it('should return false for invalid columns', () => {
-        expect(canAccessColumn('FREE', 'invalid_column')).toBe(false);
-        expect(canAccessColumn('PRO', 'invalid_column')).toBe(false);
-      });
-    });
-
-    describe('getAccessibleColumns', () => {
-      it('FREE tier should get 25 columns', () => {
-        const columns = getAccessibleColumns('FREE');
-        expect(columns).toHaveLength(25); // 9 system + 16 indicator
-      });
-
-      it('PRO tier should get 63 columns', () => {
-        const columns = getAccessibleColumns('PRO');
-        expect(columns).toHaveLength(63); // 9 system + 54 indicator
-      });
-
-      it('FREE tier columns should include system and FREE indicators', () => {
-        const columns = getAccessibleColumns('FREE');
-        expect(columns).toContain('timestamp');
-        expect(columns).toContain('diag_asc_line_1');
-        expect(columns).toContain('horiz_peak_line_1');
-      });
-
-      it('PRO tier columns should include everything', () => {
-        const columns = getAccessibleColumns('PRO');
-        expect(columns).toContain('timestamp');
-        expect(columns).toContain('diag_asc_line_1');
-        expect(columns).toContain('tema');
-        expect(columns).toContain('kc_upper');
-      });
-    });
-
-    describe('getLockedColumns', () => {
-      it('FREE tier should have 38 locked columns', () => {
-        const locked = getLockedColumns('FREE');
-        expect(locked).toHaveLength(38); // All PRO indicator columns
-      });
-
-      it('PRO tier should have no locked columns', () => {
-        const locked = getLockedColumns('PRO');
-        expect(locked).toHaveLength(0);
-      });
+  describe('isProOnlyIndicator', () => {
+    it('no indicator is PRO-only anymore', () => {
+      for (const indicator of ALL_INDICATORS) {
+        expect(isProOnlyIndicator(indicator)).toBe(false);
+      }
     });
   });
 
-  describe('Data Filtering', () => {
-    const mockData = {
-      timestamp: 1705324800,
-      symbol: 'XAUUSD',
-      open: 43250,
-      high: 43280,
-      low: 43240,
-      close: 43265,
-      volume: 1250,
-      timeframe: 'H1',
-      collected_at: 1705324805,
-      // FREE indicator columns
-      diag_asc_line_1: 43200,
-      diag_asc_line_2: null,
-      horiz_peak_line_1: 43300,
-      // PRO indicator columns
-      tema: 43260,
-      hrma: 43258,
-      kc_upper: 43300,
-      zigzag_high: null,
-      ema: 43255,
-    };
+  describe('getAccessibleIndicators', () => {
+    it('returns all indicators for both tiers', () => {
+      expect(getAccessibleIndicators('FREE')).toEqual([...ALL_INDICATORS]);
+      expect(getAccessibleIndicators('PRO')).toEqual([...ALL_INDICATORS]);
+    });
+  });
 
-    describe('filterDataByTier', () => {
-      it('FREE tier gets only accessible columns', () => {
-        const filtered = filterDataByTier('FREE', mockData);
+  describe('getLockedIndicators', () => {
+    it('returns empty for both tiers', () => {
+      expect(getLockedIndicators('FREE')).toEqual([]);
+      expect(getLockedIndicators('PRO')).toEqual([]);
+    });
+  });
 
-        // Should have system columns
-        expect(filtered.timestamp).toBe(1705324800);
-        expect(filtered.symbol).toBe('XAUUSD');
-        expect(filtered.close).toBe(43265);
-
-        // Should have FREE indicator columns
-        expect(filtered.diag_asc_line_1).toBe(43200);
-        expect(filtered.horiz_peak_line_1).toBe(43300);
-
-        // Should NOT have PRO columns
-        expect(filtered.tema).toBeUndefined();
-        expect(filtered.hrma).toBeUndefined();
-        expect(filtered.kc_upper).toBeUndefined();
-        expect(filtered.ema).toBeUndefined();
-      });
-
-      it('PRO tier gets all columns', () => {
-        const filtered = filterDataByTier('PRO', mockData);
-
-        expect(filtered.timestamp).toBe(1705324800);
-        expect(filtered.symbol).toBe('XAUUSD');
-        expect(filtered.tema).toBe(43260);
-        expect(filtered.kc_upper).toBe(43300);
-        expect(filtered.ema).toBe(43255);
-      });
+  describe('canAccessColumn', () => {
+    it('allows system columns for both tiers', () => {
+      for (const column of SYSTEM_COLUMNS) {
+        expect(canAccessColumn('FREE', column)).toBe(true);
+        expect(canAccessColumn('PRO', column)).toBe(true);
+      }
     });
 
-    describe('filterDataArrayByTier', () => {
-      it('should filter array of data objects', () => {
-        const dataArray = [mockData, mockData];
-        const filtered = filterDataArrayByTier('FREE', dataArray);
+    it('allows every indicator column for both tiers', () => {
+      for (const metadata of Object.values(INDICATOR_METADATA)) {
+        for (const column of metadata.columns) {
+          expect(canAccessColumn('FREE', column)).toBe(true);
+          expect(canAccessColumn('PRO', column)).toBe(true);
+        }
+      }
+    });
 
-        expect(filtered).toHaveLength(2);
-        expect(filtered[0].tema).toBeUndefined();
-        expect(filtered[0].timestamp).toBe(1705324800);
-      });
+    it('rejects unknown columns', () => {
+      expect(canAccessColumn('PRO', 'no_such_column')).toBe(false);
+    });
+  });
+
+  describe('getAccessibleColumns', () => {
+    it('returns identical full column sets for both tiers', () => {
+      const freeColumns = getAccessibleColumns('FREE');
+      const proColumns = getAccessibleColumns('PRO');
+      expect(freeColumns).toEqual(proColumns);
+      expect(freeColumns.length).toBeGreaterThan(SYSTEM_COLUMNS.length);
+    });
+  });
+
+  describe('getLockedColumns', () => {
+    it('returns empty for both tiers', () => {
+      expect(getLockedColumns('FREE')).toEqual([]);
+      expect(getLockedColumns('PRO')).toEqual([]);
+    });
+  });
+
+  describe('filterDataByTier (V8: pass-through)', () => {
+    const row = { timestamp: 1, close: 42, tema: 41, custom: 'x' };
+
+    it('returns data unchanged for FREE tier', () => {
+      expect(filterDataByTier('FREE', row)).toEqual(row);
+    });
+
+    it('returns data unchanged for PRO tier', () => {
+      expect(filterDataByTier('PRO', row)).toEqual(row);
+    });
+
+    it('filterDataArrayByTier returns arrays unchanged', () => {
+      expect(filterDataArrayByTier('FREE', [row, row])).toEqual([row, row]);
     });
   });
 
   describe('Validation Helpers', () => {
-    describe('filterAccessibleIndicators', () => {
-      it('should filter indicators for FREE tier', () => {
-        const requested = [
-          'fractal_diagonal',
-          'moving_averages',
-          'keltner_channels',
-        ];
-        const filtered = filterAccessibleIndicators('FREE', requested);
-
-        expect(filtered).toHaveLength(1);
-        expect(filtered).toContain('fractal_diagonal');
-      });
-
-      it('should pass all indicators for PRO tier', () => {
-        const requested = ['fractal_diagonal', 'moving_averages', 'zigzag'];
-        const filtered = filterAccessibleIndicators('PRO', requested);
-
-        expect(filtered).toHaveLength(3);
-      });
+    it('filterAccessibleIndicators keeps valid IDs regardless of tier', () => {
+      const input = ['fractal_diagonal', 'keltner_channels', 'bogus'];
+      expect(filterAccessibleIndicators('FREE', input)).toEqual([
+        'fractal_diagonal',
+        'keltner_channels',
+      ]);
     });
 
-    describe('filterAccessibleColumns', () => {
-      it('should filter columns for FREE tier', () => {
-        const requested = ['timestamp', 'symbol', 'tema', 'diag_asc_line_1'];
-        const filtered = filterAccessibleColumns('FREE', requested);
-
-        expect(filtered).toHaveLength(3);
-        expect(filtered).toContain('timestamp');
-        expect(filtered).toContain('symbol');
-        expect(filtered).toContain('diag_asc_line_1');
-        expect(filtered).not.toContain('tema');
-      });
+    it('filterAccessibleColumns keeps schema-valid columns', () => {
+      const input = ['timestamp', 'tema', 'no_such_column'];
+      expect(filterAccessibleColumns('FREE', input)).toEqual([
+        'timestamp',
+        'tema',
+      ]);
     });
 
-    describe('getIndicatorUpgradeInfo', () => {
-      it('should identify locked indicators for FREE tier', () => {
-        const requested = [
-          'fractal_diagonal',
-          'moving_averages',
-          'keltner_channels',
-        ];
-        const info = getIndicatorUpgradeInfo('FREE', requested);
-
-        expect(info.upgradeRequired).toBe(true);
-        expect(info.lockedIndicators).toHaveLength(2);
-        expect(info.accessibleIndicators).toHaveLength(1);
-      });
-
-      it('should have no locked indicators for PRO tier', () => {
-        const requested = ['moving_averages', 'keltner_channels'];
-        const info = getIndicatorUpgradeInfo('PRO', requested);
-
-        expect(info.upgradeRequired).toBe(false);
-        expect(info.lockedIndicators).toHaveLength(0);
-      });
+    it('getIndicatorUpgradeInfo never requires upgrade', () => {
+      const info = getIndicatorUpgradeInfo('FREE', [...ALL_INDICATORS]);
+      expect(info.upgradeRequired).toBe(false);
+      expect(info.lockedIndicators).toEqual([]);
+      expect(info.accessibleIndicators).toEqual([...ALL_INDICATORS]);
     });
 
-    describe('getColumnUpgradeInfo', () => {
-      it('should identify locked columns for FREE tier', () => {
-        const requested = ['timestamp', 'tema', 'kc_upper'];
-        const info = getColumnUpgradeInfo('FREE', requested);
-
-        expect(info.upgradeRequired).toBe(true);
-        expect(info.lockedColumns).toHaveLength(2);
-        expect(info.accessibleColumns).toHaveLength(1);
-      });
+    it('getColumnUpgradeInfo never requires upgrade', () => {
+      const info = getColumnUpgradeInfo('FREE', ['timestamp', 'tema']);
+      expect(info.upgradeRequired).toBe(false);
+      expect(info.lockedColumns).toEqual([]);
     });
   });
 
   describe('Type Guards', () => {
-    describe('isValidIndicatorId', () => {
-      it('should return true for valid indicators', () => {
-        expect(isValidIndicatorId('fractal_diagonal')).toBe(true);
-        expect(isValidIndicatorId('moving_averages')).toBe(true);
-      });
-
-      it('should return false for invalid indicators', () => {
-        expect(isValidIndicatorId('invalid')).toBe(false);
-      });
+    it('isValidIndicatorId accepts known and rejects unknown', () => {
+      expect(isValidIndicatorId('zigzag')).toBe(true);
+      expect(isValidIndicatorId('bogus')).toBe(false);
     });
 
-    describe('isSystemColumn', () => {
-      it('should return true for system columns', () => {
-        expect(isSystemColumn('timestamp')).toBe(true);
-        expect(isSystemColumn('open')).toBe(true);
-      });
-
-      it('should return false for indicator columns', () => {
-        expect(isSystemColumn('tema')).toBe(false);
-      });
+    it('isSystemColumn accepts known and rejects unknown', () => {
+      expect(isSystemColumn('timestamp')).toBe(true);
+      expect(isSystemColumn('tema')).toBe(false);
     });
 
-    describe('isFreeTierIndicator', () => {
-      it('should return true for FREE indicators', () => {
-        expect(isFreeTierIndicator('fractal_diagonal')).toBe(true);
-      });
-
-      it('should return false for PRO indicators', () => {
-        expect(isFreeTierIndicator('moving_averages')).toBe(false);
-      });
+    it('isFreeTierIndicator accepts every valid indicator (V8)', () => {
+      for (const indicator of ALL_INDICATORS) {
+        expect(isFreeTierIndicator(indicator)).toBe(true);
+      }
     });
 
-    describe('isProIndicator', () => {
-      it('should return true for PRO indicators', () => {
-        expect(isProIndicator('moving_averages')).toBe(true);
-      });
-
-      it('should return false for FREE indicators', () => {
-        expect(isProIndicator('fractal_diagonal')).toBe(false);
-      });
+    it('isProIndicator is always false (V8)', () => {
+      for (const indicator of ALL_INDICATORS) {
+        expect(isProIndicator(indicator)).toBe(false);
+      }
     });
   });
 });

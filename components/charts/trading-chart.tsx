@@ -8,12 +8,15 @@ import {
   type UTCTimestamp,
   ColorType,
 } from 'lightweight-charts';
+import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
 
 import { DrawingLayer } from './drawing/DrawingLayer';
 import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
+import { MtfToggle } from './mtf/MtfToggle';
+import { useMtfOverlay } from './mtf/useMtfOverlay';
 
 /**
  * TradingChart Props
@@ -54,6 +57,19 @@ export function TradingChart({
 
   // Render "alert fired here" markers when a line-touch alert fires.
   useFiredAlertMarkers(seriesApi, symbol, timeframe);
+
+  // V8 PRO feature: multi-timeframe visualization — overlay the M5
+  // equal-distance channel on the M15 chart (v2.29 design). Only offered
+  // on M15 (overlaying M5 structure onto its own chart adds nothing).
+  const { data: session } = useSession();
+  const isPro = session?.user?.tier === 'PRO';
+  const mtfAvailable = timeframe.toUpperCase() === 'M15';
+  const [mtfEnabled, setMtfEnabled] = useState(false);
+  const { isLoading: mtfLoading, error: mtfError } = useMtfOverlay(
+    chartApi,
+    isPro && mtfAvailable && mtfEnabled,
+    { symbol, sourceTimeframe: 'M5' }
+  );
 
   /**
    * Initialize chart when container is available
@@ -174,15 +190,29 @@ export function TradingChart({
         <h2 className="text-xl font-semibold">
           {symbol}/{timeframe}
         </h2>
-        <span className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span
-            className={`inline-block h-2 w-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          />
-          {isConnected ? 'Live' : 'Disconnected'}
-        </span>
+        <div className="flex items-center gap-3">
+          {mtfAvailable && (
+            <MtfToggle
+              isPro={isPro}
+              enabled={mtfEnabled}
+              isLoading={mtfLoading}
+              onToggle={setMtfEnabled}
+            />
+          )}
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+            {isConnected ? 'Live' : 'Disconnected'}
+          </span>
+        </div>
       </div>
+
+      {mtfEnabled && mtfError && (
+        <p className="text-sm text-destructive">{mtfError}</p>
+      )}
 
       {/* Chart container */}
       <div className="relative rounded-lg border bg-card p-4">

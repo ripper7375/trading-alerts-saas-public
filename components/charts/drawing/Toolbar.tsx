@@ -29,6 +29,8 @@ interface ToolbarProps {
   activeTool: DrawingType | null;
   hasSelection: boolean;
   canAddAlert: boolean;
+  /** V8: line alerts are PRO-exclusive; false shows a PRO hint on the bell. */
+  isPro?: boolean;
   alertsOpen: boolean;
   onSelectTool: (tool: DrawingType | null) => void;
   onDelete: () => void;
@@ -50,6 +52,7 @@ export function Toolbar({
   activeTool,
   hasSelection,
   canAddAlert,
+  isPro = true,
   alertsOpen,
   onSelectTool,
   onDelete,
@@ -121,16 +124,25 @@ export function Toolbar({
       <button
         type="button"
         aria-label="Add price alert"
-        title="Add price alert"
-        disabled={!canAddAlert}
-        className={`${buttonBase} ${
-          canAddAlert
+        title={
+          isPro
+            ? 'Add price alert'
+            : 'Line alerts are a PRO feature — upgrade to unlock'
+        }
+        disabled={!canAddAlert || !isPro}
+        className={`${buttonBase} relative ${
+          canAddAlert && isPro
             ? 'border-transparent text-[#26a69a] hover:bg-[#2a2e39]'
             : 'cursor-not-allowed border-transparent text-[#4a4e59]'
         }`}
         onClick={onAddAlert}
       >
         <Bell className="h-4 w-4" />
+        {!isPro && (
+          <span className="absolute -right-1 -top-1 rounded bg-[#2962FF] px-0.5 text-[8px] font-bold leading-3 text-white">
+            PRO
+          </span>
+        )}
       </button>
 
       <button

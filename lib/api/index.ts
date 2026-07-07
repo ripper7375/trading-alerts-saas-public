@@ -15,11 +15,6 @@ interface AlertData {
   [key: string]: unknown;
 }
 
-interface WatchlistData {
-  symbol: string;
-  [key: string]: unknown;
-}
-
 interface UserData {
   name?: string;
   email?: string;
@@ -80,12 +75,7 @@ const stackA = {
   deleteAlert: (id: string) =>
     apiCall(`/api/alerts/${id}`, { method: 'DELETE' }),
 
-  // Watchlist API (Part 10)
-  getWatchlist: () => apiCall('/api/watchlist', { method: 'GET' }),
-  addToWatchlist: (data: WatchlistData) =>
-    apiCall('/api/watchlist', { method: 'POST', body: JSON.stringify(data) }),
-  removeFromWatchlist: (id: string) =>
-    apiCall(`/api/watchlist/${id}`, { method: 'DELETE' }),
+  // Watchlist API removed in V8 (watchlists eliminated from the product)
 
   // Charts API (Part 9) - CORRECTED
   getChartData: (symbol: string) =>

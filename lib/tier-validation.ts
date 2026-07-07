@@ -1,14 +1,20 @@
 /**
  * Trading Alerts SaaS - Tier Validation
- * Validates user access based on subscription tier
- * Enhanced with watchlist, indicator, and comprehensive tier limits
+ * Validates user access based on subscription tier.
+ *
+ * V8 single-symbol architecture:
+ * - Symbol/timeframe/data-column access is IDENTICAL for both tiers
+ *   (XAUUSD, M5/M15, all market_data_v6 columns).
+ * - The only gated resource here is Alerts: FREE 0 / PRO 100.
+ * - Watchlist validation removed (feature deleted); deprecated stubs remain
+ *   until the Part 10 purge removes their last consumers.
  */
 
 import {
-  FREE_SYMBOLS,
-  FREE_TIMEFRAMES,
-  PRO_SYMBOLS,
-  PRO_TIMEFRAMES,
+  SYMBOLS,
+  TIMEFRAMES,
+  FREE_TIER_CONFIG,
+  PRO_TIER_CONFIG,
   type Tier,
 } from './tier-config';
 
@@ -19,41 +25,23 @@ export type { Tier };
 // =============================================
 
 /**
- * Comprehensive tier limits based on tier specifications and 63-column schema
- * FREE: 5 alerts, 1 watchlist/5 items, 60 req/hour, 2 FREE indicators (16 columns)
- * PRO: 20 alerts, 5 watchlists/50 items, 300 req/hour, all 10 indicators (54 columns)
+ * Tier limits derived from the canonical lib/tier-config.ts.
+ * FREE: 0 alerts | PRO: 100 alerts. Everything else is shared.
  */
 export const TIER_LIMITS = {
   FREE: {
-    maxAlerts: 5,
-    maxWatchlists: 1,
-    maxWatchlistItems: 5,
-    rateLimit: 60, // requests per HOUR
-    symbols: FREE_SYMBOLS,
-    timeframes: FREE_TIMEFRAMES,
-    chartCombinations: 15, // 5 × 3
-    indicators: ['fractal_diagonal', 'fractal_horizontal'] as const,
+    maxAlerts: FREE_TIER_CONFIG.maxAlerts, // 0
+    rateLimit: FREE_TIER_CONFIG.rateLimit, // 60/hour
+    symbols: SYMBOLS,
+    timeframes: TIMEFRAMES,
+    chartCombinations: FREE_TIER_CONFIG.chartCombinations, // 2
   },
   PRO: {
-    maxAlerts: 20,
-    maxWatchlists: 5,
-    maxWatchlistItems: 50,
-    rateLimit: 300, // requests per HOUR
-    symbols: PRO_SYMBOLS,
-    timeframes: PRO_TIMEFRAMES,
-    chartCombinations: 135, // 15 × 9
-    indicators: [
-      'fractal_diagonal',
-      'fractal_horizontal',
-      'moving_averages',
-      'body_momentum',
-      'heiken_ashi',
-      'keltner_channels',
-      'support_resistance',
-      'zigzag',
-      'dual_tema_hl',
-      'pinbar_detection',
-    ] as const,
+    maxAlerts: PRO_TIER_CONFIG.maxAlerts, // 100
+    rateLimit: PRO_TIER_CONFIG.rateLimit, // 300/hour
+    symbols: SYMBOLS,
+    timeframes: TIMEFRAMES,
+    chartCombinations: PRO_TIER_CONFIG.chartCombinations, // 2
   },
 } as const;
 
@@ -66,7 +54,6 @@ export interface TierConfig {
   allowedSymbols: string[];
   allowedTimeframes: string[];
   maxAlerts: number;
-  maxWatchlistItems: number;
   rateLimit: number;
 }
 
@@ -75,23 +62,20 @@ export interface ValidationResult {
   reason?: string;
 }
 
-// Legacy config for backward compatibility
 const TIER_CONFIGS: Record<Tier, TierConfig> = {
   FREE: {
-    maxSymbols: 5,
-    allowedSymbols: [...FREE_SYMBOLS],
-    allowedTimeframes: [...FREE_TIMEFRAMES],
-    maxAlerts: 5,
-    maxWatchlistItems: 5,
-    rateLimit: 60,
+    maxSymbols: 1,
+    allowedSymbols: [...SYMBOLS],
+    allowedTimeframes: [...TIMEFRAMES],
+    maxAlerts: TIER_LIMITS.FREE.maxAlerts,
+    rateLimit: TIER_LIMITS.FREE.rateLimit,
   },
   PRO: {
-    maxSymbols: 15,
-    allowedSymbols: ['*'], // All symbols
-    allowedTimeframes: ['*'], // All timeframes
-    maxAlerts: 20,
-    maxWatchlistItems: 50,
-    rateLimit: 300,
+    maxSymbols: 1,
+    allowedSymbols: [...SYMBOLS],
+    allowedTimeframes: [...TIMEFRAMES],
+    maxAlerts: TIER_LIMITS.PRO.maxAlerts,
+    rateLimit: TIER_LIMITS.PRO.rateLimit,
   },
 };
 
@@ -118,11 +102,11 @@ export function getTierConfig(tier: Tier): TierConfig {
 // =============================================
 
 /**
- * Check if tier can access symbol
+ * Check if tier can access symbol.
+ * V8: tier-independent — only XAUUSD is supported.
  */
-export function canAccessSymbol(tier: Tier, symbol: string): boolean {
-  const limits = getTierLimits(tier);
-  return (limits.symbols as readonly string[]).includes(symbol.toUpperCase());
+export function canAccessSymbol(_tier: Tier, symbol: string): boolean {
+  return (SYMBOLS as readonly string[]).includes(symbol.toUpperCase());
 }
 
 /**
@@ -136,20 +120,13 @@ export function validateTierAccess(
     throw new Error(`Invalid tier: ${tier}`);
   }
 
-  const config = TIER_CONFIGS[tier];
-
-  // Check if symbol is allowed
-  if (config.allowedSymbols[0] === '*') {
-    return { allowed: true };
-  }
-
-  if (config.allowedSymbols.includes(symbol)) {
+  if (canAccessSymbol(tier, symbol)) {
     return { allowed: true };
   }
 
   return {
     allowed: false,
-    reason: `Symbol ${symbol} requires PRO tier. Please upgrade to access all ${config.allowedSymbols.length + 10} symbols.`,
+    reason: `Symbol ${symbol} is not supported. This platform provides XAUUSD data only.`,
   };
 }
 
@@ -165,13 +142,11 @@ export function getSymbolLimit(tier: Tier): number {
 // =============================================
 
 /**
- * Check if tier can access timeframe
+ * Check if tier can access timeframe.
+ * V8: tier-independent — only M5 and M15 are supported.
  */
-export function canAccessTimeframe(timeframe: string, tier: Tier): boolean {
-  const limits = getTierLimits(tier);
-  return (limits.timeframes as readonly string[]).includes(
-    timeframe.toUpperCase()
-  );
+export function canAccessTimeframe(timeframe: string, _tier?: Tier): boolean {
+  return (TIMEFRAMES as readonly string[]).includes(timeframe.toUpperCase());
 }
 
 /**
@@ -181,19 +156,13 @@ export function validateTimeframeAccess(
   tier: Tier,
   timeframe: string
 ): ValidationResult {
-  const config = TIER_CONFIGS[tier];
-
-  if (config.allowedTimeframes[0] === '*') {
-    return { allowed: true };
-  }
-
-  if (config.allowedTimeframes.includes(timeframe)) {
+  if (canAccessTimeframe(timeframe, tier)) {
     return { allowed: true };
   }
 
   return {
     allowed: false,
-    reason: `Timeframe ${timeframe} requires PRO tier. Please upgrade to access all 9 timeframes.`,
+    reason: `Timeframe ${timeframe} is not supported. Available timeframes: ${TIMEFRAMES.join(', ')}.`,
   };
 }
 
@@ -203,115 +172,67 @@ export function validateTimeframeAccess(
 
 /**
  * Get alert limit for tier
+ * FREE: 0 alerts (PRO feature), PRO: 100 alerts
  */
 export function getAlertLimit(tier: Tier): number {
   return TIER_LIMITS[tier].maxAlerts;
 }
 
 /**
- * Check if tier can create more alerts
- * FREE: 5 alerts, PRO: 20 alerts
+ * Check if tier can create more alerts.
+ * FREE users can never create alerts — Alerts are a PRO feature.
  */
 export function canCreateAlert(
   tier: Tier,
   currentAlerts: number
 ): ValidationResult {
-  const limit = getAlertLimit(tier);
+  if (tier === 'FREE') {
+    return {
+      allowed: false,
+      reason:
+        'Alerts are a PRO feature. Upgrade to PRO to create up to ' +
+        `${TIER_LIMITS.PRO.maxAlerts} alerts.`,
+    };
+  }
 
+  const limit = getAlertLimit(tier);
   if (currentAlerts < limit) {
     return { allowed: true };
   }
 
   return {
     allowed: false,
-    reason: `Alert limit reached (${limit}). Upgrade to PRO for ${TIER_LIMITS.PRO.maxAlerts} alerts.`,
+    reason: `Alert limit reached (${limit}).`,
   };
 }
 
 // =============================================
-// Watchlist Functions
+// Indicator / Column Access
+// V8: both tiers access ALL indicators and ALL market_data_v6 columns.
 // =============================================
 
 /**
- * Get watchlist limit for tier
+ * Check if tier can access indicator.
+ * V8: always true — no indicator gating.
  */
-export function getWatchlistLimit(tier: Tier): number {
-  return TIER_LIMITS[tier].maxWatchlistItems;
+export function canAccessIndicator(_indicator: string, _tier: Tier): boolean {
+  return true;
 }
 
 /**
- * Get max watchlists for tier
- * FREE: 1 watchlist, PRO: 5 watchlists
+ * Get accessible indicators for tier.
+ * V8: delegated to lib/tier/constants — all indicators for every tier.
  */
-export function getMaxWatchlists(tier: Tier): number {
-  return TIER_LIMITS[tier].maxWatchlists;
+export function getAccessibleIndicators(_tier: Tier): string[] {
+  return []; // No gating: callers should read indicator metadata directly.
 }
 
 /**
- * Check if tier can create more watchlists
- * FREE: 1 watchlist, PRO: 5 watchlists
+ * Get locked (PRO-only) indicators.
+ * V8: always empty — no indicator gating.
  */
-export function canCreateWatchlist(currentCount: number, tier: Tier): boolean {
-  const limits = getTierLimits(tier);
-  return currentCount < limits.maxWatchlists;
-}
-
-/**
- * Check if watchlist can accept more items
- * FREE: 5 items, PRO: 50 items
- */
-export function canAddWatchlistItem(
-  tier: Tier,
-  currentItems: number
-): ValidationResult {
-  const limit = getWatchlistLimit(tier);
-
-  if (currentItems < limit) {
-    return { allowed: true };
-  }
-
-  return {
-    allowed: false,
-    reason: `Watchlist limit reached (${limit}). Upgrade to PRO for ${TIER_LIMITS.PRO.maxWatchlistItems} items.`,
-  };
-}
-
-// =============================================
-// Indicator Functions
-// =============================================
-
-/**
- * Check if tier can access indicator
- * FREE: fractals, trendlines (2 basic)
- * PRO: all 8 indicators
- */
-export function canAccessIndicator(indicator: string, tier: Tier): boolean {
-  const limits = getTierLimits(tier);
-  return (limits.indicators as readonly string[]).includes(
-    indicator.toLowerCase()
-  );
-}
-
-/**
- * Get accessible indicators for tier
- */
-export function getAccessibleIndicators(tier: Tier): string[] {
-  const limits = getTierLimits(tier);
-  return [...limits.indicators];
-}
-
-/**
- * Get locked (PRO-only) indicators for FREE tier
- */
-export function getLockedIndicators(tier: Tier): string[] {
-  if (tier === 'PRO') return [];
-
-  const proIndicators = TIER_LIMITS.PRO.indicators;
-  const freeIndicators = TIER_LIMITS.FREE.indicators;
-
-  return proIndicators.filter(
-    (ind) => !(freeIndicators as readonly string[]).includes(ind)
-  );
+export function getLockedIndicators(_tier: Tier): string[] {
+  return [];
 }
 
 // =============================================
@@ -338,8 +259,7 @@ export function getRateLimitForTier(tier: Tier): number {
 // =============================================
 
 /**
- * Get chart combinations for tier
- * FREE: 15 (5 × 3), PRO: 135 (15 × 9)
+ * Get chart combinations for tier (V8: 2 for both — XAUUSD × M5/M15)
  */
 export function getChartCombinations(tier: Tier): number {
   return TIER_LIMITS[tier].chartCombinations;
@@ -349,14 +269,7 @@ export function getChartCombinations(tier: Tier): number {
  * Get all combinations count for a tier (legacy)
  */
 export function getCombinationCount(tier: Tier): number {
-  const symbols = getAvailableSymbols(tier);
-  const timeframes = getAvailableTimeframes(tier);
-
-  if (symbols.includes('*') || timeframes.includes('*')) {
-    return -1; // Unlimited (PRO with wildcard)
-  }
-
-  return symbols.length * timeframes.length;
+  return getAvailableSymbols(tier).length * getAvailableTimeframes(tier).length;
 }
 
 // =============================================
@@ -396,57 +309,26 @@ export function validateFullTierAccess(params: {
   symbol?: string;
   timeframe?: string;
   alertCount?: number;
-  watchlistCount?: number;
-  watchlistItemCount?: number;
   indicator?: string;
 }): string | null {
-  const {
-    tier,
-    symbol,
-    timeframe,
-    alertCount,
-    watchlistCount,
-    watchlistItemCount,
-    indicator,
-  } = params;
+  const { tier, symbol, timeframe, alertCount } = params;
 
   if (symbol && !canAccessSymbol(tier, symbol)) {
-    const tierName = tier === 'FREE' ? 'Free' : 'Pro';
-    return `Your ${tierName} tier does not have access to ${symbol}. Upgrade to access all 15 symbols.`;
+    return `Symbol ${symbol} is not supported. This platform provides XAUUSD data only.`;
   }
 
   if (timeframe && !canAccessTimeframe(timeframe, tier)) {
-    const tierName = tier === 'FREE' ? 'Free' : 'Pro';
-    return `Your ${tierName} tier does not have access to ${timeframe} timeframe. Upgrade to access all 9 timeframes.`;
+    return `Timeframe ${timeframe} is not supported. Available timeframes: ${TIMEFRAMES.join(', ')}.`;
   }
 
   if (alertCount !== undefined) {
     const result = canCreateAlert(tier, alertCount);
     if (!result.allowed) {
-      const limits = getTierLimits(tier);
-      return `You have reached your alert limit (${limits.maxAlerts}). Upgrade to create more alerts.`;
+      return result.reason ?? 'Alert creation not allowed.';
     }
   }
 
-  if (
-    watchlistCount !== undefined &&
-    !canCreateWatchlist(watchlistCount, tier)
-  ) {
-    const limits = getTierLimits(tier);
-    return `You have reached your watchlist limit (${limits.maxWatchlists}). Upgrade to create more watchlists.`;
-  }
-
-  if (watchlistItemCount !== undefined) {
-    const result = canAddWatchlistItem(tier, watchlistItemCount);
-    if (!result.allowed) {
-      const limits = getTierLimits(tier);
-      return `You have reached your watchlist item limit (${limits.maxWatchlistItems}). Upgrade for more space.`;
-    }
-  }
-
-  if (indicator && !canAccessIndicator(indicator, tier)) {
-    return `Your Free tier does not have access to ${indicator}. Upgrade to Pro for all 10 indicators.`;
-  }
+  // Indicators/columns: no gating in V8 — always allowed.
 
   return null; // Access allowed
 }
@@ -456,14 +338,14 @@ export function validateFullTierAccess(params: {
 // =============================================
 
 /**
- * Get available symbols for a tier
+ * Get available symbols for a tier (V8: always ['XAUUSD'])
  */
 export function getAvailableSymbols(tier: Tier): string[] {
   return TIER_CONFIGS[tier]?.allowedSymbols ?? [];
 }
 
 /**
- * Get available timeframes for a tier
+ * Get available timeframes for a tier (V8: always ['M5', 'M15'])
  */
 export function getAvailableTimeframes(tier: Tier): string[] {
   return TIER_CONFIGS[tier]?.allowedTimeframes ?? [];
@@ -475,18 +357,10 @@ export function getAvailableTimeframes(tier: Tier): string[] {
 export function getAllCombinations(
   tier: Tier
 ): Array<{ symbol: string; timeframe: string }> {
-  const symbols = getAvailableSymbols(tier);
-  const timeframes = getAvailableTimeframes(tier);
-
-  // If wildcard, return empty (would be too many combinations)
-  if (symbols.includes('*') || timeframes.includes('*')) {
-    return [];
-  }
-
   const combinations: Array<{ symbol: string; timeframe: string }> = [];
 
-  for (const symbol of symbols) {
-    for (const timeframe of timeframes) {
+  for (const symbol of getAvailableSymbols(tier)) {
+    for (const timeframe of getAvailableTimeframes(tier)) {
       combinations.push({ symbol, timeframe });
     }
   }

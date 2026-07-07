@@ -4,6 +4,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import IORedis from 'ioredis';
 
 import { startAlertDeliveryBridge } from '@/lib/alert-engine/notify-bridge';
+import { SYMBOLS, TIMEFRAMES } from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -139,6 +140,29 @@ export async function initWebSocketServer(
       socket.emit('pong', { timestamp: Date.now() });
     });
 
+    // V8: market data subscription — XAUUSD M5/M15 only.
+    // Deliberately NO tier check: both FREE and PRO receive the full
+    // market_data_v6 stream (all columns). Tier differentiation lives in
+    // Alerts / MTF / drawing tools, not in data access.
+    socket.on('subscribe_market', (data: unknown) => {
+      const sub = data as { symbol?: string; timeframe?: string };
+      const symbol = (sub?.symbol || '').toUpperCase();
+      const timeframe = (sub?.timeframe || '').toUpperCase();
+
+      if (
+        !(SYMBOLS as readonly string[]).includes(symbol) ||
+        !(TIMEFRAMES as readonly string[]).includes(timeframe)
+      ) {
+        socket.emit('error', {
+          message: `Unsupported market channel. Available: ${SYMBOLS.join(', ')} × ${TIMEFRAMES.join(', ')}`,
+        });
+        return;
+      }
+
+      socket.join(`market:${symbol}:${timeframe}`);
+      socket.emit('market_subscribed', { symbol, timeframe });
+    });
+
     // Handle notification read acknowledgment
     socket.on('notification_read', (data: unknown) => {
       const readData = data as { notificationId: string };
@@ -246,6 +270,37 @@ export function broadcastNotification(notification: NotificationPayload): void {
   console.info(
     `Broadcast notification sent to ${connectedUsers.size} users: ${notification.title}`
   );
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BROADCAST MARKET DATA (V8)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Broadcast a market_data_v6 update to every client subscribed to the
+ * symbol/timeframe room — regardless of tier. Called by the data
+ * pipeline consumer when a new XAUUSD M5/M15 row lands.
+ *
+ * @param symbol - 'XAUUSD'
+ * @param timeframe - 'M5' | 'M15'
+ * @param data - The market_data_v6 row (all columns, both tiers)
+ */
+export function broadcastMarketData(
+  symbol: string,
+  timeframe: string,
+  data: Record<string, unknown>
+): void {
+  if (!ioInstance) {
+    console.warn('WebSocket server not initialized');
+    return;
+  }
+
+  ioInstance.to(`market:${symbol}:${timeframe}`).emit('market_data_v6', {
+    type: 'market_data_v6',
+    symbol,
+    timeframe,
+    data,
+  });
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -13,16 +13,17 @@ describe('TypeScript Types', () => {
       expect(TIER_CONFIG.PRO).toBeDefined();
     });
 
-    it('should export FREE_TIER_SYMBOLS constant', async () => {
-      const { FREE_TIER_SYMBOLS } = await import('@/types/tier');
-      expect(FREE_TIER_SYMBOLS).toBeDefined();
-      expect(FREE_TIER_SYMBOLS.length).toBeGreaterThan(0);
+    it('should export ALL_SYMBOLS constant (V8: XAUUSD only)', async () => {
+      const { ALL_SYMBOLS } = await import('@/types/tier');
+      expect(ALL_SYMBOLS).toBeDefined();
+      expect([...ALL_SYMBOLS]).toEqual(['XAUUSD']);
     });
 
-    it('should export TIMEFRAME_LABELS', async () => {
+    it('should export TIMEFRAME_LABELS (V8: M5/M15 only)', async () => {
       const { TIMEFRAME_LABELS } = await import('@/types/tier');
       expect(TIMEFRAME_LABELS).toBeDefined();
-      expect(TIMEFRAME_LABELS.H1).toBe('1 Hour');
+      expect(TIMEFRAME_LABELS.M5).toBe('5 Minutes');
+      expect(TIMEFRAME_LABELS.M15).toBe('15 Minutes');
     });
   });
 
@@ -37,13 +38,6 @@ describe('TypeScript Types', () => {
     it('should export user types', async () => {
       const userModule = await import('@/types/user');
       expect(userModule).toBeDefined();
-    });
-  });
-
-  describe('Watchlist Types', () => {
-    it('should export watchlist types', async () => {
-      const watchlistModule = await import('@/types/watchlist');
-      expect(watchlistModule).toBeDefined();
     });
   });
 

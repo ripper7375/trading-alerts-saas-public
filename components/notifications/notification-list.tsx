@@ -15,6 +15,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,8 @@ type TypeFilter = 'ALERT' | 'SUBSCRIPTION' | 'PAYMENT' | 'SYSTEM' | undefined;
  */
 export function NotificationList(): React.JSX.Element {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isPro = session?.user?.tier === 'PRO';
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(undefined);
@@ -525,15 +528,36 @@ export function NotificationList(): React.JSX.Element {
             </Button>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="py-12 text-center">
-            <Bell className="h-12 w-12 mx-auto text-gray-300" />
-            <p className="text-lg text-gray-500 mt-4">No notifications</p>
-            <p className="text-sm text-gray-400">
-              {statusFilter === 'unread'
-                ? 'All caught up!'
-                : "You don't have any notifications yet"}
-            </p>
-          </div>
+          typeFilter === 'ALERT' && !isPro ? (
+            /* V8: alert notifications are PRO-only */
+            <div className="py-12 text-center">
+              <Bell className="h-12 w-12 mx-auto text-gray-300" />
+              <p className="text-lg text-gray-700 font-semibold mt-4">
+                Alert notifications are a PRO feature
+              </p>
+              <p className="text-sm text-gray-500 mt-1 mb-4">
+                Upgrade to create up to 100 price alerts on XAUUSD M5/M15 and
+                get notified when they trigger.
+              </p>
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => router.push('/pricing')}
+              >
+                Upgrade to PRO
+              </Button>
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <Bell className="h-12 w-12 mx-auto text-gray-300" />
+              <p className="text-lg text-gray-500 mt-4">No notifications</p>
+              <p className="text-sm text-gray-400">
+                {statusFilter === 'unread'
+                  ? 'All caught up!'
+                  : "You don't have any notifications yet"}
+              </p>
+            </div>
+          )
         ) : (
           <div className="space-y-2">
             {notifications.map((notification) => (

@@ -45,10 +45,14 @@ export function useFiredAlertMarkers(
     if (!series) return;
     const plugin = createSeriesMarkers(series, []);
     pluginRef.current = plugin;
+    // Capture the store instance now — by the time this cleanup runs,
+    // storeRef.current could in principle point elsewhere, so read it
+    // once here rather than inside the closure (react-hooks/exhaustive-deps).
+    const store = storeRef.current;
     return (): void => {
       plugin.detach();
       pluginRef.current = null;
-      storeRef.current.clear();
+      store.clear();
     };
   }, [series]);
 

@@ -288,10 +288,10 @@ export function ChartControls({
                     PRO includes:
                   </p>
                   <ul className="text-sm text-gray-600 space-y-1">
-                    <li>✓ All 15 trading symbols</li>
-                    <li>✓ All 9 timeframes (M5-D1)</li>
+                    <li>✓ 100 price alerts on XAUUSD M5/M15</li>
+                    <li>✓ Drawing engine line alerts</li>
+                    <li>✓ Multi-timeframe visualization</li>
                     <li>✓ 30-second data updates</li>
-                    <li>✓ 20 alerts & 50 watchlist items</li>
                   </ul>
                 </div>
 

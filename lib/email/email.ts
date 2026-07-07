@@ -122,8 +122,8 @@ export function getWelcomeEmail(name: string): string {
         </p>
         <h2 style="color: #18181b; font-size: 18px; margin: 24px 0 12px 0;">Get Started:</h2>
         <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-          <li>Set up your first alert to track price movements</li>
-          <li>Add symbols to your watchlist for quick access</li>
+          <li>Open the XAUUSD chart on M5 or M15</li>
+          <li>Explore channel and structure overlays</li>
           <li>Customize your notification preferences</li>
         </ul>
         <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/dashboard" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
@@ -366,30 +366,24 @@ export function getSubscriptionConfirmationEmail(
   const proFeatures = `
     <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">What You Get with Pro:</h3>
     <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-      <li><strong>15 Symbols</strong> - All forex pairs, crypto (BTC, ETH), indices (US30, NDX100), and commodities (Gold, Silver)</li>
-      <li><strong>9 Timeframes</strong> - From 5-minute to daily analysis (M5, M15, M30, H1, H2, H4, H8, H12, D1)</li>
-      <li><strong>135 Chart Combinations</strong> - Full flexibility</li>
-      <li><strong>20 Alerts</strong> - Never miss a trading opportunity</li>
-      <li><strong>5 Watchlists</strong> with 50 items each</li>
-      <li><strong>8 Technical Indicators</strong> - Including Keltner Channels, Momentum Candles, TEMA, HRMA, SMMA, ZigZag</li>
+      <li><strong>100 Price Alerts</strong> - Never miss a trading opportunity</li>
+      <li><strong>Drawing Engine Line Alerts</strong> - Draw a line on the chart, get alerted when price touches it</li>
+      <li><strong>Multi-Timeframe Visualization</strong> - Overlay M5 structure on M15 charts</li>
+      <li><strong>Exclusive XAUUSD Insights</strong> - Full M5/M15 indicator data (all 79 columns)</li>
       <li><strong>300 API Requests/Hour</strong></li>
-      <li><strong>Advanced Charts & Data Export</strong></li>
+      <li><strong>Priority Support & Data Export</strong></li>
     </ul>
   `;
 
   const freeFeatures = `
     <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Your Free Plan Includes:</h3>
     <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-      <li><strong>5 Symbols</strong> - BTCUSD, EURUSD, USDJPY, US30, XAUUSD</li>
-      <li><strong>3 Timeframes</strong> - H1, H4, D1</li>
-      <li><strong>15 Chart Combinations</strong></li>
-      <li><strong>5 Alerts</strong></li>
-      <li><strong>1 Watchlist</strong> with 5 items</li>
-      <li><strong>2 Basic Indicators</strong> - Fractals and Trendlines</li>
+      <li><strong>XAUUSD (Gold)</strong> - M5 and M15 charts</li>
+      <li><strong>Full Indicator Data</strong> - Same market data as Pro</li>
       <li><strong>60 API Requests/Hour</strong></li>
     </ul>
     <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-      <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="color: #2563eb; font-weight: 500;">Upgrade to Pro</a> for more features!
+      <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="color: #2563eb; font-weight: 500;">Upgrade to Pro</a> for alerts, line alerts, and multi-timeframe view!
     </p>
   `;
 
@@ -512,20 +506,21 @@ export function getUpgradePromptEmail(
   reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
 ): string {
   const reasons = {
-    alert_limit: "You've reached your 5 alert limit",
-    symbol_limit: "You're trying to access PRO-exclusive symbols",
-    timeframe_limit: "You're trying to access PRO-exclusive timeframes",
-    indicator_limit: "You're trying to access PRO-exclusive indicators",
+    alert_limit: 'Price alerts are a Pro feature',
+    symbol_limit: "You're trying to access Pro-exclusive features",
+    timeframe_limit: "You're trying to access Pro-exclusive features",
+    indicator_limit: "You're trying to access Pro-exclusive features",
   };
 
   const benefits = {
-    alert_limit: '<li>Increase from <strong>5 to 20 alerts</strong></li>',
+    alert_limit:
+      '<li>Create up to <strong>100 price alerts</strong> on XAUUSD M5/M15</li>',
     symbol_limit:
-      '<li>Access to <strong>all 15 symbols</strong> including ETHUSD, GBPUSD, XAGUSD, and more</li>',
+      '<li><strong>Drawing engine line alerts</strong> - get alerted when price touches your drawn lines</li>',
     timeframe_limit:
-      '<li>Access to <strong>all 9 timeframes</strong> including M5, M15, M30, H2, H8, H12</li>',
+      '<li><strong>Multi-timeframe visualization</strong> - overlay M5 structure on M15 charts</li>',
     indicator_limit:
-      '<li>Access to <strong>all 8 indicators</strong> including Momentum Candles, Keltner Channels, TEMA, HRMA, SMMA, ZigZag</li>',
+      '<li><strong>Full alert & notification system</strong> for XAUUSD M5/M15</li>',
   };
 
   return `
@@ -546,8 +541,8 @@ export function getUpgradePromptEmail(
         <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Pro Plan Benefits:</h3>
         <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
           ${benefits[reason]}
-          <li><strong>135 chart combinations</strong> (15 symbols x 9 timeframes)</li>
-          <li><strong>5 watchlists</strong> with 50 items each</li>
+          <li><strong>100 price alerts</strong> plus drawing-engine line alerts</li>
+          <li><strong>Multi-timeframe visualization</strong> for XAUUSD M5/M15</li>
           <li><strong>300 API requests/hour</strong> (vs 60 on Free)</li>
           <li><strong>7-day free trial</strong> to test all features</li>
         </ul>

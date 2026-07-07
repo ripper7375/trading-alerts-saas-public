@@ -507,7 +507,7 @@ async function processAffiliateCommission(
     // Base price comes from SystemConfig (dynamic) with the static
     // AFFILIATE_CONFIG value as fallback; percentages come from the code
     // itself (snapshotted at distribution time).
-    let basePriceUsd = AFFILIATE_CONFIG.BASE_PRICE_USD;
+    let basePriceUsd: number = AFFILIATE_CONFIG.BASE_PRICE_USD;
     try {
       basePriceUsd = await getBasePriceUsd();
     } catch {

@@ -12,6 +12,10 @@ const NextAuth = jest.fn(() => ({
   signOut: jest.fn(),
 }));
 
+// Note: next-auth/react has its own mock at __mocks__/next-auth-react.js
+// (mapped separately in jest.config.js) — see the comment there for why
+// it must not share a file with this one.
+
 module.exports = {
   __esModule: true,
   default: NextAuth,

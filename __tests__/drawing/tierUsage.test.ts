@@ -9,11 +9,12 @@ import {
 
 describe('tierUsage', () => {
   it('formats alert usage and flags at-limit', () => {
+    // V8: Alerts are a PRO-only feature — FREE tier's alert limit is 0.
     const free = alertUsage('FREE', 5);
-    expect(free.limit).toBeGreaterThan(0);
+    expect(free.limit).toBe(0);
     expect(free.label).toBe(`5 / ${free.limit}`);
-    expect(alertUsage('FREE', free.limit).atLimit).toBe(true);
-    expect(alertUsage('FREE', 0).atLimit).toBe(false);
+    // With a limit of 0, FREE is always at-limit, even with zero alerts.
+    expect(alertUsage('FREE', 0).atLimit).toBe(true);
   });
 
   it('PRO has a higher (or equal) alert limit than FREE', () => {

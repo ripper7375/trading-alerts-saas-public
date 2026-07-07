@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,8 @@ interface NotificationsResponse {
  */
 export function NotificationBell(): React.JSX.Element {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isPro = session?.user?.tier === 'PRO';
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -346,13 +349,42 @@ export function NotificationBell(): React.JSX.Element {
               </Button>
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="text-6xl opacity-30 mb-4">🔔</div>
-              <p className="text-lg text-gray-500 mb-2">No notifications yet</p>
-              <p className="text-sm text-gray-400">
-                We&apos;ll notify you about alerts and important updates
-              </p>
-            </div>
+            activeTab === 'alerts' && !isPro ? (
+              /* V8: FREE users cannot create alerts — show upgrade prompt
+                 in the Alerts tab instead of a generic empty state */
+              <div className="p-8 text-center">
+                <div className="text-6xl opacity-30 mb-4">🔔</div>
+                <p className="text-lg text-gray-700 font-semibold mb-2">
+                  Alert notifications are a PRO feature
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Upgrade to create up to 100 price alerts on XAUUSD M5/M15
+                  and get notified the moment they trigger.
+                </p>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    setOpen(false);
+                    router.push('/pricing');
+                  }}
+                >
+                  Upgrade to PRO
+                </Button>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="text-6xl opacity-30 mb-4">🔔</div>
+                <p className="text-lg text-gray-500 mb-2">
+                  No notifications yet
+                </p>
+                <p className="text-sm text-gray-400">
+                  {isPro
+                    ? "We'll notify you about alerts and important updates"
+                    : "We'll notify you about account and billing updates"}
+                </p>
+              </div>
+            )
           ) : (
             filteredNotifications.map((notification) => (
               <div

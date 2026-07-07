@@ -22,7 +22,6 @@ import { type Tier } from '@/types/tier';
 
 interface UsageData {
   alerts: number;
-  watchlists: number;
 }
 
 export default function SettingsPage(): React.ReactElement {
@@ -30,7 +29,6 @@ export default function SettingsPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [usageData, setUsageData] = useState<UsageData>({
     alerts: 0,
-    watchlists: 0,
   });
 
   const tier = (session?.user?.tier || 'FREE') as Tier;
@@ -41,7 +39,6 @@ export default function SettingsPage(): React.ReactElement {
     const timer = setTimeout(() => {
       setUsageData({
         alerts: 3, // Mock data - would come from API
-        watchlists: 1,
       });
       setIsLoading(false);
     }, 500);
@@ -106,9 +103,9 @@ export default function SettingsPage(): React.ReactElement {
           {/* Current Usage with CORRECT limits */}
           <div className="mt-6 space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">Symbols</span>
+              <span className="text-gray-700 dark:text-gray-300">Symbol</span>
               <span className="font-medium text-gray-900 dark:text-white">
-                {tier === 'FREE' ? '5 included' : '15 included'}
+                XAUUSD (Gold)
               </span>
             </div>
 
@@ -117,23 +114,16 @@ export default function SettingsPage(): React.ReactElement {
                 Timeframes
               </span>
               <span className="font-medium text-gray-900 dark:text-white">
-                {tier === 'FREE' ? '3 included' : '9 included'}
+                M5, M15
               </span>
             </div>
 
             <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Alerts</span>
               <span className="font-medium text-gray-900 dark:text-white">
-                {usageData.alerts} / {tier === 'FREE' ? '5' : '20'}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
-              <span className="text-gray-700 dark:text-gray-300">
-                Watchlists
-              </span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {usageData.watchlists} / {tier === 'FREE' ? '1' : '5'}
+                {tier === 'FREE'
+                  ? 'PRO feature'
+                  : `${usageData.alerts} / 100`}
               </span>
             </div>
 
@@ -142,7 +132,7 @@ export default function SettingsPage(): React.ReactElement {
                 Indicators
               </span>
               <span className="font-medium text-gray-900 dark:text-white">
-                {tier === 'FREE' ? '2 basic' : '8 total'}
+                All included
               </span>
             </div>
 
@@ -165,27 +155,19 @@ export default function SettingsPage(): React.ReactElement {
               <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
                 <li className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  15 symbols (vs 5 on Free)
+                  100 price alerts on XAUUSD M5/M15
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  9 timeframes (vs 3 on Free)
+                  Drawing engine line alerts
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  135 chart combinations (vs 15 on Free)
+                  Multi-timeframe visualization
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
-                  20 alerts (vs 5 on Free)
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>8 indicators
-                  including Keltner Channels, Momentum Candles
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  5 watchlists with 50 items each
+                  Full alert &amp; notification system
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
@@ -207,8 +189,8 @@ export default function SettingsPage(): React.ReactElement {
                 You have Pro Access
               </h3>
               <p className="text-sm text-green-800 dark:text-green-200">
-                Enjoy full access to all 15 symbols, 9 timeframes, 135 chart
-                combinations, and 8 technical indicators.
+                Enjoy 100 price alerts, drawing engine line alerts, and
+                multi-timeframe visualization on XAUUSD M5/M15.
               </p>
               <Link href="/settings/billing">
                 <Button

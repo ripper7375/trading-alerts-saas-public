@@ -32,7 +32,6 @@ interface AdminUser {
   createdAt: Date;
   lastLoginAt: Date | null;
   alertCount: number;
-  watchlistCount: number;
 }
 
 interface AdminUserListResponse {
@@ -152,7 +151,6 @@ export async function GET(
         _count: {
           select: {
             alerts: true,
-            watchlists: true,
           },
         },
       },
@@ -187,7 +185,6 @@ export async function GET(
         createdAt: user.createdAt,
         lastLoginAt,
         alertCount: user._count?.alerts ?? 0,
-        watchlistCount: user._count?.watchlists ?? 0,
       };
     });
 

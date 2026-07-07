@@ -5,7 +5,6 @@
  * - MT5 Integration
  * - Alerts & Notifications
  * - Charts & Indicators
- * - Watchlist
  *
  * Tests workflows that span multiple components and APIs.
  */
@@ -29,14 +28,6 @@ const mockPrisma = {
     create: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
-  },
-  watchlist: {
-    findFirst: jest.fn(),
-    create: jest.fn(),
-  },
-  watchlistItem: {
-    create: jest.fn(),
-    findMany: jest.fn(),
   },
   notification: {
     create: jest.fn(),
@@ -104,42 +95,20 @@ describe('Tier 2 Integration - Feature Workflows', () => {
       expect(mockPrisma.alert.create).toBeDefined();
     });
 
-    it('should reject alert for PRO-only symbol in FREE tier', async () => {
-      const { FREE_SYMBOLS, PRO_EXCLUSIVE_SYMBOLS } = await import(
-        '@/lib/tier-config'
-      );
-
-      // PRO-exclusive symbol should not be in FREE list
-      const proSymbol = PRO_EXCLUSIVE_SYMBOLS[0];
-      expect(FREE_SYMBOLS).not.toContain(proSymbol);
-
-      // Verify tier validation function rejects it
+    it('should reject alert for unsupported symbol (V8: any tier)', async () => {
+      // V8: no PRO-exclusive symbols - anything but XAUUSD is invalid
       const { canAccessSymbol } = await import('@/lib/tier-validation');
-      const canAccess = canAccessSymbol('FREE', proSymbol);
-      expect(canAccess).toBe(false);
+      expect(canAccessSymbol('FREE', 'EURUSD')).toBe(false);
+      expect(canAccessSymbol('PRO', 'EURUSD')).toBe(false);
     });
   });
 
-  describe('Workflow 2: Watchlist to Chart Navigation', () => {
-    it('should maintain symbol/timeframe consistency across watchlist and charts', async () => {
-      // Scenario: User adds item to watchlist, navigates to chart
+  describe('Workflow 2: Chart Navigation (V8)', () => {
+    it('should maintain symbol/timeframe consistency for chart requests', async () => {
       const symbol = 'XAUUSD';
-      const timeframe = 'H1';
+      const timeframe = 'M5';
 
-      // Step 1: Create watchlist item
-      mockPrisma.watchlist.findFirst.mockResolvedValue({
-        id: 'watchlist-1',
-        items: [],
-      });
-
-      mockPrisma.watchlistItem.create.mockResolvedValue({
-        id: 'item-1',
-        symbol,
-        timeframe,
-        order: 0,
-      });
-
-      // Step 2: Chart request should use same symbol/timeframe
+      // Chart request should use same symbol/timeframe
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -162,19 +131,19 @@ describe('Tier 2 Integration - Feature Workflows', () => {
 
       // Verify navigation would maintain consistency
       expect(symbol).toBe('XAUUSD');
-      expect(timeframe).toBe('H1');
+      expect(timeframe).toBe('M5');
     });
 
-    it('should validate watchlist item against tier before chart access', async () => {
+    it('should validate timeframe before chart access (V8: M5/M15 only)', async () => {
       const { validateTimeframeAccess } = await import('@/lib/tier-validation');
 
-      // FREE tier can access H1
-      const freeResult = validateTimeframeAccess('FREE', 'H1');
-      expect(freeResult.allowed).toBe(true);
+      // Both tiers can access M5 and M15
+      expect(validateTimeframeAccess('FREE', 'M5').allowed).toBe(true);
+      expect(validateTimeframeAccess('FREE', 'M15').allowed).toBe(true);
 
-      // FREE tier cannot access M5
-      const proResult = validateTimeframeAccess('FREE', 'M5');
-      expect(proResult.allowed).toBe(false);
+      // Former timeframes rejected for everyone
+      expect(validateTimeframeAccess('FREE', 'H1').allowed).toBe(false);
+      expect(validateTimeframeAccess('PRO', 'H1').allowed).toBe(false);
     });
   });
 
@@ -276,59 +245,30 @@ describe('Tier 2 Integration - Feature Workflows', () => {
     });
   });
 
-  describe('Workflow 5: Tier Upgrade Impact on Features', () => {
-    it('should unlock PRO symbols after upgrade', async () => {
-      const { FREE_SYMBOLS, PRO_SYMBOLS, PRO_EXCLUSIVE_SYMBOLS } = await import(
-        '@/lib/tier-config'
-      );
+  describe('Workflow 5: Tier Upgrade Impact on Features (V8)', () => {
+    it('should keep symbol access identical after upgrade', async () => {
+      const { FREE_SYMBOLS, PRO_SYMBOLS } = await import('@/lib/tier-config');
       const { canAccessSymbol } = await import('@/lib/tier-validation');
 
-      const proOnlySymbol = PRO_EXCLUSIVE_SYMBOLS[0]; // e.g., 'AUDJPY'
-
-      // Before upgrade (FREE tier)
-      const freeTierAccess = canAccessSymbol('FREE', proOnlySymbol);
-      expect(freeTierAccess).toBe(false);
-
-      // After upgrade (PRO tier)
-      const proTierAccess = canAccessSymbol('PRO', proOnlySymbol);
-      expect(proTierAccess).toBe(true);
-
-      // PRO has access to all symbols
-      expect(PRO_SYMBOLS.length).toBeGreaterThan(FREE_SYMBOLS.length);
+      // V8: identical symbol access for both tiers
+      expect([...FREE_SYMBOLS]).toEqual([...PRO_SYMBOLS]);
+      expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
+      expect(canAccessSymbol('PRO', 'XAUUSD')).toBe(true);
     });
 
-    it('should unlock PRO timeframes after upgrade', async () => {
-      const { FREE_TIMEFRAMES, PRO_TIMEFRAMES, PRO_EXCLUSIVE_TIMEFRAMES } =
-        await import('@/lib/tier-config');
-      const { validateTimeframeAccess } = await import('@/lib/tier-validation');
-
-      const proOnlyTimeframe = PRO_EXCLUSIVE_TIMEFRAMES[0]; // e.g., 'M5'
-
-      // Before upgrade
-      const freeResult = validateTimeframeAccess('FREE', proOnlyTimeframe);
-      expect(freeResult.allowed).toBe(false);
-
-      // After upgrade
-      const proResult = validateTimeframeAccess('PRO', proOnlyTimeframe);
-      expect(proResult.allowed).toBe(true);
-
-      // PRO has more timeframes
-      expect(PRO_TIMEFRAMES.length).toBeGreaterThan(FREE_TIMEFRAMES.length);
-    });
-
-    it('should increase watchlist limit after upgrade', async () => {
-      const { FREE_TIER_CONFIG, PRO_TIER_CONFIG } = await import(
+    it('should keep timeframe access identical after upgrade', async () => {
+      const { FREE_TIMEFRAMES, PRO_TIMEFRAMES } = await import(
         '@/lib/tier-config'
       );
+      const { validateTimeframeAccess } = await import('@/lib/tier-validation');
 
-      expect(PRO_TIER_CONFIG.maxWatchlistItems).toBeGreaterThan(
-        FREE_TIER_CONFIG.maxWatchlistItems
-      );
-      expect(FREE_TIER_CONFIG.maxWatchlistItems).toBe(5);
-      expect(PRO_TIER_CONFIG.maxWatchlistItems).toBe(50);
+      // V8: identical timeframe access for both tiers
+      expect([...FREE_TIMEFRAMES]).toEqual([...PRO_TIMEFRAMES]);
+      expect(validateTimeframeAccess('FREE', 'M5').allowed).toBe(true);
+      expect(validateTimeframeAccess('PRO', 'M5').allowed).toBe(true);
     });
 
-    it('should increase alert limit after upgrade', async () => {
+    it('should unlock alerts after upgrade (V8: 0 -> 100)', async () => {
       const { FREE_TIER_CONFIG, PRO_TIER_CONFIG } = await import(
         '@/lib/tier-config'
       );
@@ -336,33 +276,32 @@ describe('Tier 2 Integration - Feature Workflows', () => {
       expect(PRO_TIER_CONFIG.maxAlerts).toBeGreaterThan(
         FREE_TIER_CONFIG.maxAlerts
       );
-      expect(FREE_TIER_CONFIG.maxAlerts).toBe(5);
-      expect(PRO_TIER_CONFIG.maxAlerts).toBe(20); // PRO gets 4x the alerts
+      expect(FREE_TIER_CONFIG.maxAlerts).toBe(0);
+      expect(PRO_TIER_CONFIG.maxAlerts).toBe(100);
     });
   });
 
   describe('Workflow 6: Cross-Feature Data Consistency', () => {
-    it('should use consistent symbol validation across alerts and watchlist', async () => {
+    it('should use consistent symbol validation across alerts and charts', async () => {
       const { canAccessSymbol } = await import('@/lib/tier-validation');
 
       // Same validation logic for both features
       const symbol = 'XAUUSD';
       const alertCanAccess = canAccessSymbol('FREE', symbol);
-      const watchlistCanAccess = canAccessSymbol('FREE', symbol);
+      const chartCanAccess = canAccessSymbol('FREE', symbol);
 
-      expect(alertCanAccess).toBe(watchlistCanAccess);
+      expect(alertCanAccess).toBe(chartCanAccess);
     });
 
     it('should use consistent timeframe validation across features', async () => {
       const { validateTimeframeAccess } = await import('@/lib/tier-validation');
 
-      const timeframe = 'H1';
+      const timeframe = 'M5';
       const alertResult = validateTimeframeAccess('FREE', timeframe);
       const chartResult = validateTimeframeAccess('FREE', timeframe);
-      const watchlistResult = validateTimeframeAccess('FREE', timeframe);
 
       expect(alertResult.allowed).toBe(chartResult.allowed);
-      expect(chartResult.allowed).toBe(watchlistResult.allowed);
+      expect(alertResult.allowed).toBe(true);
     });
   });
 });

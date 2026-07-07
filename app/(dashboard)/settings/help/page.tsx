@@ -83,12 +83,12 @@ const faqItems: FAQItem[] = [
   {
     question: 'How do I create my first alert?',
     answer:
-      'Navigate to the Alerts page from the dashboard sidebar, then click "Create Alert". Select your symbol, timeframe, and set your price conditions. Finally, choose how you want to be notified (email, push, or both).',
+      'Alerts are a PRO feature. As a PRO member, navigate to the Alerts page from the dashboard sidebar, then click "Create Alert". The symbol is XAUUSD (Gold) — just pick M5 or M15, set your price conditions, and choose how you want to be notified (email, push, or both). You can also draw a line on any chart and convert it into a line-touch alert.',
   },
   {
     question: 'What is the difference between FREE and PRO tiers?',
     answer:
-      'FREE tier includes 5 symbols, 3 timeframes, and 5 active alerts. PRO tier offers 15 symbols, 9 timeframes (M5 to D1), 20 alerts, and priority notifications with 30-second updates instead of 60 seconds.',
+      'Both tiers get identical market data: XAUUSD (Gold) on M5 and M15 with every indicator overlay. PRO adds the full alert system — up to 100 price alerts, drawing engine line alerts, and multi-timeframe visualization — plus priority notifications with 30-second updates instead of 60 seconds and a 5x higher API rate limit.',
   },
   {
     question: 'How do I upgrade to PRO?',

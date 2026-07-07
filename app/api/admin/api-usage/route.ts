@@ -96,7 +96,7 @@ function generateMockApiUsage(
       lastCalled: new Date().toISOString(),
     },
     {
-      endpoint: '/api/watchlist',
+      endpoint: '/api/tier/combinations',
       method: 'GET',
       callsFree: 980,
       callsPro: 2150,

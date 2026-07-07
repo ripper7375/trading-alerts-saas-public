@@ -1,13 +1,11 @@
 import {
   Bell,
-  Eye,
   Zap,
   TrendingUp,
   Lightbulb,
   BarChart3,
   Clock,
   LineChart,
-  Activity,
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
@@ -25,17 +23,9 @@ interface DbAlert {
   triggerCount: number;
   createdAt: Date;
 }
-
-interface DbWatchlistItem {
-  id: string;
-  symbol: string;
-  timeframe: string;
-  createdAt: Date;
-}
 import { RecentAlerts } from '@/components/dashboard/recent-alerts';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
-import { WatchlistWidget } from '@/components/dashboard/watchlist-widget';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { authOptions } from '@/lib/auth/auth-options';
@@ -43,14 +33,13 @@ import { prisma } from '@/lib/db/prisma';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
 /**
- * Dashboard Overview Page
+ * Dashboard Overview Page — V8 single-symbol architecture
  *
  * Server component that displays:
  * - Welcome message with tier badge
- * - Quick start tips (dismissible)
- * - Stats cards (alerts, watchlist, API usage, chart views)
+ * - Quick start tips
+ * - Stats cards (XAUUSD M5/M15, alerts, API usage)
  * - Recent alerts widget
- * - Watchlist widget
  * - Upgrade prompt for FREE users
  */
 export default async function DashboardPage(): Promise<React.ReactElement> {
@@ -67,7 +56,6 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
 
   // Fetch user data from database
   let alertCount = 0;
-  let watchlistCount = 0;
   let recentAlerts: {
     id: string;
     status: 'watching' | 'triggered' | 'paused';
@@ -78,26 +66,11 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
     currentPrice: number;
     createdAt: string;
   }[] = [];
-  let watchlistItems: {
-    id: string;
-    symbol: string;
-    timeframe: string;
-    currentPrice: number;
-    change: number;
-    changePercent: number;
-    status?: 'approaching' | 'neutral' | 'away';
-    lastUpdated: string;
-  }[] = [];
 
   try {
     // Fetch alert count
     alertCount = await prisma.alert.count({
       where: { userId },
-    });
-
-    // Fetch watchlist count
-    watchlistCount = await prisma.watchlistItem.count({
-      where: { watchlist: { userId } },
     });
 
     // Fetch recent alerts (last 5)
@@ -140,26 +113,6 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         createdAt: alert.createdAt.toISOString(),
       };
     });
-
-    // Fetch watchlist items (last 5)
-    const dbWatchlistItems = await prisma.watchlistItem.findMany({
-      where: { watchlist: { userId } },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-
-    watchlistItems = (dbWatchlistItems as DbWatchlistItem[]).map(
-      (item: DbWatchlistItem) => ({
-        id: item.id,
-        symbol: item.symbol,
-        timeframe: item.timeframe,
-        currentPrice: 100.0, // Placeholder - would come from real-time data
-        change: Math.random() * 10 - 5, // Placeholder
-        changePercent: Math.random() * 5 - 2.5, // Placeholder
-        status: 'neutral' as const,
-        lastUpdated: new Date().toISOString(),
-      })
-    );
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     // Continue with empty data - dashboard should still render
@@ -168,13 +121,12 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   // Get tier limits (with fallback to FREE if tier is invalid)
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
 
-  // Tier-based stats with CORRECT values
+  // V8 tier stats: both tiers share XAUUSD × M5/M15
   const tierStats = {
-    symbols: userTier === 'FREE' ? 5 : 15,
-    timeframes: userTier === 'FREE' ? 3 : 9,
-    combinations: userTier === 'FREE' ? 15 : 135,
-    maxAlerts: userTier === 'FREE' ? 5 : 20,
-    indicators: userTier === 'FREE' ? 2 : 8,
+    symbols: 1,
+    timeframes: 2,
+    combinations: 2,
+    maxAlerts: tierConfig.maxAlerts,
   };
 
   return (
@@ -214,19 +166,21 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
                   <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
                     1
                   </span>
-                  Add symbols to your Watchlist
+                  Open the XAUUSD chart on M5 or M15
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
                     2
                   </span>
-                  View live charts with fractal lines
+                  Explore channel and structure overlays
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
                     3
                   </span>
-                  Create alerts for price levels
+                  {userTier === 'PRO'
+                    ? 'Create alerts for price levels or from chart drawings'
+                    : 'Upgrade to PRO to create price alerts'}
                 </li>
               </ol>
             </div>
@@ -234,59 +188,49 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
         </CardContent>
       </Card>
 
-      {/* Tier Stats Cards - Correct values per tier */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+      {/* Tier Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
         <StatsCard
-          title="Symbols"
-          value={`${tierStats.symbols}`}
+          title="Symbol"
+          value="XAUUSD"
           icon={BarChart3}
-          description={
-            userTier === 'FREE' ? 'BTC, EUR, USD, US30, XAU' : 'All available'
-          }
+          description="Gold — full data access"
         />
         <StatsCard
           title="Timeframes"
           value={`${tierStats.timeframes}`}
           icon={Clock}
-          description={userTier === 'FREE' ? 'H1, H4, D1' : 'M5 to D1'}
+          description="M5, M15"
         />
         <StatsCard
           title="Charts"
           value={`${tierStats.combinations}`}
           icon={LineChart}
-          description={`${tierStats.symbols} × ${tierStats.timeframes}`}
+          description="XAUUSD × M5/M15"
         />
         <StatsCard
           title="Max Alerts"
           value={`${tierStats.maxAlerts}`}
           icon={Bell}
-          description={`${alertCount} active`}
-        />
-        <StatsCard
-          title="Indicators"
-          value={`${tierStats.indicators}`}
-          icon={Activity}
-          description={userTier === 'FREE' ? '2 basic' : 'All included'}
+          description={
+            userTier === 'PRO' ? `${alertCount} active` : 'PRO feature'
+          }
         />
       </div>
 
       {/* Usage Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <StatsCard
           title="Active Alerts"
-          value={`${alertCount}/${tierConfig.maxAlerts}`}
+          value={
+            userTier === 'PRO'
+              ? `${alertCount}/${tierConfig.maxAlerts}`
+              : 'PRO only'
+          }
           icon={Bell}
           variant="usage"
           current={alertCount}
-          max={tierConfig.maxAlerts}
-        />
-        <StatsCard
-          title="Watchlist Items"
-          value={`${watchlistCount}/${tierConfig.maxWatchlists * 10}`}
-          icon={Eye}
-          variant="usage"
-          current={watchlistCount}
-          max={tierConfig.maxWatchlists * 10}
+          max={Math.max(tierConfig.maxAlerts, 1)}
         />
         <StatsCard
           title="API Usage"
@@ -308,8 +252,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
       </div>
 
       {/* Widgets Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <WatchlistWidget items={watchlistItems} />
+      <div className="grid grid-cols-1 gap-6">
         <RecentAlerts alerts={recentAlerts} />
       </div>
 

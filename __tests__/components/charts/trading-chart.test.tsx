@@ -35,7 +35,8 @@ const mockApplyOptions = jest.fn();
 
 jest.mock('lightweight-charts', () => ({
   createChart: jest.fn(() => ({
-    addCandlestickSeries: () => ({
+    // v5 API: chart.addSeries(CandlestickSeries, options)
+    addSeries: () => ({
       setData: (...args: unknown[]) => mockSetData(...args),
       setMarkers: jest.fn(),
     }),
@@ -44,6 +45,34 @@ jest.mock('lightweight-charts', () => ({
     applyOptions: (...args: unknown[]) => mockApplyOptions(...args),
   })),
   ColorType: { Solid: 'Solid' },
+  CandlestickSeries: 'Candlestick',
+}));
+
+// ─────────────────────────────────────────────────────────────
+// Mock DrawingLayer and useFiredAlertMarkers — these pull in
+// components/charts/drawing/persistence.ts, which does a real
+// `fetch('/api/drawings?...')`. jsdom/undici's fetch requires an
+// absolute URL (there's no browser "page origin" to resolve a relative
+// path against), so the real call throws "Invalid URL", and React 19's
+// act() now aggregates/rethrows any console.error logged during
+// rendering — even ones the app itself already caught and handled.
+// This file only tests TradingChart's own socket/chart behavior, so we
+// isolate it the same way we isolate useOhlcvSocket and lightweight-charts.
+// ─────────────────────────────────────────────────────────────
+jest.mock('@/components/charts/drawing/DrawingLayer', () => ({
+  DrawingLayer: () => null,
+}));
+
+jest.mock('@/components/charts/drawing/useFiredAlertMarkers', () => ({
+  useFiredAlertMarkers: jest.fn(),
+}));
+
+// MtfToggle calls next/navigation's useRouter(), which requires an App
+// Router context this test doesn't set up. It's a tangential subsystem
+// (multi-timeframe overlay toggle) unrelated to what this file tests, so
+// isolate it the same way.
+jest.mock('@/components/charts/mtf/MtfToggle', () => ({
+  MtfToggle: () => null,
 }));
 
 // ─────────────────────────────────────────────────────────────

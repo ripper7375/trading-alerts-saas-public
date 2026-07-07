@@ -31,10 +31,6 @@ describe('Integration: API Client User Workflows', () => {
         { id: '1', symbol: 'XAUUSD', condition: '>', targetPrice: 2050, active: true },
       ];
 
-      const mockWatchlist = [
-        { id: '1', symbol: 'XAUUSD', timeframe: 'H1' },
-      ];
-
       const mockSubscription = {
         id: 'sub-123',
         tier: 'PRO',
@@ -60,11 +56,6 @@ describe('Integration: API Client User Workflows', () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => mockWatchlist,
-        } as Response)
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
           json: async () => mockSubscription,
         } as Response)
         .mockResolvedValueOnce({
@@ -76,10 +67,9 @@ describe('Integration: API Client User Workflows', () => {
       // Execute workflow
       const { api } = await import('@/lib/api');
 
-      const [user, alerts, watchlist, subscription, notifications] = await Promise.all([
-        api.stackA.getUser(), // ✅ CORRECTED: /user/profile
+      const [user, alerts, subscription, notifications] = await Promise.all([
+        api.stackA.getUser(), // CORRECTED: /user/profile
         api.stackA.getAlerts(),
-        api.stackA.getWatchlist(),
         api.stackA.getSubscription(),
         api.stackA.getNotifications(),
       ]);
@@ -99,18 +89,12 @@ describe('Integration: API Client User Workflows', () => {
 
       expect(global.fetch).toHaveBeenNthCalledWith(
         3,
-        '/api/watchlist',
-        expect.objectContaining({ method: 'GET' })
-      );
-
-      expect(global.fetch).toHaveBeenNthCalledWith(
-        4,
         '/api/subscription',
         expect.objectContaining({ method: 'GET' })
       );
 
       expect(global.fetch).toHaveBeenNthCalledWith(
-        5,
+        4,
         '/api/notifications',
         expect.objectContaining({ method: 'GET' })
       );
@@ -118,7 +102,6 @@ describe('Integration: API Client User Workflows', () => {
       // Verify data
       expect(user).toEqual(mockUser);
       expect(alerts).toEqual(mockAlerts);
-      expect(watchlist).toEqual(mockWatchlist);
       expect(subscription).toEqual(mockSubscription);
       expect(notifications).toEqual(mockNotifications);
     });

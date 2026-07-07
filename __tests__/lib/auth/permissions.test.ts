@@ -39,19 +39,21 @@ describe('Permission System', () => {
 
   describe('Permission Constants', () => {
     describe('TIER_PERMISSIONS', () => {
-      it('should define FREE tier permissions', () => {
+      it('should define FREE tier permissions (V8: no alerts, no watchlist)', () => {
         expect(TIER_PERMISSIONS.FREE).toContain('view_dashboard');
-        expect(TIER_PERMISSIONS.FREE).toContain('create_alerts');
-        expect(TIER_PERMISSIONS.FREE).toContain('view_watchlist');
         expect(TIER_PERMISSIONS.FREE).toContain('view_symbols');
         expect(TIER_PERMISSIONS.FREE).toContain('view_timeframes');
-        expect(TIER_PERMISSIONS.FREE).toHaveLength(5);
+        expect(TIER_PERMISSIONS.FREE).not.toContain('create_alerts');
+        expect(TIER_PERMISSIONS.FREE).toHaveLength(3);
       });
 
-      it('should define PRO tier permissions', () => {
+      it('should define PRO tier permissions (V8 feature set)', () => {
         expect(TIER_PERMISSIONS.PRO).toContain('view_dashboard');
-        expect(TIER_PERMISSIONS.PRO).toContain('view_all_symbols');
-        expect(TIER_PERMISSIONS.PRO).toContain('view_all_timeframes');
+        expect(TIER_PERMISSIONS.PRO).toContain('create_alerts');
+        expect(TIER_PERMISSIONS.PRO).toContain(
+          'multi_timeframe_visualization'
+        );
+        expect(TIER_PERMISSIONS.PRO).toContain('drawing_line_alerts');
         expect(TIER_PERMISSIONS.PRO).toContain('export_data');
         expect(TIER_PERMISSIONS.PRO).toContain('priority_support');
         expect(TIER_PERMISSIONS.PRO.length).toBeGreaterThan(
@@ -91,14 +93,18 @@ describe('Permission System', () => {
         const user = { tier: 'FREE' as const };
 
         expect(hasPermission(user, 'view_dashboard')).toBe(true);
-        expect(hasPermission(user, 'create_alerts')).toBe(true);
-        expect(hasPermission(user, 'view_watchlist')).toBe(true);
+        expect(hasPermission(user, 'view_symbols')).toBe(true);
+        expect(hasPermission(user, 'view_timeframes')).toBe(true);
       });
 
-      it('should deny PRO-only permissions for FREE users', () => {
+      it('should deny PRO-only permissions for FREE users (V8)', () => {
         const user = { tier: 'FREE' as const };
 
-        expect(hasPermission(user, 'view_all_symbols')).toBe(false);
+        expect(hasPermission(user, 'create_alerts')).toBe(false);
+        expect(hasPermission(user, 'drawing_line_alerts')).toBe(false);
+        expect(hasPermission(user, 'multi_timeframe_visualization')).toBe(
+          false
+        );
         expect(hasPermission(user, 'export_data')).toBe(false);
         expect(hasPermission(user, 'priority_support')).toBe(false);
       });
@@ -107,7 +113,7 @@ describe('Permission System', () => {
         const user = { tier: 'PRO' as const };
 
         expect(hasPermission(user, 'view_dashboard')).toBe(true);
-        expect(hasPermission(user, 'view_all_symbols')).toBe(true);
+        expect(hasPermission(user, 'drawing_line_alerts')).toBe(true);
         expect(hasPermission(user, 'export_data')).toBe(true);
       });
 
@@ -115,7 +121,7 @@ describe('Permission System', () => {
         const user = {};
 
         expect(hasPermission(user, 'view_dashboard')).toBe(true);
-        expect(hasPermission(user, 'view_all_symbols')).toBe(false);
+        expect(hasPermission(user, 'drawing_line_alerts')).toBe(false);
       });
     });
 
@@ -142,7 +148,7 @@ describe('Permission System', () => {
 
         // Admin has all permissions
         expect(hasPermission(user, 'view_dashboard')).toBe(true);
-        expect(hasPermission(user, 'view_all_symbols')).toBe(true);
+        expect(hasPermission(user, 'drawing_line_alerts')).toBe(true);
         expect(hasPermission(user, 'admin_dashboard')).toBe(true);
         expect(hasPermission(user, 'admin_users')).toBe(true);
         expect(hasPermission(user, 'affiliate_dashboard')).toBe(true);
@@ -183,7 +189,7 @@ describe('Permission System', () => {
         expires: '2025-12-31',
       });
 
-      await expect(checkFeatureAccess('view_all_symbols')).rejects.toThrow(
+      await expect(checkFeatureAccess('drawing_line_alerts')).rejects.toThrow(
         AuthError
       );
     });
@@ -195,7 +201,7 @@ describe('Permission System', () => {
       });
 
       try {
-        await checkFeatureAccess('view_all_symbols');
+        await checkFeatureAccess('drawing_line_alerts');
       } catch (error) {
         expect((error as AuthError).message).toContain(
           'PRO subscription required'
@@ -272,7 +278,7 @@ describe('Permission System', () => {
       expect(permissions).toEqual(
         expect.arrayContaining([...TIER_PERMISSIONS.FREE])
       );
-      expect(permissions).not.toContain('view_all_symbols');
+      expect(permissions).not.toContain('drawing_line_alerts');
     });
 
     it('should return PRO tier permissions for PRO user', () => {
@@ -333,7 +339,7 @@ describe('Permission System', () => {
 
       const result = hasAllPermissions(user, [
         'view_dashboard',
-        'view_all_symbols',
+        'drawing_line_alerts',
       ]);
 
       expect(result).toBe(true);
@@ -344,7 +350,7 @@ describe('Permission System', () => {
 
       const result = hasAllPermissions(user, [
         'view_dashboard',
-        'view_all_symbols',
+        'drawing_line_alerts',
       ]);
 
       expect(result).toBe(false);
@@ -365,7 +371,7 @@ describe('Permission System', () => {
 
       const result = hasAnyPermission(user, [
         'view_dashboard',
-        'view_all_symbols',
+        'drawing_line_alerts',
       ]);
 
       expect(result).toBe(true);
@@ -375,7 +381,7 @@ describe('Permission System', () => {
       const user = { tier: 'FREE' as const };
 
       const result = hasAnyPermission(user, [
-        'view_all_symbols',
+        'drawing_line_alerts',
         'export_data',
       ]);
 
@@ -399,7 +405,7 @@ describe('Permission System', () => {
       });
 
       await expect(
-        validateMultiplePermissions(['view_dashboard', 'view_all_symbols'])
+        validateMultiplePermissions(['view_dashboard', 'drawing_line_alerts'])
       ).resolves.toBeUndefined();
     });
 
@@ -410,7 +416,7 @@ describe('Permission System', () => {
       });
 
       await expect(
-        validateMultiplePermissions(['view_dashboard', 'view_all_symbols'])
+        validateMultiplePermissions(['view_dashboard', 'drawing_line_alerts'])
       ).rejects.toThrow(AuthError);
     });
 
@@ -421,9 +427,9 @@ describe('Permission System', () => {
       });
 
       try {
-        await validateMultiplePermissions(['view_all_symbols', 'export_data']);
+        await validateMultiplePermissions(['drawing_line_alerts', 'export_data']);
       } catch (error) {
-        expect((error as AuthError).message).toContain('view_all_symbols');
+        expect((error as AuthError).message).toContain('drawing_line_alerts');
         expect((error as AuthError).message).toContain('export_data');
       }
     });
@@ -445,7 +451,7 @@ describe('Permission System', () => {
           expires: '2025-12-31',
         });
 
-        const middleware = createPermissionMiddleware('view_all_symbols');
+        const middleware = createPermissionMiddleware('drawing_line_alerts');
 
         await expect(middleware()).resolves.toBeUndefined();
       });
@@ -456,7 +462,7 @@ describe('Permission System', () => {
           expires: '2025-12-31',
         });
 
-        const middleware = createPermissionMiddleware('view_all_symbols');
+        const middleware = createPermissionMiddleware('drawing_line_alerts');
 
         await expect(middleware()).rejects.toThrow(AuthError);
       });
@@ -471,7 +477,7 @@ describe('Permission System', () => {
 
         const middleware = createMultiplePermissionMiddleware([
           'view_dashboard',
-          'view_all_symbols',
+          'drawing_line_alerts',
         ]);
 
         await expect(middleware()).resolves.toBeUndefined();
@@ -485,7 +491,7 @@ describe('Permission System', () => {
 
         const middleware = createMultiplePermissionMiddleware([
           'view_dashboard',
-          'view_all_symbols',
+          'drawing_line_alerts',
         ]);
 
         await expect(middleware()).rejects.toThrow(AuthError);
@@ -501,7 +507,7 @@ describe('Permission System', () => {
 
         const middleware = createAnyPermissionMiddleware([
           'view_dashboard',
-          'view_all_symbols',
+          'drawing_line_alerts',
         ]);
 
         await expect(middleware()).resolves.toBeUndefined();
@@ -514,7 +520,7 @@ describe('Permission System', () => {
         });
 
         const middleware = createAnyPermissionMiddleware([
-          'view_all_symbols',
+          'drawing_line_alerts',
           'export_data',
         ]);
 

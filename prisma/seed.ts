@@ -149,80 +149,33 @@ async function main() {
       console.log('   - unverified@trading-alerts.test (UNVERIFIED)');
     }
 
-    // Create default watchlist for admin
-    const defaultWatchlist = await prisma.watchlist.upsert({
-      where: {
-        userId_name: {
-          userId: admin.id,
-          name: 'My Watchlist',
-        },
-      },
-      update: {},
-      create: {
-        userId: admin.id,
-        name: 'My Watchlist',
-        order: 0,
-      },
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-      },
-    });
+    // V8: watchlists removed from the product — no watchlist seeding.
 
-    console.log('✅ Default watchlist created:');
-    console.log(`   Name: ${defaultWatchlist.name}`);
-    console.log(`   Created: ${defaultWatchlist.createdAt.toISOString()}`);
-
-    // Add sample watchlist items for FREE tier symbols
-    const sampleItems = [
-      { symbol: 'BTCUSD', timeframe: 'H1' },
-      { symbol: 'EURUSD', timeframe: 'H1' },
-      { symbol: 'USDJPY', timeframe: 'H1' },
-      { symbol: 'US30', timeframe: 'H1' },
-      { symbol: 'XAUUSD', timeframe: 'H1' },
-    ];
-
-    let orderIndex = 0;
-    for (const item of sampleItems) {
-      await prisma.watchlistItem.create({
-        data: {
-          watchlistId: defaultWatchlist.id,
-          userId: admin.id,
-          symbol: item.symbol,
-          timeframe: item.timeframe,
-          order: orderIndex++,
-        },
-      });
-    }
-
-    console.log('✅ Sample watchlist items created (5 FREE tier symbols)');
-
-    // Create sample alerts for demonstration
+    // Create sample alerts for demonstration (XAUUSD M5/M15 only)
     const sampleAlerts = [
       {
-        symbol: 'BTCUSD',
-        timeframe: 'H1',
+        symbol: 'XAUUSD',
+        timeframe: 'M5',
         condition: JSON.stringify({
           type: 'price_touch_line',
           line: 'horizontal',
           direction: 'resistance',
-          description: 'Price approaches BTCUSD horizontal resistance',
+          description: 'Price approaches XAUUSD M5 horizontal resistance',
         }),
         alertType: 'PRICE_TOUCH_LINE',
-        name: 'BTCUSD Resistance Alert',
+        name: 'XAUUSD M5 Resistance Alert',
       },
       {
-        symbol: 'EURUSD',
-        timeframe: 'H1',
+        symbol: 'XAUUSD',
+        timeframe: 'M15',
         condition: JSON.stringify({
           type: 'fractal_signal',
           fractal: 'diagonal',
           direction: 'support',
-          description: 'EURUSD diagonal support line touch',
+          description: 'XAUUSD M15 diagonal support line touch',
         }),
         alertType: 'FRACTAL_NEW',
-        name: 'EURUSD Support Alert',
+        name: 'XAUUSD M15 Support Alert',
       },
     ];
 
@@ -295,7 +248,6 @@ async function main() {
     console.log('');
     console.log('📋 Summary:');
     console.log(`   Admin User: ${admin.email} (${admin.role}, ${admin.tier})`);
-    console.log(`   Watchlist: ${defaultWatchlist.name} (5 items)`);
     console.log(`   Sample Alerts: 2 demonstration alerts`);
     console.log('');
     console.log('🔐 Login Credentials:');

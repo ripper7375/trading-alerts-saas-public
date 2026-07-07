@@ -65,9 +65,7 @@ export const displayPreferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   compactMode: z.boolean().optional(),
   showPriceChange: z.boolean().optional(),
-  defaultTimeframe: z
-    .enum(['M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'D1'])
-    .optional(),
+  defaultTimeframe: z.enum(['M5', 'M15']).optional(),
   chartType: z.enum(['candlestick', 'line', 'bar']).optional(),
 });
 
@@ -126,7 +124,6 @@ export const cancelAccountDeletionSchema = z.object({
 export const exportUserDataSchema = z.object({
   format: z.enum(['json', 'csv']).optional().default('json'),
   includeAlerts: z.boolean().optional().default(true),
-  includeWatchlists: z.boolean().optional().default(true),
   includeNotifications: z.boolean().optional().default(true),
   includeActivity: z.boolean().optional().default(false),
 });
@@ -154,7 +151,7 @@ export const DEFAULT_PREFERENCES = {
     theme: 'system' as const,
     compactMode: false,
     showPriceChange: true,
-    defaultTimeframe: 'H1' as const,
+    defaultTimeframe: 'M5' as const,
     chartType: 'candlestick' as const,
   },
   privacy: {

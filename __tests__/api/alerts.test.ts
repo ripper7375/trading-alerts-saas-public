@@ -209,8 +209,29 @@ describe('Alerts API Routes', () => {
       expect(data.error).toBe('Unauthorized');
     });
 
-    it('should return 400 for invalid JSON', async () => {
+    it('should return 403 PRO_FEATURE for FREE users (V8)', async () => {
       mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+
+      const { POST } = await import('@/app/api/alerts/route');
+      const request = new MockRequest('http://localhost/api/alerts', {
+        method: 'POST',
+        body: JSON.stringify({
+          symbol: 'XAUUSD',
+          timeframe: 'M5',
+          conditionType: 'price_above',
+          targetValue: 1900,
+        }),
+      });
+      const response = await POST(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.code).toBe('PRO_FEATURE');
+      expect(data.upgradeUrl).toBe('/pricing');
+    });
+
+    it('should return 400 for invalid JSON', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
 
       const { POST } = await import('@/app/api/alerts/route');
       const request = new MockRequest('http://localhost/api/alerts', {
@@ -224,14 +245,14 @@ describe('Alerts API Routes', () => {
     });
 
     it('should return 400 for invalid input', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
 
       const { POST } = await import('@/app/api/alerts/route');
       const request = new MockRequest('http://localhost/api/alerts', {
         method: 'POST',
         body: JSON.stringify({
           symbol: '', // Empty symbol
-          timeframe: 'H1',
+          timeframe: 'M5',
           conditionType: 'price_above',
           targetValue: 1900,
         }),
@@ -243,15 +264,15 @@ describe('Alerts API Routes', () => {
       expect(data.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return 403 for symbol not in tier', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+    it('should return 400 for unsupported symbol (V8: XAUUSD only)', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
 
       const { POST } = await import('@/app/api/alerts/route');
       const request = new MockRequest('http://localhost/api/alerts', {
         method: 'POST',
         body: JSON.stringify({
-          symbol: 'AUDJPY', // PRO-exclusive, not in FREE tier
-          timeframe: 'H1',
+          symbol: 'AUDJPY', // No longer a platform symbol
+          timeframe: 'M5',
           conditionType: 'price_above',
           targetValue: 95,
         }),
@@ -259,19 +280,19 @@ describe('Alerts API Routes', () => {
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(data.code).toBe('SYMBOL_NOT_ALLOWED');
+      expect(response.status).toBe(400);
+      expect(data.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return 403 for timeframe not in tier', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+    it('should return 400 for unsupported timeframe (V8: M5/M15 only)', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
 
       const { POST } = await import('@/app/api/alerts/route');
       const request = new MockRequest('http://localhost/api/alerts', {
         method: 'POST',
         body: JSON.stringify({
           symbol: 'XAUUSD',
-          timeframe: 'M1', // Not in FREE tier
+          timeframe: 'H1', // No longer supported
           conditionType: 'price_above',
           targetValue: 1900,
         }),
@@ -279,20 +300,20 @@ describe('Alerts API Routes', () => {
       const response = await POST(request as unknown as Request);
       const data = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(data.code).toBe('TIMEFRAME_NOT_ALLOWED');
+      expect(response.status).toBe(400);
+      expect(data.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return 403 when alert limit exceeded', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
-      mockAlertCount.mockResolvedValue(5); // FREE tier limit is 5
+    it('should return 403 when PRO alert limit (100) exceeded', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockAlertCount.mockResolvedValue(100); // PRO tier limit is 100
 
       const { POST } = await import('@/app/api/alerts/route');
       const request = new MockRequest('http://localhost/api/alerts', {
         method: 'POST',
         body: JSON.stringify({
           symbol: 'XAUUSD',
-          timeframe: 'H1',
+          timeframe: 'M5',
           conditionType: 'price_above',
           targetValue: 1900,
         }),
@@ -304,15 +325,15 @@ describe('Alerts API Routes', () => {
       expect(data.code).toBe('ALERT_LIMIT_EXCEEDED');
     });
 
-    it('should create alert successfully', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+    it('should create alert successfully for PRO user', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
       mockAlertCount.mockResolvedValue(2);
 
       const createdAlert = {
         id: 'new-alert',
-        name: 'XAUUSD H1 Alert',
+        name: 'XAUUSD M5 Alert',
         symbol: 'XAUUSD',
-        timeframe: 'H1',
+        timeframe: 'M5',
         condition: '{"type":"price_above","targetValue":1900}',
         alertType: 'PRICE_ALERT',
         isActive: true,
@@ -328,7 +349,7 @@ describe('Alerts API Routes', () => {
         method: 'POST',
         body: JSON.stringify({
           symbol: 'XAUUSD',
-          timeframe: 'H1',
+          timeframe: 'M5',
           conditionType: 'price_above',
           targetValue: 1900,
         }),
@@ -341,23 +362,23 @@ describe('Alerts API Routes', () => {
       expect(data.message).toBe('Alert created successfully');
     });
 
-    it('should allow PRO user to access PRO symbols', async () => {
+    it('should allow PRO user to create M15 alerts', async () => {
       mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
       mockAlertCount.mockResolvedValue(5);
       mockAlertCreate.mockResolvedValue({
         id: 'new-alert',
-        symbol: 'USDJPY',
-        timeframe: 'M5',
+        symbol: 'XAUUSD',
+        timeframe: 'M15',
       });
 
       const { POST } = await import('@/app/api/alerts/route');
       const request = new MockRequest('http://localhost/api/alerts', {
         method: 'POST',
         body: JSON.stringify({
-          symbol: 'USDJPY',
-          timeframe: 'M5',
+          symbol: 'XAUUSD',
+          timeframe: 'M15',
           conditionType: 'price_above',
-          targetValue: 150,
+          targetValue: 1900,
         }),
       });
       const response = await POST(request as unknown as Request);
@@ -460,8 +481,25 @@ describe('Alerts API Routes', () => {
       expect(data.error).toBe('Unauthorized');
     });
 
-    it('should return 404 when alert not found', async () => {
+    it('should return 403 PRO_FEATURE for FREE users (V8)', async () => {
       mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+
+      const { PATCH } = await import('@/app/api/alerts/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/alert-1', {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: true }),
+      });
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'alert-1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.code).toBe('PRO_FEATURE');
+    });
+
+    it('should return 404 when alert not found', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
       mockAlertFindUnique.mockResolvedValue(null);
 
       const { PATCH } = await import('@/app/api/alerts/[id]/route');
@@ -482,7 +520,7 @@ describe('Alerts API Routes', () => {
     });
 
     it('should return 403 when alert belongs to another user', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
       mockAlertFindUnique.mockResolvedValue({
         userId: 'user-2',
         condition: '{}',
@@ -503,7 +541,7 @@ describe('Alerts API Routes', () => {
     });
 
     it('should update alert isActive status', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
       mockAlertFindUnique.mockResolvedValue({
         userId: 'user-1',
         condition: '{"type":"price_above","targetValue":1900}',
@@ -528,7 +566,7 @@ describe('Alerts API Routes', () => {
     });
 
     it('should update alert target value', async () => {
-      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
       mockAlertFindUnique.mockResolvedValue({
         userId: 'user-1',
         condition: '{"type":"price_above","targetValue":1900}',
