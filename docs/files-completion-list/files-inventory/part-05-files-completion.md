@@ -27,3 +27,13 @@
 
 - **Completed:** 22/22 files (100%)
 - **Missing:** None
+
+## Update 2026-07-07 — V8 single-symbol architecture
+
+`lib/auth/permissions.ts` (File 5/22) was rewritten for the V8 tier redesign
+(`change-to-new-design.md`): `TIER_PERMISSIONS.FREE` dropped `view_watchlist` (feature deleted)
+and `create_alerts` (Alerts are now PRO-exclusive); `TIER_PERMISSIONS.PRO` gained
+`multi_timeframe_visualization` and `drawing_line_alerts`. New middleware exports:
+`requireCreateAlerts`, `requireDrawingLineAlerts`, `requireMultiTimeframe` (replacing the removed
+`requireViewAllSymbols`/`requireViewAllTimeframes`, since chart access is no longer tier-gated).
+No files added or removed from this Part.

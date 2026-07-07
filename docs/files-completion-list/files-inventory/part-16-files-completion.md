@@ -49,16 +49,16 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ---
 
-## CATEGORY 4: Tier System (6 Files)
+## CATEGORY 4: Tier System (3 Files, was 6)
 
 | #   | File Path                | Status | Description                        |
 | --- | ------------------------ | ------ | ---------------------------------- |
 | 17  | `lib/tier-config.ts`     | ✅     | Tier definitions and configuration |
 | 18  | `lib/tier-validation.ts` | ✅     | Tier validation logic              |
 | 19  | `lib/tier-helpers.ts`    | ✅     | Tier helper functions              |
-| 20  | `lib/tier/constants.ts`  | ✅     | Tier constants                     |
-| 21  | `lib/tier/validator.ts`  | ✅     | Tier validator implementation      |
-| 22  | `lib/tier/index.ts`      | ✅     | Tier module exports                |
+| 20  | ~~`lib/tier/constants.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — only consumed by the deleted indicator-toggles/pro-indicator-overlay components |
+| 21  | ~~`lib/tier/validator.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — same reason |
+| 22  | ~~`lib/tier/index.ts`~~  | ❌ **DELETED 2026-07-08** | Barrel re-export with zero external consumers once 20-21 were removed |
 
 ---
 
@@ -77,8 +77,8 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 | #   | File Path                      | Status | Description                |
 | --- | ------------------------------ | ------ | -------------------------- |
 | 26  | `lib/validations/auth.ts`      | ✅     | Authentication Zod schemas |
-| 27  | `lib/validations/alert.ts`     | ✅     | Alert input validation     |
-| 28  | `lib/validations/watchlist.ts` | ✅     | Watchlist validation rules |
+| 27  | `lib/validations/alert.ts`     | ✅     | Alert input validation (V8: XAUUSD/M5/M15 only — see 2026-07-07 update) |
+| 28  | ~~`lib/validations/watchlist.ts`~~ | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8) |
 | 29  | `lib/validations/user.ts`      | ✅     | User profile validation    |
 
 ---
@@ -121,27 +121,27 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ---
 
-## CATEGORY 10: API Utilities (3 Files)
+## CATEGORY 10: API Utilities (1 File, was 3)
 
 | #   | File Path                  | Status | Description             |
 | --- | -------------------------- | ------ | ----------------------- |
 | 47  | `lib/api/index.ts`         | ✅     | API utilities index     |
-| 48  | `lib/api/mt5-client.ts`    | ✅     | MT5 API client          |
-| 49  | `lib/api/mt5-transform.ts` | ✅     | MT5 data transformation |
+| 48  | ~~`lib/api/mt5-client.ts`~~    | ❌ **DELETED 2026-07-08** | Dead code — never imported anywhere; Part 07's doc had already flagged it as superseded |
+| 49  | ~~`lib/api/mt5-transform.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — never imported anywhere |
 
 ---
 
-## CATEGORY 11: React Hooks (9 Files)
+## CATEGORY 11: React Hooks (7 Files, was 9)
 
 | #   | File Path                          | Status | Description                  |
 | --- | ---------------------------------- | ------ | ---------------------------- |
 | 50  | `hooks/use-alerts.ts`              | ✅     | Alerts state management hook |
 | 51  | `hooks/use-auth.ts`                | ✅     | Authentication state hook    |
-| 52  | `hooks/use-indicators.ts`          | ✅     | Technical indicators hook    |
+| 52  | ~~`hooks/use-indicators.ts`~~      | ❌ **DELETED 2026-07-08** | Dead code — exported `useIndicators()` was never called anywhere |
 | 53  | `hooks/use-login-tracking.ts`      | ✅     | Login tracking hook          |
 | 54  | `hooks/use-optimistic-mutation.ts` | ✅     | Optimistic update mutations  |
 | 55  | `hooks/use-toast.ts`               | ✅     | Toast notification hook      |
-| 56  | `hooks/use-watchlist.ts`           | ✅     | Watchlist state management   |
+| 56  | ~~`hooks/use-watchlist.ts`~~       | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8) |
 | 57  | `hooks/use-websocket.ts`           | ✅     | WebSocket connection hook    |
 | 58  | `lib/hooks/useAffiliateConfig.ts`  | ✅     | Affiliate configuration hook |
 
@@ -161,8 +161,8 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 | 66  | `types/payment.ts`        | ✅     | Payment types            |
 | 67  | `types/prisma-stubs.d.ts` | ✅     | Prisma type stubs        |
 | 68  | `types/tier.ts`           | ✅     | Tier type definitions    |
-| 69  | `types/user.ts`           | ✅     | User type definitions    |
-| 70  | `types/watchlist.ts`      | ✅     | Watchlist types          |
+| 69  | `types/user.ts`           | ✅     | User type definitions (V8: dropped `Watchlist` interface, `totalWatchlists` stat) |
+| 70  | ~~`types/watchlist.ts`~~  | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8) |
 
 ---
 
@@ -186,12 +186,12 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ---
 
-## CATEGORY 15: WebSocket (2 Files)
+## CATEGORY 15: WebSocket (1 File, was 2)
 
 | #   | File Path                            | Status | Description                     |
 | --- | ------------------------------------ | ------ | ------------------------------- |
 | 77  | `lib/websocket/server.ts`            | ✅     | WebSocket server implementation |
-| 78  | `lib/websocket/use-mt5-websocket.ts` | ✅     | MT5 WebSocket hook              |
+| 78  | ~~`lib/websocket/use-mt5-websocket.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — exported `useMT5WebSocket()` was never called anywhere |
 
 ---
 
@@ -307,12 +307,12 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ---
 
-## CATEGORY 25: Tier Tests (2 Files)
+## CATEGORY 25: Tier Tests (0 Files, was 2) — category retired 2026-07-08
 
 | #   | File Path                              | Status | Description          |
 | --- | -------------------------------------- | ------ | -------------------- |
-| 128 | `lib/tier/__tests__/constants.test.ts` | ✅     | Tier constants tests |
-| 129 | `lib/tier/__tests__/validator.test.ts` | ✅     | Tier validator tests |
+| 128 | ~~`lib/tier/__tests__/constants.test.ts`~~ | ❌ **DELETED 2026-07-07** | Stale pre-V8 test — asserted a FREE/PRO indicator split that no longer exists |
+| 129 | ~~`lib/tier/__tests__/validator.test.ts`~~ | ❌ **DELETED 2026-07-08** | Tested the deleted `lib/tier/validator.ts` — nothing left to test |
 
 ---
 
@@ -323,18 +323,18 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 | Core Utilities              | 6       | 6         | ✅ 100%     |
 | Database Utilities          | 4       | 4         | ✅ 100%     |
 | Authentication Utilities    | 6       | 6         | ✅ 100%     |
-| Tier System                 | 6       | 6         | ✅ 100%     |
+| Tier System                 | 3       | 3         | ✅ 100% (was 6; `lib/tier/{constants,validator,index}.ts` deleted 2026-07-08 as dead code) |
 | Error Handling              | 3       | 3         | ✅ 100%     |
-| Validation Schemas          | 4       | 4         | ✅ 100%     |
+| Validation Schemas          | 3       | 3         | ✅ 100% (was 4; `watchlist.ts` deleted 2026-07-07) |
 | Cache & Redis               | 2       | 2         | ✅ 100%     |
 | Email Services              | 11      | 11        | ✅ 100%     |
 | Utility Functions           | 3       | 3         | ✅ 100%     |
-| API Utilities               | 3       | 3         | ✅ 100%     |
-| React Hooks                 | 9       | 9         | ✅ 100%     |
-| Type Definitions            | 12      | 12        | ✅ 100%     |
+| API Utilities               | 1       | 1         | ✅ 100% (was 3; `mt5-{client,transform}.ts` deleted 2026-07-08 as dead code) |
+| React Hooks                 | 7       | 7         | ✅ 100% (was 9 → 8 → 7; `use-watchlist.ts` deleted 2026-07-07, `use-indicators.ts` deleted 2026-07-08) |
+| Type Definitions            | 11      | 11        | ✅ 100% (was 12; `types/watchlist.ts` deleted 2026-07-07) |
 | Constants & Business Rules  | 1       | 1         | ✅ 100%     |
 | Cron Jobs & Background Jobs | 5       | 5         | ✅ 100%     |
-| WebSocket                   | 2       | 2         | ✅ 100%     |
+| WebSocket                   | 1       | 1         | ✅ 100% (was 2; `use-mt5-websocket.ts` deleted 2026-07-08 as dead code) |
 | Security & Fraud            | 2       | 2         | ✅ 100%     |
 | Monitoring & Geo            | 2       | 2         | ✅ 100%     |
 | User Preferences            | 1       | 1         | ✅ 100%     |
@@ -344,8 +344,8 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 | CI/CD & GitHub Workflows    | 11      | 11        | ✅ 100%     |
 | Docker & Deployment         | 3       | 3         | ✅ 100%     |
 | Scripts                     | 18      | 18        | ✅ 100%     |
-| Tier Tests                  | 2       | 2         | ✅ 100%     |
-| **TOTAL**                   | **129** | **129**   | **✅ 100%** |
+| Tier Tests                  | 0       | 0         | ✅ 100% (was 2; both files deleted — `constants.test.ts` 2026-07-07, `validator.test.ts` 2026-07-08) |
+| **TOTAL**                   | **117** | **117**   | **✅ 100%** |
 
 ---
 
@@ -388,4 +388,111 @@ Part 16 utilities are used by all other parts:
 
 ---
 
-**Part 16 Status: COMPLETE** ✅
+## Update 2026-07-07 — V8 single-symbol architecture + Windows/Jest infra fixes
+
+Commit `f213bd12` touched a large slice of Part 16 for the V8 redesign
+(`change-to-new-design.md`) plus unrelated build-tooling fixes. **3 files deleted, 0 added:**
+
+**Deleted (Watchlist feature + stale test):**
+
+- `lib/validations/watchlist.ts` (row 28), `hooks/use-watchlist.ts` (row 56),
+  `types/watchlist.ts` (row 70) — the watchlist feature was removed from the product for all
+  tiers; the corresponding `Watchlist`/`WatchlistItem` Prisma models were dropped via
+  `prisma/migrations/20260706000000_drop_watchlists/migration.sql`.
+- `lib/tier/__tests__/constants.test.ts` (row 128) — stale pre-V8 test asserting a FREE/PRO
+  indicator split that no longer exists; the FREE/PRO indicator gating itself was removed (see
+  below), making this suite obsolete rather than fixable.
+
+**Modified (tier system rewritten for V8 — XAUUSD only, M5/M15 only, both tiers identical):**
+
+- `lib/tier-config.ts` (17), `lib/tier-validation.ts` (18), `lib/tier/constants.ts` (20),
+  `lib/tier/validator.ts` (21) — symbol/timeframe lists collapsed to `['XAUUSD']`/`['M5','M15']`
+  for both tiers; `canAccessIndicator()` now always returns `true` (no more column/indicator
+  gating — both tiers get all `market_data_v6` columns); all watchlist-limit functions
+  (`getWatchlistLimit`, `getMaxWatchlists`, `canCreateWatchlist`, `canAddWatchlistItem`) removed
+  from `lib/tier-validation.ts`. **Note:** `lib/tier/constants.ts`'s `INDICATOR_METADATA` still
+  lists the old 63-column indicator set (tema/heiken-ashi/keltner/etc.) re-tagged `tier: 'FREE'`
+  for all — it was not migrated to the `market_data_v6` column set that `types/indicator.ts` (Part
+  16 row 64) moved to in this same commit. Both are "ungated," so nothing is functionally broken,
+  but the two files now describe different column sets for what should be the same data layer.
+- `lib/auth/permissions.ts` (14) — `view_watchlist` and FREE-tier `create_alerts` removed;
+  `multi_timeframe_visualization`/`drawing_line_alerts` added as PRO-only permissions. See
+  `part-05-files-completion.md`'s own 2026-07-07 note.
+- `lib/constants/business-rules.ts` (71) — same symbol/timeframe/indicator collapse as
+  `lib/tier-config.ts`; `INDICATORS_BY_TIER.FREE` now equals `ALL_INDICATORS` (was
+  `BASIC_INDICATORS`).
+- `types/{index,tier,indicator,api,prisma-stubs.d,user}.ts` (59, 64, 61, 67, 68) — `types/index.ts`
+  dropped its `watchlist` re-export; `types/tier.ts` rewritten for the V8 `TierLimits` shape
+  (see `part-08-files-completion.md`); `types/indicator.ts` fully migrated to the
+  `MarketDataV6`/`CentroidVariantColumns` shape (79 fields), replacing the old per-tier
+  `FreeMarketData`/`CompleteMarketData` interfaces; `types/user.ts` dropped the `Watchlist`
+  interface and `UserStats.totalWatchlists`.
+- `lib/validations/user.ts` (29) — `defaultTimeframe` enum narrowed to `'M5'|'M15'`;
+  `exportUserDataSchema` dropped `includeWatchlists`.
+- `lib/db/seed.ts` (8), `prisma/seed.ts` — stale doc comments referencing the retired
+  63-column `MarketData` schema removed (no behavior change; that model was already dropped
+  2026-07-05).
+- `lib/websocket/server.ts` (77) — added `subscribe_market`/`broadcastMarketData` for the v6
+  pipeline; see `part-15-files-completion.md`'s 2026-07-07 note.
+- `lib/jobs/alert-checker.ts` (75), `lib/api/index.ts` (47),
+  `lib/email/{email,subscription-emails}.ts` (32-33), `lib/errors/api-error.ts` (23) — minor V8
+  copy/logic updates (PRO price from `PRO_MONTHLY_PRICE`, XAUUSD gateway-first price lookup);
+  no structural change.
+
+**Modified (build tooling — unrelated to V8, same commit):**
+
+- `jest.config.js` (93) — added `next-auth/react` → `__mocks__/next-auth-react.js` (a separate
+  mock file, new/untracked — see Category 25 note below) and `lightweight-charts` →
+  `__mocks__/lightweight-charts.js` (also new) module mappings; excludes
+  `frontend-and-backend-python-stack/` (prototype sub-project) from `testPathIgnorePatterns`.
+- `tsconfig.json` (94) — same `frontend-and-backend-python-stack/` exclusion.
+- `package.json` — `prebuild` script switched from `rm -rf ... || true` to `rimraf` (new devDependency)
+  for cross-platform (Windows) compatibility; added `worker:alerts` script (see
+  `backend-file-inventory.md`'s Line Alerts rows).
+
+**New untracked mock files** (not yet given their own Part 16 row — `__mocks__/` isn't
+consistently inventoried elsewhere either): `__mocks__/next-auth-react.js`,
+`__mocks__/lightweight-charts.js`. `__mocks__/next-auth.js` (existing) was also modified.
+
+## Update 2026-07-08 — dead-code removal: legacy indicator/MT5 cluster
+
+The 2026-07-07 note above flagged an inconsistency: `lib/tier/constants.ts`'s `INDICATOR_METADATA`
+still described the old 63-column indicator set rather than the `market_data_v6` columns
+`types/indicator.ts` migrated to. Investigation traced every consumer transitively and found the
+whole chain was dead — unreachable from any live page, API route, or called hook. **8 files
+deleted** across 5 categories (Tier System, API Utilities, React Hooks, WebSocket, Tier Tests),
+verified safe with a clean `tsc --noEmit` (0 errors) and full Jest run (111 suites, 2046 tests,
+all passing):
+
+- **Tier System** (was 6, now 3): `lib/tier/constants.ts`, `lib/tier/validator.ts`,
+  `lib/tier/index.ts` deleted. Only consumed by the two dead chart components below; the barrel
+  (`index.ts`) had zero external consumers.
+- **API Utilities** (was 3, now 1): `lib/api/mt5-client.ts`, `lib/api/mt5-transform.ts` deleted.
+  Never imported anywhere; Part 07's own doc had already flagged `mt5-client.ts` as superseded.
+- **React Hooks** (was 9 → 8 → 7): `hooks/use-indicators.ts` deleted. Exported `useIndicators()`
+  was never called anywhere.
+- **WebSocket** (was 2, now 1): `lib/websocket/use-mt5-websocket.ts` deleted. Exported
+  `useMT5WebSocket()` was never called anywhere.
+- **Tier Tests** (was 2, now 0 — category retired): `lib/tier/__tests__/validator.test.ts`
+  deleted (tested the now-deleted `validator.ts`).
+
+The two orphaned chart components that anchored this whole dead subtree —
+`components/charts/pro-indicator-overlay.tsx` and `components/charts/indicator-toggles.tsx` —
+are tracked in `part-09-files-completion.md`, not here (they're Part 09). Their test files
+(`__tests__/components/charts/{indicator-toggles,pro-indicator-overlay}.test.tsx`) were also
+deleted; those were never given their own Part 16 rows.
+
+`types/indicator.ts` was trimmed to just the V8 `MarketDataV6`/`CentroidVariantColumns`/
+`CENTROID_VARIANTS`/`CentroidVariant` exports (row 64) — the removed legacy interfaces had no
+consumer left outside the deleted cluster. `lib/tier-validation.ts` (row 18) got a stale
+doc-comment fix (it referenced the now-deleted `lib/tier/constants` module; no logic change).
+`tsconfig.json` (row 94) added `Archive` to its exclude list — an archived copy of
+`mt5-transform.ts` under `Archive/part6-flask-mt5/` was not previously excluded and broke
+`tsc --noEmit` once the legacy types it imported were removed.
+
+Full detail in `backend-file-inventory.md`'s and `frontend-ui-file-inventory.md`'s own
+2026-07-08 reconciliation notes.
+
+---
+
+**Part 16 Status: COMPLETE** ✅ (117/117, updated 2026-07-08)

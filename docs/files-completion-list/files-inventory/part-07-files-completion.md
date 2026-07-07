@@ -172,6 +172,28 @@ If you're upgrading from Part 07 v1.x:
 
 ---
 
-**Last Updated:** 2026-03-05
-**Version:** 2.1.0 (Tier Routes Only — data flow updated to WebSocket)
-**Related PR:** #293 (Remove MT5 Indicators), chart WebSocket migration (2026-03-05)
+## V8 Update (2026-07-07) — Single-Symbol Architecture
+
+`change-to-new-design.md` moved the product to one symbol (XAUUSD) and two timeframes (M5, M15)
+for **both** tiers, with tier differentiation expressed through feature gates instead of
+data-access limits. All 3 Part 07 files were updated accordingly — no files added or removed:
+
+- **`app/api/tier/symbols/route.ts`** — now returns the single-symbol list (`SYMBOLS` from
+  `lib/tier-config.ts`); the `proOnly` flag is gone since nothing is symbol-gated anymore.
+- **`app/api/tier/check/[symbol]/route.ts`** — `allowed=true` only for XAUUSD, for any tier;
+  unknown symbols return `allowed=false` with no upgrade prompt (no tier unlocks additional
+  symbols in V8). Dropped the `upgradeRequired` response field.
+- **`app/api/tier/combinations/route.ts`** — returns the two supported combinations
+  (XAUUSD×M5, XAUUSD×M15), identical for both tiers; no tier gating, no upgrade prompt.
+
+Tier differentiation for this platform is now: **Alerts** (FREE 0 / PRO 100, `app/api/alerts/*`),
+**multi-timeframe visualization** (PRO-only, `app/api/market-data/channel/route.ts` — new,
+tracked in `backend-file-inventory.md` under Part 09, not Part 07), and **drawing-engine line
+alerts** (PRO-only). See `docs/files-completion-list/files-inventory/part-11-files-completion.md`
+and `part-09-files-completion.md` for those.
+
+---
+
+**Last Updated:** 2026-07-07
+**Version:** 3.0.0 (V8 single-symbol architecture — chart access no longer tier-gated)
+**Related PR:** #293 (Remove MT5 Indicators), chart WebSocket migration (2026-03-05), V8 redesign (2026-07-07)

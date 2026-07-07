@@ -381,3 +381,38 @@ All Part 11 (Alerts System) files are complete and fully implemented with:
 - ✅ Error handling and user feedback
 
 **Ready for production use!** 🚀
+
+---
+
+## Update 2026-07-07 — V8: Alerts are now a PRO-exclusive feature
+
+`change-to-new-design.md`'s V8 redesign narrowed the whole platform to one symbol (XAUUSD) and
+two timeframes (M5, M15), and moved Alerts from a FREE+PRO feature with different limits to a
+**PRO-only** feature. No files were added or removed in Part 11 itself (one new frontend file,
+`components/alerts/alerts-pro-upgrade.tsx`, is tracked in `frontend-ui-file-inventory.md` /
+Part 11 there, not here). Changes to existing files:
+
+- **`app/api/alerts/route.ts`** — `POST` now returns **403** for any FREE-tier request before
+  even parsing the body (`code: 'PRO_FEATURE'`, `upgradeUrl: '/pricing'`). PRO limit raised
+  5→**100**. The Zod schema's `symbol`/`timeframe` fields are now `z.enum(SYMBOLS)`/
+  `z.enum(TIMEFRAMES)` (XAUUSD / M5,M15 only) instead of free-text `z.string()`.
+- **`lib/validations/alert.ts`** (File 3/23) — `SYMBOLS` narrowed to `['XAUUSD']`,
+  `TIMEFRAMES` narrowed to `['M5', 'M15']` (was 10 symbols / 7 timeframes). `isSymbolValidForTier`/
+  `getAllowedSymbols`/`createAlertSchemaForTier` are now tier-independent (alert *creation* is
+  gated separately, upstream, not by symbol/timeframe access).
+- **`lib/tier-config.ts`** (File 17/23) — FREE `maxAlerts` is now **0** (was 5); PRO is **100**
+  (was 20). Symbol/timeframe lists collapsed to the single XAUUSD/M5/M15 set for both tiers —
+  see `lib/tier-config.ts`'s own doc comment for the full V8 rationale.
+- **`app/(dashboard)/alerts/page.tsx`** (File 11/23) — FREE-tier users now render
+  `<AlertsProUpgrade />` instead of the alerts list; no `limit` calculation needed for FREE
+  since they can't reach the list at all.
+- **`app/(dashboard)/alerts/new/{page.tsx,create-alert-client.tsx}`** (Files 13/23, 14/23) —
+  symbol/timeframe selectors narrowed accordingly (effectively a single XAUUSD/M5/M15 choice,
+  not a real "selection" anymore).
+- **`lib/jobs/alert-checker.ts`** (File 15/23) — for XAUUSD, now tries the v6 Railway Gateway
+  pipeline's `market_data_v6` table first (`fetchXauusdPriceFromGatewayPipeline`) before falling
+  back to the Flask MT5 API. See `v2_29_data_pipeline_architecture-files-completion.md`.
+
+**Not verified in this pass:** whether the "Additional Files (Frontend Mirror)" listed above
+(`frontend/types/alert.ts` etc.) were updated to match — this doc's own historical section
+already noted them as a separate `/frontend/` mirror maintained independently.

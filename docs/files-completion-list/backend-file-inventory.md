@@ -1,7 +1,7 @@
 # Backend Files Inventory
 
-**Last Updated:** 2026-07-05
-**Total Files:** 652
+**Last Updated:** 2026-07-08
+**Total Files:** 629
 **Purpose:** Complete inventory of all backend files (non-UI) that handle business logic, data processing, and infrastructure
 
 ---
@@ -26,8 +26,10 @@
 > so the same file appears on multiple rows when more than one build Part touches it (e.g.
 > `lib/tier-config.ts` is listed under Parts 04, 08, 11 and 16). As a result:
 >
-> - **Row count ≠ file count.** There are **623 numbered rows** but only **~511 unique file paths**
->   (~112 rows are cross-Part duplicates).
+> - **Row count ≠ file count.** There are **602 numbered rows** (including sub-numbered rows 5A–5D)
+>   but only **500 unique file paths** (102 rows are cross-Part duplicates). Row numbers are **not
+>   contiguous** — numbers retired when their file was deleted (see the 2026-07-07 and 2026-07-08
+>   reconciliation notes) are not reused, so do not assume row N+1 immediately follows row N.
 > - The **headline totals** (Total Files / Backend / Tests / Grand Total) and the
 >   **Distribution by Category / Part** numbers below are **approximate editorial estimates**, not
 >   values derived from this table — they over-count duplicates and do not reconcile exactly with
@@ -55,7 +57,6 @@
 | 13  | Part 03        | `types/indicator.ts`                                                    | Type Definitions            |
 | 14  | Part 03        | `types/api.ts`                                                          | Type Definitions            |
 | 15  | Part 03        | `types/payment.ts`                                                      | Type Definitions            |
-| 16  | Part 03        | `types/watchlist.ts`                                                    | Type Definitions            |
 | 17  | Part 03        | `types/disbursement.ts`                                                 | Type Definitions            |
 | 18  | Part 03        | `types/dlocal.ts`                                                       | Type Definitions            |
 | 19  | Part 03        | `types/next-auth.d.ts`                                                  | Type Definitions            |
@@ -63,14 +64,9 @@
 | 21  | Part 04        | `lib/tier-config.ts`                                                    | Libraries/Utilities         |
 | 22  | Part 04        | `lib/tier-validation.ts`                                                | Validation schemas          |
 | 23  | Part 04        | `lib/tier-helpers.ts`                                                   | Libraries/Utilities         |
-| 24  | Part 04        | `lib/tier/constants.ts`                                                 | Libraries/Utilities         |
-| 25  | Part 04        | `lib/tier/validator.ts`                                                 | Validation schemas          |
-| 26  | Part 04        | `lib/tier/index.ts`                                                     | Libraries/Utilities         |
 | 27  | Part 04        | `app/api/tier/check/[symbol]/route.ts`                                  | API routes                  |
 | 28  | Part 04        | `app/api/tier/combinations/route.ts`                                    | API routes                  |
 | 29  | Part 04        | `app/api/tier/symbols/route.ts`                                         | API routes                  |
-| 30  | Part 04        | `lib/tier/__tests__/constants.test.ts`                                  | Other (tests)               |
-| 31  | Part 04        | `lib/tier/__tests__/validator.test.ts`                                  | Other (tests)               |
 | 32  | Part 04        | `__tests__/api/tier.test.ts`                                            | Other (tests)               |
 | 33  | Part 05        | `lib/auth/errors.ts`                                                    | Security & Fraud Detection  |
 | 34  | Part 05        | `lib/auth/auth-options.ts`                                              | Security & Fraud Detection  |
@@ -117,23 +113,15 @@
 | 75  | Part 08        | `lib/tier-config.ts`                                                    | Libraries/Utilities         |
 | 76  | Part 08        | `types/tier.ts`                                                         | Type Definitions            |
 | 77  | Part 08        | `hooks/use-alerts.ts`                                                   | React hooks                 |
-| 78  | Part 08        | `hooks/use-watchlist.ts`                                                | React hooks                 |
 | 79  | Part 08        | `hooks/use-auth.ts`                                                     | React hooks                 |
-| 80  | Part 08        | `hooks/use-indicators.ts`                                               | React hooks                 |
 | 81  | Part 08        | `hooks/use-login-tracking.ts`                                           | React hooks                 |
 | 82  | Part 08        | `hooks/use-optimistic-mutation.ts`                                      | React hooks                 |
 | 83  | Part 08        | `hooks/use-toast.ts`                                                    | React hooks                 |
 | 84  | Part 08        | `hooks/use-websocket.ts`                                                | React hooks                 |
 | 85  | Part 08        | `__tests__/components/dashboard/recent-alerts.test.tsx`                 | Other (tests)               |
 | 86  | Part 08        | `__tests__/components/dashboard/stats-card.test.tsx`                    | Other (tests)               |
-| 87  | Part 08        | `__tests__/components/dashboard/watchlist-widget.test.tsx`              | Other (tests)               |
-| 88  | Part 09        | `hooks/use-indicators.ts`                                               | React hooks                 |
 | 89  | Part 09        | `hooks/use-ohlcv-socket.ts`                                             | React hooks                 |
 | 90  | Part 09        | `hooks/use-auth.ts`                                                     | React hooks                 |
-| 91  | Part 10        | `app/api/watchlist/route.ts`                                            | API routes                  |
-| 92  | Part 10        | `app/api/watchlist/[id]/route.ts`                                       | API routes                  |
-| 93  | Part 10        | `app/api/watchlist/reorder/route.ts`                                    | API routes                  |
-| 94  | Part 10        | `hooks/use-watchlist.ts`                                                | React hooks                 |
 | 95  | Part 11        | `types/alert.ts`                                                        | Type Definitions            |
 | 96  | Part 11        | `lib/validations/alert.ts`                                              | Validation schemas          |
 | 97  | Part 11        | `app/api/alerts/route.ts`                                               | API routes                  |
@@ -235,15 +223,11 @@
 | 193 | Part 16        | `lib/tier-config.ts`                                                    | Libraries/Utilities         |
 | 194 | Part 16        | `lib/tier-validation.ts`                                                | Validation schemas          |
 | 195 | Part 16        | `lib/tier-helpers.ts`                                                   | Libraries/Utilities         |
-| 196 | Part 16        | `lib/tier/constants.ts`                                                 | Libraries/Utilities         |
-| 197 | Part 16        | `lib/tier/validator.ts`                                                 | Validation schemas          |
-| 198 | Part 16        | `lib/tier/index.ts`                                                     | Libraries/Utilities         |
 | 199 | Part 16        | `lib/errors/api-error.ts`                                               | Libraries/Utilities         |
 | 200 | Part 16        | `lib/errors/error-handler.ts`                                           | Libraries/Utilities         |
 | 201 | Part 16        | `lib/errors/error-logger.ts`                                            | Libraries/Utilities         |
 | 202 | Part 16        | `lib/validations/auth.ts`                                               | Validation schemas          |
 | 203 | Part 16        | `lib/validations/alert.ts`                                              | Validation schemas          |
-| 204 | Part 16        | `lib/validations/watchlist.ts`                                          | Validation schemas          |
 | 205 | Part 16        | `lib/validations/user.ts`                                               | Validation schemas          |
 | 206 | Part 16        | `lib/redis/client.ts`                                                   | Database operations         |
 | 207 | Part 16        | `lib/cache/cache-manager.ts`                                            | Libraries/Utilities         |
@@ -263,15 +247,11 @@
 | 221 | Part 16        | `lib/utils/formatters.ts`                                               | Libraries/Utilities         |
 | 222 | Part 16        | `lib/utils/constants.ts`                                                | Libraries/Utilities         |
 | 223 | Part 16        | `lib/api/index.ts`                                                      | Libraries/Utilities         |
-| 224 | Part 16        | `lib/api/mt5-client.ts`                                                 | Libraries/Utilities         |
-| 225 | Part 16        | `lib/api/mt5-transform.ts`                                              | Libraries/Utilities         |
 | 226 | Part 16        | `hooks/use-alerts.ts`                                                   | React hooks                 |
 | 227 | Part 16        | `hooks/use-auth.ts`                                                     | React hooks                 |
-| 228 | Part 16        | `hooks/use-indicators.ts`                                               | React hooks                 |
 | 229 | Part 16        | `hooks/use-login-tracking.ts`                                           | React hooks                 |
 | 230 | Part 16        | `hooks/use-optimistic-mutation.ts`                                      | React hooks                 |
 | 231 | Part 16        | `hooks/use-toast.ts`                                                    | React hooks                 |
-| 232 | Part 16        | `hooks/use-watchlist.ts`                                                | React hooks                 |
 | 233 | Part 16        | `hooks/use-websocket.ts`                                                | React hooks                 |
 | 234 | Part 16        | `lib/hooks/useAffiliateConfig.ts`                                       | React hooks                 |
 | 235 | Part 16        | `types/index.ts`                                                        | Type Definitions            |
@@ -285,7 +265,6 @@
 | 243 | Part 16        | `types/prisma-stubs.d.ts`                                               | Type Definitions            |
 | 244 | Part 16        | `types/tier.ts`                                                         | Type Definitions            |
 | 245 | Part 16        | `types/user.ts`                                                         | Type Definitions            |
-| 246 | Part 16        | `types/watchlist.ts`                                                    | Type Definitions            |
 | 247 | Part 16        | `lib/constants/business-rules.ts`                                       | Libraries/Utilities         |
 | 248 | Part 16        | `lib/cron/check-expiring-subscriptions.ts`                              | Other (background jobs)     |
 | 249 | Part 16        | `lib/cron/downgrade-expired-subscriptions.ts`                           | Other (background jobs)     |
@@ -293,7 +272,6 @@
 | 251 | Part 16        | `lib/jobs/alert-checker.ts`                                             | Other (background jobs)     |
 | 252 | Part 16        | `lib/jobs/queue.ts`                                                     | Other (background jobs)     |
 | 253 | Part 16        | `lib/websocket/server.ts`                                               | Middleware & Infrastructure |
-| 254 | Part 16        | `lib/websocket/use-mt5-websocket.ts`                                    | React hooks                 |
 | 255 | Part 16        | `lib/security/device-detection.ts`                                      | Security & Fraud Detection  |
 | 256 | Part 16        | `lib/fraud/fraud-detection.service.ts`                                  | Security & Fraud Detection  |
 | 257 | Part 16        | `lib/monitoring/system-monitor.ts`                                      | Libraries/Utilities         |
@@ -340,8 +318,6 @@
 | 298 | Part 16        | `scripts/rollback-to-part6.sh`                                          | Other (scripts)             |
 | 299 | Part 16        | `scripts/verify-alignment.sh`                                           | Other (scripts)             |
 | 300 | Part 16        | `scripts/verify-build-orders.sh`                                        | Other (scripts)             |
-| 301 | Part 16        | `lib/tier/__tests__/constants.test.ts`                                  | Other (tests)               |
-| 302 | Part 16        | `lib/tier/__tests__/validator.test.ts`                                  | Other (tests)               |
 | 303 | Part 17A-1     | `__tests__/setup.ts`                                                    | Other (tests)               |
 | 304 | Part 17A-1     | `__tests__/helpers/supertest-setup.ts`                                  | Other (tests)               |
 | 305 | Part 17A-1     | `lib/affiliate/constants.ts`                                            | Libraries/Utilities         |
@@ -656,65 +632,65 @@
 | 614 | Line Alerts    | `railway-worker.json`                                                   | Configuration files          |
 | 615 | Line Alerts    | `mt5-service/app/redis_pub.py`                                          | Libraries/Utilities          |
 | 616 | Line Alerts    | `mt5-service/tests/test_redis_pub.py`                                   | Other (tests)                |
-| 617 | Part 02        | `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`     | Database operations          |
-| 618 | Part 02        | `prisma/migrations/20260705010000_drop_market_data/migration.sql`       | Database operations          |
 | 619 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md` | Other (documentation) |
 | 620 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/implementation-progress/implementation-progress-files-and-folder-directory.txt` | Other (documentation) |
 | 621 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/Drawing-Engine-Line-Alerts-Architecture-Overview.pptx` | Other (documentation) |
 | 622 | Line Alerts    | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/PHASE-4-SMOKE-TEST-RUNBOOK.md` | Other (documentation) |
 | 623 | Backend Stack C — Data Pipeline (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/old-architecture/README.md` | Other (documentation) |
+| 624 | Part 09        | `app/api/market-data/channel/route.ts`                                  | API routes                   |
+| 625 | Part 09        | `components/charts/mtf/useMtfOverlay.ts`                                | React hooks                   |
+| 626 | Part 02        | `prisma/migrations/20260706000000_drop_watchlists/migration.sql`        | Database operations           |
 
 ---
 
 ## Summary Statistics
 
-> _Approximate figures — see the counting note above the inventory table. The table has 623
-> per-Part rows / ~511 unique files; the numbers below are editorial estimates, not derived counts._
+> _Approximate figures — see the counting note above the inventory table. The table has 602
+> per-Part rows / 500 unique files; the numbers below are editorial estimates, not derived counts._
 
 ### Total Counts
 
-- **Total Backend Files:** 600 (excluding tests)
-- **Test Files:** 127
-- **Grand Total:** 652 files
+- **Total Backend Files:** 582 (excluding tests)
+- **Test Files:** 122
+- **Grand Total:** 629 files
 
 ### Distribution by Category
 
 | Category                           | File Count | Percentage |
 | ---------------------------------- | ---------- | ---------- |
-| API routes                         | 166        | 25.7%      |
-| Libraries/Utilities                | 173        | 26.7%      |
-| Type Definitions                   | 46         | 7.1%       |
-| Configuration files                | 47         | 7.3%       |
-| Templates                          | 28         | 4.3%       |
-| Other (tests)                      | 127        | 19.6%      |
-| Security & Fraud Detection         | 22         | 3.4%       |
-| Validation schemas                 | 20         | 3.1%       |
-| Database operations                | 17         | 2.6%       |
-| React hooks                        | 35         | 5.4%       |
+| API routes                         | 164        | 26.1%      |
+| Libraries/Utilities                | 167        | 26.6%      |
+| Type Definitions                   | 44         | 7.0%       |
+| Configuration files                | 47         | 7.5%       |
+| Templates                          | 28         | 4.5%       |
+| Other (tests)                      | 122        | 19.4%      |
+| Security & Fraud Detection         | 22         | 3.5%       |
+| Validation schemas                 | 17         | 2.7%       |
+| Database operations                | 18         | 2.9%       |
+| React hooks                        | 29         | 4.6%       |
 | Middleware & Infrastructure        | 11         | 1.7%       |
-| Other (background jobs)            | 22         | 3.4%       |
-| Other (scripts)                    | 23         | 3.6%       |
-| Other (documentation/exports/etc.) | 45         | 6.9%       |
+| Other (background jobs)            | 22         | 3.5%       |
+| Other (scripts)                    | 23         | 3.7%       |
+| Other (documentation/exports/etc.) | 45         | 7.2%       |
 
 ### Distribution by Part
 
 | Part                                               | File Count | Percentage |
 | -------------------------------------------------- | ---------- | ---------- |
-| Part 02 (Database)                                 | 10         | 1.5%       |
-| Part 03 (Types)                                    | 12         | 2.4%       |
-| Part 04 (Tier System)                              | 13         | 2.6%       |
+| Part 02 (Database)                                 | 11         | 1.7%       |
+| Part 03 (Types)                                    | 11         | 1.7%       |
+| Part 04 (Tier System)                              | 8          | 1.3%       |
 | Part 05 (Authentication)                           | 11         | 2.2%       |
 | Part 06 (Flask MT5)                                | 29         | 5.8%       |
 | Part 07 (Tier Routes)                              | 3          | 0.6%       |
-| Part 08 (Dashboard Backend)                        | 11         | 2.2%       |
-| Part 09 (Charts Backend)                           | 3          | 0.6%       |
-| Part 10 (Watchlist Backend)                        | 4          | 0.8%       |
+| Part 08 (Dashboard Backend)                        | 8          | 1.3%       |
+| Part 09 (Charts Backend)                           | 4          | 0.6%       |
 | Part 11 (Alerts Backend)                           | 8          | 1.6%       |
 | Part 12 (E-commerce Backend)                       | 21         | 4.2%       |
 | Part 13 (Settings Backend)                         | 16         | 3.2%       |
 | Part 14 (Admin Backend)                            | 22         | 3.9%       |
 | Part 15 (Notifications Backend)                    | 8          | 1.6%       |
-| Part 16 (Infrastructure)                           | 129        | 25.6%      |
+| Part 16 (Infrastructure)                           | 117        | 18.6%      |
 | Part 17A-1 (Affiliate Foundation)                  | 23         | 4.1%       |
 | Part 17A-2 (Affiliate UI Tests)                    | 7          | 1.4%       |
 | Part 17B-1 (Admin Affiliate)                       | 12         | 2.4%       |
@@ -730,6 +706,10 @@
 | Backend Stack C — Data Pipeline (v2.29)            | 38         | 5.8%       |
 | Backend Stack C — MTF Visualisation (v2.29)        | 12         | 1.9%       |
 | Railway Gateway (NestJS v6 Ingest)                  | 30         | 4.6%       |
+
+> **Part 10 (Watchlist Backend) removed 2026-07-07** — the watchlist feature was deleted from
+> the product for all tiers (V8 single-symbol architecture). See the 2026-07-07 reconciliation
+> note.
 
 ### Key Backend Components
 
@@ -1011,7 +991,139 @@ cross-reference added).
 
 Still **backend-only** — `frontend-ui-file-inventory.md` unaffected.
 
+## Reconciliation Note (2026-07-07) — V8 single-symbol architecture: Watchlist removed, tier system rewritten, MTF backend added
+
+Commit `f213bd12` ("Fix type-check errors, exclude prototype sub-projects from tsconfig/jest, fix
+stale pre-V8 tests, fix lightweight-charts/next-auth Jest mocking, fix build script for Windows")
+landed the V8 redesign from `change-to-new-design.md`: one symbol (XAUUSD), two timeframes
+(M5/M15), identical `market_data_v6` column access for both tiers, and tier differentiation moved
+to feature gates (Alerts, multi-timeframe visualization, drawing-engine line alerts — all
+PRO-only). This note also folds in a **dedup fix**: a separate, uncoordinated edit in the same
+commit had added rows **5A–5D** for previously-untracked/duplicate Part 02 migrations without
+updating this doc's summary statistics — reconciled below.
+
+**Removed (14 rows) — Watchlist feature deleted entirely, all tiers:**
+
+- `types/watchlist.ts` (was Part 03 + Part 16, 2 rows)
+- `lib/tier/__tests__/constants.test.ts` (was Part 04 + Part 16, 2 rows) — deleted as a stale
+  pre-V8 test (asserted a FREE/PRO indicator split that no longer exists; superseded by the
+  updated `lib/tier/__tests__/validator.test.ts`)
+- `hooks/use-watchlist.ts` (was Part 08 + Part 10 + Part 16, 3 rows)
+- `__tests__/components/dashboard/watchlist-widget.test.tsx` (was Part 08)
+- `app/api/watchlist/route.ts`, `app/api/watchlist/[id]/route.ts`,
+  `app/api/watchlist/reorder/route.ts` (were Part 10 — **Part 10 now has zero backend files**,
+  removed from the Distribution by Part table)
+- `lib/validations/watchlist.ts` (was Part 16)
+
+Backing removal confirmed in `prisma/schema.prisma`: the `Watchlist` and `WatchlistItem` models
+were dropped, with `prisma/migrations/20260706000000_drop_watchlists/migration.sql` (row 626,
+Part 02) as the corresponding `DROP TABLE` migration. The matching frontend UI files
+(`app/(dashboard)/watchlist/*`, `components/dashboard/watchlist-widget.tsx`,
+`components/watchlist/*`) were removed in the same commit — tracked in
+`frontend-ui-file-inventory.md`'s own 2026-07-07 note, not here.
+
+**Dedup fix — rows 5A–5D vs. the previous 617/618:** the other edit in this commit inserted
+`prisma/migrations/20260214000000_rag_dual_memory` (5A) and
+`prisma/migrations/20260224000000_update_kc_ha_body_columns` (5B) — two pre-existing migrations
+that had never been inventoried — plus **5C/5D, which duplicated this doc's own rows 617/618**
+(`20260705000000_add_market_data_v6` / `20260705010000_drop_market_data`, added in the 2026-07-05
+pass). Resolved by deleting the old 617/618 rows; 5C/5D are now the sole entries for those two
+files. Net effect on Part 02: +2 (5A, 5B, genuinely new) with no double-count.
+
+**Added (3 rows):**
+
+- `app/api/market-data/channel/route.ts` (row 624, Part 09, API routes) — PRO-exclusive endpoint
+  serving the M5 equal-distance-channel points (`{variant}_uoedt`/`_base_fl`/`_loedt` from
+  `market_data_v6`) that the frontend's multi-timeframe overlay renders on M15 charts. Backs
+  `components/charts/mtf/MtfToggle.tsx` (tracked in `frontend-ui-file-inventory.md`).
+- `components/charts/mtf/useMtfOverlay.ts` (row 625, Part 09, React hooks) — the `.ts` data-fetch
+  hook for the MTF overlay (per the repo's `.ts`=backend / `.tsx`=frontend convention); calls the
+  route above and renders three `lightweight-charts` line series on the host chart.
+- `prisma/migrations/20260706000000_drop_watchlists/migration.sql` (row 626, Part 02, Database
+  operations).
+
+**Modified-not-new** (already inventoried, content changed only — no rows added/removed):
+`prisma/schema.prisma`, `types/{tier,indicator,api,prisma-stubs.d,index,user}.ts`,
+`lib/tier-config.ts`, `lib/tier-validation.ts`, `lib/tier/{constants,validator}.ts`,
+`lib/constants/business-rules.ts`, `lib/auth/permissions.ts`, `lib/validations/user.ts`,
+`lib/db/seed.ts`, `prisma/seed.ts`, `lib/websocket/server.ts` (added `market:{symbol}:{timeframe}`
+subscribe/broadcast, tier-independent), `lib/jobs/alert-checker.ts`, `lib/api/index.ts`,
+`lib/email/{email,subscription-emails}.ts`, `lib/errors/api-error.ts`,
+`lib/stripe/webhook-handlers.ts`, `app/api/{admin/api-usage,admin/users,alerts,alerts/[id],
+alerts/line,alerts/line/[id],tier/check/[symbol],tier/combinations,tier/symbols}/route.ts`,
+all the touched `__tests__/**` files (updated for the V8 tier limits and the new
+`fetchXauusdPriceFromGatewayPipeline`-adjacent alert-checker test suite), `jest.config.js` (new
+`lightweight-charts`/`next-auth-react` mock mappings; excludes `frontend-and-backend-python-stack/`),
+`tsconfig.json` (same exclusion), `package.json` (`rimraf`-based `prebuild` for Windows).
+
+One observed inconsistency, noted for awareness (not fixed as part of this doc pass):
+`lib/tier/constants.ts`'s `INDICATOR_METADATA` still describes the old 63-column indicator set
+(`tema`/`hrma`/`heiken_ashi`/`keltner_channels`/etc., now just re-tagged `tier: 'FREE'` for all)
+rather than the `market_data_v6` centroid/EDT/ZigZag columns that `types/indicator.ts` was fully
+migrated to in this same commit. Both are "ungated for both tiers" in effect, so nothing is
+broken, but the two files describe different column sets for what should be the same data layer.
+
+This batch's frontend files (Watchlist UI removal, `MtfToggle.tsx`, `alerts-pro-upgrade.tsx`) are
+tracked in `frontend-ui-file-inventory.md`'s own 2026-07-07 reconciliation note.
+
+## Reconciliation Note (2026-07-08) — dead-code removal: legacy 63-column indicator cluster
+
+The 2026-07-07 note above flagged an inconsistency: `lib/tier/constants.ts`'s `INDICATOR_METADATA`
+still described the old 63-column indicator set (tema/heiken-ashi/keltner/etc.) rather than the
+`market_data_v6` columns `types/indicator.ts` migrated to in the same commit. Investigation traced
+every consumer transitively and found the **entire dependency chain was dead** — unreachable from
+any live page, API route, or called hook. Removed **12 rows** (8 unique files, some duplicated
+across Parts) after confirming with a full `tsc --noEmit` (0 errors) and full Jest run (111 suites,
+2046 tests, all passing) that nothing broke:
+
+**Deleted (9 source files):**
+
+- `components/charts/indicator-toggles.tsx`, `components/charts/pro-indicator-overlay.tsx`
+  (Part 09 / Part 16 rows) — never imported by any page or parent component.
+- `hooks/use-indicators.ts` (Part 08, Part 09, Part 16 rows — 3 occurrences) — exported
+  `useIndicators()` was never called anywhere.
+- `lib/websocket/use-mt5-websocket.ts` (Part 16) — exported `useMT5WebSocket()` was never called
+  anywhere.
+- `lib/api/mt5-transform.ts`, `lib/api/mt5-client.ts` (Part 16) — never imported anywhere;
+  Part 07's own doc had already flagged `mt5-client.ts` as superseded and meant to be archived.
+- `lib/tier/constants.ts`, `lib/tier/validator.ts`, `lib/tier/index.ts` (Part 04, Part 16 rows —
+  2 occurrences each) — the barrel (`lib/tier/index.ts`) had zero external consumers; `validator.ts`
+  and `constants.ts` were only consumed by the two dead chart components above.
+
+**Deleted (3 test files, no longer had anything to test):**
+
+- `__tests__/components/charts/indicator-toggles.test.tsx`,
+  `__tests__/components/charts/pro-indicator-overlay.test.tsx` (Part 09/16 — not previously
+  tracked as their own rows in this table, only via the source files above)
+- `lib/tier/__tests__/validator.test.ts` (Part 04, Part 16 rows — 2 occurrences)
+
+**Modified (not deleted):**
+
+- `types/indicator.ts` — trimmed to just the V8 `MarketDataV6`/`CentroidVariantColumns`/
+  `CENTROID_VARIANTS`/`CentroidVariant` exports (still used by `app/api/market-data/channel/route.ts`
+  and `components/charts/mtf/useMtfOverlay.ts`). Removed `IndicatorType`, `LegacyIndicatorType`,
+  `Candlestick`, `IndicatorPoint`, `IndicatorData`, `MT5IndicatorData`, `IndicatorRequest`,
+  `MomentumCandleType`/`MomentumCandleData`, `KeltnerChannelData`, `MovingAveragesData`,
+  `ZigZagPoint`/`ZigZagData`, `ProIndicatorData`, `MT5ProIndicators`, `LegacyFractalData`,
+  `LegacyTrendlineData`, `FractalData`, `TrendlineData`, `ChartDataPoint`, `isValidChartDataPoint`
+  — none had any consumer left outside the deleted cluster.
+- `lib/tier-validation.ts` — fixed a stale doc comment that referenced the now-deleted
+  `lib/tier/constants` module (no logic change; `getAccessibleIndicators()` already returned `[]`).
+- `tsconfig.json` — added `Archive` to the exclude list. The archived
+  `Archive/part6-flask-mt5/lib/api/mt5-transform.ts` copy was not previously excluded and broke
+  `tsc --noEmit` once the legacy types it also imported were removed from `types/indicator.ts`;
+  excluding `Archive/` (historical/decommissioned code) fixed it, consistent with the existing
+  `frontend`/`railway-gateway`/`seed-code` exclusions in the same list.
+
+**Not touched:** `frontend/` has mirror copies of this entire dead cluster
+(`components/charts/{indicator-toggles,pro-indicator-overlay}.tsx`, `hooks/use-indicators.ts`,
+`lib/tier/*`, `lib/api/mt5-{transform,client}.ts`) — left in place, consistent with this repo's
+existing convention that `frontend/`'s divergent/legacy content is a separate, already-flagged
+cleanup (see the 2026-06-27 reconciliation note above), not something synced in the same pass.
+
+New totals: 616 → **602 rows**, 508 → **500 unique files**, Grand Total 643 → **629**.
+
 ---
 
-**Compiled:** 2026-07-05
+**Compiled:** 2026-07-08
 **Status:** Complete ✅

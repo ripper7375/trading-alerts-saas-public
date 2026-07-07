@@ -134,6 +134,7 @@
     "frontend", // Separate Next.js project (has own tsconfig.json)
     "railway-gateway", // Separate NestJS project (has own tsconfig.json + package.json)
     "frontend-and-backend-python-stack", // Prototype sub-projects (davintrade-prototype has own tsconfig.json + package.json)
+    "Archive", // Historical/decommissioned code, not part of the live build
     "e2e", // E2E tests (use Playwright's TypeScript handling)
     "**/*.test.ts", // Test files (checked separately by Jest)
     "**/*.test.tsx",

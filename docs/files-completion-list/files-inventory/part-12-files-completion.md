@@ -87,3 +87,17 @@ part of the shared affiliate-conversion refactor (Stripe + dLocal now call
 - `app/api/webhooks/dlocal/route.ts`
 - `app/api/payments/dlocal/create/route.ts`, `app/api/payments/dlocal/validate-discount/route.ts`
 - `lib/stripe/stripe.ts`, `lib/stripe/webhook-handlers.ts`
+
+## Update 2026-07-07
+
+No new files; the following existing Part 12 files were **modified** (all still ✅ complete) for
+the V8 single-symbol redesign (`change-to-new-design.md`):
+
+- `app/(marketing)/pricing/page.tsx`, `components/pricing/tier-comparison.tsx` — copy updated to
+  reflect V8 tier differentiation (100 alerts, drawing-engine line alerts, multi-timeframe
+  visualization — PRO only) instead of the old symbol/timeframe-count pitch.
+- `components/billing/subscription-card.tsx` — PRO price display now reads
+  `PRO_MONTHLY_PRICE` (configurable via `NEXT_PUBLIC_PRO_PRICE_MONTHLY`, default $29) instead of
+  a hardcoded `$29`.
+- `lib/stripe/webhook-handlers.ts` — minor V8-related touch-up, no structural change.
+- `lib/email/subscription-emails.ts` — pricing/copy updated to match.

@@ -39,10 +39,10 @@ Part 08 implements the complete dashboard layout system including:
 
 - Dashboard home page with welcome message and tier badge
 - 5 tier-specific stats cards (symbols, timeframes, charts, max alerts, indicators)
-- 4 usage stats cards (active alerts, watchlist items, API usage, chart views)
-- WatchlistWidget and RecentAlerts components
+- 4 usage stats cards (active alerts, API usage, chart views) — watchlist-items stat removed
+- RecentAlerts component (WatchlistWidget removed 2026-07-07 — see V8 update note below)
 - UpgradePrompt for FREE users
-- **Size:** 8,967 bytes
+- **Size:** 8,967 bytes (pre-V8; watchlist widget removed since)
 
 ### Alerts Management
 
@@ -64,21 +64,12 @@ Part 08 implements the complete dashboard layout system including:
 - Status tabs and alert details display
 - **Size:** 20,503 bytes
 
-### Watchlist Management
+### Watchlist Management — ❌ REMOVED 2026-07-07 (V8: feature deleted for all tiers)
 
-**File 6/56:** ✅ `app/(dashboard)/watchlist/page.tsx`
+**File 6/56:** ❌ ~~`app/(dashboard)/watchlist/page.tsx`~~ — **DELETED**
+**File 7/56:** ❌ ~~`app/(dashboard)/watchlist/watchlist-client.tsx`~~ — **DELETED**
 
-- Watchlist page with tier-based limits (FREE: 5, PRO: 50)
-- Auto-creates default watchlist
-- Server-side data fetching
-- **Size:** 1,758 bytes
-
-**File 7/56:** ✅ `app/(dashboard)/watchlist/watchlist-client.tsx`
-
-- Client-side watchlist management
-- Add/remove functionality with tier validation
-- Symbol and timeframe selectors
-- **Size:** 26,337 bytes
+See the V8 update note at the end of this document for the full removal detail.
 
 ### Trading Charts
 
@@ -235,12 +226,7 @@ Part 08 implements the complete dashboard layout system including:
 - Empty state with CTA
 - **Size:** 5,340 bytes
 
-**File 39/56:** ✅ `components/dashboard/watchlist-widget.tsx`
-
-- Displays top 5 watchlist items
-- Symbol, timeframe, price, change %
-- Add and view all actions
-- **Size:** 4,928 bytes
+**File 39/56:** ❌ ~~`components/dashboard/watchlist-widget.tsx`~~ — **DELETED 2026-07-07** (V8: watchlist feature removed for all tiers)
 
 **File 40/56:** ✅ `components/dashboard/upgrade-prompt.tsx`
 
@@ -288,17 +274,18 @@ Part 08 implements the complete dashboard layout system including:
 
 **File 45/56:** ✅ `lib/tier-config.ts`
 
-- Centralized tier constants
-- FREE: 5 symbols, 3 timeframes (15 combos), 5 alerts, 60 req/hr
-- PRO: 15 symbols, 9 timeframes (135 combos), 20 alerts, 300 req/hr
-- Symbol and timeframe lists
+- Centralized tier constants — **rewritten 2026-07-07 for V8** (see update note below)
+- FREE: XAUUSD only, M5+M15 (2 combos), 0 alerts, 60 req/hr
+- PRO: XAUUSD only, M5+M15 (2 combos), 100 alerts, 300 req/hr
+- Symbol and timeframe lists identical for both tiers
 
 **File 46/56:** ✅ `types/tier.ts`
 
-- Tier type definitions
-- TierLimits interface
-- Timeframe and symbol constants
-- Trial status enums
+- Tier type definitions — **rewritten 2026-07-07 for V8**
+- TierLimits interface (dropped `maxWatchlists`; added `alerts`/`multiTimeframe`/
+  `drawingLineAlerts` feature flags)
+- Timeframe type narrowed to `'M5' | 'M15'`; symbol narrowed to `'XAUUSD'`
+- Trial status enums (unchanged)
 
 ---
 
@@ -308,9 +295,7 @@ Part 08 implements the complete dashboard layout system including:
 
 - Alerts management hook
 
-**File 48/56:** ✅ `hooks/use-watchlist.ts`
-
-- Watchlist management hook
+**File 48/56:** ❌ ~~`hooks/use-watchlist.ts`~~ — **DELETED 2026-07-07** (V8: watchlist feature removed)
 
 **File 49/56:** ✅ `hooks/use-auth.ts`
 
@@ -348,9 +333,7 @@ Part 08 implements the complete dashboard layout system including:
 
 - Tests for StatsCard component
 
-**File 57/56:** ✅ `__tests__/components/dashboard/watchlist-widget.test.tsx`
-
-- Tests for WatchlistWidget component
+**File 57/56:** ❌ ~~`__tests__/components/dashboard/watchlist-widget.test.tsx`~~ — **DELETED 2026-07-07**
 
 ---
 
@@ -368,20 +351,20 @@ Part 08 implements the complete dashboard layout system including:
    - Fields: name, symbol, timeframe, alertType, isActive
    - Indexed on userId, symbol+timeframe
 
-3. **Watchlist & WatchlistItem Models** (408-436 lines)
-   - User watchlist management
-   - Symbol, timeframe, order tracking
+3. **Watchlist & WatchlistItem Models** — ❌ **REMOVED 2026-07-07** (migration
+   `20260706000000_drop_watchlists`); watchlists deleted from the product for all tiers.
 
 4. **Subscription Model** (345-381 lines)
    - Subscription status tracking
    - Stripe and dLocal integration
    - Affiliate code tracking
 
-5. **MarketData Model** (929-1016 lines) - **57-COLUMN SCHEMA**
-   - **System columns (8)**: timestamp, OHLCV, timeframe, collected_at
-   - **FREE tier indicators (16)**: Fractal diagonal and horizontal lines
-   - **PRO tier indicators (33)**: Moving averages, Heiken Ashi, Keltner channels, support/resistance, ZigZag
-   - **Migration Note:** Recently migrated from 14-column JSON structure to flat 57-column structure for better performance and tier-aware access
+5. **MarketData Model** — ❌ **REMOVED 2026-07-05** (migration `20260705010000_drop_market_data`);
+   the old 63-column EA v2.27 schema was decommissioned, never read/written by any live route.
+   **`MarketDataV6` Model** (added `20260705000000_add_market_data_v6`) is its replacement's
+   downstream store — 79 columns (centroid-regression variants, fractal EDT, Z-score candle,
+   ZigZag), identical access for both tiers. See
+   `docs/files-completion-list/files-inventory/v2_29_data_pipeline_architecture-files-completion.md`.
 
 6. **UserPreferences Model** (312-324 lines)
    - JSON preferences storage
@@ -407,12 +390,13 @@ Part 08 implements the complete dashboard layout system including:
 
 ## 🔄 Status Summary
 
-- **Total Files:** 56+ files
-- **Completed:** 56/56 (100%)
-- **Dashboard Pages:** 36 pages (main + settings + admin)
-- **Components:** 8 (4 dashboard + 4 layout)
-- **Hooks:** 8 custom React hooks
-- **Tests:** 3 test suites
+- **Total Files:** 52 (56 minus 4 watchlist files deleted 2026-07-07 — page, client, widget, hook;
+  the widget's test file was also deleted, separately counted under Test Files)
+- **Completed:** 52/52 (100%)
+- **Dashboard Pages:** 34 pages (main + settings + admin; watchlist page removed)
+- **Components:** 7 (3 dashboard + 4 layout; watchlist widget removed)
+- **Hooks:** 7 custom React hooks (use-watchlist removed)
+- **Tests:** 2 test suites (watchlist-widget test removed)
 - **Missing:** None
 
 ---
@@ -455,5 +439,32 @@ Part 08 is **100% complete**. The dashboard layout system is fully implemented w
 
 ---
 
-**Document Version:** 2.0.0
-**Last Validated:** 2026-01-24
+## Update 2026-07-07 — V8 single-symbol architecture: Watchlist removed
+
+Commit `f213bd12` deleted the Watchlist feature from the product for all tiers
+(`change-to-new-design.md`: XAUUSD-only, nothing to maintain a symbol list for). Removed from
+Part 08:
+
+- `app/(dashboard)/watchlist/page.tsx`, `app/(dashboard)/watchlist/watchlist-client.tsx`
+- `components/dashboard/watchlist-widget.tsx`
+- `hooks/use-watchlist.ts`
+- `__tests__/components/dashboard/watchlist-widget.test.tsx`
+
+`app/(dashboard)/dashboard/page.tsx` no longer renders `WatchlistWidget` or the watchlist-items
+usage stat. `lib/tier-config.ts` and `types/tier.ts` were rewritten for the V8 tier model (XAUUSD
+only, M5/M15 only, both tiers identical; `maxWatchlists` removed; alerts now FREE:0/PRO:100).
+The `MarketData` Prisma model (57/63-column schema referenced throughout this document's older
+sections) was separately decommissioned 2026-07-05 in favor of `MarketDataV6` — see
+`v2_29_data_pipeline_architecture-files-completion.md`.
+
+No new Part 08 files were added by this batch — the new `components/charts/mtf/MtfToggle.tsx`
+and `components/alerts/alerts-pro-upgrade.tsx` belong to Part 09 (Charts) and Part 11 (Alerts)
+respectively. Also touched: `app/(dashboard)/admin/users/page.tsx` (File 22/56) and its backing
+`app/api/admin/users/route.ts` / `app/api/admin/api-usage/route.ts` (tracked in
+`backend-file-inventory.md`, Part 14) dropped the per-user `watchlistCount` column now that the
+feature is gone.
+
+---
+
+**Document Version:** 2.1.0 (V8: Watchlist removed)
+**Last Validated:** 2026-07-07

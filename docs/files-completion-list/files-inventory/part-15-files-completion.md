@@ -267,4 +267,26 @@ interface NotificationPayload {
 
 ---
 
-_Last Updated: 2026-01-24_
+## Update 2026-07-07 — V8: Alert notifications are now PRO-only
+
+Since Alerts became a PRO-exclusive feature in the V8 redesign (`change-to-new-design.md`; see
+`part-11-files-completion.md`), the notification UI now branches on tier when showing the
+Alerts-type empty state — no files added or removed, both already-listed components updated:
+
+- **`components/notifications/notification-bell.tsx`** (row 4) — the "Alerts" tab's empty state
+  now shows a PRO-upgrade prompt ("Alert notifications are a PRO feature... Upgrade to create up
+  to 100 price alerts") for FREE users instead of the generic "No notifications yet" message.
+- **`components/notifications/notification-list.tsx`** (row 5) — same branch for the `ALERT`
+  type filter's empty state.
+- **`lib/websocket/server.ts`** (row 6) — added a `subscribe_market` socket event
+  (`market:{symbol}:{timeframe}` room) and `broadcastMarketData()`, for the v6 XAUUSD pipeline to
+  push live `market_data_v6` updates to subscribed clients. **Deliberately no tier check** — both
+  FREE and PRO receive the full market-data stream; only Alerts/notifications are tier-gated.
+
+`lib/email/{email,subscription-emails}.ts` (rows 11-12) were also touched in this commit but for
+unrelated V8 copy/pricing updates (PRO price now reads `PRO_MONTHLY_PRICE`), not a Part 15
+structural change.
+
+---
+
+_Last Updated: 2026-07-07_

@@ -52,41 +52,47 @@
 - **Description:** Prisma seed script entry point
 - **Uses:** Functions from `lib/db/seed.ts`
 
-**File 5/12:** ✅ `prisma/migrations/20251227000000_init/migration.sql`
+**File 5/13:** ✅ `prisma/migrations/20251227000000_init/migration.sql`
 
 - **Status:** Complete
 - **Description:** Initial database migration
 - **Contents:** SQL schema creation statements for all models
 
-**File 6/12:** ✅ `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
+**File 6/13:** ✅ `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
 
 - **Status:** Complete
 - **Description:** RAG dual memory database migration
 
-**File 7/12:** ✅ `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`
+**File 7/13:** ✅ `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`
 
 - **Status:** Complete
 - **Description:** Update KC HA body columns migration
 
-**File 8/12:** ✅ `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`
+**File 8/13:** ✅ `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`
 
 - **Status:** Complete
 - **Description:** Migration adding MarketDataV6 table
 
-**File 9/12:** ✅ `prisma/migrations/20260705010000_drop_market_data/migration.sql`
+**File 9/13:** ✅ `prisma/migrations/20260705010000_drop_market_data/migration.sql`
 
 - **Status:** Complete
 - **Description:** Migration dropping the old MarketData table
 
+**File 10/13:** ✅ `prisma/migrations/20260706000000_drop_watchlists/migration.sql`
+
+- **Status:** Complete
+- **Description:** Migration dropping the `Watchlist`/`WatchlistItem` tables (V8: watchlist
+  feature removed for all tiers — see `change-to-new-design.md`)
+
 ### Test Files
 
-**File 10/12:** ✅ `__tests__/lib/db/prisma.test.ts`
+**File 11/13:** ✅ `__tests__/lib/db/prisma.test.ts`
 
 - **Status:** Complete
 - **Description:** Prisma client singleton tests
 - **Coverage:** Client instantiation, development mode logging
 
-**File 11/12:** ✅ `__tests__/lib/db/seed.test.ts`
+**File 12/13:** ✅ `__tests__/lib/db/seed.test.ts`
 
 - **Status:** Complete
 - **Description:** Comprehensive seed function tests
@@ -99,7 +105,7 @@
 
 ### Documentation
 
-**File 12/12:** ✅ `docs/open-api-documents/part-02-database-schema-openapi.yaml`
+**File 13/13:** ✅ `docs/open-api-documents/part-02-database-schema-openapi.yaml`
 
 - **Status:** ✅ **NEW** - Created 2026-01-24
 - **Description:** Complete OpenAPI 3.0 specification for database schema
@@ -116,8 +122,8 @@
 
 ## 📊 Status Summary
 
-- **Total Files:** 12/12 (100%)
-- **Core Database:** 9/9 files ✅
+- **Total Files:** 13/13 (100%)
+- **Core Database:** 10/10 files ✅ (added `20260706000000_drop_watchlists` migration, 2026-07-07)
 - **Tests:** 2/2 files ✅
 - **Documentation:** 1/1 files ✅
 

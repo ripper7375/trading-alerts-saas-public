@@ -1,6 +1,24 @@
 # Part 10: Watchlist System - List of files completion
 
-## 📦 PART 10 - FILES COMPLETION
+> ## ❌ REMOVED 2026-07-07 — Watchlist feature deleted from the product for all tiers
+>
+> Commit `f213bd12` deleted this entire feature as part of the V8 single-symbol architecture
+> redesign (`change-to-new-design.md`): with only one symbol (XAUUSD) and two timeframes (M5,
+> M15) in the platform, there is nothing left to build a "list of symbol/timeframe combinations
+> to track" out of. **Part 10 now has zero files** — removed from both
+> `backend-file-inventory.md` and `frontend-ui-file-inventory.md`'s Distribution-by-Part tables.
+>
+> All 9 files below (plus `types/watchlist.ts`, `lib/validations/watchlist.ts`, and the test
+> files that lived under Parts 03/04/08/16 — see those docs' own 2026-07-07 notes) were deleted.
+> The `Watchlist` and `WatchlistItem` Prisma models were dropped via
+> `prisma/migrations/20260706000000_drop_watchlists/migration.sql`.
+>
+> **The content below is retained as a historical record of what this feature was**, not as a
+> current-state file list. Do not use it to look for files that exist today.
+
+---
+
+## 📦 PART 10 - FILES COMPLETION (historical — feature removed 2026-07-07)
 
 **File 1/9:** ✅ `app/(dashboard)/watchlist/page.tsx`
 **File 2/9:** ✅ `app/(dashboard)/watchlist/watchlist-client.tsx`
@@ -12,10 +30,12 @@
 **File 8/9:** ✅ `components/watchlist/watchlist-item.tsx`
 **File 9/9:** ✅ `hooks/use-watchlist.ts`
 
-## Status Summary
+## Status Summary (historical — as of before 2026-07-07 removal)
 
 - **Completed:** 9/9 files (100%)
 - **Missing:** None
+- **Current status (2026-07-07):** 0/0 — feature deleted. See the banner at the top of this
+  document.
 
 ## File Details
 

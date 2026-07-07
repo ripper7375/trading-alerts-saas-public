@@ -221,10 +221,12 @@ export function canAccessIndicator(_indicator: string, _tier: Tier): boolean {
 
 /**
  * Get accessible indicators for tier.
- * V8: delegated to lib/tier/constants — all indicators for every tier.
+ * V8: no indicator gating exists — every market_data_v6 column is available
+ * to every tier. Returns an empty list since there's no longer a metadata
+ * source to enumerate (the legacy 63-column indicator scaffold was removed).
  */
 export function getAccessibleIndicators(_tier: Tier): string[] {
-  return []; // No gating: callers should read indicator metadata directly.
+  return [];
 }
 
 /**
