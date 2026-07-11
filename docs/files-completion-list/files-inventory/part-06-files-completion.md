@@ -2,48 +2,51 @@
 
 ## Root Configuration Files (5 files)
 
-**File 1/29:** ✅ `mt5-service/.env.example` - Environment variables template
-**File 2/29:** ✅ `mt5-service/Dockerfile` - Docker container configuration
-**File 3/29:** ✅ `mt5-service/requirements.txt` - Production dependencies
-**File 4/29:** ✅ `mt5-service/requirements-dev.txt` - Development/test dependencies
-**File 5/29:** ✅ `mt5-service/run.py` - Application entry point
+**File 1/32:** ✅ `mt5-service/.env.example` - Environment variables template
+**File 2/32:** ✅ `mt5-service/Dockerfile` - Docker container configuration
+**File 3/32:** ✅ `mt5-service/requirements.txt` - Production dependencies
+**File 4/32:** ✅ `mt5-service/requirements-dev.txt` - Development/test dependencies
+**File 5/32:** ✅ `mt5-service/run.py` - Application entry point
 
-## Application Code (12 files)
+## Application Code (14 files)
 
-**File 6/29:** ✅ `mt5-service/app/__init__.py` - Flask app factory (create*app)
-**File 7/29:** ✅ `mt5-service/app/websocket.py` - WebSocket support for real-time OHLCV streaming
-**File 8/29:** ✅ `mt5-service/app/routes/__init__.py` - Routes package init
-**File 9/29:** ✅ `mt5-service/app/routes/admin.py` - Admin endpoints (/api/admin/*)
-**File 10/29:** ✅ `mt5-service/app/routes/indicators.py` - Indicator endpoints (/api/indicators/\_)
-**File 11/29:** ✅ `mt5-service/app/services/__init__.py` - Services package init
-**File 12/29:** ✅ `mt5-service/app/services/health_monitor.py` - Background health monitoring
-**File 13/29:** ✅ `mt5-service/app/services/indicator_reader.py` - MT5 OHLCV data reading (indicator support removed)
-**File 14/29:** ✅ `mt5-service/app/services/mt5_connection_pool.py` - Multi-terminal connection pool
-**File 15/29:** ✅ `mt5-service/app/services/tier_service.py` - FREE/PRO tier validation
-**File 16/29:** ✅ `mt5-service/app/utils/__init__.py` - Utils package init
-**File 17/29:** ✅ `mt5-service/app/utils/constants.py` - Tier symbols/timeframes constants
-**File 18/29:** ✅ `mt5-service/app/utils/symbol_resolver.py` - Broker-specific symbol name resolution (handles Eightcap .i suffix)
+**File 6/32:** ✅ `mt5-service/app/__init__.py` - Flask app factory (create*app)
+**File 7/32:** ✅ `mt5-service/app/redis_pub.py` - Best-effort Redis publisher (`prices:{symbol}:{timeframe}`) feeding `lib/alert-engine`'s line-touch alerts; see Update 2026-07-05 below
+**File 8/32:** ✅ `mt5-service/app/websocket.py` - WebSocket support for real-time OHLCV streaming
+**File 9/32:** ✅ `mt5-service/app/routes/__init__.py` - Routes package init
+**File 10/32:** ✅ `mt5-service/app/routes/admin.py` - Admin endpoints (/api/admin/*)
+**File 11/32:** ✅ `mt5-service/app/routes/indicators.py` - Indicator endpoints (/api/indicators/\_)
+**File 12/32:** ✅ `mt5-service/app/services/__init__.py` - Services package init
+**File 13/32:** ✅ `mt5-service/app/services/health_monitor.py` - Background health monitoring
+**File 14/32:** ✅ `mt5-service/app/services/indicator_reader.py` - MT5 OHLCV data reading (indicator support removed)
+**File 15/32:** ✅ `mt5-service/app/services/mt5_connection_pool.py` - Multi-terminal connection pool
+**File 16/32:** ✅ `mt5-service/app/services/tier_service.py` - FREE/PRO tier validation
+**File 17/32:** ✅ `mt5-service/app/utils/__init__.py` - Utils package init
+**File 18/32:** ✅ `mt5-service/app/utils/constants.py` - Tier symbols/timeframes constants
+**File 19/32:** ✅ `mt5-service/app/utils/symbol_resolver.py` - Broker-specific symbol name resolution (handles Eightcap .i suffix)
 
-## Configuration & Documentation (4 files)
+## Configuration & Documentation (5 files)
 
-**File 19/29:** ✅ `mt5-service/config/mt5_terminals.json` - MT5 terminal configurations
-**File 20/29:** ✅ `mt5-service/config/mt5_terminals_test.json` - Test MT5 terminal configurations
-**File 21/29:** ✅ `mt5-service/indicators/README.md` - Custom indicators documentation
-**File 22/29:** ✅ `mt5-service/docs/symbol-resolution.md` - Symbol resolution guide and architecture
+**File 20/32:** ✅ `mt5-service/config/mt5_terminals.json` - MT5 terminal configurations
+**File 21/32:** ✅ `mt5-service/config/mt5_terminals_test.json` - Test MT5 terminal configurations
+**File 22/32:** ✅ `mt5-service/indicators/README.md` - Custom indicators documentation
+**File 23/32:** ✅ `mt5-service/docs/symbol-resolution.md` - Symbol resolution guide and architecture
+**File 24/32:** ✅ `mt5-service/REDIS-PUBLISH-SNIPPET.md` - Reference snippet/notes for the `redis_pub.py` integration
 
-## Tests (7 files)
+## Tests (8 files)
 
-**File 23/29:** ✅ `mt5-service/tests/conftest.py` - pytest fixtures
-**File 24/29:** ✅ `mt5-service/tests/mock_mt5_server.py` - Mock MT5 server for integration testing
-**File 25/29:** ✅ `mt5-service/tests/mt5-mock-server-integration-tests-implementation.md` - Mock server test documentation
-**File 26/29:** ✅ `mt5-service/tests/test_connection_pool.py` - Connection pool & tier tests
-**File 27/29:** ✅ `mt5-service/tests/test_indicators.py` - Indicator endpoint tests
-**File 28/29:** ✅ `mt5-service/tests/test_mt5_integration.py` - MT5 integration tests with mock server
-**File 29/29:** ✅ `mt5-service/tests/test_symbol_resolver.py` - Symbol resolver unit tests
+**File 25/32:** ✅ `mt5-service/tests/conftest.py` - pytest fixtures
+**File 26/32:** ✅ `mt5-service/tests/mock_mt5_server.py` - Mock MT5 server for integration testing
+**File 27/32:** ✅ `mt5-service/tests/mt5-mock-server-integration-tests-implementation.md` - Mock server test documentation
+**File 28/32:** ✅ `mt5-service/tests/test_connection_pool.py` - Connection pool & tier tests
+**File 29/32:** ✅ `mt5-service/tests/test_indicators.py` - Indicator endpoint tests
+**File 30/32:** ✅ `mt5-service/tests/test_mt5_integration.py` - MT5 integration tests with mock server
+**File 31/32:** ✅ `mt5-service/tests/test_redis_pub.py` - Tests for `redis_pub.py`'s best-effort publish behavior
+**File 32/32:** ✅ `mt5-service/tests/test_symbol_resolver.py` - Symbol resolver unit tests
 
 ## Status Summary
 
-- **Completed:** 29/29 files (100%)
+- **Completed:** 32/32 files (100%) — up from 29/29; see Update 2026-07-10 below
 - **Missing:** None
 - **Architecture:** OHLCV-only data service (no custom indicators)
 - **Recent Changes (2025-01-15):**
@@ -81,13 +84,14 @@
 
 The 0.25s interval is the **change-detection granularity**, not a guaranteed broadcast rate:
 
-| Trigger | What happens |
-|---|---|
-| New bar opens (timestamp advances) | Push `ohlcv_update` immediately |
+| Trigger                                  | What happens                    |
+| ---------------------------------------- | ------------------------------- |
+| New bar opens (timestamp advances)       | Push `ohlcv_update` immediately |
 | Current bar's close price changes (tick) | Push `ohlcv_update` immediately |
-| No price movement | No push — silence is free |
+| No price movement                        | No push — silence is free       |
 
 Real-world push frequency depends on market activity:
+
 - Active liquid pairs (EURUSD during London/NY session): multiple pushes per second
 - Quiet pairs or off-hours: sparse pushes, possibly minutes apart
 - Subscription rooms are only active when a user's browser tab is open on that chart
@@ -108,3 +112,17 @@ Real-world push frequency depends on market activity:
 - ℹ️ For `lib/jobs/alert-checker.ts` (Next.js side), its Flask fallback previously targeted a
   nonexistent `/api/mt5/price` route — fixed to use this service's real
   `/api/indicators/{symbol}/{timeframe}` endpoint. No Flask-side change was needed.
+
+## Update 2026-07-10 — file count backfill (29 → 32)
+
+This doc's numbered list was never updated when the Redis publisher (added as part of the
+2026-07-05 cross-stack audit above) landed — the prose above already described `redis_pub.py`'s
+behavior, but the file list itself still said 29/29. Found via a three-way count check against
+`migration-stack-analysis.md` (which had 32, sourced from `backend-file-inventory.md` rows
+530/615/616 — both already correct) versus this doc's stale 29. Added the 3 missing files:
+
+- `mt5-service/app/redis_pub.py` — the publisher itself
+- `mt5-service/REDIS-PUBLISH-SNIPPET.md` — its reference doc
+- `mt5-service/tests/test_redis_pub.py` — its test
+
+No other gaps found; all other files in this Part were already accurate.

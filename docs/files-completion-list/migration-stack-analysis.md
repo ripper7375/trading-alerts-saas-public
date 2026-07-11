@@ -13,26 +13,66 @@ architecture already planned in
 categorization already existed
 (`frontend-and-backend-categorization-microservice-best-practice-CORRECTED.md`, ~January 2026,
 611 files), that ground truth was reused as-is. Every file added or changed since then (~215 of
-the 651 total) was categorized fresh by mechanically applying the same rule set. **One override
+the 653 total) was categorized fresh by mechanically applying the same rule set. **One override
 was applied on top of the ground truth:** `mt5-service/`, `backend-stack-c/`, `railway-gateway/`,
 and `frontend/` are tagged `SEPARATE_STACK` regardless of what the ~January 2026 doc said, because
 those are already independently deployed services — a distinction that document predates.
 
 **Source data:** the current, fully-reconciled unique file sets from `backend-file-inventory.md`
 (500 files) and `frontend-ui-file-inventory.md` (150 files) as of 2026-07-08, unioned (651 total
-after de-duplication — some paths appear in both docs' source material).
+after de-duplication — some paths appear in both docs' source material), plus 2 net additional
+`backend-stack-c/` files added 2026-07-10 (see exclusion note below) for 653 total.
+
+**Known, deliberate exclusions (confirmed 2026-07-10):** this doc's file count is lower than a raw
+filesystem scan of the repo would show. Three directories account for nearly all of that
+difference, and in every case the missing files are old/superseded content, not current
+development targets, so they were left out rather than backfilled:
+
+- **`frontend/`** — 554 files on disk, only 17 appear here. It's a largely stale transitional
+  mirror; only the dLocal-payment slice (the 17 listed) is still relevant, so that's all that's
+  tracked.
+- **`backend-stack-c/`** — ~94–103 files on disk; 49 appear here (2026-07-10: the two active
+  `v2_29_data_pipeline_architecture/` and `v2_29_multi-timeframe-visualisation/` subfolders are
+  now included in full — 37 + 12 real files, excluding `__pycache__/`/`.pytest_cache/` compiled
+  artifacts — while `old-architecture/README.md` and every other older iteration/archive subfolder
+  remain excluded as superseded).
+- **`mt5-service/`** — 41 real files (excluding `venv/` and `__pycache__/`) on disk, 32 appear
+  here. The 9 missing (`app/models/*`, `deploy/*.ps1`, `scripts/generate-types.sh`) are dead
+  scaffolding/tooling from the legacy Flask service, already superseded by `market_data_v6` +
+  `backend-stack-c/` + `railway-gateway/`.
+
+Also excluded, but not gaps at all: `seed-code/` (13,220 files — vendored reference/template
+libraries, never part of the app) and `mt5-service/venv/` (9,856 files — a Python virtualenv),
+plus the usual `node_modules/`, `.next/`, `.git/`.
+
+**Net effect:** for the active Next.js monolith + `railway-gateway/` (the parts actually under
+migration consideration), this doc is complete. For the three directories above, it's
+intentionally a curated subset, not a full inventory — don't treat a low count there as missing
+work.
 
 ---
 
 ## The Five Stacks
 
-| Stack              | Count | %     | Deploys to                                     | Meaning                                                                                                                                                                                                                                                             |
-| ------------------ | ----- | ----- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **FRONTEND**       | 320   | 49.2% | Vercel (Next.js)                               | Stays in the Next.js app — pages, layouts, `app/api/**` routes (still edge functions until individually migrated), components, hooks, client-side chart/drawing logic                                                                                               |
-| **BACKEND**        | 143   | 22.0% | Railway (NestJS, per the roadmap)              | Business logic, Prisma, cron/background jobs, email rendering, server-only utilities — candidates to migrate into the NestJS backend module-by-module                                                                                                               |
-| **SEPARATE_STACK** | 126   | 19.4% | Already separate (Contabo VPS, Railway, Flask) | `backend-stack-c/` (EA + data pipeline + MTF render), `railway-gateway/` (NestJS ingest — see note below), `mt5-service/` (Flask, Part 06), `frontend/` (the transitional UI-only mirror) — **not part of this migration exercise**, already independently deployed |
-| **SHARING**        | 56    | 8.6%  | Both / neither                                 | Types, build scripts, CI config, `tsconfig.json`/`package.json`-class config, OpenAPI specs, planning docs                                                                                                                                                          |
-| **TEST**           | 6     | 0.9%  | Neither                                        | Cross-stack e2e/integration tests, test infrastructure                                                                                                                                                                                                              |
+| Stack                                                | Count | %     | Deploys to                                                                   | Meaning                                                                                                                                                                                                                                                             |
+| ---------------------------------------------------- | ----- | ----- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **FRONTEND**                                         | 320   | 49.0% | Vercel (Next.js)                                                             | Stays in the Next.js app — pages, layouts, `app/api/**` routes (still edge functions until individually migrated), components, hooks, client-side chart/drawing logic                                                                                               |
+| **BACKEND**                                          | 143   | 21.9% | Railway (NestJS, per the roadmap)                                            | Business logic, Prisma, cron/background jobs, email rendering, server-only utilities — candidates to migrate into the NestJS backend module-by-module. **Split below** into CORE and BUSINESS FUNCTION.                                                             |
+| &nbsp;&nbsp;└─ **CORE (operation-service)**          | 72    | 11.0% | Railway (future NestJS "core"/operation service)                             | Everything in BACKEND that is _not_ Part 12/17/18/19 business logic: trading alert-engine, auth, drawing persistence, tier gating, shared infra (redis, cache, logging), the shared Prisma schema/migrations                                                        |
+| &nbsp;&nbsp;└─ **BUSINESS FUNCTION (money-service)** | 71    | 10.9% | Railway (NestJS "money-service", per `money-service-migration-blueprint.md`) | Files directly implementing Part 12 (Stripe), Part 17 (Affiliate), Part 18 (dLocal), Part 19 (RiseWorks Disbursement) business logic — the exact scope of the money-service extraction blueprint                                                                    |
+| **SEPARATE_STACK**                                   | 128   | 19.6% | Already separate (Contabo VPS, Railway, Flask)                               | `backend-stack-c/` (EA + data pipeline + MTF render), `railway-gateway/` (NestJS ingest — see note below), `mt5-service/` (Flask, Part 06), `frontend/` (the transitional UI-only mirror) — **not part of this migration exercise**, already independently deployed |
+| **SHARING**                                          | 56    | 8.6%  | Both / neither                                                               | Types, build scripts, CI config, `tsconfig.json`/`package.json`-class config, OpenAPI specs, planning docs                                                                                                                                                          |
+| **TEST**                                             | 6     | 0.9%  | Neither                                                                      | Cross-stack e2e/integration tests, test infrastructure                                                                                                                                                                                                              |
+
+**BACKEND split methodology (added 2026-07-11):** every file in BACKEND was checked against
+`davintrade-part-12-17-18-19-stack/money-service-migration-blueprint.md` §3 ("Service Boundary —
+What Moves, What Stays") and the corresponding `part-12-files-completion.md` /
+`part17a1/a2/b1/b2-files-completion.md` / `part-18a/b/c-files-completion.md` /
+`part19a/b/c/d-files-completion.md` source docs. A file is BUSINESS FUNCTION only if it implements
+Part 12/17/18/19 logic by content (verified by reading imports/behavior, not just by the "Part"
+label in `backend-file-inventory.md` — several money files are filed there under cross-cutting
+labels like "Part 14" (admin) or "Part 16" (cron) because that's where they landed in the original
+build order, not where their business logic belongs). Everything else in BACKEND is CORE.
 
 **Important nuance on `railway-gateway/`:** it's tagged `SEPARATE_STACK` here (already deployed,
 out of scope for _this_ migration), but it is simultaneously the **existing proof-of-concept** for
@@ -63,26 +103,46 @@ after the monolith split. These axes disagree on a meaningful number of files:
 
 ## Migration Readiness Notes
 
-- **`SEPARATE_STACK` (126 files) is the biggest head start** — nearly a fifth of the whole
+- **`SEPARATE_STACK` (128 files) is the biggest head start** — nearly a fifth of the whole
   codebase is _already_ running as independent services. `railway-gateway/` in particular proves
   the NestJS-on-Railway pattern end-to-end (ingest → validate → queue → Postgres) at production
   quality; the same shape (controller → service → Prisma) is the template for migrating Stack A
   modules.
 - **`BACKEND` (143 files) is the actual migration backlog** for the Next.js monolith → NestJS
-  split. Per the roadmap, migrate **module-by-module**, not all at once. Natural first
-  candidates, by self-containment:
-  - `lib/alert-engine/*` (9 files) — already runs as an independent background worker
-    (`scripts/alert-worker.ts`, its own `docker-compose.yml` service, its own `railway-worker.json`)
-    with a narrow, well-defined interface (Redis pub/sub in, BullMQ dispatch out). Closest thing
-    to "already migrated" in the BACKEND list.
-  - `lib/disbursement/*`, `lib/affiliate/*` — self-contained business domains with their own
-    Prisma models, minimal cross-domain coupling.
-  - `lib/stripe/*`, `lib/dlocal/*` — payment providers behind a shared interface already
-    (`lib/disbursement/providers/provider-factory.ts`), a natural module boundary.
-  - Defer: `lib/auth/*`, `lib/tier*` — touched by nearly everything else; migrate last once
-    session/tier-check patterns are proven in NestJS (an `ApiKeyGuard`-style guard already exists
-    as a template in `railway-gateway/src/auth/api-key.guard.ts`, though session-based user auth
-    is a different problem than the Gateway's bearer-token machine auth).
+  split, and it splits cleanly into two independent migration tracks that don't have to happen
+  together:
+  - **CORE (operation-service, 72 files)** — the trading-alerts product itself. Natural first
+    candidates, by self-containment:
+    - `lib/alert-engine/*` (9 files) — already runs as an independent background worker
+      (`scripts/alert-worker.ts`, its own `docker-compose.yml` service, its own
+      `railway-worker.json`) with a narrow, well-defined interface (Redis pub/sub in, BullMQ
+      dispatch out). Closest thing to "already migrated" in the CORE list.
+    - Defer: `lib/auth/*`, `lib/tier*` — touched by nearly everything else; migrate last once
+      session/tier-check patterns are proven in NestJS (an `ApiKeyGuard`-style guard already
+      exists as a template in `railway-gateway/src/auth/api-key.guard.ts`, though session-based
+      user auth is a different problem than the Gateway's bearer-token machine auth).
+    - `prisma/schema.prisma` + its migrations sit here today, but see the Database Architecture
+      section below — this file is not exclusively CORE's, it's the entire app's shared schema.
+    - `lib/api/index.ts` — **known broken, fix deliberately deferred** (see the flag in the
+      appendix below, under `lib/api/`). Don't fix it mid-migration; hybrid auth, the
+      `non_market_data` split, and the NestJS refactor will each change what "correct" means for
+      this file. Revisit once those land.
+  - **BUSINESS FUNCTION (money-service, 71 files)** — Parts 12/17/18/19, and it has its own
+    dedicated migration document: `davintrade-part-12-17-18-19-stack/money-service-migration-blueprint.md`.
+    That blueprint already specifies the target architecture (NestJS "money-service" on Railway),
+    a 5-slice strangler cutover sequence, and a two-phase database plan (see below) — this is
+    further ahead than a generic "candidates for extraction" list; it's a concrete, dated plan
+    (2026-07-04) with sizing estimates (~7–9 weeks for Phase 1).
+    - `lib/disbursement/*`, `lib/affiliate/*` — self-contained business domains with their own
+      Prisma models, minimal cross-domain coupling; explicitly called out in the blueprint as the
+      "Moves to money-service" core.
+    - `lib/stripe/*`, `lib/dlocal/*` — payment providers behind a shared interface already
+      (`lib/disbursement/providers/provider-factory.ts`), a natural module boundary.
+    - These two tracks can migrate independently and in either order — money-service and
+      operation-service don't call into each other's `lib/*` code (per the blueprint's own
+      "no cross-domain joins or writes" rule, §5.1) — but they currently **do** share one
+      Postgres database, so a DB-role split (§5.1 of the blueprint) has to land before either
+      migrates its compute off the monolith. See Database Architecture below.
 - **`FRONTEND` (320 files) mostly doesn't move** — this is the end state, not a migration
   backlog. The one action item: `app/api/**/route.ts` routes will need to become
   Railway API calls (`fetch(NEXT_PUBLIC_API_URL + ...)`) as each BACKEND module migrates, per
@@ -91,6 +151,71 @@ after the monolith split. These axes disagree on a meaningful number of files:
   `@trading-alerts/types` package (see `stack-categorization-reference-guide.md`'s SHARING
   section) — not yet done; currently just root-level `types/`, config, and scripts duplicated by
   reference rather than by package.
+
+---
+
+## Database Architecture: `market_data_v6` vs `non_market_data`
+
+There are two logically distinct data domains in this system, and — as of 2026-07-11 — they are
+at very different points in their own separation-from-the-monolith journey.
+
+### 1. `market_data_v6` — 79-field centroid-regression/EDT schema
+
+This is the trading-data table (OHLCV + the six centroid-regression variants: `best_fit`,
+`cherry_a`, `cherry_b`, `most_recent`, `non_a`, `non_b` — see
+`prisma/schema.prisma:924` `model MarketDataV6`). It exists in **two physically separate
+databases today**, not one:
+
+| Store                 | Engine               | Location                                           | Authoritative schema file                                                                                                                                                                                                                                    |
+| --------------------- | -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Local pipeline buffer | SQLite (`xauusd.db`) | Contabo VPS                                        | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql` — implements the full COLLECT → ADJUST → VALIDATE → CALCULATE → PROMOTE → RETAIN pipeline described in that file's own header comment |
+| Shared app database   | PostgreSQL           | Wherever the Next.js monolith's DB is hosted today | `prisma/schema.prisma` (`model MarketDataV6`, line 924) — **this is the source of truth**                                                                                                                                                                    |
+
+`railway-gateway/prisma/schema.prisma` is **not** a third database — its own header comment says
+so explicitly: it's a byte-for-byte duplicate of the same `MarketDataV6` model, generated only so
+the NestJS ingest service (`railway-gateway/`) can get a typed Prisma client for the one table it
+writes to. It targets the _same_ Postgres instance and table as the root schema. Any field change
+has to be hand-applied to both files — there's no shared source, which is itself a small piece of
+migration debt worth tracking.
+
+**Flow today:** EA/MQL5 exports → Contabo SQLite (local calc + validation) → pushed over HTTPS to
+`railway-gateway` → upserted into the shared Postgres `market_data_v6` table (idempotent on
+`{symbol}_{timeframe}_{timestamp}`).
+
+### 2. `non_market_data` — everything else (operation + money + other services)
+
+**This is not a separate schema or database yet.** Right now, every model that is _not_
+`MarketDataV6` — `User`, `Account`, `Session`, `Subscription`, `Alert`, `Notification`, `Drawing`,
+`DrawingAlert`, `SystemConfig` (CORE/operation-service), plus `Payment`, `FraudAlert`,
+`AffiliateProfile`, `AffiliateCode`, `Commission`, `AffiliateRiseAccount`, `PaymentBatch`,
+`DisbursementTransaction`, `RiseWorksWebhookEvent`, `DisbursementAuditLog` (BUSINESS
+FUNCTION/money-service) — lives in the **same** `prisma/schema.prisma` file, in the **same**
+Postgres instance, as `MarketDataV6`. There is no `non_market_data`-specific schema file, Railway
+deployment, or database instance today. That's exactly what you flagged: it hasn't been built yet.
+
+**What "building it" means, per the plan that already exists:**
+`davintrade-part-12-17-18-19-stack/money-service-migration-blueprint.md` §5.1 ("Database
+discipline") specifies this as **Phase 1** of the money-service extraction — _not_ a brand-new
+database, but a discipline change on the existing shared instance:
+
+1. Two Postgres roles on the **one existing instance**: `money_svc` (ALL on the 10 money tables
+   listed above, SELECT on nothing else) and `core_app` (no privileges on money tables).
+2. No cross-domain joins or writes enforced at the role-grant level, not just by convention.
+3. PgBouncer in front, transaction-pooling mode.
+
+This is the literal meaning of the blueprint's own diagram (§2): `PostgreSQL ◀── Phase 1: one
+instance, two roles/schemas`. **Phase 2** (§6, trigger-based — not calendar-based) is what
+actually deploys a second, physically separate `money-db` on Railway and migrates the 10 money
+tables into it via `pg_dump`/restore with a checksum-verified freeze window. Until Phase 2,
+"non_market_data on Railway/PostgreSQL" describes the _target_, not the current state — today,
+all non-market-data models are wherever the monolith's existing Postgres already lives, undivided.
+
+**Net effect on this doc's file split:** the CORE/BUSINESS FUNCTION split above (in "The Five
+Stacks") is a **code** split — it's accurate today because `lib/stripe/*`, `lib/disbursement/*`,
+etc. are already separate files with no shared logic. It is **not yet** a **data** split — both
+tracks currently read/write the one `prisma/schema.prisma`/one Postgres instance. `prisma/schema.prisma`
+and its migrations are listed once, under CORE, in the appendix below (a single file can't be
+split), with this section as the flag that it's shared, not CORE-exclusive.
 
 ---
 
@@ -596,7 +721,13 @@ re-derive it if the codebase has moved on significantly.
 
 </details>
 
-### BACKEND
+### BACKEND — split into CORE (operation-service) and BUSINESS FUNCTION (money-service)
+
+_See "Database Architecture: market_data_v6 vs non_market_data" above — the `prisma/` files
+below are listed once, under CORE, but are shared with BUSINESS FUNCTION (not yet split by DB
+role). Everything else in each list is exclusively that track's own code._
+
+#### CORE (operation-service) — 72 files
 
 <details>
 <summary><code>(root)/</code> — 2 files</summary>
@@ -631,78 +762,24 @@ re-derive it if the codebase has moved on significantly.
 </details>
 
 <details>
-<summary><code>__tests__/lib/</code> — 21 files</summary>
+<summary><code>__tests__/lib/</code> — 2 files</summary>
 
-- `__tests__/lib/admin/affiliate-management.test.ts`
-- `__tests__/lib/affiliate/code-generator.test.ts`
-- `__tests__/lib/affiliate/commission-calculator.test.ts`
-- `__tests__/lib/affiliate/registration.test.ts`
-- `__tests__/lib/cron/check-expiring-subscriptions.test.ts`
-- `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`
 - `__tests__/lib/db/prisma.test.ts`
 - `__tests__/lib/db/seed.test.ts`
-- `__tests__/lib/disbursement/constants.test.ts`
-- `__tests__/lib/disbursement/providers/factory.test.ts`
-- `__tests__/lib/disbursement/providers/mock.test.ts`
-- `__tests__/lib/disbursement/providers/rise/webhook.test.ts`
-- `__tests__/lib/disbursement/services/aggregator.test.ts`
-- `__tests__/lib/disbursement/services/batch.test.ts`
-- `__tests__/lib/disbursement/services/orchestrator.test.ts`
-- `__tests__/lib/dlocal/constants.test.ts`
-- `__tests__/lib/dlocal/currency-converter.test.ts`
-- `__tests__/lib/dlocal/dlocal-payment.test.ts`
-- `__tests__/lib/dlocal/payment-methods.test.ts`
-- `__tests__/lib/dlocal/three-day-validator.test.ts`
-- `__tests__/lib/geo/detect-country.test.ts`
 
 </details>
 
 <details>
-<summary><code>emails/</code> — 5 files</summary>
-
-- `emails/index.ts`
-- `emails/payment-confirmation.tsx`
-- `emails/payment-failure.tsx`
-- `emails/renewal-reminder.tsx`
-- `emails/subscription-expired.tsx`
-
-</details>
-
-<details>
-<summary><code>lib/</code> — 9 files</summary>
+<summary><code>lib/</code> — 8 files</summary>
 
 - `lib/candle-data-helpers.ts`
 - `lib/csrf.ts`
 - `lib/logger.ts`
-- `lib/rate-limit.ts`
 - `lib/tier-config.ts`
 - `lib/tier-helpers.ts`
 - `lib/tier-validation.ts`
 - `lib/tokens.ts`
 - `lib/utils.ts`
-
-</details>
-
-<details>
-<summary><code>lib/admin/</code> — 3 files</summary>
-
-- `lib/admin/affiliate-management.ts`
-- `lib/admin/code-distribution.ts`
-- `lib/admin/pnl-calculator.ts`
-
-</details>
-
-<details>
-<summary><code>lib/affiliate/</code> — 8 files</summary>
-
-- `lib/affiliate/code-generator.ts`
-- `lib/affiliate/commission-calculator.ts`
-- `lib/affiliate/constants.ts`
-- `lib/affiliate/conversion-processor.ts`
-- `lib/affiliate/registration.ts`
-- `lib/affiliate/report-builder.ts`
-- `lib/affiliate/types.ts`
-- `lib/affiliate/validators.ts`
 
 </details>
 
@@ -725,6 +802,29 @@ re-derive it if the codebase has moved on significantly.
 <summary><code>lib/api/</code> — 1 file</summary>
 
 - `lib/api/index.ts`
+
+**⚠️ Known broken, fix deferred (flagged 2026-07-11):** this "unified Stack A/Stack B API client"
+(design docs: `backend-stack-a/api-client-between-frontend-and-stack-b/api-client-{design,
+maintenance-and-updates,testing}.md`) has zero real consumers — the only caller in the app is
+`app/test-api/page.tsx`, an unguarded debug page; every real product hook/component calls its
+route directly via `fetch()` instead. It is also currently broken against the live routes it
+claims to wrap: `updateAlert()` sends `PUT` where the route only accepts `PATCH`;
+`markNotificationAsRead()` sends `PATCH /api/notifications/{id}` where the route needs
+`POST /api/notifications/{id}/read`; `updateSettings()` sends `PATCH /api/user/preferences` where
+the route only accepts `PUT`; `stackB.getMarketData()/getOHLCV()` call a path shape
+(`/api/market-data/{symbol}`) that doesn't match the one real market-data route that exists
+(`GET /api/market-data/channel?symbol=&timeframe=&variant=&limit=`, V8 PRO-only). Its own Jest
+tests (`__tests__/lib/api/stack-a-client.test.ts`, `stack-b-client.test.ts`) fully mock `fetch`,
+so they pass (36/36) without exercising any of this — no real signal there. Also stale: the
+design docs' Stack A/B model (Parts 1-19 deployed / Parts 20-26 future) predates the V8
+single-symbol redesign and doesn't reflect it.
+
+**Deliberately not fixed now** — hybrid (dual) authentication, the `non_market_data` Prisma
+schema split, and the Next.js→NestJS backend-stack refactor are all in flight and will each
+reshape what "correct" looks like here (auth headers, base URLs, response shapes). Since nothing
+real depends on this file today, there's no cost to leaving it broken until those land. Revisit
+and rewrite `lib/api/index.ts` (and the 3 design docs above, and the 2 test files) **after** those
+migrations are complete, not before.
 
 </details>
 
@@ -755,53 +855,10 @@ re-derive it if the codebase has moved on significantly.
 </details>
 
 <details>
-<summary><code>lib/cron/</code> — 3 files</summary>
-
-- `lib/cron/check-expiring-subscriptions.ts`
-- `lib/cron/downgrade-expired-subscriptions.ts`
-- `lib/cron/monthly-distribution.ts`
-
-</details>
-
-<details>
 <summary><code>lib/db/</code> — 2 files</summary>
 
 - `lib/db/prisma.ts`
 - `lib/db/seed.ts`
-
-</details>
-
-<details>
-<summary><code>lib/disbursement/</code> — 17 files</summary>
-
-- `lib/disbursement/constants.ts`
-- `lib/disbursement/cron/disbursement-processor.ts`
-- `lib/disbursement/providers/base-provider.ts`
-- `lib/disbursement/providers/mock-provider.ts`
-- `lib/disbursement/providers/provider-factory.ts`
-- `lib/disbursement/providers/rise/amount-converter.ts`
-- `lib/disbursement/providers/rise/rise-provider.ts`
-- `lib/disbursement/providers/rise/siwe-auth.ts`
-- `lib/disbursement/providers/rise/webhook-verifier.ts`
-- `lib/disbursement/services/batch-manager.ts`
-- `lib/disbursement/services/commission-aggregator.ts`
-- `lib/disbursement/services/payment-orchestrator.ts`
-- `lib/disbursement/services/payout-calculator.ts`
-- `lib/disbursement/services/retry-handler.ts`
-- `lib/disbursement/services/transaction-logger.ts`
-- `lib/disbursement/services/transaction-service.ts`
-- `lib/disbursement/webhook/event-processor.ts`
-
-</details>
-
-<details>
-<summary><code>lib/dlocal/</code> — 5 files</summary>
-
-- `lib/dlocal/constants.ts`
-- `lib/dlocal/currency-converter.service.ts`
-- `lib/dlocal/dlocal-payment.service.ts`
-- `lib/dlocal/payment-methods.service.ts`
-- `lib/dlocal/three-day-validator.service.ts`
 
 </details>
 
@@ -814,15 +871,9 @@ re-derive it if the codebase has moved on significantly.
 </details>
 
 <details>
-<summary><code>lib/email/</code> — 7 files</summary>
+<summary><code>lib/email/</code> — 1 file</summary>
 
 - `lib/email/email.ts`
-- `lib/email/subscription-emails.ts`
-- `lib/email/templates/affiliate/code-distributed.tsx`
-- `lib/email/templates/affiliate/code-used.tsx`
-- `lib/email/templates/affiliate/monthly-report.tsx`
-- `lib/email/templates/affiliate/payment-processed.tsx`
-- `lib/email/templates/affiliate/welcome.tsx`
 
 </details>
 
@@ -832,20 +883,6 @@ re-derive it if the codebase has moved on significantly.
 - `lib/errors/api-error.ts`
 - `lib/errors/error-handler.ts`
 - `lib/errors/error-logger.ts`
-
-</details>
-
-<details>
-<summary><code>lib/fraud/</code> — 1 file</summary>
-
-- `lib/fraud/fraud-detection.service.ts`
-
-</details>
-
-<details>
-<summary><code>lib/geo/</code> — 1 file</summary>
-
-- `lib/geo/detect-country.ts`
 
 </details>
 
@@ -882,14 +919,6 @@ re-derive it if the codebase has moved on significantly.
 <summary><code>lib/security/</code> — 1 file</summary>
 
 - `lib/security/device-detection.ts`
-
-</details>
-
-<details>
-<summary><code>lib/stripe/</code> — 2 files</summary>
-
-- `lib/stripe/stripe.ts`
-- `lib/stripe/webhook-handlers.ts`
 
 </details>
 
@@ -939,64 +968,215 @@ re-derive it if the codebase has moved on significantly.
 
 </details>
 
-### SEPARATE_STACK
+#### BUSINESS FUNCTION (money-service) — 71 files
 
 <details>
-<summary><code>.../</code> — 45 files</summary>
+<summary><code>__tests__/lib/</code> — 19 files</summary>
 
-- `.../data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt`
-- `.../data-split-between-mql5-and-python/Python stacks calculation.txt`
-- `.../mq5/2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`
-- `.../mq5/2EDTCentroidRegressionCherryPickA_v2_29.mq5`
-- `.../mq5/2EDTCentroidRegressionCherryPickB_v2_29.mq5`
-- `.../mq5/2EDTCentroidRegressionMostRecentLineExtension_v2_29.mq5`
-- `.../mq5/2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29.mq5`
-- `.../mq5/2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29.mq5`
-- `.../mq5/2EDTFractalBestFitv5_v2_29.mq5`
-- `.../mq5/SingleBestResistanceLinev3_v2_29.mq5`
-- `.../mq5/SingleBestSupportLinev3_v2_29.mq5`
-- `.../mq5/ZigZagExportv43_v2_29.mq5`
-- `.../mq5/ohlcvexportlightweight_v2_29.mq5`
-- `.../mq5/zscoreohlccandleexport_v2_29.mq5`
-- `.../mql5-to-python-transliteration/CERTIFICATION.md`
-- `.../mql5-to-python-transliteration/README.md`
-- `.../mql5-to-python-transliteration/golden_certification.py`
-- `.../mql5-to-python-transliteration/golden_certification_report_M15.txt`
-- `.../mql5-to-python-transliteration/golden_certification_report_M5.txt`
-- `.../mql5-to-python-transliteration/test_phase1_golden.py`
-- `.../mql5-to-python-transliteration/test_phase2_lines.py`
-- `.../mql5-to-python-transliteration/test_phase3_centroid.py`
-- `.../v2_29_data_pipeline_architecture/backfill_worker_api_gateway_v5.py`
-- `.../v2_29_data_pipeline_architecture/centroid_regression.py`
-- `.../v2_29_data_pipeline_architecture/export_collector_validator_v2.py`
-- `.../v2_29_data_pipeline_architecture/fractal_lines.py`
-- `.../v2_29_data_pipeline_architecture/gateway_contract_market_data.schema.json`
-- `.../v2_29_data_pipeline_architecture/install_services.bat`
-- `.../v2_29_data_pipeline_architecture/replay_quarantine.py`
-- `.../v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql`
-- `.../v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd_preview.txt`
-- `.../v2_29_data_pipeline_architecture/zigzag_metrics.py`
-- `.../v2_29_data_pipeline_architecture/zscore_candle.py`
-- `.../v2_29_multi-timeframe-visualisation/Multi-Timeframe-Visualisation-Architecture-Design.md`
-- `.../v2_29_multi-timeframe-visualisation/mtf_render/__init__.py`
-- `.../v2_29_multi-timeframe-visualisation/mtf_render/__main__.py`
-- `.../v2_29_multi-timeframe-visualisation/mtf_render/data_source.py`
-- `.../v2_29_multi-timeframe-visualisation/mtf_render/fixture.py`
-- `.../v2_29_multi-timeframe-visualisation/mtf_render/renderer.py`
-- `.../v2_29_multi-timeframe-visualisation/requirements.txt`
-- `.../v2_29_multi-timeframe-visualisation/src/VISUALISATION_TASK_HANDOFF.md`
-- `.../v2_29_multi-timeframe-visualisation/src/cover-prompt.md`
-- `.../v2_29_multi-timeframe-visualisation/src/mtf_demo.png`
-- `.../v2_29_multi-timeframe-visualisation/src/multi-timeframe-visualisation.jpg`
-- `.../v2_29_multi-timeframe-visualisation/test_mtf_render.py`
+- `__tests__/lib/admin/affiliate-management.test.ts`
+- `__tests__/lib/affiliate/code-generator.test.ts`
+- `__tests__/lib/affiliate/commission-calculator.test.ts`
+- `__tests__/lib/affiliate/registration.test.ts`
+- `__tests__/lib/cron/check-expiring-subscriptions.test.ts`
+- `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`
+- `__tests__/lib/disbursement/constants.test.ts`
+- `__tests__/lib/disbursement/providers/factory.test.ts`
+- `__tests__/lib/disbursement/providers/mock.test.ts`
+- `__tests__/lib/disbursement/providers/rise/webhook.test.ts`
+- `__tests__/lib/disbursement/services/aggregator.test.ts`
+- `__tests__/lib/disbursement/services/batch.test.ts`
+- `__tests__/lib/disbursement/services/orchestrator.test.ts`
+- `__tests__/lib/dlocal/constants.test.ts`
+- `__tests__/lib/dlocal/currency-converter.test.ts`
+- `__tests__/lib/dlocal/dlocal-payment.test.ts`
+- `__tests__/lib/dlocal/payment-methods.test.ts`
+- `__tests__/lib/dlocal/three-day-validator.test.ts`
+- `__tests__/lib/geo/detect-country.test.ts`
 
 </details>
 
 <details>
-<summary><code>backend-stack-c/</code> — 2 files</summary>
+<summary><code>emails/</code> — 5 files</summary>
 
-- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/old-architecture/README.md`
+- `emails/index.ts`
+- `emails/payment-confirmation.tsx`
+- `emails/payment-failure.tsx`
+- `emails/renewal-reminder.tsx`
+- `emails/subscription-expired.tsx`
+
+</details>
+
+<details>
+<summary><code>lib/</code> — 1 file</summary>
+
+- `lib/rate-limit.ts`
+
+</details>
+
+<details>
+<summary><code>lib/admin/</code> — 3 files</summary>
+
+- `lib/admin/affiliate-management.ts`
+- `lib/admin/code-distribution.ts`
+- `lib/admin/pnl-calculator.ts`
+
+</details>
+
+<details>
+<summary><code>lib/affiliate/</code> — 8 files</summary>
+
+- `lib/affiliate/code-generator.ts`
+- `lib/affiliate/commission-calculator.ts`
+- `lib/affiliate/constants.ts`
+- `lib/affiliate/conversion-processor.ts`
+- `lib/affiliate/registration.ts`
+- `lib/affiliate/report-builder.ts`
+- `lib/affiliate/types.ts`
+- `lib/affiliate/validators.ts`
+
+</details>
+
+<details>
+<summary><code>lib/cron/</code> — 3 files</summary>
+
+- `lib/cron/check-expiring-subscriptions.ts`
+- `lib/cron/downgrade-expired-subscriptions.ts`
+- `lib/cron/monthly-distribution.ts`
+
+</details>
+
+<details>
+<summary><code>lib/disbursement/</code> — 17 files</summary>
+
+- `lib/disbursement/constants.ts`
+- `lib/disbursement/cron/disbursement-processor.ts`
+- `lib/disbursement/providers/base-provider.ts`
+- `lib/disbursement/providers/mock-provider.ts`
+- `lib/disbursement/providers/provider-factory.ts`
+- `lib/disbursement/providers/rise/amount-converter.ts`
+- `lib/disbursement/providers/rise/rise-provider.ts`
+- `lib/disbursement/providers/rise/siwe-auth.ts`
+- `lib/disbursement/providers/rise/webhook-verifier.ts`
+- `lib/disbursement/services/batch-manager.ts`
+- `lib/disbursement/services/commission-aggregator.ts`
+- `lib/disbursement/services/payment-orchestrator.ts`
+- `lib/disbursement/services/payout-calculator.ts`
+- `lib/disbursement/services/retry-handler.ts`
+- `lib/disbursement/services/transaction-logger.ts`
+- `lib/disbursement/services/transaction-service.ts`
+- `lib/disbursement/webhook/event-processor.ts`
+
+</details>
+
+<details>
+<summary><code>lib/dlocal/</code> — 5 files</summary>
+
+- `lib/dlocal/constants.ts`
+- `lib/dlocal/currency-converter.service.ts`
+- `lib/dlocal/dlocal-payment.service.ts`
+- `lib/dlocal/payment-methods.service.ts`
+- `lib/dlocal/three-day-validator.service.ts`
+
+</details>
+
+<details>
+<summary><code>lib/email/</code> — 6 files</summary>
+
+- `lib/email/subscription-emails.ts`
+- `lib/email/templates/affiliate/code-distributed.tsx`
+- `lib/email/templates/affiliate/code-used.tsx`
+- `lib/email/templates/affiliate/monthly-report.tsx`
+- `lib/email/templates/affiliate/payment-processed.tsx`
+- `lib/email/templates/affiliate/welcome.tsx`
+
+</details>
+
+<details>
+<summary><code>lib/fraud/</code> — 1 file</summary>
+
+- `lib/fraud/fraud-detection.service.ts`
+
+</details>
+
+<details>
+<summary><code>lib/geo/</code> — 1 file</summary>
+
+- `lib/geo/detect-country.ts`
+
+</details>
+
+<details>
+<summary><code>lib/stripe/</code> — 2 files</summary>
+
+- `lib/stripe/stripe.ts`
+- `lib/stripe/webhook-handlers.ts`
+
+</details>
+
+### SEPARATE_STACK
+
+<details>
+<summary><code>backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/</code> — 37 files</summary>
+
+_(Excludes `__pycache__/*.pyc` — compiled artifacts, not source. All other files under this folder are included.)_
+
 - `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/SimpleDataCollector_v2_29_ASYNC_SOCKET.ex5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/backfill_worker_api_gateway_v5.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/centroid_regression.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/data-split-between-mql5-and-python/Python stacks calculation.txt`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/export_collector_validator_v2.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/fractal_lines.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/gateway_contract_market_data.schema.json`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/install_services.bat`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionCherryPickA_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionCherryPickB_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionMostRecentLineExtension_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTFractalBestFitv5_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/SingleBestResistanceLinev3_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/SingleBestSupportLinev3_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/ZigZagExportv43_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/ohlcvexportlightweight_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/zscoreohlccandleexport_v2_29.mq5`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/CERTIFICATION.md`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/README.md`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/golden_certification.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/golden_certification_report_M15.txt`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/golden_certification_report_M5.txt`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/test_phase1_golden.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/test_phase2_lines.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/test_phase3_centroid.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mt5_api_relay_for_v2_29.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/replay_quarantine.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd_preview.txt`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/zigzag_metrics.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/zscore_candle.py`
+
+</details>
+
+<details>
+<summary><code>backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/</code> — 12 files</summary>
+
+_(Excludes `__pycache__/` and `.pytest_cache/` — compiled/test-cache artifacts, not source. All other files under this folder are included.)_
+
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/Multi-Timeframe-Visualisation-Architecture-Design.md`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/__init__.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/__main__.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/data_source.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/fixture.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/renderer.py`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/requirements.txt`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/VISUALISATION_TASK_HANDOFF.md`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/cover-prompt.md`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/mtf_demo.png`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/multi-timeframe-visualisation.jpg`
+- `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/test_mtf_render.py`
 
 </details>
 
