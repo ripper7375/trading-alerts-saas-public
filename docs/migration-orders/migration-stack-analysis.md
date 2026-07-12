@@ -207,7 +207,7 @@ This is the literal meaning of the blueprint's own diagram (§2): `PostgreSQL �
 instance, two roles/schemas`. **Phase 2** (§6, trigger-based — not calendar-based) is what
 actually deploys a second, physically separate `money-db` on Railway and migrates the 10 money
 tables into it via `pg_dump`/restore with a checksum-verified freeze window. Until Phase 2,
-"non_market_data on Railway/PostgreSQL" describes the _target_, not the current state — today,
+"non*market_data on Railway/PostgreSQL" describes the \_target*, not the current state — today,
 all non-market-data models are wherever the monolith's existing Postgres already lives, undivided.
 
 **Net effect on this doc's file split:** the CORE/BUSINESS FUNCTION split above (in "The Five
