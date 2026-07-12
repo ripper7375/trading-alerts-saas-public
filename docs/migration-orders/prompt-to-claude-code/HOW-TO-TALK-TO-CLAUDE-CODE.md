@@ -3,6 +3,9 @@
 **For:** Davin (Authorizer) working with Claude Code (Executor) through the migration.
 **Copy-paste ready:** every quoted block is a prompt you can use verbatim — replace only
 the `<angle-bracket>` parts.
+**Companion:** `SESSION-PROMPT-SCRIPT.md` — the per-session script (which prompt to use for
+every session 0-1 → 8-5, with each session's specific additions). This guide covers
+_situations_; the script covers the _schedule_.
 
 ---
 
@@ -39,7 +42,9 @@ the `<angle-bracket>` parts.
 
 > Wrap up per EXECUTOR-PROTOCOL §3: run this session's tests and show me the results, fill
 > in the Deviations section, update CLAUDE.md / Decision Log / cutover table / file
-> inventory as applicable, then PRE-DRAFT the next session's order and show it to me.
+> inventory as applicable, harvest any lesson (error >30 min, recurred, or reached
+> CI/production) into LESSONS-LEARNED.md, then PRE-DRAFT the next session's order and show
+> it to me.
 
 The explicit "do not execute until I say go" in OPEN gives you a checkpoint to actually read
 what it reports. Say "go" (or correct course) only after you have.
