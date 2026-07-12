@@ -86,7 +86,11 @@ _(Seeded 2026-07-11 from documented repo history — verify each on first encoun
   delete the old branch. During the migration, CC-F applies: trunk-based + flags, no
   long-lived branches at all.
 - Detect early: before opening any PR, `git rev-list --count origin/main..HEAD` and
-  `...HEAD..origin/main` — behind >50 means salvage, not merge.
+  `...HEAD..origin/main` — behind >50 means salvage, not merge. Audit remote branches only
+  after `git fetch --all --prune`; local tracking refs lie (2026-07-12: a brief built from
+  stale local refs claimed 13 branches, 97–1,845 behind, 8 zero-commit; a fresh fetch found
+  only 3 branches, all with real content — the other 10 were pre-cleanup fossils no longer
+  on the remote).
 - Source: git audit 2026-07-11 (Cowork session) · Status: ACTIVE
 
 ---
