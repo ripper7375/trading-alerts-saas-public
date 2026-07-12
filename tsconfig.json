@@ -25,9 +25,7 @@
     "allowImportingTsExtensions": false, // Don't allow .ts/.tsx in imports
     "baseUrl": ".", // Base directory for module resolution
     "paths": {
-      "@/*": [
-        "./*"
-      ] // @ alias maps to project root
+      "@/*": ["./*"] // @ alias maps to project root
     },
     // ==========================================================================
     // Type Checking - STRICT MODE (CRITICAL QUALITY GATES)
@@ -117,8 +115,7 @@
     "next-env.d.ts", // Next.js type definitions
     "**/*.ts", // All TypeScript files
     "**/*.tsx", // All TypeScript React files
-    ".next/types/**/*.ts" // Generated Next.js types
-    ,
+    ".next/types/**/*.ts", // Generated Next.js types
     ".next/dev/types/**/*.ts"
   ],
   // ============================================================================
@@ -134,7 +131,7 @@
     "frontend", // Separate Next.js project (has own tsconfig.json)
     "railway-gateway", // Separate NestJS project (has own tsconfig.json + package.json)
     "frontend-and-backend-python-stack", // Prototype sub-projects (davintrade-prototype has own tsconfig.json + package.json)
-    "Archive", // Historical/decommissioned code, not part of the live build
+    "archive", // Historical/decommissioned code, not part of the live build
     "e2e", // E2E tests (use Playwright's TypeScript handling)
     "**/*.test.ts", // Test files (checked separately by Jest)
     "**/*.test.tsx",
