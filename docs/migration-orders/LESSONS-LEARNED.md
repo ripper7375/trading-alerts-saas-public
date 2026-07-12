@@ -93,6 +93,38 @@ _(Seeded 2026-07-11 from documented repo history — verify each on first encoun
   on the remote).
 - Source: git audit 2026-07-11 (Cowork session) · Status: ACTIVE
 
+### L6 — Config-file paths must match filesystem case exactly
+
+- Symptom: `tsc --noEmit` failed on `archive/part6-flask-mt5/lib/api/mt5-transform.ts`
+  in both the husky pre-push hook and CI's `type-check` job — for every branch, not just
+  one — even though `tsconfig.json` explicitly excludes that folder.
+- Root cause: the exclude entry was `"Archive"` (capital A); the real directory is
+  `archive` (lowercase). Case-insensitive filesystems (macOS default, Windows) silently
+  matched it anyway, so the bug was invisible on those; case-sensitive Linux (every GitHub
+  Actions runner, and this container) never matches it, so the folder always leaks in.
+- Rule: any path string in a config file (`tsconfig.json` exclude/include, `.eslintignore`,
+  jest `roots`/`testPathIgnorePatterns`, etc.) must match the on-disk casing exactly —
+  never trust that it "worked locally" if local is macOS/Windows.
+- Detect early: run type-check/lint/test validation in a Linux environment (or just trust
+  CI) before declaring a config change correct — don't rely on a local green that was
+  earned on a case-insensitive filesystem.
+- Source: git audit 2026-07-12, `fix/tsconfig-exclude-case-sensitivity` · Status: ACTIVE
+
+### L7 — A script's `require()` must be backed by a direct dependency, not a transitive one
+
+- Symptom: `npm run validate:policies` → `Error: Cannot find module 'glob'` from
+  `scripts/validate-file.js`, even though `glob` exists inside `node_modules/.pnpm`.
+- Root cause: `scripts/validate-file.js` does a bare `require('glob')`, but `glob` is
+  only a transitive dependency of something else in the tree — pnpm's strict
+  `node_modules` doesn't hoist it to top level, so the require 404s.
+- Rule: any package a script directly `require()`s must be a direct `dependencies`/
+  `devDependencies` entry in `package.json` — never rely on pnpm's non-flat layout
+  hoisting a transitive dep for you.
+- Detect early: `npm run validate:policies` fails immediately on a fresh
+  `pnpm install --frozen-lockfile`; not yet fixed — candidate for a future session
+  (add `glob` to devDependencies).
+- Source: git audit 2026-07-12 · Status: ACTIVE (not yet fixed)
+
 ---
 
 ## Archive
