@@ -107,5 +107,5 @@ the NOT-free list.
   playbook amendment in the same DRAFT it hands Davin — one approval covers both. When
   inserting sessions, use suffixes (`4B-2b`) — never renumber existing sessions (stale
   references in CLAUDE.md, orders, and commits would silently point at the wrong work).
-  Any playbook amendment must update `SESSION-PROMPT-SCRIPT.md` in the same DRAFT — the
-  script and the playbook must never disagree about which sessions exist.
+  Any playbook amendment must update `prompt-to-claude-code/SESSION-PROMPT-SCRIPT.md` in
+  the same DRAFT — the script and the playbook must never disagree about which sessions exist.

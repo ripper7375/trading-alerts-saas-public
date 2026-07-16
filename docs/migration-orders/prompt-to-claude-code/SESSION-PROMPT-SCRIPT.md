@@ -4,8 +4,10 @@
 Advisor (Claude Cowork) between sessions, **[B]** to Claude Code at OPEN, **[C]** to Claude
 Code at CLOSE. Most sessions use the universal forms below — this script tells you _which_
 form each session uses and the **session-specific line to append**. Copy-paste; replace only
-`<angle-brackets>`. Companion: `HOW-TO-TALK-TO-CLAUDE-CODE.md` (situational prompts for
-things that happen _during_ execution — stuck, risky, wrong, broken).
+`<angle-brackets>`. Companions: `SESSION-WALKTHROUGHS.md` (**start there** — complete
+sessions played out as real dialogues, one per session type, with what good responses look
+like and the red flags) and `HOW-TO-TALK-TO-CLAUDE-CODE.md` (situational prompts for things
+that happen _during_ execution — stuck, risky, wrong, broken).
 
 ---
 
@@ -122,45 +124,69 @@ them for my sign-off before applying."_ · [C]: U-C.
 **3-5 (three-path verification, phase exit):** [A]: U-A · [B]: U-B · [C]: U-C + _"walk
 Phase 3 exit criteria; confirm production NextAuth untouched and regression-free."_
 
-## Phase 4 — Backend move (pattern prompts — reuse per slice)
+## Phase 4 — Backend move (two patterns + a complete session-by-session table)
 
-**P4-BUILD (every BUILD session — 4A-2,4,6,9,11 and 4B builds):**
+**P4-BUILD (the pattern for every BUILD row below):**
 
 - [A]: U-A + _"variant: PORT, dial LOW; generate the migration order at 4B-2-example depth —
-  I approve the order before any porting."_
+  I approve the order before any porting."_ + the row's specific line.
 - [B]: U-B + _"re-verify the SOURCE file list and line counts explicitly."_
 - [C]: U-C + _"confirm shadow/mirror-run STARTED and the source files are now CC-F frozen —
-  state the exact 48h end time."_ then U-WAIT.
+  state the exact 48h end time."_ then **U-WAIT**.
 
-**P4-CUTOVER (every CUTOVER session — fast-path, skip [A]):**
+**P4-CUTOVER (the pattern for every CUTOVER row below — fast-path, no Advisor):**
 
-- On the PRE-DRAFT: U-FAST.
-- [B]: U-B + _"first: the shadow diff — total compared, match rate, EVERY mismatch with
-  explanation."_
-- Approve: U-CUT (with the slice's flag name from the cutover table). · [C]: U-C.
+- On the PRE-DRAFT: **U-FAST**.
+- [B]: U-B + _"first: the shadow/replay diff — total compared, match rate, EVERY mismatch
+  with your explanation."_
+- Approve with **U-CUT** using the row's flag/mechanism. · [C]: U-C.
 
-**Session-specific additions on top of the patterns:**
+### Phase 4A — money-service, all 12 sessions
 
-- **4A-1 (skeleton + deploy):** [A]: U-A (variant: INFRA) + _"include my F16 decision:
-  <api.domain/v1 + money.domain/v1>, and F15 default (one Redis, op._/money._ namespaces)."_
-- **4A-5 (webhook cutover):** add to U-CUT: _"I'll update the provider dashboard URLs when
-  you give me the exact new endpoints — walk me through each console click."_
-- **4A-8 (CC-C hardening gate):** [A]: U-A + _"resolve F14 (recommend outbox) with the
-  reconciliation cron design — nothing in slice 4 proceeds until this session's done-when
-  passes."_
-- **4A-9/10 (MONEY write cutover):** before approving, always: > This touches real money.
-  Walk me through it as if I'm auditing you: every write path, every idempotency
-  protection, what happens if it runs twice, what happens if it dies halfway. Then wait.
-- **4B-1 (types package):** [A]: U-A + _"resolve F9; geometry hoisting for the alert engine
-  is part of this — see the 4B-2 order's Wrinkle #1."_
-- **4B-2/3 (alert engine):** the worked example order exists — [A]: U-A + _"re-verify
-  4B-2-alert-engine.migration-order.md against the live codebase and upgrade it to DRAFT."_
-- **4B-17 (realtime, F8):** [A]: U-A + _"F8 first: read both realtime spec docs and present
-  the socket-architecture options for my decision before any porting."_
-- **4B-20/21 (auth cutover — riskiest of 4B):** treat like money: > Walk me through what
-  breaks if this goes wrong and how users get back in. Rollback demonstrated in staging?
-- **4B-22 (phase exit review):** U-FAST · [B]: U-B + _"cutover table 100% walk-through, row
-  by row."_ then U-WAIT (30-day window).
+| Session | What                                                           | Pattern                                   | Session-specific line to append                                                                                                                            |
+| ------- | -------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4A-1    | Skeleton + Railway deploy + cutover-table rows                 | Decision + INFRA ([A]: U-A variant INFRA) | _"include my F16 decision: <api.domain/v1 + money.domain/v1> and F15 default (one Redis, op._/money._ namespaces); populate the real cutover-table rows."_ |
+| 4A-2    | BUILD slice 1: 8 cron jobs                                     | P4-BUILD                                  | _"crons keep the identical UTC expressions from vercel.json — that's the invariant."_                                                                      |
+| 4A-3    | CUTOVER slice 1                                                | P4-CUTOVER                                | Mechanism: enable Nest scheduler + empty vercel.json crons. Rollback: restore vercel.json crons.                                                           |
+| 4A-4    | BUILD slice 2: RiseWorks + dLocal webhooks                     | P4-BUILD                                  | _"verification is REPLAY tests with recorded signed payloads (raw-body HMAC) — not a 48h shadow."_                                                         |
+| 4A-5    | CUTOVER slice 2                                                | P4-CUTOVER                                | Add: _"I'll update the provider dashboard URLs — walk me through each console click."_ Rollback: point URLs back.                                          |
+| 4A-6    | BUILD slice 3: read APIs (dashboards, reports, admin lists)    | P4-BUILD                                  | — (standard; 48h shadow)                                                                                                                                   |
+| 4A-7    | CUTOVER slice 3                                                | P4-CUTOVER                                | Mechanism: env flag base-URL swap. Rollback: flip flag back.                                                                                               |
+| 4A-8    | CC-C hardening gate (idempotency, dedupe, outbox, rate limits) | Standard loop (B)                         | [A] add: _"resolve F14 (recommend outbox) incl. the reconciliation-cron design — slice 4 does not proceed until this session's done-when passes."_         |
+| 4A-9    | BUILD slice 4: write APIs + Stripe webhook                     | P4-BUILD                                  | _"every write endpoint lists its idempotency key in the order — a write without one is a blocker, not a TODO."_                                            |
+| 4A-10   | CUTOVER slice 4 — **REAL MONEY**                               | P4-CUTOVER + Walkthrough F                | Before approving, ALWAYS the money-audit prompt (Walkthrough F). Stripe webhook URL swap included.                                                         |
+| 4A-11   | BUILD slice 5: tier-update event path                          | P4-BUILD                                  | _"implements the F14 outbox + nightly reconciliation cron; core-side apply must be idempotent."_                                                           |
+| 4A-12   | CUTOVER slice 5                                                | P4-CUTOVER                                | Mechanism: core stops reading Subscription directly. Rollback: re-enable direct read. Then **U-WAIT** — the money-service 30-day stability window starts.  |
+
+### Phase 4B — operation-service, all 22 sessions
+
+| Session | What                                                                      | Pattern                              | Session-specific line to append                                                                                                                                       |
+| ------- | ------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4B-1    | @trading-alerts/types package + geometry hoist                            | Standard loop (B), [A] variant INFRA | _"resolve F9; hoisting the drawing geometry is part of this — see the 4B-2 order's Wrinkle #1. Never fork the math."_                                                 |
+| 4B-2    | BUILD: alert engine (11 files)                                            | P4-BUILD                             | _"the order already exists — re-verify 4B-2-alert-engine.migration-order.md against the live codebase and upgrade it to DRAFT."_ (Its wait is a log-only MIRROR-run.) |
+| 4B-3    | CUTOVER: alert engine                                                     | P4-CUTOVER                           | _"one worker dispatching at a time: stop the monolith worker, THEN enable service dispatch — jobId dedupe is the backstop, not the plan."_                            |
+| 4B-4    | Shared infra: redis/cache/logger/errors/monitoring + OTel/correlation IDs | Standard loop (B)                    | [A] add: _"resolve F13 (tracing backend) here if still open — this is where the OTel SDK lands."_                                                                     |
+| 4B-5    | BUILD: alerts CRUD (app/api/alerts/\*\*)                                  | P4-BUILD                             | —                                                                                                                                                                     |
+| 4B-6    | CUTOVER: alerts CRUD                                                      | P4-CUTOVER                           | Flag: MIGRATE_ALERTS.                                                                                                                                                 |
+| 4B-7    | BUILD: drawings + drawing-alerts                                          | P4-BUILD                             | _"geometry parity is THE invariant — same fixtures in, same level numbers out, chart vs server."_                                                                     |
+| 4B-8    | CUTOVER: drawings                                                         | P4-CUTOVER                           | Flag: MIGRATE_DRAWINGS.                                                                                                                                               |
+| 4B-9    | BUILD: notifications                                                      | P4-BUILD                             | _"the alerts:fired consumer contract must stay byte-identical (4B-3 depends on it)."_                                                                                 |
+| 4B-10   | CUTOVER: notifications                                                    | P4-CUTOVER                           | Flag: MIGRATE_NOTIFICATIONS.                                                                                                                                          |
+| 4B-11   | BUILD: tier (guard + tier-check middleware)                               | P4-BUILD                             | _"tier gating is a paywall — wrong-tier denial tests are mandatory parity proofs, not optional."_                                                                     |
+| 4B-12   | CUTOVER: tier                                                             | P4-CUTOVER                           | Flag: MIGRATE_TIER. Spot-check a FREE user is still denied PRO routes after the flip.                                                                                 |
+| 4B-13   | BUILD: user/profile/2FA/sessions                                          | P4-BUILD                             | _"2FA and lockout semantics are invariants; session-listing/revocation behavior byte-compatible."_                                                                    |
+| 4B-14   | CUTOVER: user/profile/2FA                                                 | P4-CUTOVER                           | Flag: MIGRATE_USER. Walk the 2FA login flow manually on staging before approving.                                                                                     |
+| 4B-15   | BUILD: market-data channel proxy                                          | P4-BUILD                             | _"V8 PRO-only gating is a paywall invariant (remember eloquent-hypatia: stripping it silently is the failure mode)."_                                                 |
+| 4B-16   | CUTOVER: market-data channel                                              | P4-CUTOVER                           | Flag: MIGRATE_MARKETDATA.                                                                                                                                             |
+| 4B-17   | BUILD: realtime/websocket delivery (F8)                                   | P4-BUILD                             | [A] add: _"F8 FIRST — read both realtime spec docs and present socket-architecture options for my decision before any porting."_                                      |
+| 4B-18   | CUTOVER: realtime                                                         | P4-CUTOVER                           | _"drain existing socket connections gracefully; prove one live alert → toast + chart marker end-to-end before I approve."_                                            |
+| 4B-19   | Email rendering port (emails/\* + lib/email)                              | Standard loop (B)                    | _"render every template and show me the outputs for visual check before the send-path switches."_                                                                     |
+| 4B-20   | Auth cutover BUILD (staging verification)                                 | P4-BUILD + Walkthrough F treatment   | _"treat like money: what breaks if this goes wrong, how do users get back in, rollback demonstrated in staging?"_                                                     |
+| 4B-21   | Auth CUTOVER — retire NextAuth                                            | P4-CUTOVER + Walkthrough F treatment | The riskiest 4B moment. Rollback = re-enable NextAuth route + auth-options (kept until 4B-22 confirms).                                                               |
+| 4B-22   | Phase 4 exit review                                                       | E fast-path (U-FAST)                 | [B] add: _"cutover table 100% walk-through, row by row, with evidence per row."_ Then **U-WAIT** — operation-service 30-day window.                                   |
+
+**Parallel note:** Phase 5 sessions (below) may run during any Phase 4 wait — they touch
+different files.
 
 ## Phase 5 — Next.js 16 (may interleave with Phase 4)
 
@@ -179,12 +205,29 @@ output is the gap matrix for my triage — no building."_ · [B]: U-B · Your tr
 > Triage: rows <…> = build, rows <…> = internal-only, rows <…> = out-of-scope. Record in
 > the matrix and Decision Log. · [C]: U-C.
 > **6-2 (IA + design system):** [A]: U-A (variant: UI-BUILD, dial HIGH) · [B]: U-B · [C]: U-C.
-> **6-3…6-8 (surfaces — one per session):** [A]: U-A + _"variant: UI-BUILD; surface:
-> <alerts-charts / notifications / settings-user / admin / affiliate / payments>; propose
-> design freely, the contract constrains the data."_ · [B]: U-B · staging review: > Show me
-> the staging URL; I'll review before the flag flips. · [C]: U-C.
-> **6-9 (a11y + exit):** U-FAST · [B]: U-B · [C]: U-C + _"final gap-matrix sweep — every row
-> closed, internal, or ticketed."_
+> **6-3 (surface: alerts + charts, incl. MTF toggle + V8 variant UI):** [A]: U-A + _"variant:
+> UI-BUILD; propose design freely — the contract constrains the data. V8 PRO gating stays."_
+> · [B]: U-B · staging review: > Show me the staging URL; I review before the flag flips. · [C]: U-C.
+
+**6-4 (surface: notifications UX):** same as 6-3, surface line: _"notifications — live toast,
+bell, list; ties to the 4B-17/18 realtime path."_
+
+**6-5 (surface: settings + user, incl. 2FA screens):** same as 6-3, surface line:
+_"settings/user — 2FA flows re-verified end-to-end in the browser."_
+
+**6-6 (surface: admin, incl. disbursement lifecycle views):** same as 6-3, surface line:
+_"admin — batch lifecycle states must mirror the cutover-table vocabulary users of the money
+service actually see."_
+
+**6-7 (surface: affiliate portal + reports):** same as 6-3, surface line: _"affiliate —
+report views for every report endpoint in the gap matrix marked build."_
+
+**6-8 (surface: payments/checkout):** same as 6-3 PLUS the money rule: _"never render
+amounts from client math — display what the service returns."_
+
+**6-9 (a11y + exit):** U-FAST · [B]: U-B · [C]: U-C + \_"final gap-matrix sweep — every row
+
+> closed, internal, or ticketed."\_
 
 ## Phase 7 — API client
 
@@ -220,6 +263,6 @@ window hasn't elapsed.
   (EXECUTOR-PROTOCOL §6) — same open/close rituals, labeled ADHOC-<date> in CLAUDE.md,
   phase/session unchanged.
 
-**Status:** v1.0 — matches playbook v1.1 / protocol §1–§7 / skeleton chain rules. If the
+**Status:** v1.1 (complete per-session coverage: all 12×4A + 22×4B rows explicit) — matches playbook v1.1 / protocol §1–§7 / skeleton chain rules. If the
 Advisor splits or inserts sessions, it must propose the matching update to THIS file in the
 same DRAFT (suffix rule: 4B-2b, never renumber).
