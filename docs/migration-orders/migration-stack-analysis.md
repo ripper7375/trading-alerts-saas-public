@@ -1317,13 +1317,17 @@ _(Excludes `__pycache__/` and `.pytest_cache/` — compiled/test-cache artifacts
 </details>
 
 <details>
-<summary><code>docs/</code> — 10 files (this snapshot predates most of `open-api-documents/`; only
+<summary><code>docs/</code> — 12 files (this snapshot predates most of `open-api-documents/`; only
 the subset relevant when last taken is listed — see the directory itself for the
 current full set, still 21 files across `part-02`…`part-23`, Session 0-3 touched
 content not file count)</summary>
 
 - `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md`
 - `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`
+- `docs/secret-matrix.md` (new, Session 0-4 — per-service secret/env-var name catalog,
+  names only; documents 3 completeness gaps found in `.env.example` vs. live code)
+- `docs/migration-test-baseline.md` (new, Session 0-4 — 114 suites / 2075 tests, all
+  passed; mocked-vs-integration characterization per L1)
 - `docs/open-api-documents/part-02-database-schema-openapi.yaml`
 - `docs/open-api-documents/part-03-types-openapi.yaml`
 - `docs/open-api-documents/part-04-tier-system-openapi.yaml` (regenerated Session 0-2 — V8 model)
