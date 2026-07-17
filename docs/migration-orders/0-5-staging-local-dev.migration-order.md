@@ -127,10 +127,23 @@ dev`'s auto-seed), not an npm/pnpm script — the actual script alias is `db:see
    names, same reasoning — plus a separate `web_node_modules` named volume specifically so
    the container's Linux-built `node_modules` (bcrypt native bindings, etc.) never collide
    with the host's Windows-built `node_modules` from the bind-mounted source tree.
-6. **`web` container left running** at session close (all 3 containers up and healthy) —
-   this is the intended end-state of a local dev stack, not leftover state to clean up.
-   Davin can `docker compose -f docker-compose.dev.yml down` (or `down -v` to also drop the
-   seeded data) whenever done with it.
+6. **`docker-compose.dev.yml` stack stopped (not left running) at session close** —
+   reversed from the original plan. `git push`'s pre-push hook (`test:quick`, Jest) failed
+   with real DB/Redis errors on suites that were green in the Session 0-4 baseline; traced
+   to `jest.setup.js` hardcoding `localhost:5432`/`localhost:6379` for tests, the exact
+   ports this compose file publishes — tests were hitting the real containers instead of
+   being isolated. Ran `docker compose -f docker-compose.dev.yml down` (data volumes kept,
+   not `-v`), re-ran `git push`, tests passed clean (111/111 suites, 2046/2046 tests —
+   exact Session 0-4 baseline). Now `LESSONS-LEARNED.md` L11: **never run this stack
+   alongside the test suite/pre-push validation.** Davin can bring it back up any time with
+   `docker compose -f docker-compose.dev.yml up -d` (seeded data persists in the named
+   volumes) — just stop it again before running tests or pushing.
+7. **Leftover `.pnpm-store/` (840MB) appeared in the bind-mounted repo root** after the
+   `web` container's first `pnpm install` — pnpm's content-addressable store defaulted to
+   a path inside `/app` (the bind mount), so it leaked onto the host as an untracked
+   directory. Fixed by adding a 4th named volume (`web_pnpm_store:/app/.pnpm-store`) to
+   shadow that path, same technique already used for `node_modules`/`.next`. Deleted the
+   stale host-side directory (untracked, safe — pure cache, no user data) before committing.
 
 ## Next-session handoff
 

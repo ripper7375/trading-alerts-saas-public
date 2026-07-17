@@ -189,6 +189,24 @@ js-yaml@4.1.1/node_modules/js-yaml'))` — resolve the exact `.pnpm` path direct
   plain `node`) is this, not a missing dependency.
 - Source: Session 0-5 (`docker-compose.dev.yml` seed-step verification) · Status: ACTIVE
 
+### L11 — Never leave `docker-compose.dev.yml` running while pushing/testing
+
+- Symptom: `git push` failed pre-push validation — `test:quick` (Jest) showed real
+  failures (`Database connection failed`, unexpected `429` instead of `400`) on suites
+  that were 100% green in the Session 0-4 baseline just one session earlier.
+- Root cause: `jest.setup.js` hardcodes `DATABASE_URL=postgresql://test:test@localhost:
+5432/test` and `REDIS_URL=redis://localhost:6379` for every test run, assuming nothing
+  real is listening there. `docker-compose.dev.yml`'s `postgres`/`redis` services publish
+  those exact same host ports — so instead of failing cleanly (no server) or being mocked,
+  tests silently hit a **real** Postgres (wrong user/db → auth failure) and a **real**
+  Redis (rate limiter actually engages, flipping expected `400`s to `429`s).
+- Rule: stop the local dev stack (`docker compose -f docker-compose.dev.yml down`) before
+  running the test suite, pre-push hooks, or CI-equivalent checks locally. The two are
+  mutually exclusive on this machine as long as both use the default 5432/6379 ports.
+- Detect early: any test failure mentioning a real DB/Redis error (not a mock) — check
+  `docker compose -f docker-compose.dev.yml ps` first before assuming a regression.
+- Source: Session 0-5 (pre-push validation on the session-close commit) · Status: ACTIVE
+
 ---
 
 ## Archive

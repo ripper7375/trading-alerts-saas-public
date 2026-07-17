@@ -48,6 +48,15 @@
   not fixed (out of scope), flagged in the order's Deviations for Davin.
   **F17 (staging-data strategy) RESOLVED** and logged in `DECISION-LOG.md`: synthetic seed
   only, never unmasked production/user data, evidenced by the live seed run above.
+  **Post-verification, the stack was stopped again** (`docker compose -f
+docker-compose.dev.yml down`, volumes kept) — its first `git push` attempt failed
+  pre-push validation with real DB/Redis errors on suites green since Session 0-4; traced
+  to `jest.setup.js` hardcoding `localhost:5432`/`6379` for tests, the same ports this
+  compose file publishes, so tests hit the real containers instead of being isolated.
+  Stopping the stack and re-running `git push` came back clean (111/111 suites, 2046/2046
+  tests, exact 0-4 baseline) — now `LESSONS-LEARNED.md` L11. Davin can bring the stack back
+  up with `docker compose -f docker-compose.dev.yml up -d` any time (seeded data persists
+  in named volumes); just stop it again before running tests or pushing.
   **Phase 0 Exit Review run:** 4/5 exit criteria met; the sole gap is CC-A (staging
   shells) — Phase 0 is NOT yet closed. Next session stays in Phase 0.
 - **Next session must:** Session 0-6 — staging shells only (Railway + Vercel provisioning,
