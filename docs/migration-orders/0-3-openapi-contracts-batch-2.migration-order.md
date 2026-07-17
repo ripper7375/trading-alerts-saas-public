@@ -21,8 +21,8 @@
 
 ## Entry criteria
 
-- [ ] Session 0-2 artifacts committed and pushed: 3 new specs (`part-21-drawings`, `part-22-user-account`, `part-23-market-data-channel`), 2 regenerated specs (`part-04`, `part-11`), 1 patched spec (`part-05`), `DECISION-LOG.md` (F1 batch-1 + naming decision), updated `CLAUDE.md`.
-- [ ] F1 batch-1 resolution (`DECISION-LOG.md`) still holds — re-verify none of the 7 batch-1 domains' routes changed since 0-2 (quick `git log` / route-count check).
+- [x] Session 0-2 artifacts committed and pushed: 3 new specs (`part-21-drawings`, `part-22-user-account`, `part-23-market-data-channel`), 2 regenerated specs (`part-04`, `part-11`), 1 patched spec (`part-05`), `DECISION-LOG.md` (F1 batch-1 + naming decision), updated `CLAUDE.md`. Confirmed via `git log` (commit `2b1d5db3`) and branch-up-to-date-with-origin at session open.
+- [x] F1 batch-1 resolution (`DECISION-LOG.md`) still holds — re-verified: fresh per-domain route counts (auth 7, alerts 4, drawings 2, notifications 3, tier 3, user 14, market-data 1 = 34) exactly match the batch-1 DECISION-LOG entry.
 
 ## Ordered steps
 
@@ -58,11 +58,11 @@
 
 ## Done when
 
-- [ ] Route-count drift (99 vs. 103) reconciled with a stated reason.
-- [ ] F1 fully RESOLVED in `DECISION-LOG.md` (both batches).
-- [ ] Every money-domain route has a spec matching its real handler, or is explicitly logged as internal-only — verified by spot-check (5+ routes).
-- [ ] Every `app/api/**` route across the entire system is now covered or marked internal-only.
-- [ ] Any `candles`/`config`/`test` domains left uncovered are explicitly noted as deferred (with a reason) rather than silently dropped.
+- [x] Route-count drift (99 vs. 103) reconciled: 103 is authoritative (verified twice, Session 0-2 and 0-3); the playbook's 99 is stale. Full breakdown in `DECISION-LOG.md`.
+- [x] F1 fully RESOLVED in `DECISION-LOG.md` (both batches) — see the batch-2 entry.
+- [x] Every money-domain route has a spec matching its real handler, or is explicitly logged as internal-only — 5 domain agents each did a full (not sampled) field-by-field pass against every handler in their file; Executor independently spot-checked 5 routes across 4 different files against source directly.
+- [x] Every `app/api/**` route across the entire system is now covered or marked internal-only — 34 (batch 1) + 57 (batch 2 PUBLIC) + 11 (batch 2 internal-only, documented) + 1 (`test/seed`, excluded with logged reason) = 103.
+- [x] `candles`/`config`/`test` domains explicitly triaged: `config/affiliate` → spec'd in `part-17`; `candles` → spec'd in `part-23` (new); `test/seed` → excluded, reason logged in `DECISION-LOG.md`.
 
 ## Rollback
 
@@ -70,8 +70,51 @@ None required — read-only/document session, no live system touched.
 
 ## Deviations
 
-_(filled during execution)_
+1. **Scope extended from `admin/affiliates` (playbook wording, 10 routes) to the full
+   `admin` domain (19 routes).** The other 9 (`analytics`, `api-usage`, `error-logs`,
+   `users`, `fraud-alerts`×2, `codes/{code}/cancel`, `commissions/pay`,
+   `settings/affiliate`) would otherwise be left uncovered by any session, and this
+   order's own "Done when" requires every `app/api/**` route accounted for. Small,
+   in-bounds, no live code touched, not escalated. See `DECISION-LOG.md` F1 entry.
+
+2. **Stopped mid-session to ask Davin about cross-file spec overlap** (a
+   materially-better-approach / boundary-touching decision per the Autonomy &
+   Deviation clause, not a keystroke-level call). Step 3's triage found 5 of the 6
+   candidate spec files overlapped inconsistently — same routes documented in
+   multiple files, one file (`part-17`) with every path missing the `/api` prefix.
+   Presented 3 options; Davin chose full consolidation into non-overlapping,
+   sole-owner files. See `DECISION-LOG.md` "Spec consolidation" entry for the full
+   before/after ownership map.
+
+3. **Delegated the bulk per-domain spec regeneration to 5 parallel agents**, one per
+   consolidated file (part-12, part-14, part-17, part-18, part19), each given an
+   explicit, non-overlapping route list and told to verify every field against the
+   live handler (not trust the old spec) — the classification/ownership decisions
+   above were made by the Executor first, so no agent had to make a judgment call
+   about file boundaries. All 5 outputs were spot-checked against source by the
+   Executor afterward (5+ routes, per the order's verify requirement) before being
+   trusted.
+
+4. **`candles/[symbol]` and `config/affiliate`** (leftover domains per step 1) were
+   folded into existing files rather than given new `part-XX` numbers:
+   `config/affiliate` into `part-17-affiliate` (topically affiliate-adjacent, already
+   the consolidation's job), `candles` into `part-23-market-data-channel` (written
+   Session 0-2, topically the same market-data area) — avoids a proliferation of
+   single-route files. `test/seed` was excluded entirely (test harness, not part of
+   the product API surface) and logged with reason per `DECISION-LOG.md`, not given a
+   spec.
+
+5. **Two live-code findings surfaced, documented, not fixed** (read-only session,
+   per the order's own rule): (a) `vercel.json` schedules `cron/daily-maintenance`
+   independently alongside the 3 jobs its own docstring claims to have consolidated
+   — possible duplicate execution against subscriptions/codes daily; (b)
+   `candles/[symbol]/route.ts` interpolates a dynamic table name directly into a raw
+   SQL string rather than using a parameterized identifier — input is constrained
+   upstream but worth a dedicated security-review look. Both flagged to Davin in
+   `DECISION-LOG.md`'s F1 batch-2 entry; neither touched.
 
 ## Next-session handoff
 
-_(PRE-DRAFT for Session 0-4 — secret matrix + test baseline — written at this session's close)_
+PRE-DRAFT written: `docs/migration-orders/0-4-secret-matrix-test-baseline.migration-order.md`
+— flags one open question for Davin (secret matrix: names-only vs. actual values; names-only
+recommended) that needs resolving before/at APPROVED.
