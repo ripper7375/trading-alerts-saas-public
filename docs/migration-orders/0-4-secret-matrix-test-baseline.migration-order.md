@@ -28,6 +28,10 @@ been run and timed this migration; budget extra if it's slow or flaky)
   into this session's test-baseline run (if `check-expiring-subscriptions`,
   `downgrade-expired-subscriptions`, or `expire-codes` have existing tests, their baseline
   pass/fail is relevant context for whoever eventually resolves that finding).
+  **Update from Session 0-3's actual close:** the pre-push hook already ran the full suite
+  once — 111 suites / 2046 tests, all passed, 44.7s, 26.5% statement coverage. Not a
+  substitute for this session's formal baseline (that needs suite-by-suite mocked-vs-real
+  characterization per L1, plus the secret matrix), but a useful cross-check number.
 - **Lessons directly applicable:**
   - L1 (`LESSONS-LEARNED.md`): a test suite that mocks its entire boundary proves nothing —
     when recording the baseline, note _which_ suites are meaningfully asserting against
