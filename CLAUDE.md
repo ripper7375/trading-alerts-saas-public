@@ -11,35 +11,43 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 0, Session 0-1 (not started) — 2026-07-12 session was an ad-hoc
-  git-workflow audit/salvage, not a migration order; phase/session unchanged.
-- **Current order:** none yet — Session 0-1 bootstraps without a PRE-DRAFT
-- **Order status:** —
+- **Current:** Phase 0, Session 0-1 (complete) — 2026-07-17.
+- **Current order:** `docs/migration-orders/0-1-orientation-reference-study.migration-order.md`
+  (CONFIRMED, executed)
+- **Order status:** CONFIRMED — executed 2026-07-17
 - **Waiting on:** A human with delete permission to remove 5 remote branches — this
   session's git credential can push/create branches but gets `HTTP 403` on `git push
 --delete` for every branch tried (confirmed on 3 separate branches, so it's a permission
   scope, not a fluke). Branches needing deletion: `fix/tsconfig-exclude-case-sensitivity`
   and `salvage/windowed-centroid-cfl-indicator` (both already merged), plus the 3 stale
   `claude/*` branches below (no open PRs existed on any of them, so nothing to close —
-  just delete).
-- **Last session did:** Audited all `origin/claude/*` branches after `git fetch --all
---prune` (only 3 exist, not the 13 a stale-local-ref brief claimed). Content-diffed each
-  against current `main` (not just commit hashes): `chart-centroid-display-issue-h69zev` =
-  GENUINELY UNIQUE (2 new `backend-stack-c/` indicator files, SEPARATE_STACK, not on main)
-  → cherry-picked onto `salvage/windowed-centroid-cfl-indicator`, **merged to main** (#463).
-  `eloquent-hypatia-qma365` and `update-file-inventory-docs-ulqhgq` = SUPERSEDED (content
-  already on main or main has since moved further — see LESSONS-LEARNED L5/L6 for detail)
-  → no salvage needed, ready to delete (no open PRs). Also found and fixed a repo-wide
-  blocker: `tsconfig.json` excluded `"Archive"` (wrong case) instead of `"archive"`, so
-  `tsc --noEmit` failed for every branch on case-sensitive Linux (husky pre-push + CI
-  `type-check` both use `ubuntu-latest`) — fixed and **merged to main** (#462) ahead of the
-  salvage PR so it landed fast.
-- **Next session must:** Once the 5 branches above are deleted (see Waiting on), the git
-  workflow audit is fully closed out — nothing else pending from it. Backlog (not fixed,
-  not urgent): add `glob` as a direct `devDependency` — `scripts/validate-file.js`
-  (`validate:policies`) `require()`s it but it's only present transitively, so it 404s
-  under pnpm's strict `node_modules` (see LESSONS-LEARNED L7).
-- **Open flags:** F1–F19 (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  just delete). Unrelated to Session 0-1; carried over from the 2026-07-12 git audit.
+- **Last session did:** Session 0-1 (Orientation & reference study, CONTRACT order). Read
+  `railway-gateway/` end-to-end (all 30 files) and wrote
+  `docs/railway-gateway-reference-notes.md` (project layout, Prisma service wiring, guard
+  pattern, health module, `railway.toml`, BullMQ worker, plus a validation-layering and
+  deployment section). Resolved **F2** (both `next@16.2.10` and `@nestjs/core@11.1.28`
+  exist on npm exactly as specified — no nearest-stable substitution needed) and **F19's
+  npm-check portion** (`prisma@7.8.0` exists on npm; full 6→7 breaking-change audit stays
+  OPEN, due Session 2-1) — see `DECISION-LOG.md`. Two plan-text discrepancies surfaced and
+  recorded as findings rather than silently absorbed: (1) F19 — plan describes a "5→6→7"
+  Prisma jump but both `package.json` files already run `6.19.2`, so it's actually 6→7
+  only; (2) plan §2 step 0.1 calls `railway-gateway/` "NestJS 11" but it runs NestJS 10
+  (`@nestjs/core@^10.4.15`) — new services should target the F2-verified 11.1.28, not copy
+  the reference service's installed version.
+- **Next session must:** Session 0-2 — OpenAPI contracts, batch 1 (operation domain).
+  Resolve F1 scope (PUBLIC endpoints only); generate OpenAPI specs from the live route
+  handlers for auth, alerts, drawings, notifications, tier, user, market-data channel;
+  commit to `docs/open-api-documents/`. PRE-DRAFT written:
+  `docs/migration-orders/0-2-openapi-contracts-batch-1.migration-order.md` — flags that 18
+  spec files already exist (plan text assumed only 5), so this session may be
+  reconciliation-heavy rather than from-scratch generation; needs an Advisor/Davin pass
+  before it's APPROVED. Backlog (not fixed, not urgent, unrelated to Phase 0): add `glob` as a direct
+  `devDependency` — `scripts/validate-file.js` (`validate:policies`) `require()`s it but
+  it's only present transitively (LESSONS-LEARNED L7).
+- **Open flags:** F2 RESOLVED (Session 0-1) · F19 npm-check RESOLVED (Session 0-1), full
+  audit still OPEN (due Session 2-1) · F1, F3–F18 OPEN (register: plan §11 · resolutions:
+  `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 
