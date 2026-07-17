@@ -730,9 +730,12 @@ role). Everything else in each list is exclusively that track's own code._
 #### CORE (operation-service) — 72 files
 
 <details>
-<summary><code>(root)/</code> — 2 files</summary>
+<summary><code>(root)/</code> — 3 files</summary>
 
 - `docker-compose.yml`
+- `docker-compose.dev.yml` (new, Session 0-5 — CC-I local dev stack: Postgres, Redis,
+  Next.js dev server; `mt5-service` intentionally excluded, SEPARATE_STACK; PgBouncer and
+  the NestJS services join in later phases)
 - `railway-worker.json`
 
 </details>

@@ -11,52 +11,55 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 0, Session 0-4 (complete) — 2026-07-17.
+- **Current:** Phase 0, Session 0-5 (complete, local-only scope) — 2026-07-17.
 - **Current order:**
-  `docs/migration-orders/0-4-secret-matrix-test-baseline.migration-order.md`
-  (CONFIRMED, executed)
-- **Order status:** CONFIRMED — executed 2026-07-17
-- **Waiting on:** (unchanged, carried over) A human with delete permission to remove 5
-  remote branches — this session's git credential can push/create branches but gets
-  `HTTP 403` on `git push --delete` for every branch tried. Branches needing deletion:
+  `docs/migration-orders/0-5-staging-local-dev.migration-order.md`
+  (CONFIRMED, executed — local-only scope)
+- **Order status:** CONFIRMED — executed 2026-07-17 (steps 1, 4, 5 done; steps 2–3 deferred
+  to Session 0-6, see Waiting on)
+- **Waiting on:** (1, new) Davin to grant Railway + Vercel account/dashboard access so
+  Session 0-6 can provision the staging environment/project + preview branch (this
+  session's entry criterion couldn't clear it; Davin chose local-only scoping instead —
+  see order's Deviations #1). (2, unchanged, carried over) A human with delete permission
+  to remove 5 remote branches — this session's git credential can push/create branches but
+  gets `HTTP 403` on `git push --delete` for every branch tried. Branches needing deletion:
   `fix/tsconfig-exclude-case-sensitivity` and `salvage/windowed-centroid-cfl-indicator`
   (both already merged), plus 3 stale `claude/*` branches (no open PRs on any). Unrelated
   to Phase 0 work; carried over from the 2026-07-12 git audit.
-- **Last session did:** Session 0-4 (secret matrix + test baseline, INFRA-adapted,
-  read-only). Confirmed entry criterion at open (0-3 artifacts committed/pushed,
-  `origin/main` == local `main`); Davin confirmed the order's APPROVED text had been
-  edited in-place uncommitted (unusual but legitimate — committed as part of CONFIRM).
-  **Secret matrix (`docs/secret-matrix.md`):** catalogued every env-var name across the
-  5 source files, names only (`.env`/`.env.local` values extracted via `grep`, never
-  loaded into context). Found 3 of the 4 "confirmed-live" secrets (`CRON_SECRET`,
-  `RISE_WEBHOOK_SECRET`, `DLOCAL_WEBHOOK_SECRET`) aren't in any of the 5 files at all —
-  had to grep the actual consuming route/lib code to name them, then logged the gap.
-  Also found `.env.example` missing all 4 dLocal vars and both cron/RiseWorks secrets,
-  plus `MT5_LOGIN`/`PASSWORD` naming drift vs. live `MT5_LOGIN_01`/`PASSWORD_01` — not
-  fixed (cataloging only, per the order's rules).
-  **Test baseline (`docs/migration-test-baseline.md`):** 114 suites / 2075 tests, all
-  passed (root 111/2046 — reproduces the Session 0-3 pre-push hook number exactly, no
-  drift; `railway-gateway` unit+e2e 3/29). Per L1, found **zero suites touch a real
-  Postgres/Redis** — every "integration"-named test mocks the DB/external boundary; 2 of
-  the 6 (`user-registration-flow.test.ts`, `api-client-workflow.test.ts`) are fully
-  mocked and effectively decorative, same pattern as the original L1 example
-  (`__tests__/lib/api/stack-*-client.test.ts`) — flagged as a future-session candidate,
-  not fixed here. 4 suite groups explicitly not run, each with a verified reason (not
-  silently skipped): `test:api`/`test:api:flask` (Newman, needs a live local server),
-  `test:load:*` (k6, same), `test:mt5:*` (opens real Prisma/Redis clients against live
-  infra — confirmed by reading the script), and root `test:e2e` (Playwright config path
-  doesn't exist on disk — but confirmed via `.github/workflows/e2e-tests.yml` that CI
-  already guards this and skips cleanly; only the bare npm script lacks the same guard).
-- **Next session must:** Session 0-5 — staging + local dev (INFRA, NOT read-only).
-  PRE-DRAFT written: `docs/migration-orders/0-5-staging-local-dev.migration-order.md` —
-  needs Davin's Railway + Vercel account access and an F17 (staging-data strategy)
-  decision before it can go APPROVED; also flags an open scoping question (should the new
-  `docker-compose.dev.yml` include `mt5-service`, given it's SEPARATE_STACK/out-of-scope?
-  recommend no).
+- **Last session did:** Session 0-5 (staging + local dev, INFRA, NOT read-only — first
+  session this phase that creates/runs things rather than just cataloging). At CONFIRM,
+  found the order's PRE-DRAFT→APPROVED edit was again in-place/uncommitted (same pattern as
+  Session 0-4, by now a recognized workflow quirk, not a concern). Entry criterion 2
+  (Railway/Vercel access) was unverifiable from the codebase — asked Davin directly; Davin
+  chose **local-only scoping**, deferring Railway/Vercel provisioning to Session 0-6.
+  **`docker-compose.dev.yml` (new, root):** Postgres + Redis + Next.js dev service;
+  `mt5-service` excluded per the order's strict rule. Live-verified end to end: all 3
+  containers up/healthy, `prisma db push` synced the schema, `prisma/seed.ts` ran clean
+  (1 admin + 5 named e2e test users + 2 sample alerts + affiliate config, all synthetic —
+  matches F17), `curl localhost:3000/` → `HTTP 200` real app HTML. Needed 2 fixes along the
+  way, both scoped to the compose file only: `pnpm run seed` doesn't exist as a script
+  (`"seed"` in `package.json` is a `prisma.seed` config field, not an npm script — the real
+  alias is `db:seed`), and `ts-node prisma/seed.ts` needed
+  `TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}'` to avoid `ERR_UNKNOWN_FILE_EXTENSION`
+  (tsconfig's `"module": "esnext"` makes bare ts-node default to an ESM loader that can't
+  read `.ts` — now `LESSONS-LEARNED.md` L10). Also found the existing `docker-compose.yml`'s
+  `web`/`alert-worker` services reference a root `Dockerfile` that **doesn't exist anywhere
+  in the repo** — likely stale since Vercel, not Docker, is the actual prod deploy target;
+  not fixed (out of scope), flagged in the order's Deviations for Davin.
+  **F17 (staging-data strategy) RESOLVED** and logged in `DECISION-LOG.md`: synthetic seed
+  only, never unmasked production/user data, evidenced by the live seed run above.
+  **Phase 0 Exit Review run:** 4/5 exit criteria met; the sole gap is CC-A (staging
+  shells) — Phase 0 is NOT yet closed. Next session stays in Phase 0.
+- **Next session must:** Session 0-6 — staging shells only (Railway + Vercel provisioning,
+  INFRA). PRE-DRAFT written: `docs/migration-orders/0-5-staging-local-dev.migration-order.md`'s
+  "Next-session handoff" section (steps 2–3 carried over verbatim from this order). Entry
+  criterion: Davin's Railway + Vercel account access (unchanged ask from this session).
+  Once 0-6 closes, re-run the Phase 0 Exit Review — if CC-A goes green, Phase 0 formally
+  exits and Phase 1 Session 1-1 (Railway PostgreSQL design) can be PRE-DRAFTED next.
 - **Open flags:** F1 fully RESOLVED (both batches, Session 0-3) · F2 RESOLVED
-  (Session 0-1) · F19 npm-check RESOLVED (Session 0-1), full audit still OPEN (due
-  Session 2-1) · F17 OPEN, due Session 0-5 (Davin: staging-data strategy) · F3–F16,
-  F18 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  (Session 0-1) · F17 RESOLVED (Session 0-5: synthetic seed only) · F19 npm-check RESOLVED
+  (Session 0-1), full audit still OPEN (due Session 2-1) · F3–F16, F18 OPEN (register:
+  plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 

@@ -38,7 +38,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F14  | Tier-update: outbox vs direct call               | OPEN — due Session 4A-8                                     |
 | F15  | Redis topology/namespacing                       | OPEN — due Session 4A-1                                     |
 | F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                             |
-| F17  | Staging data strategy                            | OPEN — due Session 0-5 (Davin)                              |
+| F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                              |
 | F18  | RPO/RTO targets                                  | OPEN — due Session 1-1 (Davin)                              |
 | F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | OPEN — npm check RESOLVED (0-1); full audit due Session 2-1 |
 
@@ -204,6 +204,40 @@ notifications,tier,user,market-data}` → zero matches;
   instructions) for the classification itself; the admin-domain-expansion deviation is
   logged per protocol, not separately escalated (small, in-bounds). The file-consolidation
   approach (below) was explicitly approved by Davin mid-session.
+
+## F17 — Staging data strategy: synthetic seed only
+
+- Status: RESOLVED
+- Session: 0-5 · Date: 2026-07-17
+- Decision: Staging (and local dev) never receives real/unmasked production or user data.
+  All non-production environments are seeded exclusively from `prisma/seed.ts`-style
+  synthetic fixtures — a single default admin account, a handful of named e2e test users
+  (free/pro/admin/affiliate/unverified tiers), 2 demonstration alerts, and baseline
+  `SystemConfig` rows. No anonymized/masked production subset is used, since anonymization
+  itself is a residual leak risk this plan explicitly wants to avoid (matches `CLAUDE.md`
+  non-negotiable #5 and the order's "No Production Data in Staging" rule).
+- Evidence: `prisma/seed.ts` read directly — confirmed it creates only synthetic fixtures
+  from environment-variable-driven defaults (`ADMIN_EMAIL`/`ADMIN_PASSWORD`, falling back
+  to `admin@tradingalerts.com` / a placeholder password), no code path reads from or copies
+  any production data source. Ran live against `docker-compose.dev.yml`'s seeded Postgres
+  this session — output confirmed: 1 admin user, 5 named e2e test users, 2 sample alerts,
+  affiliate `SystemConfig` entries, all synthetic.
+- Approved by: Davin (staging-data strategy is an owner decision per `EXECUTOR-PROTOCOL.md`
+  §7; confirmed at this session's CONFIRM step, before execution began).
+
+## Session 0-5 — Local dev stack scoped to `docker-compose.dev.yml` only; Railway/Vercel deferred
+
+- Status: RESOLVED (scoping decision, not a flag)
+- Session: 0-5 · Date: 2026-07-17
+- Decision: Session 0-5's order listed 2 entry criteria, one being "Davin has granted
+  Railway + Vercel account/dashboard access (or explicitly scoped this session to the
+  local-only `docker-compose.dev.yml` step)." Davin chose the local-only scoping at this
+  session's CONFIRM step. Steps 2 (Railway staging environment/project) and 3 (Vercel
+  preview branch) are deferred to a follow-up session — Phase 0's CC-A exit criterion
+  ("Staging environment... operational") remains open until that follow-up runs.
+- Evidence: n/a (a live scoping choice made in chat at CONFIRM, not a technical finding).
+- Approved by: Davin (explicit choice between "full scope" / "local-only" / "hold",
+  made live before execution began).
 
 ## Spec consolidation — batch-2 OpenAPI files (part-12/14/17/18/19)
 

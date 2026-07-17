@@ -170,6 +170,25 @@ js-yaml@4.1.1/node_modules/js-yaml'))` — resolve the exact `.pnpm` path direct
   means overlap exists before you've read a single field.
 - Source: Session 0-3 (F1 batch-2 triage) · Status: ACTIVE
 
+### L10 — `ts-node` needs an explicit CommonJS override when tsconfig targets ESM
+
+- Symptom: `pnpm run db:seed` (`ts-node prisma/seed.ts`) failed inside a fresh
+  `node:20-alpine` container with `TypeError: Unknown file extension ".ts"` /
+  `ERR_UNKNOWN_FILE_EXTENSION`, even though the identical script runs fine on
+  contributors' existing machines.
+- Root cause: `tsconfig.json` sets `"module": "esnext"` / `"moduleResolution": "bundler"`
+  (correct for the Next.js app code) but `package.json` has no `"type": "module"`. Bare
+  `ts-node` picks up tsconfig's ESM module setting and defers to Node's native ESM loader,
+  which doesn't know how to parse a raw `.ts` file — it only works today because existing
+  dev machines have some cached/global ts-node state papering over it.
+- Rule: any one-off `ts-node <file>.ts` invocation in a clean environment (fresh container,
+  CI, a new contributor machine) needs `TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}'`
+  set (env var or CLI flag) to force ts-node's classic CJS transpile path — don't assume
+  ts-node "just works" from tsconfig alone when the package has no explicit `"type"` field.
+- Detect early: `ERR_UNKNOWN_FILE_EXTENSION` on a `.ts` file being run via `ts-node` (not
+  plain `node`) is this, not a missing dependency.
+- Source: Session 0-5 (`docker-compose.dev.yml` seed-step verification) · Status: ACTIVE
+
 ---
 
 ## Archive
