@@ -125,6 +125,24 @@ _(Seeded 2026-07-11 from documented repo history — verify each on first encoun
   (add `glob` to devDependencies).
 - Source: git audit 2026-07-12 · Status: ACTIVE (not yet fixed)
 
+### L8 — An existing spec covering a domain by path may document a superseded architecture, not lag
+
+- Symptom: `part-04-tier-system` and `part-11-alerts` OpenAPI specs matched their live route
+  paths by name, but every response schema, enum, and business rule described a 15-symbol,
+  catalog-differentiated tier model the codebase no longer has — V8 rewrote it to a single
+  symbol (XAUUSD) with feature-gated (not catalog-gated) tiers.
+- Root cause: assumed "an existing spec covers this path" meant "mostly current, needs light
+  patching" — didn't check whether the underlying product model itself had changed before
+  triaging for mere drift.
+- Rule: before patching any existing contract/spec, verify the business model it assumes
+  (pricing tiers, feature gates, catalog size) against live config constants (e.g.
+  `lib/tier-config.ts`), not just that route paths/methods line up. Separately, diff
+  request/response field names individually — a spec can get the path right and a field
+  name wrong (found: `newPassword` vs. live `password` in `part-05-authentication`).
+- Detect early: grep the relevant `lib/*-config.ts` for version/architecture comments
+  ("V8", "single-symbol", etc.) before trusting any spec's tier/business-rule claims.
+- Source: Session 0-2 (F1 batch-1 triage) · Status: ACTIVE
+
 ---
 
 ## Archive
