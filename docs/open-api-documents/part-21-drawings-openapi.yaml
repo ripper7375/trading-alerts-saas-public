@@ -1,0 +1,470 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Chart Drawings API (Part 21)
+  version: 1.0.0
+  description: |
+    Chart drawing persistence API for Trading Alerts SaaS platform (Part 21).
+
+    **Generated:** 2026-07-17, Session 0-2, directly from live route handlers
+    (`app/api/drawings/route.ts`, `app/api/drawings/[id]/route.ts`) and the shared
+    Zod schemas in `lib/drawing/schema.ts`. No prior spec existed for this domain.
+
+    Drawings (trendlines, horizontal lines, channels, Fibonacci retracements/extensions,
+    text) are persisted as price/time anchors so the server can recompute alert-trigger
+    levels headlessly (Phase 4 worker). Geometry-to-alert-level mapping lives in
+    `components/charts/drawing/geometry.ts` (`levelsForMark`), out of scope for this spec.
+
+    ## Tier limits
+    - FREE: 10 drawings max
+    - PRO: 200 drawings max
+
+    ## Drawing types & anchor counts
+    - `HLINE` (horizontal line): 1 anchor
+    - `TRENDLINE`: 2 anchors
+    - `FIB_RETRACE`: 2 anchors
+    - `CHANNEL`: 3 anchors
+    - `FIB_EXT`: 3 anchors
+    - `TEXT`: 1 anchor
+
+    Updating or deleting a drawing publishes an `alerts:changed` event so the Phase 4
+    worker rebuilds any line-touch alerts attached to it (see Part 11, `alerts/line`).
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Drawings
+    description: Chart drawing persistence (create, list, update, delete)
+
+paths:
+  /api/drawings:
+    get:
+      tags: [Drawings]
+      summary: List the authenticated user's drawings
+      description: |
+        Returns drawings owned by the session user, optionally filtered by symbol
+        and/or timeframe. Each drawing includes its attached line-touch alerts.
+
+        **Implementation:** `app/api/drawings/route.ts` (GET)
+      operationId: listDrawings
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          schema:
+            type: string
+          example: XAUUSD
+        - name: timeframe
+          in: query
+          required: false
+          schema:
+            type: string
+          example: M5
+      responses:
+        '200':
+          description: Drawings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawingListResponse'
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Drawings]
+      summary: Create a drawing
+      description: |
+        Creates a new chart drawing. Validated against:
+        1. Symbol access for the user's tier (`canAccessSymbol`)
+        2. Timeframe access for the user's tier (`validateTimeframeAccess`)
+        3. Per-tier drawing quota (FREE: 10, PRO: 200)
+        4. Anchor count must match the drawing `type` (see schema description)
+
+        **Implementation:** `app/api/drawings/route.ts` (POST)
+      operationId: createDrawing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DrawingCreateRequest'
+            examples:
+              trendline:
+                summary: Two-anchor trendline
+                value:
+                  symbol: XAUUSD
+                  timeframe: M5
+                  type: TRENDLINE
+                  anchors:
+                    - time: 1737000000
+                      price: 2015.5
+                    - time: 1737003600
+                      price: 2020.25
+                  style:
+                    color: '#00c853'
+                    lineWidth: 2
+                    lineStyle: solid
+              hline:
+                summary: Single-anchor horizontal line
+                value:
+                  symbol: XAUUSD
+                  timeframe: M15
+                  type: HLINE
+                  anchors:
+                    - time: 1737000000
+                      price: 2018.0
+                  style:
+                    color: '#f23645'
+                    lineWidth: 1
+                    lineStyle: dashed
+      responses:
+        '201':
+          description: Drawing created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawingResponse'
+        '400':
+          description: Invalid input (schema validation or anchor-count mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Symbol/timeframe access denied for tier, or drawing quota reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                symbolDenied:
+                  summary: Symbol not supported (V8 is XAUUSD-only for every tier; this branch fires for any other symbol, not as a tier upsell)
+                  value:
+                    success: false
+                    error: Symbol access denied
+                    message: 'Symbol EURUSD is not available in your FREE tier.'
+                quotaReached:
+                  summary: Drawing limit reached
+                  value:
+                    success: false
+                    error: Drawing limit reached
+                    message: 'FREE tier allows 10 drawings. Upgrade to PRO for more.'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/drawings/{id}:
+    patch:
+      tags: [Drawings]
+      summary: Update a drawing's anchors or style
+      description: |
+        Updates `anchors` and/or `style` on an existing drawing the session user owns.
+        Publishes `alerts:changed` (reason `drawing_updated`) since geometry edits can
+        change attached alert trigger levels.
+
+        **Implementation:** `app/api/drawings/[id]/route.ts` (PATCH)
+      operationId: updateDrawing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: clx1a2b3c4d5e6f7g8h9i0j1k
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DrawingUpdateRequest'
+      responses:
+        '200':
+          description: Drawing updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawingResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user does not own this drawing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Drawing not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Drawings]
+      summary: Delete a drawing
+      description: |
+        Deletes a drawing the session user owns. Cascades to any attached
+        `DrawingAlert`/`Alert` records. Publishes `alerts:changed`
+        (reason `drawing_deleted`).
+
+        **Implementation:** `app/api/drawings/[id]/route.ts` (DELETE)
+      operationId: deleteDrawing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: clx1a2b3c4d5e6f7g8h9i0j1k
+      responses:
+        '200':
+          description: Drawing deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user does not own this drawing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Drawing not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js session cookie for authentication
+
+  schemas:
+    DrawingType:
+      type: string
+      enum: [TRENDLINE, HLINE, CHANNEL, FIB_RETRACE, FIB_EXT, TEXT]
+      description: Drawing type; determines required anchor count (see spec description)
+
+    Anchor:
+      type: object
+      required: [time, price]
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp (seconds) of the anchor point
+          example: 1737000000
+        price:
+          type: number
+          description: Price value of the anchor point
+          example: 2018.0
+
+    Style:
+      type: object
+      description: |
+        Drawing render style. Additional tool-specific properties are permitted
+        (offset, levels, text, extend flags, etc. — `StyleZ` uses `.passthrough()`).
+      required: [color, lineWidth, lineStyle]
+      properties:
+        color:
+          type: string
+          pattern: '^#([0-9a-fA-F]{6})$'
+          description: Hex color, format #RRGGBB
+          example: '#00c853'
+        lineWidth:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 2
+        lineStyle:
+          type: string
+          enum: [solid, dashed, dotted]
+          example: solid
+      additionalProperties: true
+
+    DrawingCreateRequest:
+      type: object
+      required: [symbol, timeframe, type, anchors, style]
+      properties:
+        symbol:
+          type: string
+          minLength: 1
+          example: XAUUSD
+        timeframe:
+          type: string
+          minLength: 1
+          example: M5
+        type:
+          $ref: '#/components/schemas/DrawingType'
+        anchors:
+          type: array
+          minItems: 1
+          maxItems: 3
+          description: Must match the anchor count required by `type`
+          items:
+            $ref: '#/components/schemas/Anchor'
+        style:
+          $ref: '#/components/schemas/Style'
+
+    DrawingUpdateRequest:
+      type: object
+      description: At least one of `anchors`/`style` must be present
+      properties:
+        anchors:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/Anchor'
+        style:
+          $ref: '#/components/schemas/Style'
+
+    Drawing:
+      type: object
+      required:
+        - id
+        - userId
+        - symbol
+        - timeframe
+        - type
+        - anchors
+        - style
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: clx1a2b3c4d5e6f7g8h9i0j1k
+        userId:
+          type: string
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          example: M5
+        type:
+          $ref: '#/components/schemas/DrawingType'
+        anchors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Anchor'
+        style:
+          $ref: '#/components/schemas/Style'
+        alerts:
+          type: array
+          description: Line-touch alerts attached to this drawing (see Part 11)
+          items:
+            type: object
+            additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DrawingListResponse:
+      type: object
+      required: [success, drawings]
+      properties:
+        success:
+          type: boolean
+          example: true
+        drawings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Drawing'
+
+    DrawingResponse:
+      type: object
+      required: [success, drawing]
+      properties:
+        success:
+          type: boolean
+          example: true
+        drawing:
+          $ref: '#/components/schemas/Drawing'
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Unauthorized
+        message:
+          type: string
+          example: Additional error detail

@@ -1317,15 +1317,20 @@ _(Excludes `__pycache__/` and `.pytest_cache/` — compiled/test-cache artifacts
 </details>
 
 <details>
-<summary><code>docs/</code> — 7 files</summary>
+<summary><code>docs/</code> — 10 files (this snapshot predates most of `open-api-documents/`; only
+the subset relevant when last taken is listed — see the directory itself for the
+current full set, now 21 files across `part-02`…`part-23`)</summary>
 
 - `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md`
 - `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`
 - `docs/open-api-documents/part-02-database-schema-openapi.yaml`
 - `docs/open-api-documents/part-03-types-openapi.yaml`
-- `docs/open-api-documents/part-04-tier-system-openapi.yaml`
+- `docs/open-api-documents/part-04-tier-system-openapi.yaml` (regenerated Session 0-2 — V8 model)
 - `docs/open-api-documents/part-07-indicators-tier-openapi.yaml`
 - `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`
+- `docs/open-api-documents/part-21-drawings-openapi.yaml` (new, Session 0-2)
+- `docs/open-api-documents/part-22-user-account-openapi.yaml` (new, Session 0-2)
+- `docs/open-api-documents/part-23-market-data-channel-openapi.yaml` (new, Session 0-2)
 
 </details>
 

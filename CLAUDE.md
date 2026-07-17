@@ -11,8 +11,8 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 0, Session 0-1 (complete) — 2026-07-17.
-- **Current order:** `docs/migration-orders/0-1-orientation-reference-study.migration-order.md`
+- **Current:** Phase 0, Session 0-2 (complete) — 2026-07-17.
+- **Current order:** `docs/migration-orders/0-2-openapi-contracts-batch-1.migration-order.md`
   (CONFIRMED, executed)
 - **Order status:** CONFIRMED — executed 2026-07-17
 - **Waiting on:** A human with delete permission to remove 5 remote branches — this
@@ -21,32 +21,37 @@
   scope, not a fluke). Branches needing deletion: `fix/tsconfig-exclude-case-sensitivity`
   and `salvage/windowed-centroid-cfl-indicator` (both already merged), plus the 3 stale
   `claude/*` branches below (no open PRs existed on any of them, so nothing to close —
-  just delete). Unrelated to Session 0-1; carried over from the 2026-07-12 git audit.
-- **Last session did:** Session 0-1 (Orientation & reference study, CONTRACT order). Read
-  `railway-gateway/` end-to-end (all 30 files) and wrote
-  `docs/railway-gateway-reference-notes.md` (project layout, Prisma service wiring, guard
-  pattern, health module, `railway.toml`, BullMQ worker, plus a validation-layering and
-  deployment section). Resolved **F2** (both `next@16.2.10` and `@nestjs/core@11.1.28`
-  exist on npm exactly as specified — no nearest-stable substitution needed) and **F19's
-  npm-check portion** (`prisma@7.8.0` exists on npm; full 6→7 breaking-change audit stays
-  OPEN, due Session 2-1) — see `DECISION-LOG.md`. Two plan-text discrepancies surfaced and
-  recorded as findings rather than silently absorbed: (1) F19 — plan describes a "5→6→7"
-  Prisma jump but both `package.json` files already run `6.19.2`, so it's actually 6→7
-  only; (2) plan §2 step 0.1 calls `railway-gateway/` "NestJS 11" but it runs NestJS 10
-  (`@nestjs/core@^10.4.15`) — new services should target the F2-verified 11.1.28, not copy
-  the reference service's installed version.
-- **Next session must:** Session 0-2 — OpenAPI contracts, batch 1 (operation domain).
-  Resolve F1 scope (PUBLIC endpoints only); generate OpenAPI specs from the live route
-  handlers for auth, alerts, drawings, notifications, tier, user, market-data channel;
-  commit to `docs/open-api-documents/`. PRE-DRAFT written:
-  `docs/migration-orders/0-2-openapi-contracts-batch-1.migration-order.md` — flags that 18
-  spec files already exist (plan text assumed only 5), so this session may be
-  reconciliation-heavy rather than from-scratch generation; needs an Advisor/Davin pass
-  before it's APPROVED. Backlog (not fixed, not urgent, unrelated to Phase 0): add `glob` as a direct
-  `devDependency` — `scripts/validate-file.js` (`validate:policies`) `require()`s it but
-  it's only present transitively (LESSONS-LEARNED L7).
-- **Open flags:** F2 RESOLVED (Session 0-1) · F19 npm-check RESOLVED (Session 0-1), full
-  audit still OPEN (due Session 2-1) · F1, F3–F18 OPEN (register: plan §11 · resolutions:
+  just delete). Unrelated to Session 0-1/0-2; carried over from the 2026-07-12 git audit.
+- **Last session did:** Session 0-2 (OpenAPI contracts batch 1, CONTRACT order). At session
+  open, found Session 0-1's artifacts uncommitted (failing entry criterion) — committed
+  and pushed them first (`aa893c40`), then confirmed and ran this order. Resolved **F1 for
+  batch 1**: all 34 routes across auth/alerts/drawings/notifications/tier/user/market-data-channel
+  are PUBLIC, none excluded (see `DECISION-LOG.md`). Triaged the 4 existing specs that might
+  cover these domains: `part-15-notifications-realtime` was CURRENT (untouched);
+  `part-04-tier-system` and `part-11-alerts` were STALE — both described a pre-V8
+  multi-symbol/multi-tier architecture the codebase no longer has, not just doc-lag, so both
+  were regenerated from live handlers; `part-05-authentication` was PARTIAL — added the
+  undocumented `track-login` route, fixed a real field-name bug
+  (`newPassword`→`password`), added a missing 429 path. Wrote 3 brand-new specs for domains
+  with no prior coverage: `part-21-drawings`, `part-22-user-account` (14 routes),
+  `part-23-market-data-channel`. Naming: kept the `part-XX` numbering (no Davin sign-off
+  needed since that's the non-convention-changing option) — new files are `part-21`/`22`/`23`.
+  All 7 spec files verified to parse as valid YAML with path counts matching each domain's
+  live route-file count exactly. Backlog (not fixed, not urgent, unrelated to Phase 0): add
+  `glob` as a direct `devDependency` — `scripts/validate-file.js` (`validate:policies`)
+  `require()`s it but it's only present transitively (LESSONS-LEARNED L7; recurred this
+  session in a different script, `js-yaml`/`yaml`, when trying to validate the new specs —
+  worked around with Python instead of fixing L7 itself, out of scope for a docs session).
+- **Next session must:** Session 0-3 — OpenAPI contracts, batch 2 (money domain): checkout,
+  subscription, invoices, payments/dlocal, admin/affiliates, affiliate, disbursement,
+  webhooks (stripe/dlocal/riseworks), cron. Closes F1 fully once done. PRE-DRAFT written:
+  `docs/migration-orders/0-3-openapi-contracts-batch-2.migration-order.md` — flags a
+  route-count discrepancy (playbook says 99, Session 0-2 measured 103 — needs reconciling)
+  and that the "5 existing part-XX specs" for this domain aren't yet confirmed by name;
+  needs an Advisor/Davin pass before it's APPROVED.
+- **Open flags:** F1 RESOLVED for batch 1 (Session 0-2), batch 2 due Session 0-3 · F2
+  RESOLVED (Session 0-1) · F19 npm-check RESOLVED (Session 0-1), full audit still OPEN (due
+  Session 2-1) · F3–F18 OPEN (register: plan §11 · resolutions:
   `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

@@ -1,91 +1,51 @@
 openapi: 3.1.0
 info:
   title: Part 04 - Tier System API
-  version: 1.0.0
+  version: 2.0.0
   description: |
     **Part 04: Tier System & Constants**
 
-    Complete tier management system for access control, symbol/timeframe validation,
-    and tier-based feature gating.
+    **Regenerated 2026-07-17, Session 0-2, from live route handlers and
+    `lib/tier-config.ts` (the single source of truth for tier constants).**
 
-    ## Overview
+    **Superseded architecture notice:** the previous version of this spec (v1.0.0)
+    documented a pre-V8, 15-symbol / 9-timeframe, catalog-differentiated tier model
+    (FREE: 5 symbols/3 timeframes vs. PRO: 15/9). That model no longer exists in the
+    live codebase. See `docs/migration-orders/DECISION-LOG.md` (F1) and the Session
+    0-2 order's Deviations section for the full finding.
 
-    The Tier System provides a comprehensive 2-tier subscription model (FREE and PRO)
-    with access control for:
-    - Trading symbols (5 for FREE, 15 for PRO)
-    - Chart timeframes (3 for FREE, 9 for PRO)
-    - Technical indicators (2 for FREE, 10 for PRO)
-    - Alerts and watchlists
-    - API rate limits
+    ## V8 single-symbol architecture
 
-    ## Tier Specifications
+    Both tiers get **identical** market-data access: one symbol (XAUUSD), two
+    timeframes (M5, M15), all 79 `market_data_v6` columns. Tier differentiation moved
+    from *catalog size* to *feature gates*:
 
-    ### FREE Tier
-    - **Symbols:** 5 (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
-    - **Timeframes:** 3 (H1, H4, D1)
-    - **Chart Combinations:** 15 (5 × 3)
-    - **Max Alerts:** 5
-    - **Max Watchlists:** 1
-    - **Max Watchlist Items:** 5
-    - **Indicators:** 2 (fractal_diagonal, fractal_horizontal)
-    - **Indicator Columns:** 16 columns
-    - **Total Columns:** 25 (9 system + 16 indicator)
-    - **API Rate Limit:** 60 requests/hour
-    - **Price:** $0/month
+    | Feature                              | FREE | PRO |
+    | ------------------------------------ | ---- | --- |
+    | Symbols                              | 1 (XAUUSD) | 1 (XAUUSD) |
+    | Timeframes                           | 2 (M5, M15) | 2 (M5, M15) |
+    | Chart combinations                   | 2   | 2   |
+    | Market data columns                  | all 79 | all 79 |
+    | Max price alerts                     | 0 (feature disabled) | 100 |
+    | Drawing-engine line alerts           | no  | yes |
+    | Multi-timeframe channel visualization | no  | yes |
+    | Max drawings                         | 10  | 200 |
+    | API rate limit                       | 60/hour | 300/hour |
+    | Price                                | $0/month | configurable, default $29/month |
+    | Trial                                | n/a | 7-day free trial, full PRO access |
 
-    ### PRO Tier
-    - **Symbols:** 15 (all FREE symbols + 10 additional)
-    - **Timeframes:** 9 (M5, M15, M30, H1, H2, H4, H8, H12, D1)
-    - **Chart Combinations:** 135 (15 × 9)
-    - **Max Alerts:** 20
-    - **Max Watchlists:** 5
-    - **Max Watchlist Items:** 50
-    - **Indicators:** 10 (all FREE + 8 PRO-only)
-    - **Indicator Columns:** 52 columns
-    - **Total Columns:** 61 (9 system + 52 indicator)
-    - **API Rate Limit:** 300 requests/hour
-    - **Price:** $29/month
-    - **Trial:** 7-day free trial with full PRO access
+    Watchlists have been removed from the product entirely (no `/api/watchlist*`
+    routes exist).
 
-    ## 61-Column Database Schema
+    ## Implementation files
+    - `lib/tier-config.ts` — canonical tier constants (`SYMBOLS`, `TIMEFRAMES`,
+      `FREE_TIER_CONFIG`, `PRO_TIER_CONFIG`)
+    - `lib/tier-validation.ts` — access validation functions used by drawings/alerts
 
-    ### System Columns (9)
-    Always accessible to both FREE and PRO tiers:
-    - symbol, timestamp, open, high, low, close, volume, timeframe, collected_at
-
-    ### FREE Tier Indicators (16 columns)
-    - **fractal_diagonal** (8 columns): diag_asc_line_1-3, diag_desc_line_1-3, diag_high/low_map
-    - **fractal_horizontal** (8 columns): horiz_peak_line_1-3, horiz_bottom_line_1-3, horiz_high/low_map
-
-    ### PRO-Only Indicators (36 columns)
-    - **moving_averages** (3 columns): tema, hrma, smma
-    - **body_momentum** (2 columns): body_size, body_direction
-    - **heiken_ashi** (7 columns): ha_open, ha_high, ha_low, ha_close, ha_color, ha_trend, ha_strength
-    - **keltner_channels** (10 columns): kc_upper, kc_middle, kc_lower, kc_upper_ema, kc_middle_ema, kc_lower_ema, kc_squeeze, kc_squeeze_pro, kc_width, kc_width_ema
-    - **support_resistance** (8 columns): sr_1, sr_2, sr_3, sr_4, sr_5, sr_6, sr_7, sr_8
-    - **zigzag** (3 columns): zigzag_high, zigzag_low, zigzag_trend
-    - **dual_tema_hl** (2 columns): dual_tema_high, dual_tema_low
-    - **pinbar_detection** (1 column): pinbar
-
-    ## Implementation Files
-
-    ### Core Library Files
-    - `lib/tier-config.ts` - Tier configuration constants
-    - `lib/tier-validation.ts` - Access validation functions
-    - `lib/tier-helpers.ts` - Helper utilities
-    - `lib/tier/constants.ts` - Indicator tier constants
-    - `lib/tier/validator.ts` - Indicator access control
-    - `lib/tier/index.ts` - Module exports
-
-    ### API Routes
-    - `GET /api/tier/check/[symbol]` - Check symbol access
-    - `GET /api/tier/combinations` - Get tier combinations
-    - `GET /api/tier/symbols` - Get accessible symbols
-
-    ### Tests
-    - `lib/tier/__tests__/constants.test.ts`
-    - `lib/tier/__tests__/validator.test.ts`
-    - `__tests__/api/tier.test.ts`
+    ## API routes (this spec)
+    - `GET /api/tier/check/{symbol}` — check symbol access
+    - `GET /api/tier/combinations` — get supported symbol×timeframe combinations
+    - `GET /api/tier/symbols` — get the platform's symbol list
 
   contact:
     name: Trading Alerts SaaS Support
@@ -101,7 +61,7 @@ servers:
 
 tags:
   - name: Tier Access Control
-    description: Check tier access permissions for symbols, timeframes, and features
+    description: Check tier access permissions for symbols
   - name: Tier Information
     description: Get tier configuration and available resources
 
@@ -110,37 +70,22 @@ paths:
     get:
       summary: Check Symbol Access
       description: |
-        Check if the authenticated user's tier can access a specific trading symbol.
+        V8: access is **tier-independent** — XAUUSD is allowed for every
+        authenticated user regardless of tier; every other symbol is rejected as
+        not a valid platform symbol (not as a tier upsell).
 
-        Returns access status and upgrade information if symbol requires higher tier.
+        **Implementation:** `app/api/tier/check/[symbol]/route.ts` (GET)
       operationId: checkSymbolAccess
-      tags:
-        - Tier Access Control
+      tags: [Tier Access Control]
       security:
         - sessionAuth: []
       parameters:
         - name: symbol
           in: path
           required: true
-          description: Trading symbol to check (case insensitive)
+          description: Symbol to check (case-insensitive; compared uppercased)
           schema:
             type: string
-            enum:
-              - BTCUSD
-              - EURUSD
-              - USDJPY
-              - US30
-              - XAUUSD
-              - AUDJPY
-              - AUDUSD
-              - ETHUSD
-              - GBPJPY
-              - GBPUSD
-              - NDX100
-              - NZDUSD
-              - USDCAD
-              - USDCHF
-              - XAGUSD
           example: XAUUSD
       responses:
         '200':
@@ -151,47 +96,27 @@ paths:
                 $ref: '#/components/schemas/SymbolAccessCheckResponse'
               examples:
                 allowed:
-                  summary: Access allowed
+                  summary: XAUUSD — always allowed
                   value:
                     success: true
                     symbol: XAUUSD
                     allowed: true
                     tier: FREE
                 denied:
-                  summary: Access denied
+                  summary: Any other symbol — not a platform symbol
                   value:
                     success: true
-                    symbol: AUDJPY
+                    symbol: EURUSD
                     allowed: false
-                    tier: FREE
-                    reason: "FREE tier cannot access AUDJPY. Upgrade to PRO for access to all 15 symbols."
-                    upgradeRequired: true
-                    accessibleSymbols:
-                      - BTCUSD
-                      - EURUSD
-                      - USDJPY
-                      - US30
-                      - XAUUSD
-        '400':
-          description: Invalid symbol
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error: Invalid symbol
-                message: "Symbol INVALID is not a valid trading symbol. Available symbols: BTCUSD, EURUSD, ..."
+                    tier: PRO
+                    reason: 'Symbol EURUSD is not supported. This platform provides XAUUSD data only.'
+                    accessibleSymbols: [XAUUSD]
         '401':
           description: Unauthorized - not logged in
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                success: false
-                error: Unauthorized
-                message: You must be logged in to check symbol access
         '500':
           description: Internal server error
           content:
@@ -203,12 +128,13 @@ paths:
     get:
       summary: Get Tier Combinations
       description: |
-        Returns all allowed symbol+timeframe combinations for the authenticated user's tier.
+        V8: returns the two supported combinations (XAUUSD × M5/M15), identical
+        for both tiers. No upgrade prompt — chart access is no longer a tier
+        differentiator.
 
-        Used by frontend to populate dropdowns and validate chart selections.
+        **Implementation:** `app/api/tier/combinations/route.ts` (GET)
       operationId: getTierCombinations
-      tags:
-        - Tier Information
+      tags: [Tier Information]
       security:
         - sessionAuth: []
       responses:
@@ -218,59 +144,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TierCombinationsResponse'
-              examples:
-                free_tier:
-                  summary: FREE tier response
-                  value:
-                    success: true
-                    tier: FREE
-                    combinations:
-                      - symbol: BTCUSD
-                        timeframe: H1
-                      - symbol: BTCUSD
-                        timeframe: H4
-                      - symbol: BTCUSD
-                        timeframe: D1
-                      - symbol: EURUSD
-                        timeframe: H1
-                    count: 15
-                    totalPossible: 135
-                    symbols:
-                      - BTCUSD
-                      - EURUSD
-                      - USDJPY
-                      - US30
-                      - XAUUSD
-                    timeframes:
-                      - value: H1
-                        label: 1 Hour
-                        proOnly: false
-                      - value: H4
-                        label: 4 Hours
-                        proOnly: false
-                      - value: D1
-                        label: 1 Day
-                        proOnly: false
-                    limits:
-                      symbolCount: 5
-                      timeframeCount: 3
-                      totalCombinations: 15
-                    upgrade:
-                      additionalSymbols: 10
-                      additionalTimeframes: 6
-                      additionalCombinations: 120
-                      message: "Upgrade to PRO for 10 more symbols, 6 more timeframes, and 120 more chart combinations."
-                pro_tier:
-                  summary: PRO tier response
-                  value:
-                    success: true
-                    tier: PRO
-                    count: 135
-                    totalPossible: 135
-                    limits:
-                      symbolCount: 15
-                      timeframeCount: 9
-                      totalCombinations: 135
+              example:
+                success: true
+                tier: FREE
+                combinations:
+                  - symbol: XAUUSD
+                    timeframe: M5
+                  - symbol: XAUUSD
+                    timeframe: M15
+                count: 2
+                totalPossible: 2
+                symbols: [XAUUSD]
+                timeframes:
+                  - value: M5
+                    label: 5 Minutes
+                    proOnly: false
+                  - value: M15
+                    label: 15 Minutes
+                    proOnly: false
+                limits:
+                  symbolCount: 1
+                  timeframeCount: 2
+                  totalCombinations: 2
         '401':
           description: Unauthorized - not logged in
           content:
@@ -288,12 +183,11 @@ paths:
     get:
       summary: Get Accessible Symbols
       description: |
-        Returns list of trading symbols accessible by the authenticated user's tier.
+        V8: hardcoded to XAUUSD — both tiers have identical symbol access.
 
-        Includes symbol metadata like display names and asset categories.
+        **Implementation:** `app/api/tier/symbols/route.ts` (GET)
       operationId: getAccessibleSymbols
-      tags:
-        - Tier Information
+      tags: [Tier Information]
       security:
         - sessionAuth: []
       responses:
@@ -303,48 +197,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SymbolsResponse'
-              examples:
-                free_tier:
-                  summary: FREE tier response
-                  value:
-                    success: true
-                    tier: FREE
-                    symbols:
-                      - BTCUSD
-                      - EURUSD
-                      - USDJPY
-                      - US30
-                      - XAUUSD
-                    symbolsInfo:
-                      - symbol: BTCUSD
-                        name: Bitcoin/US Dollar
-                        category: crypto
-                        proOnly: false
-                      - symbol: EURUSD
-                        name: Euro/US Dollar
-                        category: forex
-                        proOnly: false
-                      - symbol: USDJPY
-                        name: US Dollar/Japanese Yen
-                        category: forex
-                        proOnly: false
-                      - symbol: US30
-                        name: Dow Jones Industrial Average
-                        category: index
-                        proOnly: false
-                      - symbol: XAUUSD
-                        name: Gold/US Dollar
-                        category: commodity
-                        proOnly: false
-                    count: 5
-                    totalAvailable: 15
-                pro_tier:
-                  summary: PRO tier response (partial)
-                  value:
-                    success: true
-                    tier: PRO
-                    count: 15
-                    totalAvailable: 15
+              example:
+                success: true
+                tier: FREE
+                symbols: [XAUUSD]
+                symbolsInfo:
+                  - symbol: XAUUSD
+                    name: Gold/US Dollar
+                    category: commodity
+                    proOnly: false
+                count: 1
+                totalAvailable: 1
         '401':
           description: Unauthorized - not logged in
           content:
@@ -367,141 +230,69 @@ components:
       description: NextAuth.js session cookie for authentication
 
   schemas:
-    # ========================================
-    # Enums
-    # ========================================
-
     Tier:
       type: string
-      enum:
-        - FREE
-        - PRO
+      enum: [FREE, PRO]
       description: User subscription tier
       example: FREE
 
     Symbol:
       type: string
-      enum:
-        # FREE tier symbols (5)
-        - BTCUSD
-        - EURUSD
-        - USDJPY
-        - US30
-        - XAUUSD
-        # PRO-only symbols (10)
-        - AUDJPY
-        - AUDUSD
-        - ETHUSD
-        - GBPJPY
-        - GBPUSD
-        - NDX100
-        - NZDUSD
-        - USDCAD
-        - USDCHF
-        - XAGUSD
-      description: Trading symbol
-      example: BTCUSD
+      enum: [XAUUSD]
+      description: Trading symbol (V8 single-symbol architecture)
+      example: XAUUSD
 
     Timeframe:
       type: string
-      enum:
-        # FREE tier timeframes (3)
-        - H1
-        - H4
-        - D1
-        # PRO-only timeframes (6)
-        - M5
-        - M15
-        - M30
-        - H2
-        - H8
-        - H12
-      description: Chart timeframe
-      example: H1
+      enum: [M5, M15]
+      description: Chart timeframe (V8 architecture)
+      example: M5
 
     SymbolCategory:
       type: string
-      enum:
-        - forex
-        - crypto
-        - index
-        - commodity
+      enum: [commodity]
       description: Symbol asset category
-      example: forex
-
-    IndicatorId:
-      type: string
-      enum:
-        # FREE tier indicators (2)
-        - fractal_diagonal
-        - fractal_horizontal
-        # PRO-only indicators (8)
-        - moving_averages
-        - body_momentum
-        - heiken_ashi
-        - keltner_channels
-        - support_resistance
-        - zigzag
-        - dual_tema_hl
-        - pinbar_detection
-      description: Technical indicator identifier
-      example: fractal_diagonal
-
-    # ========================================
-    # Response Models
-    # ========================================
+      example: commodity
 
     SymbolAccessCheckResponse:
       type: object
-      required:
-        - success
-        - symbol
-        - allowed
-        - tier
+      required: [success, symbol, allowed, tier]
       properties:
         success:
           type: boolean
-          description: Request success status
           example: true
         symbol:
-          $ref: '#/components/schemas/Symbol'
+          type: string
+          description: Uppercased symbol from the path param (not restricted to the Symbol enum — any string can be checked)
+          example: XAUUSD
         allowed:
           type: boolean
-          description: Whether user's tier can access this symbol
           example: true
         tier:
           $ref: '#/components/schemas/Tier'
         reason:
           type: string
-          description: Explanation if access denied
-          example: "FREE tier cannot access AUDJPY. Upgrade to PRO for access to all 15 symbols."
-        upgradeRequired:
-          type: boolean
-          description: Whether upgrade is needed for access
-          example: false
+          description: Present only when allowed is false
+          example: 'Symbol EURUSD is not supported. This platform provides XAUUSD data only.'
         accessibleSymbols:
           type: array
-          description: List of symbols accessible by user's tier (only included if access denied)
+          description: Present only when allowed is false
           items:
             $ref: '#/components/schemas/Symbol'
-          example:
-            - BTCUSD
-            - EURUSD
-            - USDJPY
-            - US30
-            - XAUUSD
 
     TierCombinationsResponse:
       type: object
       required:
-        - success
-        - tier
-        - combinations
-        - count
-        - totalPossible
-        - symbols
-        - timeframes
-        - limits
+        [
+          success,
+          tier,
+          combinations,
+          count,
+          totalPossible,
+          symbols,
+          timeframes,
+          limits,
+        ]
       properties:
         success:
           type: boolean
@@ -510,12 +301,9 @@ components:
           $ref: '#/components/schemas/Tier'
         combinations:
           type: array
-          description: All symbol+timeframe combinations for tier
           items:
             type: object
-            required:
-              - symbol
-              - timeframe
+            required: [symbol, timeframe]
             properties:
               symbol:
                 $ref: '#/components/schemas/Symbol'
@@ -523,37 +311,24 @@ components:
                 $ref: '#/components/schemas/Timeframe'
         count:
           type: integer
-          description: Number of combinations available to user
-          example: 15
+          example: 2
         totalPossible:
           type: integer
-          description: Total combinations in PRO tier
-          example: 135
+          example: 2
         symbols:
           type: array
-          description: Symbols accessible by tier
           items:
             $ref: '#/components/schemas/Symbol'
         timeframes:
           type: array
-          description: Timeframes accessible by tier with metadata
           items:
             $ref: '#/components/schemas/TimeframeInfo'
         limits:
           $ref: '#/components/schemas/TierLimits'
-        upgrade:
-          $ref: '#/components/schemas/UpgradeInfo'
-          description: Upgrade information (only for FREE tier)
 
     SymbolsResponse:
       type: object
-      required:
-        - success
-        - tier
-        - symbols
-        - symbolsInfo
-        - count
-        - totalAvailable
+      required: [success, tier, symbols, symbolsInfo, count, totalAvailable]
       properties:
         success:
           type: boolean
@@ -562,279 +337,111 @@ components:
           $ref: '#/components/schemas/Tier'
         symbols:
           type: array
-          description: Simple list of accessible symbols
           items:
             $ref: '#/components/schemas/Symbol'
         symbolsInfo:
           type: array
-          description: Detailed symbol information with metadata
           items:
             $ref: '#/components/schemas/SymbolInfo'
         count:
           type: integer
-          description: Number of symbols accessible to user
-          example: 5
+          example: 1
         totalAvailable:
           type: integer
-          description: Total symbols in PRO tier
-          example: 15
+          example: 1
+
+    SymbolInfo:
+      type: object
+      required: [symbol, name, category, proOnly]
+      properties:
+        symbol:
+          $ref: '#/components/schemas/Symbol'
+        name:
+          type: string
+          example: Gold/US Dollar
+        category:
+          $ref: '#/components/schemas/SymbolCategory'
+        proOnly:
+          type: boolean
+          description: Always false in V8 — no PRO-only symbols
+          example: false
+
+    TimeframeInfo:
+      type: object
+      required: [value, label, proOnly]
+      properties:
+        value:
+          $ref: '#/components/schemas/Timeframe'
+        label:
+          type: string
+          example: 5 Minutes
+        proOnly:
+          type: boolean
+          description: Always false in V8 — no PRO-only timeframes
+          example: false
+
+    TierLimits:
+      type: object
+      required: [symbolCount, timeframeCount, totalCombinations]
+      properties:
+        symbolCount:
+          type: integer
+          example: 1
+        timeframeCount:
+          type: integer
+          example: 2
+        totalCombinations:
+          type: integer
+          example: 2
+
+    TierConfig:
+      type: object
+      description: Complete tier configuration (`lib/tier-config.ts`)
+      required:
+        [
+          name,
+          price,
+          symbols,
+          timeframes,
+          chartCombinations,
+          maxAlerts,
+          rateLimit,
+        ]
+      properties:
+        name:
+          type: string
+          enum: [FREE, PRO]
+        price:
+          type: integer
+          description: Monthly price in USD (PRO price configurable via env, default 29)
+        symbols:
+          type: integer
+          example: 1
+        timeframes:
+          type: integer
+          example: 2
+        chartCombinations:
+          type: integer
+          example: 2
+        maxAlerts:
+          type: integer
+          description: FREE is 0 — alerts are a PRO-exclusive feature (see Part 11)
+          example: 100
+        rateLimit:
+          type: integer
+          description: API requests per hour
+          example: 60
 
     ErrorResponse:
       type: object
-      required:
-        - success
-        - error
-        - message
+      required: [success, error, message]
       properties:
         success:
           type: boolean
           example: false
         error:
           type: string
-          description: Error type
           example: Unauthorized
         message:
           type: string
-          description: Human-readable error message
           example: You must be logged in to check symbol access
-
-    # ========================================
-    # Nested Objects
-    # ========================================
-
-    SymbolInfo:
-      type: object
-      required:
-        - symbol
-        - name
-        - category
-        - proOnly
-      properties:
-        symbol:
-          $ref: '#/components/schemas/Symbol'
-        name:
-          type: string
-          description: Full display name
-          example: Bitcoin/US Dollar
-        category:
-          $ref: '#/components/schemas/SymbolCategory'
-        proOnly:
-          type: boolean
-          description: Whether symbol requires PRO tier
-          example: false
-
-    TimeframeInfo:
-      type: object
-      required:
-        - value
-        - label
-        - proOnly
-      properties:
-        value:
-          $ref: '#/components/schemas/Timeframe'
-        label:
-          type: string
-          description: Human-readable timeframe label
-          example: 1 Hour
-        proOnly:
-          type: boolean
-          description: Whether timeframe requires PRO tier
-          example: false
-
-    TierLimits:
-      type: object
-      required:
-        - symbolCount
-        - timeframeCount
-        - totalCombinations
-      properties:
-        symbolCount:
-          type: integer
-          description: Number of symbols in tier
-          example: 5
-        timeframeCount:
-          type: integer
-          description: Number of timeframes in tier
-          example: 3
-        totalCombinations:
-          type: integer
-          description: Total symbol×timeframe combinations
-          example: 15
-
-    UpgradeInfo:
-      type: object
-      required:
-        - additionalSymbols
-        - additionalTimeframes
-        - additionalCombinations
-        - message
-      properties:
-        additionalSymbols:
-          type: integer
-          description: Additional symbols in PRO tier
-          example: 10
-        additionalTimeframes:
-          type: integer
-          description: Additional timeframes in PRO tier
-          example: 6
-        additionalCombinations:
-          type: integer
-          description: Additional combinations in PRO tier
-          example: 120
-        message:
-          type: string
-          description: Upgrade call-to-action message
-          example: "Upgrade to PRO for 10 more symbols, 6 more timeframes, and 120 more chart combinations."
-
-    # ========================================
-    # Tier Configuration Models
-    # ========================================
-
-    TierConfig:
-      type: object
-      description: Complete tier configuration
-      required:
-        - name
-        - price
-        - symbols
-        - timeframes
-        - chartCombinations
-        - maxAlerts
-        - maxWatchlistItems
-        - rateLimit
-      properties:
-        name:
-          type: string
-          enum: [FREE, PRO]
-          example: FREE
-        price:
-          type: integer
-          description: Monthly price in USD
-          example: 0
-        symbols:
-          type: integer
-          description: Number of accessible symbols
-          example: 5
-        timeframes:
-          type: integer
-          description: Number of accessible timeframes
-          example: 3
-        chartCombinations:
-          type: integer
-          description: Total symbol×timeframe combinations
-          example: 15
-        maxAlerts:
-          type: integer
-          description: Maximum number of alerts
-          example: 5
-        maxWatchlistItems:
-          type: integer
-          description: Maximum watchlist items
-          example: 5
-        rateLimit:
-          type: integer
-          description: API requests per hour
-          example: 60
-
-    IndicatorMetadata:
-      type: object
-      description: Technical indicator metadata
-      required:
-        - id
-        - label
-        - description
-        - category
-        - tier
-        - columns
-        - colors
-        - dataPattern
-      properties:
-        id:
-          $ref: '#/components/schemas/IndicatorId'
-        label:
-          type: string
-          description: Display name
-          example: Fractal Diagonal Lines
-        description:
-          type: string
-          description: Indicator description
-          example: Dynamic trendlines based on fractal analysis
-        category:
-          type: string
-          enum:
-            - trendlines
-            - support_resistance
-            - trend
-            - momentum
-            - candlesticks
-            - volatility
-          example: trendlines
-        tier:
-          $ref: '#/components/schemas/Tier'
-        columns:
-          type: array
-          description: Database column names
-          items:
-            type: string
-          example:
-            - diag_asc_line_1
-            - diag_asc_line_2
-            - diag_asc_line_3
-        colors:
-          type: object
-          description: Color scheme for visualization
-          additionalProperties:
-            type: string
-          example:
-            ascending: "#00c853"
-            descending: "#f23645"
-        dataPattern:
-          type: string
-          enum:
-            - sparse
-            - continuous
-          description: Data density pattern
-          example: sparse
-
-    # ========================================
-    # Validation Models
-    # ========================================
-
-    ValidationResult:
-      type: object
-      required:
-        - allowed
-      properties:
-        allowed:
-          type: boolean
-          description: Whether access is allowed
-          example: true
-        reason:
-          type: string
-          description: Explanation if access denied
-          example: "Symbol AUDJPY requires PRO tier. Please upgrade to access all 15 symbols."
-
-    TierAccessValidation:
-      type: object
-      description: Comprehensive tier access validation parameters
-      properties:
-        tier:
-          $ref: '#/components/schemas/Tier'
-        symbol:
-          $ref: '#/components/schemas/Symbol'
-        timeframe:
-          $ref: '#/components/schemas/Timeframe'
-        alertCount:
-          type: integer
-          description: Current alert count
-          example: 3
-        watchlistCount:
-          type: integer
-          description: Current watchlist count
-          example: 1
-        watchlistItemCount:
-          type: integer
-          description: Current watchlist item count
-          example: 4
-        indicator:
-          $ref: '#/components/schemas/IndicatorId'

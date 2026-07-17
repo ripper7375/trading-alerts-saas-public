@@ -1,0 +1,1059 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - User Account API (Part 22)
+  version: 1.0.0
+  description: |
+    User account management API for Trading Alerts SaaS platform (Part 22).
+
+    **Generated:** 2026-07-17, Session 0-2, directly from live route handlers under
+    `app/api/user/**` (14 routes across 6 sub-domains). No prior spec existed for this
+    domain.
+
+    ## Sub-domains
+    - **Two-Factor Auth** (`/api/user/2fa/*`): TOTP setup/verify/disable, backup codes
+    - **Account Deletion** (`/api/user/account/*`): request/confirm/cancel, 7-day grace
+      period, token-based email confirmation
+    - **Login History** (`/api/user/login-history`)
+    - **Password** (`/api/user/password`)
+    - **Preferences** (`/api/user/preferences`)
+    - **Profile** (`/api/user/profile`)
+    - **Sessions** (`/api/user/sessions*`): list/revoke active sessions
+
+    All routes require an authenticated session except `POST /api/user/2fa/verify`
+    (uses a short-lived JWT issued mid-login, before a full session exists) and
+    `POST /api/user/account/deletion-confirm` (uses a mailed token, since the user
+    may be acting from an email link without an active session).
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+tags:
+  - name: Two-Factor Auth
+  - name: Account Deletion
+  - name: Login History
+  - name: Password
+  - name: Preferences
+  - name: Profile
+  - name: Sessions
+
+paths:
+  /api/user/2fa/setup:
+    post:
+      tags: [Two-Factor Auth]
+      summary: Generate a new TOTP secret and QR code
+      description: |
+        Generates a TOTP secret, stores it encrypted (2FA not yet enabled until
+        verified), and returns a QR code data URL for authenticator apps.
+
+        **Implementation:** `app/api/user/2fa/setup/route.ts` (POST)
+      operationId: setupTwoFactor
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Secret generated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, qrCode, secret, message]
+                properties:
+                  success: { type: boolean, example: true }
+                  qrCode:
+                    {
+                      type: string,
+                      description: 'Data URL (image/png) of the QR code',
+                    }
+                  secret:
+                    {
+                      type: string,
+                      description: 'Base32 TOTP secret, for manual entry',
+                    }
+                  message: { type: string }
+        '400':
+          description: 2FA already enabled
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    get:
+      tags: [Two-Factor Auth]
+      summary: Get current 2FA status
+      operationId: getTwoFactorStatus
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled, verifiedAt]
+                properties:
+                  enabled: { type: boolean }
+                  verifiedAt:
+                    { type: string, format: date-time, nullable: true }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/2fa/verify-setup:
+    post:
+      tags: [Two-Factor Auth]
+      summary: Verify TOTP code and enable 2FA
+      description: |
+        Confirms the code from the authenticator app against the secret stored by
+        `setup`, enables 2FA, and issues one set of backup codes.
+
+        **Implementation:** `app/api/user/2fa/verify-setup/route.ts` (POST)
+      operationId: verifyTwoFactorSetup
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: 2FA enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message, backupCodes, backupCodesFormatted]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+                  backupCodes:
+                    type: array
+                    items: { type: string }
+                    description: Plaintext backup codes — shown once, never retrievable again
+                  backupCodesFormatted:
+                    type: array
+                    items: { type: string }
+                    description: Same codes formatted for display (e.g. grouped with dashes)
+        '400':
+          description: Invalid code, already enabled, or setup not initiated
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/2fa/verify:
+    post:
+      tags: [Two-Factor Auth]
+      summary: Verify TOTP or backup code during login
+      description: |
+        Completes the login flow's 2FA step. Uses a short-lived JWT (`token`,
+        signed with `NEXTAUTH_SECRET`) issued at the credentials step instead of a
+        full session, since the user isn't fully authenticated yet. Accepts either
+        a 6-digit TOTP code or a backup code (backup codes are consumed on use).
+
+        **No session required — this endpoint runs before one exists.**
+
+        **Implementation:** `app/api/user/2fa/verify/route.ts` (POST)
+      operationId: verifyTwoFactorLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, token]
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  description: 6-digit TOTP code, or a backup code
+                token:
+                  type: string
+                  description: Short-lived JWT issued after credentials verification
+      responses:
+        '200':
+          description: Verified
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, verified, method]
+                properties:
+                  success: { type: boolean, example: true }
+                  verified: { type: boolean, example: true }
+                  method: { type: string, enum: [totp, backup_code] }
+                  remainingBackupCodes:
+                    type: integer
+                    description: Only present when method is backup_code
+                  message: { type: string }
+        '400':
+          description: Invalid code or backup code
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Invalid or expired verification token
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error (e.g. NEXTAUTH_SECRET not configured)
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/2fa/disable:
+    post:
+      tags: [Two-Factor Auth]
+      summary: Disable 2FA
+      description: |
+        Disables 2FA after verifying both the account password and a current TOTP
+        code. Clears secret/backup codes, creates a `SecurityAlert` record, and
+        emails a disabled-2FA notification.
+
+        **Implementation:** `app/api/user/2fa/disable/route.ts` (POST)
+      operationId: disableTwoFactor
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, code]
+              properties:
+                password: { type: string }
+                code: { type: string, pattern: '^\d{6}$' }
+      responses:
+        '200':
+          description: 2FA disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+        '400':
+          description: 2FA not enabled, no password set, or invalid config
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized, or incorrect password
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/2fa/backup-codes:
+    post:
+      tags: [Two-Factor Auth]
+      summary: Regenerate backup codes
+      description: |
+        Invalidates all existing backup codes and issues a fresh set of 10.
+        Requires password confirmation and that 2FA is already enabled.
+
+        **Implementation:** `app/api/user/2fa/backup-codes/route.ts` (POST)
+      operationId: regenerateBackupCodes
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '200':
+          description: Backup codes regenerated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message, backupCodes, backupCodesFormatted]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+                  backupCodes:
+                    type: array
+                    items: { type: string }
+                  backupCodesFormatted:
+                    type: array
+                    items: { type: string }
+        '400':
+          description: 2FA not enabled, or no password set
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized, or incorrect password
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    get:
+      tags: [Two-Factor Auth]
+      summary: Get remaining backup codes count
+      operationId: getBackupCodesCount
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Count retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled, remainingCodes]
+                properties:
+                  enabled: { type: boolean }
+                  remainingCodes: { type: integer }
+                  totalCodes: { type: integer, example: 10 }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/account/deletion-request:
+    post:
+      tags: [Account Deletion]
+      summary: Request account deletion
+      description: |
+        Creates a deletion request with a 7-day confirmation token, emailed to the
+        user (email send is a TODO in the current implementation — logged, not
+        yet wired up). Rejects if a PENDING request already exists.
+
+        **Implementation:** `app/api/user/account/deletion-request/route.ts` (POST)
+      operationId: requestAccountDeletion
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Deletion request created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message, requestId, expiresAt]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+                  requestId: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '400':
+          description: A pending deletion request already exists
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - type: object
+                    properties:
+                      requestId: { type: string }
+                      expiresAt: { type: string, format: date-time }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/account/deletion-confirm:
+    post:
+      tags: [Account Deletion]
+      summary: Confirm account deletion via emailed token
+      description: |
+        Confirms a PENDING deletion request by token (from the email link).
+        Schedules deletion 24 hours out (queueing the actual deletion job is a
+        TODO in the current implementation). Expired tokens flip the request to
+        EXPIRED.
+
+        **No session required — the user may not be logged in when clicking the
+        email link.**
+
+        **Implementation:** `app/api/user/account/deletion-confirm/route.ts` (POST)
+      operationId: confirmAccountDeletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Deletion confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message, scheduledDeletionTime]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+                  scheduledDeletionTime: { type: string, format: date-time }
+        '400':
+          description: Request already processed, or token expired
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: Invalid or unknown token
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/account/deletion-cancel:
+    post:
+      tags: [Account Deletion]
+      summary: Cancel a pending/confirmed deletion request
+      description: |
+        Cancels a deletion request either by token (from the email link, no
+        session needed) or by session (logged-in user, most recent
+        PENDING/CONFIRMED request). Requests already EXPIRED/CANCELLED cannot be
+        re-cancelled.
+
+        **Session is optional** — provide `token` in the body instead if not
+        logged in.
+
+        **Implementation:** `app/api/user/account/deletion-cancel/route.ts` (POST)
+      operationId: cancelAccountDeletion
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Omit to cancel via the current session instead
+      responses:
+        '200':
+          description: Deletion cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+        '400':
+          description: Request cannot be cancelled in its current status
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: No token provided and no active session
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: No matching deletion request found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/login-history:
+    get:
+      tags: [Login History]
+      summary: Fetch the authenticated user's login history
+      description: |
+        Returns paginated login attempts with parsed device/browser/OS/location
+        info.
+
+        **Implementation:** `app/api/user/login-history/route.ts` (GET)
+      operationId: getLoginHistory
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Login history retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [history, pagination]
+                properties:
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        [
+                          id,
+                          status,
+                          provider,
+                          device,
+                          browser,
+                          os,
+                          location,
+                          ipAddress,
+                          isNewDevice,
+                          createdAt,
+                        ]
+                      properties:
+                        id: { type: string }
+                        status: { type: string }
+                        provider: { type: string }
+                        device: { type: string }
+                        browser: { type: string }
+                        os: { type: string }
+                        location: { type: string }
+                        ipAddress: { type: string }
+                        isNewDevice: { type: boolean }
+                        createdAt: { type: string, format: date-time }
+                  pagination:
+                    type: object
+                    required: [total, limit, offset, hasMore]
+                    properties:
+                      total: { type: integer }
+                      limit: { type: integer }
+                      offset: { type: integer }
+                      hasMore: { type: boolean }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/password:
+    post:
+      tags: [Password]
+      summary: Change the authenticated user's password
+      description: |
+        Verifies the current password, rejects if the new password equals the
+        current one, hashes and stores the new password (bcrypt, 12 rounds), and
+        — if the user's `passwordChangeAlerts` preference is on — creates a
+        `SecurityAlert` and emails a notification.
+
+        **Implementation:** `app/api/user/password/route.ts` (POST)
+      operationId: changePassword
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword:
+                  type: string
+                  minLength: 8
+                  description: Must contain an uppercase letter, lowercase letter, and a number
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+        '400':
+          description: Invalid input, OAuth-only account (no password to change), or new password same as current
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized, or current password incorrect
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/preferences:
+    get:
+      tags: [Preferences]
+      summary: Get the authenticated user's preferences
+      description: |
+        Returns stored preferences merged over defaults. On error (e.g. table
+        doesn't exist yet), falls back to returning `DEFAULT_PREFERENCES` with a
+        200 rather than failing.
+
+        **Implementation:** `app/api/user/preferences/route.ts` (GET);
+        defaults in `lib/preferences/defaults.ts`
+      operationId: getPreferences
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Preferences retrieved (or defaults, on internal error)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences]
+                properties:
+                  preferences:
+                    $ref: '#/components/schemas/UserPreferences'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    put:
+      tags: [Preferences]
+      summary: Update the authenticated user's preferences
+      description: |
+        Partial update — merges provided fields over existing stored preferences
+        (upsert), then returns the full set merged with defaults.
+
+        **Implementation:** `app/api/user/preferences/route.ts` (PUT)
+      operationId: updatePreferences
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferencesUpdate'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences, message]
+                properties:
+                  preferences:
+                    $ref: '#/components/schemas/UserPreferences'
+                  message: { type: string }
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/profile:
+    get:
+      tags: [Profile]
+      summary: Get the authenticated user's profile
+      operationId: getProfile
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: User not found
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    patch:
+      tags: [Profile]
+      summary: Update the authenticated user's profile
+      description: |
+        Updates `name`/`email`/`avatarUrl`. Changing `email` checks uniqueness
+        first; the current implementation updates the email directly without a
+        re-verification step (logged as a known gap, not yet wired to send a
+        verification email — see the "not recommended for production" comment
+        in the handler).
+
+        **Implementation:** `app/api/user/profile/route.ts` (PATCH)
+      operationId: updateProfile
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 2, maxLength: 50 }
+                email: { type: string, format: email }
+                avatarUrl: { type: string, format: uri, nullable: true }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, message]
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+                  message: { type: string }
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '409':
+          description: Email already in use
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/sessions:
+    get:
+      tags: [Sessions]
+      summary: List all active sessions for the authenticated user
+      description: |
+        Tracks the current session (from the session-token cookie) if not
+        already tracked, then returns all active sessions.
+
+        **Implementation:** `app/api/user/sessions/route.ts` (GET)
+      operationId: listSessions
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Sessions retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessions]
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    delete:
+      tags: [Sessions]
+      summary: Revoke all sessions except the current one
+      operationId: revokeAllOtherSessions
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: Sessions revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message, revokedCount]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+                  revokedCount: { type: integer }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/sessions/{id}:
+    delete:
+      tags: [Sessions]
+      summary: Revoke a specific session by ID
+      description: |
+        Users may only revoke their own sessions (ownership checked inside
+        `revokeSession`).
+
+        **Implementation:** `app/api/user/sessions/[id]/route.ts` (DELETE)
+      operationId: revokeSession
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Session revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message]
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string }
+        '400':
+          description: Session ID missing
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: Session not found or already revoked
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js session cookie for authentication
+
+  schemas:
+    UserPreferences:
+      type: object
+      required:
+        - theme
+        - colorScheme
+        - language
+        - timezone
+        - dateFormat
+        - timeFormat
+        - currency
+        - profileVisibility
+        - showStats
+        - showEmail
+        - emailNotifications
+        - pushNotifications
+        - newDeviceAlerts
+        - passwordChangeAlerts
+        - chartUpColor
+        - chartDownColor
+        - gridOpacity
+      properties:
+        theme: { type: string, enum: [light, dark, system], example: system }
+        colorScheme:
+          { type: string, enum: [blue, purple, green, orange], example: blue }
+        language: { type: string, example: en-US }
+        timezone: { type: string, example: America/New_York }
+        dateFormat: { type: string, enum: [MDY, DMY, YMD], example: MDY }
+        timeFormat: { type: string, enum: ['12h', '24h'], example: '12h' }
+        currency: { type: string, example: USD }
+        profileVisibility:
+          {
+            type: string,
+            enum: [public, private, connections],
+            example: private,
+          }
+        showStats: { type: boolean, example: false }
+        showEmail: { type: boolean, example: false }
+        emailNotifications: { type: boolean, example: true }
+        pushNotifications: { type: boolean, example: true }
+        newDeviceAlerts: { type: boolean, example: true }
+        passwordChangeAlerts: { type: boolean, example: true }
+        chartUpColor: { type: string, example: '#22c55e' }
+        chartDownColor: { type: string, example: '#ef4444' }
+        gridOpacity: { type: number, minimum: 0, maximum: 100, example: 50 }
+
+    UserPreferencesUpdate:
+      type: object
+      description: All fields optional — partial update, merged over existing stored preferences
+      properties:
+        theme: { type: string, enum: [light, dark, system] }
+        colorScheme: { type: string, enum: [blue, purple, green, orange] }
+        language: { type: string }
+        timezone: { type: string }
+        dateFormat: { type: string, enum: [MDY, DMY, YMD] }
+        timeFormat: { type: string, enum: ['12h', '24h'] }
+        currency: { type: string }
+        profileVisibility:
+          { type: string, enum: [public, private, connections] }
+        showStats: { type: boolean }
+        showEmail: { type: boolean }
+        emailNotifications: { type: boolean }
+        pushNotifications: { type: boolean }
+        newDeviceAlerts: { type: boolean }
+        passwordChangeAlerts: { type: boolean }
+        chartUpColor: { type: string }
+        chartDownColor: { type: string }
+        gridOpacity: { type: number, minimum: 0, maximum: 100 }
+
+    UserProfile:
+      type: object
+      required:
+        [
+          id,
+          name,
+          email,
+          image,
+          tier,
+          role,
+          emailVerified,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id: { type: string }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email }
+        image: { type: string, nullable: true }
+        tier: { type: string, enum: [FREE, PRO] }
+        role: { type: string, enum: [USER, ADMIN] }
+        emailVerified:
+          type: boolean
+          description: Coerced to a boolean in the API response (the DB column is a nullable timestamp)
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, example: Unauthorized }
+        message: { type: string }
+        details:
+          type: array
+          items: { type: object, additionalProperties: true }

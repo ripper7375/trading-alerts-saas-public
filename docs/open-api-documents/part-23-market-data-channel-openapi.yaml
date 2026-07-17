@@ -1,0 +1,197 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Market Data Channel API (Part 23)
+  version: 1.0.0
+  description: |
+    Multi-timeframe channel-overlay API for Trading Alerts SaaS platform (Part 23).
+
+    **Generated:** 2026-07-17, Session 0-2, directly from the live route handler
+    (`app/api/market-data/channel/route.ts`). No prior spec existed for this domain.
+
+    Returns equal-distance channel lines (upper/mid/lower) for a centroid-regression
+    variant from `market_data_v6`, meant to be overlaid onto a *different* timeframe's
+    chart than the one the data was computed on (e.g. an M5 channel drawn over an M15
+    chart). This is a **PRO-exclusive** feature (multi-timeframe visualization); regular
+    single-timeframe data access is identical for both tiers elsewhere and out of scope
+    for this endpoint.
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Market Data
+    description: Multi-timeframe channel overlay data
+
+paths:
+  /api/market-data/channel:
+    get:
+      tags: [Market Data]
+      summary: Get channel-overlay points for a symbol/timeframe/variant
+      description: |
+        V8 single-symbol platform: `symbol` is effectively always `XAUUSD` and
+        `timeframe` one of `M5`/`M15` (see Part 04); other values 400.
+
+        **Implementation:** `app/api/market-data/channel/route.ts` (GET)
+      operationId: getMarketDataChannel
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          description: Defaults to XAUUSD (currently the only supported symbol)
+          schema:
+            type: string
+            enum: [XAUUSD]
+            default: XAUUSD
+        - name: timeframe
+          in: query
+          required: false
+          description: Defaults to M5
+          schema:
+            type: string
+            enum: [M5, M15]
+            default: M5
+        - name: variant
+          in: query
+          required: false
+          description: Centroid-regression variant prefix in market_data_v6
+          schema:
+            type: string
+            enum: [best_fit, cherry_a, cherry_b, most_recent, non_a, non_b]
+            default: best_fit
+        - name: limit
+          in: query
+          required: false
+          description: Number of most-recent points to return (clamped 1-1000)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 300
+      responses:
+        '200':
+          description: Channel points retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelSuccessResponse'
+        '400':
+          description: Unsupported symbol, timeframe, or variant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                badSymbol:
+                  value:
+                    {
+                      success: false,
+                      error: 'Unsupported symbol (XAUUSD only)',
+                    }
+                badTimeframe:
+                  value:
+                    {
+                      success: false,
+                      error: 'Unsupported timeframe (M5, M15 only)',
+                    }
+                badVariant:
+                  value:
+                    {
+                      success: false,
+                      error: 'Invalid variant. Available: best_fit, cherry_a, cherry_b, most_recent, non_a, non_b',
+                    }
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Multi-timeframe visualization is a PRO-only feature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: Multi-timeframe visualization is a PRO feature
+                message: Upgrade to PRO to overlay M5 channel structure on M15 charts.
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js session cookie for authentication
+
+  schemas:
+    ChannelPoint:
+      type: object
+      required: [time, upper, mid, lower]
+      properties:
+        time:
+          type: integer
+          description: Unix timestamp of the row
+        upper:
+          type: number
+          nullable: true
+          description: '`{variant}_uoedt` column value'
+        mid:
+          type: number
+          nullable: true
+          description: '`{variant}_base_fl` column value'
+        lower:
+          type: number
+          nullable: true
+          description: '`{variant}_loedt` column value'
+
+    ChannelSuccessResponse:
+      type: object
+      required: [success, symbol, timeframe, variant, points]
+      properties:
+        success:
+          type: boolean
+          example: true
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          example: M5
+        variant:
+          type: string
+          enum: [best_fit, cherry_a, cherry_b, most_recent, non_a, non_b]
+          example: best_fit
+        points:
+          type: array
+          description: Ascending by time (oldest first)
+          items:
+            $ref: '#/components/schemas/ChannelPoint'
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        message:
+          type: string

@@ -1,9 +1,16 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Authentication System API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Authentication system API for Trading Alerts SaaS platform (Part 05).
+
+    **Patched 2026-07-17, Session 0-2**, after triaging against the live route
+    handlers (`docs/migration-orders/DECISION-LOG.md`, F1): added the previously
+    undocumented `POST /api/auth/track-login`, fixed `reset-password`'s request
+    field name (`newPassword` → `password`, matching the live zod schema), and
+    documented `verify-email`'s 429 rate-limit path. Everything else in this file
+    was already current and is carried over unchanged.
 
     This API provides comprehensive authentication capabilities including:
     - User registration with email verification
@@ -191,6 +198,12 @@ paths:
         - Single-use tokens
         - Stored in database
         - Cleared after verification
+
+        **Gmail-preview defeat:** a token must be at least 5 seconds old before
+        it can be consumed, since some email clients pre-fetch links (added
+        2026-07-17, Session 0-2 — this 429 path was undocumented in the
+        previous version of this spec). Also sends a welcome email on success
+        (best-effort; failure doesn't fail the request).
       operationId: verifyEmail
       parameters:
         - name: token
@@ -226,6 +239,15 @@ paths:
                   summary: Invalid token
                   value:
                     error: Invalid or expired verification token
+        '429':
+          description: Token used too soon after creation (Gmail-preview defeat delay)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitErrorResponse'
+              example:
+                error: Please wait 3 more seconds, then refresh this page.
+                retryAfter: 3
         '500':
           description: Internal server error
           content:
@@ -234,6 +256,66 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: Internal server error
+
+  /api/auth/track-login:
+    post:
+      tags:
+        - Authentication
+      summary: Record a successful login
+      description: |
+        Called client-side immediately after NextAuth redirects to the
+        dashboard. Records the attempt in login history and, if this is a new
+        device/location, sends a new-device security alert email.
+
+        **Added to this spec 2026-07-17 (Session 0-2)** — it had zero coverage
+        in the previous version.
+
+        **Implementation:** `app/api/auth/track-login/route.ts` (POST)
+      operationId: trackLogin
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  default: credentials
+                  example: credentials
+      responses:
+        '200':
+          description: Login recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, isNewDevice, deviceType, location]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  isNewDevice:
+                    type: boolean
+                  deviceType:
+                    type: string
+                  location:
+                    type: string
+                    example: 'San Francisco, US'
+        '401':
+          description: Unauthorized - no session (this endpoint expects one to already exist)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/auth/forgot-password:
     post:
@@ -327,7 +409,7 @@ paths:
               $ref: '#/components/schemas/ResetPasswordRequest'
             example:
               token: abc123xyz456def789ghi012jkl345
-              newPassword: NewSecurePass123
+              password: NewSecurePass123
       responses:
         '200':
           description: Password reset successful
@@ -671,18 +753,22 @@ components:
       type: object
       required:
         - token
-        - newPassword
+        - password
       properties:
         token:
           type: string
           minLength: 1
           description: Password reset token from email
           example: abc123xyz456def789ghi012jkl345
-        newPassword:
+        password:
           type: string
           format: password
           minLength: 8
-          description: New password (minimum 8 characters)
+          description: |
+            New password (minimum 8 characters). Field name is `password`, not
+            `newPassword` — corrected 2026-07-17 (Session 0-2) after diffing
+            against the live handler (`app/api/auth/reset-password/route.ts:9-12`);
+            the previous version of this spec had the wrong field name here.
           example: NewSecurePass123
 
     ResendVerificationRequest:
