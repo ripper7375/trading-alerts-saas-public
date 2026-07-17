@@ -22,7 +22,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 
 | Flag | Topic                                            | Status                                                      |
 | ---- | ------------------------------------------------ | ----------------------------------------------------------- |
-| F1   | OpenAPI coverage from live routes                | RESOLVED (batch 1, Session 0-2) — batch 2+ TBD              |
+| F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                        |
 | F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                      |
 | F3   | Where does the monolith's Postgres live?         | OPEN — due Session 1-1                                      |
 | F4   | Full model census for schema split               | OPEN — due Session 2-2                                      |
@@ -145,3 +145,103 @@ notifications,tier,user,market-data}` → zero matches;
   confirms `part-21` is the next free number.
 - Approved by: n/a (technical, within bounds — explicitly the non-convention-changing
   option; convention-changing alternative proposed above for Davin, not applied)
+
+## F1 — OpenAPI coverage scope: PUBLIC vs internal-only (batch 2: money domain — CLOSES F1)
+
+- Status: RESOLVED — F1 fully closed, both batches
+- Session: 0-3 · Date: 2026-07-17
+- Decision: **103 live `app/api/**`routes exist** (fresh`find app/api -name route.ts`,
+  confirmed twice — Session 0-2 and 0-3). Batch 1 (Session 0-2) accounted for 34. This
+  session accounts for the remaining 69, closing F1 for the whole system:
+  - **57 PUBLIC routes, spec'd**: checkout(2), subscription(2), invoices(1),
+    payments/dlocal(7), admin(19 — see deviation note below), affiliate(8),
+    disbursement(16, including the unauthenticated `health` endpoint), candles(1),
+    config/affiliate(1).
+  - **11 internal-only routes, spec'd with `security: []` + real mechanism documented**
+    (not excluded from the OpenAPI docs — Davin's explicit direction this session,
+    see consolidation entry below): webhooks/{stripe,dlocal,riseworks} (3, provider
+    signature-verified, externally triggered — not called by our frontend) and all 8
+    `cron/*` routes (`CRON_SECRET` bearer-gated, triggered by Vercel Cron infra, not
+    by frontend or provider).
+  - **1 excluded, logged with reason, not spec'd**: `test/seed` —
+    `NODE_ENV`-gated to development/test only (`ALLOWED_ENVIRONMENTS`), 403s in any
+    other environment; it's a test-harness fixture for E2E setup, not part of the
+    real product API surface, so it gets no OpenAPI entry, but it is not silently
+    dropped — logged here per the order's requirement.
+  - 34 + 57 + 11 + 1 = 103. Every route accounted for.
+- **Route-count drift (99 vs 103), reconciled:** the playbook's 99 is stale relative to
+  the live codebase; no single missing/extra route explains the gap precisely, but the
+  breakdown above is independently verified against `find app/api -name route.ts` twice.
+  Treat 103 as authoritative going forward, matching L8's "verify against live state,
+  don't trust an old written number."
+- **Deviation from playbook wording:** the playbook scoped this session to
+  `admin/affiliates` (10 of 19 `admin/**` routes). Extended to the full `admin` domain
+  (19 routes) because 9 routes (`analytics`, `api-usage`, `error-logs`, `users`,
+  `fraud-alerts`×2, `codes/{code}/cancel`, `commissions/pay`, `settings/affiliate`)
+  would otherwise be left uncovered by any session, and this order's own "Done when"
+  requires every `app/api/**` route accounted for. Small, in-bounds, no live code
+  touched — not escalated.
+- **Two findings surfaced (read-only — documented, not fixed):**
+  1. `app/api/cron/daily-maintenance/route.ts`'s own docstring claims it consolidates
+     `expire-codes` + `check-expiring-subscriptions` + `downgrade-expired-subscriptions`,
+     "reducing Vercel cron count from 4 to 2" — but `vercel.json` still independently
+     schedules all 8 cron routes, including all 3 of the ones it claims to supersede.
+     Production may be running duplicate maintenance work daily (idempotency of the
+     individual handlers not verified). Documented in the specs (part-12, part-17);
+     flagging here for Davin's attention — this is a live-code question, not a docs one.
+  2. `app/api/candles/[symbol]/route.ts` builds its PostgreSQL table name via string
+     interpolation (`` `${symbol}_${timeframe}` ``) directly into the SQL query, not a
+     parameterized identifier (Postgres doesn't support identifiers as bind params).
+     Input is constrained upstream (fixed `timeframe` enum, lowercased `symbol` path
+     segment) but this pattern is worth a dedicated security-review look — out of this
+     session's scope to fix, flagging for Davin.
+- Evidence: all 5 batch-2 domain specs + the `part-23` extension read/regenerated
+  directly against every live handler this session (see migration-stack-analysis.md
+  and the order's Deviations section for the full file list); route counts
+  cross-verified via `find app/api -name route.ts` and per-domain `find` counts;
+  `vercel.json` read directly for the cron-scheduling finding.
+- Approved by: n/a (technical scope classification within the order's explicit
+  instructions) for the classification itself; the admin-domain-expansion deviation is
+  logged per protocol, not separately escalated (small, in-bounds). The file-consolidation
+  approach (below) was explicitly approved by Davin mid-session.
+
+## Spec consolidation — batch-2 OpenAPI files (part-12/14/17/18/19)
+
+- Status: RESOLVED (Davin-approved mid-session)
+- Session: 0-3 · Date: 2026-07-17
+- Decision: the 5 pre-existing "likely batch-2" spec files
+  (`part-12-ecommerce-billing`, `part-14-admin-dashboard`, `part-17-affiliate`,
+  `part-18-dlocal-payment`, `part19-disbursement`) turned out to overlap heavily and
+  inconsistently — e.g. `payments/dlocal/*` and `webhooks/dlocal` were duplicated in
+  both part-12 and part-18; `admin/fraud-alerts` in both part-14 and part-18;
+  `admin/affiliates/*` (9 sub-paths) in both part-14 and part-17; `checkout/*` in both
+  part-12 and part-17; cron routes scattered redundantly across part-17/18/19.
+  `part-17` additionally had a **systematic bug**: every path was missing the `/api`
+  prefix (`/checkout` instead of `/api/checkout`, etc.) — wrong against every live
+  route, not just individually stale fields.
+  Presented three options to Davin (consolidate into clean non-overlapping files /
+  patch in place and leave overlap / decide per-file); **Davin chose full
+  consolidation**. Each of the 5 files is now the single sole owner of its domain
+  (see each file's own `info.description` for its exact route list and what moved
+  where); no route is documented in more than one file; the `/api` prefix bug in
+  part-17 is fixed. `part-16-utilities-infrastructure` was left untouched — it
+  documents `/internal/health` + `/internal/metrics`, paths that don't correspond to
+  any `app/api/**` route at all, so it was never actually a batch-2 candidate despite
+  CLAUDE.md's "5 existing specs" guess (there were 6 real candidates, one irrelevant).
+  `candles/[symbol]` (an uncovered leftover domain, not in any batch's named scope) was
+  added to `part-23-market-data-channel-openapi.yaml` (written Session 0-2) rather than
+  given its own single-route file, since it's topically the same market-data area.
+- Evidence: cross-file path-overlap grep before and after (zero duplicates remain,
+  confirmed via `grep -E '^  /' <all 5 files> | sort | uniq -d` → empty); all 5 files
+  - the part-23 extension parse as valid YAML (`js-yaml`, loaded via its resolved
+    `.pnpm` store path — `require()`-by-bare-name fails here the same way L7 describes
+    for `glob`; see LESSONS-LEARNED). Every path in every file was verified against its
+    live handler by the executing agent, not copied from the old spec unverified —
+    dozens of field-level corrections were found and fixed (see each file's
+    `info.description` for its own list); this is the same class of error L8 warned
+    about, now confirmed to be widespread across the batch-2 spec set, not isolated to
+    part-04/part-11.
+- Approved by: Davin (explicit choice among 3 presented options, mid-session
+  2026-07-17 — this was a material, boundary-touching decision affecting the file
+  inventory, correctly escalated per the Autonomy & Deviation clause rather than
+  decided unilaterally).

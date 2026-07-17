@@ -124,6 +124,13 @@ _(Seeded 2026-07-11 from documented repo history — verify each on first encoun
   `pnpm install --frozen-lockfile`; not yet fixed — candidate for a future session
   (add `glob` to devDependencies).
 - Source: git audit 2026-07-12 · Status: ACTIVE (not yet fixed)
+- **Recurred Session 0-3:** ad-hoc `node -e` YAML-validation script hit the same
+  `Cannot find module 'js-yaml'` on a bare `require()`, even though `js-yaml` and
+  `yaml` both exist under `node_modules/.pnpm/`. Workaround (not a fix — same
+  root cause as above, still not resolved): `require(path.resolve('node_modules/.pnpm/
+js-yaml@4.1.1/node_modules/js-yaml'))` — resolve the exact `.pnpm` path directly
+  instead of relying on hoisting. Generalizes L7 beyond `glob`: assume ANY package
+  used only in an ad-hoc script (not imported by real app/lib code) will hit this.
 
 ### L8 — An existing spec covering a domain by path may document a superseded architecture, not lag
 
@@ -142,6 +149,26 @@ _(Seeded 2026-07-11 from documented repo history — verify each on first encoun
 - Detect early: grep the relevant `lib/*-config.ts` for version/architecture comments
   ("V8", "single-symbol", etc.) before trusting any spec's tier/business-rule claims.
 - Source: Session 0-2 (F1 batch-1 triage) · Status: ACTIVE
+
+### L9 — "5 candidate specs for this domain" can mean overlapping files, not 5 clean choices
+
+- Symptom: 5 of 6 pre-existing OpenAPI specs for the money domain (`part-12`,
+  `part-14`, `part-17`, `part-18`, `part19`) each claimed some subset of the batch's
+  routes, but the subsets overlapped — e.g. `payments/dlocal/*` was fully duplicated
+  in both `part-12` and `part-18`; `admin/affiliates/*` (9 paths) in both `part-14`
+  and `part-17`. One file (`part-17`) additionally had every path missing the `/api`
+  prefix — a file-wide bug, not a per-field one.
+- Root cause: assumed "these filenames plausibly cover this domain" meant "each file
+  owns a disjoint slice" — never checked whether two files claimed the _same_ path
+  until diffing full path lists across all candidates side by side.
+- Rule: when triaging N "likely-covering" specs for a batch, first build the full
+  path list of every candidate file and diff for cross-file duplicates before
+  triaging any single file's accuracy. A path appearing in 2+ files is a
+  consolidation decision (who's the sole owner?) — escalate it, don't silently patch
+  both copies independently or you'll leave two specs free to drift apart again.
+- Detect early: `grep -E '^  /' <candidate files> | sort | uniq -d` — any output
+  means overlap exists before you've read a single field.
+- Source: Session 0-3 (F1 batch-2 triage) · Status: ACTIVE
 
 ---
 

@@ -1319,7 +1319,8 @@ _(Excludes `__pycache__/` and `.pytest_cache/` — compiled/test-cache artifacts
 <details>
 <summary><code>docs/</code> — 10 files (this snapshot predates most of `open-api-documents/`; only
 the subset relevant when last taken is listed — see the directory itself for the
-current full set, now 21 files across `part-02`…`part-23`)</summary>
+current full set, still 21 files across `part-02`…`part-23`, Session 0-3 touched
+content not file count)</summary>
 
 - `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md`
 - `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`
@@ -1327,10 +1328,26 @@ current full set, now 21 files across `part-02`…`part-23`)</summary>
 - `docs/open-api-documents/part-03-types-openapi.yaml`
 - `docs/open-api-documents/part-04-tier-system-openapi.yaml` (regenerated Session 0-2 — V8 model)
 - `docs/open-api-documents/part-07-indicators-tier-openapi.yaml`
+- `docs/open-api-documents/part-12-ecommerce-billing-openapi.yaml` (regenerated Session
+  0-3 — sole owner of checkout/subscription/invoices/webhooks-stripe/2 subscription
+  crons + daily-maintenance; dLocal payment routes removed, now solely in part-18)
+- `docs/open-api-documents/part-14-admin-dashboard-openapi.yaml` (regenerated Session
+  0-3 — sole owner of all 19 `admin/**` routes, absorbed fraud-alerts from part-18,
+  added the `code-flows` gap)
 - `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`
+- `docs/open-api-documents/part-17-affiliate-openapi.yaml` (regenerated Session 0-3 —
+  fixed a repo-wide missing-`/api`-prefix bug, sole owner of affiliate portal +
+  config/affiliate + 3 affiliate-code crons; admin/checkout/disbursement duplicates removed)
+- `docs/open-api-documents/part-18-dlocal-payment-openapi.yaml` (regenerated Session
+  0-3 — sole owner of payments/dlocal/\* + webhooks/dlocal; fraud-alerts and 2
+  subscription crons removed, now solely in part-14/part-12)
+- `docs/open-api-documents/part19-disbursement-openapi.yaml` (field-accuracy pass,
+  Session 0-3 — scope was already correct sole-owner, no routes moved)
 - `docs/open-api-documents/part-21-drawings-openapi.yaml` (new, Session 0-2)
 - `docs/open-api-documents/part-22-user-account-openapi.yaml` (new, Session 0-2)
-- `docs/open-api-documents/part-23-market-data-channel-openapi.yaml` (new, Session 0-2)
+- `docs/open-api-documents/part-23-market-data-channel-openapi.yaml` (new, Session 0-2;
+  extended Session 0-3 with `/api/candles/{symbol}`, a previously undocumented
+  unauthenticated leftover-domain route)
 
 </details>
 
