@@ -1,35 +1,61 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - E-commerce & Billing API (Part 12)
-  version: 1.0.0
+  version: 2.0.0
   description: |
-    E-commerce and Billing API for Trading Alerts SaaS platform (Part 12).
+    E-commerce and Billing API for Trading Alerts SaaS platform (Part 12) — Stripe
+    checkout, subscription management, invoices, the Stripe webhook, and the 3
+    billing-related cron jobs.
 
-    This API provides subscription management, checkout, payment processing, and billing operations.
+    **Generated:** 2026-07-17, Session 0-3, regenerated directly from live route
+    handlers — consolidated to remove duplicate coverage with part-18.
 
-    ## Features
-    - Stripe and dLocal payment integration
-    - Subscription management (create, cancel, view)
-    - Checkout session creation
-    - Invoice management
-    - Webhook handling for payment events
-    - Affiliate code validation and tracking
+    dLocal payment routes and their webhook, formerly duplicated here, are now
+    solely documented in `part-18-dlocal-payment-openapi.yaml` (Session 0-3
+    consolidation).
 
-    ## Payment Providers
-    - **Stripe**: Primary payment processor (global)
-    - **dLocal**: Alternative payment processor (8 emerging market countries: IN, NG, PK, VN, ID, TH, ZA, TR)
+    ## Scope (exactly 9 operations across 8 paths)
+    - `POST /api/checkout`
+    - `POST /api/checkout/validate-code`
+    - `GET /api/subscription`, `POST /api/subscription`
+    - `POST /api/subscription/cancel`
+    - `GET /api/invoices`
+    - `POST /api/webhooks/stripe`
+    - `GET /api/cron/check-expiring-subscriptions`
+    - `GET /api/cron/downgrade-expired-subscriptions`
+    - `GET /api/cron/daily-maintenance`
 
-    ## Subscription Plans
+    ## FINDING: `daily-maintenance` and `vercel.json` — likely duplicate cron execution
+    `app/api/cron/daily-maintenance/route.ts`'s own docstring describes itself as a
+    "consolidated daily cron job" that performs the same 3 tasks as `expire-codes` +
+    `check-expiring-subscriptions` + `downgrade-expired-subscriptions`, "reducing
+    Vercel cron count from 4 to 2." However, the repo-root `vercel.json` `crons[]`
+    array currently schedules **all 8** cron routes independently, including all 3
+    routes `daily-maintenance` claims to supersede:
+    - `check-expiring-subscriptions` — `0 0 * * *` (independent) AND embedded as
+      Task 2/3 inside `daily-maintenance` — `0 4 * * *`
+    - `downgrade-expired-subscriptions` — `0 1 * * *` (independent) AND embedded as
+      Task 3/3 inside `daily-maintenance`
+    - `expire-codes` (not in this spec's scope; see affiliate domain) — `59 23
+      28-31 * *` (independent) AND embedded as Task 1/3 inside `daily-maintenance`
+
+    None of the 3 superseded routes have been removed from `vercel.json`, so as of
+    this session all three appear to run **both independently and via the
+    consolidated job**, once daily each, potentially performing the same
+    database writes (expiring codes, marking renewal reminders, downgrading
+    users) twice per day. This is a read-only documentation session — the
+    discrepancy is flagged here for a human to reconcile (either delete the 3
+    superseded cron entries from `vercel.json`, or remove the consolidation logic
+    from `daily-maintenance`); no code or `vercel.json` changes were made.
+
+    ## Payment provider
+    - **Stripe** is the only payment provider documented in this file (subscriptions,
+      checkout, invoices, webhook). dLocal is Part 18.
+
+    ## Subscription plans
     - **FREE**: No payment required
-    - **PRO Monthly**: $29/month recurring (Stripe or dLocal)
-    - **PRO 3-Day**: $3 for 3 days (dLocal only, one-time per user)
-
-    ## dLocal Features
-    - Multi-currency support (8 currencies)
-    - Country-specific payment methods
-    - Currency conversion and exchange rates
-    - Three-day plan eligibility tracking
-    - Discount code validation
+    - **PRO Monthly**: $29.00/month recurring via Stripe Checkout (see
+      `AFFILIATE_CONFIG.BASE_PRICE_USD` in `lib/affiliate/constants.ts`)
 
   contact:
     name: API Support
@@ -48,186 +74,46 @@ security:
   - sessionAuth: []
 
 tags:
-  - name: Subscription
-    description: Subscription management
   - name: Checkout
-    description: Checkout and payment processing (Stripe)
+    description: Stripe Checkout session creation and affiliate code validation
+  - name: Subscription
+    description: Subscription retrieval and cancellation
   - name: Invoices
-    description: Invoice retrieval
+    description: Unified invoice history (Stripe + dLocal payments)
   - name: Webhooks
-    description: Payment provider webhooks
-  - name: dLocal Payments
-    description: dLocal payment integration for emerging markets
+    description: Payment provider webhooks (internal, non-session auth)
+  - name: Cron (Internal)
+    description: Vercel Cron-triggered maintenance jobs (internal, CRON_SECRET auth)
 
 paths:
-  /api/subscription:
-    get:
-      tags:
-        - Subscription
-      summary: Get current subscription
-      description: |
-        Retrieves the user's current subscription details including payment method and status.
-
-        **Supports:**
-        - Stripe subscriptions
-        - dLocal subscriptions
-        - FREE tier (no subscription)
-      operationId: getSubscription
-      responses:
-        '200':
-          description: Subscription retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubscriptionResponse'
-              examples:
-                freeUser:
-                  summary: FREE tier user
-                  value:
-                    tier: 'FREE'
-                    status: 'none'
-                    subscription: null
-                stripeProUser:
-                  summary: PRO tier with Stripe
-                  value:
-                    tier: 'PRO'
-                    status: 'active'
-                    subscription:
-                      id: 'sub_1234567890'
-                      status: 'active'
-                      provider: 'STRIPE'
-                      planType: 'MONTHLY'
-                      currentPeriodEnd: '2026-01-20T00:00:00.000Z'
-                      expiresAt: null
-                      cancelAtPeriodEnd: false
-                      trialEnd: null
-                      paymentMethod:
-                        brand: 'visa'
-                        last4: '4242'
-                        expiryMonth: 12
-                        expiryYear: 2026
-                      dLocalPaymentMethod: null
-                      dLocalCountry: null
-                dLocalProUser:
-                  summary: PRO tier with dLocal
-                  value:
-                    tier: 'PRO'
-                    status: 'active'
-                    subscription:
-                      id: 'dl_abc123'
-                      status: 'active'
-                      provider: 'DLOCAL'
-                      planType: 'THREE_DAY'
-                      currentPeriodEnd: null
-                      expiresAt: '2025-12-23T00:00:00.000Z'
-                      cancelAtPeriodEnd: false
-                      trialEnd: null
-                      paymentMethod: null
-                      dLocalPaymentMethod: 'pix'
-                      dLocalCountry: 'BR'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Unauthorized'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/subscription/cancel:
-    post:
-      tags:
-        - Subscription
-      summary: Cancel subscription
-      description: |
-        Cancels the user's active subscription.
-
-        **Behavior:**
-        - Subscription remains active until end of billing period
-        - Sets `cancelAtPeriodEnd` to true
-        - User retains PRO access until expiration
-        - Works with both Stripe and dLocal subscriptions
-      operationId: cancelSubscription
-      responses:
-        '200':
-          description: Subscription cancelled successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CancelSubscriptionResponse'
-              example:
-                message: 'Subscription cancelled successfully'
-                cancelAtPeriodEnd: true
-                currentPeriodEnd: '2026-01-20T00:00:00.000Z'
-        '400':
-          description: No active subscription
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                noSubscription:
-                  summary: No subscription found
-                  value:
-                    error: 'No subscription'
-                    message: 'No active subscription found to cancel'
-                    code: 'NO_SUBSCRIPTION'
-                alreadyCancelled:
-                  summary: Already cancelled
-                  value:
-                    error: 'Already cancelled'
-                    message: 'Subscription is already set to cancel'
-                    code: 'ALREADY_CANCELLED'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /api/checkout:
     post:
-      tags:
-        - Checkout
-      summary: Create checkout session
+      tags: [Checkout]
+      summary: Create a Stripe Checkout session for PRO upgrade
       description: |
-        Creates a Stripe Checkout session for upgrading to PRO tier.
+        Creates a Stripe Checkout session for the session user to upgrade to PRO.
+        Accepts an optional affiliate code in the request body; if present, it is
+        looked up and validated (active, unexpired, affiliate profile active)
+        server-side and its discount is applied to the Checkout session price
+        *before* redirect, so the customer is actually charged the discounted
+        amount.
 
-        **Process:**
-        1. Validates user is not already PRO
-        2. Optionally validates affiliate code
-        3. Creates Stripe Checkout session
-        4. Returns redirect URL to Stripe payment page
-
-        **After Payment:**
-        - Stripe webhook updates subscription
-        - User is redirected to success/cancel URL
+        **Implementation:** `app/api/checkout/route.ts` (POST)
       operationId: createCheckoutSession
       requestBody:
+        required: false
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CheckoutRequest'
             examples:
               withoutAffiliateCode:
-                summary: Checkout without affiliate
+                summary: Checkout without affiliate code (body may be omitted entirely)
                 value: {}
               withAffiliateCode:
                 summary: Checkout with affiliate code
                 value:
-                  affiliateCode: 'PARTNER123'
+                  affiliateCode: 'PARTNER1'
       responses:
         '200':
           description: Checkout session created successfully
@@ -239,7 +125,7 @@ paths:
                 sessionId: 'cs_test_a1b2c3d4e5f6g7h8i9j0'
                 url: 'https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0'
         '400':
-          description: Invalid request
+          description: Bad request (already PRO, no email on account, or invalid affiliate code)
           content:
             application/json:
               schema:
@@ -252,37 +138,65 @@ paths:
                     message: 'You are already on the PRO tier'
                     code: 'ALREADY_PRO'
                 emailRequired:
-                  summary: Email missing
+                  summary: Account has no email address
                   value:
                     error: 'Email required'
                     message: 'Your account must have an email address to upgrade'
                     code: 'EMAIL_REQUIRED'
+                invalidAffiliateCode:
+                  summary: Affiliate code invalid, expired, or affiliate profile inactive
+                  value:
+                    error: 'Invalid code'
+                    message: 'This affiliate code is invalid or expired'
+                    code: 'INVALID_AFFILIATE_CODE'
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                message: 'You must be logged in to upgrade'
+                code: 'UNAUTHORIZED'
         '500':
-          description: Internal server error
+          description: Internal server error (Stripe misconfiguration or unexpected failure)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                stripeConfigError:
+                  summary: STRIPE_PRO_PRICE_ID not configured
+                  value:
+                    error: 'Configuration error'
+                    message: 'Stripe is not properly configured'
+                    code: 'STRIPE_CONFIG_ERROR'
+                checkoutError:
+                  summary: Generic checkout failure
+                  value:
+                    error: 'Checkout failed'
+                    message: 'Failed to create checkout session. Please try again.'
+                    code: 'CHECKOUT_ERROR'
 
   /api/checkout/validate-code:
     post:
-      tags:
-        - Checkout
-      summary: Validate affiliate code
+      tags: [Checkout]
+      summary: Validate an affiliate discount code
       description: |
-        Validates an affiliate promotional code before checkout.
+        Validates an affiliate promotional code before checkout and returns its
+        discount details. **Unauthenticated** (no session required) — protected
+        instead by a per-IP rate limit (10 requests / 60s, key prefix
+        `ratelimit:code-validate`) to deter code enumeration.
 
-        **Returns:**
-        - Code validity
-        - Affiliate information
-        - Discount information (if applicable)
+        Validation order: rate limit -> code present -> code format (8 uppercase
+        alphanumeric characters, via `affiliateCodeSchema`) -> code exists ->
+        code status is `ACTIVE` -> code not expired (`expiresAt <= now` is treated
+        as expired) -> affiliate profile status is `ACTIVE`.
+
+        **Implementation:** `app/api/checkout/validate-code/route.ts` (POST)
       operationId: validateAffiliateCode
+      security: []
       requestBody:
         required: true
         content:
@@ -290,55 +204,338 @@ paths:
             schema:
               $ref: '#/components/schemas/ValidateCodeRequest'
             example:
-              code: 'PARTNER123'
+              code: 'partner1'
       responses:
         '200':
-          description: Code validation result
+          description: Code is valid; discount details included
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidateCodeResponse'
+                $ref: '#/components/schemas/ValidateCodeSuccessResponse'
+              example:
+                valid: true
+                code: 'PARTNER1'
+                affiliateId: 'clx9z8y7w6v5u4t3s2r1q0'
+                discount:
+                  percent: 20
+                  amount: 5.8
+                  regularPrice: 29.0
+                  finalPrice: 23.2
+                message: '20% discount will be applied!'
+        '400':
+          description: Missing code, invalid format, code not active, code expired, or affiliate inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateCodeErrorResponse'
               examples:
-                validCode:
-                  summary: Valid affiliate code
-                  value:
-                    valid: true
-                    code: 'PARTNER123'
-                    affiliateName: 'Tech Partner'
-                    discount: null
-                invalidCode:
-                  summary: Invalid code
+                codeRequired:
+                  summary: No code in request body
                   value:
                     valid: false
-                    error: 'Code not found or inactive'
+                    error: 'Code required'
+                    message: 'Please provide an affiliate code'
+                    code: 'CODE_REQUIRED'
+                invalidFormat:
+                  summary: Code is not 8 uppercase alphanumeric characters
+                  value:
+                    valid: false
+                    error: 'Invalid code format'
+                    message: 'Code must be 8 alphanumeric characters'
+                    code: 'INVALID_FORMAT'
+                codeNotActive:
+                  summary: 'Code status is USED, EXPIRED, or CANCELLED'
+                  value:
+                    valid: false
+                    error: 'Code not active'
+                    message: 'This code has already been used'
+                    code: 'CODE_NOT_ACTIVE'
+                codeExpired:
+                  summary: 'expiresAt <= now (inclusive)'
+                  value:
+                    valid: false
+                    error: 'Code expired'
+                    message: 'This affiliate code has expired'
+                    code: 'CODE_EXPIRED'
+                affiliateInactive:
+                  summary: Owning affiliate profile is not ACTIVE
+                  value:
+                    valid: false
+                    error: 'Affiliate inactive'
+                    message: 'This affiliate is not currently active'
+                    code: 'AFFILIATE_INACTIVE'
+        '404':
+          description: Code does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateCodeErrorResponse'
+              example:
+                valid: false
+                error: 'Invalid code'
+                message: 'This affiliate code does not exist'
+                code: 'CODE_NOT_FOUND'
+        '429':
+          description: Rate limited (10 requests / 60s per IP)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateCodeErrorResponse'
+              example:
+                valid: false
+                error: 'Rate limited'
+                message: 'Too many attempts. Please try again later.'
+                code: 'RATE_LIMITED'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateCodeErrorResponse'
+              example:
+                valid: false
+                error: 'Validation failed'
+                message: 'Failed to validate affiliate code'
+                code: 'VALIDATION_ERROR'
+
+  /api/subscription:
+    get:
+      tags: [Subscription]
+      summary: Get the session user's current subscription
+      description: |
+        Returns unified subscription details covering both Stripe and dLocal
+        providers (the `provider`, `dLocalPaymentMethod`, `dLocalCountry` fields
+        exist for dLocal subscriptions surfaced through this shared endpoint;
+        dLocal payment *creation* itself is documented in Part 18). If a Stripe
+        subscription ID is on file, live Stripe data (cancel-at-period-end,
+        trial end, card brand/last4/expiry) is fetched and merged in; Stripe
+        fetch failures are swallowed and the response falls back to database-only
+        fields.
+
+        **Implementation:** `app/api/subscription/route.ts` (GET)
+      operationId: getSubscription
+      responses:
+        '200':
+          description: Subscription retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+              examples:
+                freeUser:
+                  summary: FREE tier, no subscription
+                  value:
+                    tier: 'FREE'
+                    status: 'none'
+                    subscription: null
+                stripeProUser:
+                  summary: PRO tier via Stripe
+                  value:
+                    tier: 'PRO'
+                    status: 'active'
+                    subscription:
+                      id: 'clsub1234567890'
+                      status: 'active'
+                      provider: 'STRIPE'
+                      planType: null
+                      currentPeriodEnd: '2026-08-17T00:00:00.000Z'
+                      expiresAt: null
+                      cancelAtPeriodEnd: false
+                      trialEnd: null
+                      paymentMethod:
+                        brand: 'visa'
+                        last4: '4242'
+                        expiryMonth: 12
+                        expiryYear: 2027
+                      dLocalPaymentMethod: null
+                      dLocalCountry: null
+                dLocalProUser:
+                  summary: PRO tier via dLocal
+                  value:
+                    tier: 'PRO'
+                    status: 'active'
+                    subscription:
+                      id: 'clsub0987654321'
+                      status: 'active'
+                      provider: 'DLOCAL'
+                      planType: 'THREE_DAY'
+                      currentPeriodEnd: null
+                      expiresAt: '2026-07-20T00:00:00.000Z'
+                      cancelAtPeriodEnd: false
+                      trialEnd: null
+                      paymentMethod: null
+                      dLocalPaymentMethod: 'upi'
+                      dLocalCountry: 'IN'
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Unauthorized'
+        '404':
+          description: Session user has no corresponding database record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'User not found'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Failed to fetch subscription'
+
+    post:
+      tags: [Subscription]
+      summary: Create/upgrade to PRO subscription (thin proxy to /api/checkout)
+      description: |
+        This route does not create a subscription itself — it forwards the
+        request body and `cookie` header to `POST /api/checkout` via an internal
+        `fetch()` call and relays that response (body and status code) back
+        unchanged. It exists as a stable alias; all real checkout logic lives in
+        `/api/checkout` (see that path for the full set of body fields and error
+        codes). A network/fetch-level failure calling the internal checkout
+        endpoint is caught separately and returns a generic 500.
+
+        **Implementation:** `app/api/subscription/route.ts` (POST)
+      operationId: createSubscription
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+            example:
+              affiliateCode: 'PARTNER1'
+      responses:
+        '200':
+          description: Relayed 200 response from /api/checkout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+              example:
+                sessionId: 'cs_test_a1b2c3d4e5f6g7h8i9j0'
+                url: 'https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0'
         '400':
-          description: Invalid request
+          description: Relayed error response from /api/checkout (see that path for exact codes)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Relayed 401 from /api/checkout (session required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Either a relayed 500 from /api/checkout, or this route's own fetch-level failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Failed to create subscription'
+
+  /api/subscription/cancel:
+    post:
+      tags: [Subscription]
+      summary: Cancel the session user's PRO subscription
+      description: |
+        Immediately cancels the Stripe subscription (best-effort — a Stripe API
+        failure here is logged and swallowed, relying on the webhook to
+        eventually sync status) and immediately downgrades the user to FREE tier
+        in the database (`tier: 'FREE'`, `trialStatus: 'CANCELLED'`) and sets the
+        local `Subscription.status` to `CANCELED`. This is an immediate
+        cancel-and-downgrade, not a cancel-at-period-end. Attempts to send a
+        cancellation email best-effort (failure does not fail the request).
+
+        **Implementation:** `app/api/subscription/cancel/route.ts` (POST)
+      operationId: cancelSubscription
+      responses:
+        '200':
+          description: Subscription cancelled and user downgraded to FREE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelSubscriptionResponse'
+              example:
+                success: true
+                message: 'Subscription cancelled successfully'
+                tier: 'FREE'
+        '400':
+          description: User is already on FREE tier / has no subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'No subscription'
+                message: "You don't have an active PRO subscription"
+                code: 'NO_SUBSCRIPTION'
+        '401':
+          description: Unauthorized - session required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Unauthorized'
+                message: 'You must be logged in to cancel subscription'
+                code: 'UNAUTHORIZED'
+        '404':
+          description: Session user has no corresponding database record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'User not found'
+                message: 'User account not found'
+                code: 'USER_NOT_FOUND'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Cancellation failed'
+                message: 'Failed to cancel subscription. Please try again.'
+                code: 'CANCEL_ERROR'
 
   /api/invoices:
     get:
-      tags:
-        - Invoices
-      summary: List user's invoices
+      tags: [Invoices]
+      summary: List the session user's unified invoice/payment history
       description: |
-        Retrieves all invoices for the authenticated user's subscription.
+        Merges completed dLocal payments (`Payment` records with `provider:
+        DLOCAL`, `status: COMPLETED`) with Stripe invoices (fetched live from
+        Stripe if the user has a `stripeCustomerId`), sorts the combined list by
+        date descending, then applies `limit`. dLocal amounts are already in USD
+        (`payment.amountUSD`); Stripe amounts arrive in cents and are converted
+        to dollars (`amount_paid / 100`). A Stripe API failure while fetching
+        invoices is logged and swallowed — dLocal invoices are still returned.
 
-        **Includes:**
-        - Invoice ID and number
-        - Amount and currency
-        - Payment status
-        - Invoice date
-        - Download URL (PDF)
+        **Implementation:** `app/api/invoices/route.ts` (GET)
       operationId: getInvoices
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Max invoices to return, clamped to [1, 100]
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 12
       responses:
         '200':
           description: Invoices retrieved successfully
@@ -348,591 +545,391 @@ paths:
                 $ref: '#/components/schemas/InvoicesResponse'
               example:
                 invoices:
-                  - id: 'in_1234567890'
-                    number: 'INV-2025-001'
-                    amount: 2900
-                    currency: 'usd'
+                  - id: 'in_1P2q3R4s5T6u7V8w'
+                    date: '2026-07-01T00:00:00.000Z'
+                    amount: 29.0
+                    currency: 'USD'
                     status: 'paid'
-                    date: '2025-12-20T00:00:00.000Z'
-                    pdfUrl: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
-                  - id: 'in_0987654321'
-                    number: 'INV-2025-002'
-                    amount: 2900
-                    currency: 'usd'
+                    description: 'Trading Alerts PRO - Monthly'
+                    invoicePdfUrl: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
+                    provider: 'STRIPE'
+                    planType: 'MONTHLY'
+                  - id: 'clpay0987654321'
+                    date: '2026-06-14T00:00:00.000Z'
+                    amount: 3.0
+                    currency: 'USD'
                     status: 'paid'
-                    date: '2025-11-20T00:00:00.000Z'
-                    pdfUrl: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
+                    description: 'Trading Alerts PRO - 3 Day'
+                    invoicePdfUrl: null
+                    provider: 'DLOCAL'
+                    planType: 'THREE_DAY'
+                hasMore: false
         '401':
-          description: Unauthorized
+          description: Unauthorized - session required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Unauthorized'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Failed to fetch invoices'
 
   /api/webhooks/stripe:
     post:
-      tags:
-        - Webhooks
-      summary: Stripe webhook handler
+      tags: [Webhooks]
+      summary: Stripe webhook event receiver
       description: |
-        Handles Stripe webhook events for subscription and payment updates.
+        **Not session-authenticated — internal-only, triggered externally by
+        Stripe.** Auth is via signature verification: the raw request body plus
+        the `stripe-signature` header are passed to `constructWebhookEvent(body,
+        signature)`, which throws on an invalid/missing signature. `security: []`
+        below reflects this; there is no `sessionAuth` requirement on this route.
 
-        **Handled Events:**
-        - `checkout.session.completed`: New subscription created
-        - `customer.subscription.updated`: Subscription modified
-        - `customer.subscription.deleted`: Subscription cancelled
-        - `invoice.payment_succeeded`: Payment successful
-        - `invoice.payment_failed`: Payment failed
+        Handles: `checkout.session.completed`, `customer.subscription.updated`,
+        `customer.subscription.deleted`, `invoice.payment_failed`,
+        `invoice.payment_succeeded`. Unrecognized event types are logged and
+        acknowledged with 200 (not an error).
 
-        **Security:**
-        - Validates Stripe signature
-        - Rejects invalid signatures (401)
+        **Error-handling asymmetry (by design):** if the handler for
+        `checkout.session.completed` or `customer.subscription.deleted` throws,
+        this route returns **500** (`{"error": "Webhook handler failed"}`) so
+        Stripe retries delivery, since these are considered critical events. If
+        any other event's handler throws, it returns **200** with a `warning`
+        field instead, to avoid infinite Stripe retries on non-critical events.
+
+        **Implementation:** `app/api/webhooks/stripe/route.ts` (POST).
+        `export const dynamic = 'force-dynamic'` disables response caching (not
+        request body parsing — the raw body is read via `request.text()` inside
+        the handler for signature verification).
       operationId: handleStripeWebhook
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Stripe webhook event payload
       parameters:
         - name: stripe-signature
           in: header
           required: true
-          description: Stripe webhook signature
+          description: Stripe webhook signature, verified via constructWebhookEvent()
           schema:
             type: string
-      responses:
-        '200':
-          description: Webhook processed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  received:
-                    type: boolean
-                    example: true
-        '400':
-          description: Invalid signature or event
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Webhook processing error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/create:
-    post:
-      tags:
-        - dLocal Payments
-      summary: Create dLocal payment
-      description: |
-        Creates a new dLocal payment for subscription.
-
-        **Supports:**
-        - 8 countries: IN, NG, PK, VN, ID, TH, ZA, TR
-        - 8 currencies: INR, NGN, PKR, VND, IDR, THB, ZAR, TRY
-        - Country-specific payment methods
-        - THREE_DAY and MONTHLY plans
-        - Optional discount codes (MONTHLY only)
-
-        **Restrictions:**
-        - THREE_DAY plan: One-time per user
-        - Discount codes: MONTHLY plan only
-        - User must not have active PRO subscription
-
-        **Process:**
-        1. Validates user eligibility
-        2. Converts USD to local currency
-        3. Creates payment record in database
-        4. Calls dLocal API to create payment
-        5. Returns payment URL for redirect
-      operationId: createDLocalPayment
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateDLocalPaymentRequest'
-            examples:
-              threeDayPlan:
-                summary: 3-day plan (India, UPI)
-                value:
-                  country: 'IN'
-                  paymentMethod: 'upi'
-                  planType: 'THREE_DAY'
-                  currency: 'INR'
-              monthlyPlan:
-                summary: Monthly plan with discount (Nigeria, Card)
-                value:
-                  country: 'NG'
-                  paymentMethod: 'card'
-                  planType: 'MONTHLY'
-                  currency: 'NGN'
-                  discountCode: 'SAVE20'
-      responses:
-        '200':
-          description: Payment created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DLocalPaymentResponse'
-              example:
-                paymentId: 'dlocal-1234567890'
-                orderId: 'order-user123-1705432100000'
-                paymentUrl: 'https://sandbox.dlocal.com/pay/dlocal-1234567890'
-                status: 'PENDING'
-                amount:
-                  local: 2465
-                  usd: 29
-                  currency: 'INR'
-                exchangeRate: 85.0
-                planType: 'MONTHLY'
-                planDuration: 2592000
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalidPaymentMethod:
-                  value:
-                    error: 'Invalid payment method for this country'
-                    country: 'IN'
-                    paymentMethod: 'pix'
-                threeDayAlreadyUsed:
-                  value:
-                    error: 'You have already used the 3-day plan. Please choose the monthly plan.'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Not allowed (already has subscription)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'You already have an active subscription'
-        '500':
-          description: Payment creation failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/{paymentId}:
-    get:
-      tags:
-        - dLocal Payments
-      summary: Get dLocal payment status
-      description: |
-        Retrieves the status of a dLocal payment.
-
-        **Returns:**
-        - Payment record from database
-        - Current status from dLocal API
-        - Payment details (amount, currency, plan)
-      operationId: getDLocalPaymentStatus
-      security: []
-      parameters:
-        - name: paymentId
-          in: path
-          required: true
-          description: Payment ID
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Payment status retrieved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentStatusResponse'
-              example:
-                id: 'pay_abc123'
-                paymentId: 'dlocal-1234567890'
-                orderId: 'order-user123-1705432100000'
-                status: 'COMPLETED'
-                amount: '2465.00'
-                currency: 'INR'
-                planType: 'MONTHLY'
-                createdAt: '2025-12-20T10:30:00.000Z'
-                dLocalStatus:
-                  id: 'dlocal-1234567890'
-                  status: 'PAID'
-                  amount: 2465
-                  currency: 'INR'
-        '404':
-          description: Payment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Failed to retrieve status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/methods:
-    get:
-      tags:
-        - dLocal Payments
-      summary: Get payment methods for country
-      description: |
-        Returns available payment methods for a specific dLocal country.
-
-        **Supported Countries:**
-        - IN (India): UPI, Card, NetBanking, Wallets
-        - NG (Nigeria): Card, Bank Transfer, USSD
-        - PK (Pakistan): Card, Bank Transfer, Wallets
-        - VN (Vietnam): Card, Bank Transfer, Wallets
-        - ID (Indonesia): Card, Bank Transfer, E-wallets
-        - TH (Thailand): Card, Bank Transfer, PromptPay
-        - ZA (South Africa): Card, EFT
-        - TR (Turkey): Card, Bank Transfer
-      operationId: getDLocalPaymentMethods
-      security: []
-      parameters:
-        - name: country
-          in: query
-          required: true
-          description: ISO 2-letter country code
-          schema:
-            type: string
-            enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
-        - name: detailed
-          in: query
-          required: false
-          description: Return detailed method info with names and types
-          schema:
-            type: boolean
-            default: false
-      responses:
-        '200':
-          description: Payment methods retrieved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentMethodsResponse'
-              examples:
-                simple:
-                  summary: Simple list
-                  value:
-                    country: 'IN'
-                    methods: ['upi', 'card', 'netbanking', 'wallets']
-                detailed:
-                  summary: Detailed list
-                  value:
-                    country: 'IN'
-                    methods:
-                      - id: 'upi'
-                        name: 'UPI'
-                        type: 'bank_transfer'
-                      - id: 'card'
-                        name: 'Credit/Debit Card'
-                        type: 'card'
-        '400':
-          description: Invalid or unsupported country
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Invalid or unsupported country'
-                supportedCountries: ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
-        '500':
-          description: Failed to get payment methods
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/exchange-rate:
-    get:
-      tags:
-        - dLocal Payments
-      summary: Get exchange rate
-      description: |
-        Returns the current exchange rate from USD to the specified currency.
-
-        **Supported Currencies:**
-        - INR (Indian Rupee)
-        - NGN (Nigerian Naira)
-        - PKR (Pakistani Rupee)
-        - VND (Vietnamese Dong)
-        - IDR (Indonesian Rupiah)
-        - THB (Thai Baht)
-        - ZAR (South African Rand)
-        - TRY (Turkish Lira)
-      operationId: getExchangeRate
-      security: []
-      parameters:
-        - name: currency
-          in: query
-          required: true
-          description: 3-letter currency code
-          schema:
-            type: string
-            enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
-      responses:
-        '200':
-          description: Exchange rate retrieved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExchangeRateResponse'
-              example:
-                currency: 'INR'
-                rate: 85.0
-                baseCurrency: 'USD'
-                timestamp: '2025-12-20T10:30:00.000Z'
-        '400':
-          description: Invalid or unsupported currency
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Failed to get exchange rate
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/convert:
-    post:
-      tags:
-        - dLocal Payments
-      summary: Convert USD to local currency
-      description: |
-        Converts a USD amount to local currency using current exchange rates.
-
-        **Use Case:**
-        - Preview pricing in local currency before payment
-        - Display converted amounts in checkout UI
-      operationId: convertCurrency
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CurrencyConvertRequest'
-            example:
-              usdAmount: 29
-              currency: 'INR'
-      responses:
-        '200':
-          description: Currency converted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CurrencyConvertResponse'
-              example:
-                localAmount: 2465
-                currency: 'INR'
-                exchangeRate: 85.0
-                usdAmount: 29
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Conversion failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/check-three-day-eligibility:
-    get:
-      tags:
-        - dLocal Payments
-      summary: Check 3-day plan eligibility
-      description: |
-        Checks if the authenticated user is eligible for the 3-day plan.
-
-        **Eligibility Criteria:**
-        - User must not have used the 3-day plan before
-        - User must not have active PRO subscription
-
-        **Returns:**
-        - eligible: boolean
-        - reason: string (if not eligible)
-      operationId: checkThreeDayEligibility
-      responses:
-        '200':
-          description: Eligibility check completed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ThreeDayEligibilityResponse'
-              examples:
-                eligible:
-                  summary: User is eligible
-                  value:
-                    eligible: true
-                notEligible:
-                  summary: User not eligible
-                  value:
-                    eligible: false
-                    reason: 'You have already used the 3-day plan'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Failed to check eligibility
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/validate-discount:
-    post:
-      tags:
-        - dLocal Payments
-      summary: Validate discount code for dLocal
-      description: |
-        Validates a discount code for dLocal monthly plan payments.
-
-        **Note:**
-        - Discount codes only valid for MONTHLY plans
-        - Not applicable to THREE_DAY plans
-      operationId: validateDLocalDiscount
-      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - code
-              properties:
-                code:
-                  type: string
-                  description: Discount code to validate
-                  example: 'SAVE20'
+              description: Raw Stripe event payload (Stripe.Event) - shape varies by event.type
+              additionalProperties: true
       responses:
         '200':
-          description: Discount validation result
+          description: Event processed (or acknowledged with a non-critical handler warning)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DiscountValidationResponse'
+                $ref: '#/components/schemas/StripeWebhookAckResponse'
               examples:
-                valid:
-                  summary: Valid discount code
+                received:
+                  summary: Normal acknowledgement
                   value:
-                    valid: true
-                    code: 'SAVE20'
-                    discountPercent: 20
-                    message: '20% discount will be applied'
-                invalid:
-                  summary: Invalid discount code
+                    received: true
+                receivedWithWarning:
+                  summary: Non-critical event type's handler threw; acknowledged anyway to stop retries
                   value:
-                    valid: false
-                    error: 'Discount code not found or expired'
+                    received: true
+                    warning: 'Handler error'
         '400':
-          description: Invalid request
+          description: Missing or invalid stripe-signature header
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              examples:
+                missingSignature:
+                  value:
+                    error: 'Missing stripe-signature header'
+                badSignature:
+                  value:
+                    error: 'Webhook signature verification failed: No signatures found matching the expected signature for payload'
         '500':
-          description: Validation failed
+          description: Critical event handler failure (triggers Stripe retry), or an unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              examples:
+                criticalHandlerFailed:
+                  summary: 'checkout.session.completed or customer.subscription.deleted handler threw'
+                  value:
+                    error: 'Webhook handler failed'
+                unexpected:
+                  value:
+                    error: 'Unexpected webhook error'
 
-  /api/webhooks/dlocal:
-    post:
-      tags:
-        - Webhooks
-      summary: dLocal webhook handler
+  /api/cron/check-expiring-subscriptions:
+    get:
+      tags: [Cron (Internal)]
+      summary: 'Cron: mark dLocal subscriptions expiring in 3 days for reminder'
       description: |
-        Handles dLocal webhook events for payment updates.
+        **Not session-authenticated — internal-only, triggered by Vercel Cron**
+        (`vercel.json`: `0 0 * * *`, daily at 00:00 UTC), reachable by anyone who
+        has `CRON_SECRET`. Auth is `Authorization: Bearer <CRON_SECRET>`, compared
+        by exact string match; missing/wrong header -> 401. `security: []` below
+        reflects this; there is no `sessionAuth` requirement on this route. If the
+        `CRON_SECRET` env var itself is unset server-side, returns 500 before
+        checking the header.
 
-        **Handled Events:**
-        - Payment completed: Activates PRO subscription
-        - Payment failed: Updates payment status
-        - Payment cancelled: Updates payment status
-        - Payment refunded: Deactivates subscription
+        Delegates to `checkExpiringSubscriptions()` (`lib/cron/check-expiring-
+        subscriptions.ts`) to find dLocal subscriptions expiring within 3 days and
+        mark reminders; actual email sending is a documented TODO not yet wired up.
 
-        **Security:**
-        - Validates dLocal webhook signature
-        - Rejects invalid signatures (401)
+        **See the top-level spec description for a documented redundancy finding:**
+        this same logic also runs as Task 2/3 inside `GET
+        /api/cron/daily-maintenance`, and both are independently scheduled in
+        `vercel.json`.
 
-        **Processing:**
-        1. Verifies webhook signature
-        2. Extracts payment ID and status
-        3. Updates payment record
-        4. Creates/updates subscription if payment successful
-        5. Sends confirmation email
-      operationId: handleDLocalWebhook
+        **Implementation:** `app/api/cron/check-expiring-subscriptions/route.ts` (GET)
+      operationId: cronCheckExpiringSubscriptions
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: dLocal webhook event payload
       parameters:
-        - name: x-signature
+        - name: Authorization
           in: header
           required: true
-          description: dLocal webhook signature
+          description: 'Bearer <CRON_SECRET>'
           schema:
             type: string
+            example: 'Bearer <CRON_SECRET>'
       responses:
         '200':
-          description: Webhook processed successfully
+          description: Job completed (may include partial per-item errors)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  received:
-                    type: boolean
-                    example: true
-        '400':
-          description: Invalid signature or event
+                $ref: '#/components/schemas/CheckExpiringSubscriptionsResponse'
+              example:
+                success: true
+                message: 'Found 2 expiring subscriptions, 2 reminders marked'
+                processed: 2
+                reminders:
+                  - userId: 'cluser1234567890'
+                    email: 'trader1@example.com'
+                    expiresAt: '2026-07-20T00:00:00.000Z'
+                  - userId: 'cluser0987654321'
+                    email: 'trader2@example.com'
+                    expiresAt: '2026-07-19T12:00:00.000Z'
+                errors: []
+                duration: '142ms'
+        '401':
+          description: Missing or incorrect Authorization bearer token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Unauthorized'
         '500':
-          description: Webhook processing error
+          description: 'CRON_SECRET not configured server-side, or the job threw'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              examples:
+                notConfigured:
+                  value:
+                    error: 'Server configuration error'
+                jobFailed:
+                  value:
+                    error: 'Cron job failed'
+
+  /api/cron/downgrade-expired-subscriptions:
+    get:
+      tags: [Cron (Internal)]
+      summary: 'Cron: downgrade users with an expired dLocal subscription to FREE'
+      description: |
+        **Not session-authenticated — internal-only, triggered by Vercel Cron**
+        (`vercel.json`: `0 1 * * *`, daily at 01:00 UTC), reachable by anyone who
+        has `CRON_SECRET`. Auth is `Authorization: Bearer <CRON_SECRET>`, compared
+        by exact string match; missing/wrong header -> 401. `security: []` below
+        reflects this; there is no `sessionAuth` requirement on this route. If the
+        `CRON_SECRET` env var itself is unset server-side, returns 500 before
+        checking the header.
+
+        Delegates to `downgradeExpiredSubscriptions()` (`lib/cron/downgrade-
+        expired-subscriptions.ts`) to find expired dLocal subscriptions and
+        downgrade the owning users to FREE tier; downgrade-notification emails are
+        a documented TODO not yet wired up (notifications are created directly in
+        the service instead).
+
+        **See the top-level spec description for a documented redundancy finding:**
+        this same logic also runs as Task 3/3 inside `GET
+        /api/cron/daily-maintenance`, and both are independently scheduled in
+        `vercel.json`.
+
+        **Implementation:** `app/api/cron/downgrade-expired-subscriptions/route.ts` (GET)
+      operationId: cronDowngradeExpiredSubscriptions
+      security: []
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: 'Bearer <CRON_SECRET>'
+          schema:
+            type: string
+            example: 'Bearer <CRON_SECRET>'
+      responses:
+        '200':
+          description: Job completed (may include partial per-item errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DowngradeExpiredSubscriptionsResponse'
+              example:
+                success: true
+                message: 'Downgraded 1 users'
+                processed: 4
+                downgrades:
+                  - userId: 'cluser1122334455'
+                    email: 'trader3@example.com'
+                    expiredAt: '2026-07-16T00:00:00.000Z'
+                errors: []
+                duration: '98ms'
+        '401':
+          description: Missing or incorrect Authorization bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Unauthorized'
+        '500':
+          description: 'CRON_SECRET not configured server-side, or the job threw'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              examples:
+                notConfigured:
+                  value:
+                    error: 'Server configuration error'
+                jobFailed:
+                  value:
+                    error: 'Cron job failed'
+
+  /api/cron/daily-maintenance:
+    get:
+      tags: [Cron (Internal)]
+      summary: 'Cron: consolidated daily maintenance (expire codes + expiring-reminder + downgrade)'
+      description: |
+        **Not session-authenticated — internal-only, triggered by Vercel Cron**
+        (`vercel.json`: `0 4 * * *`, daily at 04:00 UTC), reachable by anyone who
+        has `CRON_SECRET`. Auth is `Authorization: Bearer <CRON_SECRET>`, compared
+        by exact string match; missing/wrong header -> 401. `security: []` below
+        reflects this; there is no `sessionAuth` requirement on this route. If the
+        `CRON_SECRET` env var itself is unset server-side, returns 500 before
+        checking the header.
+
+        Runs 3 tasks in sequence, each independently try/caught so one task's
+        failure doesn't block the others:
+        1. Expire affiliate codes (`prisma.affiliateCode.updateMany` where
+           `status: ACTIVE` and `expiresAt <= now` -> `status: EXPIRED`)
+        2. `checkExpiringSubscriptions()` (3-day reminder marking)
+        3. `downgradeExpiredSubscriptions()`
+
+        The route's own docstring states this consolidation is meant to reduce
+        the Vercel cron count from 4 to 2. **DOCUMENTED FINDING (see top-level
+        spec description for full detail): `vercel.json` still independently
+        schedules `expire-codes`, `check-expiring-subscriptions`, and
+        `downgrade-expired-subscriptions` as their own cron entries alongside
+        `daily-maintenance` — all 8 entries are present, none removed — so this
+        route's 3 tasks currently appear to duplicate work already done by 3
+        other crons, once per day each.** Not fixed in this session (read-only
+        documentation); flagged for a human to reconcile.
+
+        `success: false` in the 200 response body means one or more of tasks 2/3
+        had per-task errors (task 1 failures are swallowed and don't affect
+        `success`); the route still returns HTTP 200 in that case, not an error
+        status.
+
+        **Implementation:** `app/api/cron/daily-maintenance/route.ts` (GET)
+      operationId: cronDailyMaintenance
+      security: []
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: 'Bearer <CRON_SECRET>'
+          schema:
+            type: string
+            example: 'Bearer <CRON_SECRET>'
+      responses:
+        '200':
+          description: |
+            Job ran to completion. `success` reflects whether tasks 2/3 had
+            errors, not HTTP-level failure (see description).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyMaintenanceResponse'
+              examples:
+                allSucceeded:
+                  summary: All 3 tasks completed with no per-task errors
+                  value:
+                    success: true
+                    message: 'Daily maintenance completed successfully'
+                    results:
+                      expiredCodes:
+                        count: 3
+                      expiringSubscriptions:
+                        processed: 2
+                        remindersMarked: 2
+                        errors: []
+                      expiredSubscriptions:
+                        processed: 4
+                        downgraded: 1
+                        errors: []
+                    duration: '287ms'
+                partialErrors:
+                  summary: Task 2 or 3 recorded per-task errors; still HTTP 200
+                  value:
+                    success: false
+                    message: 'Daily maintenance completed with some errors'
+                    results:
+                      expiredCodes:
+                        count: 3
+                      expiringSubscriptions:
+                        processed: 0
+                        remindersMarked: 0
+                        errors: ['Database connection timeout']
+                      expiredSubscriptions:
+                        processed: 4
+                        downgraded: 1
+                        errors: []
+                    duration: '5031ms'
+        '401':
+          description: Missing or incorrect Authorization bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              example:
+                error: 'Unauthorized'
+        '500':
+          description: 'CRON_SECRET not configured server-side, or the top-level handler threw (outside the 3 per-task try/catch blocks)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleErrorResponse'
+              examples:
+                notConfigured:
+                  value:
+                    error: 'Server configuration error'
+                jobFailed:
+                  value:
+                    error: 'Maintenance job failed'
 
 components:
   securitySchemes:
@@ -940,138 +937,32 @@ components:
       type: apiKey
       in: cookie
       name: next-auth.session-token
-      description: NextAuth session cookie
+      description: |
+        NextAuth.js session cookie for authentication. Applies to
+        `/api/subscription` (GET/POST), `/api/subscription/cancel`, and
+        `/api/invoices`. Does NOT apply to `/api/checkout/validate-code`
+        (unauthenticated, IP rate-limited), `/api/webhooks/stripe`
+        (Stripe-signature verified), or the 3 `/api/cron/*` routes
+        (CRON_SECRET bearer token) — those declare `security: []` per-path.
+        `/api/checkout` itself IS session-gated.
 
   schemas:
-    SubscriptionResponse:
-      type: object
-      required:
-        - tier
-        - status
-      properties:
-        tier:
-          type: string
-          enum: [FREE, PRO]
-          description: User's current tier
-          example: 'PRO'
-        status:
-          type: string
-          description: Subscription status
-          example: 'active'
-        subscription:
-          $ref: '#/components/schemas/Subscription'
-
-    Subscription:
-      type: object
-      nullable: true
-      properties:
-        id:
-          type: string
-          description: Subscription ID
-          example: 'sub_1234567890'
-        status:
-          type: string
-          description: Subscription status
-          example: 'active'
-        provider:
-          type: string
-          enum: [STRIPE, DLOCAL]
-          nullable: true
-          description: Payment provider
-          example: 'STRIPE'
-        planType:
-          type: string
-          enum: [MONTHLY, THREE_DAY]
-          nullable: true
-          description: Subscription plan type
-          example: 'MONTHLY'
-        currentPeriodEnd:
-          type: string
-          format: date-time
-          nullable: true
-          description: Current billing period end (Stripe)
-          example: '2026-01-20T00:00:00.000Z'
-        expiresAt:
-          type: string
-          format: date-time
-          nullable: true
-          description: Subscription expiration (dLocal)
-          example: '2025-12-23T00:00:00.000Z'
-        cancelAtPeriodEnd:
-          type: boolean
-          description: Whether subscription cancels at period end
-          example: false
-        trialEnd:
-          type: string
-          format: date-time
-          nullable: true
-          description: Trial period end date
-          example: null
-        paymentMethod:
-          $ref: '#/components/schemas/PaymentMethod'
-        dLocalPaymentMethod:
-          type: string
-          nullable: true
-          description: dLocal payment method type
-          example: 'pix'
-        dLocalCountry:
-          type: string
-          nullable: true
-          description: dLocal country code
-          example: 'BR'
-
-    PaymentMethod:
-      type: object
-      nullable: true
-      properties:
-        brand:
-          type: string
-          description: Card brand
-          example: 'visa'
-        last4:
-          type: string
-          description: Last 4 digits
-          example: '4242'
-        expiryMonth:
-          type: integer
-          description: Expiry month
-          example: 12
-        expiryYear:
-          type: integer
-          description: Expiry year
-          example: 2026
-
-    CancelSubscriptionResponse:
-      type: object
-      required:
-        - message
-        - cancelAtPeriodEnd
-      properties:
-        message:
-          type: string
-          example: 'Subscription cancelled successfully'
-        cancelAtPeriodEnd:
-          type: boolean
-          example: true
-        currentPeriodEnd:
-          type: string
-          format: date-time
-          nullable: true
-          example: '2026-01-20T00:00:00.000Z'
+    # ═══════════════════════════════════════════════════════════
+    # Checkout
+    # ═══════════════════════════════════════════════════════════
 
     CheckoutRequest:
       type: object
+      description: Body is optional; a missing or unparseable JSON body is treated as "no affiliate code."
       properties:
         affiliateCode:
           type: string
-          description: Optional affiliate promotional code
-          example: 'PARTNER123'
+          description: Optional affiliate promotional code; trimmed and upper-cased server-side before lookup.
+          example: 'PARTNER1'
 
     CheckoutResponse:
       type: object
-      required:
-        - sessionId
-        - url
+      required: [sessionId, url]
       properties:
         sessionId:
           type: string
@@ -1080,426 +971,448 @@ components:
         url:
           type: string
           format: uri
-          description: Stripe Checkout URL to redirect user
+          description: Stripe Checkout URL to redirect the user to
           example: 'https://checkout.stripe.com/pay/cs_test_a1b2c3d4e5f6g7h8i9j0'
 
     ValidateCodeRequest:
       type: object
-      required:
-        - code
+      required: [code]
       properties:
         code:
           type: string
-          description: Affiliate code to validate
-          example: 'PARTNER123'
+          description: Affiliate code to validate. Normalized (trim + uppercase) before format/lookup checks.
+          example: 'partner1'
 
-    ValidateCodeResponse:
+    ValidateCodeSuccessResponse:
       type: object
-      required:
-        - valid
+      required: [valid, code, affiliateId, discount, message]
       properties:
         valid:
           type: boolean
           example: true
         code:
           type: string
-          example: 'PARTNER123'
-        affiliateName:
+          description: Normalized (uppercase) code as stored
+          example: 'PARTNER1'
+        affiliateId:
           type: string
-          example: 'Tech Partner'
+          description: 'affiliateCode.affiliateProfileId, or empty string if null'
+          example: 'clx9z8y7w6v5u4t3s2r1q0'
         discount:
           type: object
-          nullable: true
+          required: [percent, amount, regularPrice, finalPrice]
           properties:
-            percentage:
+            percent:
               type: number
-              example: 10
+              description: affiliateCode.discountPercent
+              example: 20
             amount:
               type: number
-              example: 5
+              description: 'regularPrice * percent / 100'
+              example: 5.8
+            regularPrice:
+              type: number
+              description: AFFILIATE_CONFIG.BASE_PRICE_USD
+              example: 29.0
+            finalPrice:
+              type: number
+              description: regularPrice - amount
+              example: 23.2
+        message:
+          type: string
+          example: '20% discount will be applied!'
+
+    ValidateCodeErrorResponse:
+      type: object
+      required: [valid, error, message, code]
+      properties:
+        valid:
+          type: boolean
+          enum: [false]
+          example: false
         error:
           type: string
-          example: 'Code not found or inactive'
+          example: 'Invalid code'
+        message:
+          type: string
+          example: 'This affiliate code does not exist'
+        code:
+          type: string
+          enum:
+            - CODE_REQUIRED
+            - INVALID_FORMAT
+            - CODE_NOT_FOUND
+            - CODE_NOT_ACTIVE
+            - CODE_EXPIRED
+            - AFFILIATE_INACTIVE
+            - RATE_LIMITED
+            - VALIDATION_ERROR
+          example: 'CODE_NOT_FOUND'
+
+    # ═══════════════════════════════════════════════════════════
+    # Subscription
+    # ═══════════════════════════════════════════════════════════
+
+    SubscriptionResponse:
+      type: object
+      required: [tier, status, subscription]
+      properties:
+        tier:
+          type: string
+          enum: [FREE, PRO]
+          example: 'PRO'
+        status:
+          type: string
+          description: '"none" when subscription is null, otherwise the Subscription.status value (mirrors subscription.status)'
+          example: 'active'
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+
+    Subscription:
+      type: object
+      nullable: true
+      required:
+        - id
+        - status
+        - provider
+        - planType
+        - currentPeriodEnd
+        - expiresAt
+        - cancelAtPeriodEnd
+        - trialEnd
+        - paymentMethod
+        - dLocalPaymentMethod
+        - dLocalCountry
+      properties:
+        id:
+          type: string
+          description: Internal Subscription record ID (not the Stripe subscription ID)
+          example: 'clsub1234567890'
+        status:
+          type: string
+          example: 'active'
+        provider:
+          type: string
+          enum: [STRIPE, DLOCAL]
+          nullable: true
+          description: 'DLOCAL if dLocalPaymentId is set, else STRIPE if stripeSubscriptionId is set, else null'
+          example: 'STRIPE'
+        planType:
+          type: string
+          nullable: true
+          description: 'e.g. MONTHLY, THREE_DAY (dLocal); null for Stripe subscriptions in the current schema'
+          example: null
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+          description: Stripe current billing period end
+          example: '2026-08-17T00:00:00.000Z'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: dLocal explicit expiry date
+          example: null
+        cancelAtPeriodEnd:
+          type: boolean
+          description: From live Stripe data; false if Stripe fetch failed or not applicable
+          example: false
+        trialEnd:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        dLocalPaymentMethod:
+          type: string
+          nullable: true
+          example: null
+        dLocalCountry:
+          type: string
+          nullable: true
+          example: null
+
+    PaymentMethod:
+      type: object
+      nullable: true
+      required: [brand, last4, expiryMonth, expiryYear]
+      properties:
+        brand:
+          type: string
+          example: 'visa'
+        last4:
+          type: string
+          example: '4242'
+        expiryMonth:
+          type: integer
+          example: 12
+        expiryYear:
+          type: integer
+          example: 2027
+
+    CancelSubscriptionResponse:
+      type: object
+      required: [success, message, tier]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Subscription cancelled successfully'
+        tier:
+          type: string
+          enum: [FREE]
+          example: 'FREE'
+
+    # ═══════════════════════════════════════════════════════════
+    # Invoices
+    # ═══════════════════════════════════════════════════════════
 
     InvoicesResponse:
       type: object
-      required:
-        - invoices
+      required: [invoices, hasMore]
       properties:
         invoices:
           type: array
           items:
-            $ref: '#/components/schemas/Invoice'
+            $ref: '#/components/schemas/InvoiceItem'
+        hasMore:
+          type: boolean
+          description: True if more invoices exist beyond the applied `limit`
+          example: false
 
-    Invoice:
+    InvoiceItem:
       type: object
       required:
         - id
+        - date
         - amount
         - currency
         - status
-        - date
+        - description
+        - invoicePdfUrl
+        - provider
+        - planType
       properties:
         id:
           type: string
-          description: Invoice ID
-          example: 'in_1234567890'
-        number:
-          type: string
-          description: Invoice number
-          example: 'INV-2025-001'
-        amount:
-          type: integer
-          description: Amount in cents
-          example: 2900
-        currency:
-          type: string
-          description: Currency code
-          example: 'usd'
-        status:
-          type: string
-          description: Payment status
-          enum: [paid, open, void, uncollectible]
-          example: 'paid'
+          description: Stripe invoice ID (STRIPE) or internal Payment record ID (DLOCAL)
+          example: 'in_1P2q3R4s5T6u7V8w'
         date:
           type: string
           format: date-time
-          description: Invoice date
-          example: '2025-12-20T00:00:00.000Z'
-        pdfUrl:
+          example: '2026-07-01T00:00:00.000Z'
+        amount:
+          type: number
+          description: Dollar amount (Stripe cents already divided by 100; dLocal amountUSD as-is)
+          example: 29.0
+        currency:
+          type: string
+          description: 'Upper-cased ISO currency code (e.g. USD)'
+          example: 'USD'
+        status:
+          type: string
+          enum: [paid, open, failed]
+          description: 'Simplified status. Stripe paid->paid, open/draft->open, uncollectible/void->failed.'
+          example: 'paid'
+        description:
+          type: string
+          example: 'Trading Alerts PRO - Monthly'
+        invoicePdfUrl:
           type: string
           format: uri
-          description: PDF download URL
+          nullable: true
+          description: Null for all DLOCAL entries (dLocal provides no PDF invoices)
           example: 'https://pay.stripe.com/invoice/acct_xxx/test_xxx/pdf'
+        provider:
+          type: string
+          enum: [STRIPE, DLOCAL]
+          example: 'STRIPE'
+        planType:
+          type: string
+          nullable: true
+          description: 'Payment.planType for DLOCAL rows; hardcoded "MONTHLY" for STRIPE rows'
+          example: 'MONTHLY'
+
+    # ═══════════════════════════════════════════════════════════
+    # Webhooks
+    # ═══════════════════════════════════════════════════════════
+
+    StripeWebhookAckResponse:
+      type: object
+      required: [received]
+      properties:
+        received:
+          type: boolean
+          example: true
+        warning:
+          type: string
+          description: Present only when a non-critical event's handler threw but the event was acknowledged anyway
+          example: 'Handler error'
+
+    # ═══════════════════════════════════════════════════════════
+    # Cron (Internal)
+    # ═══════════════════════════════════════════════════════════
+
+    CheckExpiringSubscriptionsResponse:
+      type: object
+      required: [success, message, processed, reminders]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Found 2 expiring subscriptions, 2 reminders marked'
+        processed:
+          type: integer
+          example: 2
+        reminders:
+          type: array
+          items:
+            type: object
+            required: [userId, email, expiresAt]
+            properties:
+              userId:
+                type: string
+              email:
+                type: string
+                format: email
+              expiresAt:
+                type: string
+                format: date-time
+        errors:
+          type: array
+          items:
+            type: string
+          description: 'Omitted entirely (undefined) when empty, per source (errors.length > 0 ? errors : undefined)'
+        duration:
+          type: string
+          description: Wall-clock job duration in milliseconds, formatted as "<n>ms"
+          example: '142ms'
+
+    DowngradeExpiredSubscriptionsResponse:
+      type: object
+      required: [success, message, processed, downgrades]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Downgraded 1 users'
+        processed:
+          type: integer
+          example: 4
+        downgrades:
+          type: array
+          items:
+            type: object
+            required: [userId, email, expiredAt]
+            properties:
+              userId:
+                type: string
+              email:
+                type: string
+                format: email
+              expiredAt:
+                type: string
+                format: date-time
+        errors:
+          type: array
+          items:
+            type: string
+          description: 'Omitted entirely (undefined) when empty, per source (errors.length > 0 ? errors : undefined)'
+        duration:
+          type: string
+          example: '98ms'
+
+    DailyMaintenanceResponse:
+      type: object
+      required: [success, message, results, duration]
+      properties:
+        success:
+          type: boolean
+          description: False if expiringSubscriptions or expiredSubscriptions recorded any per-task error
+          example: true
+        message:
+          type: string
+          enum:
+            - 'Daily maintenance completed successfully'
+            - 'Daily maintenance completed with some errors'
+        results:
+          type: object
+          required: [expiredCodes, expiringSubscriptions, expiredSubscriptions]
+          properties:
+            expiredCodes:
+              type: object
+              required: [count]
+              properties:
+                count:
+                  type: integer
+                  description: 'Rows updated by the affiliateCode.updateMany expiry sweep'
+                  example: 3
+            expiringSubscriptions:
+              type: object
+              required: [processed, remindersMarked, errors]
+              properties:
+                processed:
+                  type: integer
+                  example: 2
+                remindersMarked:
+                  type: integer
+                  example: 2
+                errors:
+                  type: array
+                  items:
+                    type: string
+            expiredSubscriptions:
+              type: object
+              required: [processed, downgraded, errors]
+              properties:
+                processed:
+                  type: integer
+                  example: 4
+                downgraded:
+                  type: integer
+                  example: 1
+                errors:
+                  type: array
+                  items:
+                    type: string
+        duration:
+          type: string
+          example: '287ms'
+
+    # ═══════════════════════════════════════════════════════════
+    # Shared errors
+    # ═══════════════════════════════════════════════════════════
 
     ErrorResponse:
       type: object
-      required:
-        - error
+      required: [error, message, code]
       properties:
         error:
           type: string
-          description: Error message
+          description: Short error title
           example: 'Unauthorized'
         message:
           type: string
-          description: Detailed error message
+          description: Human-readable detail
           example: 'You must be logged in'
         code:
           type: string
-          description: Error code
+          description: Machine-readable error code
           example: 'UNAUTHORIZED'
 
-    # ═══════════════════════════════════════════════════════════
-    # dLocal Payment Schemas
-    # ═══════════════════════════════════════════════════════════
-
-    CreateDLocalPaymentRequest:
+    SimpleErrorResponse:
       type: object
-      required:
-        - country
-        - paymentMethod
-        - planType
-        - currency
+      required: [error]
+      description: 'Used by routes that return only { error: string } with no message/code fields'
       properties:
-        country:
-          type: string
-          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
-          description: ISO 2-letter country code
-          example: 'IN'
-        paymentMethod:
-          type: string
-          description: Payment method ID for the country
-          example: 'upi'
-        planType:
-          type: string
-          enum: [THREE_DAY, MONTHLY]
-          description: Subscription plan type
-          example: 'MONTHLY'
-        currency:
-          type: string
-          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
-          description: 3-letter currency code
-          example: 'INR'
-        discountCode:
-          type: string
-          description: Optional discount code (MONTHLY only)
-          example: 'SAVE20'
-
-    DLocalPaymentResponse:
-      type: object
-      required:
-        - paymentId
-        - orderId
-        - paymentUrl
-        - status
-        - amount
-        - planType
-      properties:
-        paymentId:
-          type: string
-          description: dLocal payment ID
-          example: 'dlocal-1234567890'
-        orderId:
-          type: string
-          description: Order ID
-          example: 'order-user123-1705432100000'
-        paymentUrl:
-          type: string
-          format: uri
-          description: URL to redirect user for payment
-          example: 'https://sandbox.dlocal.com/pay/dlocal-1234567890'
-        status:
-          type: string
-          enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
-          description: Payment status
-          example: 'PENDING'
-        amount:
-          type: object
-          required:
-            - local
-            - usd
-            - currency
-          properties:
-            local:
-              type: number
-              description: Amount in local currency
-              example: 2465
-            usd:
-              type: number
-              description: Amount in USD
-              example: 29
-            currency:
-              type: string
-              description: Currency code
-              example: 'INR'
-        exchangeRate:
-          type: number
-          description: USD to local currency exchange rate
-          example: 85.0
-        planType:
-          type: string
-          enum: [THREE_DAY, MONTHLY]
-          example: 'MONTHLY'
-        planDuration:
-          type: integer
-          description: Plan duration in seconds
-          example: 2592000
-
-    PaymentStatusResponse:
-      type: object
-      required:
-        - id
-        - paymentId
-        - orderId
-        - status
-        - amount
-        - currency
-        - planType
-        - createdAt
-      properties:
-        id:
-          type: string
-          description: Internal payment record ID
-          example: 'pay_abc123'
-        paymentId:
-          type: string
-          description: dLocal payment ID
-          example: 'dlocal-1234567890'
-        orderId:
-          type: string
-          description: Order ID
-          example: 'order-user123-1705432100000'
-        status:
-          type: string
-          enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
-          description: Payment status
-          example: 'COMPLETED'
-        amount:
-          type: string
-          description: Amount in local currency
-          example: '2465.00'
-        currency:
-          type: string
-          description: Currency code
-          example: 'INR'
-        planType:
-          type: string
-          description: Plan type
-          example: 'MONTHLY'
-        createdAt:
-          type: string
-          format: date-time
-          description: Payment creation timestamp
-          example: '2025-12-20T10:30:00.000Z'
-        dLocalStatus:
-          type: object
-          nullable: true
-          description: Current status from dLocal API
-          properties:
-            id:
-              type: string
-              example: 'dlocal-1234567890'
-            status:
-              type: string
-              example: 'PAID'
-            amount:
-              type: number
-              example: 2465
-            currency:
-              type: string
-              example: 'INR'
-
-    PaymentMethodsResponse:
-      type: object
-      required:
-        - country
-        - methods
-      properties:
-        country:
-          type: string
-          description: Country code
-          example: 'IN'
-        methods:
-          oneOf:
-            - type: array
-              items:
-                type: string
-              description: Simple list of payment method IDs
-              example: ['upi', 'card', 'netbanking']
-            - type: array
-              items:
-                $ref: '#/components/schemas/PaymentMethodDetail'
-              description: Detailed payment method information
-
-    PaymentMethodDetail:
-      type: object
-      required:
-        - id
-        - name
-        - type
-      properties:
-        id:
-          type: string
-          description: Payment method ID
-          example: 'upi'
-        name:
-          type: string
-          description: Display name
-          example: 'UPI'
-        type:
-          type: string
-          description: Method type
-          example: 'bank_transfer'
-        logo:
-          type: string
-          format: uri
-          description: Logo URL
-          example: 'https://example.com/upi-logo.png'
-
-    ExchangeRateResponse:
-      type: object
-      required:
-        - currency
-        - rate
-        - baseCurrency
-        - timestamp
-      properties:
-        currency:
-          type: string
-          description: Target currency code
-          example: 'INR'
-        rate:
-          type: number
-          description: Exchange rate (USD to target)
-          example: 85.0
-        baseCurrency:
-          type: string
-          description: Base currency (always USD)
-          example: 'USD'
-        timestamp:
-          type: string
-          format: date-time
-          description: Rate timestamp
-          example: '2025-12-20T10:30:00.000Z'
-
-    CurrencyConvertRequest:
-      type: object
-      required:
-        - usdAmount
-        - currency
-      properties:
-        usdAmount:
-          type: number
-          description: Amount in USD to convert
-          example: 29
-        currency:
-          type: string
-          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
-          description: Target currency
-          example: 'INR'
-
-    CurrencyConvertResponse:
-      type: object
-      required:
-        - localAmount
-        - currency
-        - exchangeRate
-        - usdAmount
-      properties:
-        localAmount:
-          type: number
-          description: Converted amount in local currency
-          example: 2465
-        currency:
-          type: string
-          description: Currency code
-          example: 'INR'
-        exchangeRate:
-          type: number
-          description: Exchange rate used
-          example: 85.0
-        usdAmount:
-          type: number
-          description: Original USD amount
-          example: 29
-
-    ThreeDayEligibilityResponse:
-      type: object
-      required:
-        - eligible
-      properties:
-        eligible:
-          type: boolean
-          description: Whether user is eligible for 3-day plan
-          example: true
-        reason:
-          type: string
-          description: Reason if not eligible
-          example: 'You have already used the 3-day plan'
-
-    DiscountValidationResponse:
-      type: object
-      required:
-        - valid
-      properties:
-        valid:
-          type: boolean
-          description: Whether discount code is valid
-          example: true
-        code:
-          type: string
-          description: Discount code
-          example: 'SAVE20'
-        discountPercent:
-          type: number
-          description: Discount percentage
-          example: 20
-        message:
-          type: string
-          description: Validation message
-          example: '20% discount will be applied'
         error:
           type: string
-          description: Error message if invalid
-          example: 'Discount code not found or expired'
+          example: 'Unauthorized'

@@ -1,12 +1,21 @@
 openapi: 3.0.3
 info:
-  title: Trading Alerts SaaS - Market Data Channel API (Part 23)
-  version: 1.0.0
+  title: Trading Alerts SaaS - Market Data API (Part 23)
+  version: 1.1.0
   description: |
-    Multi-timeframe channel-overlay API for Trading Alerts SaaS platform (Part 23).
+    Market data API for Trading Alerts SaaS platform (Part 23): multi-timeframe
+    channel overlays plus raw real-time candle data.
 
     **Generated:** 2026-07-17, Session 0-2, directly from the live route handler
     (`app/api/market-data/channel/route.ts`). No prior spec existed for this domain.
+
+    **Extended:** 2026-07-17, Session 0-3 — added `/api/candles/{symbol}`. This route
+    was an uncovered leftover domain (not part of batch 1 or batch 2's named scope,
+    not documented in any of the 20 pre-existing spec files) triaged into this file
+    since it's topically the same market-data area as the channel endpoint above,
+    rather than spinning up a single-route file. Unlike the channel endpoint, candles
+    is **fully unauthenticated** (no session/CSRF check at all in the live handler) —
+    see the per-path `security: []` override below.
 
     Returns equal-distance channel lines (upper/mid/lower) for a centroid-regression
     variant from `market_data_v6`, meant to be overlaid onto a *different* timeframe's
@@ -31,6 +40,8 @@ security:
 tags:
   - name: Market Data
     description: Multi-timeframe channel overlay data
+  - name: Candles
+    description: Raw real-time/historical OHLC candle data (hot/warm tier), unauthenticated
 
 paths:
   /api/market-data/channel:
@@ -132,6 +143,102 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/candles/{symbol}:
+    get:
+      tags: [Candles]
+      summary: Get OHLC candle data for a symbol (hot/warm tier)
+      security: []
+      description: |
+        **No authentication required** — the live handler has no session/CSRF check
+        of any kind; this is a fully open, unauthenticated GET.
+
+        Hot/warm tier query: if `limit <= 250`, queries Redis only (falling back to
+        PostgreSQL if Redis returns empty); if `limit > 250`, queries the last 250
+        points from Redis plus the remainder from PostgreSQL and merges them,
+        ascending by timestamp.
+
+        Redis key: `{symbol}:realtime` (sorted set). PostgreSQL table:
+        `{symbol}_{timeframe}` (dynamic table name built from the request — this is
+        a finding to report, not a fix to make in a read-only documentation session:
+        the table name is interpolated directly into the SQL query string rather than
+        parameterized, since Postgres doesn't allow identifiers as bind params; input
+        is constrained upstream to a fixed `validTimeframes` enum and a lowercased
+        `symbol` path segment, but this is worth a security-review look outside this
+        session's scope).
+
+        **Implementation:** `app/api/candles/[symbol]/route.ts` (GET, HEAD)
+      operationId: getCandles
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: Trading symbol, lowercased by the handler (e.g. eurusd, btcusd)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Number of candles to return, clamped to MAX_CANDLE_LIMIT
+          schema:
+            type: integer
+            default: 100
+            maximum: 10000
+        - name: timeframe
+          in: query
+          required: false
+          description: Only used for the PostgreSQL (warm-tier) portion of the query
+          schema:
+            type: string
+            enum: [m5, m15, m30, h1, h2, h4, h8, h12, d1]
+            default: m5
+      responses:
+        '200':
+          description: Candle data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandlesSuccessResponse'
+        '400':
+          description: Missing symbol or invalid timeframe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidTimeframe:
+                  value:
+                    error: 'Invalid timeframe. Must be one of: m5, m15, m30, h1, h2, h4, h8, h12, d1'
+        '500':
+          description: >-
+            Internal server error. Note: Redis/PostgreSQL connection failures are
+            caught internally and degrade to an empty candles array (not a 500) —
+            this status only fires on an unexpected exception outside those guarded
+            paths.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    head:
+      tags: [Candles]
+      summary: Liveness check for this route
+      security: []
+      description: |
+        Always returns 200 `{status: "ok"}` unconditionally — does not check
+        Redis/PostgreSQL connectivity. Distinct from `/api/disbursement/health`
+        (part19), which does check its dependencies.
+      operationId: candlesLiveness
+      responses:
+        '200':
+          description: Route is reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
 components:
   securitySchemes:
     sessionAuth:
@@ -184,9 +291,54 @@ components:
           items:
             $ref: '#/components/schemas/ChannelPoint'
 
+    Candle:
+      type: object
+      required: [t, o, h, l, c]
+      properties:
+        t:
+          type: integer
+          description: Unix timestamp (seconds)
+        o:
+          type: number
+          description: Open
+        h:
+          type: number
+          description: High
+        l:
+          type: number
+          description: Low
+        c:
+          type: number
+          description: Close
+
+    CandlesSuccessResponse:
+      type: object
+      required: [symbol, timeframe, limit, count, candles, source]
+      properties:
+        symbol:
+          type: string
+          example: eurusd
+        timeframe:
+          type: string
+          example: m5
+        limit:
+          type: integer
+          example: 100
+        count:
+          type: integer
+          description: Actual number of candles returned (may be less than limit)
+        candles:
+          type: array
+          description: Ascending by timestamp
+          items:
+            $ref: '#/components/schemas/Candle'
+        source:
+          type: string
+          enum: [redis, redis+postgresql]
+          description: Which tier(s) actually served the data
+
     ErrorResponse:
       type: object
-      required: [success, error]
       properties:
         success:
           type: boolean

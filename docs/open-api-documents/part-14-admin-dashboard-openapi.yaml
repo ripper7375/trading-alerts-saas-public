@@ -1,31 +1,57 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - Admin Dashboard API (Part 14)
-  version: 2.0.0
+  version: 3.0.0
   description: |
     Admin Dashboard API for Trading Alerts SaaS platform (Part 14).
 
-    This comprehensive API provides administrative operations for platform management,
-    user administration, affiliate management, fraud detection, and reporting.
+    **Generated 2026-07-17, Session 0-3** — added `code-flows` (new gap, no prior spec
+    documented it), absorbed `fraud-alerts` + `fraud-alerts/{id}` from
+    `part-18-dlocal-payment-openapi.yaml` (that spec's copies are being deleted by a
+    parallel session), and verified all 19 admin routes against live handlers (Session
+    0-3 consolidation). This is now the SOLE authoritative spec for everything under
+    `app/api/admin/**`.
 
-    ## Features
-    - **User Management**: View, filter, and manage user accounts
-    - **System Analytics**: Platform metrics, revenue, and growth statistics
-    - **API Monitoring**: Usage statistics, endpoint performance, error rates
-    - **Error Logging**: System error tracking with filtering
-    - **Affiliate Administration**: Manage affiliates, codes, and commissions
-    - **Affiliate Reporting**: Code inventory, P&L, sales performance reports
-    - **Fraud Detection**: Alert management and user blocking
-    - **Settings Management**: Dynamic configuration for affiliate system
+    Several field-level bugs were found and fixed versus the prior version of this file
+    — see the per-operation descriptions below for what changed. The two biggest:
+    `GET /api/admin/users` and `GET /api/admin/analytics` had response shapes that did
+    not match their live handlers at all (different field names, different nesting,
+    missing/extra fields), and `GET /api/admin/fraud-alerts` had a `stats` object shape
+    (`bySeverity`/`byStatus` nested breakdowns) that the live service function does not
+    return (it returns flat `critical`/`high`/`medium`/`low`/`pending` counts).
+
+    ## Sub-domains
+    - **Core Admin** (`/api/admin/users`, `/api/admin/analytics`, `/api/admin/api-usage`,
+      `/api/admin/error-logs`): platform-wide metrics and lists. `api-usage` and
+      `error-logs` currently return **mock data** — both handlers have explicit
+      `PRODUCTION TODO` comments; no real tracking tables exist yet.
+    - **Affiliate Administration** (`/api/admin/affiliates/**`, `/api/admin/codes/**`,
+      `/api/admin/commissions/**`, `/api/admin/settings/affiliate`): affiliate account
+      lifecycle (list/detail/suspend/reactivate/distribute-codes), code cancellation,
+      commission payout, and dynamic affiliate program settings.
+    - **Affiliate Reports** (`/api/admin/affiliates/reports/**`): code inventory
+      (point-in-time census), code flows (period reconciliation — new in this session),
+      commission owings, profit & loss, and sales performance.
+    - **Fraud Alerts** (`/api/admin/fraud-alerts/**`): list/filter fraud alerts with
+      stats, view/update a single alert (updating to `BLOCKED` also blocks the user
+      account).
 
     ## Security
-    **Admin Access Only**: All endpoints require ADMIN role.
+    **Admin Access Only**: All 19 routes require ADMIN role. Two different auth-check
+    patterns are used across the codebase — each operation below notes which one its
+    handler uses:
+    - **Direct pattern** (`users`, `analytics`, `api-usage`, `error-logs`,
+      `fraud-alerts`, `fraud-alerts/{id}`): `getServerSession(authOptions)` then a
+      manual `session.user.role !== 'ADMIN'` check inline in the route handler.
+    - **`requireAdmin()` pattern** (all `affiliates/**`, `codes/**`, `commissions/**`,
+      `settings/affiliate`): a shared helper (`lib/auth/session.ts`) that throws a typed
+      `AuthError` (401 if not logged in, 403 if not ADMIN), caught by the route and
+      converted to `{ error: error.message }` with `error.statusCode`.
 
-    **Authentication:**
-    - Session-based authentication (NextAuth)
-    - Role validation on every request
-    - Returns 401 for unauthenticated requests
-    - Returns 403 if user is not ADMIN
+    The exact 403 body text differs by pattern: `users`/`analytics`/`api-usage`/
+    `error-logs` return `{"error":"Forbidden: Admin access required"}`; `fraud-alerts`/
+    `fraud-alerts/{id}` return the shorter `{"error":"Forbidden"}`; the `requireAdmin()`
+    routes return `{"error":"You must be an administrator to access this resource"}`.
 
   contact:
     name: API Support
@@ -49,9 +75,9 @@ tags:
   - name: Analytics
     description: System analytics and metrics
   - name: API Usage
-    description: API usage monitoring
+    description: API usage monitoring (currently mock data)
   - name: Error Logs
-    description: Error log management
+    description: Error log management (currently mock data)
   - name: Affiliates
     description: Affiliate account management
   - name: Affiliate Reports
@@ -76,43 +102,26 @@ paths:
         - Users
       summary: List all users
       description: |
-        Retrieves a paginated list of all users with filtering and sorting options.
+        Retrieves a paginated, sortable list of users.
 
-        **Filters:**
-        - `tier`: Filter by subscription tier (FREE, PRO)
-        - `role`: Filter by role (USER, ADMIN)
-        - `search`: Search by name or email
+        **Corrected vs. prior spec**: the previous version of this file documented a
+        `role` filter and a `limit` param, and a response wrapped in `{ users,
+        pagination: { page, limit, total, totalPages } }` with `emailVerified` and
+        `isAffiliate` fields on each user. None of that matches the live handler.
+        There is **no `role` filter**, the page-size param is **`pageSize`** (not
+        `limit`), the response is a **flat** object (`{ users, total, page, pageSize,
+        totalPages }`, not nested under `pagination`), and each user has **`status`**
+        (`'active' | 'suspended'`, derived from `isActive`) and **`alertCount`**
+        instead of `emailVerified`/`isAffiliate` (neither of which exists on the
+        response type). `lastLoginAt` is an *estimate* — derived from the most recent
+        session's `expires` date minus the 30-day NextAuth session duration, not a
+        real last-login timestamp.
 
-        **Pagination:**
-        - `page`: Page number (default: 1)
-        - `limit`: Items per page (default: 50, max: 100)
+        **Auth**: direct pattern (`getServerSession` + inline role check).
 
-        **Admin Only**: Requires ADMIN role
+        **Implementation**: `app/api/admin/users/route.ts` (GET)
       operationId: getUsers
       parameters:
-        - name: tier
-          in: query
-          required: false
-          description: Filter by subscription tier
-          schema:
-            type: string
-            enum: [FREE, PRO]
-          example: PRO
-        - name: role
-          in: query
-          required: false
-          description: Filter by user role
-          schema:
-            type: string
-            enum: [USER, ADMIN]
-          example: USER
-        - name: search
-          in: query
-          required: false
-          description: Search by name or email
-          schema:
-            type: string
-          example: 'john'
         - name: page
           in: query
           required: false
@@ -122,16 +131,46 @@ paths:
             minimum: 1
             default: 1
           example: 1
-        - name: limit
+        - name: pageSize
           in: query
           required: false
-          description: Items per page
+          description: Users per page
           schema:
             type: integer
-            minimum: 1
+            minimum: 10
             maximum: 100
             default: 50
           example: 50
+        - name: search
+          in: query
+          required: false
+          description: Search by name or email (case-insensitive contains)
+          schema:
+            type: string
+          example: 'john'
+        - name: tier
+          in: query
+          required: false
+          description: Filter by subscription tier
+          schema:
+            type: string
+            enum: [ALL, FREE, PRO]
+            default: ALL
+          example: PRO
+        - name: sortBy
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [createdAt, name, tier]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
       responses:
         '200':
           description: Users retrieved successfully
@@ -139,10 +178,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdminAccess'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -152,32 +193,23 @@ paths:
         - Analytics
       summary: Get system analytics
       description: |
-        Retrieves comprehensive system analytics and metrics including:
-        - User statistics (total, active, new this month)
-        - Subscription metrics (FREE vs PRO breakdown)
-        - Revenue metrics (MRR, total revenue)
-        - Alert and watchlist statistics
-        - API usage metrics
+        Retrieves platform-wide user/revenue/growth metrics.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: the previous version documented `startDate`/
+        `endDate` query params and a response shaped `{ users, subscriptions, alerts,
+        watchlist, apiUsage }`. The live handler takes **no query parameters at all**
+        (`export async function GET()` — no `NextRequest` argument) and returns a
+        completely different, smaller shape: `{ overview, revenue, growth }`. There is
+        no alerts/watchlist/apiUsage section — those metrics don't exist on this
+        endpoint. Revenue is computed as `proUsers * 29` (hardcoded `PRO_MONTHLY_PRICE`
+        constant), not read from actual subscription/payment records, and
+        `churnedThisMonth` is a hardcoded `0` placeholder (subscription-history
+        tracking isn't wired up yet).
+
+        **Auth**: direct pattern (`getServerSession` + inline role check).
+
+        **Implementation**: `app/api/admin/analytics/route.ts` (GET)
       operationId: getAnalytics
-      parameters:
-        - name: startDate
-          in: query
-          required: false
-          description: Start date for metrics (ISO 8601)
-          schema:
-            type: string
-            format: date-time
-          example: '2025-12-01T00:00:00.000Z'
-        - name: endDate
-          in: query
-          required: false
-          description: End date for metrics (ISO 8601)
-          schema:
-            type: string
-            format: date-time
-          example: '2025-12-31T23:59:59.999Z'
       responses:
         '200':
           description: Analytics retrieved successfully
@@ -188,7 +220,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdminAccess'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -198,54 +230,58 @@ paths:
         - API Usage
       summary: Get API usage statistics
       description: |
-        Retrieves detailed API usage statistics including:
-        - Request count by endpoint
-        - Response time metrics
-        - Error rate by endpoint
-        - Usage breakdown by tier
-        - Timeline data
+        Retrieves per-endpoint API usage statistics.
 
-        **Admin Only**: Requires ADMIN role
+        **⚠️ Mock data**: the handler has a `MOCK DATA GENERATOR` section with an
+        explicit `PRODUCTION TODO` comment — there is no `ApiUsageLog` table yet, so
+        this always returns the same synthetic 8-endpoint dataset regardless of the
+        date range given, tagged with response header `X-Data-Source: mock`.
+
+        **Corrected vs. prior spec**: the previous version documented `endpoint` and
+        `userId` query filters and a response shaped `{ summary, byEndpoint, byTier,
+        timeline }`. Neither filter exists on the live `querySchema` (only `startDate`/
+        `endDate` are accepted), and the real response shape is `{ endpoints, summary,
+        dateRange }` — `endpoints` is a flat array (not keyed by endpoint), there's no
+        `byTier` breakdown, and no `timeline` array.
+
+        **Auth**: direct pattern (`getServerSession` + inline role check).
+
+        **Implementation**: `app/api/admin/api-usage/route.ts` (GET)
       operationId: getApiUsage
       parameters:
         - name: startDate
           in: query
           required: false
-          description: Start date (ISO 8601)
+          description: Start date (YYYY-MM-DD); defaults to 7 days ago. Accepted but does not affect the mock dataset's content.
           schema:
             type: string
-            format: date-time
+          example: '2026-07-10'
         - name: endDate
           in: query
           required: false
-          description: End date (ISO 8601)
+          description: End date (YYYY-MM-DD); defaults to today. Accepted but does not affect the mock dataset's content.
           schema:
             type: string
-            format: date-time
-        - name: endpoint
-          in: query
-          required: false
-          description: Filter by specific endpoint path
-          schema:
-            type: string
-          example: '/api/alerts'
-        - name: userId
-          in: query
-          required: false
-          description: Filter by specific user ID
-          schema:
-            type: string
+          example: '2026-07-17'
       responses:
         '200':
-          description: API usage retrieved successfully
+          description: API usage retrieved successfully (mock data)
+          headers:
+            X-Data-Source:
+              description: Always 'mock' — no real usage-tracking table exists yet
+              schema:
+                type: string
+                example: mock
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiUsageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdminAccess'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -255,43 +291,31 @@ paths:
         - Error Logs
       summary: Get error logs
       description: |
-        Retrieves system error logs with filtering and pagination.
+        Retrieves paginated system error logs.
 
-        **Filters:**
-        - `level`: Error level (error, warn, info)
-        - `source`: Error source/component
-        - `startDate`/`endDate`: Date range
+        **⚠️ Mock data**: like `api-usage`, this has a `MOCK DATA GENERATOR` section
+        with a `PRODUCTION TODO` comment — there is no `ErrorLog` table yet. It
+        generates 100 synthetic log entries (cycling through 7 sample error templates)
+        on every call, tagged with response header `X-Data-Source: mock`.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: the previous version documented `level`
+        (error/warn/info) and `source` filters, a `limit` param, and a response with
+        `{ logs, pagination }` where each log had `level`/`source`/`error`/`requestId`
+        fields. None of that matches. The live filters are **`type`** (`ALL |
+        API_ERROR | DATABASE_ERROR | AUTH_ERROR | PAYMENT_ERROR | MT5_ERROR`) and
+        **`tier`** (`ALL | FREE | PRO`) — there is no `level` or `source` filter. The
+        page-size param is **`pageSize`** (not `limit`). The response is **flat**
+        (`{ logs, total, page, pageSize, totalPages }`, not nested under `pagination`),
+        and each log entry has `type`/`userTier`/`metadata` fields instead of
+        `level`/`source`/`error`/`requestId`. Note: `startDate`/`endDate` are accepted
+        by the query schema but are **not actually applied as filters** in the mock
+        generator (dead params, currently).
+
+        **Auth**: direct pattern (`getServerSession` + inline role check).
+
+        **Implementation**: `app/api/admin/error-logs/route.ts` (GET)
       operationId: getErrorLogs
       parameters:
-        - name: level
-          in: query
-          required: false
-          description: Error level filter
-          schema:
-            type: string
-            enum: [error, warn, info]
-          example: error
-        - name: source
-          in: query
-          required: false
-          description: Error source filter
-          schema:
-            type: string
-          example: 'api/alerts'
-        - name: startDate
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - name: endDate
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
         - name: page
           in: query
           required: false
@@ -299,25 +323,70 @@ paths:
             type: integer
             minimum: 1
             default: 1
-        - name: limit
+        - name: pageSize
           in: query
           required: false
           schema:
             type: integer
-            minimum: 1
+            minimum: 10
             maximum: 100
             default: 50
+        - name: type
+          in: query
+          required: false
+          description: Error type filter
+          schema:
+            type: string
+            enum:
+              [
+                ALL,
+                API_ERROR,
+                DATABASE_ERROR,
+                AUTH_ERROR,
+                PAYMENT_ERROR,
+                MT5_ERROR,
+              ]
+            default: ALL
+          example: API_ERROR
+        - name: tier
+          in: query
+          required: false
+          description: User tier filter
+          schema:
+            type: string
+            enum: [ALL, FREE, PRO]
+            default: ALL
+        - name: startDate
+          in: query
+          required: false
+          description: Accepted by the schema but not currently applied as a filter
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: false
+          description: Accepted by the schema but not currently applied as a filter
+          schema:
+            type: string
       responses:
         '200':
-          description: Error logs retrieved successfully
+          description: Error logs retrieved successfully (mock data)
+          headers:
+            X-Data-Source:
+              description: Always 'mock' — no real error-logging table exists yet
+              schema:
+                type: string
+                example: mock
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorLogsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdminAccess'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -333,12 +402,24 @@ paths:
       description: |
         Retrieves a paginated list of affiliates with filtering options.
 
-        **Filters:**
-        - `status`: ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE
-        - `country`: Country code (US, UK, etc.)
-        - `paymentMethod`: BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE
+        **Note**: only `GET` is implemented on this route — there is no `POST` handler
+        in `app/api/admin/affiliates/route.ts` despite affiliate self-signup existing
+        elsewhere in the app (`/api/affiliate/*`). Admins cannot create affiliate
+        profiles directly through this admin route.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: the previous version wrapped pagination under
+        `{ affiliates, pagination: { page, limit, total, totalPages } }`. The live
+        handler (`getAffiliatesList` in `lib/admin/affiliate-management.ts`) returns a
+        **flat** shape instead: `{ affiliates, total, page, limit, totalPages }`. Each
+        affiliate item is also richer than previously documented — it's the full
+        `AffiliateProfile` row (via Prisma `include`, no `select`) plus a nested
+        `user: { email, name }` and `affiliateCodes` (only the affiliate's currently
+        **ACTIVE** codes, each `{ id, code, status }`) — not a flattened `email` string
+        and no codes array at all as the prior spec had it.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/route.ts` (GET)
       operationId: getAffiliates
       parameters:
         - name: status
@@ -389,7 +470,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -399,13 +480,24 @@ paths:
         - Affiliates
       summary: Get affiliate details
       description: |
-        Retrieves detailed information for a specific affiliate including:
-        - Full profile data
-        - User email
-        - All affiliate codes
-        - Recent commissions
+        Retrieves detailed information for a specific affiliate including full
+        profile data, user email, all affiliate codes (not just active ones), and the
+        50 most recent commissions.
 
-        **Admin Only**: Requires ADMIN role
+        **Note**: only `GET` is implemented — there is no `PATCH` handler on
+        `app/api/admin/affiliates/[id]/route.ts`. (Field-level updates to an affiliate
+        profile go through the dedicated suspend/reactivate/distribute-codes actions
+        below, not a generic PATCH.)
+
+        **Corrected vs. prior spec**: the previous version's `AffiliateCode` schema was
+        missing `id`, `discountPercent`, `commissionPercent`, and `distributionReason`
+        (all present on the live `getAffiliateDetails` select), and its
+        `CommissionItem` schema was missing `paidAt`. The affiliate's email comes back
+        nested as `user: { email, name }`, not a flat `email` string.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/[id]/route.ts` (GET)
       operationId: getAffiliateById
       parameters:
         - name: id
@@ -424,7 +516,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -436,10 +528,20 @@ paths:
         - Affiliates
       summary: Suspend affiliate account
       description: |
-        Suspends an active affiliate account. Requires a reason for suspension.
-        Suspended affiliates cannot earn commissions or use codes.
+        Suspends an active affiliate account. Requires a non-empty `reason`.
+        Suspended affiliates cannot earn commissions or use codes. Already-suspended
+        affiliates get a 400.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: the `affiliate` field in the response is the raw
+        updated `AffiliateProfile` row (from `prisma.affiliateProfile.update`, which
+        returns every scalar column since no `select` is applied) — not the curated
+        `AffiliateListItem` shape (with flattened `email`, etc.) the prior spec used.
+        The success `message` text is exactly `'Affiliate suspended'`.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/[id]/suspend/route.ts` (POST);
+        logic in `lib/admin/code-distribution.ts` (`suspendAffiliate`)
       operationId: suspendAffiliate
       parameters:
         - name: id
@@ -470,7 +572,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AffiliateSuspendResponse'
         '400':
-          description: Invalid request or affiliate already suspended
+          description: Invalid request (empty reason) or affiliate already suspended
           content:
             application/json:
               schema:
@@ -478,7 +580,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -490,10 +592,18 @@ paths:
         - Affiliates
       summary: Reactivate suspended affiliate
       description: |
-        Reactivates a suspended affiliate account.
-        Only suspended affiliates can be reactivated.
+        Reactivates a suspended affiliate account (clears `suspensionReason` and
+        `suspendedAt`). Only affiliates currently `SUSPENDED` can be reactivated; any
+        other status gets a 400. No request body.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: same correction as `suspend` — `affiliate` is the
+        raw updated `AffiliateProfile` row, not the curated list-item shape. The
+        success `message` text is exactly `'Affiliate reactivated'`.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/[id]/reactivate/route.ts`
+        (POST); logic in `lib/admin/code-distribution.ts` (`reactivateAffiliate`)
       operationId: reactivateAffiliate
       parameters:
         - name: id
@@ -510,7 +620,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AffiliateReactivateResponse'
         '400':
-          description: Affiliate is not suspended
+          description: Affiliate is not currently suspended
           content:
             application/json:
               schema:
@@ -518,7 +628,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -530,10 +640,24 @@ paths:
         - Affiliates
       summary: Distribute bonus codes to affiliate
       description: |
-        Distributes additional bonus codes to an affiliate.
-        Can distribute between 1 and 50 codes at a time.
+        Distributes additional bonus codes (`distributionReason: 'ADMIN_BONUS'`) to an
+        affiliate. Can distribute between 1 and 50 codes at a time. Only affiliates
+        with status `ACTIVE` are eligible — others get a 400.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: the prior spec's `DistributeCodesResponse`
+        included an optional `newCodes: string[]` array. The live handler
+        (`distributeCodesAdmin` in `lib/admin/code-distribution.ts`) returns only
+        `{ success, message, codesDistributed }` — it does **not** return the codes
+        themselves in the response body. `message` is exactly
+        `` `Successfully distributed ${count} codes to affiliate` ``. The `reason`
+        field in the request body is accepted and validated (`min(1)`) but is
+        currently **discarded** — `distributeCodesAdmin` receives it as `_reason` and
+        never persists or uses it.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/[id]/distribute-codes/route.ts`
+        (POST); logic in `lib/admin/code-distribution.ts` (`distributeCodesAdmin`)
       operationId: distributeCodes
       parameters:
         - name: id
@@ -561,7 +685,7 @@ paths:
                 reason:
                   type: string
                   minLength: 1
-                  description: Reason for distribution
+                  description: Reason for distribution. Validated but currently not persisted anywhere.
                   example: 'Performance bonus for Q4'
       responses:
         '200':
@@ -571,7 +695,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/DistributeCodesResponse'
         '400':
-          description: Invalid request or affiliate not eligible
+          description: Invalid request, count out of range (1-50), or affiliate not ACTIVE
           content:
             application/json:
               schema:
@@ -579,7 +703,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -595,14 +719,20 @@ paths:
         - Affiliate Reports
       summary: Get code inventory report
       description: |
-        Retrieves global code inventory statistics including:
-        - Total codes distributed (all time and period)
-        - Status breakdown (active, used, expired, cancelled)
-        - Distribution by reason (initial, monthly, admin bonus)
-        - Conversion metrics
-        - Expiring codes alerts
+        Point-in-time census of affiliate codes: total codes (all time), a status
+        breakdown (active/used/expired/cancelled), a distribution-reason breakdown
+        (initial/monthly/adminBonus), the all-time conversion rate, period-scoped
+        metrics (distributed/used/expired within the selected window), and alerts
+        (codes expiring within 7 days, and a low-active-codes warning when active
+        count drops below 50).
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/reports/code-inventory/route.ts`
+        (GET)
       operationId: getCodeInventoryReport
       parameters:
         - name: period
@@ -620,10 +750,80 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CodeInventoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/affiliates/reports/code-flows:
+    get:
+      tags:
+        - Affiliate Reports
+      summary: Get global code flows (period reconciliation) report
+      description: |
+        **New in this session — no prior spec documented this path at all.**
+
+        Global code inventory *flows* for an arbitrary period, across all affiliates:
+        an opening balance (ACTIVE codes as of `start`, i.e. distributed before `start`
+        and either still unused or used on/after `start`, excluding CANCELLED),
+        additions during the period broken down by `distributionReason`
+        (`monthlyDistribution`, `initialDistribution`, `bonusDistribution`, `total`),
+        reductions during the period (`used`, `expired`, `cancelled`, `total`), a
+        computed `closingBalance` (`opening + additions.total - reductions.total`), and
+        `affiliatesWithActivity` — the count of distinct affiliates with any code
+        distributed or used in the period. This complements `code-inventory` (a
+        point-in-time census) with a period-over-period reconciliation view.
+
+        The whole report is wrapped in a single `report` key.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/reports/code-flows/route.ts`
+        (GET); logic in `lib/affiliate/report-builder.ts`
+        (`buildGlobalCodeInventoryReport`)
+      operationId: getCodeFlowsReport
+      parameters:
+        - name: start
+          in: query
+          required: false
+          description: ISO 8601 datetime, inclusive. Defaults to the start of the current calendar month.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-07-01T00:00:00.000Z'
+        - name: end
+          in: query
+          required: false
+          description: ISO 8601 datetime, inclusive. Defaults to now.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-07-17T00:00:00.000Z'
+      responses:
+        '200':
+          description: Global code flows report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeFlowsResponse'
+        '400':
+          description: Invalid query parameters, or `start` is not before `end`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                startAfterEnd:
+                  value:
+                    error: 'start must be before end'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -633,10 +833,20 @@ paths:
         - Affiliate Reports
       summary: Get commission owings report
       description: |
-        Retrieves affiliates with pending commissions ready for payout.
-        Shows affiliates who have reached the minimum payout threshold.
+        Retrieves ACTIVE affiliates whose `pendingCommissions` balance meets or exceeds
+        a minimum threshold (defaults to `AFFILIATE_CONFIG.MINIMUM_PAYOUT`, currently
+        $50.00; overridable via `minBalance`), i.e. affiliates ready or nearly ready
+        for payout.
 
-        **Admin Only**: Requires ADMIN role
+        **Corrected vs. prior spec**: each affiliate item also includes a
+        `paymentDetails` field (the raw JSON payment-info blob from
+        `AffiliateProfile.paymentDetails`) which the prior spec's schema omitted.
+        Everything else matches.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**:
+        `app/api/admin/affiliates/reports/commission-owings/route.ts` (GET)
       operationId: getCommissionOwingsReport
       parameters:
         - name: page
@@ -657,7 +867,7 @@ paths:
         - name: minBalance
           in: query
           required: false
-          description: Minimum pending balance filter (default uses MINIMUM_PAYOUT config)
+          description: Minimum pending balance filter (default uses AFFILIATE_CONFIG.MINIMUM_PAYOUT, currently 50.0)
           schema:
             type: number
             minimum: 0
@@ -668,10 +878,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommissionOwingsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -681,14 +893,20 @@ paths:
         - Affiliate Reports
       summary: Get profit & loss report
       description: |
-        Generates profit and loss report for the affiliate program showing:
-        - Gross revenue
-        - Discounts given
-        - Net revenue
-        - Commission breakdown (paid, pending, approved)
-        - Net profit and margin
+        Generates a P&L report for the affiliate program over the selected period:
+        gross/net revenue and discounts given, a commission cost breakdown
+        (paid/pending/approved/total, plus the dynamic commission percent from
+        `SystemConfig`), net profit and margin, and sale volume. All financial config
+        (`basePriceUsd`, `discountPercent`, `commissionPercent`) is read dynamically
+        via `getAffiliateConfigFromDB()`, not hardcoded.
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/affiliates/reports/profit-loss/route.ts`
+        (GET)
       operationId: getProfitLossReport
       parameters:
         - name: period
@@ -706,10 +924,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProfitLossResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -719,12 +939,17 @@ paths:
         - Affiliate Reports
       summary: Get sales performance report
       description: |
-        Generates sales performance report showing top affiliates by:
-        - Conversion count
-        - Total commissions earned
-        - Conversion rate
+        Generates a top-performers report for ACTIVE affiliates, ranked by
+        conversions within the selected period (codes used, commissions earned,
+        conversion rate against all-time distributed/used counts).
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**:
+        `app/api/admin/affiliates/reports/sales-performance/route.ts` (GET)
       operationId: getSalesPerformanceReport
       parameters:
         - name: period
@@ -751,10 +976,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SalesPerformanceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -768,16 +995,24 @@ paths:
         - Codes
       summary: Cancel affiliate code
       description: |
-        Cancels an active affiliate code. Only ACTIVE codes can be cancelled.
-        Used codes and already cancelled codes cannot be cancelled.
+        Cancels an affiliate code. The code is normalized to uppercase before lookup.
+        Only codes not already `USED` or `CANCELLED` can be cancelled (both return
+        400). `reason` is optional in the request body; if omitted (or if no body is
+        sent at all — the handler tolerates a missing/unparseable body), the returned
+        `code.reason` defaults to the literal string `'Admin cancellation'`.
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/codes/[code]/cancel/route.ts` (POST)
       operationId: cancelCode
       parameters:
         - name: code
           in: path
           required: true
-          description: The affiliate code to cancel (case-insensitive)
+          description: The affiliate code to cancel (case-insensitive; normalized to uppercase)
           schema:
             type: string
           example: 'JOHN-ABC123'
@@ -790,7 +1025,8 @@ paths:
               properties:
                 reason:
                   type: string
-                  description: Optional reason for cancellation
+                  minLength: 1
+                  description: "Optional reason for cancellation. Defaults to 'Admin cancellation' if omitted."
                   example: 'Code compromised'
       responses:
         '200':
@@ -800,7 +1036,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CancelCodeResponse'
         '400':
-          description: Code already used or cancelled
+          description: Code already used or already cancelled
           content:
             application/json:
               schema:
@@ -808,7 +1044,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           description: Code not found
           content:
@@ -824,11 +1060,22 @@ paths:
         - Commissions
       summary: Mark commissions as paid
       description: |
-        Marks pending commissions as paid for an affiliate.
-        If commissionIds not provided, pays all pending commissions.
-        Total amount must meet minimum payout threshold.
+        Marks PENDING commissions as paid for an affiliate, in a transaction: updates
+        each `Commission` row (`status: PAID`, `paidAt`, `paymentMethod`,
+        `paymentReference`, `paymentBatchId`) and decrements/increments the
+        affiliate's `pendingCommissions`/`paidCommissions` balances. If `commissionIds`
+        is omitted, pays **all** currently-pending commissions for the affiliate. The
+        total paid amount must meet `AFFILIATE_CONFIG.MINIMUM_PAYOUT` (currently
+        $50.00) or the request is rejected with 400. `batchId` is generated as
+        `` `PAY-${Date.now()}-${affiliateId.slice(-6)}` ``, and `paidBy` is the calling
+        admin's session email.
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/commissions/pay/route.ts` (POST)
       operationId: payCommissions
       requestBody:
         required: true
@@ -847,17 +1094,19 @@ paths:
                   example: 'aff_123abc'
                 paymentMethod:
                   type: string
-                  description: Method used for payment
+                  minLength: 1
+                  description: Method used for payment (free-text, not a validated enum)
                   example: 'BANK_TRANSFER'
                 paymentReference:
                   type: string
+                  minLength: 1
                   description: Payment transaction reference
-                  example: 'TXN-2025-001234'
+                  example: 'TXN-2026-001234'
                 commissionIds:
                   type: array
                   items:
                     type: string
-                  description: Optional specific commission IDs to pay (pays all pending if not provided)
+                  description: Optional specific commission IDs to pay (pays all PENDING commissions for the affiliate if omitted)
       responses:
         '200':
           description: Commissions marked as paid successfully
@@ -866,15 +1115,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/PayCommissionsResponse'
         '400':
-          description: No pending commissions or below minimum payout
+          description: Invalid request, no pending commissions to pay, or total below minimum payout threshold
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                belowMinimum:
+                  value:
+                    error: 'Total amount ($12.50) is below minimum payout threshold ($50)'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '404':
           description: Affiliate not found
           content:
@@ -894,10 +1147,19 @@ paths:
         - Settings
       summary: Get affiliate settings
       description: |
-        Returns current affiliate system settings with metadata.
-        Includes who last updated each setting and when.
+        Returns current affiliate system settings (backed by `SystemConfig` rows,
+        keyed `affiliate_discount_percent`, `affiliate_commission_percent`,
+        `affiliate_codes_per_month`, `affiliate_base_price`,
+        `affiliate_three_day_price`) with metadata — who last updated each setting and
+        when. Missing config rows fall back to hardcoded defaults (20%, 20%, 15,
+        $29.00, $1.99 respectively) with `updatedBy: null`.
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/settings/affiliate/route.ts` (GET)
       operationId: getAffiliateSettings
       responses:
         '200':
@@ -909,7 +1171,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -918,10 +1180,21 @@ paths:
         - Settings
       summary: Update affiliate settings
       description: |
-        Updates affiliate system settings. Creates audit history entries.
-        All fields are optional - only provided fields are updated.
+        Updates affiliate system settings. All fields are optional — only provided
+        fields are validated and updated (each is skipped, with no history entry
+        created, if the new value equals the current stored value). Each update
+        upserts the `SystemConfig` row and appends a `SystemConfigHistory` audit entry
+        (`configKey`, `oldValue`, `newValue`, `changedBy`: admin email, `reason`).
+        Validation is manual (not zod): `discountPercent`/`commissionPercent` must be
+        0–100, `codesPerMonth` must be 1–100, `basePrice`/`threeDayPrice` must be
+        non-negative.
 
-        **Admin Only**: Requires ADMIN role
+        Verified against the live handler field-for-field — no corrections needed
+        versus the prior spec.
+
+        **Auth**: `requireAdmin()` pattern.
+
+        **Implementation**: `app/api/admin/settings/affiliate/route.ts` (PATCH)
       operationId: updateAffiliateSettings
       requestBody:
         required: true
@@ -956,21 +1229,21 @@ paths:
                 threeDayPrice:
                   type: number
                   minimum: 0
-                  description: 3-day trial plan price in USD
+                  description: 3-day trial plan price in USD (dLocal only)
                   example: 1.99
                 reason:
                   type: string
-                  description: Reason for the change (for audit trail)
+                  description: Reason for the change (stored on each SystemConfigHistory entry created this call)
                   example: 'Promotional rate for Q1'
       responses:
         '200':
-          description: Settings updated successfully
+          description: Settings updated successfully (or no-op if no fields changed)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UpdateSettingsResponse'
         '400':
-          description: Invalid values provided
+          description: A provided value is outside its valid range
           content:
             application/json:
               schema:
@@ -978,12 +1251,12 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenAdmin'
         '500':
           $ref: '#/components/responses/InternalError'
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  # FRAUD ALERT ENDPOINTS
+  # FRAUD ALERT ENDPOINTS (absorbed from part-18-dlocal-payment-openapi.yaml)
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   /api/admin/fraud-alerts:
@@ -992,15 +1265,22 @@ paths:
         - Fraud Alerts
       summary: List fraud alerts
       description: |
-        Retrieves paginated fraud alerts with filtering and statistics.
+        Retrieves paginated fraud alerts with filtering and aggregate stats.
 
-        **Filters:**
-        - `severity`: LOW, MEDIUM, HIGH, CRITICAL
-        - `status`: PENDING, REVIEWED, DISMISSED, BLOCKED
-        - `pattern`: Fraud pattern type
-        - `userId`: Filter by specific user
+        **Absorbed from `part-18-dlocal-payment-openapi.yaml`** this session (that
+        spec's copy is being deleted in parallel). **Corrected vs. the absorbed
+        version**: `stats` was previously documented as nested breakdowns —
+        `{ total, bySeverity: { LOW, MEDIUM, HIGH, CRITICAL }, byStatus: { PENDING,
+        REVIEWED, DISMISSED, BLOCKED } }`. The live `getFraudAlertStats()` (in
+        `lib/fraud/fraud-detection.service.ts`) does not return that shape at all — it
+        returns **flat** severity counts plus a pending count:
+        `{ total, critical, high, medium, low, pending }`. There is no `byStatus`
+        breakdown of any kind.
 
-        **Admin Only**: Requires ADMIN role
+        **Auth**: direct pattern (`getServerSession` + inline role check; 403 body is
+        the short `{"error":"Forbidden"}`, not `"Forbidden: Admin access required"`).
+
+        **Implementation**: `app/api/admin/fraud-alerts/route.ts` (GET)
       operationId: getFraudAlerts
       parameters:
         - name: page
@@ -1035,7 +1315,7 @@ paths:
         - name: pattern
           in: query
           required: false
-          description: Filter by fraud pattern
+          description: "Filter by fraud pattern (e.g. '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'VELOCITY_LIMIT', 'IP_MISMATCH')"
           schema:
             type: string
         - name: userId
@@ -1056,7 +1336,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenShort'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1066,10 +1346,20 @@ paths:
         - Fraud Alerts
       summary: Get fraud alert details
       description: |
-        Retrieves detailed information for a specific fraud alert
-        including user details.
+        Retrieves a single fraud alert by ID, including the associated user's
+        `{ id, email, name, tier, isActive, createdAt }`.
 
-        **Admin Only**: Requires ADMIN role
+        **Absorbed from `part-18-dlocal-payment-openapi.yaml`** this session. Field
+        shape verified against the live handler — matches the absorbed version well;
+        the response is a spread of the raw `FraudAlert` row (so it also includes
+        `deviceFingerprint` and `additionalData`, which the absorbed spec's
+        `FraudAlertItem` schema didn't list) plus the nested `user` object and
+        stringified `amount`/ISO-string dates.
+
+        **Auth**: direct pattern (`getServerSession` + inline role check; 403 body is
+        the short `{"error":"Forbidden"}`).
+
+        **Implementation**: `app/api/admin/fraud-alerts/[id]/route.ts` (GET)
       operationId: getFraudAlertById
       parameters:
         - name: id
@@ -1088,9 +1378,13 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenShort'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1099,10 +1393,22 @@ paths:
         - Fraud Alerts
       summary: Update fraud alert status
       description: |
-        Updates the status of a fraud alert. When setting status to BLOCKED,
-        the associated user account is also blocked.
+        Updates the status of a fraud alert. Setting `status: 'BLOCKED'` routes through
+        `blockUserFromFraudAlert()` instead of the normal `updateFraudAlertStatus()` —
+        this additionally blocks the associated user account. `resolution` and `notes`
+        are optional in both cases. The response `message` is
+        `` `Alert ${status.toLowerCase()} successfully` ``.
 
-        **Admin Only**: Requires ADMIN role
+        **Absorbed from `part-18-dlocal-payment-openapi.yaml`** this session. The
+        returned `alert` includes `updatedAt` (present on the live response; the
+        absorbed spec's `FraudAlertUpdateResponse.alert` used the bare `FraudAlertItem`
+        schema without it) and a smaller nested `user: { id, email, name }` (not the
+        full user object returned by the GET-single endpoint).
+
+        **Auth**: direct pattern (`getServerSession` + inline role check; 403 body is
+        the short `{"error":"Forbidden"}`).
+
+        **Implementation**: `app/api/admin/fraud-alerts/[id]/route.ts` (PATCH)
       operationId: updateFraudAlert
       parameters:
         - name: id
@@ -1123,10 +1429,10 @@ paths:
                 status:
                   type: string
                   enum: [PENDING, REVIEWED, DISMISSED, BLOCKED]
-                  description: New status for the alert
+                  description: New status for the alert. BLOCKED also blocks the associated user account.
                 resolution:
                   type: string
-                  description: Resolution type (optional)
+                  description: "Resolution type (optional, e.g. 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED')"
                 notes:
                   type: string
                   description: Admin notes (optional)
@@ -1138,13 +1444,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/FraudAlertUpdateResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/ForbiddenShort'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1158,7 +1472,7 @@ components:
       type: apiKey
       in: cookie
       name: next-auth.session-token
-      description: NextAuth session cookie (must have ADMIN role)
+      description: NextAuth session cookie. Every route in this spec additionally requires the session user's `role` to be `ADMIN`.
 
   responses:
     Unauthorized:
@@ -1169,17 +1483,33 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             error: 'Unauthorized'
-            message: 'Authentication required'
 
-    Forbidden:
-      description: Forbidden - Not admin
+    ForbiddenAdminAccess:
+      description: Forbidden - Not admin (direct-pattern routes; users/analytics/api-usage/error-logs)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'Forbidden: Admin access required'
+
+    ForbiddenShort:
+      description: Forbidden - Not admin (direct-pattern routes; fraud-alerts)
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             error: 'Forbidden'
-            message: 'Admin access required'
+
+    ForbiddenAdmin:
+      description: Forbidden - Not admin (requireAdmin() pattern; affiliates/codes/commissions/settings routes)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'You must be an administrator to access this resource'
 
     NotFound:
       description: Resource not found
@@ -1188,8 +1518,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Not Found'
-            message: 'Resource not found'
+            error: 'Affiliate not found'
 
     BadRequest:
       description: Bad request - Invalid parameters
@@ -1208,7 +1537,6 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             error: 'Internal Server Error'
-            message: 'An unexpected error occurred'
 
   schemas:
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1225,31 +1553,12 @@ components:
           example: 'Error message'
         message:
           type: string
-          example: 'Additional error details'
+          description: Some handlers use `message` instead of/alongside `error`; not universal.
         details:
-          type: object
-          description: Validation error details
-
-    Pagination:
-      type: object
-      required:
-        - page
-        - limit
-        - total
-        - totalPages
-      properties:
-        page:
-          type: integer
-          example: 1
-        limit:
-          type: integer
-          example: 50
-        total:
-          type: integer
-          example: 127
-        totalPages:
-          type: integer
-          example: 3
+          description: Present on requireAdmin()-pattern validation failures (zod .flatten() or .errors output)
+          oneOf:
+            - type: object
+            - type: array
 
     ReportPeriod:
       type: object
@@ -1269,30 +1578,46 @@ components:
           enum: [3months, 6months, 1year]
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # USER SCHEMAS
+    # USER SCHEMAS (route 1: GET /api/admin/users)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     UsersListResponse:
       type: object
+      description: Flat response — NOT nested under a `pagination` key.
       required:
         - users
-        - pagination
+        - total
+        - page
+        - pageSize
+        - totalPages
       properties:
         users:
           type: array
           items:
-            $ref: '#/components/schemas/AdminUserView'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+            $ref: '#/components/schemas/AdminUser'
+        total:
+          type: integer
+          example: 127
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 50
+        totalPages:
+          type: integer
+          example: 3
 
-    AdminUserView:
+    AdminUser:
       type: object
       required:
         - id
+        - email
         - tier
         - role
-        - emailVerified
+        - status
         - createdAt
+        - alertCount
       properties:
         id:
           type: string
@@ -1303,7 +1628,6 @@ components:
           example: 'John Doe'
         email:
           type: string
-          nullable: true
           example: 'john@example.com'
         tier:
           type: string
@@ -1311,14 +1635,12 @@ components:
           example: 'PRO'
         role:
           type: string
-          enum: [USER, ADMIN]
           example: 'USER'
-        isAffiliate:
-          type: boolean
-          example: false
-        emailVerified:
-          type: boolean
-          example: true
+        status:
+          type: string
+          enum: [active, suspended]
+          description: Derived from `isActive` — not a raw DB enum
+          example: 'active'
         createdAt:
           type: string
           format: date-time
@@ -1326,233 +1648,262 @@ components:
           type: string
           format: date-time
           nullable: true
+          description: Estimated as (most recent session's expires) minus 30 days — not a real login timestamp
+        alertCount:
+          type: integer
+          description: Count of the user's alerts (`_count.alerts`)
+          example: 4
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # ANALYTICS SCHEMAS
+    # ANALYTICS SCHEMAS (route 2: GET /api/admin/analytics)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     AnalyticsResponse:
       type: object
       required:
-        - users
-        - subscriptions
-        - alerts
-        - watchlist
-        - apiUsage
+        - overview
+        - revenue
+        - growth
       properties:
-        users:
+        overview:
           type: object
+          required:
+            [totalUsers, freeUsers, proUsers, freePercentage, proPercentage]
           properties:
-            total:
-              type: integer
-            active:
-              type: integer
-            newThisMonth:
+            totalUsers:
               type: integer
             freeUsers:
               type: integer
             proUsers:
               type: integer
-        subscriptions:
-          type: object
-          properties:
-            totalRevenue:
+            freePercentage:
               type: number
+              description: Rounded to 2 decimal places
+            proPercentage:
+              type: number
+              description: Rounded to 2 decimal places
+        revenue:
+          type: object
+          required: [mrr, arr, conversionRate, pricePerUser]
+          properties:
             mrr:
               type: number
-            activeSubscriptions:
-              type: integer
-            cancelledThisMonth:
-              type: integer
-        alerts:
-          type: object
-          properties:
-            totalAlerts:
-              type: integer
-            activeAlerts:
-              type: integer
-            triggeredToday:
-              type: integer
-        watchlist:
-          type: object
-          properties:
-            totalItems:
-              type: integer
-            averagePerUser:
+              description: 'proUsers * pricePerUser (hardcoded $29/mo) — not derived from real subscription/payment records'
+            arr:
               type: number
-        apiUsage:
+              description: mrr * 12
+            conversionRate:
+              type: number
+              description: (proUsers / totalUsers) * 100, rounded to 2 decimals
+            pricePerUser:
+              type: number
+              example: 29
+        growth:
           type: object
+          required: [newUsersThisMonth, churnedThisMonth]
           properties:
-            totalRequests:
+            newUsersThisMonth:
               type: integer
-            requestsToday:
+            churnedThisMonth:
               type: integer
-            averageResponseTime:
-              type: integer
-              description: Average response time in milliseconds
+              description: 'Hardcoded 0 — subscription-cancellation history tracking is not implemented yet'
+              example: 0
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # API USAGE SCHEMAS
+    # API USAGE SCHEMAS (route 3: GET /api/admin/api-usage) — MOCK DATA
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ApiUsageEndpointStat:
+      type: object
+      required:
+        [
+          endpoint,
+          method,
+          callsFree,
+          callsPro,
+          avgResponseTime,
+          errorRate,
+          lastCalled,
+        ]
+      properties:
+        endpoint:
+          type: string
+          example: '/api/alerts'
+        method:
+          type: string
+          example: 'GET'
+        callsFree:
+          type: integer
+        callsPro:
+          type: integer
+        avgResponseTime:
+          type: integer
+          description: Milliseconds
+        errorRate:
+          type: number
+          description: Percentage
+        lastCalled:
+          type: string
+          format: date-time
+          nullable: true
 
     ApiUsageResponse:
       type: object
       required:
+        - endpoints
         - summary
-        - byEndpoint
+        - dateRange
       properties:
+        endpoints:
+          type: array
+          description: Flat array of per-endpoint stats (not keyed/grouped)
+          items:
+            $ref: '#/components/schemas/ApiUsageEndpointStat'
         summary:
           type: object
+          required:
+            [
+              totalCalls,
+              totalCallsFree,
+              totalCallsPro,
+              avgResponseTime,
+              overallErrorRate,
+            ]
           properties:
-            totalRequests:
+            totalCalls:
               type: integer
-            totalErrors:
+            totalCallsFree:
               type: integer
-            errorRate:
+            totalCallsPro:
+              type: integer
+            avgResponseTime:
               type: number
-            averageResponseTime:
-              type: integer
-        byEndpoint:
-          type: array
-          items:
-            type: object
-            properties:
-              endpoint:
-                type: string
-              requests:
-                type: integer
-              errors:
-                type: integer
-              avgResponseTime:
-                type: integer
-        byTier:
+            overallErrorRate:
+              type: number
+        dateRange:
           type: object
+          required: [startDate, endDate]
           properties:
-            FREE:
-              type: integer
-            PRO:
-              type: integer
-        timeline:
-          type: array
-          items:
-            type: object
-            properties:
-              date:
-                type: string
-                format: date
-              requests:
-                type: integer
-              errors:
-                type: integer
+            startDate:
+              type: string
+              example: '2026-07-10'
+            endDate:
+              type: string
+              example: '2026-07-17'
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # ERROR LOG SCHEMAS
+    # ERROR LOG SCHEMAS (route 4: GET /api/admin/error-logs) — MOCK DATA
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     ErrorLogsResponse:
       type: object
+      description: Flat response — NOT nested under a `pagination` key.
       required:
         - logs
-        - pagination
+        - total
+        - page
+        - pageSize
+        - totalPages
       properties:
         logs:
           type: array
           items:
             $ref: '#/components/schemas/ErrorLog'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
 
     ErrorLog:
       type: object
       required:
         - id
         - timestamp
-        - level
-        - source
+        - type
         - message
+        - userId
+        - userTier
+        - endpoint
+        - stackTrace
+        - metadata
       properties:
         id:
           type: string
+          example: 'err-1'
         timestamp:
           type: string
           format: date-time
-        level:
+        type:
           type: string
-          enum: [error, warn, info]
-        source:
-          type: string
+          enum:
+            [API_ERROR, DATABASE_ERROR, AUTH_ERROR, PAYMENT_ERROR, MT5_ERROR]
         message:
           type: string
-        error:
-          type: string
-          nullable: true
         userId:
           type: string
           nullable: true
-        requestId:
+        userTier:
+          type: string
+          enum: [FREE, PRO]
+          nullable: true
+        endpoint:
           type: string
           nullable: true
         stackTrace:
           type: string
           nullable: true
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # AFFILIATE SCHEMAS
+    # AFFILIATE SCHEMAS (routes 5-9)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     AffiliatesListResponse:
       type: object
+      description: Flat response — NOT nested under a `pagination` key.
       required:
         - affiliates
-        - pagination
+        - total
+        - page
+        - limit
+        - totalPages
       properties:
         affiliates:
           type: array
           items:
-            $ref: '#/components/schemas/AffiliateListItem'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+            $ref: '#/components/schemas/AdminAffiliateListItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
 
-    AffiliateListItem:
+    AdminAffiliateListItem:
       type: object
+      description: The full AffiliateProfile row (Prisma `include`, no `select`) plus a nested `user` object and the affiliate's currently-ACTIVE codes only.
       required:
         - id
+        - userId
         - fullName
-        - status
         - country
-      properties:
-        id:
-          type: string
-        fullName:
-          type: string
-        email:
-          type: string
-        status:
-          type: string
-          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
-        country:
-          type: string
-        paymentMethod:
-          type: string
-          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
-        totalCodesDistributed:
-          type: integer
-        totalCodesUsed:
-          type: integer
-        pendingCommissions:
-          type: number
-        totalEarnings:
-          type: number
-        createdAt:
-          type: string
-          format: date-time
-
-    AffiliateDetailResponse:
-      type: object
-      required:
-        - id
-        - fullName
+        - paymentMethod
         - status
+        - totalCodesDistributed
+        - totalCodesUsed
+        - totalEarnings
+        - pendingCommissions
+        - paidCommissions
+        - createdAt
       properties:
         id:
           type: string
@@ -1560,47 +1911,86 @@ components:
           type: string
         fullName:
           type: string
-        email:
-          type: string
-        status:
-          type: string
-          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
         country:
           type: string
         paymentMethod:
           type: string
+          enum: [BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE]
         paymentDetails:
           type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
         totalCodesDistributed:
           type: integer
         totalCodesUsed:
           type: integer
+        totalEarnings:
+          type: number
         pendingCommissions:
           type: number
         paidCommissions:
           type: number
-        totalEarnings:
-          type: number
-        codes:
-          type: array
-          items:
-            $ref: '#/components/schemas/AffiliateCode'
-        recentCommissions:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommissionItem'
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspendedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspensionReason:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
+        user:
+          type: object
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+              nullable: true
+        affiliateCodes:
+          type: array
+          description: Only codes currently with status ACTIVE
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              code:
+                type: string
+              status:
+                type: string
+                enum: [ACTIVE]
 
-    AffiliateCode:
+    AffiliateCodeDetail:
       type: object
+      required:
+        - id
+        - code
+        - status
+        - discountPercent
+        - commissionPercent
+        - distributedAt
+        - expiresAt
+        - distributionReason
       properties:
+        id:
+          type: string
         code:
           type: string
         status:
           type: string
           enum: [ACTIVE, USED, EXPIRED, CANCELLED]
+        discountPercent:
+          type: number
+        commissionPercent:
+          type: number
         distributedAt:
           type: string
           format: date-time
@@ -1611,9 +2001,17 @@ components:
           type: string
           format: date-time
           nullable: true
+        distributionReason:
+          type: string
+          enum: [INITIAL, MONTHLY, ADMIN_BONUS]
 
-    CommissionItem:
+    CommissionDetail:
       type: object
+      required:
+        - id
+        - commissionAmount
+        - status
+        - earnedAt
       properties:
         id:
           type: string
@@ -1625,52 +2023,231 @@ components:
         earnedAt:
           type: string
           format: date-time
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AffiliateDetailResponse:
+      type: object
+      description: getAffiliateDetails() — the full AffiliateProfile row plus nested user, all affiliateCodes (not just active), and the 50 most recent commissions.
+      required:
+        - id
+        - userId
+        - fullName
+        - country
+        - paymentMethod
+        - paymentDetails
+        - status
+        - totalCodesDistributed
+        - totalCodesUsed
+        - totalEarnings
+        - pendingCommissions
+        - paidCommissions
+        - createdAt
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        fullName:
+          type: string
+        country:
+          type: string
+        paymentMethod:
+          type: string
+        paymentDetails:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
+        facebookUrl:
+          type: string
+          nullable: true
+        instagramUrl:
+          type: string
+          nullable: true
+        twitterUrl:
+          type: string
+          nullable: true
+        youtubeUrl:
+          type: string
+          nullable: true
+        tiktokUrl:
+          type: string
+          nullable: true
+        totalCodesDistributed:
+          type: integer
+        totalCodesUsed:
+          type: integer
+        totalEarnings:
+          type: number
+        pendingCommissions:
+          type: number
+        paidCommissions:
+          type: number
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspendedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspensionReason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+              nullable: true
+        affiliateCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AffiliateCodeDetail'
+        commissions:
+          type: array
+          description: Most recent 50, ordered by earnedAt desc
+          items:
+            $ref: '#/components/schemas/CommissionDetail'
+
+    AffiliateProfileRaw:
+      type: object
+      description: Raw `prisma.affiliateProfile.update()` result — every scalar column, no relations (no `user`/`affiliateCodes`/`commissions`). Returned as-is by suspend/reactivate.
+      required:
+        - id
+        - userId
+        - fullName
+        - country
+        - paymentMethod
+        - status
+        - totalCodesDistributed
+        - totalCodesUsed
+        - totalEarnings
+        - pendingCommissions
+        - paidCommissions
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        fullName:
+          type: string
+        country:
+          type: string
+        paymentMethod:
+          type: string
+        paymentDetails:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [ACTIVE, PENDING_VERIFICATION, SUSPENDED, INACTIVE]
+        totalCodesDistributed:
+          type: integer
+        totalCodesUsed:
+          type: integer
+        totalEarnings:
+          type: number
+        pendingCommissions:
+          type: number
+        paidCommissions:
+          type: number
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspendedAt:
+          type: string
+          format: date-time
+          nullable: true
+        suspensionReason:
+          type: string
+          nullable: true
+        facebookUrl:
+          type: string
+          nullable: true
+        instagramUrl:
+          type: string
+          nullable: true
+        twitterUrl:
+          type: string
+          nullable: true
+        youtubeUrl:
+          type: string
+          nullable: true
+        tiktokUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     AffiliateSuspendResponse:
       type: object
       required:
         - success
         - message
+        - affiliate
       properties:
         success:
           type: boolean
+          example: true
         message:
           type: string
+          example: 'Affiliate suspended'
         affiliate:
-          $ref: '#/components/schemas/AffiliateListItem'
+          $ref: '#/components/schemas/AffiliateProfileRaw'
 
     AffiliateReactivateResponse:
       type: object
       required:
         - success
         - message
+        - affiliate
       properties:
         success:
           type: boolean
+          example: true
         message:
           type: string
+          example: 'Affiliate reactivated'
         affiliate:
-          $ref: '#/components/schemas/AffiliateListItem'
+          $ref: '#/components/schemas/AffiliateProfileRaw'
 
     DistributeCodesResponse:
       type: object
+      description: Does NOT include the distributed codes themselves — only the count.
       required:
         - success
+        - message
         - codesDistributed
       properties:
         success:
           type: boolean
-        codesDistributed:
-          type: integer
-        newCodes:
-          type: array
-          items:
-            type: string
+          example: true
         message:
           type: string
+          example: 'Successfully distributed 10 codes to affiliate'
+        codesDistributed:
+          type: integer
+          example: 10
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # AFFILIATE REPORTS SCHEMAS
+    # AFFILIATE REPORTS SCHEMAS (routes 10-14)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     CodeInventoryResponse:
@@ -1710,6 +2287,7 @@ components:
                   type: integer
             conversionRate:
               type: number
+              description: Rounded to 1 decimal place
         periodMetrics:
           type: object
           properties:
@@ -1728,6 +2306,78 @@ components:
               type: integer
             lowActiveCodesWarning:
               type: boolean
+              description: True when active-code count is below 50
+
+    CodeFlowsResponse:
+      type: object
+      description: New in this session — GET /api/admin/affiliates/reports/code-flows. Response is wrapped in a single `report` key.
+      required:
+        - report
+      properties:
+        report:
+          type: object
+          required:
+            [
+              period,
+              openingBalance,
+              additions,
+              reductions,
+              closingBalance,
+              affiliatesWithActivity,
+            ]
+          properties:
+            period:
+              type: object
+              required: [start, end]
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+            openingBalance:
+              type: integer
+              description: ACTIVE codes as of period start (distributed before `start`, not yet used before `start`, not CANCELLED)
+              example: 342
+            additions:
+              type: object
+              required:
+                [
+                  monthlyDistribution,
+                  initialDistribution,
+                  bonusDistribution,
+                  total,
+                ]
+              properties:
+                monthlyDistribution:
+                  type: integer
+                initialDistribution:
+                  type: integer
+                bonusDistribution:
+                  type: integer
+                total:
+                  type: integer
+            reductions:
+              type: object
+              required: [used, expired, cancelled, total]
+              properties:
+                used:
+                  type: integer
+                expired:
+                  type: integer
+                cancelled:
+                  type: integer
+                total:
+                  type: integer
+            closingBalance:
+              type: integer
+              description: openingBalance + additions.total - reductions.total
+              example: 401
+            affiliatesWithActivity:
+              type: integer
+              description: Count of distinct affiliates with a code distributed or used in the period
+              example: 18
 
     CommissionOwingsResponse:
       type: object
@@ -1747,6 +2397,7 @@ components:
               type: number
             minimumPayoutThreshold:
               type: number
+              example: 50
         affiliates:
           type: array
           items:
@@ -1762,6 +2413,10 @@ components:
                 type: string
               paymentMethod:
                 type: string
+              paymentDetails:
+                type: object
+                additionalProperties: true
+                description: Raw JSON payment-info blob (missing from the prior spec's schema)
               balance:
                 type: object
                 properties:
@@ -1780,7 +2435,17 @@ components:
               readyForPayout:
                 type: boolean
         pagination:
-          $ref: '#/components/schemas/Pagination'
+          type: object
+          required: [page, limit, total, totalPages]
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
 
     ProfitLossResponse:
       type: object
@@ -1804,6 +2469,7 @@ components:
               type: number
             discountPercent:
               type: number
+              description: From dynamic SystemConfig, not hardcoded
             averageTicket:
               type: number
         costs:
@@ -1819,6 +2485,7 @@ components:
               type: number
             commissionPercent:
               type: number
+              description: From dynamic SystemConfig, not hardcoded
             averageCommission:
               type: number
         profit:
@@ -1828,6 +2495,7 @@ components:
               type: number
             margin:
               type: number
+              description: Percentage, rounded to 1 decimal place
         volume:
           type: object
           properties:
@@ -1835,6 +2503,7 @@ components:
               type: integer
             regularPrice:
               type: number
+              description: From dynamic SystemConfig (basePriceUsd)
 
     SalesPerformanceResponse:
       type: object
@@ -1882,9 +2551,10 @@ components:
                     type: number
                   conversionRate:
                     type: number
+                    description: (totalCodesUsed / totalCodesDistributed) * 100, all-time — not scoped to the report period
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # CODE & COMMISSION SCHEMAS
+    # CODE & COMMISSION SCHEMAS (routes 15-16)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     CancelCodeResponse:
@@ -1896,8 +2566,10 @@ components:
       properties:
         success:
           type: boolean
+          example: true
         message:
           type: string
+          example: 'Code cancelled successfully'
         code:
           type: object
           properties:
@@ -1905,6 +2577,7 @@ components:
               type: string
             status:
               type: string
+              enum: [CANCELLED]
             cancelledAt:
               type: string
               format: date-time
@@ -1914,6 +2587,8 @@ components:
               type: string
             reason:
               type: string
+              description: "The provided reason, or 'Admin cancellation' if none was given"
+              example: 'Admin cancellation'
 
     PayCommissionsResponse:
       type: object
@@ -1924,19 +2599,23 @@ components:
       properties:
         success:
           type: boolean
+          example: true
         message:
           type: string
+          example: 'Commissions marked as paid'
         payment:
           type: object
           properties:
             batchId:
               type: string
+              example: 'PAY-1752710400000-c123ab'
             affiliateId:
               type: string
             commissionCount:
               type: integer
             totalAmount:
               type: number
+              description: Rounded to 2 decimal places
             paymentMethod:
               type: string
             paymentReference:
@@ -1946,9 +2625,11 @@ components:
               format: date-time
             paidBy:
               type: string
+              description: Calling admin's session email
+              nullable: true
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # SETTINGS SCHEMAS
+    # SETTINGS SCHEMAS (route 17)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     ConfigValue:
@@ -1962,6 +2643,7 @@ components:
         updatedBy:
           type: string
           nullable: true
+          description: Admin user ID, or null if the setting has never been changed from its default
         updatedAt:
           type: string
           format: date-time
@@ -1995,23 +2677,77 @@ components:
       properties:
         success:
           type: boolean
+          example: true
         message:
           type: string
+          example: 'Affiliate settings updated. Changes will propagate across all pages within 5 minutes.'
         changes:
           type: array
+          description: Only settings whose value actually changed appear here
           items:
             type: object
             properties:
               setting:
                 type: string
+                enum:
+                  [
+                    discountPercent,
+                    commissionPercent,
+                    codesPerMonth,
+                    basePrice,
+                    threeDayPrice,
+                  ]
               oldValue:
                 type: string
               newValue:
                 type: string
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # FRAUD ALERT SCHEMAS
+    # FRAUD ALERT SCHEMAS (routes 18-19, absorbed from part-18)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    FraudAlertsPagination:
+      type: object
+      description: Uses `pageSize`, not `limit` — distinct from the affiliate-report pagination shape.
+      required:
+        - page
+        - pageSize
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    FraudAlertStats:
+      type: object
+      description: Flat severity counts, NOT the nested `bySeverity`/`byStatus` shape the absorbed part-18 spec previously documented. There is no status breakdown other than `pending`.
+      required:
+        - total
+        - critical
+        - high
+        - medium
+        - low
+        - pending
+      properties:
+        total:
+          type: integer
+        critical:
+          type: integer
+        high:
+          type: integer
+        medium:
+          type: integer
+        low:
+          type: integer
+        pending:
+          type: integer
+          description: Count of alerts currently in PENDING status
 
     FraudAlertsListResponse:
       type: object
@@ -2025,34 +2761,9 @@ components:
           items:
             $ref: '#/components/schemas/FraudAlertItem'
         stats:
-          type: object
-          properties:
-            total:
-              type: integer
-            bySeverity:
-              type: object
-              properties:
-                LOW:
-                  type: integer
-                MEDIUM:
-                  type: integer
-                HIGH:
-                  type: integer
-                CRITICAL:
-                  type: integer
-            byStatus:
-              type: object
-              properties:
-                PENDING:
-                  type: integer
-                REVIEWED:
-                  type: integer
-                DISMISSED:
-                  type: integer
-                BLOCKED:
-                  type: integer
+          $ref: '#/components/schemas/FraudAlertStats'
         pagination:
-          $ref: '#/components/schemas/Pagination'
+          $ref: '#/components/schemas/FraudAlertsPagination'
 
     FraudAlertItem:
       type: object
@@ -2071,6 +2782,7 @@ components:
           enum: [LOW, MEDIUM, HIGH, CRITICAL]
         pattern:
           type: string
+          example: 'VELOCITY_LIMIT'
         description:
           type: string
         userId:
@@ -2089,6 +2801,7 @@ components:
         amount:
           type: string
           nullable: true
+          description: Stringified Decimal
         currency:
           type: string
           nullable: true
@@ -2107,6 +2820,7 @@ components:
         reviewedBy:
           type: string
           nullable: true
+          description: Admin user ID who reviewed
         reviewedAt:
           type: string
           format: date-time
@@ -2125,6 +2839,13 @@ components:
             - $ref: '#/components/schemas/FraudAlertItem'
             - type: object
               properties:
+                deviceFingerprint:
+                  type: string
+                  nullable: true
+                additionalData:
+                  type: object
+                  nullable: true
+                  additionalProperties: true
                 updatedAt:
                   type: string
                   format: date-time
@@ -2140,6 +2861,7 @@ components:
                       nullable: true
                     tier:
                       type: string
+                      enum: [FREE, PRO]
                     isActive:
                       type: boolean
                     createdAt:
@@ -2153,6 +2875,24 @@ components:
         - message
       properties:
         alert:
-          $ref: '#/components/schemas/FraudAlertItem'
+          allOf:
+            - $ref: '#/components/schemas/FraudAlertItem'
+            - type: object
+              properties:
+                updatedAt:
+                  type: string
+                  format: date-time
+                user:
+                  type: object
+                  description: Smaller than the GET-single endpoint's user object — no tier/isActive/createdAt
+                  properties:
+                    id:
+                      type: string
+                    email:
+                      type: string
+                    name:
+                      type: string
+                      nullable: true
         message:
           type: string
+          example: 'Alert blocked successfully'

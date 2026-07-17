@@ -1,8 +1,23 @@
 openapi: 3.0.3
 info:
-  title: Trading Alerts SaaS - Part 19 Disbursement System API
+  title: Trading Alerts SaaS - Disbursement & RiseWorks Payment System API (Part 19)
   description: |
     **Part 19: RiseWorks Disbursement & Payment System**
+
+    **Generated 2026-07-17, Session 0-3 — field-level accuracy pass against live
+    handlers, confirmed sole ownership of all 19 disbursement/riseworks/cron routes.**
+    This file is the SOLE authoritative spec for these 19 routes; no other
+    `part-XX` file documents any of these paths. `GET /api/disbursement/reports/affiliate/{affiliateId}`
+    was previously duplicated in `part-17-affiliate-openapi.yaml`; that copy is being
+    removed in the same session, pointing here as sole owner.
+
+    This session corrected numerous field-name and response-shape mismatches left by
+    the previous version of this spec (which had the right paths but several wrong
+    field names / stale shapes — see inline notes on individual operations for what
+    changed). Two previously-undocumented `GET` operations were added
+    (`/api/cron/process-pending-disbursements` and `/api/cron/sync-riseworks-accounts`
+    both implement an unauthenticated `GET` status/info handler alongside their
+    `CRON_SECRET`-gated `POST` handler — the original spec only documented `POST`).
 
     This API provides comprehensive affiliate commission disbursement functionality including:
     - **Part 19A (Foundation)**: Database schema, types, payment providers, commission services
@@ -18,10 +33,23 @@ info:
     - Comprehensive reporting and audit trails
     - Automated cron jobs for disbursements and account sync
 
-    ## Authentication
-    - Admin APIs require NextAuth session with ADMIN role
-    - Webhook endpoints verify HMAC SHA256 signatures
-    - Cron endpoints require Bearer token authentication
+    ## Authentication (verified per-route against live handlers)
+    - Admin APIs require a NextAuth session with `role: ADMIN`. Two different code
+      paths implement this and behave slightly differently:
+      - Routes calling `requireAdmin()` (`lib/auth/session.ts`) throw a typed
+        `AuthError`, which can surface as **either 401** (not authenticated) **or
+        403** (authenticated, non-admin role).
+      - Routes using an inline `getServerSession(authOptions)` + `role !== 'ADMIN'`
+        check collapse both cases into a single **401** response — they never
+        return 403. See each operation's `responses` for which pattern applies.
+    - `GET /api/disbursement/health` has **no authentication at all** — genuinely
+      public, for uptime monitoring.
+    - `POST /api/webhooks/riseworks` is verified via an `x-rise-signature` header
+      (HMAC-SHA256 over the raw body, `RISE_WEBHOOK_SECRET`), not a session.
+    - `POST /api/cron/process-pending-disbursements` and
+      `POST /api/cron/sync-riseworks-accounts` are verified via an
+      `Authorization: Bearer <CRON_SECRET>` header, not a session. The paired `GET`
+      on each of those two paths requires no authentication at all.
 
     ## Payment Flow
     1. Commissions accumulate (from Part 17 Affiliate system)
@@ -37,7 +65,7 @@ info:
     - DisbursementTransaction ↔ Commission (Part 17)
     - PaymentBatch → DisbursementTransaction[]
 
-  version: 2.0.0
+  version: 2.1.0
   contact:
     name: Trading Alerts SaaS Team
     email: support@tradingalerts.example.com
@@ -72,9 +100,9 @@ tags:
   - name: Health
     description: System health checks
   - name: Webhooks
-    description: RiseWorks webhook handlers
+    description: RiseWorks webhook handlers (internal, non-session auth)
   - name: Cron Jobs
-    description: Automated background jobs
+    description: Automated background jobs (internal, CRON_SECRET auth on POST; unauthenticated GET status)
 
 paths:
   # ============================================================
@@ -89,6 +117,9 @@ paths:
         Returns all affiliates who have approved commissions ready for payout.
         Includes affiliate details, pending amounts, RiseWorks account status,
         and payout eligibility based on $50 minimum threshold and KYC approval.
+
+        **Implementation:** `app/api/disbursement/affiliates/payable/route.ts` (GET).
+        Admin-gated via `requireAdmin()`.
       operationId: getPayableAffiliates
       security:
         - AdminAuth: []
@@ -144,7 +175,18 @@ paths:
       tags:
         - Affiliates
       summary: Get affiliate details
-      description: Returns detailed information about a specific affiliate including RiseWorks account and pending commissions
+      description: |
+        Returns detailed information about a specific affiliate including RiseWorks
+        account and pending commissions.
+
+        **Corrected this session:** the response is a flat object with sibling
+        `affiliate` / `riseAccount` / `pendingCommissions` / `recentTransactions` /
+        `readyForPayout` keys — the previous spec incorrectly nested everything
+        under a single `affiliate` object using a schema (`AffiliateDetails`) that
+        didn't match the live handler's field names at all.
+
+        **Implementation:** `app/api/disbursement/affiliates/[affiliateId]/route.ts` (GET).
+        Admin-gated via `requireAdmin()`.
       operationId: getAffiliateDetails
       security:
         - AdminAuth: []
@@ -165,9 +207,26 @@ paths:
                 type: object
                 properties:
                   affiliate:
-                    $ref: '#/components/schemas/AffiliateDetails'
+                    $ref: '#/components/schemas/AffiliateDisbursementProfile'
+                  riseAccount:
+                    allOf:
+                      - $ref: '#/components/schemas/AffiliateRiseAccountDetail'
+                    nullable: true
+                    description: 'null if the affiliate has no linked RiseWorks account'
+                  pendingCommissions:
+                    $ref: '#/components/schemas/PendingCommissionsSummary'
+                  recentTransactions:
+                    type: array
+                    description: Most recent 10 disbursement transactions for this affiliate
+                    items:
+                      $ref: '#/components/schemas/RecentDisbursementTransaction'
+                  readyForPayout:
+                    type: boolean
+                    description: True if pending commissions meet threshold AND KYC is approved
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '500':
@@ -178,7 +237,22 @@ paths:
       tags:
         - Affiliates
       summary: Get affiliate pending commissions
-      description: Returns all approved commissions for an affiliate that haven't been paid yet
+      description: |
+        Returns all approved commissions for an affiliate that haven't been paid
+        (linked to a disbursement transaction) yet.
+
+        **Corrected this session:** response now includes the top-level
+        `affiliateId` / `affiliateName` fields the handler actually returns, and
+        each commission item includes `code`, `commissionPercent`, and `earnedAt`
+        (from the joined `AffiliateCode`) instead of the generic Commission model
+        shape the previous spec used. The `summary` object also has more fields
+        than previously documented (`totalGrossRevenue`, `totalDiscount`,
+        `averageCommission`, `oldestCommission`, `newestCommission`) and the
+        previous `totalAmount` field is still present. 404 (affiliate not found)
+        was undocumented previously despite the handler explicitly returning it.
+
+        **Implementation:** `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` (GET).
+        Admin-gated via `requireAdmin()`.
       operationId: getAffiliatePendingCommissions
       security:
         - AdminAuth: []
@@ -198,10 +272,14 @@ paths:
               schema:
                 type: object
                 properties:
+                  affiliateId:
+                    type: string
+                  affiliateName:
+                    type: string
                   commissions:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Commission'
+                      $ref: '#/components/schemas/AffiliateCommissionItem'
                   summary:
                     type: object
                     properties:
@@ -212,8 +290,29 @@ paths:
                         type: number
                         format: double
                         example: 250.00
+                      totalGrossRevenue:
+                        type: number
+                        format: double
+                      totalDiscount:
+                        type: number
+                        format: double
+                      averageCommission:
+                        type: number
+                        format: double
+                      oldestCommission:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      newestCommission:
+                        type: string
+                        format: date-time
+                        nullable: true
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -225,7 +324,18 @@ paths:
       tags:
         - RiseWorks Accounts
       summary: Get all RiseWorks accounts
-      description: Returns all registered RiseWorks accounts with affiliate details and KYC status
+      description: |
+        Returns all registered RiseWorks accounts with affiliate details and KYC status.
+
+        **Corrected this session:** account items are enriched with
+        `affiliateName`/`affiliateEmail`/`affiliateCountry`/`affiliateStatus`
+        (joined from `AffiliateProfile`), `transactionCount`, and a derived
+        `canReceivePayments` boolean — none of which were in the previous spec's
+        generic `AffiliateRiseAccount` schema. A `summary` object (KYC status
+        breakdown) is also returned and was previously undocumented.
+
+        **Implementation:** `app/api/disbursement/riseworks/accounts/route.ts` (GET).
+        Admin-gated via `requireAdmin()`.
       operationId: getRiseWorksAccounts
       security:
         - AdminAuth: []
@@ -240,9 +350,13 @@ paths:
                   accounts:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AffiliateRiseAccount'
+                      $ref: '#/components/schemas/AffiliateRiseAccountListItem'
+                  summary:
+                    $ref: '#/components/schemas/RiseWorksAccountsSummary'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -250,7 +364,21 @@ paths:
       tags:
         - RiseWorks Accounts
       summary: Create RiseWorks account
-      description: Creates a new RiseWorks account for an affiliate by linking their blockchain wallet address
+      description: |
+        Creates a new RiseWorks account for an affiliate by linking their blockchain
+        wallet address.
+
+        **Corrected this session:** success response is `{ message, account }`
+        where `account` has only `id`, `affiliateProfileId`, `affiliateName`,
+        `riseId`, `email`, `kycStatus`, `createdAt` — not the full
+        `AffiliateRiseAccount` shape the previous spec referenced. 404 (affiliate
+        profile not found) and 409 (duplicate account — either the affiliate
+        already has one, or the `riseId` is already in use by another affiliate)
+        were both undocumented previously despite the handler explicitly
+        returning them.
+
+        **Implementation:** `app/api/disbursement/riseworks/accounts/route.ts` (POST).
+        Admin-gated via `requireAdmin()`.
       operationId: createRiseWorksAccount
       security:
         - AdminAuth: []
@@ -286,12 +414,38 @@ paths:
               schema:
                 type: object
                 properties:
+                  message:
+                    type: string
+                    example: RiseWorks account created successfully
                   account:
-                    $ref: '#/components/schemas/AffiliateRiseAccount'
+                    $ref: '#/components/schemas/CreatedRiseAccount'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Affiliate profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Affiliate profile not found
+        '409':
+          description: RiseWorks account already exists for this affiliate, or the riseId is already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                affiliateAlreadyLinked:
+                  value:
+                    error: RiseWorks account already exists for this affiliate
+                riseIdInUse:
+                  value:
+                    error: RiseWorks ID already in use
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -300,7 +454,20 @@ paths:
       tags:
         - RiseWorks Accounts
       summary: Sync RiseWorks accounts
-      description: Synchronizes all RiseWorks accounts with the external RiseWorks API to update KYC status and account details
+      description: |
+        Synchronizes all RiseWorks accounts. **Currently a stub**: it does not call
+        the real RiseWorks API yet (see commented-out placeholder in the handler) —
+        it only updates `lastSyncAt` on every account and logs the operation to the
+        audit trail. `kycStatus` is not actually changed by this endpoint today.
+
+        **Corrected this session:** result field names are `synced` and `errors`
+        (counts), not `updated`/`failed` as the previous spec claimed, and there is
+        a `statusChanges` array (always empty today, since KYC status isn't
+        actually updated yet, but present in the response shape for when the real
+        RiseWorks API call is wired up).
+
+        **Implementation:** `app/api/disbursement/riseworks/sync/route.ts` (POST).
+        Admin-gated via `requireAdmin()`.
       operationId: syncRiseWorksAccounts
       security:
         - AdminAuth: []
@@ -314,24 +481,20 @@ paths:
                 properties:
                   success:
                     type: boolean
+                    description: True if zero accounts errored during sync
                     example: true
                   message:
                     type: string
-                    example: Synced 15 accounts
+                    example: Synced 15 of 15 accounts
                   syncedAt:
                     type: string
                     format: date-time
                   results:
-                    type: object
-                    properties:
-                      total:
-                        type: integer
-                      updated:
-                        type: integer
-                      failed:
-                        type: integer
+                    $ref: '#/components/schemas/RiseWorksSyncResults'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -343,7 +506,20 @@ paths:
       tags:
         - Batches
       summary: Get payment batches
-      description: Returns list of payment batches with optional status filter and statistics
+      description: |
+        Returns list of payment batches with optional status filter, per-batch
+        transaction counts, and overall statistics.
+
+        **Corrected this session:** `transactionCounts` keys are lowercase
+        (`pending`/`processing`/`completed`/`failed`/`cancelled`, always all five,
+        defaulting to 0) — the previous spec used uppercase enum-style keys, which
+        do not match what `TransactionService.getTransactionCountsByStatus()`
+        actually returns. `statistics` also had a `successRate` field that does
+        not exist on `BatchManager.getBatchStatistics()`'s return type, and was
+        missing the real `totalPayments` field.
+
+        **Implementation:** `app/api/disbursement/batches/route.ts` (GET).
+        Admin-gated via `requireAdmin()`.
       operationId: getPaymentBatches
       security:
         - AdminAuth: []
@@ -379,6 +555,8 @@ paths:
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -389,6 +567,9 @@ paths:
       description: |
         Creates a new payment batch for specified affiliates or all payable affiliates.
         Only includes affiliates meeting the $50 minimum payout threshold.
+
+        **Implementation:** `app/api/disbursement/batches/route.ts` (POST).
+        Admin-gated via `requireAdmin()`.
       operationId: createPaymentBatch
       security:
         - AdminAuth: []
@@ -401,12 +582,14 @@ paths:
               properties:
                 affiliateIds:
                   type: array
-                  description: Optional list of affiliate IDs. If empty, creates batch for all payable affiliates
+                  description: Optional list of affiliate IDs. If empty/omitted, creates batch for all payable affiliates
                   items:
                     type: string
                   example: ['clp123abc', 'clp456def']
                 provider:
-                  $ref: '#/components/schemas/DisbursementProvider'
+                  allOf:
+                    - $ref: '#/components/schemas/DisbursementProvider'
+                  default: MOCK
       responses:
         '201':
           description: Batch created successfully
@@ -457,6 +640,8 @@ paths:
                     type: string
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -465,7 +650,25 @@ paths:
       tags:
         - Batches
       summary: Preview payment batch
-      description: Previews what would be included in a batch without creating it. Useful for dry-run validation.
+      description: |
+        Previews what would be included in a batch without creating it. Useful for
+        dry-run validation.
+
+        **Corrected this session — this operation was substantially wrong in the
+        previous spec.** The request body also accepts an optional `feePercentage`
+        (not previously documented). The response is `{ preview, eligible,
+        ineligible, summary, canCreate }`, not `{ preview, summary }`: `preview`
+        items have completely different fields (`affiliateEmail`, `country`,
+        `grossAmount`, `feeAmount`, `netAmount`, `status` enum, `statusReason`,
+        `riseAccount`) than the previous spec's `{ affiliateId, affiliateName,
+        commissionCount, totalAmount, eligible, reason }` shape, and `summary` has
+        `totalGrossAmount`/`totalFeeAmount`/`totalNetAmount`/`eligibleNetAmount`/
+        `feePercentage`/`minimumThreshold` instead of the previous
+        `totalAmount`/`ineligibleReasons` fields, which don't exist on the live
+        handler's response.
+
+        **Implementation:** `app/api/disbursement/batches/preview/route.ts` (POST).
+        Admin-gated via `requireAdmin()`.
       operationId: previewPaymentBatch
       security:
         - AdminAuth: []
@@ -478,10 +681,16 @@ paths:
               properties:
                 affiliateIds:
                   type: array
-                  description: Optional list of affiliate IDs
+                  description: Optional list of affiliate IDs. If empty/omitted, previews all payable affiliates
                   items:
                     type: string
                   example: ['clp123abc', 'clp456def']
+                feePercentage:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  default: 0
+                  description: Fee percentage deducted from each affiliate's gross amount to compute netAmount
       responses:
         '200':
           description: Preview generated successfully
@@ -492,39 +701,28 @@ paths:
                 properties:
                   preview:
                     type: array
+                    description: All affiliates considered, eligible and ineligible
                     items:
-                      type: object
-                      properties:
-                        affiliateId:
-                          type: string
-                        affiliateName:
-                          type: string
-                        commissionCount:
-                          type: integer
-                        totalAmount:
-                          type: number
-                          format: double
-                        eligible:
-                          type: boolean
-                        reason:
-                          type: string
-                          description: Reason if not eligible
+                      $ref: '#/components/schemas/BatchPreviewItem'
+                  eligible:
+                    type: array
+                    description: Subset of `preview` where `eligible` is true
+                    items:
+                      $ref: '#/components/schemas/BatchPreviewItem'
+                  ineligible:
+                    type: array
+                    description: Subset of `preview` where `eligible` is false
+                    items:
+                      $ref: '#/components/schemas/BatchPreviewItem'
                   summary:
-                    type: object
-                    properties:
-                      totalAffiliates:
-                        type: integer
-                      eligibleAffiliates:
-                        type: integer
-                      totalAmount:
-                        type: number
-                        format: double
-                      ineligibleReasons:
-                        type: object
-                        additionalProperties:
-                          type: integer
+                    $ref: '#/components/schemas/BatchPreviewSummary'
+                  canCreate:
+                    type: boolean
+                    description: True if at least one eligible affiliate was found
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -533,7 +731,27 @@ paths:
       tags:
         - Batches
       summary: Get batch details
-      description: Returns detailed information about a payment batch including all transactions and audit logs
+      description: |
+        Returns detailed information about a payment batch including all
+        transactions and audit logs.
+
+        **Corrected this session — this operation was substantially wrong in the
+        previous spec.** `transactions` and `auditLogs` are top-level siblings of
+        `batch` in the response, **not** nested inside `batch` as the previous
+        `PaymentBatchDetailed` (`allOf` PaymentBatch) schema claimed. The `batch`
+        object itself also has `paidAmount` (computed: sum of COMPLETED
+        transaction amounts) and `metadata` fields not in the base `PaymentBatch`
+        schema. There is also a top-level `transactionCounts` field (same
+        lowercase-keyed shape as the batches-list endpoint). Transaction items use
+        a distinct shape — `affiliateProfileId`/`affiliateRiseId` (not
+        `affiliateRiseAccountId`/`payeeRiseId`), and `amountRiseUnits` is
+        serialized as a **string** (`BigInt.toString()`), not a JSON integer, to
+        avoid precision loss. Audit log items here are a **subset** of the full
+        audit log entry — no `ipAddress`, `userAgent`, `transactionId`, or
+        `batchId` fields (unlike `GET /api/disbursement/audit-logs`).
+
+        **Implementation:** `app/api/disbursement/batches/[batchId]/route.ts` (GET).
+        Admin-gated via `requireAdmin()`.
       operationId: getBatchDetails
       security:
         - AdminAuth: []
@@ -554,9 +772,21 @@ paths:
                 type: object
                 properties:
                   batch:
-                    $ref: '#/components/schemas/PaymentBatchDetailed'
+                    $ref: '#/components/schemas/BatchDetail'
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatchTransactionDetail'
+                  transactionCounts:
+                    $ref: '#/components/schemas/BatchTransactionCounts'
+                  auditLogs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatchAuditLogEntry'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '500':
@@ -566,7 +796,17 @@ paths:
       tags:
         - Batches
       summary: Delete payment batch
-      description: Deletes a payment batch. Only allowed for PENDING or CANCELLED batches.
+      description: |
+        Deletes a payment batch (and its transactions/audit logs). Only allowed
+        for batches **not** in PROCESSING or COMPLETED status (i.e. PENDING,
+        QUEUED, FAILED, or CANCELLED can be deleted).
+
+        **Corrected this session:** success response is `{ message, deletedBatch }`
+        — there is no top-level `success` boolean, which the previous spec
+        claimed.
+
+        **Implementation:** `app/api/disbursement/batches/[batchId]/route.ts` (DELETE).
+        Admin-gated via `requireAdmin()`.
       operationId: deletePaymentBatch
       security:
         - AdminAuth: []
@@ -586,14 +826,22 @@ paths:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
                   message:
                     type: string
                     example: Batch deleted successfully
+                  deletedBatch:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      batchNumber:
+                        type: string
+                      status:
+                        $ref: '#/components/schemas/PaymentBatchStatus'
+                      transactionCount:
+                        type: integer
         '400':
-          description: Cannot delete batch in current state
+          description: Cannot delete batch in current state (PROCESSING or COMPLETED)
           content:
             application/json:
               schema:
@@ -601,9 +849,11 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: Cannot delete batch with status PROCESSING
+                    example: Cannot delete batch that is processing or completed
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '500':
@@ -616,8 +866,17 @@ paths:
       summary: Execute payment batch
       description: |
         Executes all payments in a batch via the configured payment provider.
-        Only allowed for batches in PENDING status.
+        Only allowed for batches in PENDING or QUEUED status.
         Updates batch status to PROCESSING, then COMPLETED or FAILED.
+
+        **Corrected this session:** response is `{ success, result, batch,
+        message }`. `result` does **not** include a `status` field (the
+        `ExecutionResult` TypeScript type it's built from has no such field —
+        batch status is only available via the sibling `batch.status`), which the
+        previous spec incorrectly included on its `ExecutionResult` schema.
+
+        **Implementation:** `app/api/disbursement/batches/[batchId]/execute/route.ts` (POST).
+        Admin-gated via `requireAdmin()`.
       operationId: executePaymentBatch
       security:
         - AdminAuth: []
@@ -631,16 +890,63 @@ paths:
             example: clp123batch456
       responses:
         '200':
-          description: Batch execution completed
+          description: Batch execution completed (success reflects whether all payments succeeded)
           content:
             application/json:
               schema:
                 type: object
                 properties:
+                  success:
+                    type: boolean
                   result:
-                    $ref: '#/components/schemas/ExecutionResult'
+                    type: object
+                    properties:
+                      batchId:
+                        type: string
+                      batchNumber:
+                        type: string
+                      totalAmount:
+                        type: number
+                        format: double
+                      successCount:
+                        type: integer
+                      failedCount:
+                        type: integer
+                      errors:
+                        type: array
+                        items:
+                          type: string
+                  batch:
+                    nullable: true
+                    type: object
+                    description: Updated batch state after execution (null if it could not be re-fetched)
+                    properties:
+                      id:
+                        type: string
+                      batchNumber:
+                        type: string
+                      status:
+                        $ref: '#/components/schemas/PaymentBatchStatus'
+                      executedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      completedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      failedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      errorMessage:
+                        type: string
+                        nullable: true
+                  message:
+                    type: string
+                    example: 'Batch executed successfully: 15 payments completed'
         '400':
-          description: Batch cannot be executed in current state
+          description: Batch cannot be executed in current state, or provider unavailable
           content:
             application/json:
               schema:
@@ -648,13 +954,21 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: Batch must be in PENDING status to execute
+                    example: Cannot execute batch with status COMPLETED
+                  details:
+                    type: string
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: Server error, including payment provider initialization failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # ============================================================
   # PART 19C: QUICK PAYMENT API
@@ -667,7 +981,21 @@ paths:
       description: |
         Creates and immediately executes a payment batch for a single affiliate.
         Useful for ad-hoc payments or urgent disbursements.
-        Affiliate must meet minimum payout threshold and have approved KYC.
+        Affiliate must meet minimum payout threshold, and (for the RISE provider
+        only) have an approved KYC RiseWorks account.
+
+        **Corrected this session:** the response is a **flat** object —
+        `success`/`batchId`/`batchNumber`/`totalAmount`/`successCount`/
+        `failedCount`/`errors` are all top-level, plus an `affiliate: { id, name }`
+        object — not wrapped in a `result` object as the previous spec claimed.
+        404 (affiliate not found) was undocumented previously despite the handler
+        explicitly returning it.
+
+        **Auth note:** this route uses the inline `getServerSession` + role-check
+        pattern (not `requireAdmin()`), so it returns only 401 for any
+        authorization failure — it never returns 403.
+
+        **Implementation:** `app/api/disbursement/pay/route.ts` (POST).
       operationId: quickPayAffiliate
       security:
         - AdminAuth: []
@@ -685,19 +1013,43 @@ paths:
                   description: Affiliate Profile ID to pay
                   example: clp123abc456def
                 provider:
-                  $ref: '#/components/schemas/DisbursementProvider'
+                  allOf:
+                    - $ref: '#/components/schemas/DisbursementProvider'
+                  default: MOCK
       responses:
         '200':
-          description: Payment executed successfully
+          description: Payment executed (success reflects whether the payment succeeded)
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  result:
-                    $ref: '#/components/schemas/ExecutionResult'
+                  success:
+                    type: boolean
+                  batchId:
+                    type: string
+                  batchNumber:
+                    type: string
+                  totalAmount:
+                    type: number
+                    format: double
+                  successCount:
+                    type: integer
+                  failedCount:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                  affiliate:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
         '400':
-          description: Affiliate not ready for payout
+          description: Affiliate not ready for payout, invalid provider, or missing/unverified RiseWorks account for RISE provider
           content:
             application/json:
               schema:
@@ -706,9 +1058,21 @@ paths:
                   error:
                     type: string
                   details:
+                    type: object
+                    additionalProperties: true
+                  kycStatus:
                     type: string
+                    description: Present only for the "RiseWorks account is not fully verified" error
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Affiliate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Affiliate not found
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -720,21 +1084,32 @@ paths:
       tags:
         - Reports
       summary: Get disbursement summary
-      description: Returns overall disbursement statistics including batches, transactions, and amounts
+      description: |
+        Returns overall disbursement statistics including batches, transactions,
+        and amounts.
+
+        **Corrected this session:** `transactions` includes a `pending` count
+        field, which the previous `DisbursementSummary` schema was missing even
+        though the live handler always returns it.
+
+        **Auth note:** inline `getServerSession` + role-check pattern — returns
+        only 401 for any authorization failure, never 403.
+
+        **Implementation:** `app/api/disbursement/reports/summary/route.ts` (GET).
       operationId: getDisbursementSummary
       security:
         - AdminAuth: []
       parameters:
         - name: startDate
           in: query
-          description: Filter start date (ISO 8601)
+          description: Filter start date (ISO 8601). Must be paired with endDate to take effect.
           schema:
             type: string
             format: date-time
             example: '2024-01-01T00:00:00Z'
         - name: endDate
           in: query
-          description: Filter end date (ISO 8601)
+          description: Filter end date (ISO 8601). Must be paired with startDate to take effect.
           schema:
             type: string
             format: date-time
@@ -759,7 +1134,24 @@ paths:
       tags:
         - Reports
       summary: Get affiliate payment history
-      description: Returns complete payment history for an affiliate including all transactions
+      description: |
+        Returns complete payment history for an affiliate including all transactions.
+
+        **Corrected this session — this operation was substantially wrong in the
+        previous spec.** The response includes a top-level `affiliate: { id, name,
+        email }` object that the previous spec omitted entirely. `summary` has a
+        `totalPending` field the previous spec didn't document. `history` items
+        use a distinct shape (`AffiliatePaymentHistoryItem`, with nested
+        `batch: { batchNumber, status }` and `commission: { id, commissionAmount,
+        status }` objects) — the previous spec incorrectly reused the generic
+        `DisbursementTransaction` Prisma-model-shaped schema, which has entirely
+        different field names (`batchId`, `payeeRiseId`, `amountRiseUnits`, etc.)
+        that this endpoint never returns.
+
+        **Auth note:** inline `getServerSession` + role-check pattern — returns
+        only 401 for any authorization failure, never 403.
+
+        **Implementation:** `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts` (GET).
       operationId: getAffiliatePaymentHistory
       security:
         - AdminAuth: []
@@ -779,25 +1171,23 @@ paths:
               schema:
                 type: object
                 properties:
+                  affiliate:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                        nullable: true
                   history:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DisbursementTransaction'
+                      $ref: '#/components/schemas/AffiliatePaymentHistoryItem'
                   summary:
-                    type: object
-                    properties:
-                      totalTransactions:
-                        type: integer
-                      totalPaid:
-                        type: number
-                        format: double
-                      totalFailed:
-                        type: number
-                        format: double
-                      successRate:
-                        type: number
-                        format: double
-                        description: Percentage (0-100)
+                    $ref: '#/components/schemas/AffiliateHistorySummary'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -810,7 +1200,24 @@ paths:
       tags:
         - Transactions
       summary: Get disbursement transactions
-      description: Returns paginated list of disbursement transactions with optional status filter
+      description: |
+        Returns paginated list of disbursement transactions.
+
+        **Corrected this session:** two undocumented query parameters exist —
+        `provider` (filters to `MOCK` or `RISE`; other values are silently
+        ignored, not rejected) and `batchId` (filters to a specific batch). The
+        response also includes a `statusCounts` field (counts of transactions per
+        status, for filter UI) that was entirely undocumented. Transaction items
+        use a distinct shape (`TransactionListItem`, with nested `batch: { id,
+        batchNumber, status }` and `commission: { id, commissionAmount,
+        affiliateProfileId }` objects) — the previous spec incorrectly reused the
+        generic Prisma-model-shaped `DisbursementTransaction` schema, which this
+        endpoint does not return.
+
+        **Auth note:** inline `getServerSession` + role-check pattern — returns
+        only 401 for any authorization failure, never 403.
+
+        **Implementation:** `app/api/disbursement/transactions/route.ts` (GET).
       operationId: getDisbursementTransactions
       security:
         - AdminAuth: []
@@ -820,14 +1227,22 @@ paths:
           description: Filter by transaction status
           schema:
             $ref: '#/components/schemas/DisbursementTransactionStatus'
+        - name: provider
+          in: query
+          description: Filter by payment provider. Values other than MOCK/RISE are silently ignored (no filter applied).
+          schema:
+            $ref: '#/components/schemas/DisbursementProvider'
+        - name: batchId
+          in: query
+          description: Filter to a specific payment batch
+          schema:
+            type: string
         - name: limit
           in: query
-          description: Number of results per page
+          description: Number of results per page (capped server-side at 200 regardless of value passed)
           schema:
             type: integer
             default: 50
-            minimum: 1
-            maximum: 100
         - name: offset
           in: query
           description: Pagination offset
@@ -846,18 +1261,18 @@ paths:
                   transactions:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DisbursementTransaction'
+                      $ref: '#/components/schemas/TransactionListItem'
                   pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  statusCounts:
                     type: object
-                    properties:
-                      total:
-                        type: integer
-                      limit:
-                        type: integer
-                      offset:
-                        type: integer
-                      hasMore:
-                        type: boolean
+                    description: Count of transactions per status value (only statuses with at least one transaction appear as keys)
+                    additionalProperties:
+                      type: integer
+                    example:
+                      COMPLETED: 42
+                      FAILED: 3
+                      PENDING: 5
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -868,7 +1283,24 @@ paths:
       tags:
         - Audit
       summary: Get audit logs
-      description: Returns audit logs for disbursement operations with optional action filtering
+      description: |
+        Returns audit logs for disbursement operations with optional action/batch/
+        transaction filtering.
+
+        **Corrected this session:** an `offset` query parameter exists and was
+        undocumented. The response includes `pagination` (`{ total, limit, offset,
+        hasMore }`) and `filters.availableActions` (distinct action values seen in
+        the table, for building a filter dropdown) — both entirely undocumented
+        previously, with the earlier spec claiming the response was just `{ logs
+        }`. Each log item's `transaction`/`batch` fields are **nested objects**
+        (`{ transactionId, amount, status }` / `{ batchNumber, status }`, or
+        `null`), not the flat `transactionId: string | null` / `batchId: string |
+        null` fields the previous generic `DisbursementAuditLog` schema claimed.
+
+        **Auth note:** inline `getServerSession` + role-check pattern — returns
+        only 401 for any authorization failure, never 403.
+
+        **Implementation:** `app/api/disbursement/audit-logs/route.ts` (GET).
       operationId: getAuditLogs
       security:
         - AdminAuth: []
@@ -881,12 +1313,17 @@ paths:
             example: batch.created
         - name: limit
           in: query
-          description: Number of results
+          description: Number of results (capped server-side at 500 regardless of value passed)
           schema:
             type: integer
             default: 100
-            minimum: 1
-            maximum: 500
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
         - name: batchId
           in: query
           description: Filter by specific batch
@@ -908,7 +1345,17 @@ paths:
                   logs:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DisbursementAuditLog'
+                      $ref: '#/components/schemas/AuditLogEntry'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  filters:
+                    type: object
+                    properties:
+                      availableActions:
+                        type: array
+                        items:
+                          type: string
+                        description: Distinct `action` values across all audit logs, for a filter dropdown
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -922,7 +1369,22 @@ paths:
       tags:
         - Configuration
       summary: Get disbursement configuration
-      description: Returns current disbursement system configuration
+      description: |
+        Returns current disbursement system configuration. Configuration is
+        entirely environment-variable-derived today — there is no database-backed
+        config table yet.
+
+        **Corrected this session — the previous `DisbursementConfig` schema was
+        substantially wrong.** `provider` is an **object**
+        (`{ default, available, riseEnabled }`), not a bare `DisbursementProvider`
+        string enum. The retry-policy key is `retry`, not `retryPolicy`. There is
+        a `features` object (`webhooksEnabled`/`cronEnabled`/`quickPayEnabled`)
+        that was entirely undocumented.
+
+        **Auth note:** inline `getServerSession` + role-check pattern — returns
+        only 401 for any authorization failure, never 403.
+
+        **Implementation:** `app/api/disbursement/config/route.ts` (GET).
       operationId: getDisbursementConfig
       security:
         - AdminAuth: []
@@ -944,8 +1406,26 @@ paths:
     patch:
       tags:
         - Configuration
-      summary: Update disbursement configuration
-      description: Updates disbursement system configuration. Only specified fields are updated.
+      summary: Update disbursement configuration (no-op placeholder)
+      description: |
+        **This endpoint does not actually persist any change.** It validates
+        `minimumPayout` (must be a number ≥ 0) and `batchSize` (must be a number
+        in 1–500) if present in the body, logs the requested changes server-side,
+        and returns them back unapplied. Configuration remains
+        environment-variable-derived; to actually change it, update env vars and
+        redeploy. This matches the handler's own docstring
+        ("placeholder for future database-backed configuration").
+
+        **Corrected this session:** response is `{ message, requestedChanges,
+        note }` — **not** `{ message, config }` as the previous spec claimed;
+        `requestedChanges` simply echoes back the request body verbatim, whatever
+        its shape. `minimumPayout`'s minimum is **0**, not 1 as the previous spec
+        stated (the live handler only rejects values `< 0`).
+
+        **Auth note:** inline `getServerSession` + role-check pattern — returns
+        only 401 for any authorization failure, never 403.
+
+        **Implementation:** `app/api/disbursement/config/route.ts` (PATCH).
       operationId: updateDisbursementConfig
       security:
         - AdminAuth: []
@@ -955,6 +1435,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Any subset of these fields; only minimumPayout and batchSize are validated (and neither is actually persisted)
               properties:
                 provider:
                   $ref: '#/components/schemas/DisbursementProvider'
@@ -963,7 +1444,7 @@ paths:
                 minimumPayout:
                   type: number
                   format: double
-                  minimum: 1
+                  minimum: 0
                   example: 50.00
                 batchSize:
                   type: integer
@@ -972,7 +1453,7 @@ paths:
                   example: 100
       responses:
         '200':
-          description: Configuration updated successfully
+          description: Requested changes accepted and logged (not persisted)
           content:
             application/json:
               schema:
@@ -980,11 +1461,27 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Configuration updated
-                  config:
-                    $ref: '#/components/schemas/DisbursementConfig'
+                    example: Configuration update noted. Environment-based configuration is currently in use.
+                  requestedChanges:
+                    type: object
+                    additionalProperties: true
+                    description: Echo of the raw request body
+                  note:
+                    type: string
+                    example: 'To change configuration, update environment variables and restart the application.'
         '400':
-          $ref: '#/components/responses/BadRequestError'
+          description: Invalid minimumPayout or batchSize value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                badMinimumPayout:
+                  value:
+                    error: Invalid minimumPayout value
+                badBatchSize:
+                  value:
+                    error: Invalid batchSize value (must be 1-500)
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -1000,9 +1497,15 @@ paths:
       summary: Health check
       description: |
         Returns disbursement system health status.
-        Public endpoint for monitoring - no authentication required.
-        Returns 200 if healthy, 503 if unhealthy.
+
+        **Genuinely public — no authentication of any kind, verified against the
+        live handler** (`app/api/disbursement/health/route.ts` has no session
+        check, no signature check, no bearer-token check). Returns 200 if
+        `checks.database && checks.provider`, else 503.
+
+        **Implementation:** `app/api/disbursement/health/route.ts` (GET).
       operationId: getDisbursementHealth
+      security: []
       responses:
         '200':
           description: System healthy
@@ -1029,20 +1532,36 @@ paths:
         Receives and processes webhooks from RiseWorks payment provider.
         Webhooks are idempotent - safe to call multiple times with same event.
 
-        **Signature Verification:**
-        - Webhooks must include `x-rise-signature` header
-        - Signature verified using HMAC SHA256
-        - Unsigned or invalid webhooks are rejected with 401
+        **Not session-authenticated — internal-only, triggered externally by
+        RiseWorks.** Auth is via HMAC-SHA256 signature verification
+        (`WebhookVerifier`, `lib/disbursement/providers/rise/webhook-verifier.ts`):
+        the raw request body is signed with `RISE_WEBHOOK_SECRET` and compared
+        (timing-safe) against the `x-rise-signature` header. Missing signature or
+        signature mismatch -> 401. `security: []` below reflects this; there is no
+        `AdminAuth` requirement on this route. If `RISE_WEBHOOK_SECRET` is unset
+        server-side, requests are accepted unverified in `development`, but
+        rejected with 500 in any other `NODE_ENV`.
 
-        **Supported Events:**
-        - payment.completed - Payment successfully processed
-        - payment.failed - Payment failed
-        - invite.accepted - Affiliate accepted RiseWorks invite
-        - fund.received - Funds received to wallet
-        - account.duplication_detected - Duplicate account detected
+        Every webhook attempt is stored in `RiseWorksWebhookEvent` — including
+        ones missing/failing signature verification — for audit purposes.
+
+        **Only 3 of the 5 documented event types are actually processed** by
+        `WebhookEventProcessor`: `payment.completed`, `payment.failed`,
+        `invite.accepted`. `fund.received` and `account.duplication_detected` are
+        accepted, stored, and acknowledged with 200, but fall through to a
+        default "unhandled event type" branch (`processed: false` in the
+        response) — no business logic currently runs for them.
+
+        **Implementation:** `app/api/webhooks/riseworks/route.ts` (POST).
       operationId: handleRiseWorksWebhook
-      security:
-        - WebhookSignature: []
+      security: []
+      parameters:
+        - name: x-rise-signature
+          in: header
+          required: true
+          description: HMAC-SHA256 signature of the raw request body, hex-encoded
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1055,7 +1574,7 @@ paths:
               properties:
                 event:
                   type: string
-                  description: Event type
+                  description: Event type. Only the first 3 are actually processed today (see description above).
                   enum:
                     - payment.completed
                     - payment.failed
@@ -1079,7 +1598,7 @@ paths:
                     payeeRiseId: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
       responses:
         '200':
-          description: Webhook received and processed
+          description: Webhook received and processed (or acknowledged as unhandled for event types without a handler)
           content:
             application/json:
               schema:
@@ -1090,15 +1609,36 @@ paths:
                     example: true
                   eventId:
                     type: string
-                    description: Internal event ID for tracking
-        '401':
-          description: Missing or invalid signature
+                    description: Internal `RiseWorksWebhookEvent` record ID
+                  processed:
+                    type: boolean
+                    description: False for event types with no handler (e.g. fund.received), or if processing failed idempotently
+                  message:
+                    type: string
+                    example: Payment marked as completed
+        '400':
+          description: Invalid JSON payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                error: Invalid JSON
+        '401':
+          description: Missing or invalid x-rise-signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing:
+                  value:
+                    error: Missing signature
+                invalid:
+                  value:
+                    error: Invalid signature
         '500':
-          description: Webhook processing failed
+          description: Webhook processing failed, or RISE_WEBHOOK_SECRET not configured (non-development environment)
           content:
             application/json:
               schema:
@@ -1111,108 +1651,211 @@ paths:
     post:
       tags:
         - Cron Jobs
-      summary: Process pending disbursements (Cron)
+      summary: 'Cron: process pending disbursements'
       description: |
         Automated cron job that processes pending disbursements.
         Should be scheduled to run daily (e.g., 2 AM UTC).
 
-        **Process:**
-        1. Find all affiliates with pending commissions ≥ $50
-        2. Create payment batches (max 100 affiliates per batch)
-        3. Execute batches via configured provider
-        4. Log results to audit trail
+        **Process (verified against `DisbursementProcessor.processAutomatedDisbursements()`,
+        `lib/disbursement/cron/disbursement-processor.ts`):**
+        1. Auto-approve PENDING commissions whose refund window has passed
+           (`SystemConfig` key `affiliate_commission_approval_days`, default 14 days)
+        2. Find all affiliates with pending commissions meeting the $50 threshold
+        3. Create a single payment batch for all of them (not batched by 100 —
+           `BatchManager.createBatch()` is called once with every payable
+           aggregate; there is no chunking to `MAX_BATCH_SIZE` in this code path)
+        4. Execute the batch via the default configured provider
+        5. Log results to the audit trail
 
         **Idempotent:** Safe to run multiple times.
+
+        **Not session-authenticated — internal-only, triggered by Vercel Cron,**
+        reachable by anyone who has `CRON_SECRET`. Auth is
+        `Authorization: Bearer <CRON_SECRET>`, compared by exact string match;
+        missing/wrong header -> 401. `security: []` below reflects this; there is
+        no `AdminAuth` requirement on this route. If the `CRON_SECRET` env var
+        itself is unset server-side, returns 500 before checking the header.
+
+        **Corrected this session:** result fields are `batchesCreated`,
+        `batchesExecuted`, `affiliatesProcessed`, `totalAmount`, `durationMs`,
+        `errors` — the previous spec's `successfulPayments`/`failedPayments`
+        fields do not exist on `AutoDisbursementResult`. The error-path (500)
+        response is `{ success: false, timestamp, error }`, a different shape
+        than the generic `Error` schema (`{ error, details }`) used elsewhere.
+
+        **Implementation:** `app/api/cron/process-pending-disbursements/route.ts` (POST).
       operationId: processPendingDisbursements
-      security:
-        - CronSecret: []
+      security: []
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: 'Bearer <CRON_SECRET>'
+          schema:
+            type: string
+            example: 'Bearer <CRON_SECRET>'
       responses:
         '200':
-          description: Cron job completed
+          description: Cron job completed (success reflects whether zero errors occurred)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  timestamp:
-                    type: string
-                    format: date-time
-                  result:
-                    type: object
-                    properties:
-                      affiliatesProcessed:
-                        type: integer
-                      batchesCreated:
-                        type: integer
-                      batchesExecuted:
-                        type: integer
-                      totalAmount:
-                        type: number
-                        format: double
-                      successfulPayments:
-                        type: integer
-                      failedPayments:
-                        type: integer
-                      errors:
-                        type: array
-                        items:
-                          type: string
+                $ref: '#/components/schemas/CronDisbursementResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedError'
+          description: Missing or incorrect Authorization bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: CRON_SECRET not configured server-side, or an unhandled processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronErrorResponse'
+              examples:
+                notConfigured:
+                  value:
+                    error: Cron job not configured
+                processingError:
+                  value:
+                    success: false
+                    timestamp: '2026-07-17T02:00:03.120Z'
+                    error: Batch execution failed
+
+    get:
+      tags:
+        - Cron Jobs
+      summary: 'Cron status info (unauthenticated)'
+      description: |
+        **Previously undocumented.** Returns static, hard-coded metadata about
+        this cron endpoint (schedule, auth type, etc.) for monitoring/discovery
+        purposes. Unlike the `POST` operation on this same path, this `GET` has
+        **no authentication whatsoever** — no `CRON_SECRET` check at all.
+
+        **Implementation:** `app/api/cron/process-pending-disbursements/route.ts` (GET).
+      operationId: getProcessPendingDisbursementsCronInfo
+      security: []
+      responses:
+        '200':
+          description: Static endpoint metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronStatusInfo'
+              example:
+                endpoint: /api/cron/process-pending-disbursements
+                method: POST
+                status: configured
+                description: Automated disbursement processing cron job
+                schedule: 0 2 * * * (daily at 2:00 AM UTC)
+                requiresAuth: true
+                authType: Bearer token (CRON_SECRET)
 
   /api/cron/sync-riseworks-accounts:
     post:
       tags:
         - Cron Jobs
-      summary: Sync RiseWorks accounts (Cron)
+      summary: 'Cron: sync RiseWorks accounts'
       description: |
         Automated cron job that syncs RiseWorks account statuses.
         Should be scheduled to run daily (e.g., 3 AM UTC).
 
-        **Process:**
-        1. Query all AffiliateRiseAccount records
-        2. Fetch current status from RiseWorks API
-        3. Update KYC status and timestamps
-        4. Log sync results
+        **Process (verified against `DisbursementProcessor.syncRiseWorksAccounts()`,
+        `lib/disbursement/cron/disbursement-processor.ts`):** currently the same
+        stub as `POST /api/disbursement/riseworks/sync` — iterates every
+        `AffiliateRiseAccount` and updates `lastSyncAt`. Does not yet call the
+        real RiseWorks API or change `kycStatus`.
 
         **Idempotent:** Safe to run multiple times.
+
+        **Not session-authenticated — internal-only, triggered by Vercel Cron,**
+        reachable by anyone who has `CRON_SECRET`. Auth is
+        `Authorization: Bearer <CRON_SECRET>`, compared by exact string match;
+        missing/wrong header -> 401. `security: []` below reflects this; there is
+        no `AdminAuth` requirement on this route. If the `CRON_SECRET` env var
+        itself is unset server-side, returns 500 before checking the header.
+
+        **Corrected this session:** result fields are `accountsSynced`,
+        `accountsUpdated`, `durationMs`, `errors` — the previous spec's
+        `accountsTotal` field does not exist on `AccountSyncResult`
+        (`accountsSynced` doubles as the total, since every account found is
+        counted as synced up front). The error-path (500) response is
+        `{ success: false, timestamp, error }`, a different shape than the
+        generic `Error` schema used elsewhere.
+
+        **Implementation:** `app/api/cron/sync-riseworks-accounts/route.ts` (POST).
       operationId: syncRiseWorksAccountsCron
-      security:
-        - CronSecret: []
+      security: []
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: 'Bearer <CRON_SECRET>'
+          schema:
+            type: string
+            example: 'Bearer <CRON_SECRET>'
       responses:
         '200':
-          description: Cron job completed
+          description: Cron job completed (success reflects whether zero errors occurred)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  timestamp:
-                    type: string
-                    format: date-time
-                  result:
-                    type: object
-                    properties:
-                      accountsTotal:
-                        type: integer
-                      accountsSynced:
-                        type: integer
-                      accountsUpdated:
-                        type: integer
-                      errors:
-                        type: array
-                        items:
-                          type: string
+                $ref: '#/components/schemas/CronSyncResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedError'
+          description: Missing or incorrect Authorization bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Unauthorized
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          description: CRON_SECRET not configured server-side, or an unhandled processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronErrorResponse'
+              examples:
+                notConfigured:
+                  value:
+                    error: Cron job not configured
+                processingError:
+                  value:
+                    success: false
+                    timestamp: '2026-07-17T03:00:01.045Z'
+                    error: Unknown error
+
+    get:
+      tags:
+        - Cron Jobs
+      summary: 'Cron status info (unauthenticated)'
+      description: |
+        **Previously undocumented.** Returns static, hard-coded metadata about
+        this cron endpoint (schedule, auth type, etc.) for monitoring/discovery
+        purposes. Unlike the `POST` operation on this same path, this `GET` has
+        **no authentication whatsoever** — no `CRON_SECRET` check at all.
+
+        **Implementation:** `app/api/cron/sync-riseworks-accounts/route.ts` (GET).
+      operationId: getSyncRiseWorksAccountsCronInfo
+      security: []
+      responses:
+        '200':
+          description: Static endpoint metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronStatusInfo'
+              example:
+                endpoint: /api/cron/sync-riseworks-accounts
+                method: POST
+                status: configured
+                description: RiseWorks account sync cron job
+                schedule: 0 3 * * * (daily at 3:00 AM UTC)
+                requiresAuth: true
+                authType: Bearer token (CRON_SECRET)
 
 # ============================================================
 # COMPONENTS
@@ -1223,18 +1866,11 @@ components:
       type: apiKey
       in: cookie
       name: next-auth.session-token
-      description: NextAuth session cookie with ADMIN role required
-
-    WebhookSignature:
-      type: apiKey
-      in: header
-      name: x-rise-signature
-      description: HMAC SHA256 signature of webhook payload
-
-    CronSecret:
-      type: http
-      scheme: bearer
-      description: Bearer token for cron job authentication (CRON_SECRET env var)
+      description: |
+        NextAuth session cookie with `role: ADMIN` required. Verified either via
+        `requireAdmin()` (can respond 401 or 403) or an inline
+        `getServerSession` + role check (responds 401 only) depending on the
+        route — see each operation's description for which applies.
 
   schemas:
     # ============================================================
@@ -1355,6 +1991,7 @@ components:
               type: boolean
             riseId:
               type: string
+              nullable: true
               example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
             kycStatus:
               $ref: '#/components/schemas/RiseWorksKycStatus'
@@ -1362,8 +1999,9 @@ components:
               type: boolean
               description: True if KYC is APPROVED
 
-    AffiliateDetails:
+    AffiliateDisbursementProfile:
       type: object
+      description: The `affiliate` object returned by GET /api/disbursement/affiliates/{affiliateId}
       properties:
         id:
           type: string
@@ -1372,31 +2010,54 @@ components:
         email:
           type: string
           format: email
+          nullable: true
         country:
           type: string
-        totalPending:
-          type: number
-          format: double
-        totalPaid:
-          type: number
-          format: double
-        riseAccount:
-          $ref: '#/components/schemas/AffiliateRiseAccount'
-        pendingCommissions:
-          type: array
-          items:
-            $ref: '#/components/schemas/Commission'
+        status:
+          type: string
+          description: AffiliateStatus enum value (e.g. PENDING_VERIFICATION, APPROVED, SUSPENDED)
+        createdAt:
+          type: string
+          format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        stats:
+          type: object
+          properties:
+            totalPending:
+              type: number
+              format: double
+            totalPaid:
+              type: number
+              format: double
+            totalEarnings:
+              type: number
+              format: double
+            codesDistributed:
+              type: integer
+            codesUsed:
+              type: integer
+        paymentInfo:
+          type: object
+          properties:
+            paymentMethod:
+              type: string
+              description: 'e.g. BANK_TRANSFER, CRYPTO_USDT, PAYPAL, LOCAL_WALLET'
+            paymentDetails:
+              type: object
+              additionalProperties: true
+              description: Flexible JSON field for payment info; shape varies by paymentMethod
 
-    AffiliateRiseAccount:
+    AffiliateRiseAccountDetail:
       type: object
+      description: The `riseAccount` object returned by GET /api/disbursement/affiliates/{affiliateId} (distinct from AffiliateRiseAccountListItem)
       properties:
         id:
           type: string
-        affiliateProfileId:
-          type: string
         riseId:
           type: string
-          description: Blockchain wallet address (Ethereum format)
         email:
           type: string
           format: email
@@ -1418,22 +2079,68 @@ components:
           type: string
           format: date-time
           nullable: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+        canReceivePayments:
+          type: boolean
+          description: True if kycStatus is APPROVED
 
-    Commission:
+    PendingCommissionsSummary:
       type: object
+      properties:
+        count:
+          type: integer
+        totalAmount:
+          type: number
+          format: double
+        oldestDate:
+          type: string
+          format: date-time
+        meetsThreshold:
+          type: boolean
+          description: True if totalAmount >= $50
+        commissionIds:
+          type: array
+          description: IDs only, not full Commission objects
+          items:
+            type: string
+
+    RecentDisbursementTransaction:
+      type: object
+      description: Item shape for GET /api/disbursement/affiliates/{affiliateId} `recentTransactions` (distinct from other transaction list shapes in this API)
       properties:
         id:
           type: string
-        affiliateProfileId:
+        transactionId:
+          type: string
+        amount:
+          type: number
+          format: double
+        status:
+          $ref: '#/components/schemas/DisbursementTransactionStatus'
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        batchNumber:
+          type: string
+          nullable: true
+        batchStatus:
+          $ref: '#/components/schemas/PaymentBatchStatus'
+
+    AffiliateCommissionItem:
+      type: object
+      description: Commission item shape for GET /api/disbursement/affiliates/{affiliateId}/commissions
+      properties:
+        id:
           type: string
         affiliateCodeId:
           type: string
+        code:
+          type: string
+          nullable: true
+          description: The affiliate code string, joined from AffiliateCode
         userId:
           type: string
         subscriptionId:
@@ -1451,6 +2158,10 @@ components:
         commissionAmount:
           type: number
           format: double
+        commissionPercent:
+          type: number
+          nullable: true
+          description: Joined from AffiliateCode
         status:
           type: string
           enum:
@@ -1458,17 +2169,140 @@ components:
             - APPROVED
             - PAID
             - CANCELLED
-        createdAt:
+        earnedAt:
           type: string
           format: date-time
         approvedAt:
           type: string
           format: date-time
           nullable: true
-        paidAt:
+        createdAt:
+          type: string
+          format: date-time
+
+    # ============================================================
+    # RISEWORKS ACCOUNT SCHEMAS
+    # ============================================================
+    AffiliateRiseAccountListItem:
+      type: object
+      description: Item shape for GET /api/disbursement/riseworks/accounts
+      properties:
+        id:
+          type: string
+        affiliateProfileId:
+          type: string
+        affiliateName:
+          type: string
+          nullable: true
+        affiliateEmail:
+          type: string
+          format: email
+          nullable: true
+        affiliateCountry:
+          type: string
+          nullable: true
+        affiliateStatus:
+          type: string
+          nullable: true
+        riseId:
+          type: string
+        email:
+          type: string
+          format: email
+        kycStatus:
+          $ref: '#/components/schemas/RiseWorksKycStatus'
+        kycCompletedAt:
           type: string
           format: date-time
           nullable: true
+        invitationSentAt:
+          type: string
+          format: date-time
+          nullable: true
+        invitationAcceptedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        transactionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        canReceivePayments:
+          type: boolean
+          description: True if kycStatus is APPROVED
+
+    RiseWorksAccountsSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        byKycStatus:
+          type: object
+          properties:
+            pending:
+              type: integer
+            submitted:
+              type: integer
+            approved:
+              type: integer
+            rejected:
+              type: integer
+            expired:
+              type: integer
+        canReceivePayments:
+          type: integer
+          description: Count of accounts with kycStatus APPROVED
+
+    CreatedRiseAccount:
+      type: object
+      description: The `account` object returned by POST /api/disbursement/riseworks/accounts (only these 6 fields - not the full account record)
+      properties:
+        id:
+          type: string
+        affiliateProfileId:
+          type: string
+        affiliateName:
+          type: string
+          nullable: true
+        riseId:
+          type: string
+        email:
+          type: string
+          format: email
+        kycStatus:
+          $ref: '#/components/schemas/RiseWorksKycStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    RiseWorksSyncResults:
+      type: object
+      properties:
+        total:
+          type: integer
+        synced:
+          type: integer
+          description: Count of accounts successfully updated (lastSyncAt bump)
+        errors:
+          type: integer
+          description: Count of accounts that errored during sync
+        statusChanges:
+          type: array
+          description: Always empty today - kycStatus is not yet actually updated by this stub implementation
+          items:
+            type: object
+            properties:
+              riseId:
+                type: string
+              oldStatus:
+                type: string
+              newStatus:
+                type: string
 
     # ============================================================
     # BATCH SCHEMAS
@@ -1521,120 +2355,142 @@ components:
           type: string
           format: date-time
 
+    BatchTransactionCounts:
+      type: object
+      description: |
+        Per-batch transaction counts keyed by lowercase status name, from
+        TransactionService.getTransactionCountsByStatus(). Always all 5 keys,
+        defaulting to 0 - NOT the uppercase PaymentBatchStatus/
+        DisbursementTransactionStatus enum casing used elsewhere in this API.
+      properties:
+        pending:
+          type: integer
+        processing:
+          type: integer
+        completed:
+          type: integer
+        failed:
+          type: integer
+        cancelled:
+          type: integer
+
     PaymentBatchWithCounts:
       allOf:
         - $ref: '#/components/schemas/PaymentBatch'
         - type: object
           properties:
             transactionCounts:
-              type: object
-              description: Transaction counts by status
-              properties:
-                PENDING:
-                  type: integer
-                PROCESSING:
-                  type: integer
-                COMPLETED:
-                  type: integer
-                FAILED:
-                  type: integer
-                CANCELLED:
-                  type: integer
-
-    PaymentBatchDetailed:
-      allOf:
-        - $ref: '#/components/schemas/PaymentBatch'
-        - type: object
-          properties:
-            transactions:
-              type: array
-              items:
-                $ref: '#/components/schemas/DisbursementTransaction'
-            auditLogs:
-              type: array
-              items:
-                $ref: '#/components/schemas/DisbursementAuditLog'
+              $ref: '#/components/schemas/BatchTransactionCounts'
 
     BatchStatistics:
       type: object
-      description: Overall batch statistics
+      description: Return shape of BatchManager.getBatchStatistics() - has no successRate field
       properties:
         total:
           type: integer
         byStatus:
           type: object
-          properties:
-            PENDING:
-              type: integer
-            QUEUED:
-              type: integer
-            PROCESSING:
-              type: integer
-            COMPLETED:
-              type: integer
-            FAILED:
-              type: integer
-            CANCELLED:
-              type: integer
+          description: Only statuses with at least one batch appear as keys (uppercase PaymentBatchStatus values)
+          additionalProperties:
+            type: integer
+          example:
+            PENDING: 3
+            COMPLETED: 40
+            FAILED: 2
         totalAmount:
           type: number
           format: double
-        successRate:
-          type: number
-          format: double
-          description: Percentage of completed batches
+        totalPayments:
+          type: integer
+          description: Sum of paymentCount across all batches
 
-    # ============================================================
-    # TRANSACTION SCHEMAS
-    # ============================================================
-    DisbursementTransaction:
+    BatchDetail:
       type: object
+      description: The `batch` object returned by GET /api/disbursement/batches/{batchId} - distinct from the base PaymentBatch schema (adds paidAmount/metadata, omits provider)
       properties:
         id:
           type: string
-        batchId:
+        batchNumber:
           type: string
-        commissionId:
+        provider:
+          $ref: '#/components/schemas/DisbursementProvider'
+        status:
+          $ref: '#/components/schemas/PaymentBatchStatus'
+        paymentCount:
+          type: integer
+        totalAmount:
+          type: number
+          format: double
+        paidAmount:
+          type: number
+          format: double
+          description: Computed sum of COMPLETED transaction amounts (not a stored column)
+        currency:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+          nullable: true
+        executedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BatchTransactionDetail:
+      type: object
+      description: Transaction item shape for GET /api/disbursement/batches/{batchId} - distinct from TransactionListItem and AffiliatePaymentHistoryItem
+      properties:
+        id:
           type: string
         transactionId:
           type: string
-          description: Internal transaction ID
-          example: TXN-1234567890-ABC123
         providerTxId:
           type: string
           nullable: true
-          description: External provider transaction ID
-          example: rise-txn-123456
-        provider:
-          $ref: '#/components/schemas/DisbursementProvider'
-        affiliateRiseAccountId:
+        commissionId:
+          type: string
+        affiliateProfileId:
           type: string
           nullable: true
-        payeeRiseId:
+        affiliateRiseId:
           type: string
           nullable: true
-          description: Recipient blockchain address
-          example: '0xA35b2F326F07a7C92BedB0D318C237F30948E425'
+          description: Blockchain address, joined via affiliateRiseAccount relation
         amount:
           type: number
           format: double
-          description: Amount in USD
-          example: 50.00
         amountRiseUnits:
-          type: integer
-          format: int64
+          type: string
           nullable: true
-          description: Amount in RiseWorks units (1e6 = $1 USD for USDC)
-          example: 50000000
+          description: Serialized as a string (BigInt.toString()) to avoid JSON precision loss - NOT a JSON integer
+          example: '50000000'
         currency:
           type: string
-          default: USD
         status:
           $ref: '#/components/schemas/DisbursementTransactionStatus'
         retryCount:
           type: integer
-          default: 0
-          description: Number of retry attempts
         lastRetryAt:
           type: string
           format: date-time
@@ -1642,7 +2498,6 @@ components:
         errorMessage:
           type: string
           nullable: true
-          description: Error message if failed
         createdAt:
           type: string
           format: date-time
@@ -1655,62 +2510,204 @@ components:
           format: date-time
           nullable: true
 
-    ExecutionResult:
+    BatchAuditLogEntry:
       type: object
+      description: Audit log item shape nested under GET /api/disbursement/batches/{batchId} - a SUBSET of AuditLogEntry (no ipAddress/userAgent/transactionId/batchId)
       properties:
-        success:
-          type: boolean
-          description: True if all payments succeeded
-        batchId:
+        id:
           type: string
-        batchNumber:
+        action:
           type: string
-        totalAmount:
-          type: number
-          format: double
-        successCount:
-          type: integer
-          description: Number of successful payments
-        failedCount:
-          type: integer
-          description: Number of failed payments
         status:
-          $ref: '#/components/schemas/PaymentBatchStatus'
-        errors:
-          type: array
-          items:
-            type: string
-          description: Error messages for failed payments
+          $ref: '#/components/schemas/AuditLogStatus'
+        actor:
+          type: string
+          nullable: true
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
     # ============================================================
-    # AUDIT & REPORTING SCHEMAS
+    # BATCH PREVIEW SCHEMAS
     # ============================================================
-    DisbursementAuditLog:
+    BatchPreviewItem:
       type: object
+      properties:
+        affiliateId:
+          type: string
+        affiliateName:
+          type: string
+        affiliateEmail:
+          type: string
+          format: email
+        country:
+          type: string
+        commissionCount:
+          type: integer
+        grossAmount:
+          type: number
+          format: double
+        feeAmount:
+          type: number
+          format: double
+        netAmount:
+          type: number
+          format: double
+        eligible:
+          type: boolean
+          description: calculation.eligible AND canReceivePayments (has account + KYC approved)
+        status:
+          type: string
+          enum:
+            - ready
+            - below_threshold
+            - no_rise_account
+            - kyc_pending
+        statusReason:
+          type: string
+          example: 'Below minimum of $50'
+        riseAccount:
+          type: object
+          properties:
+            hasAccount:
+              type: boolean
+            riseId:
+              type: string
+              nullable: true
+            kycStatus:
+              $ref: '#/components/schemas/RiseWorksKycStatus'
+
+    BatchPreviewSummary:
+      type: object
+      properties:
+        totalAffiliates:
+          type: integer
+        eligibleAffiliates:
+          type: integer
+        ineligibleAffiliates:
+          type: integer
+        totalGrossAmount:
+          type: number
+          format: double
+        totalFeeAmount:
+          type: number
+          format: double
+        totalNetAmount:
+          type: number
+          format: double
+        eligibleNetAmount:
+          type: number
+          format: double
+          description: Sum of netAmount across eligible items only
+        feePercentage:
+          type: number
+          description: Echoes the feePercentage from the request (0 if omitted)
+        minimumThreshold:
+          type: number
+          format: double
+          example: 50.00
+
+    # ============================================================
+    # TRANSACTION SCHEMAS
+    # ============================================================
+    TransactionListItem:
+      type: object
+      description: Item shape for GET /api/disbursement/transactions - distinct from BatchTransactionDetail and AffiliatePaymentHistoryItem
       properties:
         id:
           type: string
         transactionId:
           type: string
-          nullable: true
-        batchId:
+        providerTxId:
           type: string
           nullable: true
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        status:
+          $ref: '#/components/schemas/DisbursementTransactionStatus'
+        provider:
+          $ref: '#/components/schemas/DisbursementProvider'
+        retryCount:
+          type: integer
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        batch:
+          type: object
+          properties:
+            id:
+              type: string
+            batchNumber:
+              type: string
+            status:
+              $ref: '#/components/schemas/PaymentBatchStatus'
+        commission:
+          type: object
+          properties:
+            id:
+              type: string
+            commissionAmount:
+              type: number
+              format: double
+            affiliateProfileId:
+              type: string
+
+    Pagination:
+      type: object
+      description: Shared pagination shape used by GET /transactions and GET /audit-logs
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+
+    # ============================================================
+    # AUDIT & REPORTING SCHEMAS
+    # ============================================================
+    AuditLogEntry:
+      type: object
+      description: Full audit log item shape for GET /api/disbursement/audit-logs (distinct from the batch-nested BatchAuditLogEntry subset)
+      properties:
+        id:
+          type: string
         action:
           type: string
           description: |
-            Action types:
+            Action types include:
             - batch.created, batch.executed, batch.completed, batch.failed, batch.cancelled
-            - payment.initiated, payment.completed, payment.failed
-            - webhook.received, webhook.processed
-            - config.updated
+            - riseworks.sync
+            - cron.disbursement_start, cron.disbursement_complete, cron.disbursement_error,
+              cron.batch_execution_failed, cron.commissions_auto_approved
+            - cron.account_sync_start, cron.account_sync_complete, cron.account_sync_error
           example: batch.created
+        status:
+          $ref: '#/components/schemas/AuditLogStatus'
         actor:
           type: string
           nullable: true
-          description: User ID who performed the action
-        status:
-          $ref: '#/components/schemas/AuditLogStatus'
+          description: User ID (or 'CRON_JOB' for automated cron-created batches) who performed the action
         details:
           type: object
           additionalProperties: true
@@ -1725,6 +2722,93 @@ components:
         createdAt:
           type: string
           format: date-time
+        transaction:
+          type: object
+          nullable: true
+          description: null if this log entry is not linked to a transaction
+          properties:
+            transactionId:
+              type: string
+            amount:
+              type: number
+              format: double
+            status:
+              $ref: '#/components/schemas/DisbursementTransactionStatus'
+        batch:
+          type: object
+          nullable: true
+          description: null if this log entry is not linked to a batch
+          properties:
+            batchNumber:
+              type: string
+            status:
+              $ref: '#/components/schemas/PaymentBatchStatus'
+
+    AffiliatePaymentHistoryItem:
+      type: object
+      description: History item shape for GET /api/disbursement/reports/affiliate/{affiliateId} - distinct from TransactionListItem and BatchTransactionDetail
+      properties:
+        id:
+          type: string
+        transactionId:
+          type: string
+        amount:
+          type: number
+          format: double
+        status:
+          $ref: '#/components/schemas/DisbursementTransactionStatus'
+        provider:
+          $ref: '#/components/schemas/DisbursementProvider'
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        batch:
+          type: object
+          properties:
+            batchNumber:
+              type: string
+            status:
+              $ref: '#/components/schemas/PaymentBatchStatus'
+        commission:
+          type: object
+          properties:
+            id:
+              type: string
+            commissionAmount:
+              type: number
+              format: double
+            status:
+              type: string
+
+    AffiliateHistorySummary:
+      type: object
+      properties:
+        totalTransactions:
+          type: integer
+        totalPaid:
+          type: number
+          format: double
+        totalFailed:
+          type: number
+          format: double
+        totalPending:
+          type: number
+          format: double
+        successRate:
+          type: number
+          format: double
+          description: Percentage (0-100)
 
     DisbursementSummary:
       type: object
@@ -1738,6 +2822,7 @@ components:
               type: integer
             pending:
               type: integer
+              description: Sum of PENDING + QUEUED + PROCESSING batches
             failed:
               type: integer
             successRate:
@@ -1753,6 +2838,8 @@ components:
               type: integer
             failed:
               type: integer
+            pending:
+              type: integer
             successRate:
               type: number
               format: double
@@ -1766,50 +2853,55 @@ components:
             totalPending:
               type: number
               format: double
-              description: Total pending commissions (USD)
+              description: Total pending approved-but-undisbursed commissions (USD) - not affected by startDate/endDate filter
             totalFailed:
               type: number
               format: double
               description: Total from failed transactions (USD)
         period:
           type: object
+          description: Only present in the response if both startDate and endDate query params were supplied
           properties:
             startDate:
               type: string
-              format: date-time
             endDate:
               type: string
-              format: date-time
 
     # ============================================================
     # CONFIGURATION SCHEMAS
     # ============================================================
     DisbursementConfig:
       type: object
+      description: Fully environment-derived; there is no database-backed config table
       properties:
         provider:
-          $ref: '#/components/schemas/DisbursementProvider'
+          type: object
+          description: An object, not a bare DisbursementProvider string
+          properties:
+            default:
+              $ref: '#/components/schemas/DisbursementProvider'
+            available:
+              type: array
+              items:
+                $ref: '#/components/schemas/DisbursementProvider'
+              description: '["MOCK"], plus "RISE" if isProviderAvailable("RISE")'
+            riseEnabled:
+              type: boolean
         enabled:
           type: boolean
-          description: Whether disbursement system is enabled
+          description: 'process.env.DISBURSEMENT_ENABLED !== "false"'
         minimumPayout:
           type: number
           format: double
-          description: Minimum payout threshold (USD)
+          description: MINIMUM_PAYOUT_USD constant
           example: 50.00
         batchSize:
           type: integer
-          description: Maximum affiliates per batch
+          description: MAX_BATCH_SIZE constant
           example: 100
-        environment:
-          type: string
-          enum:
-            - production
-            - staging
-            - development
-          example: staging
-        retryPolicy:
+        retry:
           type: object
+          description: Key is `retry`, not `retryPolicy`
           properties:
             maxAttempts:
               type: integer
@@ -1821,17 +2913,33 @@ components:
             maxDelay:
               type: integer
               description: Maximum delay in milliseconds
-              example: 16000
+              example: 30000
             backoffMultiplier:
               type: number
               example: 2
+        environment:
+          type: string
+          description: 'process.env.RISE_ENVIRONMENT, default "staging" (not a validated enum at runtime)'
+          example: staging
+        features:
+          type: object
+          properties:
+            webhooksEnabled:
+              type: boolean
+              description: 'true if RISE_WEBHOOK_SECRET env var is set'
+            cronEnabled:
+              type: boolean
+              description: 'true if CRON_SECRET env var is set'
+            quickPayEnabled:
+              type: boolean
+              description: Always true today (hard-coded)
 
     HealthStatus:
       type: object
       properties:
         healthy:
           type: boolean
-          description: Overall health status
+          description: 'True only if checks.database && checks.provider'
         timestamp:
           type: string
           format: date-time
@@ -1846,7 +2954,7 @@ components:
               description: Payment provider connectivity
             pendingBatches:
               type: integer
-              description: Count of pending/processing batches
+              description: Count of PENDING/QUEUED/PROCESSING batches
             failedTransactions:
               type: integer
               description: Failed transactions in last 24h
@@ -1865,10 +2973,108 @@ components:
           description: Warning messages for degraded conditions
         provider:
           type: string
-          description: Current provider name
+          description: Default configured provider name (getDefaultProvider())
         uptime:
           type: integer
-          description: Server uptime in seconds
+          nullable: true
+          description: Server uptime in seconds since module load; omitted/absent on the top-level catch error path
+
+    # ============================================================
+    # CRON SCHEMAS
+    # ============================================================
+    CronDisbursementResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: True if zero errors occurred during processing
+        timestamp:
+          type: string
+          format: date-time
+        result:
+          type: object
+          properties:
+            batchesCreated:
+              type: integer
+            batchesExecuted:
+              type: integer
+            affiliatesProcessed:
+              type: integer
+            totalAmount:
+              type: number
+              format: double
+            durationMs:
+              type: integer
+            errors:
+              type: array
+              items:
+                type: string
+
+    CronSyncResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: True if zero errors occurred during sync
+        timestamp:
+          type: string
+          format: date-time
+        result:
+          type: object
+          properties:
+            accountsSynced:
+              type: integer
+              description: Total accounts found (every account found is counted as synced up front)
+            accountsUpdated:
+              type: integer
+              description: Accounts whose lastSyncAt update succeeded
+            durationMs:
+              type: integer
+            errors:
+              type: array
+              items:
+                type: string
+
+    CronErrorResponse:
+      type: object
+      description: |
+        Used by both cron POST endpoints on their catch-all error path. Distinct
+        from the generic Error schema ({ error, details }) used elsewhere in this API.
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        timestamp:
+          type: string
+          format: date-time
+          nullable: true
+          description: Absent on the "CRON_SECRET not configured" 500, present on the processing-error 500
+        error:
+          type: string
+
+    CronStatusInfo:
+      type: object
+      description: Static response body for the unauthenticated GET operation on both cron paths
+      properties:
+        endpoint:
+          type: string
+        method:
+          type: string
+          example: POST
+        status:
+          type: string
+          example: configured
+        description:
+          type: string
+        schedule:
+          type: string
+          example: 0 2 * * * (daily at 2:00 AM UTC)
+        requiresAuth:
+          type: boolean
+          example: true
+        authType:
+          type: string
+          example: Bearer token (CRON_SECRET)
 
     # ============================================================
     # ERROR SCHEMAS
@@ -1895,13 +3101,16 @@ components:
             error: Unauthorized
 
     ForbiddenError:
-      description: Forbidden - Insufficient permissions (admin role required)
+      description: |
+        Forbidden - authenticated but not an admin. Only returned by routes using
+        requireAdmin() (see each operation's Auth note); routes using the inline
+        session-check pattern collapse this case into 401 instead.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
           example:
-            error: Forbidden - Admin access required
+            error: You must be an administrator to access this resource
 
     BadRequestError:
       description: Bad Request - Invalid input parameters

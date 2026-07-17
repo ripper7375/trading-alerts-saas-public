@@ -1,18 +1,57 @@
 openapi: 3.0.3
 info:
   title: Trading Alerts SaaS - dLocal Payment Integration API (Part 18)
-  version: 2.0.0
+  version: 3.0.0
   description: |
     dLocal Payment Integration API for Trading Alerts SaaS platform (Part 18).
 
-    This API provides alternative payment processing for users in specific regions through dLocal,
-    supporting local payment methods and currencies.
+    This API provides alternative payment processing for users in specific regions
+    through dLocal, supporting local payment methods and currencies.
 
-    ## Overview
-    Part 18 is split into three vertical slices:
-    - **Part 18A**: Payment Creation Flow (core infrastructure)
-    - **Part 18B**: Subscription Lifecycle Management
-    - **Part 18C**: User Experience & Admin Dashboard
+    **Generated:** 2026-07-17, Session 0-3, regenerated from live handlers —
+    consolidated to remove duplicate coverage with part-12 and part-14.
+
+    admin/fraud-alerts routes now solely documented in
+    `part-14-admin-dashboard-openapi.yaml`; subscription cron jobs now solely in
+    `part-12-ecommerce-billing-openapi.yaml` (Session 0-3 consolidation). This file
+    now covers exactly the 8 `/api/payments/dlocal/*` and `/api/webhooks/dlocal`
+    routes and is their sole authoritative spec.
+
+    ## Corrections vs. the prior (2.0.0) version of this file
+    The prior spec was written without re-reading the live handlers and had drifted
+    significantly. Every path below was re-verified line-by-line against source.
+    Notable fixes:
+    - `create`: response uses `paymentUrl` (not `redirectUrl`); amount is a nested
+      `{ local, usd, currency }` object (not a flat `amount`/`currency` pair); no
+      `expiresAt` field exists in the live response; a `404 User not found` path was
+      undocumented; `planDuration` (days) is returned alongside `planType`.
+    - `{paymentId}`: `amount.local`/`amount.usd` are **strings** (Prisma Decimal
+      `.toString()`), not numbers; field is `duration` (days), not `planDuration`;
+      response includes `providerStatus` (live dLocal status) distinct from `status`
+      (internal). The old spec's `orderId`/`dLocalStatus` nested object do not exist
+      in the live response.
+    - `exchange-rate`: real shape is `{ currency, rate, baseCurrency: "USD",
+      timestamp }`, not `{ from, to, rate, timestamp }`.
+    - `convert`: real shape is `{ localAmount, currency, exchangeRate, usdAmount,
+      timestamp }`, not `{ amountUSD, currency, convertedAmount, exchangeRate }`.
+    - `methods` (detailed=true): `PaymentMethodDetail` items are actually only
+      `{ id, name, type }` — the live service never populates `logo` despite the
+      shared `PaymentMethodInfo` type declaring it optional.
+    - `check-three-day-eligibility`: **method is GET**, not POST (this route has no
+      request body and reads only the session cookie — see below for a routing
+      inconsistency finding). On internal error the handler still returns **200**
+      `{ eligible: false, reason: "Unable to verify eligibility..." }` (fail-closed),
+      not a 500.
+    - `validate-discount`: real shape is `{ valid, discountPercent?, message? }` —
+      the prior spec's `discountType`/`discountValue`/`finalPrice`/`code` fields do
+      not exist anywhere in the live handler. Most validation failures return **200**
+      with `valid: false` (not 400); only malformed body (`code`/`planType`
+      missing/invalid) returns 400. A `429` rate-limit path (10/min per user,
+      anti-enumeration) was previously undocumented.
+    - `webhooks/dlocal`: the signature header is **`x-signature`**, not
+      `x-dlocal-signature` as the prior spec claimed — verified against
+      `verifyWebhookSignature()` in `lib/dlocal/dlocal-payment.service.ts`, which is
+      the only place the header name is read (`request.headers.get('x-signature')`).
 
     ## Supported Regions (8 Countries)
     | Country       | Code | Currency | Payment Methods                     |
@@ -27,18 +66,31 @@ info:
     | Turkey        | TR   | TRY      | Bank Transfer, Local Cards          |
 
     ## Payment Plans
-    - **3-Day Plan**: $1.99 USD (one-time, lifetime limit per account)
-    - **Monthly Plan**: $29.00 USD (recurring via manual renewal)
+    - **3-Day Plan**: $1.99 USD default (`PRICING.THREE_DAY_USD`, may be overridden by
+      SystemConfig elsewhere), one-time, lifetime limit of 1 per account
+    - **Monthly Plan**: $29.00 USD default (`PRICING.MONTHLY_USD`), discount codes
+      allowed
 
-    ## Features
-    - Multi-currency support with real-time conversion
-    - 30+ local payment method integrations
-    - Anti-abuse validation for 3-day plans (one per account)
-    - Subscription lifecycle management
-    - Automated expiry and renewal reminders
-    - Fraud detection and monitoring dashboard
-    - Discount code support (monthly plan only)
-    - HMAC-SHA256 webhook signature verification
+    ## Authentication model (mixed — read each path's `security` carefully)
+    - **Session-gated** (`sessionAuth`, via the `next-auth.session-token` cookie):
+      `POST /api/payments/dlocal/create`, `GET /api/payments/dlocal/{paymentId}`,
+      `GET /api/payments/dlocal/check-three-day-eligibility`,
+      `POST /api/payments/dlocal/validate-discount`.
+    - **Fully unauthenticated** (`security: []`, no session/CSRF check of any kind —
+      genuinely public): `GET /api/payments/dlocal/methods`,
+      `GET /api/payments/dlocal/exchange-rate`, `GET /api/payments/dlocal/convert`.
+    - **Signature-verified, not session-based** (`security: []`, externally triggered
+      by dLocal): `POST /api/webhooks/dlocal`. Authenticity comes from an HMAC-SHA256
+      signature in the `x-signature` header, not a session or API key — see that
+      path's description.
+
+    ## Finding: inconsistent `getServerSession()` usage
+    `GET /api/payments/dlocal/check-three-day-eligibility` calls
+    `getServerSession()` **with no `authOptions` argument**, unlike every other
+    session-gated route in this file (`create`, `{paymentId}`, `validate-discount`),
+    which all call `getServerSession(authOptions)`. This is a live inconsistency in
+    `app/api/payments/dlocal/check-three-day-eligibility/route.ts` — flagged here,
+    not fixed (out of scope for a documentation session).
 
   contact:
     name: API Support
@@ -53,55 +105,268 @@ servers:
   - url: https://api.tradingalerts.example.com
     description: Production server
 
-security:
-  - sessionAuth: []
-
 tags:
+  - name: Payments
+    description: Payment creation and status
   - name: Payment Methods
     description: Available payment methods by country
   - name: Currency
     description: Currency conversion and exchange rates
-  - name: Payments
-    description: Payment creation and status
-  - name: Webhooks
-    description: dLocal webhook handlers
+  - name: Eligibility
+    description: 3-day plan eligibility checks
   - name: Discount
     description: Discount code validation
-  - name: Eligibility
-    description: Plan eligibility checks
-  - name: Cron Jobs
-    description: Automated subscription management
-  - name: Admin - Fraud
-    description: Fraud alert management (Admin only)
+  - name: Webhooks
+    description: dLocal webhook handler
 
 paths:
+  /api/payments/dlocal/create:
+    post:
+      tags: [Payments]
+      summary: Create a dLocal payment for a subscription plan
+      description: |
+        Creates a payment record, then calls dLocal to create the actual payment and
+        returns a redirect URL for the user to complete checkout.
+
+        **Process (matches `app/api/payments/dlocal/create/route.ts` exactly):**
+        1. Require an authenticated session (`getServerSession(authOptions)`).
+        2. Validate body against the zod schema (`createPaymentSchema`).
+        3. Validate `paymentMethod` is valid for `country` (`isValidPaymentMethod`).
+        4. Load the user; 404 if missing.
+        5. 403 if user is already `tier: 'PRO'` with an `ACTIVE` subscription.
+        6. 403 if `planType: 'THREE_DAY'` and `user.hasUsedThreeDayPlan`.
+        7. 400 if a `discountCode` is supplied with `planType: 'THREE_DAY'`
+           (discounts are MONTHLY-only).
+        8. If `discountCode` + `MONTHLY`: look up an `ACTIVE`, unexpired
+           `AffiliateCode` with an `ACTIVE` affiliate profile; 400
+           `'Invalid or expired discount code'` if not found/inactive.
+        9. Compute `chargeUsd` (gross minus discount), convert to local currency via
+           `convertUSDToLocal`, create the `Payment` row (status `PENDING`), call
+           dLocal's `createPayment`, then update the row with the returned
+           `providerPaymentId`.
+
+        **Implementation:** `app/api/payments/dlocal/create/route.ts` (POST)
+      operationId: createDLocalPayment
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+            examples:
+              threeDayPlan:
+                summary: 3-day plan (India)
+                value:
+                  country: IN
+                  paymentMethod: UPI
+                  planType: THREE_DAY
+                  currency: INR
+              monthlyPlanWithDiscount:
+                summary: Monthly plan with discount code
+                value:
+                  country: NG
+                  paymentMethod: Bank Transfer
+                  planType: MONTHLY
+                  currency: NGN
+                  discountCode: SAVE20
+      responses:
+        '200':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentResponse'
+              example:
+                paymentId: mock-payment-1737100800000
+                orderId: order-usr_abc123-1737100800000
+                paymentUrl: https://sandbox.dlocal.com/pay/mock-1737100800000
+                status: PENDING
+                amount:
+                  local: 166.24
+                  usd: 1.99
+                  currency: INR
+                exchangeRate: 83.54
+                planType: THREE_DAY
+                planDuration: 3
+        '400':
+          description: Validation error, invalid payment method, invalid discount, or discount used with a 3-day plan
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationErrorResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                zodValidation:
+                  summary: Zod schema validation failure
+                  value:
+                    error: Validation error
+                    details:
+                      country:
+                        [
+                          "Invalid enum value. Expected 'IN' | 'NG' | 'PK' | 'VN' | 'ID' | 'TH' | 'ZA' | 'TR'",
+                        ]
+                invalidPaymentMethod:
+                  summary: Payment method not valid for country
+                  value:
+                    error: Invalid payment method for this country
+                    country: IN
+                    paymentMethod: INVALID_METHOD
+                discountOnThreeDay:
+                  summary: Discount code supplied for THREE_DAY plan
+                  value:
+                    error: Discount codes are only valid for monthly plans
+                invalidDiscountCode:
+                  summary: Discount code not found, expired, or affiliate inactive
+                  value:
+                    error: Invalid or expired discount code
+        '401':
+          description: Unauthorized - no session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Unauthorized
+        '403':
+          description: Forbidden - already subscribed, or 3-day plan already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                alreadySubscribed:
+                  summary: Already has an active PRO subscription
+                  value:
+                    error: You already have an active subscription
+                threeDayAlreadyUsed:
+                  summary: 3-day plan already used (lifetime limit)
+                  value:
+                    error: You have already used the 3-day plan. Please choose the monthly plan.
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: User not found
+        '500':
+          description: Internal server error (payment creation failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Failed to create payment
+
+  /api/payments/dlocal/{paymentId}:
+    get:
+      tags: [Payments]
+      summary: Get the status of a dLocal payment
+      description: |
+        Looks up a payment by `providerPaymentId` (scoped to `provider: 'DLOCAL'`),
+        verifies the requesting user owns it, then attempts a live status lookup
+        against dLocal (falling back to the stored `providerStatus` if that call
+        throws).
+
+        **Implementation:** `app/api/payments/dlocal/[paymentId]/route.ts` (GET)
+      operationId: getDLocalPaymentStatus
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          description: dLocal provider payment ID (`Payment.providerPaymentId`)
+          schema:
+            type: string
+          example: mock-payment-1737100800000
+      responses:
+        '200':
+          description: Payment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatusResponse'
+              example:
+                id: clx_internal_payment_id
+                paymentId: mock-payment-1737100800000
+                status: COMPLETED
+                providerStatus: PAID
+                amount:
+                  local: '166.24'
+                  usd: '1.99'
+                  currency: INR
+                country: IN
+                paymentMethod: UPI
+                planType: THREE_DAY
+                duration: 3
+                createdAt: '2026-07-17T10:00:00.000Z'
+                updatedAt: '2026-07-17T10:05:00.000Z'
+        '400':
+          description: Payment ID missing (unreachable via the dynamic route segment in practice, but coded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Payment ID is required
+        '401':
+          description: Unauthorized - no session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Unauthorized
+        '403':
+          description: Access denied - payment belongs to another user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Access denied
+        '404':
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Payment not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Failed to get payment status
+
   /api/payments/dlocal/methods:
     get:
-      tags:
-        - Payment Methods
-      summary: Get available payment methods
+      tags: [Payment Methods]
+      summary: Get available dLocal payment methods for a country
       description: |
-        Returns available dLocal payment methods for a specific country.
+        **Fully unauthenticated** — no session, cookie, or CSRF check at all
+        (confirmed: the handler never calls `getServerSession`). Public by design so
+        the pricing/checkout page can render methods before login.
 
-        **Supports:**
-        - Simple list of payment method IDs
-        - Detailed information with names and icons (detailed=true)
+        Returns a simple string list by default, or an array of
+        `{ id, name, type }` objects when `detailed=true`.
 
-        **Payment Methods by Country:**
-        - India: UPI, Paytm, PhonePe, Net Banking
-        - Nigeria: Bank Transfer, USSD, Paystack
-        - Pakistan: JazzCash, Easypaisa
-        - Vietnam: VNPay, MoMo, ZaloPay
-        - Indonesia: GoPay, OVO, Dana, ShopeePay
-        - Thailand: TrueMoney, Rabbit LINE Pay, Thai QR
-        - South Africa: Instant EFT, EFT
-        - Turkey: Bank Transfer, Local Cards
-      operationId: getPaymentMethods
+        **Implementation:** `app/api/payments/dlocal/methods/route.ts` (GET)
+      operationId: getDLocalPaymentMethods
+      security: []
       parameters:
         - name: country
           in: query
           required: true
-          description: ISO 2-letter country code
+          description: ISO 2-letter country code, validated via `isDLocalCountry`
           schema:
             type: string
             enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
@@ -109,7 +374,7 @@ paths:
         - name: detailed
           in: query
           required: false
-          description: Return detailed method information
+          description: 'When exactly the string `"true"`, returns detailed method objects instead of plain strings'
           schema:
             type: boolean
             default: false
@@ -123,61 +388,72 @@ paths:
                 $ref: '#/components/schemas/PaymentMethodsResponse'
               examples:
                 simple:
-                  summary: Simple list
+                  summary: Simple list (default)
                   value:
-                    country: 'IN'
-                    methods:
-                      - 'UPI'
-                      - 'Paytm'
-                      - 'PhonePe'
-                      - 'Net Banking'
+                    country: IN
+                    methods: [UPI, Paytm, PhonePe, Net Banking]
                 detailed:
-                  summary: Detailed information
+                  summary: 'detailed=true'
                   value:
-                    country: 'IN'
+                    country: IN
                     methods:
-                      - id: 'UPI'
-                        name: 'UPI'
-                        type: 'bank'
-                        logo: 'upi-icon.svg'
-                      - id: 'Paytm'
-                        name: 'Paytm Wallet'
-                        type: 'wallet'
-                        logo: 'paytm-icon.svg'
+                      - id: upi
+                        name: UPI
+                        type: wallet
+                      - id: paytm
+                        name: Paytm
+                        type: wallet
+                      - id: phonepe
+                        name: PhonePe
+                        type: wallet
+                      - id: net_banking
+                        name: Net Banking
+                        type: bank
         '400':
-          description: Invalid or unsupported country
+          description: Country parameter missing or unsupported
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: 'Invalid or unsupported country'
-                supportedCountries:
-                  ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
+              examples:
+                missing:
+                  summary: country not provided
+                  value:
+                    error: Country parameter is required
+                unsupported:
+                  summary: country not in the supported list
+                  value:
+                    error: Invalid or unsupported country
+                    supportedCountries: [IN, NG, PK, VN, ID, TH, ZA, TR]
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Failed to get payment methods
 
   /api/payments/dlocal/exchange-rate:
     get:
-      tags:
-        - Currency
-      summary: Get USD exchange rate
+      tags: [Currency]
+      summary: Get the current USD to local-currency exchange rate
       description: |
-        Returns the current USD to local currency exchange rate.
+        **Fully unauthenticated** — no session/CSRF check at all (confirmed: the
+        handler never calls `getServerSession`). Genuinely public.
 
-        **Rate Source:** exchangerate-api.com with caching
-        **Cache Duration:** 1 hour
-        **Fallback:** Static rates for offline mode
-      operationId: getExchangeRate
+        Rate source: `exchangerate-api.com`, cached in-process for 1 hour with a
+        static per-currency fallback table if the upstream call fails
+        (`lib/dlocal/currency-converter.service.ts`).
+
+        **Implementation:** `app/api/payments/dlocal/exchange-rate/route.ts` (GET)
+      operationId: getDLocalExchangeRate
+      security: []
       parameters:
         - name: currency
           in: query
           required: true
-          description: Target currency code
+          description: Target 3-letter currency code
           schema:
             type: string
             enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
@@ -190,46 +466,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExchangeRateResponse'
               example:
-                from: 'USD'
-                to: 'INR'
-                rate: 83.25
-                timestamp: '2026-01-24T10:00:00.000Z'
+                currency: INR
+                rate: 83.54
+                baseCurrency: USD
+                timestamp: '2026-07-17T10:00:00.000Z'
         '400':
-          description: Invalid currency
+          description: Currency parameter missing or unsupported
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing:
+                  summary: currency not provided
+                  value:
+                    error: Currency parameter is required
+                unsupported:
+                  summary: currency not in the supported list
+                  value:
+                    error: Invalid or unsupported currency
+                    supportedCurrencies:
+                      [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Failed to get exchange rate
 
   /api/payments/dlocal/convert:
     get:
-      tags:
-        - Currency
-      summary: Convert USD to local currency
+      tags: [Currency]
+      summary: Convert a USD amount to local currency
       description: |
-        Converts a USD amount to local currency using current exchange rate.
+        **Fully unauthenticated** — no session/CSRF check at all (confirmed: the
+        handler never calls `getServerSession`). Genuinely public; used to render
+        local-currency pricing on the checkout page before login.
 
-        **Use Case:** Display pricing in local currency on checkout page
-      operationId: convertCurrency
+        **Implementation:** `app/api/payments/dlocal/convert/route.ts` (GET)
+      operationId: convertDLocalCurrency
+      security: []
       parameters:
         - name: amount
           in: query
           required: true
-          description: Amount in USD
+          description: USD amount to convert; must parse to a positive number (`parseFloat`)
           schema:
             type: number
-            minimum: 0
+            exclusiveMinimum: 0
           example: 29
         - name: currency
           in: query
           required: true
-          description: Target currency
+          description: Target 3-letter currency code
           schema:
             type: string
             enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
@@ -242,210 +533,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/ConvertResponse'
               example:
-                amountUSD: 29
-                currency: 'INR'
-                convertedAmount: 2414.25
-                exchangeRate: 83.25
+                localAmount: 2422.66
+                currency: INR
+                exchangeRate: 83.54
+                usdAmount: 29
+                timestamp: '2026-07-17T10:00:00.000Z'
         '400':
-          description: Invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/create:
-    post:
-      tags:
-        - Payments
-      summary: Create dLocal payment
-      description: |
-        Creates a new dLocal payment for subscription.
-
-        **Validations:**
-        - User must be authenticated
-        - User must not have active PRO subscription
-        - Payment method must be valid for country
-        - 3-day plan: Anti-abuse checks (max 1 per user lifetime)
-        - Discount code: Only valid for monthly plan
-
-        **Process:**
-        1. Validate user and input
-        2. Check 3-day plan eligibility (if applicable)
-        3. Apply discount code (if provided for monthly)
-        4. Calculate amount in local currency
-        5. Create payment record in database
-        6. Call dLocal API with HMAC-SHA256 signature
-        7. Return redirect URL for user to complete payment
-      operationId: createPayment
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePaymentRequest'
-            examples:
-              threeDayPlan:
-                summary: 3-day plan (India)
-                value:
-                  country: 'IN'
-                  paymentMethod: 'UPI'
-                  planType: 'THREE_DAY'
-                  currency: 'INR'
-              monthlyPlanWithDiscount:
-                summary: Monthly plan with discount
-                value:
-                  country: 'NG'
-                  paymentMethod: 'Bank Transfer'
-                  planType: 'MONTHLY'
-                  currency: 'NGN'
-                  discountCode: 'SAVE20'
-      responses:
-        '200':
-          description: Payment created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreatePaymentResponse'
-              example:
-                paymentId: 'dlp_abc123xyz456'
-                redirectUrl: 'https://pay.dlocal.com/checkout/dlp_abc123xyz456'
-                amount: 166
-                currency: 'INR'
-                expiresAt: '2026-01-24T11:00:00.000Z'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
-              examples:
-                invalidPaymentMethod:
-                  summary: Invalid payment method
-                  value:
-                    error: 'Invalid payment method for this country'
-                    country: 'IN'
-                    paymentMethod: 'INVALID_METHOD'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden - already subscribed or not eligible
+          description: Missing or invalid amount/currency parameters
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                alreadySubscribed:
-                  summary: Already has subscription
+                missingAmount:
+                  summary: amount not provided
                   value:
-                    error: 'You already have an active subscription'
-                threeDayNotEligible:
-                  summary: Not eligible for 3-day plan
+                    error: Amount parameter is required
+                invalidAmount:
+                  summary: amount is not a positive number
                   value:
-                    error: 'You have already used the 3-day promotional plan'
-                    reason: 'ALREADY_USED'
+                    error: Amount must be a positive number
+                missingCurrency:
+                  summary: currency not provided
+                  value:
+                    error: Currency parameter is required
+                unsupportedCurrency:
+                  summary: currency not in the supported list
+                  value:
+                    error: Invalid or unsupported currency
+                    supportedCurrencies:
+                      [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/payments/dlocal/{paymentId}:
-    get:
-      tags:
-        - Payments
-      summary: Get payment status
-      description: |
-        Returns the current status of a dLocal payment.
-
-        **Status Values:**
-        - PENDING: Payment initiated, awaiting completion
-        - COMPLETED: Payment successful
-        - FAILED: Payment failed
-        - CANCELLED: Payment cancelled
-        - REFUNDED: Payment refunded
-      operationId: getPaymentStatus
-      parameters:
-        - name: paymentId
-          in: path
-          required: true
-          description: dLocal payment ID
-          schema:
-            type: string
-          example: 'dlp_abc123xyz456'
-      responses:
-        '200':
-          description: Payment status retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentStatusResponse'
               example:
-                id: 'clp_internal_id'
-                paymentId: 'dlp_abc123xyz456'
-                orderId: 'ord_xyz789'
-                status: 'COMPLETED'
-                amount: '166.00'
-                currency: 'INR'
-                planType: 'THREE_DAY'
-                createdAt: '2026-01-24T10:00:00.000Z'
-                dLocalStatus:
-                  id: 'dlp_abc123xyz456'
-                  status: 'PAID'
-                  amount: 166
-                  currency: 'INR'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Access denied - payment belongs to another user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Payment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                error: Failed to convert currency
 
   /api/payments/dlocal/check-three-day-eligibility:
     get:
-      tags:
-        - Eligibility
-      summary: Check 3-day plan eligibility
+      tags: [Eligibility]
+      summary: Check whether the current user can purchase the 3-day plan
       description: |
-        Checks if the authenticated user is eligible for the 3-day promotional plan.
+        **Method correction:** this is a **GET** request (no body) — a prior draft
+        of this order's task list referred to it as POST, but the live handler only
+        exports `GET`.
 
-        **Anti-Abuse Rules:**
-        - Max 1 three-day subscription per user (lifetime limit)
-        - Checks payment history for previous 3-day purchases
-        - Checks subscription history
-        - Verifies no active PRO subscription
+        **Auth inconsistency finding:** unlike every other session-gated route in
+        this file, this handler calls `getServerSession()` **without the
+        `authOptions` argument** (`app/api/payments/dlocal/check-three-day-eligibility/route.ts`,
+        line ~27). `create`, `{paymentId}`, and `validate-discount` all pass
+        `getServerSession(authOptions)`. Documented here as-is per instructions, not
+        fixed.
+
+        Delegates to `canPurchaseThreeDayPlan()`
+        (`lib/dlocal/three-day-validator.service.ts`), which checks (1) the user
+        hasn't already used the 3-day plan (lifetime) and (2) has no active
+        subscription. **Fail-closed on error:** if the eligibility check throws, the
+        handler still responds **200** with `eligible: false` and a generic reason
+        (never a 500).
+
+        **Implementation:** `app/api/payments/dlocal/check-three-day-eligibility/route.ts` (GET)
       operationId: checkThreeDayEligibility
+      security:
+        - sessionAuth: []
       responses:
         '200':
-          description: Eligibility check result
+          description: Eligibility check result (also returned on internal error, fail-closed)
           content:
             application/json:
               schema:
@@ -455,40 +611,61 @@ paths:
                   summary: User is eligible
                   value:
                     eligible: true
-                    reason: null
+                    details:
+                      hasUsedThreeDayPlan: false
+                      hasActiveSubscription: false
                 alreadyUsed:
-                  summary: Already used 3-day plan
+                  summary: Already used the 3-day plan
                   value:
                     eligible: false
-                    reason: 'ALREADY_USED'
+                    reason: You have already used the 3-day plan. This offer is available only once per account.
+                    details:
+                      hasUsedThreeDayPlan: true
+                      hasActiveSubscription: false
                 activeSubscription:
-                  summary: Has active subscription
+                  summary: Has an active subscription already
                   value:
                     eligible: false
-                    reason: 'ACTIVE_SUBSCRIPTION'
+                    reason: You already have an active subscription. The 3-day plan is only available for users without an active subscription.
+                    details:
+                      hasUsedThreeDayPlan: false
+                      hasActiveSubscription: true
+                errorFailedClosed:
+                  summary: Internal error - fails closed with 200, not 500
+                  value:
+                    eligible: false
+                    reason: Unable to verify eligibility. Please try again.
         '401':
-          description: Unauthorized
+          description: Authentication required - no session
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Authentication required
 
   /api/payments/dlocal/validate-discount:
     post:
-      tags:
-        - Discount
-      summary: Validate discount code
+      tags: [Discount]
+      summary: Validate a discount code for the monthly plan
       description: |
-        Validates a discount code for monthly plan.
+        Looks up an `ACTIVE` `AffiliateCode` by normalized (uppercased, trimmed)
+        code and requires its linked affiliate profile to also be `ACTIVE`. 3-day
+        plans never support discounts.
 
-        **Rules:**
-        - Only valid for MONTHLY plan (not 3-day)
-        - Checks if code exists and is active
-        - Checks if code has not expired
-        - Checks usage limits
-        - Returns discount type (PERCENTAGE or FIXED)
-        - Calculates final price after discount
-      operationId: validateDiscountCode
+        **Rate limited:** 10 attempts/minute per authenticated user
+        (`ratelimit:discount-validate` prefix) to deter code enumeration; exceeding
+        it returns `429`.
+
+        Most validation outcomes (code not found, affiliate inactive, wrong plan
+        type) are returned as **200** with `valid: false` — only a structurally
+        malformed body (`code` missing/non-string, or `planType` missing/invalid)
+        returns `400`.
+
+        **Implementation:** `app/api/payments/dlocal/validate-discount/route.ts` (POST)
+      operationId: validateDLocalDiscountCode
+      security:
+        - sessionAuth: []
       requestBody:
         required: true
         content:
@@ -496,420 +673,197 @@ paths:
             schema:
               $ref: '#/components/schemas/ValidateDiscountRequest'
             example:
-              code: 'SAVE20'
-              planType: 'MONTHLY'
+              code: SAVE20
+              planType: MONTHLY
       responses:
         '200':
-          description: Validation result
+          description: Validation result (valid or invalid — see description)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidateDiscountResponse'
               examples:
-                validPercentage:
-                  summary: Valid percentage discount
+                valid:
+                  summary: Valid, active discount code
                   value:
                     valid: true
-                    code: 'SAVE20'
-                    discountType: 'PERCENTAGE'
-                    discountValue: 20
-                    finalPrice: 23.20
-                validFixed:
-                  summary: Valid fixed discount
-                  value:
-                    valid: true
-                    code: 'FLAT5'
-                    discountType: 'FIXED'
-                    discountValue: 5
-                    finalPrice: 24.00
-                invalidCode:
-                  summary: Invalid code
+                    discountPercent: 20
+                    message: 20% discount will be applied
+                notFound:
+                  summary: Code not found or inactive
                   value:
                     valid: false
-                    error: 'Code not found or expired'
-                wrongPlan:
-                  summary: Code not valid for plan type
+                    message: Invalid or expired discount code
+                affiliateInactive:
+                  summary: Code exists but its affiliate is no longer active
                   value:
                     valid: false
-                    error: 'Discount codes are only valid for monthly plan'
+                    message: This discount code is no longer valid
+                threeDayPlan:
+                  summary: Discounts are not available for the 3-day plan
+                  value:
+                    valid: false
+                    message: Discount codes are not available for the 3-day plan
         '400':
-          description: Validation error
+          description: Malformed request body
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ValidateDiscountResponse'
+              examples:
+                missingCode:
+                  summary: code missing or not a string
+                  value:
+                    valid: false
+                    message: Discount code is required
+                invalidPlanType:
+                  summary: planType missing or not THREE_DAY/MONTHLY
+                  value:
+                    valid: false
+                    message: Invalid plan type
         '401':
-          description: Unauthorized
+          description: Authentication required - no session
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Authentication required
+        '429':
+          description: Rate limited - too many validation attempts (10/min per user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateDiscountResponse'
+              example:
+                valid: false
+                message: Too many attempts. Please try again later.
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateDiscountResponse'
+              example:
+                valid: false
+                message: Failed to validate discount code
 
   /api/webhooks/dlocal:
     post:
-      tags:
-        - Webhooks
-      summary: dLocal webhook handler
+      tags: [Webhooks]
+      summary: dLocal payment webhook (payment lifecycle events)
       description: |
-        Handles webhook events from dLocal for payment status updates.
+        **Not session-based — internal-only, externally triggered by dLocal.**
+        Authenticity is established purely by an HMAC-SHA256 signature over the
+        *raw* request body, compared against `x-signature` (verified in
+        `verifyWebhookSignature()`, `lib/dlocal/dlocal-payment.service.ts`):
+        `hex(HMAC-SHA256(rawBody, DLOCAL_WEBHOOK_SECRET)) === headers['x-signature']`.
+        There is no session cookie or CSRF check, and none is applicable — this
+        endpoint is not called by the browser.
 
-        **Events Handled:**
-        - payment.paid: Payment successful → Create subscription, upgrade to PRO
-        - payment.rejected: Payment failed → Update status, send failure email
-        - payment.cancelled: Payment cancelled → Update status
+        **Status mapping** (`mapDLocalStatus()`):
+        | dLocal status | Internal status |
+        | ------------- | ---------------- |
+        | PENDING       | PENDING          |
+        | AUTHORIZED    | PENDING          |
+        | VERIFIED      | PENDING          |
+        | PAID          | COMPLETED        |
+        | COMPLETED     | COMPLETED        |
+        | REJECTED      | FAILED           |
+        | EXPIRED       | FAILED           |
+        | CANCELLED     | CANCELLED        |
+        | REFUNDED      | REFUNDED         |
+        | *(unknown)*   | PENDING (default) |
 
-        **Process (payment.paid):**
-        1. Verify webhook signature (HMAC-SHA256)
-        2. Find payment in database by order_id
-        3. Update payment status to COMPLETED
-        4. Create/update subscription with correct duration (3 or 30 days)
-        5. Upgrade user tier to PRO
-        6. Mark 3-day plan as used (if applicable, anti-abuse)
-        7. Send confirmation email
+        **On `COMPLETED`:** in a single transaction, marks the `Payment` row
+        `COMPLETED`, upgrades the user to `tier: 'PRO'`, creates/updates the
+        `Subscription` (status `ACTIVE`, `expiresAt` = now + 3 days for `THREE_DAY`
+        or + 30 days for `MONTHLY`), links the payment to the subscription; then
+        (outside the transaction) marks the 3-day plan used if applicable, processes
+        an affiliate commission via `processAffiliateConversion` if a
+        `discountCode` was used on a `MONTHLY` plan (best-effort — failures here
+        never fail the webhook), and creates a `SUBSCRIPTION`-type notification.
 
-        **Security:**
-        - HMAC-SHA256 signature validation
-        - Rejects invalid signatures with 400 error
-        - Idempotent processing (prevents duplicate subscriptions)
+        **On `FAILED`:** marks the payment `FAILED` with `failureReason`, creates a
+        `PAYMENT`-type notification.
+
+        **On `CANCELLED`:** marks the payment `CANCELLED`, creates a `PAYMENT`-type
+        notification.
+
+        If no matching `Payment` row is found for the webhook's `id`
+        (`providerPaymentId`), the handler still returns **200** (with a `warning`
+        field) specifically to prevent dLocal from retrying a webhook it can never
+        resolve.
+
+        **Implementation:** `app/api/webhooks/dlocal/route.ts` (POST)
       operationId: handleDLocalWebhook
       security: []
       parameters:
-        - name: x-dlocal-signature
+        - name: x-signature
           in: header
           required: true
-          description: dLocal webhook HMAC-SHA256 signature
+          description: HMAC-SHA256 signature of the raw request body, hex-encoded, keyed with `DLOCAL_WEBHOOK_SECRET`
           schema:
             type: string
+          example: 5f4dcc3b5aa765d61d8327deb882cf99...
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/DLocalWebhookPayload'
+            example:
+              id: mock-payment-1737100800000
+              status: PAID
+              amount: 1.99
+              currency: INR
+              order_id: order-usr_abc123-1737100800000
+              payment_method_id: UPI
+              created_date: '2026-07-17T10:00:00.000Z'
+              approved_date: '2026-07-17T10:04:00.000Z'
+              payer:
+                name: Jane Doe
+                email: jane@example.com
       responses:
         '200':
-          description: Webhook processed successfully
+          description: Webhook processed (also returned when the payment record is unknown, to stop dLocal retries)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  received:
-                    type: boolean
-                    example: true
+                $ref: '#/components/schemas/WebhookResponse'
+              examples:
+                processed:
+                  summary: Payment record found and processed
+                  value:
+                    received: true
+                unknownPayment:
+                  summary: No matching Payment row - still 200 so dLocal stops retrying
+                  value:
+                    received: true
+                    warning: Payment not found
         '400':
-          description: Invalid signature or payload
+          description: Invalid signature or unparseable JSON payload
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                badSignature:
+                  summary: Signature does not match computed HMAC
+                  value:
+                    error: Invalid signature
+                badJson:
+                  summary: Body is not valid JSON
+                  value:
+                    error: Invalid JSON payload
         '500':
-          description: Webhook processing error
+          description: Webhook processing error - dLocal will retry
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
-  /api/cron/check-expiring-subscriptions:
-    get:
-      tags:
-        - Cron Jobs
-      summary: Check expiring subscriptions
-      description: |
-        Cron job that checks for subscriptions expiring soon and sends renewal reminders.
-
-        **Schedule:** Daily at 00:00 UTC (Vercel Cron)
-
-        **Process:**
-        1. Find dLocal subscriptions expiring in 3 days
-        2. Send renewal reminder emails with local currency pricing
-        3. Log processing results
-
-        **Authentication:** Cron secret header required
-      operationId: checkExpiringSubscriptions
-      security: []
-      parameters:
-        - name: authorization
-          in: header
-          required: true
-          description: Cron secret for authentication
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Cron job executed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CronJobResponse'
               example:
-                success: true
-                emailsSent: 15
-                processed: 15
-        '401':
-          description: Unauthorized - invalid cron secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Cron job error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/cron/downgrade-expired-subscriptions:
-    get:
-      tags:
-        - Cron Jobs
-      summary: Downgrade expired subscriptions
-      description: |
-        Cron job that downgrades users with expired subscriptions to FREE tier.
-
-        **Schedule:** Daily at 01:00 UTC (Vercel Cron)
-
-        **Process:**
-        1. Find expired subscriptions (past expiresAt date)
-        2. Update subscription status to EXPIRED
-        3. Downgrade user tier from PRO to FREE
-        4. Send expiry notification email
-        5. Log processing results
-
-        **Authentication:** Cron secret header required
-      operationId: downgradeExpiredSubscriptions
-      security: []
-      parameters:
-        - name: authorization
-          in: header
-          required: true
-          description: Cron secret for authentication
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Cron job executed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CronJobResponse'
-              example:
-                success: true
-                downgraded: 8
-                processed: 8
-        '401':
-          description: Unauthorized - invalid cron secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Cron job error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/admin/fraud-alerts:
-    get:
-      tags:
-        - Admin - Fraud
-      summary: List fraud alerts
-      description: |
-        Returns paginated list of fraud alerts with optional filters.
-
-        **Requires:** Admin role
-      operationId: listFraudAlerts
-      parameters:
-        - name: status
-          in: query
-          required: false
-          description: Filter by alert status
-          schema:
-            type: string
-            enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
-        - name: severity
-          in: query
-          required: false
-          description: Filter by severity level
-          schema:
-            type: string
-            enum: [LOW, MEDIUM, HIGH, CRITICAL]
-        - name: pattern
-          in: query
-          required: false
-          description: Filter by fraud pattern type
-          schema:
-            type: string
-            enum: [MULTIPLE_3DAY_ATTEMPTS, RAPID_FAILURES, COUNTRY_HOPPING, UNUSUAL_METHODS]
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 20
-            maximum: 100
-      responses:
-        '200':
-          description: Fraud alerts retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FraudAlertsListResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden - Admin role required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    post:
-      tags:
-        - Admin - Fraud
-      summary: Create fraud alert
-      description: |
-        Creates a new fraud alert manually.
-
-        **Requires:** Admin role
-      operationId: createFraudAlert
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateFraudAlertRequest'
-      responses:
-        '201':
-          description: Fraud alert created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FraudAlert'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden - Admin role required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/admin/fraud-alerts/{id}:
-    get:
-      tags:
-        - Admin - Fraud
-      summary: Get fraud alert details
-      description: |
-        Returns detailed information about a specific fraud alert.
-
-        **Requires:** Admin role
-      operationId: getFraudAlert
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Fraud alert details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FraudAlertDetail'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden - Admin role required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Fraud alert not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    put:
-      tags:
-        - Admin - Fraud
-      summary: Update fraud alert
-      description: |
-        Updates fraud alert status or adds investigation notes.
-
-        **Requires:** Admin role
-      operationId: updateFraudAlert
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateFraudAlertRequest'
-      responses:
-        '200':
-          description: Fraud alert updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FraudAlert'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Forbidden - Admin role required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Fraud alert not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                error: Webhook processing failed
 
 components:
   securitySchemes:
@@ -917,474 +871,412 @@ components:
       type: apiKey
       in: cookie
       name: next-auth.session-token
-      description: NextAuth session cookie
+      description: |
+        NextAuth.js session cookie. Only required on `create`, `{paymentId}`,
+        `check-three-day-eligibility`, and `validate-discount` — see the
+        authentication-model note in this file's top-level description for the
+        routes that are genuinely unauthenticated or signature-verified instead.
 
   schemas:
-    PaymentMethodsResponse:
+    CreatePaymentRequest:
       type: object
-      required:
-        - country
-        - methods
+      required: [country, paymentMethod, planType, currency]
+      description: Matches `createPaymentSchema` (zod) in `app/api/payments/dlocal/create/route.ts` exactly.
       properties:
         country:
           type: string
           enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
-          example: 'IN'
+          example: IN
+        paymentMethod:
+          type: string
+          minLength: 1
+          description: Must be valid for the given country (`isValidPaymentMethod`)
+          example: UPI
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          example: THREE_DAY
+        currency:
+          type: string
+          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          example: INR
+        discountCode:
+          type: string
+          description: Optional; only honored when `planType` is `MONTHLY` (400 if combined with `THREE_DAY`)
+          example: SAVE20
+
+    CreatePaymentResponse:
+      type: object
+      required:
+        [
+          paymentId,
+          orderId,
+          paymentUrl,
+          status,
+          amount,
+          exchangeRate,
+          planType,
+          planDuration,
+        ]
+      properties:
+        paymentId:
+          type: string
+          description: dLocal-side payment ID (`DLocalPaymentResponse.paymentId`)
+          example: mock-payment-1737100800000
+        orderId:
+          type: string
+          description: 'Internal order ID, format `order-{userId}-{timestamp}`'
+          example: order-usr_abc123-1737100800000
+        paymentUrl:
+          type: string
+          format: uri
+          description: URL to redirect the user to complete payment
+          example: https://sandbox.dlocal.com/pay/mock-1737100800000
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
+          description: Always `PENDING` at creation time in the current implementation
+          example: PENDING
+        amount:
+          type: object
+          required: [local, usd, currency]
+          properties:
+            local:
+              type: number
+              description: Amount in local currency, after any discount
+              example: 166.24
+            usd:
+              type: number
+              description: Gross USD list price for the plan (before discount)
+              example: 1.99
+            currency:
+              type: string
+              example: INR
+        exchangeRate:
+          type: number
+          example: 83.54
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          example: THREE_DAY
+        planDuration:
+          type: integer
+          description: Plan duration in days (3 or 30)
+          example: 3
+
+    PaymentStatusResponse:
+      type: object
+      required:
+        [
+          id,
+          paymentId,
+          status,
+          providerStatus,
+          amount,
+          country,
+          paymentMethod,
+          planType,
+          duration,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: string
+          description: Internal `Payment.id`
+          example: clx_internal_payment_id
+        paymentId:
+          type: string
+          description: '`Payment.providerPaymentId`'
+          example: mock-payment-1737100800000
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
+          description: Internal status stored on the `Payment` row
+          example: COMPLETED
+        providerStatus:
+          type: string
+          description: Live status string from dLocal (falls back to the stored `providerStatus` if the live call throws)
+          example: PAID
+        amount:
+          type: object
+          required: [local, usd, currency]
+          description: Amounts are strings (Prisma `Decimal.toString()`), not numbers
+          properties:
+            local:
+              type: string
+              example: '166.24'
+            usd:
+              type: string
+              example: '1.99'
+            currency:
+              type: string
+              example: INR
+        country:
+          type: string
+          nullable: true
+          example: IN
+        paymentMethod:
+          type: string
+          nullable: true
+          example: UPI
+        planType:
+          type: string
+          nullable: true
+          enum: [THREE_DAY, MONTHLY]
+          example: THREE_DAY
+        duration:
+          type: integer
+          description: Plan duration in days, as stored on the payment record
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-07-17T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-07-17T10:05:00.000Z'
+
+    PaymentMethodsResponse:
+      type: object
+      required: [country, methods]
+      properties:
+        country:
+          type: string
+          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
+          example: IN
         methods:
           type: array
           items:
             oneOf:
               - type: string
               - $ref: '#/components/schemas/PaymentMethodDetail'
-          example: ['UPI', 'Paytm', 'PhonePe', 'Net Banking']
+          description: Array of plain strings by default, or `PaymentMethodDetail` objects when `?detailed=true`
+          example: [UPI, Paytm, PhonePe, Net Banking]
 
     PaymentMethodDetail:
       type: object
-      required:
-        - id
-        - name
-        - type
+      required: [id, name, type]
+      description: Returned only when `?detailed=true`. `logo` is declared on the shared `PaymentMethodInfo` type but never populated by the live service - omitted here.
       properties:
         id:
           type: string
-          example: 'UPI'
+          description: 'Slugified method name (`method.toLowerCase().replace(/\s+/g, "_")`)'
+          example: net_banking
         name:
           type: string
-          example: 'UPI'
+          description: Original method label
+          example: Net Banking
         type:
           type: string
-          enum: [bank, wallet, qr, card]
-          example: 'bank'
-        logo:
-          type: string
-          example: 'upi-icon.svg'
+          enum: [bank, wallet, qr, card, other]
+          example: bank
 
     ExchangeRateResponse:
       type: object
-      required:
-        - from
-        - to
-        - rate
-        - timestamp
+      required: [currency, rate, baseCurrency, timestamp]
       properties:
-        from:
-          type: string
-          example: 'USD'
-        to:
-          type: string
-          example: 'INR'
-        rate:
-          type: number
-          format: float
-          example: 83.25
-        timestamp:
-          type: string
-          format: date-time
-          example: '2026-01-24T10:00:00.000Z'
-
-    ConvertResponse:
-      type: object
-      required:
-        - amountUSD
-        - currency
-        - convertedAmount
-        - exchangeRate
-      properties:
-        amountUSD:
-          type: number
-          example: 29
-        currency:
-          type: string
-          example: 'INR'
-        convertedAmount:
-          type: number
-          format: float
-          example: 2414.25
-        exchangeRate:
-          type: number
-          format: float
-          example: 83.25
-
-    CreatePaymentRequest:
-      type: object
-      required:
-        - country
-        - paymentMethod
-        - planType
-        - currency
-      properties:
-        country:
-          type: string
-          enum: [IN, NG, PK, VN, ID, TH, ZA, TR]
-          example: 'IN'
-        paymentMethod:
-          type: string
-          description: Payment method ID (must be valid for selected country)
-          example: 'UPI'
-        planType:
-          type: string
-          enum: [THREE_DAY, MONTHLY]
-          example: 'THREE_DAY'
         currency:
           type: string
           enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
-          example: 'INR'
-        discountCode:
-          type: string
-          description: Optional discount code (MONTHLY plan only)
-          example: 'SAVE20'
-
-    CreatePaymentResponse:
-      type: object
-      required:
-        - paymentId
-        - redirectUrl
-        - amount
-        - currency
-        - expiresAt
-      properties:
-        paymentId:
-          type: string
-          description: dLocal payment ID
-          example: 'dlp_abc123xyz456'
-        redirectUrl:
-          type: string
-          format: uri
-          description: URL to redirect user for payment completion
-          example: 'https://pay.dlocal.com/checkout/dlp_abc123xyz456'
-        amount:
+          example: INR
+        rate:
           type: number
-          description: Amount in local currency
-          example: 166
-        currency:
+          description: Units of `currency` per 1 unit of `baseCurrency`
+          example: 83.54
+        baseCurrency:
           type: string
-          example: 'INR'
-        expiresAt:
+          enum: [USD]
+          example: USD
+        timestamp:
           type: string
           format: date-time
-          description: Payment link expiration
-          example: '2026-01-24T11:00:00.000Z'
+          description: Response generation time (not the rate's fetch time)
+          example: '2026-07-17T10:00:00.000Z'
 
-    PaymentStatusResponse:
+    ConvertResponse:
       type: object
-      required:
-        - id
-        - paymentId
-        - orderId
-        - status
-        - amount
-        - currency
-        - planType
-        - createdAt
+      required: [localAmount, currency, exchangeRate, usdAmount, timestamp]
       properties:
-        id:
-          type: string
-          description: Internal payment record ID
-          example: 'clp_internal_id'
-        paymentId:
-          type: string
-          description: dLocal payment ID
-          example: 'dlp_abc123xyz456'
-        orderId:
-          type: string
-          description: Internal order ID
-          example: 'ord_xyz789'
-        status:
-          type: string
-          enum: [PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED]
-          example: 'COMPLETED'
-        amount:
-          type: string
-          description: Amount in local currency (string for precision)
-          example: '166.00'
+        localAmount:
+          type: number
+          example: 2422.66
         currency:
           type: string
-          example: 'INR'
-        planType:
-          type: string
-          enum: [THREE_DAY, MONTHLY]
-          example: 'THREE_DAY'
-        createdAt:
+          enum: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+          example: INR
+        exchangeRate:
+          type: number
+          example: 83.54
+        usdAmount:
+          type: number
+          example: 29
+        timestamp:
           type: string
           format: date-time
-          example: '2026-01-24T10:00:00.000Z'
-        dLocalStatus:
-          type: object
-          description: Status from dLocal API (if available)
-          properties:
-            id:
-              type: string
-            status:
-              type: string
-            amount:
-              type: number
-            currency:
-              type: string
-
-    ValidateDiscountRequest:
-      type: object
-      required:
-        - code
-        - planType
-      properties:
-        code:
-          type: string
-          example: 'SAVE20'
-        planType:
-          type: string
-          enum: [MONTHLY]
-          description: Discount codes only valid for MONTHLY plan
-          example: 'MONTHLY'
-
-    ValidateDiscountResponse:
-      type: object
-      required:
-        - valid
-      properties:
-        valid:
-          type: boolean
-          example: true
-        code:
-          type: string
-          example: 'SAVE20'
-        discountType:
-          type: string
-          enum: [PERCENTAGE, FIXED]
-          example: 'PERCENTAGE'
-        discountValue:
-          type: number
-          description: Percentage (1-100) or fixed USD amount
-          example: 20
-        finalPrice:
-          type: number
-          description: Price after discount (USD)
-          example: 23.20
-        error:
-          type: string
-          description: Error message if invalid
-          example: 'Code not found or expired'
+          example: '2026-07-17T10:00:00.000Z'
 
     ThreeDayEligibilityResponse:
       type: object
-      required:
-        - eligible
+      required: [eligible]
       properties:
         eligible:
           type: boolean
           example: true
         reason:
           type: string
-          nullable: true
-          enum: [ALREADY_USED, ACTIVE_SUBSCRIPTION]
-          description: Reason if not eligible
-          example: null
+          description: Present only when `eligible` is `false` (key is omitted entirely, not null, when eligible)
+          example: You have already used the 3-day plan. This offer is available only once per account.
+        details:
+          type: object
+          description: Omitted on the "user not found" and fail-closed error paths
+          properties:
+            hasUsedThreeDayPlan:
+              type: boolean
+            hasActiveSubscription:
+              type: boolean
+
+    ValidateDiscountRequest:
+      type: object
+      required: [code, planType]
+      properties:
+        code:
+          type: string
+          example: SAVE20
+        planType:
+          type: string
+          enum: [THREE_DAY, MONTHLY]
+          description: Discounts are only ever applied for MONTHLY; THREE_DAY always returns `valid:false`
+          example: MONTHLY
+
+    ValidateDiscountResponse:
+      type: object
+      required: [valid]
+      properties:
+        valid:
+          type: boolean
+          example: true
+        discountPercent:
+          type: number
+          description: Present only on a successful validation; snapshotted percent from `AffiliateCode.discountPercent`
+          example: 20
+        message:
+          type: string
+          description: Human-readable outcome message, present on nearly every response variant
+          example: 20% discount will be applied
 
     DLocalWebhookPayload:
       type: object
-      description: dLocal webhook payload structure
+      required:
+        [
+          id,
+          status,
+          amount,
+          currency,
+          order_id,
+          payment_method_id,
+          created_date,
+        ]
+      description: 'Shape of `types/dlocal.ts` `DLocalWebhookPayload`, as sent by dLocal'
       properties:
         id:
           type: string
-          description: dLocal payment ID
+          description: dLocal payment ID, matched against `Payment.providerPaymentId`
+          example: mock-payment-1737100800000
         status:
           type: string
-          description: Payment status from dLocal
+          description: "Raw dLocal status string - see the status-mapping table in this path's description"
+          example: PAID
         amount:
           type: number
+          example: 1.99
         currency:
           type: string
+          example: INR
         order_id:
           type: string
-          description: Our internal order ID
+          example: order-usr_abc123-1737100800000
         payment_method_id:
           type: string
+          example: UPI
         created_date:
           type: string
           format: date-time
+          example: '2026-07-17T10:00:00.000Z'
         approved_date:
           type: string
           format: date-time
+          example: '2026-07-17T10:04:00.000Z'
         failure_reason:
           type: string
+          example: Insufficient funds
         payer:
           type: object
           properties:
             name:
               type: string
+              example: Jane Doe
             email:
               type: string
+              example: jane@example.com
             document:
               type: string
+              example: '123456789'
 
-    CronJobResponse:
+    WebhookResponse:
       type: object
-      required:
-        - success
-        - processed
+      required: [received]
       properties:
-        success:
+        received:
           type: boolean
           example: true
-        processed:
-          type: integer
-          description: Number of records processed
-          example: 15
-        emailsSent:
-          type: integer
-          description: Number of emails sent (for reminder cron)
-          example: 15
-        downgraded:
-          type: integer
-          description: Number of users downgraded (for downgrade cron)
-          example: 8
-
-    FraudAlert:
-      type: object
-      properties:
-        id:
+        warning:
           type: string
-        userId:
-          type: string
-        status:
-          type: string
-          enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
-        severity:
-          type: string
-          enum: [LOW, MEDIUM, HIGH, CRITICAL]
-        pattern:
-          type: string
-          enum: [MULTIPLE_3DAY_ATTEMPTS, RAPID_FAILURES, COUNTRY_HOPPING, UNUSUAL_METHODS]
-        description:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    FraudAlertDetail:
-      allOf:
-        - $ref: '#/components/schemas/FraudAlert'
-        - type: object
-          properties:
-            user:
-              type: object
-              properties:
-                id:
-                  type: string
-                email:
-                  type: string
-                name:
-                  type: string
-                createdAt:
-                  type: string
-                  format: date-time
-            paymentHistory:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  amount:
-                    type: number
-                  currency:
-                    type: string
-                  status:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
-            investigationNotes:
-              type: array
-              items:
-                type: object
-                properties:
-                  note:
-                    type: string
-                  createdBy:
-                    type: string
-                  createdAt:
-                    type: string
-                    format: date-time
-
-    FraudAlertsListResponse:
-      type: object
-      properties:
-        alerts:
-          type: array
-          items:
-            $ref: '#/components/schemas/FraudAlert'
-        pagination:
-          type: object
-          properties:
-            page:
-              type: integer
-            limit:
-              type: integer
-            total:
-              type: integer
-            totalPages:
-              type: integer
-
-    CreateFraudAlertRequest:
-      type: object
-      required:
-        - userId
-        - severity
-        - pattern
-        - description
-      properties:
-        userId:
-          type: string
-        severity:
-          type: string
-          enum: [LOW, MEDIUM, HIGH, CRITICAL]
-        pattern:
-          type: string
-          enum: [MULTIPLE_3DAY_ATTEMPTS, RAPID_FAILURES, COUNTRY_HOPPING, UNUSUAL_METHODS]
-        description:
-          type: string
-
-    UpdateFraudAlertRequest:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
-        note:
-          type: string
-          description: Investigation note to add
+          description: Present only when no matching `Payment` record was found
+          example: Payment not found
 
     ErrorResponse:
       type: object
-      required:
-        - error
+      required: [error]
+      description: Generic error shape. Some routes attach extra context fields alongside `error` - see per-path examples.
       properties:
         error:
           type: string
-          example: 'Unauthorized'
-        message:
-          type: string
-          example: 'Additional error details'
+          example: Unauthorized
         supportedCountries:
           type: array
           items:
             type: string
-          example: ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR']
+          example: [IN, NG, PK, VN, ID, TH, ZA, TR]
+        supportedCurrencies:
+          type: array
+          items:
+            type: string
+          example: [INR, NGN, PKR, VND, IDR, THB, ZAR, TRY]
+        country:
+          type: string
+          description: Echoed back on the "invalid payment method for country" error
+        paymentMethod:
+          type: string
+          description: Echoed back on the "invalid payment method for country" error
 
     ValidationErrorResponse:
       type: object
-      required:
-        - error
+      required: [error, details]
       properties:
         error:
           type: string
-          example: 'Validation error'
+          example: Validation error
         details:
           type: object
-          description: Field-level validation errors
+          description: 'zod `.flatten().fieldErrors` - keys are the offending field names, values are arrays of messages'
+          additionalProperties:
+            type: array
+            items:
+              type: string
           example:
-            country: ['Invalid country code']
-            paymentMethod: ['Payment method is required']
+            country:
+              [
+                "Invalid enum value. Expected 'IN' | 'NG' | 'PK' | 'VN' | 'ID' | 'TH' | 'ZA' | 'TR'",
+              ]
