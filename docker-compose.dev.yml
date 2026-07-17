@@ -1,0 +1,77 @@
+# Local development stack — Session 0-5 (Phase 0, CC-I track).
+# Scope per this session's order: Postgres, Redis, Next.js dev server only.
+# mt5-service is intentionally excluded (SEPARATE_STACK, out of scope for this
+# migration — see CLAUDE.md's standing do-not-touch list). PgBouncer and the
+# NestJS services (operation-service, money-service) join this file in later
+# phases per the migration plan's CC-I track.
+#
+# Seed data is synthetic only (prisma/seed.ts creates a single admin user from
+# env-var defaults) — never production/unmasked data, per F17.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: trading_alerts_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm run db:generate && pnpm run db:push && pnpm run db:seed && pnpm run dev"
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/trading_alerts_dev
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=dev-only-insecure-secret-change-me
+      # ts-node defaults to an ESM loader path here because tsconfig.json sets
+      # "module": "esnext"; that loader doesn't understand bare .ts files, so
+      # `pnpm run db:seed` (ts-node prisma/seed.ts) fails with
+      # ERR_UNKNOWN_FILE_EXTENSION unless ts-node is told to transpile to CJS.
+      - TS_NODE_COMPILER_OPTIONS={"module":"commonjs"}
+    volumes:
+      - .:/app
+      - web_node_modules:/app/node_modules
+      - web_next_cache:/app/.next
+      - web_pnpm_store:/app/.pnpm-store
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  web_node_modules:
+  web_next_cache:
+  web_pnpm_store:
+
+networks:
+  default:
+    name: trading-alerts-dev-network
