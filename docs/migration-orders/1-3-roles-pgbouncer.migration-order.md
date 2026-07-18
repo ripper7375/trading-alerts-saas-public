@@ -4,10 +4,9 @@
 > roles, PgBouncer). Read `00-SKELETON-AND-RULES.md` §4 first. **Creativity dial: Medium**
 > (the approach to deploying PgBouncer is flexible; the role names and grants are fixed by
 > Plan §3).
-> **Status: PRE-DRAFT** — written by the Executor at Session 1-1's close (2026-07-18), per
-> that order's own Next-session handoff. Session 1-2 ("Relocate database to Railway") was
-> **skipped**: Session 1-1 found F3 = already on Railway (case (b)), so per the playbook's
-> own conditional, the chain goes straight here.
+> **Status: PRE-DRAFT** — written by the Executor at Session 1-1's close (2026-07-18). Session 1-2
+> ("Relocate database to Railway") was **skipped**, but due to the F3 gap (missing `market_data_v6`),
+> **Session 1-2b** has been inserted before this session. This order remains a PRE-DRAFT until 1-2b completes.
 
 **Session:** 1-3 · **Phase:** Phase 1 (Railway PostgreSQL, Workstream 7) · **Variant:** INFRA
 · **Status:** PRE-DRAFT · **Generated:** 2026-07-18 · **Flags touched:** none new (executes
@@ -66,9 +65,7 @@ market_data_v6 scope gap below needs resolving first (see Context).
 
 ## Entry criteria
 
-- [ ] Davin/Advisor has resolved the market_data_v6 scope-gap question above — either
-      "proceed roles+PgBouncer-only, consolidation is a separate future session" or
-      "resolve consolidation first, folding it into this order's steps."
+- [ ] **Session 1-2b is COMPLETE.** `market_data_v6` has been successfully migrated to the `maglev` instance, ensuring the "one instance hosting both" requirement is met.
 - [ ] F18's backup-cadence gap checked (Railway dashboard Backups tab) — not strictly
       blocking, but should be known before trusting role changes on this instance.
 - [ ] Railway CLI access to the `trading-alerts` project (already established this

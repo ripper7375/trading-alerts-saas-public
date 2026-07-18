@@ -141,6 +141,11 @@ at the blocker.
   rollback path (old instance) documented.
 - **You provide:** approval of the maintenance window (brief downtime).
 
+### Session 1-2b — Locate and migrate market_data_v6 (F3 gap)
+
+- **Tasks:** Locate the hidden instance hosting `market_data_v6` used by `railway-gateway`. Dump its schema and data, and restore it into the new unified `trading-alerts` `Postgres` service on Railway. Re-point `railway-gateway`'s `DATABASE_URL` to the unified instance.
+- **Done when:** `market_data_v6` exists on the unified Railway instance, and `railway-gateway` ingest works correctly against the new target without data loss.
+
 ### Session 1-3 — Roles + PgBouncer
 
 - **Tasks:** Write idempotent `prisma/roles/roles.sql` creating `money_svc`, `core_app`,

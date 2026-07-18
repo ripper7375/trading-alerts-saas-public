@@ -81,6 +81,8 @@ credentials: <how you'll provide>."_ · [C]: U-C.
 [A]: U-A + _"include the maintenance-window plan; I approve the window time explicitly."_
 · [B]: U-B + _"before the dump: prove the restore rehearsal from 1-1 passed."_ · [C]: U-C.
 
+**1-2b (locate + migrate market_data_v6):** [A]: U-A + _"variant: INFRA; ensure a full pg_dump and restore is part of the plan."_ · [B]: U-B · [C]: U-C + _"walk the exit criteria; confirm gateway ingest works on the new target."_
+
 **1-3 (roles + PgBouncer):** [A]: U-A · [B]: U-B + _"remember L3: migrations on the DIRECT
 url."_ · [C]: U-C.
 
