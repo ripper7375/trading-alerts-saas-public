@@ -310,6 +310,35 @@ notifications,tier,user,market-data}` → zero matches;
   entry criteria; the gap/limitation framing above is this session's technical finding,
   not a new target decision).
 
+## Session 1-1 close-out — F3 gap resolution path: consolidate `market_data_v6` before Session 1-3
+
+- Status: RESOLVED (scoping decision, not a flag — F3 itself stays RESOLVED as recorded
+  above; this is the follow-on plan-execution choice)
+- Session: 1-1 (post-close) · Date: 2026-07-18
+- Decision: Session 1-1 found `market_data_v6` is **not** on the same Railway instance as
+  the monolith's Postgres, a gap neither the playbook's Session 1-2 conditional nor
+  Session 1-3's roles/PgBouncer-only scope anticipated (flagged in Session 1-1's
+  Next-session handoff rather than resolved unilaterally). Davin and the Advisor chose:
+  **consolidate first** — locate `market_data_v6`'s actual instance and migrate it into
+  the unified `trading-alerts`/`maglev` instance via a new **Session 1-2b**, before
+  Session 1-3's role/PgBouncer work — rather than deferring consolidation to a later
+  session. The Advisor produced Session 1-2b's DRAFT order
+  (`docs/migration-orders/1-2b-locate-market-data.migration-order.md`), and updated the
+  session playbook + `SESSION-PROMPT-SCRIPT.md` to match (all committed `ba1003b4`, not
+  authored or verified by the Executor). Session 1-3's entry criteria now correctly
+  depend on 1-2b completing first.
+- **Worth Davin's explicit attention before APPROVING 1-2b:** its step 4 proposes
+  repointing `railway-gateway`'s `DATABASE_URL` to the unified instance —
+  `EXECUTOR-PROTOCOL.md` §5's standing do-not-touch list designates the
+  `railway-gateway` ingest path as "touched only where an order says so (Phase 8.2)."
+  Doing this in Phase 1 may be the correct call given Plan §3 Stage A's "one instance"
+  target, but it is a deviation from that standing rule — flagging for explicit
+  acknowledgment rather than letting it pass silently at CONFIRM.
+- Evidence: n/a (a live decision made in chat between sessions, not a technical finding —
+  see `CLAUDE.md`'s "Waiting on" for the current status).
+- Approved by: Davin (explicit choice, made directly, per the Autonomy & Deviation clause
+  for material scope decisions).
+
 ## Spec consolidation — batch-2 OpenAPI files (part-12/14/17/18/19)
 
 - Status: RESOLVED (Davin-approved mid-session)
