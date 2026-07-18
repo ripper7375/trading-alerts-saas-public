@@ -207,6 +207,52 @@ js-yaml@4.1.1/node_modules/js-yaml'))` — resolve the exact `.pnpm` path direct
   `docker compose -f docker-compose.dev.yml ps` first before assuming a regression.
 - Source: Session 0-5 (pre-push validation on the session-close commit) · Status: ACTIVE
 
+### L12 — Docker bind mounts from Git Bash need `MSYS_NO_PATHCONV=1`
+
+- Symptom: `docker run -v "$(pwd)/dir:/dump" ... pg_dump ... -f /dump/file.dump` failed
+  with `could not open output file "/dump/file.dump": No such file or directory`, even
+  though the host directory existed and the mount flag looked correct.
+- Root cause: Git Bash (MSYS) auto-converts any command-line argument that looks like a
+  POSIX path — including the **container-side** half of a `-v host:container` mount
+  (`/dump`), which Docker never asked to have translated. The container ends up with no
+  real `/dump` mount point.
+- Rule: prefix any `docker run -v ...` invocation from Git Bash with `MSYS_NO_PATHCONV=1`
+  (env var, not a flag) to stop MSYS from rewriting paths it shouldn't touch.
+- Detect early: a bind-mounted path working on the host but "not found" inside the
+  container, specifically on Windows + Git Bash — not a Docker or permissions bug.
+- Source: Session 1-1 (restore-rehearsal `pg_dump`/`pg_restore`) · Status: ACTIVE
+
+### L13 — `postgres:17` (non-alpine) pulls can fail mid-layer on this network; alpine doesn't
+
+- Symptom: `docker pull postgres:17` failed 3 times in a row with
+  `failed to copy: local error: tls: bad record MAC`, always after several layers had
+  already downloaded successfully.
+- Root cause: unclear (network/proxy/TLS-stack interaction with Docker Hub's CDN for that
+  specific image's larger layers) — not a Docker Desktop crash, not a disk issue.
+- Rule: if a `docker pull` of a large official image fails with a TLS/transport error
+  more than once, try the `-alpine` (or other minimal) variant before troubleshooting the
+  network — it has fewer/smaller layers and may simply avoid the failure-prone one. Use
+  the alpine tag for throwaway/scratch containers whenever the app itself doesn't need
+  the full image's extra tooling.
+- Detect early: `tls: bad record MAC` or similar transport errors during `docker pull`,
+  recurring across retries of the same tag.
+- Source: Session 1-1 (`postgres:17` failed 3x, `postgres:17-alpine` pulled clean on
+  first try) · Status: ACTIVE
+
+### L14 — A backgrounded dev server's launch PID is not its listening PID
+
+- Symptom: `kill $(cat server.pid)` (PID captured right after `nohup ... &`) succeeded
+  with no error, but the server was still listening on its port afterward.
+- Root cause: the captured PID was the shell wrapper (`pnpm exec ...`) that `nohup`
+  launched, not the actual `next-server` child process it spawned — killing the wrapper
+  doesn't kill children that already detached.
+- Rule: after killing a backgrounded dev-server PID, verify the port is actually free
+  (`netstat`/`lsof`) before assuming teardown succeeded; if still listening, find the
+  real PID via the port (not the launch command) and kill that one.
+- Detect early: port still shows `LISTENING` in `netstat -ano` right after a "successful"
+  kill of the captured launch PID.
+- Source: Session 1-1 (restore-rehearsal app-boot teardown) · Status: ACTIVE
+
 ---
 
 ## Archive

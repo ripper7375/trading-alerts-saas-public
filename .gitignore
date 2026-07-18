@@ -177,3 +177,5 @@ test-minimax-api.py
 staging-credentials.txt
 
 
+.env.scratch
+.tmp-*

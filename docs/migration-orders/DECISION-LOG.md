@@ -20,27 +20,27 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 
 ## Flag register status (details in plan §11)
 
-| Flag | Topic                                            | Status                                                      |
-| ---- | ------------------------------------------------ | ----------------------------------------------------------- |
-| F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                        |
-| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                      |
-| F3   | Where does the monolith's Postgres live?         | OPEN — due Session 1-1                                      |
-| F4   | Full model census for schema split               | OPEN — due Session 2-2                                      |
-| F5   | Prisma file-layout strategy                      | OPEN — due Session 2-2 (revisit under F19)                  |
-| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled | OPEN — due Session 3-1 (Davin)                              |
-| F7   | HS256 shared secret vs JWKS + rotation timing    | OPEN — due Session 3-1 (Davin)                              |
-| F8   | Realtime/websocket architecture                  | OPEN — due Session 4B-17                                    |
-| F9   | @trading-alerts/types packaging mechanics        | OPEN — due Session 4B-1                                     |
-| F10  | Next.js 15→16 breaking-change audit              | OPEN — due Session 5-1                                      |
-| F11  | Frontend gap matrix                              | OPEN — due Session 6-1 (Davin triage)                       |
-| F12  | Whole-plan duration estimate                     | OPEN — revisit after F1–F5                                  |
-| F13  | Observability/tracing backend                    | OPEN — due by first Phase 4 cutover                         |
-| F14  | Tier-update: outbox vs direct call               | OPEN — due Session 4A-8                                     |
-| F15  | Redis topology/namespacing                       | OPEN — due Session 4A-1                                     |
-| F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                             |
-| F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                              |
-| F18  | RPO/RTO targets                                  | OPEN — due Session 1-1 (Davin)                              |
-| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | OPEN — npm check RESOLVED (0-1); full audit due Session 2-1 |
+| Flag | Topic                                            | Status                                                                                |
+| ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                                                  |
+| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                                                |
+| F3   | Where does the monolith's Postgres live?         | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)          |
+| F4   | Full model census for schema split               | OPEN — due Session 2-2                                                                |
+| F5   | Prisma file-layout strategy                      | OPEN — due Session 2-2 (revisit under F19)                                            |
+| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled | OPEN — due Session 3-1 (Davin)                                                        |
+| F7   | HS256 shared secret vs JWKS + rotation timing    | OPEN — due Session 3-1 (Davin)                                                        |
+| F8   | Realtime/websocket architecture                  | OPEN — due Session 4B-17                                                              |
+| F9   | @trading-alerts/types packaging mechanics        | OPEN — due Session 4B-1                                                               |
+| F10  | Next.js 15→16 breaking-change audit              | OPEN — due Session 5-1                                                                |
+| F11  | Frontend gap matrix                              | OPEN — due Session 6-1 (Davin triage)                                                 |
+| F12  | Whole-plan duration estimate                     | OPEN — revisit after F1–F5                                                            |
+| F13  | Observability/tracing backend                    | OPEN — due by first Phase 4 cutover                                                   |
+| F14  | Tier-update: outbox vs direct call               | OPEN — due Session 4A-8                                                               |
+| F15  | Redis topology/namespacing                       | OPEN — due Session 4A-1                                                               |
+| F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                                                       |
+| F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                                                        |
+| F18  | RPO/RTO targets                                  | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only) |
+| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | OPEN — npm check RESOLVED (0-1); full audit due Session 2-1                           |
 
 ---
 
@@ -238,6 +238,77 @@ notifications,tier,user,market-data}` → zero matches;
 - Evidence: n/a (a live scoping choice made in chat at CONFIRM, not a technical finding).
 - Approved by: Davin (explicit choice between "full scope" / "local-only" / "hold",
   made live before execution began).
+
+## F3 — Where does the monolith's Postgres live?
+
+- Status: RESOLVED
+- Session: 1-1 · Date: 2026-07-18
+- Decision: **(b) Already on Railway, but a different Railway instance than the one
+  `railway-gateway` writes `market_data_v6` to.** The monolith's live Postgres is the
+  `Postgres` service in the `trading-alerts` Railway project (host
+  `maglev.proxy.rlwy.net`, database `railway`). This is a standalone instance: it hosts
+  only 2 databases (`postgres`, `railway`), neither containing any `market_data`-named
+  table, and no Railway project/service named `railway-gateway`/`gateway` exists anywhere
+  in this account's 5 projects — consistent with `migration-stack-analysis.md` tagging
+  `railway-gateway/` as SEPARATE_STACK, independently deployed elsewhere. Case (c)
+  (off-Railway) is ruled out; case (a) (same instance as the gateway) is ruled out by the
+  missing `market_data_v6` table.
+- Evidence:
+  - **Source 1** (env-var host-only extraction, never the full value): `.env.local`'s
+    `DATABASE_URL` parsed via `new URL(...).hostname` → `maglev.proxy.rlwy.net`.
+  - **Source 2** (Railway CLI/dashboard): `railway list` → 5 projects
+    (`trading-alerts`, `postgre for staging`, `zoological-motivation`,
+    `feisty-amazement`, plus the workspace default) → linked `trading-alerts`/`Postgres`
+    → `railway variables --service Postgres --json` piped directly into a parser (raw
+    value never surfaced in any output) → `DATABASE_PUBLIC_URL` /
+    `RAILWAY_TCP_PROXY_DOMAIN` both → `maglev.proxy.rlwy.net`. Matches Source 1.
+  - **market_data_v6 absence:** read-only `information_schema.tables` /
+    `pg_database` queries against the live instance (via `pg` client,
+    `DATABASE_PUBLIC_URL`, no mutation) found 2 databases, neither containing a
+    `market_data`-named table.
+  - **Mid-session correction:** `.env.local` initially held a stale value pointing to a
+    _different_ Railway project (`postgre for staging`, host `turntable.proxy.rlwy.net`)
+    — caught by this session's mandatory two-source cross-check, exactly the scenario the
+    order's "ground truth priority" rule exists for. Davin corrected `.env.local` to the
+    value copied directly from Vercel's production environment variables, which then
+    cross-checked cleanly against `trading-alerts`.
+  - **Reachability:** `trading-alerts`'s `Postgres` service was initially `Offline`
+    (sibling `flask-api` `Failed`); Davin manually redeployed it (confirmed
+    restart/resume of the existing volume, not a fresh instance — data integrity
+    verified, not assumed) and it came `Online`; a bounded read-only connection then
+    succeeded.
+- Approved by: Davin (the `.env.local` correction, the offline-instance escalation, and
+  the redeploy/data-integrity confirmation were live, material calls made mid-session —
+  each explicitly escalated per the Autonomy & Deviation clause rather than assumed).
+
+## F18 — RPO/RTO targets
+
+- Status: RESOLVED
+- Session: 1-1 · Date: 2026-07-18
+- Decision: Davin's target: **RPO ≤ 24h, RTO ≤ 1h.** Gap analysis against what this
+  session could actually verify:
+  - **RTO:** the manual backup→restore→verify→boot cycle rehearsed this session
+    (`docs/db-restore-rehearsal.md`) completed in well under an hour end-to-end at
+    today's data size (206 KB dump; schema+data+21 FK constraints restored in seconds).
+    This is a _manual procedure_ proof, not a measurement of an automated RTO — it shows
+    a human-driven restore is achievable inside the 1h target today, not that it stays
+    inside target as data grows, nor that any automated failover meets it unattended.
+  - **RPO:** **could not be confirmed either way.** Railway's CLI (this session's only
+    available tool — no dashboard browser session was set up) has no `backup`/`snapshot`
+    command; Railway's native automated-backup feature (if enabled) is dashboard-only and
+    wasn't checked. This session cannot state whether automated backups are configured
+    for the `trading-alerts` `Postgres` service, and therefore cannot state the real
+    RPO gap — **flagging as an explicit gap, not silently assuming compliance.**
+  - **Recommendation for Davin:** check the Railway dashboard's `Postgres` service →
+    Backups tab directly; if automated backups aren't enabled/frequent enough to meet a
+    24h RPO, that's a standing risk independent of this migration and worth its own
+    action item.
+- Evidence: `docs/db-restore-rehearsal.md` (full procedure, timings, row-count match);
+  `railway --help` / `railway volume --help` (no backup/snapshot subcommand found in
+  this CLI version).
+- Approved by: Davin (RPO/RTO target itself, stated before this session per the order's
+  entry criteria; the gap/limitation framing above is this session's technical finding,
+  not a new target decision).
 
 ## Spec consolidation — batch-2 OpenAPI files (part-12/14/17/18/19)
 

@@ -11,64 +11,74 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 0, Session 0-5 (complete, local-only scope) — 2026-07-17.
+- **Current:** Phase 1, Session 1-1 (complete) — 2026-07-18. Phase 0 still formally
+  open (CC-A gap unchanged, see below) — Phase 1 work continues ahead of Phase 0's close
+  at Davin's explicit direction, same precedent set when Session 1-1 was PRE-DRAFTED.
 - **Current order:**
-  `docs/migration-orders/0-5-staging-local-dev.migration-order.md`
-  (CONFIRMED, executed — local-only scope)
-- **Order status:** CONFIRMED — executed 2026-07-17 (steps 1, 4, 5 done; steps 2–3 deferred
-  to Session 0-6, see Waiting on)
-- **Waiting on:** (1, new) Davin to grant Railway + Vercel account/dashboard access so
-  Session 0-6 can provision the staging environment/project + preview branch (this
-  session's entry criterion couldn't clear it; Davin chose local-only scoping instead —
-  see order's Deviations #1). (2, unchanged, carried over) A human with delete permission
-  to remove 5 remote branches — this session's git credential can push/create branches but
-  gets `HTTP 403` on `git push --delete` for every branch tried. Branches needing deletion:
-  `fix/tsconfig-exclude-case-sensitivity` and `salvage/windowed-centroid-cfl-indicator`
-  (both already merged), plus 3 stale `claude/*` branches (no open PRs on any). Unrelated
-  to Phase 0 work; carried over from the 2026-07-12 git audit.
-- **Last session did:** Session 0-5 (staging + local dev, INFRA, NOT read-only — first
-  session this phase that creates/runs things rather than just cataloging). At CONFIRM,
-  found the order's PRE-DRAFT→APPROVED edit was again in-place/uncommitted (same pattern as
-  Session 0-4, by now a recognized workflow quirk, not a concern). Entry criterion 2
-  (Railway/Vercel access) was unverifiable from the codebase — asked Davin directly; Davin
-  chose **local-only scoping**, deferring Railway/Vercel provisioning to Session 0-6.
-  **`docker-compose.dev.yml` (new, root):** Postgres + Redis + Next.js dev service;
-  `mt5-service` excluded per the order's strict rule. Live-verified end to end: all 3
-  containers up/healthy, `prisma db push` synced the schema, `prisma/seed.ts` ran clean
-  (1 admin + 5 named e2e test users + 2 sample alerts + affiliate config, all synthetic —
-  matches F17), `curl localhost:3000/` → `HTTP 200` real app HTML. Needed 2 fixes along the
-  way, both scoped to the compose file only: `pnpm run seed` doesn't exist as a script
-  (`"seed"` in `package.json` is a `prisma.seed` config field, not an npm script — the real
-  alias is `db:seed`), and `ts-node prisma/seed.ts` needed
-  `TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}'` to avoid `ERR_UNKNOWN_FILE_EXTENSION`
-  (tsconfig's `"module": "esnext"` makes bare ts-node default to an ESM loader that can't
-  read `.ts` — now `LESSONS-LEARNED.md` L10). Also found the existing `docker-compose.yml`'s
-  `web`/`alert-worker` services reference a root `Dockerfile` that **doesn't exist anywhere
-  in the repo** — likely stale since Vercel, not Docker, is the actual prod deploy target;
-  not fixed (out of scope), flagged in the order's Deviations for Davin.
-  **F17 (staging-data strategy) RESOLVED** and logged in `DECISION-LOG.md`: synthetic seed
-  only, never unmasked production/user data, evidenced by the live seed run above.
-  **Post-verification, the stack was stopped again** (`docker compose -f
-docker-compose.dev.yml down`, volumes kept) — its first `git push` attempt failed
-  pre-push validation with real DB/Redis errors on suites green since Session 0-4; traced
-  to `jest.setup.js` hardcoding `localhost:5432`/`6379` for tests, the same ports this
-  compose file publishes, so tests hit the real containers instead of being isolated.
-  Stopping the stack and re-running `git push` came back clean (111/111 suites, 2046/2046
-  tests, exact 0-4 baseline) — now `LESSONS-LEARNED.md` L11. Davin can bring the stack back
-  up with `docker compose -f docker-compose.dev.yml up -d` any time (seeded data persists
-  in named volumes); just stop it again before running tests or pushing.
-  **Phase 0 Exit Review run:** 4/5 exit criteria met; the sole gap is CC-A (staging
-  shells) — Phase 0 is NOT yet closed. Next session stays in Phase 0.
-- **Next session must:** Session 0-6 — staging shells only (Railway + Vercel provisioning,
-  INFRA). PRE-DRAFT written: `docs/migration-orders/0-5-staging-local-dev.migration-order.md`'s
-  "Next-session handoff" section (steps 2–3 carried over verbatim from this order). Entry
-  criterion: Davin's Railway + Vercel account access (unchanged ask from this session).
-  Once 0-6 closes, re-run the Phase 0 Exit Review — if CC-A goes green, Phase 0 formally
-  exits and Phase 1 Session 1-1 (Railway PostgreSQL design) can be PRE-DRAFTED next.
-- **Open flags:** F1 fully RESOLVED (both batches, Session 0-3) · F2 RESOLVED
-  (Session 0-1) · F17 RESOLVED (Session 0-5: synthetic seed only) · F19 npm-check RESOLVED
-  (Session 0-1), full audit still OPEN (due Session 2-1) · F3–F16, F18 OPEN (register:
-  plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  `docs/migration-orders/1-1-find-database-restore-rehearsal.migration-order.md`
+  (CONFIRMED, executed — all 4 steps done)
+- **Order status:** CONFIRMED — executed 2026-07-18, all "Done when" boxes checked.
+- **Waiting on:** (1, new, blocking Session 1-3) Davin/Advisor to resolve the
+  market_data_v6 scope-gap this session surfaced — see "Last session did" and
+  `1-3-roles-pgbouncer.migration-order.md`'s Context section for the full question.
+  (2, new, non-blocking) F18's RPO gap — whether Railway automated backups are actually
+  enabled for the `trading-alerts` `Postgres` service couldn't be checked via CLI
+  (dashboard-only); worth Davin confirming directly. (3, unchanged, carried over) Davin
+  to grant Vercel dashboard/preview-branch access so Session 0-6 can close Phase 0's CC-A
+  gap — Railway access now exists in this environment (granted this session), but Vercel
+  access for Session 0-6's own scope is still unconfirmed. (4, unchanged, carried over) A
+  human with delete permission to remove 5 remote branches — this session's git
+  credential can push/create branches but gets `HTTP 403` on `git push --delete`.
+  Branches: `fix/tsconfig-exclude-case-sensitivity`, `salvage/windowed-centroid-cfl-indicator`
+  (both merged), plus 3 stale `claude/*` branches. Unrelated to Phase 0/1 work; carried
+  over from the 2026-07-12 git audit.
+- **Last session did:** Session 1-1 (find the database + restore rehearsal, CONTRACT
+  variant). At CONFIRM, entry criterion 2 (Railway access + DB credentials) initially
+  FAILED — neither was present in this environment despite the order being APPROVED;
+  Davin then set up Railway CLI auth + `.env.local`'s `DATABASE_URL` live, re-verified,
+  order moved to CONFIRMED. **F3 resolved** (`DECISION-LOG.md`): monolith's live Postgres
+  is the `trading-alerts` Railway project's `Postgres` service (host
+  `maglev.proxy.rlwy.net`) — on Railway, but a **different instance** than whatever
+  `railway-gateway` writes `market_data_v6` to (confirmed: this instance's 2 databases
+  contain no `market_data`-named table; no `railway-gateway`/`gateway` project or service
+  exists anywhere in this Railway account). Two real mid-session findings, both escalated
+  to Davin rather than assumed: (a) `.env.local` initially pointed to the **wrong**
+  Railway project (`postgre for staging`, not `trading-alerts`) — caught by the order's
+  mandatory two-source cross-check, Davin corrected it to the value copied from Vercel
+  production; (b) the corrected target's `Postgres` service was found **Offline**
+  (sibling `flask-api` **Failed**) — Davin manually redeployed (confirmed restart of the
+  existing volume, not a fresh/data-losing instance) and it came Online. **Restore
+  rehearsal** (`docs/db-restore-rehearsal.md`): `pg_dump` (Docker `postgres:17-alpine`,
+  connection string never printed) → isolated localhost-only scratch Docker container →
+  `pg_restore` → **exact row-count match across all 26 tables** → app booted clean against
+  `.env.scratch` (`.env.local` never touched) → `GET /` `HTTP 200` ×2, zero DB errors in
+  logs → everything torn down (scratch container removed, dump file + temp scripts
+  deleted, confirmed via `git status`/`docker ps -a`). **F18 recorded** (RPO ≤ 24h,
+  RTO ≤ 1h target) with an explicit gap: automated-backup cadence unverifiable via CLI.
+  **Backup mechanism deviated from the order's suggested wording** ("Railway's native
+  snapshot" → used `pg_dump` instead, CLI has no backup/snapshot subcommand) — noted in
+  the order's Deviations and F18's Decision Log entry. **New scope question surfaced for
+  Phase 1's remaining sessions:** Plan §3 Stage A's target is one instance hosting both
+  `market_data_v6` and `non_market_data` — this session found they're on different
+  instances (and `railway-gateway`'s own instance is still unlocated), which neither the
+  playbook's Session 1-2 conditional nor Session 1-3's roles/PgBouncer-only scope
+  anticipated. Flagged prominently in Session 1-3's PRE-DRAFT rather than silently
+  absorbed. 4 new lessons recorded (`LESSONS-LEARNED.md` L12–L14): Git-Bash Docker
+  bind-mount path mangling (`MSYS_NO_PATHCONV=1`), `postgres:17` pull flakiness on this
+  network (`-alpine` variant worked), and a backgrounded dev server's launch PID not
+  being its actual listening PID.
+- **Next session must:** Session 1-3 — Roles + PgBouncer (INFRA). PRE-DRAFT written:
+  `docs/migration-orders/1-3-roles-pgbouncer.migration-order.md`. **Entry criterion not
+  yet clear:** the market_data_v6 scope-gap question above must be resolved (Davin/Advisor
+  decide: proceed roles+PgBouncer-only and defer consolidation, or fold consolidation in)
+  before this order can go APPROVED. Session 1-2 ("Relocate database to Railway") is
+  correctly SKIPPED per the playbook's own conditional (F3 = already on Railway).
+- **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
+  RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
+  RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
+  RTO ≤ 1h, with an unverified-backup-cadence gap) · F19 npm-check RESOLVED (Session 0-1),
+  full audit still OPEN (due Session 2-1) · F4–F16 OPEN (register: plan §11 ·
+  resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 
