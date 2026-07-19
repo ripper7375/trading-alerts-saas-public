@@ -958,7 +958,7 @@ migrations are complete, not before.
 </details>
 
 <details>
-<summary><code>prisma/</code> — 8 files</summary>
+<summary><code>prisma/</code> — 10 files</summary>
 
 - `prisma/migrations/20251227000000_init/migration.sql`
 - `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
@@ -966,7 +966,12 @@ migrations are complete, not before.
 - `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`
 - `prisma/migrations/20260705010000_drop_market_data/migration.sql`
 - `prisma/migrations/20260706000000_drop_watchlists/migration.sql`
-- `prisma/schema.prisma`
+- `prisma/roles/roles.sql` — new, Session 1-3: idempotent `money_svc`/`core_app` role +
+  grant script (Plan §3 Stage A), applied to production.
+- `prisma/roles/roles.rollback.sql` — new, Session 1-3: paired `DROP ROLE`/`REVOKE`
+  script, written but not applied.
+- `prisma/schema.prisma` — Session 1-3 added `directUrl = env("DIRECT_URL")` to the
+  datasource block (L3 prep for PgBouncer); not yet pushed (see CLAUDE.md Waiting-on).
 - `prisma/seed.ts`
 
 </details>

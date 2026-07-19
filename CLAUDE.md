@@ -79,6 +79,13 @@
   re-CONFIRM at open (staging-gate waiver is per-session, not standing — re-check and
   re-request if still absent; also re-verify DIRECT_URL/Vercel status). Do NOT run
   `prisma migrate deploy` in that session either unless F20 has been resolved first.
+  **After 1-3b closes:** Session 1-4 — Enforcement smoke test + Phase 1 exit review
+  (VERIFY-RETIRE, fast-path eligible) is already PRE-DRAFTed:
+  `docs/migration-orders/1-4-enforcement-smoke-test.migration-order.md`. Scoped down
+  from the playbook's stale gateway_ingest-era text (Option A: no gateway_ingest, no
+  railway-gateway ingest to check) — mostly a combined direct+pooled re-verification
+  plus the actual Phase 1 exit-criteria walk (one item — F18's backup gap — may still be
+  open when this runs; don't let 1-4 mark Phase 1 exit-clean if so).
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
