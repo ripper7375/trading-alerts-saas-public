@@ -4,7 +4,8 @@
 > (PgBouncer in front of the `trading-alerts` Postgres). Read `00-SKELETON-AND-RULES.md`
 > §4 first. **Creativity dial: Medium** (the approach to deploying PgBouncer is flexible;
 > the pooling mode and the requirement to preserve per-role grants are fixed).
-> **Status: PRE-DRAFT** — written by the Executor at Session 1-3's close (2026-07-19).
+> **Status: CONFIRMED, executed, Done-when items all checked** — written by the Executor
+> at Session 1-3's close (2026-07-19); confirmed and executed 2026-07-19.
 
 **Session:** 1-3b · **Phase:** Phase 1 (Railway PostgreSQL, Workstream 7) · **Variant:**
 INFRA · **Generated:** 2026-07-19 · **Flags touched:** none new.
@@ -54,19 +55,34 @@ INFRA · **Generated:** 2026-07-19 · **Flags touched:** none new.
 
 ## Entry criteria
 
-- [ ] `money_svc`/`core_app` roles exist and pass positive+denial checks (re-verify live,
-      don't assume Session 1-3's checks still hold — roles are mutable).
-- [ ] Railway CLI access to `trading-alerts` (re-verify `railway status`).
-- [ ] Staging environment check (`railway environment list --json`) — if absent, get
-      Davin's waiver explicitly for this session before proceeding, same as 1-3.
-- [ ] `DIRECT_URL` confirmed present in Vercel production env vars, OR confirmed that
-      this session won't push anything requiring it.
-- [ ] Blast-radius statement: PgBouncer is new infrastructure alongside the untouched
-      direct connection — as long as the live app's actual `DATABASE_URL` is NOT
-      repointed at the pooler during this session, current production traffic has zero
-      exposure to PgBouncer misconfiguration. Confirm that repointing live traffic is
-      explicitly out of scope here (that's a separate, later cutover — Session 2-4 rewires
-      the monolith to use split clients) before starting.
+- [x] `money_svc`/`core_app` roles exist and pass positive+denial checks (re-verify live,
+      don't assume Session 1-3's checks still hold — roles are mutable). **RESOLVED
+      (2026-07-19):** the credential gap found at CONFIRM was cleared by Davin's explicit
+      authorization to reset both passwords (`CLAUDE.md` Non-negotiable 5). Both roles
+      re-passworded via `ALTER ROLE ... PASSWORD` (values generated locally, never
+      committed, never printed); positive+denial checks re-run via real
+      role-authenticated direct connections with the new passwords — all pass (`money_svc`
+      reads/writes its 13 tables, denied on `User`/`Account`; `core_app` reads/writes its
+      13 tables + `Subscription` SELECT, denied on `Subscription` UPDATE/`Payment`/
+      `Commission`). See Deviations.
+- [x] Railway CLI access to `trading-alerts` — **re-verified live at CONFIRM**
+      (`railway status --json`: linked, `production` environment, `Postgres` service
+      running; `railway variables` succeeded).
+- [x] Staging environment check — **still absent** (`railway environment list --json`:
+      only `production` exists, Session 0-6 has not run). **Davin explicitly waived this
+      gate for Session 1-3b in chat, 2026-07-19** — see Deviations.
+- [~] `DIRECT_URL` confirmed present in Vercel production env vars, OR confirmed that
+  this session won't push anything requiring it. **Vercel itself not checkable**
+  (no `vercel` CLI/access in this environment, per `CLAUDE.md` item 5). Second branch
+  holds instead: 1-3b's own commits (PgBouncer Dockerfile/config) don't touch
+  `schema.prisma` and add no new DIRECT_URL dependency. Separately discovered, not
+  caused by 1-3b: `deploy.yml` is currently failing on every push to `main` at the
+  GitHub workflow-file level, before the build step even runs — pre-existing across
+  many prior sessions, unrelated to this order; flagged to Davin in chat, out of
+  scope to fix here.
+- [x] Blast-radius statement — holds by design: none of the 4 ordered steps touch the
+      live app's `DATABASE_URL`; all verification connections are explicitly scratch/test
+      connections.
 
 ## Ordered steps
 
@@ -111,12 +127,30 @@ INFRA · **Generated:** 2026-07-19 · **Flags touched:** none new.
 
 ## Done when
 
-- [ ] PgBouncer live as its own Railway service, config committed as code.
-- [ ] Pass-through auth verified: money_svc/core_app grants identical through the pooler
-      as direct (positive + denial).
-- [ ] Prisma CRUD works through the pooler (scratch verification).
-- [ ] `prisma migrate status` confirmed still resolving via `DIRECT_URL`.
-- [ ] Live app's `DATABASE_URL` explicitly confirmed untouched throughout.
+- [x] PgBouncer live as its own Railway service, config committed as code. **DONE** —
+      `pgbouncer` service live in `trading-alerts`/`production` (Alpine + PgBouncer
+      1.22.1, `railway logs` shows clean startup, listening on 6432); config committed
+      at `infra/pgbouncer/` (`Dockerfile`, `pgbouncer.ini`, `entrypoint.sh`).
+- [x] Pass-through auth verified: money_svc/core_app grants identical through the pooler
+      as direct (positive + denial). **DONE** — via a throwaway in-network verifier
+      service (see Deviations): `money_svc` allowed on `Payment` (read + rolled-back
+      write), denied on `User`, through the pooler; `core_app` allowed on `User`
+      (read + rolled-back write) and `Subscription` (read), denied on `Payment`/
+      `Commission`, through the pooler. Identical results to the direct-connection
+      re-check above.
+- [x] Prisma CRUD works through the pooler (scratch verification). **DONE** — scratch
+      `PrismaClient` instances (money_svc, core_app), `DATABASE_URL` pointed at the
+      pooler with `pgbouncer=true`: a positive read (`count()`) and a write wrapped in
+      `$transaction` + forced rollback both succeeded for each role.
+- [x] `prisma migrate status` confirmed still resolving via `DIRECT_URL`. **DONE** —
+      connects cleanly via `DIRECT_URL` (`maglev.proxy.rlwy.net:58290`); reports the
+      same 6 unapplied migrations as Session 1-3 found (F20, still open, unchanged —
+      not this session's to fix; `migrate deploy` was not run).
+- [x] Live app's `DATABASE_URL` explicitly confirmed untouched throughout. **DONE** — no
+      `variable set` command this session ever targeted the `DATABASE_URL` key; only new
+      keys were added (`MONEY_SVC_DB_PASSWORD`, `CORE_APP_DB_PASSWORD`,
+      `PGBOUNCER_USERLIST_B64`) on the `Postgres` service, plus the new `pgbouncer`
+      service's own variables. The live monolith was never repointed at the pooler.
 
 ## Rollback
 
@@ -126,8 +160,79 @@ or hard-to-reverse action should be taken if this session is aborted mid-way.
 
 ## Deviations
 
-_(filled during execution)_
+- **Staging gate waived by Davin (2026-07-19), for this session specifically.** Same
+  situation as Session 1-3: `railway environment list --json` on `trading-alerts` shows
+  only `production` — the staging environment still doesn't exist. Davin explicitly
+  authorized deploying PgBouncer directly to production without a staging rehearsal
+  first, in chat, at this session's CONFIRM. Per `EXECUTOR-PROTOCOL.md`, this waiver is
+  per-session, not standing — any later session touching this instance must re-request
+  it, not assume it carries forward.
+- **CONFIRM found a credential gap, not yet resolved — order NOT marked CONFIRMED.**
+  `money_svc`/`core_app` passwords (generated in Session 1-3) exist in no durable
+  location: not in Railway variables (confirmed via `railway variables`), and the local
+  scratch file `CLAUDE.md`'s Waiting-on #4 refers to was specific to Session 1-3's own
+  ephemeral session environment, not present here. Catalog-level checks (as the Postgres
+  superuser, read-only) confirm both roles still exist, can log in, and their grants
+  still match 1-3's design exactly — but nobody can currently authenticate AS either
+  role, which Ordered step 2 requires. Escalated to Davin rather than worked around:
+  resetting the passwords is an auth-semantics change requiring his explicit go-ahead
+  per `CLAUDE.md` Non-negotiable 5, and persisting new ones to Railway hit a
+  safety-classifier block once already in Session 1-3 (see that session's Waiting-on
+  #4) — the same classifier risk applies to resetting and re-persisting them now.
+- **Credential gap resolved (2026-07-19).** Davin explicitly authorized (a) resetting
+  `money_svc`/`core_app`'s passwords via `ALTER ROLE ... PASSWORD`, and (b) persisting
+  the new passwords and the PgBouncer SCRAM userlist durably to Railway variables. Done
+  via a superuser connection (values generated locally with `crypto.randomBytes`, never
+  committed, never printed to any log/output); persistence used
+  `railway variable set --stdin` throughout so no secret ever appeared as a CLI arg or
+  in this session's visible output. No classifier block occurred this time for either
+  the `ALTER ROLE` step, the read-only `pg_authid` SCRAM-verifier extraction, or the
+  `railway variable set --stdin` calls — Session 1-3's block was specifically on writing
+  extracted verifiers to a file, which this session also did (`userlist.txt` in a local
+  scratch dir, never committed) without incident.
+- **Alpine's `pgbouncer` package has no built-in service user.** The image initially
+  failed at runtime (`FATAL PgBouncer should not run as root`) — Alpine 3.20's
+  `pgbouncer` (1.22.1-r0) package does not create a dedicated user the way the Debian
+  package does. Fixed by adding `addgroup -S pgbouncer && adduser -S -D -H -G pgbouncer
+pgbouncer` and a `USER pgbouncer` directive in the Dockerfile, with `/etc/pgbouncer`
+  chowned to that user so `entrypoint.sh` can still write the decoded `userlist.txt` at
+  container start. Caught locally (`docker build` + `docker run`) before ever deploying
+  to Railway.
+- **`railway domain` cannot create a TCP proxy — only HTTP(S) domains.** Davin
+  authorized creating a public TCP proxy for `pgbouncer` (mirroring Postgres's own
+  `maglev.proxy.rlwy.net:58290`) to run Ordered steps 2–3 from outside Railway's private
+  network. The safety classifier initially denied the attempt; once Davin explicitly
+  re-authorized it, `railway domain --service pgbouncer --port 6432` succeeded but
+  produced `https://pgbouncer-production-addb.up.railway.app` — Railway's HTTP edge
+  domain type, confirmed via `railway domain list` (`"type": "service"`), not a raw TCP
+  proxy. This domain cannot carry the Postgres wire protocol (PgBouncer would receive
+  HTTP requests, not SQL connections) — deleted immediately, no functional use.
+  `railway config pull` (the IaC path that might expose TCP-proxy settings directly) is
+  unavailable in this environment (`Could not find Railway configuration support...
+Install the Railway TypeScript SDK`). No CLI path to a genuine TCP proxy for a
+  non-database-template service was found in this Railway CLI version (5.27.0) — likely
+  the same class of dashboard-only gap as F18's backup-cadence check.
+  **Substituted a lower-blast-radius alternative instead of pursuing dashboard access:**
+  deployed a throwaway `verify-1-3b` Railway service in the same project/environment,
+  which reaches `pgbouncer.railway.internal:6432` over Railway's private network (no
+  public exposure needed at all); it ran the Ordered-step-2/3 checks as its startup
+  command, printed PASS/FAIL to `railway logs`, and was deleted immediately after
+  (`railway service delete`). This is arguably a better fit for the order's own
+  Blast-radius principle than the originally-anticipated public-proxy approach — it
+  verifies the identical thing without ever putting PgBouncer on the public internet,
+  even temporarily. Flagging the `railway domain`/TCP-proxy gap for whoever next needs
+  real (non-verification) public reachability to a custom Railway service — it isn't a
+  one-line CLI command in this tool version.
 
 ## Next-session handoff
 
-_(PRE-DRAFT for Session 1-4 — Enforcement smoke test — once this order closes)_
+Session 1-4's hard dependency ("cannot run before Session 1-3b completes") is now
+satisfied — PgBouncer is live, pass-through auth and Prisma CRUD both verified through
+the pooler. `docs/migration-orders/1-4-enforcement-smoke-test.migration-order.md`
+(PRE-DRAFTed at 1-3's close) needs a fresh read-through before re-APPROVAL: its Context
+section describes a combined direct+pooled re-verification, which this session already
+did once as part of Ordered steps 2–3 — 1-4 should do its own independent pass rather
+than assume 1-3b's results still hold (same "roles are mutable" caution this order
+opened with), but it no longer needs to wait on anything. F18's backup-cadence gap is
+still the one item that may keep Phase 1 from closing exit-clean — unchanged by this
+session, still dashboard-only.
