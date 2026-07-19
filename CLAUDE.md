@@ -78,7 +78,10 @@ env("DIRECT_URL")` (commit `85e60fbc`) **is already on `origin/main`** — this 
   possible that way — substituted a throwaway in-network verifier service (deployed,
   ran the checks against `pgbouncer.railway.internal`, read its logs, deleted) instead
   of pursuing public exposure further. All 5 Done-when items checked; PgBouncer stands
-  deployed, nothing rolled back. 3 new lessons (`LESSONS-LEARNED.md` L17–L19): the
+  deployed, nothing rolled back. Typecheck clean; full test suite re-run clean at
+  session close (111 suites / 2046 tests passed — identical counts to Session 1-3's
+  baseline, since no application source changed). 3 new lessons
+  (`LESSONS-LEARNED.md` L17–L19): the
   Alpine `pgbouncer` non-root fix, the `railway domain` vs. TCP-proxy gap, and the
   private-in-network-verifier pattern for testing a pooler without public exposure.
 - **Next session must:** Session 1-4 — Enforcement smoke test + Phase 1 exit review

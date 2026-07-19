@@ -223,6 +223,11 @@ Install the Railway TypeScript SDK`). No CLI path to a genuine TCP proxy for a
   even temporarily. Flagging the `railway domain`/TCP-proxy gap for whoever next needs
   real (non-verification) public reachability to a custom Railway service — it isn't a
   one-line CLI command in this tool version.
+- **Session-close verification (2026-07-19).** `npm run type-check` (`prisma generate`
+  - `tsc --noEmit`) clean, no errors. `npm run test:ci` (full suite): **111/111 test
+    suites passed, 2046/2046 tests passed** — identical counts to Session 1-3's last
+    clean baseline, consistent with this session touching zero application source (only
+    `infra/pgbouncer/` Docker/config files and docs changed).
 
 ## Next-session handoff
 

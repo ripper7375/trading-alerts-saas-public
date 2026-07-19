@@ -2,17 +2,22 @@
 
 > `TEMPLATE-VERIFY-RETIRE.md` variant (EXIT-REVIEW block) — dial near zero, checklist
 > exists to be obeyed. If this uncovers real work, stop and give it its own session.
-> **Status: PRE-DRAFT** — written by the Executor at Session 1-3's close (2026-07-19).
-> Fast-path eligible: PRE-DRAFT → APPROVED → CONFIRMED.
+> **Status: PRE-DRAFT** — written by the Executor at Session 1-3's close (2026-07-19);
+> refreshed at Session 1-3b's close (2026-07-19) now that PgBouncer is actually live,
+> not just anticipated. Fast-path eligible: PRE-DRAFT → APPROVED → CONFIRMED.
 
 **Session:** 1-4 · **Phase:** Phase 1 (Railway PostgreSQL, Workstream 7) · **Variant:**
 VERIFY-RETIRE · **Generated:** 2026-07-19 · **Estimated time:** <1h.
 
 ## Hard dependency
 
-**Cannot run before Session 1-3b (PgBouncer) completes.** Plan §3 step 1.5's smoke test
-and the exit criteria below both assume PgBouncer is live. If 1-3b hasn't run yet, this
-order isn't ready to APPROVE regardless of what else is true.
+**Satisfied.** Session 1-3b closed clean (2026-07-19, all 5 Done-when items checked):
+PgBouncer is live as its own Railway service (`infra/pgbouncer/`), and its own steps
+2–3 already proved money_svc/core_app pass-through auth and Prisma Client CRUD both
+work identically through the pooler as direct. This order is now ready to APPROVE.
+(Historical note, kept for context: this order could not run before 1-3b completed —
+Plan §3 step 1.5's smoke test and the exit criteria below both assume PgBouncer is
+live.)
 
 ## Context — this session is smaller than the playbook originally scoped
 
@@ -27,14 +32,27 @@ What's actually left to verify, given 1-3 and 1-3b's own work already did most o
 positive/denial testing directly:
 
 - **money_svc/core_app fences hold identically through the pooler as direct.** 1-3
-  proved this direct; 1-3b's own step 2 proves it through PgBouncer. This session's job
-  is a final, independent, combined re-check — not first-time discovery.
+  proved this direct; 1-3b's own steps 2–3 proved it again through PgBouncer (raw SQL
+  positive+denial checks AND a scratch Prisma Client, both through the pooler — results
+  identical to direct both times). This session's job is a final, independent, combined
+  re-check — not first-time discovery. **Two things worth knowing before re-running
+  it:** (a) money_svc/core_app were re-passworded in 1-3b (Davin-authorized `ALTER
+ROLE`, the originals from 1-3 were unrecoverable) — current credentials live in
+  Railway variables (`MONEY_SVC_DB_PASSWORD`/`CORE_APP_DB_PASSWORD` on the `Postgres`
+  service), not anywhere else; don't go looking for a scratch file. (b) reaching
+  PgBouncer from outside Railway's private network isn't possible via `railway domain`
+  in this CLI version (it only creates HTTP domains, confirmed — `LESSONS-LEARNED.md`
+  L18) — 1-3b verified via a throwaway same-environment service instead
+  (`LESSONS-LEARNED.md` L19: deploy a small service into `trading-alerts`/`production`,
+  it gets private DNS to `pgbouncer.railway.internal` for free, run the checks as its
+  startup command, read `railway logs`, delete it). This session's "combined smoke
+  test" will need the same pattern rather than a public proxy.
 - **Phase 1 exit criteria** (plan §3, lines 229–234), walked explicitly:
   1. "Railway Postgres reachable; backups on; roles and PgBouncer live; grant script
-     committed." — Postgres/roles/grant-script: done (1-3). PgBouncer: done (1-3b,
-     assuming it closes clean). **Backups: F18's gap is still open** (automated-backup
-     cadence unverified, dashboard-only) — this criterion cannot be marked fully met
-     until that's checked.
+     committed." — Postgres/roles/grant-script: done (1-3). PgBouncer: **done, closed
+     clean (1-3b, 2026-07-19)** — live, config committed, pass-through verified.
+     **Backups: F18's gap is still open** (automated-backup cadence unverified,
+     dashboard-only) — this criterion cannot be marked fully met until that's checked.
   2. "`railway-gateway` still ingesting market data without interruption." — **N/A under
      Option A**; nothing exists to interrupt. Note as satisfied-by-inapplicability, not
      silently dropped.
