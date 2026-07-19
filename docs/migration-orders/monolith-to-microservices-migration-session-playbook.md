@@ -141,11 +141,6 @@ at the blocker.
   rollback path (old instance) documented.
 - **You provide:** approval of the maintenance window (brief downtime).
 
-### Session 1-2b — Locate and migrate market_data_v6 (F3 gap)
-
-- **Tasks:** Locate the hidden instance hosting `market_data_v6` used by `railway-gateway`. Dump its schema and data, and restore it into the new unified `trading-alerts` `Postgres` service on Railway. Re-point `railway-gateway`'s `DATABASE_URL` to the unified instance.
-- **Done when:** `market_data_v6` exists on the unified Railway instance, and `railway-gateway` ingest works correctly against the new target without data loss.
-
 ### Session 1-3 — Roles + PgBouncer
 
 - **Tasks:** Write idempotent `prisma/roles/roles.sql` creating `money_svc`, `core_app`,
@@ -394,11 +389,10 @@ review by you → flip.
   slice, empty `vercel.json` crons. Full tests.
 - **Done when:** monolith contains only UI + intentional keepers; production stable.
 
-### Session 8-2 — Gateway schema dedup
+### Session 8-2 — Gateway deployment & schema dedup
 
-- **Tasks:** Point `railway-gateway` at the shared market-data schema/types package; align
-  its Prisma to 7.8.0; redeploy; verify ingest.
-- **Done when:** one source of truth for `MarketDataV6`; ingest verified end-to-end.
+- **Tasks:** Deploy the `railway-gateway` backend to the `postgre for staging` Railway project (which contains the required Postgres and Redis infrastructure). Point it at the shared market-data schema/types package; align its Prisma to 7.8.0; verify ingest.
+- **Done when:** `railway-gateway` is live on `postgre for staging`, one source of truth for `MarketDataV6`; ingest verified end-to-end.
 
 ### Session 8-3 — Full-system e2e
 

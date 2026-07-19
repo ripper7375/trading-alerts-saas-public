@@ -379,3 +379,14 @@ notifications,tier,user,market-data}` → zero matches;
   2026-07-17 — this was a material, boundary-touching decision affecting the file
   inventory, correctly escalated per the Autonomy & Deviation clause rather than
   decided unilaterally).
+
+## Session 1-1 close-out / 1-2b pivot — The actual location of `railway-gateway` and `market_data_v6`
+
+- Status: RESOLVED
+- Session: 1-1 (post-close) · Date: 2026-07-19
+- Decision: It was uncovered that `railway-gateway` and its `market_data_v6` database were **never actually deployed to production**. The architecture was designed (as seen in `ARCHITECTURE_DESIGN_DOCUMENT_ENHANCED_api-gateway-redis.md`), but the NestJS backend was never spun up.
+  - As a result, there is no `market_data_v6` database to locate or migrate. Session 1-2b has been permanently **cancelled**.
+  - We have pivoted back to **Option A** for Session 1-3: creating roles only for the monolith (`maglev`) and deploying PgBouncer. The `gateway_ingest` role is deferred.
+  - **Future Deployment Target:** The Railway project named `postgre for staging` (which contains both a Postgres service and a Redis service) was identified as the likely intended home for `railway-gateway` (which requires both Postgres and a Bull Queue/Redis). When `railway-gateway` is finally built in Phase 8, it should be deployed into this `postgre for staging` project.
+- Evidence: `ARCHITECTURE_DESIGN_DOCUMENT_ENHANCED_api-gateway-redis.md` describes the Redis requirement. Railway dashboard screenshots confirmed the `postgre for staging` project contains exactly the required Postgres+Redis topology, but no app service. Prisma schemas show the tables were defined but never pushed live.
+- Approved by: Davin (explicitly confirmed mid-session).
