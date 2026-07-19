@@ -253,6 +253,46 @@ js-yaml@4.1.1/node_modules/js-yaml'))` — resolve the exact `.pnpm` path direct
   kill of the captured launch PID.
 - Source: Session 1-1 (restore-rehearsal app-boot teardown) · Status: ACTIVE
 
+### L15 — Git Bash strips backslashes from Windows-style paths passed to native .exe args
+
+- Symptom: `node -e "...fs.writeFileSync('C:\Users\WiN\...\file.txt', ...)..."` run via
+  Bash failed with `ENOENT`, and the error message showed the path with backslashes
+  **removed entirely** (`C:UsersWiN...`), not just mis-escaped.
+- Root cause: Git Bash/MSYS rewrites arguments that look like paths before handing them to
+  a native Win32 executable (`node.exe`); backslash sequences it doesn't recognize as
+  escapes get silently dropped, not preserved. This is the same family of issue as L12
+  (Docker bind-mount path mangling) but hits any native .exe invoked from bash, not just
+  `docker run -v`.
+- Rule: when constructing a Windows path to embed in a command passed to a native
+  executable from Git Bash, use forward slashes (`C:/Users/WiN/...` — Node and most
+  Win32 APIs accept this natively) instead of backslashes. Don't rely on
+  `MSYS_NO_PATHCONV=1` here — that suppresses the opposite conversion (POSIX-style
+  `/c/...` paths getting rewritten), not backslash-stripping.
+- Detect early: a path argument that "worked" when typed but shows up mangled/truncated
+  in the resulting error message, specifically when it contains backslashes and targets
+  a native (non-MSYS) executable.
+- Source: Session 1-3 (building a PgBouncer userlist file) · Status: ACTIVE
+
+### L16 — Always run `migrate status` before `migrate deploy` against an unfamiliar production DB
+
+- Symptom: (caught before it happened) about to run `prisma migrate deploy` against
+  production Postgres just to verify direct-URL connectivity for an unrelated task
+  (PgBouncer/L3 verification).
+- Root cause: assumed a DB matching its Prisma schema meant its migration history was
+  also in sync. It wasn't — `migrate status` revealed ALL migrations unapplied
+  server-side (no tracked history), including one that would `DROP TABLE` two live,
+  data-holding tables (`DECISION-LOG.md` F20).
+- Rule: before ever running `prisma migrate deploy` against a database you didn't
+  personally baseline, run `prisma migrate status` (read-only) first and read every
+  pending migration's SQL, not just its name — a migration name like
+  `drop_watchlists` is easy to skim past as "probably fine, already done" when it isn't.
+  If any pending migration is destructive (DROP/TRUNCATE/irreversible ALTER) and the
+  affected table has live data, stop and escalate — don't let a verification step for
+  an unrelated task become the thing that silently applies it.
+- Detect early: `migrate status` reporting more pending migrations than you expect,
+  especially including migrations older than the feature you're actually working on.
+- Source: Session 1-3 (L3/PgBouncer verification) · Status: ACTIVE
+
 ---
 
 ## Archive

@@ -11,67 +11,81 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 1, Session 1-1 (complete) — 2026-07-18. Phase 0 still formally
-  open (CC-A gap unchanged, see below) — Phase 1 work continues ahead of Phase 0's close
-  at Davin's explicit direction, same precedent set when Session 1-1 was PRE-DRAFTED.
-- **Current order:**
-  `docs/migration-orders/1-1-find-database-restore-rehearsal.migration-order.md`
-  (CONFIRMED, executed — all 4 steps done)
-- **Order status:** CONFIRMED — executed 2026-07-18, all "Done when" boxes checked.
-- **Waiting on:** (1, blocking) Session 1-3 requires Davin's explicit waiver of the staging gate. The session's entry criteria correctly enforce the "no production changes without staging first" rule, but Session 0-5 deferred the creation of the Railway staging environment. Since we are pushing ahead with Phase 1 before Phase 0 is formally closed out (Session 0-6), Davin must explicitly authorize waiving the staging gate for this session. (2, resolved this close-out) the market_data_v6 scope-gap is decided: it was discovered `railway-gateway` was never deployed, so Session 1-2b was permanently cancelled and we pivoted back to Option A (Session 1-3). (3, non-blocking) F18's RPO gap — whether Railway automated backups are actually enabled for the `trading-alerts` `Postgres` service couldn't be checked via CLI.
-  enabled for the `trading-alerts` `Postgres` service couldn't be checked via CLI
-  (dashboard-only); worth Davin confirming directly. (3, unchanged, carried over) Davin
-  to grant Vercel dashboard/preview-branch access so Session 0-6 can close Phase 0's CC-A
-  gap — Railway access now exists in this environment (granted this session), but Vercel
-  access for Session 0-6's own scope is still unconfirmed. (4, unchanged, carried over) A
-  human with delete permission to remove 5 remote branches — this session's git
-  credential can push/create branches but gets `HTTP 403` on `git push --delete`.
-  Branches: `fix/tsconfig-exclude-case-sensitivity`, `salvage/windowed-centroid-cfl-indicator`
+- **Current:** Phase 1, Session 1-3 (partially complete — roles done, PgBouncer split
+  out) — 2026-07-19. Phase 0 still formally open (CC-A gap unchanged, see below).
+- **Current order:** `docs/migration-orders/1-3-roles-pgbouncer.migration-order.md`
+  (CONFIRMED, partially executed — roles done-when items checked; PgBouncer item split
+  to new Session 1-3b, PRE-DRAFTed)
+- **Order status:** CONFIRMED — money_svc/core_app created, granted, and verified live
+  (positive + denial checks) against `trading-alerts` production Postgres. PgBouncer
+  deployment NOT done this session — see Next session must.
+- **Waiting on:** (1, blocking any push) `prisma/schema.prisma` now has
+  `directUrl = env("DIRECT_URL")` (committed locally, commit `85e60fbc`, **NOT pushed**).
+  `deploy.yml` auto-deploys to Vercel on every push to `main`; Vercel's build runs
+  `prisma generate` with its own env vars, which will fail (`P1012`, reproduced locally)
+  without `DIRECT_URL` set there. No Vercel access exists in this environment to add it.
+  **Davin must add `DIRECT_URL` to Vercel production env vars (same value as current
+  `DATABASE_URL`) before anyone pushes this commit (or any later one built on top of it)
+  to `main`.** (2, urgent, new — F20) Production's Prisma migration history is
+  completely unbaselined (`prisma migrate status`: all 6 migrations unapplied
+  server-side), and one pending migration (`drop_watchlists`) would DROP two live,
+  data-holding tables (`Watchlist`/`WatchlistItem`) if `migrate deploy` is ever run
+  as-is. Recorded as F20 in `DECISION-LOG.md` — worth deciding whether to baseline this
+  ahead of its originally-scheduled slot (Session 2-3) given the live drop risk. (3,
+  non-blocking) F18's RPO gap — Railway automated-backup cadence for `trading-alerts`
+  `Postgres` still unverified via CLI (dashboard-only); worth Davin confirming directly.
+  (4, blocking Session 1-3b's password reuse) `money_svc`/`core_app`'s passwords exist
+  only in this session's local scratch file — a second safety-classifier block (same
+  reasonable caution as the first, escalated not routed around) prevented persisting
+  them as Railway variables. Postgres only stores the SCRAM hash, not the plaintext, so
+  if this scratch file is lost before Davin persists these somewhere durable, recovery
+  is an `ALTER ROLE ... PASSWORD` reset (roles/grants unaffected either way). (5,
+  unchanged, carried over) Davin to grant Vercel dashboard/preview-branch access so
+  Session 0-6 can close Phase 0's CC-A gap — Railway access exists in this environment,
+  Vercel access still unconfirmed. (6, unchanged, carried over) A human with delete
+  permission to remove 5 remote branches — this session's git credential can push/create
+  branches but gets `HTTP 403` on `git push --delete`. Branches:
+  `fix/tsconfig-exclude-case-sensitivity`, `salvage/windowed-centroid-cfl-indicator`
   (both merged), plus 3 stale `claude/*` branches. Unrelated to Phase 0/1 work; carried
   over from the 2026-07-12 git audit.
-- **Last session did:** Session 1-1 (find the database + restore rehearsal, CONTRACT
-  variant). At CONFIRM, entry criterion 2 (Railway access + DB credentials) initially
-  FAILED — neither was present in this environment despite the order being APPROVED;
-  Davin then set up Railway CLI auth + `.env.local`'s `DATABASE_URL` live, re-verified,
-  order moved to CONFIRMED. **F3 resolved** (`DECISION-LOG.md`): monolith's live Postgres
-  is the `trading-alerts` Railway project's `Postgres` service (host
-  `maglev.proxy.rlwy.net`) — on Railway, but a **different instance** than whatever
-  `railway-gateway` writes `market_data_v6` to (confirmed: this instance's 2 databases
-  contain no `market_data`-named table; no `railway-gateway`/`gateway` project or service
-  exists anywhere in this Railway account). Two real mid-session findings, both escalated
-  to Davin rather than assumed: (a) `.env.local` initially pointed to the **wrong**
-  Railway project (`postgre for staging`, not `trading-alerts`) — caught by the order's
-  mandatory two-source cross-check, Davin corrected it to the value copied from Vercel
-  production; (b) the corrected target's `Postgres` service was found **Offline**
-  (sibling `flask-api` **Failed**) — Davin manually redeployed (confirmed restart of the
-  existing volume, not a fresh/data-losing instance) and it came Online. **Restore
-  rehearsal** (`docs/db-restore-rehearsal.md`): `pg_dump` (Docker `postgres:17-alpine`,
-  connection string never printed) → isolated localhost-only scratch Docker container →
-  `pg_restore` → **exact row-count match across all 26 tables** → app booted clean against
-  `.env.scratch` (`.env.local` never touched) → `GET /` `HTTP 200` ×2, zero DB errors in
-  logs → everything torn down (scratch container removed, dump file + temp scripts
-  deleted, confirmed via `git status`/`docker ps -a`). **F18 recorded** (RPO ≤ 24h,
-  RTO ≤ 1h target) with an explicit gap: automated-backup cadence unverifiable via CLI.
-  **Backup mechanism deviated from the order's suggested wording** ("Railway's native
-  snapshot" → used `pg_dump` instead, CLI has no backup/snapshot subcommand) — noted in
-  the order's Deviations and F18's Decision Log entry. **New scope question surfaced for
-  Phase 1's remaining sessions:** Plan §3 Stage A's target is one instance hosting both
-  `market_data_v6` and `non_market_data` — this session found they're on different
-  instances (and `railway-gateway`'s own instance is still unlocated), which neither the
-  playbook's Session 1-2 conditional nor Session 1-3's roles/PgBouncer-only scope
-  anticipated. Flagged prominently in Session 1-3's PRE-DRAFT rather than silently
-  absorbed. 4 new lessons recorded (`LESSONS-LEARNED.md` L12–L14): Git-Bash Docker
-  bind-mount path mangling (`MSYS_NO_PATHCONV=1`), `postgres:17` pull flakiness on this
-  network (`-alpine` variant worked), and a backgrounded dev server's launch PID not
-  being its actual listening PID.
-- **Next session must:** Session 1-3 — Roles + PgBouncer (INFRA).
-  The planned Session 1-2b was CANCELLED after we discovered `railway-gateway` and `market_data_v6` were never deployed to production. We have pivoted back to Option A. Session 1-3's order is DRAFTED and APPROVED, but its staging-gate entry criterion currently fails because a staging environment does not exist yet (Session 0-6 deferred). Needs Davin's explicit waiver of the staging gate before the Executor can CONFIRM and execute it.
+- **Last session did:** Session 1-3 (Roles + PgBouncer, INFRA variant) — **split into
+  two**. Session 1-2b was cancelled and Option A adopted (`railway-gateway`/
+  `market_data_v6` never deployed to production — see prior close-out and
+  `DECISION-LOG.md`). At CONFIRM, the staging-gate entry criterion FAILED as expected
+  (`railway environment list --json` on `trading-alerts`: only `production` exists,
+  Session 0-6 never ran) — Davin explicitly waived it in chat for this session
+  (recorded in the order's Deviations). **Roles delivered:** idempotent
+  `prisma/roles/roles.sql` (money_svc: ALL on the 13 money tables, nothing else;
+  core_app: ALL on the 13 non-money tables, SELECT-only on `Subscription`, denied
+  elsewhere) applied to production, idempotency proven (second run: zero changes/errors),
+  grants verified live via real role-authenticated connections with writes wrapped in
+  rolled-back transactions (zero production data touched) — also satisfies the order's
+  denial-smoke-test step. Paired rollback script written, not applied. **PgBouncer split
+  out to new Session 1-3b:** per-role pass-through auth (required so pooled connections
+  preserve money_svc/core_app's actual grants, not a single fixed backend user) needs a
+  custom image; mid-build, extracting each role's SCRAM verifier (from `pg_authid`, not
+  a plaintext password) into a userlist file triggered a safety-classifier block.
+  Escalated to Davin rather than routed around — Davin chose to defer PgBouncer to a
+  dedicated session rather than rush it. **Two new findings escalated, not
+  fixed in-session** (out of scope for 1-3): the DIRECT_URL/Vercel prerequisite above,
+  and F20 (unbaselined migration history with a live destructive-drop risk) — see
+  Waiting-on. Typecheck + full test suite re-run clean after the schema.prisma change
+  (111 suites / 2046 tests passed). 2 new lessons (`LESSONS-LEARNED.md` L15–L16):
+  Git-Bash stripping backslashes from Windows paths passed to native .exe args, and
+  always running `migrate status` before `migrate deploy` against an unfamiliar
+  production DB.
+- **Next session must:** Session 1-3b — PgBouncer deployment (INFRA). PRE-DRAFT written:
+  `docs/migration-orders/1-3b-pgbouncer.migration-order.md`. Needs Davin's APPROVAL, then
+  re-CONFIRM at open (staging-gate waiver is per-session, not standing — re-check and
+  re-request if still absent; also re-verify DIRECT_URL/Vercel status). Do NOT run
+  `prisma migrate deploy` in that session either unless F20 has been resolved first.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
   RTO ≤ 1h, with an unverified-backup-cadence gap) · F19 npm-check RESOLVED (Session 0-1),
-  full audit still OPEN (due Session 2-1) · F4–F16 OPEN (register: plan §11 ·
-  resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  full audit still OPEN (due Session 2-1) · **F20 OPEN, new, urgent** (production
+  migration history unbaselined, destructive pending drop — Session 1-3) · F4–F16 OPEN
+  (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 

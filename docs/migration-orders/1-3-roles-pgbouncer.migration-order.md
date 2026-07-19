@@ -48,7 +48,7 @@
 - [x] Blast-radius statement: role creation and grant changes are additive and reversible
       (`DROP ROLE`/`REVOKE`); the real risk is PgBouncer misconfiguration breaking the
       live monolith's DB connectivity. **Staging verification is NOT possible** — `railway
-    environment list --json` on `trading-alerts` confirms only one environment
+  environment list --json` on `trading-alerts` confirms only one environment
       (`production`) exists; Session 0-6 (which would create a staging shell) has not
       run. **Davin explicitly waived the staging gate for this session in chat
       (2026-07-19)** — see Deviations.
@@ -94,10 +94,17 @@ _(each step = change → immediate verification → rollback note; stage before 
 
 ## Done when
 
-- [ ] `prisma/roles/roles.sql` committed, applied, idempotency verified.
-- [ ] Role grants verified live (positive + negative/denial checks) for `money_svc` and `core_app`.
+- [x] `prisma/roles/roles.sql` committed, applied, idempotency verified. **DONE** — applied
+      to `trading-alerts` production Postgres; re-run produced no changes/errors.
+- [x] Role grants verified live (positive + negative/denial checks) for `money_svc` and
+      `core_app`. **DONE** — real role-authenticated connections, writes wrapped in
+      rolled-back transactions (zero production data touched). `money_svc`: reads/writes
+      its 13 tables, denied on `User`/`Account`. `core_app`: reads/writes its 13 tables,
+      SELECT-only on `Subscription`, denied on `Payment`/`Commission`. Also satisfies
+      step 4's denial smoke test.
 - [ ] PgBouncer live; Prisma runtime works through the pooler; migrations confirmed still
-      using the direct URL.
+      using the direct URL. **SPLIT OUT to a new Session 1-3b** — see Deviations. Not
+      done in this session.
 
 ## Rollback
 
@@ -122,6 +129,54 @@ or hard-to-reverse action should have been taken — confirm before ending the s
   "never break the always-on paths" rule (see steps 2–3 below for exactly how each step
   avoids disrupting current traffic).
 
+- **PgBouncer split out to a new Session 1-3b (Davin's call, 2026-07-19).** Getting this
+  right requires per-role pass-through auth — PgBouncer must forward each client's own
+  authenticated role (`money_svc`, `core_app`) to the backend unchanged, or the whole
+  point of this session's role separation is defeated the moment traffic goes through
+  the pooler. The common single-user PgBouncer Docker images don't support that out of
+  the box; a custom image (Dockerfile + SCRAM-verifier userlist pulled from
+  `pg_authid`, fed in via a Railway-only base64 variable, never plaintext, never in git)
+  was designed but not finished — mid-build, a safety classifier correctly flagged the
+  credential-extraction step for review. Rather than route around it, this was escalated
+  to Davin, who chose to defer PgBouncer entirely to a dedicated follow-up session
+  (Session 1-3b, PRE-DRAFTed below) rather than rush it. money_svc/core_app (this
+  session's actual scope) are unaffected — they're fully created, granted, and verified
+  independent of PgBouncer's existence.
+
+- **`directUrl` added to schema.prisma without yet touching Vercel.** Per L3, migrations
+  need a direct (non-pooled) connection distinct from runtime traffic — added
+  `directUrl = env("DIRECT_URL")` to the datasource block now, ahead of Session 1-3b,
+  and set `DIRECT_URL` in `.env.local` (same value as today's `DATABASE_URL` — identical
+  connection until PgBouncer exists). **This change is committed locally but NOT
+  pushed to origin.** `deploy.yml` auto-deploys to Vercel on every push to `main`, and
+  Vercel's build runs `prisma generate`/validate using its own env vars — without
+  `DIRECT_URL` set there first, that step fails (reproduced locally: `Error:
+Environment variable not found: DIRECT_URL`, P1012). No Vercel dashboard/CLI access
+  exists in this environment to add it directly (same gap CLAUDE.md already tracks for
+  Session 0-6). Blocking prerequisite before any push — see CLAUDE.md Waiting-on.
+
+- **money_svc/core_app passwords are currently only in a local scratch file, not
+  Railway.** Generated locally to apply `roles.sql`, then a second safety-classifier
+  block hit when attempting to persist them as Railway variables (`railway variables -s
+Postgres set ...`) — same reasonable caution as the userlist-extraction block above,
+  escalated rather than routed around. **This is a real gap, not just a formality:**
+  Postgres only stores the SCRAM hash, never the plaintext, so if the scratch file is
+  lost before these are persisted somewhere durable, the only recovery is an `ALTER
+ROLE ... PASSWORD` reset (roles/grants themselves are unaffected — this only concerns
+  who currently holds valid credentials for them). Davin should persist these to Railway
+  variables (or reset the passwords) before this session's scratch file ages out.
+
+- **`prisma migrate deploy` was never run** (only the read-only `prisma migrate status`)
+  to verify direct-URL connectivity for L3. Status revealed production's migration
+  history is completely unbaselined and one pending migration would drop two live
+  tables with data (`Watchlist`/`WatchlistItem`) — see `DECISION-LOG.md` F20. Running
+  `deploy` for real would have applied that drop as a side effect of this session's own
+  verification step; substituted `status` instead and escalated the finding rather than
+  proceeding.
+
 ## Next-session handoff
 
-_(PRE-DRAFT for Session 1-4 — Enforcement smoke test — once this order closes)_
+This order is **partially complete** — roles done and verified, PgBouncer split out.
+Next session is **1-3b — PgBouncer deployment** (PRE-DRAFT:
+`docs/migration-orders/1-3b-pgbouncer.migration-order.md`), not Session 1-4. Session 1-4
+(Enforcement smoke test) still needs PgBouncer live first, per its own scope.
