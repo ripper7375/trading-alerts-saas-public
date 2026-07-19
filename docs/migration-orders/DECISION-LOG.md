@@ -461,3 +461,21 @@ notifications,tier,user,market-data}` → zero matches;
 - Approved by: Davin (explicit, live authorization for both the password reset and the
   Railway-variable persistence — a Non-negotiable-5-class decision, correctly escalated
   rather than assumed).
+
+## F18 — progress note: backup-cadence gap re-checked, still open
+
+- Status: RESOLVED (unchanged — RPO/RTO targets themselves stand; the backup-cadence
+  sub-gap remains open, as it has since Session 1-1)
+- Session: 1-4 · Date: 2026-07-19
+- Decision: not a new decision — a re-check. Session 1-4's entry criteria required
+  checking the Railway dashboard Backups tab "if at all possible this session." No
+  dashboard access exists in this CLI-only environment; confirmed again this session
+  that no CLI equivalent exists either (`railway backup` → unrecognized subcommand;
+  `railway volume --help` has no backup/snapshot verb). This is the same gap recorded
+  at Session 1-1 — re-confirmed unchanged, not newly discovered. Phase 1 cannot be
+  marked exit-clean on this basis (see Session 1-4's order, Checklist step 3).
+- Evidence: `railway backup --help` → `error: unrecognized subcommand 'backup'`;
+  `railway volume --help` output reviewed, no backup/snapshot-related verb present.
+- Approved by: n/a (technical re-verification, no new decision). Recommendation
+  unchanged from Session 1-1: Davin to check the Railway dashboard's `Postgres` service
+  → Backups tab directly — this is the one item keeping Phase 1 from closing exit-clean.

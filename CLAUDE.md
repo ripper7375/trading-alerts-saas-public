@@ -11,15 +11,21 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 1, Session 1-3b (complete — PgBouncer live, pass-through auth
-  verified) — 2026-07-19. Phase 0 still formally open (CC-A gap unchanged, see below).
-- **Current order:** `docs/migration-orders/1-3b-pgbouncer.migration-order.md`
-  (CONFIRMED, executed, all 5 Done-when items checked)
-- **Order status:** CONFIRMED — PgBouncer deployed to `trading-alerts`/`production` as
-  its own Railway service (config committed at `infra/pgbouncer/`); money_svc/core_app
-  pass-through auth and Prisma Client CRUD both verified through the pooler, identical
-  to the direct-connection results; `prisma migrate status` still resolves via
-  `DIRECT_URL`. Live app's `DATABASE_URL` untouched throughout.
+- **Current:** Phase 1, Session 1-4 (complete — combined enforcement smoke test passed;
+  Phase 1 formally NOT exit-clean, F18 the sole blocker) — 2026-07-19. Phase 0 still
+  formally open (CC-A gap unchanged, see below).
+- **Current order:** `docs/migration-orders/1-4-enforcement-smoke-test.migration-order.md`
+  (CONFIRMED, executed, all Done-when items checked)
+- **Order status:** EXECUTED — `money_svc`/`core_app` positive+denial checks re-run
+  independently through both direct (`postgres.railway.internal:5432`) and pooled
+  (`pgbouncer.railway.internal:6432`) connections: all 8 checks pass, identical both
+  paths, no enforcement gap. Phase 1's 3 exit criteria walked with evidence: criteria 2
+  (railway-gateway ingestion) and 3 (monolith functional against the DB) both PASS;
+  criterion 1 (Postgres/roles/PgBouncer/grants/**backups**) is only partially met —
+  everything except the automated-backup-cadence check (F18) is confirmed live.
+  **Phase 1 is therefore NOT marked exit-clean** — this is a Davin dashboard-check
+  action item, not a technical gap in the infra itself. Live app's `DATABASE_URL`
+  untouched throughout, as in every prior Phase 1 session.
 - **Waiting on:** (1, blocking any push) `prisma/schema.prisma`'s `directUrl =
 env("DIRECT_URL")` (commit `85e60fbc`) **is already on `origin/main`** — this note was
   stale as of Session 1-3b's CONFIRM; a fresh `git fetch` showed it had been pushed.
@@ -56,50 +62,55 @@ env("DIRECT_URL")` (commit `85e60fbc`) **is already on `origin/main`** — this 
   domains, and `railway config pull` (the IaC path) needs an SDK not installed here.
   Worth Davin's awareness if a future session needs real (non-verification) public
   reachability to a Railway service that isn't one of their official database
-  templates.
-- **Last session did:** Session 1-3b (PgBouncer deployment, INFRA variant) —
-  **CONFIRM found a real blocker (not the staging gate this time): money_svc/core_app's
-  passwords existed nowhere reachable** — not in Railway variables, and Session 1-3's
-  local scratch file didn't carry over to this session. Escalated rather than routed
-  around; Davin explicitly authorized (a) an `ALTER ROLE ... PASSWORD` reset for both
-  roles and (b) durably persisting the new passwords + PgBouncer's SCRAM userlist to
-  Railway variables. Staging gate was also explicitly waived again for this session
-  (per-session, not standing — same as 1-3). **Delivered:** `infra/pgbouncer/`
-  (Alpine + PgBouncer 1.22.1, `scram-sha-256` pass-through auth, transaction pooling,
-  no fixed backend user — hit and fixed a real bug locally first, Alpine's `pgbouncer`
-  package has no built-in service user and refuses to run as root); deployed as its own
-  Railway service in `trading-alerts`/`production`; money_svc/core_app re-verified live
-  with the new passwords (direct connection) and again through the pooler — identical
-  fences hold both ways; scratch Prisma Client CRUD verified through the pooler for both
-  roles; `prisma migrate status` reconfirmed clean via `DIRECT_URL` (F20 unchanged,
-  `migrate deploy` not run). **One tooling gap found and worked around, not fixed:**
-  `railway domain` only creates HTTP(S) domains, not a genuine TCP proxy, so reaching
-  the new pooler from outside Railway's network (needed to run the verification) wasn't
-  possible that way — substituted a throwaway in-network verifier service (deployed,
-  ran the checks against `pgbouncer.railway.internal`, read its logs, deleted) instead
-  of pursuing public exposure further. All 5 Done-when items checked; PgBouncer stands
-  deployed, nothing rolled back. Typecheck clean; full test suite re-run clean at
-  session close (111 suites / 2046 tests passed — identical counts to Session 1-3's
-  baseline, since no application source changed). 3 new lessons
-  (`LESSONS-LEARNED.md` L17–L19): the
-  Alpine `pgbouncer` non-root fix, the `railway domain` vs. TCP-proxy gap, and the
-  private-in-network-verifier pattern for testing a pooler without public exposure.
-- **Next session must:** Session 1-4 — Enforcement smoke test + Phase 1 exit review
-  (VERIFY-RETIRE, fast-path eligible). PRE-DRAFTed:
-  `docs/migration-orders/1-4-enforcement-smoke-test.migration-order.md` — currently back
-  at **PRE-DRAFT** (Davin reverted an earlier premature APPROVAL before Session 1-3b had
-  actually run; needs a fresh APPROVAL now that the hard dependency is genuinely
-  satisfied). Its own Context section should get a quick read-through before
-  re-APPROVAL — it describes a combined direct+pooled re-verification that Session 1-3b
-  already did once as part of its own steps 2–3, so 1-4 should treat that as a prior
-  data point, not skip its own independent pass (same "roles are mutable" caution 1-3b
-  itself opened with). F18's backup-cadence gap is still the one item that may keep
-  Phase 1 from closing exit-clean — unchanged, still dashboard-only, worth Davin
-  checking directly before or during that session.
+  templates. (8, new, non-blocking) Session 1-4's `railway --help` output shows
+  top-level `tcp-proxy` and `private-network` commands that weren't present/noticed
+  when item (7) above was written — possibly this CLI conclusion is stale. Not tested
+  (out of scope for that session's VERIFY-RETIRE variant); worth a future session
+  actually checking whether `railway tcp-proxy` supersedes the item-(7) workaround.
+- **Last session did:** Session 1-4 (Enforcement smoke test + Phase 1 exit review,
+  VERIFY-RETIRE variant) — CONFIRM re-verified all 3 entry criteria live (PgBouncer
+  RUNNING, Railway CLI access, F18 still dashboard-only), executed on Davin's explicit
+  "go." **Combined smoke test:** deployed a throwaway in-network verifier service
+  (`verify-1-4`, `LESSONS-LEARNED.md` L19 pattern) into `trading-alerts`/`production`;
+  ran `money_svc`/`core_app` positive+denial checks through both the direct
+  (`postgres.railway.internal:5432`) and pooled (`pgbouncer.railway.internal:6432`)
+  connections — all 8 checks pass identically both paths (`money_svc`: own-table
+  read+rolled-back-write on `Payment` OK, `User` denied; `core_app`: own-table
+  read+rolled-back-write on `User` OK, `Payment`/`Commission` denied). No enforcement
+  gap. **Phase 1 exit criteria walked:** criterion 1 (Postgres/roles/PgBouncer/grants/
+  backups) only partially met — backups still unverifiable via CLI (F18, re-confirmed
+  unchanged); criteria 2 (railway-gateway) and 3 (monolith functional) both PASS.
+  **Phase 1 is NOT marked exit-clean** — reported honestly rather than glossed over.
+  **One real mistake, caught and corrected:** `railway up --service verify-1-4` from an
+  unlinked scratch directory silently created a stray NEW Railway project instead of
+  deploying into the already-created service inside `trading-alerts` — caught
+  immediately via the deploy response's project name/ID mismatch. Asked Davin before
+  deleting the stray project (destructive, classifier-blocked by default); Davin granted
+  one-time permission for that specific project ID; deleted, confirmed gone; redeployed
+  correctly using explicit `--project`/`--environment` flags. New lesson recorded
+  (`LESSONS-LEARNED.md` L20). Verifier service fully torn down after — `trading-alerts`
+  back to exactly its 3 original services. Also avoided re-triggering the credential
+  classifier block (same class Session 1-3/1-3b hit) by using Railway's
+  `${{Service.VAR}}` reference syntax for the verifier's password env vars — the actual
+  secret values never passed through this session at all. Typecheck clean; full test
+  suite re-run clean at session close (111 suites / 2046 tests passed — identical to
+  Session 1-3b's baseline, no application source changed). One finding flagged, not
+  acted on: `railway --help` now lists `tcp-proxy`/`private-network` commands not
+  present when L18 was written — possibly stale, needs a future session to verify.
+- **Next session must:** Session 2-1 — Prisma 6.19.2 → 7.8.0 upgrade in isolation
+  (UPGRADE variant, F19 full audit). PRE-DRAFTed:
+  `docs/migration-orders/2-1-prisma-upgrade.migration-order.md` — currently
+  **PRE-DRAFT** (NOT fast-path eligible; needs the Advisor to produce the DRAFT, then
+  Davin's APPROVAL, before a future session CONFIRMs and executes). Phase 1's open F18
+  gap is explicitly NOT a blocker for this session (operational risk-acceptance
+  question for Davin about the existing Postgres instance, unrelated to the Prisma
+  client version) — flagged in the PRE-DRAFT's own Context section so 2-1 doesn't have
+  to rediscover that reasoning.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
-  RTO ≤ 1h, with an unverified-backup-cadence gap) · F19 npm-check RESOLVED (Session 0-1),
+  RTO ≤ 1h, with an unverified-backup-cadence gap — re-confirmed unchanged Session 1-4;
+  this is the reason Phase 1 isn't marked exit-clean) · F19 npm-check RESOLVED (Session 0-1),
   full audit still OPEN (due Session 2-1) · **F20 OPEN, urgent** (production migration
   history unbaselined, destructive pending drop — found Session 1-3, reconfirmed
   unchanged Session 1-3b) · F4–F16 OPEN

@@ -355,6 +355,29 @@ pgbouncer`, `chown` the config/auth-file directory to that user, and set
 - Source: Session 1-3b (PgBouncer pass-through auth + Prisma CRUD verification) ·
   Status: ACTIVE
 
+### L20 — `railway up --service <name>` needs explicit `--project`/`--environment` too, or it may create a whole new project
+
+- Symptom: `railway up --service verify-1-4 --ci --json`, run from a scratch directory
+  with no local `.railway` link file, deployed successfully — but into a **brand-new,
+  separate Railway project** also named "verify-1-4", not the same-named service that
+  already existed inside the intended `trading-alerts`/`production` project (created
+  moments earlier via `railway add --service verify-1-4`).
+- Root cause: `--service <name>` alone only selects which service to target _within
+  whatever project/environment context is already established_. With no local link
+  file and no `--project`/`--environment` flags, `railway up` falls back to its
+  cold-start "create a new project" behavior — the same-named service in a different
+  project is invisible to it; there's no error or prompt warning that a new project is
+  about to be created instead.
+- Rule: when deploying via `railway up` from a directory that isn't `railway link`ed to
+  the target project (e.g. a throwaway scratch dir for a verification service), always
+  pass **both** `--project <id>` **and** `--environment <id>` explicitly alongside
+  `--service <name>` — never rely on `--service` alone to disambiguate. Get the project
+  ID from `railway status --json` first.
+- Detect early: after any `railway up`, check the JSON response's `projectName`/
+  `projectId` (or absence thereof) against the intended project before doing anything
+  else — don't assume success means "deployed to the place I meant."
+- Source: Session 1-4 (combined smoke-test verifier deploy) · Status: ACTIVE
+
 ---
 
 ## Archive
