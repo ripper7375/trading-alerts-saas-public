@@ -293,6 +293,68 @@ js-yaml@4.1.1/node_modules/js-yaml'))` — resolve the exact `.pnpm` path direct
   especially including migrations older than the feature you're actually working on.
 - Source: Session 1-3 (L3/PgBouncer verification) · Status: ACTIVE
 
+### L17 — Alpine's `pgbouncer` package has no built-in non-root user
+
+- Symptom: container exited immediately with `FATAL PgBouncer should not run as root`,
+  even though the Dockerfile never explicitly set `USER root` — it just never set any
+  `USER` at all.
+- Root cause: unlike the Debian/Ubuntu `pgbouncer` package (which creates a `pgbouncer`
+  system user on install), Alpine's `pgbouncer` (1.22.1-r0) installs no dedicated user —
+  confirmed via `grep pgbouncer /etc/passwd /etc/group` returning nothing after
+  `apk add pgbouncer`. The binary itself refuses to start as UID 0 regardless.
+- Rule: on Alpine, explicitly `addgroup -S pgbouncer && adduser -S -D -H -G pgbouncer
+pgbouncer`, `chown` the config/auth-file directory to that user, and set
+  `USER pgbouncer` in the Dockerfile — don't assume the package creates one for you the
+  way other distros' packages do.
+- Detect early: `docker run` a freshly-built pgbouncer image locally before ever
+  deploying it — the failure is immediate and unambiguous in the logs, cheaper to catch
+  there than after a Railway deploy.
+- Source: Session 1-3b (PgBouncer image build) · Status: ACTIVE
+
+### L18 — `railway domain` only creates HTTP(S) domains, never a raw TCP proxy
+
+- Symptom: `railway domain --service <svc> --port 6432 --json` succeeded and returned a
+  domain, but it was `https://<name>-production-<hash>.up.railway.app` — Railway's HTTP
+  edge type (confirmed via `railway domain list --json`: `"type": "service"`), which
+  cannot carry a non-HTTP protocol like Postgres wire format.
+- Root cause: assumed `--port <arbitrary-tcp-port>` meant "expose this port over TCP"
+  the way Postgres's own `RAILWAY_TCP_PROXY_DOMAIN`/`_PORT` variables suggested was
+  possible for any service. In this CLI version (5.27.0) it doesn't — `railway domain`
+  is HTTP-only; genuine TCP Proxy provisioning for a custom (non-database-template)
+  service has no equivalent CLI command, and `railway config pull` (the IaC path that
+  might expose it directly) requires installing a separate Railway TypeScript SDK not
+  present in this environment.
+- Rule: don't assume a CLI subcommand named generically ("domain") covers every kind of
+  public networking a platform offers — check the actual `domain` `type` field in the
+  JSON response (`"service"` vs. whatever a real TCP proxy would report) before relying
+  on it, and prefer verifying private-network services via L19's pattern instead of
+  chasing public TCP exposure for a custom service in this CLI version.
+- Detect early: `railway domain list --json` immediately after creating one — `"type":
+"service"` on a database-protocol service is the tell that it won't work.
+- Source: Session 1-3b (PgBouncer external reachability) · Status: ACTIVE
+
+### L19 — Verify a private-network-only service from inside the network, not via a new public proxy
+
+- Symptom: needed to test a newly-deployed Railway service (PgBouncer) that only had a
+  private (`*.railway.internal`) address, from a local dev environment with no VPN/direct
+  access into Railway's private network.
+- Root cause: the natural first instinct — expose it publicly (TCP proxy) just long
+  enough to test it — adds real (if temporary) internet-facing attack surface for a
+  database-adjacent service, and turned out to be blocked/unavailable anyway (L18).
+- Rule: when verification is the only reason external reachability is needed, prefer
+  deploying a small throwaway service into the _same_ Railway project/environment
+  instead — it gets private-network DNS resolution to every sibling service for free
+  (`<service>.railway.internal`), can run the verification as its own startup command,
+  report results via `railway logs`, and gets deleted immediately after
+  (`railway service delete`). Zero public exposure, same verification confidence, and
+  it's also a better fit for a "never break the always-on paths" blast-radius
+  discipline than temporary public exposure would be.
+- Detect early: before requesting a public domain/proxy "just for testing," ask whether
+  a same-environment throwaway service would reach the target privately instead —
+  usually cheaper and strictly safer.
+- Source: Session 1-3b (PgBouncer pass-through auth + Prisma CRUD verification) ·
+  Status: ACTIVE
+
 ---
 
 ## Archive

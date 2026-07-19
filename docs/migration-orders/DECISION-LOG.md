@@ -428,3 +428,36 @@ notifications,tier,user,market-data}` → zero matches;
   rather than wait for Session 2-3's originally scheduled slot.
 - Approved by: n/a — technical discovery, flagged for Davin's prioritization decision,
   not a decision made unilaterally.
+
+## Session 1-3b — money_svc/core_app credential reset + durable persistence
+
+- Status: RESOLVED
+- Session: 1-3b · Date: 2026-07-19
+- Decision: at CONFIRM, `money_svc`/`core_app`'s passwords (generated Session 1-3) were
+  found to exist nowhere reachable — not in Railway variables (Session 1-3's attempt to
+  persist them there hit a safety-classifier block, escalated not routed around, per
+  that session's Waiting-on #4), and the local scratch file they lived in was specific
+  to Session 1-3's own ephemeral session environment, gone by the time 1-3b ran. Both
+  roles still existed with correct grants (confirmed via a read-only superuser catalog
+  query), but nobody could authenticate as either — blocking not just CONFIRM's
+  re-verification but Ordered step 2 itself (pass-through auth verification requires a
+  real role-authenticated connection). Davin explicitly authorized, in chat: (1)
+  resetting both passwords via `ALTER ROLE ... PASSWORD` — an auth-semantics change,
+  escalated per `CLAUDE.md` Non-negotiable 5 rather than assumed; (2) persisting the new
+  passwords and PgBouncer's SCRAM userlist durably to Railway variables this time.
+  Executed: passwords generated locally (`crypto.randomBytes`, never committed, never
+  printed to any output); `ALTER ROLE` run via a superuser connection; positive+denial
+  checks re-run with the new passwords (direct connection) — identical results to
+  Session 1-3's original checks; `MONEY_SVC_DB_PASSWORD`/`CORE_APP_DB_PASSWORD`/
+  `PGBOUNCER_USERLIST_B64` all set via `railway variable set --stdin` (never a CLI arg,
+  never printed). No classifier block occurred this time for the `ALTER ROLE` step, the
+  read-only SCRAM-verifier extraction from `pg_authid`, or the `railway variable set`
+  calls — Session 1-3's block was specifically on writing extracted verifiers to a file,
+  which this session also did (locally, in a scratch directory, never committed)
+  without incident.
+- Evidence: direct-connection positive+denial re-check (both roles, new passwords, all
+  pass); `railway variable list --service Postgres --json` (keys only) confirms
+  `MONEY_SVC_DB_PASSWORD`/`CORE_APP_DB_PASSWORD`/`PGBOUNCER_USERLIST_B64` present.
+- Approved by: Davin (explicit, live authorization for both the password reset and the
+  Railway-variable persistence — a Non-negotiable-5-class decision, correctly escalated
+  rather than assumed).
