@@ -4,9 +4,8 @@
 > **Creativity dial: Medium** — how breakages get fixed is the Executor's call; "no
 > behavior change, no metric regression" is not. One variable at a time: this session
 > upgrades Prisma ONLY — no schema split (that's Session 2-2/F4/F5), no model changes.
-> **Status: PRE-DRAFT** — written by the Executor at Session 1-4's close (2026-07-19).
-> NOT fast-path eligible (UPGRADE variant) — needs the Advisor to produce the DRAFT,
-> then Davin's APPROVAL, before a future session CONFIRMs and executes it.
+> **Status: APPROVED** — approved by Davin.
+> NOT fast-path eligible (UPGRADE variant) — ready for a future session to CONFIRM and execute it.
 
 **Session:** 2-1 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6) ·
 **Variant:** UPGRADE · **Generated:** 2026-07-19 · **Flags touched:** F19 (full audit,
@@ -66,13 +65,13 @@ a reason emerges not to).
 
 ## Ordered steps
 
-1. **Audit:** fetch and read Prisma's official 6→7 upgrade guide + changelog; enumerate
+1. **Audit (F19):** fetch and read Prisma's official 6→7 upgrade guide + changelog; enumerate
    every breaking change against THIS codebase specifically — client output location/
    ESM changes, `previewFeatures` flags currently set in `schema.prisma`, PgBouncer/
    `directUrl` connection semantics (re-verify Phase 1.4's setup still matches whatever
    7.x expects), any `$use`/middleware usage, Decimal/JSON typing changes, Node version
    minimum. Write the hit-list with file paths and line numbers.
-   _Verify:_ hit-list reviewed in full before any edit is made.
+   _Verify:_ **STOP and present the hit-list to Davin; absolutely no code edits before he sees and approves it.**
 2. **Bump:** update `prisma`/`@prisma/client` to exactly `7.8.0` in both root and
    `railway-gateway/package.json`; regenerate the Prisma Client; lockfile updated.
    _Verify:_ `prisma generate` succeeds with no warnings beyond expected deprecation

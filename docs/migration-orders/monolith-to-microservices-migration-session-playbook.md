@@ -141,12 +141,15 @@ at the blocker.
   rollback path (old instance) documented.
 - **You provide:** approval of the maintenance window (brief downtime).
 
-### Session 1-3 — Roles + PgBouncer
+### Session 1-3 — Roles
 
-- **Tasks:** Write idempotent `prisma/roles/roles.sql` creating `money_svc`, `core_app`,
-  `gateway_ingest` with the plan §3 grants; apply it. Deploy PgBouncer (transaction mode);
-  verify Prisma runtime works through the pooler and migrations run on the direct URL.
-- **Done when:** grant script committed & applied; app runs through PgBouncer in staging.
+- **Tasks:** Write idempotent `prisma/roles/roles.sql` creating `money_svc` and `core_app` with the plan §3 grants; apply it to the production database.
+- **Done when:** grant script committed & applied; direct connections proven.
+
+### Session 1-3b — PgBouncer Deployment
+
+- **Tasks:** Deploy PgBouncer (transaction mode) as a custom image with pass-through auth utilizing the SCRAM verifiers from 1-3.
+- **Done when:** PgBouncer is live; pass-through auth proven to preserve grants; prisma runtime works through the pooler.
 
 ### Session 1-4 — Enforcement smoke test
 
