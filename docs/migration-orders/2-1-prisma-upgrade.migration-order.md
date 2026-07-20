@@ -192,6 +192,32 @@ generate` that it still works in 7.8.0 (not yet hard-removed despite the
   scenario this order's own Step 5 text anticipated. Per that text and
   `EXECUTOR-PROTOCOL.md` §7 (production deploys always escalate), this needs
   Davin's explicit scoping decision before proceeding — not assumed either way.
+- **Davin waived staging, authorized production-only deploy (2026-07-20).** Pushed
+  all 4 commits to `origin/main` (`d90033e5..f7a2103c`); pre-push hook re-ran the
+  full suite one more time before allowing it through — 111/111 · 2046/2046 again,
+  fourth identical parity check this session. `.github/workflows/deploy.yml` failed
+  immediately (0s) exactly as it has on every push since before Session 1-3 —
+  confirmed unrelated to this bump, not a new break. Other CI workflows (Tests,
+  Next.js CI, Security Checks, Bundle Size Monitor) were still sitting in `queued`
+  status 5+ minutes after the push, with GitHub's own API returning transient
+  HTTP 503s during polling — reads as a GitHub-side infrastructure hiccup, not
+  something caused by this push, but not independently confirmed.
+  **Cannot confirm the actual Vercel deployment succeeded or watch its runtime
+  logs** — no Vercel CLI/dashboard access exists in this environment (same gap as
+  `CLAUDE.md`'s "Waiting on" item 5, unchanged). Specifically flagged for Davin
+  before pushing: this session's own `prisma.config.ts` makes `prisma generate`
+  (runs during the Vercel build via `postinstall`/`prebuild`) hard-require
+  `DIRECT_URL` — if that's still not set in Vercel's production env vars (per
+  `CLAUDE.md`'s carried-over "Waiting on" item 1), the build itself would fail,
+  not just a runtime connection error. **Davin needs to check the Vercel
+  dashboard directly**: (1) did a new deployment trigger from this push at all,
+  (2) did the build succeed (watch specifically for a `DIRECT_URL` config error),
+  (3) runtime logs post-deploy for `P1010`/SSL or connection-timeout errors per
+  his own request. Holding the final "Production on prisma@7.8.0" Done-when
+  checkbox and the full session close-out (lessons, CLAUDE.md state, Session 2-2
+  PRE-DRAFT) until that confirmation comes back — code-side work is done and
+  green, but "deployed and verified" isn't something this environment can attest
+  to on its own.
 
 ## Next-session handoff
 
