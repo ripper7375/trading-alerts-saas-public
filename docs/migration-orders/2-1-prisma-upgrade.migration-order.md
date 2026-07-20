@@ -4,18 +4,18 @@
 > **Creativity dial: Medium** — how breakages get fixed is the Executor's call; "no
 > behavior change, no metric regression" is not. One variable at a time: this session
 > upgrades Prisma ONLY — no schema split (that's Session 2-2/F4/F5), no model changes.
-> **Status: APPROVED** — approved by Davin.
-> NOT fast-path eligible (UPGRADE variant) — ready for a future session to CONFIRM and execute it.
+> **Status: CONFIRMED** — re-verified against live codebase and runtime state
+> 2026-07-20 (session 2-1): both `package.json`s still `^6.19.2`, type-check clean,
+> test:ci 111/111 suites · 2046/2046 tests (exact parity with Session 1-4's baseline),
+> Postgres + pgbouncer services RUNNING, no `previewFeatures`/`$use` usage, 16 files
+> import `@prisma/client`. Executing.
 
 **Session:** 2-1 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6) ·
 **Variant:** UPGRADE · **Generated:** 2026-07-19 · **Flags touched:** F19 (full audit,
 currently OPEN — this session closes it) · **Estimated time:** unestimated (F12 open;
 first Phase 2 session, no prior data point).
-**From → To:** `prisma` + `@prisma/client`: `^6.19.2` → `7.8.0` (root `package.json` AND
-`railway-gateway/package.json` — re-verify both still show `^6.19.2` at CONFIRM; the
-`railway-gateway` service itself was never deployed per the Option A pivot, but its
-`package.json` still exists in-repo and should stay version-consistent with root unless
-a reason emerges not to).
+**From → To:** `prisma` + `@prisma/client`: `^6.19.2` → `7.8.0` (root `package.json` ONLY.
+`railway-gateway/package.json` is EXPLICITLY DECOUPLED and remains on `6.19.2` due to NestJS CJS/ESM incompatibility. The `railway-gateway` service was never deployed per the Option A pivot).
 
 ## Context carried over from Session 1-4 / Phase 1 close
 
@@ -93,7 +93,7 @@ a reason emerges not to).
 ## Rules specific to this variant
 
 - Fix forward within the session or roll back fully — never leave a half-upgraded
-  state (e.g. root bumped but `railway-gateway/package.json` not, or vice versa).
+  state EXCEPT for `railway-gateway`, which is explicitly authorized to remain on `6.19.2` due to NestJS ESM incompatibility.
 - A test that fails after the bump is a finding, not an obstacle (`LESSONS-LEARNED.md`
   L4's sibling rule for upgrades): understand WHY before touching the test's assertion.
 - Peer-dependency bumps ride along only if `7.8.0` actually requires them — list each
@@ -106,8 +106,7 @@ a reason emerges not to).
 
 ## Done when
 
-- [ ] Production on `prisma@7.8.0`/`@prisma/client@7.8.0` (both root and
-      `railway-gateway/package.json` versions consistent).
+- [ ] Production on `prisma@7.8.0`/`@prisma/client@7.8.0` (root only, `railway-gateway` left on `6.19.2`).
 - [ ] Full test suite green, count parity (or explained deltas) vs Session 1-4's
       111/111 suites, 2046/2046 tests baseline.
 - [ ] Audit + hit-list + resolution committed; F19 marked fully RESOLVED in
@@ -126,7 +125,20 @@ document the exact re-deploy sequence needed, not just "git revert."
 
 ## Deviations
 
-_(filled during execution)_
+- **Step 1 audit completed 2026-07-20.** Guide fetched via direct `curl` (WebFetch/WebSearch
+  tools were both erroring on an unrelated internal model-selection fault — confirmed
+  against 3 different URLs before working around it) —
+  https://www.prisma.io/docs/orm/more/upgrade-guides/upgrading-versions/upgrading-to-prisma-7
+  (full "Upgrade to v7" page, fetched and read in full). Full hit-list presented to Davin
+  in-session; **STOPPED per the order's own gate — no code edits made** (no package.json
+  bump, no schema.prisma edit, no new prisma.config.ts). See CLAUDE.md / chat for the
+  hit-list Davin is reviewing. Headline finding not anticipated at drafting: the "client
+  bump only" framing undersold the scope — Prisma 7 ships ESM-only and requires driver
+  adapters for every PrismaClient instantiation, which is an architecture-level change,
+  not a version bump.
+- **Step 1 hit-list reviewed and approved by Davin (2026-07-20).** Davin authorized the following deviations to handle the Prisma 7 requirements:
+  1. `railway-gateway` is decoupled and left on `6.19.2` to avoid wasting time on CJS/ESM interop for an undeployed service.
+  2. The mandatory architectural changes (ESM for `db:seed`, driver adapters, `prisma.config.ts`, SSL configuration) are authorized to be completed in this session, as they are inseparable from the version bump.
 
 ## Next-session handoff
 
