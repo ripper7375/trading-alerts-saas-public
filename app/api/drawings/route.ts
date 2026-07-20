@@ -16,6 +16,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import type { Prisma } from '.prisma/non-market-client';
 import { DRAWING_LIMITS, DrawingCreateZ } from '@/lib/drawing/schema';
 import { type Tier } from '@/lib/tier-config';
 import {
@@ -142,7 +143,7 @@ export async function POST(
         timeframe,
         type,
         anchors,
-        style,
+        style: style as Prisma.InputJsonValue,
       },
       include: { alerts: true },
     });

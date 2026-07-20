@@ -15,6 +15,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import type { Prisma } from '.prisma/non-market-client';
 import { DrawingUpdateZ } from '@/lib/drawing/schema';
 import { publishAlertsChanged } from '@/lib/drawing/invalidate';
 
@@ -74,7 +75,9 @@ export async function PATCH(
       where: { id },
       data: {
         ...(parsed.data.anchors ? { anchors: parsed.data.anchors } : {}),
-        ...(parsed.data.style ? { style: parsed.data.style } : {}),
+        ...(parsed.data.style
+          ? { style: parsed.data.style as Prisma.InputJsonValue }
+          : {}),
       },
       include: { alerts: true },
     });
