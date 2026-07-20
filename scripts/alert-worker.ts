@@ -1,8 +1,8 @@
 /**
  * Alert worker entrypoint — long-running process.
  *
- * Run (shares the app's tsconfig paths):
- *   node -r ts-node/register -r tsconfig-paths/register scripts/alert-worker.ts
+ * Run (tsx reads tsconfig paths natively):
+ *   tsx scripts/alert-worker.ts
  *
  * Deploy as its own service (Railway/Docker), NOT on serverless. Requires
  * DATABASE_URL and REDIS_URL.

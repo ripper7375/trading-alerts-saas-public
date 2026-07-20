@@ -7,23 +7,28 @@
  * SQLite (MT5) → Sync Script → Redis (Hot) + PostgreSQL (Warm)
  */
 
-import { createClient } from 'redis';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { createClient } from 'redis';
 
 interface TestResult {
   test: string;
   passed: boolean;
   message: string;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
 }
 
 class DeploymentTester {
-  private redisClient: any;
+  private redisClient: ReturnType<typeof createClient> | undefined;
   private prisma: PrismaClient;
   private results: TestResult[] = [];
 
   constructor() {
-    this.prisma = new PrismaClient();
+    const adapter = new PrismaPg({
+      connectionString: process.env['DATABASE_URL'],
+      ssl: { rejectUnauthorized: false },
+    });
+    this.prisma = new PrismaClient({ adapter });
   }
 
   async initialize(): Promise<void> {
@@ -41,7 +46,12 @@ class DeploymentTester {
     await this.prisma.$disconnect();
   }
 
-  private addResult(test: string, passed: boolean, message: string, metrics?: Record<string, any>): void {
+  private addResult(
+    test: string,
+    passed: boolean,
+    message: string,
+    metrics?: Record<string, unknown>
+  ): void {
     this.results.push({ test, passed, message, metrics });
     const icon = passed ? '✅' : '❌';
     console.log(`${icon} ${test}: ${message}`);
@@ -74,9 +84,21 @@ class DeploymentTester {
 
       // Check symbol candle counts
       const symbols = [
-        'audjpy', 'audusd', 'btcusd', 'ethusd', 'eurusd',
-        'gbpjpy', 'gbpusd', 'ndx100', 'nzdusd', 'us30',
-        'usdcad', 'usdchf', 'usdjpy', 'xagusd', 'xauusd'
+        'audjpy',
+        'audusd',
+        'btcusd',
+        'ethusd',
+        'eurusd',
+        'gbpjpy',
+        'gbpusd',
+        'ndx100',
+        'nzdusd',
+        'us30',
+        'usdcad',
+        'usdchf',
+        'usdjpy',
+        'xagusd',
+        'xauusd',
       ];
 
       let totalCandles = 0;
@@ -107,7 +129,10 @@ class DeploymentTester {
         'Redis Hot Tier Summary',
         symbolsWithData === symbols.length,
         `${symbolsWithData}/${symbols.length} symbols populated`,
-        { total_candles: totalCandles, avg_candles: Math.round(totalCandles / symbols.length) }
+        {
+          total_candles: totalCandles,
+          avg_candles: Math.round(totalCandles / symbols.length),
+        }
       );
 
       // Test candle data format
@@ -115,14 +140,18 @@ class DeploymentTester {
       const latestCandles = await this.redisClient.zRange(testKey, -1, -1);
 
       if (latestCandles && latestCandles.length > 0) {
-        const candleData = JSON.parse(latestCandles[0]);
+        const candleData = JSON.parse(latestCandles[0]!);
         const requiredFields = ['t', 'o', 'h', 'l', 'c'];
-        const hasAllFields = requiredFields.every(field => field in candleData);
+        const hasAllFields = requiredFields.every(
+          (field) => field in candleData
+        );
 
         this.addResult(
           'Redis Candle Format',
           hasAllFields,
-          hasAllFields ? 'All required fields present' : 'Missing required fields',
+          hasAllFields
+            ? 'All required fields present'
+            : 'Missing required fields',
           { sample: candleData }
         );
       }
@@ -142,9 +171,12 @@ class DeploymentTester {
         `Average: ${avgTime.toFixed(2)}ms (target: <5ms)`,
         { avg_ms: avgTime, iterations: perfIterations }
       );
-
     } catch (error) {
-      this.addResult('Redis Tests', false, `Error: ${error instanceof Error ? error.message : String(error)}`);
+      this.addResult(
+        'Redis Tests',
+        false,
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -174,15 +206,26 @@ class DeploymentTester {
       );
 
       // Test timeframe data for EURUSD
-      const timeframes = ['m5', 'm15', 'm30', 'h1', 'h2', 'h4', 'h8', 'h12', 'd1'];
+      const timeframes = [
+        'm5',
+        'm15',
+        'm30',
+        'h1',
+        'h2',
+        'h4',
+        'h8',
+        'h12',
+        'd1',
+      ];
       const timeframeData: Record<string, number> = {};
 
       for (const tf of timeframes) {
         const tableName = `eurusd_${tf}`;
         try {
-          const result: Array<{ count: bigint }> = await this.prisma.$queryRawUnsafe(
-            `SELECT COUNT(*) as count FROM ${tableName}`
-          );
+          const result: Array<{ count: bigint }> =
+            await this.prisma.$queryRawUnsafe(
+              `SELECT COUNT(*) as count FROM ${tableName}`
+            );
           const count = result && result[0] ? Number(result[0].count) : 0;
           timeframeData[tf] = count;
 
@@ -209,31 +252,42 @@ class DeploymentTester {
           FROM eurusd_m5
           WHERE open IS NULL OR high IS NULL OR low IS NULL OR close IS NULL
         `;
-        const nullCount = nullCheck && nullCheck[0] ? Number(nullCheck[0].count) : 0;
+        const nullCount =
+          nullCheck && nullCheck[0] ? Number(nullCheck[0].count) : 0;
 
         this.addResult(
           'Data Integrity (NULL check)',
           nullCount === 0,
-          nullCount === 0 ? 'No NULL values found' : `Found ${nullCount} NULL values`,
+          nullCount === 0
+            ? 'No NULL values found'
+            : `Found ${nullCount} NULL values`,
           { null_count: nullCount }
         );
 
         // Check for price anomalies
-        const anomalyCheck: Array<{ count: bigint }> = await this.prisma.$queryRaw`
+        const anomalyCheck: Array<{ count: bigint }> = await this.prisma
+          .$queryRaw`
           SELECT COUNT(*) as count
           FROM eurusd_m5
           WHERE high < low OR open < 0 OR close < 0
         `;
-        const anomalyCount = anomalyCheck && anomalyCheck[0] ? Number(anomalyCheck[0].count) : 0;
+        const anomalyCount =
+          anomalyCheck && anomalyCheck[0] ? Number(anomalyCheck[0].count) : 0;
 
         this.addResult(
           'Data Integrity (Anomaly check)',
           anomalyCount === 0,
-          anomalyCount === 0 ? 'No anomalies found' : `Found ${anomalyCount} anomalies`,
+          anomalyCount === 0
+            ? 'No anomalies found'
+            : `Found ${anomalyCount} anomalies`,
           { anomaly_count: anomalyCount }
         );
       } catch (error) {
-        this.addResult('Data Integrity', false, `Error: ${error instanceof Error ? error.message : String(error)}`);
+        this.addResult(
+          'Data Integrity',
+          false,
+          `Error: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
 
       // Test query performance
@@ -249,9 +303,12 @@ class DeploymentTester {
         `Query time: ${queryTime}ms (target: <50ms)`,
         { query_time_ms: queryTime }
       );
-
     } catch (error) {
-      this.addResult('PostgreSQL Tests', false, `Error: ${error instanceof Error ? error.message : String(error)}`);
+      this.addResult(
+        'PostgreSQL Tests',
+        false,
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -268,22 +325,31 @@ class DeploymentTester {
       const candles = await this.redisClient.zRange('eurusd:realtime', -1, -1);
 
       if (candles && candles.length > 0) {
-        const candleData = JSON.parse(candles[0]);
+        const candleData = JSON.parse(candles[0]!);
         const candleTime = new Date(candleData.t * 1000);
         const now = new Date();
-        const ageSeconds = Math.floor((now.getTime() - candleTime.getTime()) / 1000);
+        const ageSeconds = Math.floor(
+          (now.getTime() - candleTime.getTime()) / 1000
+        );
 
         this.addResult(
           'Data Freshness',
           ageSeconds < 120,
           `Latest candle: ${candleTime.toISOString()} (${ageSeconds}s old)`,
-          { age_seconds: ageSeconds, candle_timestamp: candleTime.toISOString() }
+          {
+            age_seconds: ageSeconds,
+            candle_timestamp: candleTime.toISOString(),
+          }
         );
       } else {
         this.addResult('Data Freshness', false, 'No data in Redis');
       }
     } catch (error) {
-      this.addResult('Data Freshness', false, `Error: ${error instanceof Error ? error.message : String(error)}`);
+      this.addResult(
+        'Data Freshness',
+        false,
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -306,7 +372,7 @@ class DeploymentTester {
         SELECT COUNT(*) as count FROM eurusd_m5
       `;
       pgRows = result && result[0] ? Number(result[0].count) : 0;
-    } catch (error) {
+    } catch {
       // Table might not exist
     }
 
@@ -323,7 +389,7 @@ class DeploymentTester {
         redis_candles: redisCandles,
         postgresql_rows: pgRows,
         redis_ok: hasRedisData,
-        postgresql_ok: hasPgData
+        postgresql_ok: hasPgData,
       }
     );
   }
@@ -335,7 +401,7 @@ class DeploymentTester {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     const total = this.results.length;
-    const passed = this.results.filter(r => r.passed).length;
+    const passed = this.results.filter((r) => r.passed).length;
     const failed = total - passed;
     const passRate = Math.round((passed / total) * 100);
 
@@ -347,8 +413,8 @@ class DeploymentTester {
     if (failed > 0) {
       console.log('\n❌ Failed Tests:');
       this.results
-        .filter(r => !r.passed)
-        .forEach(r => {
+        .filter((r) => !r.passed)
+        .forEach((r) => {
           console.log(`   • ${r.test}: ${r.message}`);
         });
     }
@@ -360,7 +426,9 @@ class DeploymentTester {
     } else if (passRate >= 80) {
       console.log('⚠️  Most tests passed, but some issues need attention.');
     } else {
-      console.log('❌ Multiple tests failed. Deployment verification incomplete.');
+      console.log(
+        '❌ Multiple tests failed. Deployment verification incomplete.'
+      );
     }
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');

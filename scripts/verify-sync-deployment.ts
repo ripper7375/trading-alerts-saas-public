@@ -7,10 +7,12 @@
  * and configured on the Contabo VPS (via SSH or API calls)
  */
 
-import { createClient } from 'redis';
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+import { createClient } from 'redis';
 
 interface VerificationResult {
   category: string;
@@ -23,12 +25,16 @@ interface VerificationResult {
 }
 
 class SyncDeploymentVerifier {
-  private redisClient: any;
+  private redisClient: ReturnType<typeof createClient> | undefined;
   private prisma: PrismaClient;
   private results: VerificationResult[] = [];
 
   constructor() {
-    this.prisma = new PrismaClient();
+    const adapter = new PrismaPg({
+      connectionString: process.env['DATABASE_URL'],
+      ssl: { rejectUnauthorized: false },
+    });
+    this.prisma = new PrismaClient({ adapter });
   }
 
   async initialize(): Promise<void> {
@@ -93,7 +99,9 @@ class SyncDeploymentVerifier {
       if (exists) {
         const stats = fs.statSync(filePath);
         const size = stats.size;
-        console.log(`   Size: ${size} bytes, Modified: ${stats.mtime.toISOString()}`);
+        console.log(
+          `   Size: ${size} bytes, Modified: ${stats.mtime.toISOString()}`
+        );
       }
     }
   }
@@ -108,11 +116,7 @@ class SyncDeploymentVerifier {
       'DATABASE_URL', // For Prisma
     ];
 
-    const optionalEnvVars = [
-      'SQLITE_PATH',
-      'ENABLE_REDIS_SYNC',
-      'LOG_LEVEL',
-    ];
+    const optionalEnvVars = ['SQLITE_PATH', 'ENABLE_REDIS_SYNC', 'LOG_LEVEL'];
 
     // Check required vars
     for (const varName of requiredEnvVars) {
@@ -150,7 +154,8 @@ class SyncDeploymentVerifier {
 
     // Test PostgreSQL
     try {
-      const result: Array<{ version: string }> = await this.prisma.$queryRaw`SELECT version()`;
+      const result: Array<{ version: string }> = await this.prisma
+        .$queryRaw`SELECT version()`;
       const version = result && result[0] ? result[0].version : 'Unknown';
 
       this.addCheck(
@@ -175,7 +180,8 @@ class SyncDeploymentVerifier {
       try {
         const pong = await this.redisClient.ping();
         const info = await this.redisClient.info();
-        const redisVersion = info.match(/redis_version:(\S+)/)?.[1] || 'unknown';
+        const redisVersion =
+          info.match(/redis_version:(\S+)/)?.[1] || 'unknown';
 
         this.addCheck(
           'Database Connections',
@@ -229,7 +235,8 @@ class SyncDeploymentVerifier {
       );
 
       // Check for market_data table (raw data)
-      const marketDataCheck: Array<{ exists: boolean }> = await this.prisma.$queryRaw`
+      const marketDataCheck: Array<{ exists: boolean }> = await this.prisma
+        .$queryRaw`
         SELECT EXISTS (
           SELECT FROM information_schema.tables
           WHERE table_schema = 'public'
@@ -240,13 +247,18 @@ class SyncDeploymentVerifier {
       this.addCheck(
         'Database Schema',
         'market_data table',
-        marketDataCheck && marketDataCheck[0] ? marketDataCheck[0].exists : false,
-        marketDataCheck && marketDataCheck[0] && marketDataCheck[0].exists ? 'Table exists' : 'Table missing',
+        marketDataCheck && marketDataCheck[0]
+          ? marketDataCheck[0].exists
+          : false,
+        marketDataCheck && marketDataCheck[0] && marketDataCheck[0].exists
+          ? 'Table exists'
+          : 'Table missing',
         false
       );
 
       // Verify table structure for eurusd_m5
-      const columns: Array<{ column_name: string }> = await this.prisma.$queryRaw`
+      const columns: Array<{ column_name: string }> = await this.prisma
+        .$queryRaw`
         SELECT column_name
         FROM information_schema.columns
         WHERE table_schema = 'public'
@@ -320,7 +332,7 @@ class SyncDeploymentVerifier {
           if (count > 0) {
             const sample = await this.redisClient.zRange(key, -1, -1);
             if (sample && sample.length > 0) {
-              const data = JSON.parse(sample[0]);
+              const data = JSON.parse(sample[0]!);
               const hasRequiredFields = ['t', 'o', 'h', 'l', 'c'].every(
                 (field) => field in data
               );
@@ -329,9 +341,7 @@ class SyncDeploymentVerifier {
                 'Redis Data Structure',
                 `${symbol} format`,
                 hasRequiredFields,
-                hasRequiredFields
-                  ? 'Valid OHLC format'
-                  : 'Invalid format',
+                hasRequiredFields ? 'Valid OHLC format' : 'Invalid format',
                 false
               );
             }
@@ -374,7 +384,9 @@ class SyncDeploymentVerifier {
     for (const result of this.results) {
       const total = result.checks.length;
       const passed = result.checks.filter((c) => c.passed).length;
-      const critical = result.checks.filter((c) => c.critical && !c.passed).length;
+      const critical = result.checks.filter(
+        (c) => c.critical && !c.passed
+      ).length;
 
       console.log(`\n${result.category}:`);
       console.log(`  Total checks: ${total}`);
@@ -400,16 +412,22 @@ class SyncDeploymentVerifier {
     const allChecks = this.results.flatMap((r) => r.checks);
     const totalChecks = allChecks.length;
     const totalPassed = allChecks.filter((c) => c.passed).length;
-    const criticalFailures = allChecks.filter((c) => c.critical && !c.passed).length;
+    const criticalFailures = allChecks.filter(
+      (c) => c.critical && !c.passed
+    ).length;
 
     console.log(`\nOverall: ${totalPassed}/${totalChecks} checks passed`);
 
     if (criticalFailures > 0) {
-      console.log(`🔴 ${criticalFailures} CRITICAL FAILURES - Deployment not ready`);
+      console.log(
+        `🔴 ${criticalFailures} CRITICAL FAILURES - Deployment not ready`
+      );
     } else if (totalPassed === totalChecks) {
       console.log('✅ All checks passed - Deployment verified');
     } else {
-      console.log('⚠️  Some non-critical checks failed - Review before proceeding');
+      console.log(
+        '⚠️  Some non-critical checks failed - Review before proceeding'
+      );
     }
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');

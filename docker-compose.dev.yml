@@ -49,11 +49,6 @@ services:
       - REDIS_URL=redis://redis:6379
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=dev-only-insecure-secret-change-me
-      # ts-node defaults to an ESM loader path here because tsconfig.json sets
-      # "module": "esnext"; that loader doesn't understand bare .ts files, so
-      # `pnpm run db:seed` (ts-node prisma/seed.ts) fails with
-      # ERR_UNKNOWN_FILE_EXTENSION unless ts-node is told to transpile to CJS.
-      - TS_NODE_COMPILER_OPTIONS={"module":"commonjs"}
     volumes:
       - .:/app
       - web_node_modules:/app/node_modules

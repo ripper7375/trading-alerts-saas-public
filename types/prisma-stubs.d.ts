@@ -5,7 +5,7 @@
  * cannot be generated (e.g., network restrictions blocking binaries.prisma.sh).
  *
  * Generated from prisma/schema.prisma
- * Updated for Prisma 6.x compatibility
+ * Updated for Prisma 7.x compatibility
  */
 
 declare module '@prisma/client' {
@@ -1091,12 +1091,16 @@ declare module '@prisma/client' {
   // ============================================================
 
   // Prisma 5.x: Enhanced client options
+  // Prisma 7.x: driver adapters are mandatory at runtime (see lib/db/prisma.ts);
+  // `adapter` is typed loosely here since this stub only needs to satisfy the
+  // compiler, never actually construct a working client.
   export type PrismaClientOptions = {
     datasources?: {
       db?: {
         url?: string;
       };
     };
+    adapter?: unknown;
     log?: Array<
       | 'query'
       | 'info'

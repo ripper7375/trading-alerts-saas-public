@@ -43,7 +43,7 @@
     "test:mt5:deployment": "tsx scripts/test-mt5-deployment.ts",
     "test:mt5:monitor": "tsx scripts/monitor-mt5-pipeline.ts",
     "test:mt5:all": "npm run test:mt5:verify && npm run test:mt5:deployment && npm run test:mt5:monitor",
-    "worker:alerts": "node -r ts-node/register -r tsconfig-paths/register scripts/alert-worker.ts",
+    "worker:alerts": "tsx scripts/alert-worker.ts",
     "e2e:setup": "bash scripts/setup-e2e.sh",
     "health:check": "node scripts/health-check-ui.js",
     "health:check:http": "node scripts/health-check-ui.js --http",
@@ -64,7 +64,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "ts-node prisma/seed.ts",
+    "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "prepare": "husky",
     "postinstall": "prisma generate",
@@ -88,7 +88,8 @@
   "dependencies": {
     "@hookform/resolvers": "^3.3.3",
     "@next-auth/prisma-adapter": "^1.0.7",
-    "@prisma/client": "^6.19.2",
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-checkbox": "^1.0.4",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -150,6 +151,7 @@
     "@types/react-dom": "^18.2.17",
     "@vercel/analytics": "^1.1.1",
     "autoprefixer": "^10.4.16",
+    "dotenv": "17.4.2",
     "eslint": "^9.39.2",
     "eslint-config-next": "^15.5.11",
     "husky": "^9.1.7",
@@ -162,11 +164,11 @@
     "postcss": "^8.4.32",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.7.1",
-    "prisma": "^6.19.2",
+    "prisma": "7.8.0",
     "rimraf": "^5.0.5",
     "tailwindcss": "^3.3.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.2",
+    "tsx": "4.23.1",
+    "typescript": "^5.4.0",
     "undici": "^6.23.0"
   },
   "overrides": {
@@ -189,9 +191,6 @@
       "minimatch@<3.1.3": "3.1.4",
       "minimatch@>=9.0.0 <9.0.6": "9.0.7"
     }
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
   },
   "engines": {
     "node": ">=20.0.0",

@@ -7,8 +7,9 @@
  * and can be run periodically (e.g., every 5 minutes)
  */
 
-import { createClient } from 'redis';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { createClient } from 'redis';
 
 interface HealthStatus {
   timestamp: string;
@@ -25,16 +26,20 @@ interface HealthStatus {
 interface ComponentHealth {
   status: 'healthy' | 'warning' | 'critical';
   message: string;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
 }
 
 class PipelineHealthMonitor {
-  private redisClient: any;
+  private redisClient: ReturnType<typeof createClient> | undefined;
   private prisma: PrismaClient;
   private alerts: string[] = [];
 
   constructor() {
-    this.prisma = new PrismaClient();
+    const adapter = new PrismaPg({
+      connectionString: process.env['DATABASE_URL'],
+      ssl: { rejectUnauthorized: false },
+    });
+    this.prisma = new PrismaClient({ adapter });
   }
 
   async initialize(): Promise<void> {
@@ -82,7 +87,9 @@ class PipelineHealthMonitor {
         if (count >= 200) {
           symbolsOk++;
         } else if (count < 200) {
-          this.addAlert(`Redis ${symbol.toUpperCase()} has only ${count} candles (expected ~250)`);
+          this.addAlert(
+            `Redis ${symbol.toUpperCase()} has only ${count} candles (expected ~250)`
+          );
         }
       }
 
@@ -119,7 +126,9 @@ class PipelineHealthMonitor {
         },
       };
     } catch (error) {
-      this.addAlert(`Redis connection failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.addAlert(
+        `Redis connection failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         status: 'critical',
         message: `Connection failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -145,7 +154,9 @@ class PipelineHealthMonitor {
       const expectedTables = 3; // eurusd_m5, btcusd_m5, xauusd_m5
 
       if (tables.length !== expectedTables) {
-        this.addAlert(`PostgreSQL missing tables: found ${tables.length}/${expectedTables}`);
+        this.addAlert(
+          `PostgreSQL missing tables: found ${tables.length}/${expectedTables}`
+        );
         return {
           status: 'critical',
           message: `Missing tables: found ${tables.length}/${expectedTables}`,
@@ -157,7 +168,8 @@ class PipelineHealthMonitor {
       const eurusdCount: Array<{ count: bigint }> = await this.prisma.$queryRaw`
         SELECT COUNT(*) as count FROM eurusd_m5
       `;
-      const rowCount = eurusdCount && eurusdCount[0] ? Number(eurusdCount[0].count) : 0;
+      const rowCount =
+        eurusdCount && eurusdCount[0] ? Number(eurusdCount[0].count) : 0;
 
       // Determine status
       let status: 'healthy' | 'warning' | 'critical';
@@ -186,7 +198,9 @@ class PipelineHealthMonitor {
         },
       };
     } catch (error) {
-      this.addAlert(`PostgreSQL connection failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.addAlert(
+        `PostgreSQL connection failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         status: 'critical',
         message: `Connection failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -213,10 +227,12 @@ class PipelineHealthMonitor {
         };
       }
 
-      const candleData = JSON.parse(candles[0]);
+      const candleData = JSON.parse(candles[0]!);
       const candleTime = new Date(candleData.t * 1000);
       const now = new Date();
-      const ageSeconds = Math.floor((now.getTime() - candleTime.getTime()) / 1000);
+      const ageSeconds = Math.floor(
+        (now.getTime() - candleTime.getTime()) / 1000
+      );
 
       let status: 'healthy' | 'warning' | 'critical';
       let message: string;
@@ -245,7 +261,9 @@ class PipelineHealthMonitor {
         },
       };
     } catch (error) {
-      this.addAlert(`Data freshness check failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.addAlert(
+        `Data freshness check failed: ${error instanceof Error ? error.message : String(error)}`
+      );
       return {
         status: 'critical',
         message: `Check failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -261,15 +279,18 @@ class PipelineHealthMonitor {
         FROM eurusd_m5
         WHERE open IS NULL OR high IS NULL OR low IS NULL OR close IS NULL
       `;
-      const nullCount = nullCheck && nullCheck[0] ? Number(nullCheck[0].count) : 0;
+      const nullCount =
+        nullCheck && nullCheck[0] ? Number(nullCheck[0].count) : 0;
 
       // Check for anomalies
-      const anomalyCheck: Array<{ count: bigint }> = await this.prisma.$queryRaw`
+      const anomalyCheck: Array<{ count: bigint }> = await this.prisma
+        .$queryRaw`
         SELECT COUNT(*) as count
         FROM eurusd_m5
         WHERE high < low OR open < 0 OR close < 0
       `;
-      const anomalyCount = anomalyCheck && anomalyCheck[0] ? Number(anomalyCheck[0].count) : 0;
+      const anomalyCount =
+        anomalyCheck && anomalyCheck[0] ? Number(anomalyCheck[0].count) : 0;
 
       let status: 'healthy' | 'warning' | 'critical';
       let message: string;
@@ -311,25 +332,36 @@ class PipelineHealthMonitor {
     }
 
     const postgresql = await this.checkPostgreSQLHealth();
-    console.log(`🐘 PostgreSQL: ${postgresql.status.toUpperCase()} - ${postgresql.message}`);
+    console.log(
+      `🐘 PostgreSQL: ${postgresql.status.toUpperCase()} - ${postgresql.message}`
+    );
     if (postgresql.metrics) {
       console.log(`   Metrics: ${JSON.stringify(postgresql.metrics)}`);
     }
 
     const dataFreshness = await this.checkDataFreshness();
-    console.log(`⏰ Data Freshness: ${dataFreshness.status.toUpperCase()} - ${dataFreshness.message}`);
+    console.log(
+      `⏰ Data Freshness: ${dataFreshness.status.toUpperCase()} - ${dataFreshness.message}`
+    );
     if (dataFreshness.metrics) {
       console.log(`   Metrics: ${JSON.stringify(dataFreshness.metrics)}`);
     }
 
     const dataIntegrity = await this.checkDataIntegrity();
-    console.log(`✓  Data Integrity: ${dataIntegrity.status.toUpperCase()} - ${dataIntegrity.message}`);
+    console.log(
+      `✓  Data Integrity: ${dataIntegrity.status.toUpperCase()} - ${dataIntegrity.message}`
+    );
     if (dataIntegrity.metrics) {
       console.log(`   Metrics: ${JSON.stringify(dataIntegrity.metrics)}`);
     }
 
     // Determine overall status
-    const statuses = [redis.status, postgresql.status, dataFreshness.status, dataIntegrity.status];
+    const statuses = [
+      redis.status,
+      postgresql.status,
+      dataFreshness.status,
+      dataIntegrity.status,
+    ];
     let overall: 'healthy' | 'degraded' | 'critical';
 
     if (statuses.includes('critical')) {
