@@ -15,11 +15,8 @@ import crypto from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';
 
-import {
-  CODE_GENERATION,
-  getAffiliateConfigFromDB,
-  type DistributionReason,
-} from './constants';
+import { CODE_GENERATION, type DistributionReason } from './constants';
+import { getAffiliateConfigFromDB } from './db';
 import type { AffiliateCode } from './types';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

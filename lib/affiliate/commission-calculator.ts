@@ -13,7 +13,8 @@
  * @module lib/affiliate/commission-calculator
  */
 
-import { AFFILIATE_CONFIG, getAffiliateConfigFromDB } from './constants';
+import { AFFILIATE_CONFIG } from './constants';
+import { getAffiliateConfigFromDB } from './db';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES

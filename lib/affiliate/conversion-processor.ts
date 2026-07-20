@@ -23,7 +23,7 @@
 import { prisma } from '@/lib/db/prisma';
 
 import { calculateFullBreakdown } from './commission-calculator';
-import { getBasePriceUsd } from './constants';
+import { getBasePriceUsd } from './db';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES

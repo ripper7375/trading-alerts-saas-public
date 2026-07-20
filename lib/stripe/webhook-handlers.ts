@@ -22,7 +22,8 @@ import {
 } from '@/lib/email/subscription-emails';
 import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
-import { AFFILIATE_CONFIG, getBasePriceUsd } from '@/lib/affiliate/constants';
+import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { getBasePriceUsd } from '@/lib/affiliate/db';
 
 /**
  * Subscription/AffiliateProfile no longer carry a `user` relation (Session

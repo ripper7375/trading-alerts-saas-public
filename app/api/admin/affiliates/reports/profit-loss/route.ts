@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
-import { getAffiliateConfigFromDB } from '@/lib/affiliate/constants';
+import { getAffiliateConfigFromDB } from '@/lib/affiliate/db';
 import { getReportingPeriod } from '@/lib/admin/pnl-calculator';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
