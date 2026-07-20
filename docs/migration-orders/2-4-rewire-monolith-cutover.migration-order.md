@@ -9,9 +9,12 @@
 > playbook's own Session 2-4 ("Rewire the monolith")** at Session 2-2's follow-up
 > close, once it became clear the playbook already sequences this work as 2-4, after
 > a dedicated Session 2-3 (baseline + FK audit) — not as an immediate "2-2b" — see
-> `LESSONS-LEARNED.md` L23. Needs the Advisor to produce the DRAFT, then Davin's
-> APPROVAL, before a future session CONFIRMs and executes it. **Entry criteria now
-> depend on Session 2-3 closing first, not Session 2-2** (2-2 already closed).
+> `LESSONS-LEARNED.md` L23. **Refreshed at Session 2-3's close (2026-07-20) now that
+> 2-3 has actually executed** — the "should now be baselined" hedging below is
+> replaced with confirmed facts; see `DECISION-LOG.md` F20 and `LESSONS-LEARNED.md`
+> L24 for full detail. Needs the Advisor to produce the DRAFT, then Davin's APPROVAL,
+> before a future session CONFIRMs and executes it. **Entry criteria depend on
+> Session 2-3, which is now closed** (F20 RESOLVED).
 
 **Session:** 2-4 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6),
 plan step 2.5–2.6 · **Variant:** PORT · **Generated:** 2026-07-20 (corrected) ·
@@ -29,20 +32,41 @@ cross-stack move).
   `RefreshToken` stub, Session 2-2). Both `prisma validate` clean, both generate
   working clients (`node_modules/.prisma/market-client`,
   `node_modules/.prisma/non-market-client`).
-- **Migration history baselined and FK audit applied (Session 2-3 — re-verify at
-  CONFIRM, don't assume):** both new schemas' migration history should now be
-  baselined against the live database (F20 closed), and the money↔User FK audit
-  (plan step 2.4) should have converted `Subscription`, `Payment`, `FraudAlert`, and
-  `AffiliateProfile`'s `user User @relation(...)` fields into plain indexed
-  `userId` columns (FK constraint dropped, column + index kept) in
-  `prisma/non-market-data/schema.prisma`. **This session's consumer-repointing work
-  must account for that** — any of the 16 files that previously did
-  `include: { user: true }` (or similar relation-based queries) on `Payment`,
-  `Subscription`, `FraudAlert`, or `AffiliateProfile` will no longer compile/work
-  once that relation is gone, and needs a plain `prisma.user.findUnique({ where: {
-id: payment.userId } })`-style lookup instead — grep for `.user` includes on
-  these 4 models specifically before repointing, don't assume Session 2-3 already
-  caught every call site.
+- **Migration history baselined and FK audit applied — Session 2-3 executed and
+  closed, F20 RESOLVED (re-verify still holds at CONFIRM, don't assume from this
+  PRE-DRAFT's snapshot):** production's migration history is baselined. **One
+  architectural deviation to be aware of, Davin-approved:** the two new schema
+  files do NOT have independent migration histories — Prisma 7's migrations path is
+  singular and config-driven, not per-`--schema` (confirmed empirically at 2-3's
+  CONFIRM), so both schemas share the single `prisma/migrations/` folder as sole
+  source of truth until a future physical DB split. This doesn't change this
+  session's scope (consumer-repointing never touches migration history), but don't
+  assume "two histories" if referencing the plan document, which still implies that.
+  Full detail: `DECISION-LOG.md` F20, `LESSONS-LEARNED.md` L24.
+
+  The money↔User FK audit (plan step 2.4) **has been applied to production**, not
+  just planned. Confirmed dropped, each with column + index kept:
+
+  | Model              | FK constraint dropped          | `userId` column | Index kept          |
+  | ------------------ | ------------------------------ | --------------- | ------------------- |
+  | `Subscription`     | `Subscription_userId_fkey`     | kept, unchanged | `@@index([userId])` |
+  | `Payment`          | `Payment_userId_fkey`          | kept, unchanged | `@@index([userId])` |
+  | `FraudAlert`       | `FraudAlert_userId_fkey`       | kept, unchanged | `@@index([userId])` |
+  | `AffiliateProfile` | `AffiliateProfile_userId_fkey` | kept, unchanged | `@@index([userId])` |
+
+  `User`'s 4 matching reverse fields (`subscription`, `payments`, `fraudAlerts`,
+  `affiliateProfile`) are also gone from `prisma/non-market-data/schema.prisma`.
+  Generated client's `SubscriptionInclude`/`PaymentInclude`/`FraudAlertInclude`/
+  `AffiliateProfileInclude` no longer expose a `user` accessor (spot-checked in
+  `index.d.ts` at 2-3's close). **This session's consumer-repointing work must
+  account for that** — any of the 16 files that previously did
+  `include: { user: true }` (or similar relation-based queries) on these 4 models
+  will no longer compile once repointed to the non-market client, and needs a plain
+  `prisma.user.findUnique({ where: { id: payment.userId } })`-style lookup instead
+  — grep for `.user` includes on these 4 models specifically before repointing,
+  don't assume Session 2-3 already caught every call site (it didn't try to — that
+  was explicitly out of 2-3's scope).
+
 - **Old `prisma/schema.prisma` is untouched and change-frozen (CC-F)** — it is still
   the only schema every existing consumer actually imports from (`@prisma/client` →
   `node_modules/.prisma/client`, the original default output). **Unless Session 2-3
@@ -65,9 +89,10 @@ id: payment.userId } })`-style lookup instead — grep for `.user` includes on
 
 ## Entry criteria
 
-- [ ] Session 2-3 fully closed — migration history baselined for both new schemas
-      (F20 RESOLVED in `DECISION-LOG.md`), money↔User FK audit applied and documented
-      — re-verify at CONFIRM, don't assume from this PRE-DRAFT's context.
+- [ ] Session 2-3 fully closed — migration history baselined (single shared
+      `prisma/migrations/`, per the deviation, not two independent histories; F20
+      RESOLVED in `DECISION-LOG.md`), money↔User FK audit applied and documented —
+      re-verify at CONFIRM, don't assume from this PRE-DRAFT's context.
 - [ ] File inventory re-verified: re-run the 16-consumer-file grep against live
       `app/**`, `lib/**`, `prisma/seed.ts` (scoped to exclude `frontend/` mirror,
       `railway-gateway/`, `seed-code/` vendor dirs per the standing do-not-touch list)
