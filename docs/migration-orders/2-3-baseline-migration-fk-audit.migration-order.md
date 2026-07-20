@@ -10,11 +10,8 @@
 > **Creativity dial: Low for the FK-audit schema edits (pure structural removal); ZERO
 > for anything touching live production data** — the `drop_watchlists` handling below
 > is Davin's decision, not a technical judgment call.
-> **Status: PRE-DRAFT** — written by the Executor at Session 2-2's follow-up close
-> (2026-07-20), per the playbook's own Session 2-3 scope (`monolith-to-microservices-
-migration-session-playbook.md` line 184) and plan steps 2.3–2.4. Needs the Advisor
-> to produce the DRAFT, then Davin's APPROVAL, before a future session CONFIRMs and
-> executes it. **This is a hard escalation session — see "Davin must decide" below;
+> **Status: APPROVED** — approved by Davin.
+> Ready for a future session to CONFIRM and execute it. **This is a hard escalation session — see "Davin must decide" below;
 > do not let CONFIRM be a rubber stamp.**
 
 **Session:** 2-3 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6),
@@ -153,8 +150,8 @@ must explicitly waive that (as he did for 2-1) or this session stops at Step 1.
 
 - **SOURCE:** none (no schema/model changes in this step — purely migration-history
   bookkeeping) → **TARGET:** production's `_prisma_migrations` table, via
-  `prisma migrate resolve --applied <name>` per migration, run against the DIRECT url
-  (per L3), one at a time, re-checking `migrate status` after each.
+  `prisma migrate resolve --applied <name>`.
+- **CRITICAL REQUIREMENT:** The very first migration file generated for the new schemas MUST be a no-op baseline — never a massive `CREATE TABLE` script (which `migrate dev --name init` would do). Use `prisma migrate diff` or create an empty SQL file, then `resolve --applied` it to baseline the new schema directories.
 - **Kind:** infra/migration bookkeeping, not a port.
 - **Mechanism for `drop_watchlists` specifically:** per Davin's Step-1 decision — either
   actually run the drop (backed up first) then mark applied, or strip it from the
@@ -200,6 +197,7 @@ data/schema.prisma --name drop_money_user_fk_constraints`), **read the generated
 - **Zero creativity on the `drop_watchlists` decision** — it is Davin's call, made
   live, not inferred from "the schema already doesn't have these models so probably
   fine to drop." Document his exact words/decision in Deviations.
+- **First migration must be a no-op baseline — never a create.** Do not generate a massive `CREATE TABLE` migration for the new schemas.
 - Changing a ported test's assertion requires a written justification in Deviations
   (L4).
 - Read every migration's actual SQL before running `resolve --applied` on it — never

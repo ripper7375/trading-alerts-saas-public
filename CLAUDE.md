@@ -133,7 +133,7 @@
   found Session 1-3, now more complex per Waiting-on item 2 above) · **F4 fully
   RESOLVED (Session 2-2)** — model census, 1 market + 26 non-market + `RefreshToken`
   stub · **F5 fully RESOLVED (Session 2-2)** — two-file layout via explicit
-  `--schema=` CLI invocations, cutover split into 2-2/2-2b · F6–F16 OPEN
+  `--schema=` CLI invocations, cutover split into 2-2/2-2b · **F21 OPEN** (24h Account-Deletion GDPR gap — requires Davin's product decision on hard-delete vs anonymize, scheduled for a future session) · F6–F16 OPEN
   (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
