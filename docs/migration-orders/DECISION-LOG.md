@@ -43,7 +43,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                     | RESOLVED — Session 2-1                                                                                                 |
 | F20  | Production migration history unbaselined                                      | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
 | F21  | 24h Account-Deletion GDPR gap                                                 | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
-| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live) | OPEN — found Session 2-4, needs Davin's go-ahead + priority call                                                       |
+| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live) | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
 
 ---
 
@@ -709,10 +709,12 @@ string` (singular — checked the installed package's own `.d.ts` directly, not 
   `2-4-rewire-monolith-cutover.migration-order.md`; `LESSONS-LEARNED.md` L25.
 - Approved by: Davin (live, at CONFIRM).
 
-## F22 — lib/affiliate/constants.ts breaks `npm run build` (pre-existing)
+## F22 — lib/affiliate/constants.ts breaks `npm run build` (pre-existing) — RESOLVED
 
-- Status: OPEN
-- Session: found 2-4 (not caused by it) · Date: 2026-07-20
+- Status: RESOLVED
+- Session: found and resolved 2-4, same session (found via the corrected order's
+  "done when" checklist; fixed as a same-session follow-up once Davin explicitly
+  requested it, live) · Date: 2026-07-20
 - Problem: `npm run build` fails — `Module not found: Can't resolve 'dns'`
   from `pg` (via `@prisma/adapter-pg` via `lib/db/prisma.ts`), pulled into a
   **client-side** bundle. Import trace:
@@ -740,9 +742,28 @@ lib/db/prisma.ts` → commit `256f6e43` ("migrate(2-1): bump prisma/
   may mean **production builds have been broken since Session 2-1**,
   same-day, undetected because prior sessions verified via `npm run
 test:ci`/`validate`, not `npm run build`.
-- Not fixed this session: would require splitting `lib/affiliate/constants.ts`
-  into a client-safe constants module and a server-only DB-config module —
-  a real, if small, architecture change outside Session 2-4's FK/relation-
-  repoint mandate. Needs Davin's go-ahead and a priority call given the
-  live-build-risk implication.
-- Approved by: n/a — OPEN, awaiting Davin.
+- Decision: Davin explicitly requested the fix live, same session ("A broken
+  build means we cannot deploy, so we cannot leave Phase 2 with a failing
+  npm run build"). Split `lib/affiliate/constants.ts`: the 6 DB-backed
+  functions (`getAffiliateConfigFromDB`, `getDiscountPercent`,
+  `getCommissionPercent`, `getCodesPerMonth`, `getBasePriceUsd`,
+  `getThreeDayPriceUsd`) moved to a new `lib/affiliate/db.ts` (server-only);
+  `constants.ts` keeps only `AFFILIATE_CONFIG`, `CODE_GENERATION`, and types —
+  safe for any `'use client'` component. 5 consumers repointed
+  (`code-generator.ts`, `commission-calculator.ts`, `conversion-processor.ts`,
+  `webhook-handlers.ts`, the profit-loss report route).
+  **Bonus fix, same follow-up (Davin approved live after I surfaced it as a
+  second, unrelated blocker):** `npm run build` still failed after the F22
+  fix — 2 pre-existing, unrelated TS errors in `app/api/drawings/route.ts`
+  and `app/api/drawings/[id]/route.ts` (`lib/drawing/schema.ts`'s `StyleZ`
+  uses Zod's `.passthrough()`, producing a type Prisma's strict
+  `InputJsonValue` can't structurally verify). Cast at both call sites
+  (`as Prisma.InputJsonValue`) rather than loosen the Zod schema. Confirmed
+  pre-existing and unrelated to F22/Session 2-4 via git blame before fixing.
+- Evidence: `npm run build` exits 0 end-to-end (previously failed at the
+  webpack `dns`-resolution step, then again at the `tsc` step once that was
+  fixed). `npm run type-check` clean, zero exceptions (previously 2). Full
+  `npm run test:ci` — 111/111 suites, 2046/2046 tests, no regressions.
+  Commits `495cbea2` (constants/db split) and `5b139acc` (Drawing JSON cast).
+- Approved by: Davin (live, explicit go-ahead for both the constants split
+  and the Drawing fix).

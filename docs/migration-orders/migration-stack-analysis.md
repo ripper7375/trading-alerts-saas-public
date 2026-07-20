@@ -1101,12 +1101,21 @@ client` block (`output = "../../node_modules/.prisma/market-client"`). **Session
 </details>
 
 <details>
-<summary><code>lib/affiliate/</code> — 8 files</summary>
+<summary><code>lib/affiliate/</code> — 9 files (Session 2-4 F22 follow-up: +1, db.ts)</summary>
 
-- `lib/affiliate/code-generator.ts`
-- `lib/affiliate/commission-calculator.ts`
-- `lib/affiliate/constants.ts`
-- `lib/affiliate/conversion-processor.ts`
+- `lib/affiliate/code-generator.ts` — Session 2-4 (F22): `getAffiliateConfigFromDB`
+  import repointed from `./constants` to `./db`.
+- `lib/affiliate/commission-calculator.ts` — same F22 repoint.
+- `lib/affiliate/constants.ts` — **Session 2-4 (F22):** the 6 DB-backed config
+  functions (`getAffiliateConfigFromDB` and its 5 single-field wrappers) moved out to
+  the new `lib/affiliate/db.ts`; this file no longer imports `@/lib/db/prisma` at
+  all — now safe for any `'use client'` component to import (it wasn't: this file
+  was F22's root cause, tainting `app/affiliate/register/page.tsx`'s client bundle
+  with the `pg`/`dns` server-only dependency chain and breaking `npm run build`).
+  Keeps only `AFFILIATE_CONFIG`, `CODE_GENERATION`, and types.
+- `lib/affiliate/db.ts` — **new, Session 2-4 (F22).** Server-only: the 6 functions
+  moved out of `constants.ts`, importing `prisma` from `@/lib/db/prisma`.
+- `lib/affiliate/conversion-processor.ts` — same F22 repoint (`getBasePriceUsd`).
 - `lib/affiliate/registration.ts`
 - `lib/affiliate/report-builder.ts`
 - `lib/affiliate/types.ts`
