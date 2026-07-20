@@ -147,4 +147,4 @@ export interface MarketDataV6 {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
-// V8 migration: unified market_data_v6 typing — see prisma/schema.prisma
+// V8 migration: unified market_data_v6 typing — see prisma/market-data/schema.prisma

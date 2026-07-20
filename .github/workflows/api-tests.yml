@@ -84,7 +84,7 @@ jobs:
         if: steps.check_project.outputs.project_exists == 'true'
         id: check_prisma
         run: |
-          if [ -f "prisma/schema.prisma" ]; then
+          if [ -f "prisma/non-market-data/schema.prisma" ]; then
             echo "prisma_exists=true" >> $GITHUB_OUTPUT
             echo "✅ Prisma schema found"
           else

@@ -1,15 +1,16 @@
 // This schema exists ONLY so this service can `prisma generate` a typed
 // client for the one table it writes to. It is NOT the source of truth for
-// migrations — the root Next.js app (`prisma/schema.prisma`) owns the actual
-// `market_data_v6` table and its migration history. NEVER run
-// `prisma migrate` from this package: two independent Prisma projects
-// managing migrations against the same physical table would fight over the
-// `_prisma_migrations` bookkeeping table.
+// migrations — the root Next.js app (`prisma/market-data/schema.prisma`)
+// owns the actual `market_data_v6` table and its migration history (shared
+// with prisma/non-market-data/schema.prisma — see LESSONS-LEARNED.md L24).
+// NEVER run `prisma migrate` from this package: two independent Prisma
+// projects managing migrations against the same physical table would fight
+// over the `_prisma_migrations` bookkeeping table.
 //
 // Keep this model definition byte-for-byte in sync with the `MarketDataV6`
-// model in the root schema (`../../prisma/schema.prisma`) — the dto-contract
-// test in this package's test suite does not check this file, so any change
-// to the field list must be applied in both places by hand.
+// model in the root schema (`../../prisma/market-data/schema.prisma`) — the
+// dto-contract test in this package's test suite does not check this file,
+// so any change to the field list must be applied in both places by hand.
 
 generator client {
   provider = "prisma-client-js"
