@@ -4,11 +4,14 @@
 > PORT). Read `00-SKELETON-AND-RULES.md` §4 first.
 > **Creativity dial: Low** — this is purely import-repointing; no model/field changes,
 > no new business logic.
-> **Status: CONFIRMED** — approved by Davin; CONFIRMed this session (2026-07-20)
+> **Status: EXECUTED** — approved by Davin, CONFIRMed this session (2026-07-20)
 > after re-verifying codebase/runtime state found the original Entry Criteria #2/#3
 > under-scoped (see the corrected criteria block below) — Davin approved the scope
-> correction live and cleared execution. **Entry criteria depend on Session 2-3,
-> which is now closed** (F20 RESOLVED).
+> correction live and cleared execution. **Fully executed the same session** — all
+> Slice-level verification items checked except one pre-existing, out-of-scope
+> `npm run build` failure (F22 in `DECISION-LOG.md`, unrelated to this order). See
+> the Deviations section for how much the actual scope grew beyond this order's
+> original "repoint imports" framing.
 
 **Session:** 2-4 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6),
 plan step 2.5–2.6 · **Variant:** PORT · **Generated:** 2026-07-20 (corrected) ·
@@ -239,7 +242,49 @@ grep is a snapshot, not ground truth by then)_
 
 ## Deviations
 
-_(filled during execution)_
+- **Scope grew far beyond "repoint imports" during execution, not just at CONFIRM.**
+  CONFIRM's own corrected estimate (3 files / 6 FK-audit call sites) was itself
+  wrong — the actual full-repo grep found 17 files / ~24 call sites, and several of
+  those were only discovered via `tsc --noEmit` mid-execution, not the grep:
+  - **Case-sensitivity miss:** CONFIRM's "zero files touch MarketDataV6" claim was
+    false — 2 files use `prisma.marketDataV6` (camelCase client property), invisible
+    to a grep for the PascalCase model name. Added a new `lib/db/market-prisma.ts`
+    singleton (not in this order's original plan) so those 2 files get the market
+    client without exposing it to every other consumer via the main singleton.
+  - **Reverse relation direction never checked:** the FK audit (Session 2-3) dropped
+    `Subscription`/`Payment`/`FraudAlert`/`AffiliateProfile`'s relation to `User`,
+    but also `User`'s 4 reverse fields. This order's entry criteria (even corrected)
+    only grepped the forward direction (`Subscription.include.user`); the reverse
+    (`User.include.subscription`/`payments`) broke 5 more files, caught only by
+    `tsc --noEmit` after the first fix pass.
+  - **Missing config/build-wiring step**, added during CONFIRM correction:
+    `prisma.config.ts`'s default schema and `package.json`'s
+    `prebuild`/`postinstall`/`db:generate` still pointed at the schema this order
+    deletes — without this step `npm run build` would have broken immediately post-
+    retirement for an entirely different reason than F22.
+  - **Test infrastructure needed real fixes, not just production code.** Every test
+    mocking the old relation-embedded shape needed updating to stub the new separate
+    lookups. Found and fixed a genuine Jest gotcha along the way (jest.mock()
+    hoisting is per-file; a shared setup file's mock only applies if imported before
+    the module under test) — cost real diagnostic time (see `LESSONS-LEARNED.md`
+    L26), including a mid-session regression where the pre-commit `eslint --fix`
+    silently re-broke 5 files' import order after they were first fixed.
+- **`npm run build` still fails — confirmed pre-existing, not fixed.** A real bug
+  (`lib/affiliate/constants.ts` mixing a client-safe constant with a top-level
+  server-only Prisma import, breaking any `'use client'` page that imports it) was
+  found but not fixed — confirmed via git blame to predate this session (Session
+  2-1, same calendar day). Fixing it means splitting that file, a real architecture
+  change outside this order's FK/relation-repoint mandate. Logged as new flag F22,
+  OPEN, needs Davin's go-ahead. This order's own "done when" checklist item for
+  `npm run build succeeding` is therefore NOT met — everything else is.
+- **railway-gateway's MarketDataV6 mirror comment drift, found and fixed separately
+  from the main repoint work** (commit `b48f74cd`, before the corrected order's
+  entry criteria were even re-verified): Session 2-2 added explanatory inline
+  comments to `prisma/market-data/schema.prisma` that were never mirrored back to
+  `railway-gateway/prisma/schema.prisma`, violating that file's own byte-for-byte
+  header requirement. Field list was already identical; synced the comments only —
+  the "known wrinkle" below (do not touch railway-gateway's file layout/Prisma
+  version) was respected throughout.
 
 ## Known wrinkles / do-not-touch
 

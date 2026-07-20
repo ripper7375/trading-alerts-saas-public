@@ -491,6 +491,80 @@ generate --schema=<path>` cleanly produces a separate client per schema — the 
 - Source: Session 2-3 (baseline migration history + FK audit), CONFIRM phase,
   2026-07-20 · Status: ACTIVE
 
+### L25 — A "known consumer files" grep is only as good as its blind spots: indirect consumption, case-sensitivity, and relation direction all hide real call sites
+
+- Symptom: Session 2-4's CONFIRM inherited a "16 known consumer files" premise
+  (literal `import ... from '@prisma/client'` grep, from Session 2-1). Re-running it
+  found real drift (14, not 16) but the bigger problem was methodological: ~97 more
+  files consume Prisma via the `lib/db/prisma.ts` singleton (`import { prisma } from
+'@/lib/db/prisma'`), invisible to a grep for the literal package specifier. CONFIRM
+  also claimed "zero files touch MarketDataV6" — false: 2 files use
+  `prisma.marketDataV6` (the camelCase client property), which a grep for the
+  PascalCase model name `MarketDataV6` never matches. And the FK-audit
+  `.user`-include grep only ever checked ONE relation direction — `Subscription/
+Payment/FraudAlert/AffiliateProfile → User` — never the reverse
+  (`User.include.subscription/payments`), which broke 5 more files, only caught by
+  `tsc --noEmit` after the first round of fixes.
+- Root cause: each grep was scoped to how the code happened to look at the moment it
+  was written, not to the actual mechanism (a shared singleton indirects almost all
+  real consumption; Prisma model names and their generated client properties differ
+  in case; a dropped `@relation` breaks both sides of it, not just the one being
+  audited).
+- Rule: when inventorying "who touches X" in a codebase with a shared client/service
+  singleton, grep the SINGLETON'S OWN import graph, not a literal specifier string —
+  and treat any singleton as the de facto choke point, not each direct importer.
+  When grepping for a Prisma model by name, ALSO grep the camelCase client-property
+  form (first letter lowercased) — they diverge in exactly this class of search.
+  When a migration/schema change drops a relation, grep BOTH sides of it (the
+  model's own includes AND the reverse side's), not just the side the change notes
+  originally called out. Trust `tsc --noEmit` as the final backstop, not the grep —
+  but don't treat a clean grep as proof there's nothing left for tsc to find.
+- Detect early: after any "N known files" inventory, sanity-check it against the
+  actual mechanism (singleton import count via `grep -rl 'from .@/lib/.../singleton.'`,
+  not the wrapped package) before trusting the number for scope/entry-criteria
+  purposes.
+- Source: Session 2-4, CONFIRM phase and mid-execution (`tsc --noEmit` surfaced the
+  camelCase and reverse-relation misses after the first fix pass), 2026-07-20 ·
+  Status: ACTIVE
+
+### L26 — A shared jest.mock() setup file only intercepts a module if it's imported before that module — and `eslint --fix`'s import/order rule doesn't know that
+
+- Symptom: `__tests__/lib/jobs/alert-checker.test.ts`'s Prisma mock silently stopped
+  applying — `prisma.alert.findMany` was a real, unmocked bound function, not a
+  jest.fn(), with no error until `.mockResolvedValue()` was called on it. Separately,
+  mid-session, a routine commit's pre-commit `eslint --fix` reordered
+  `import { prismaMock } from '../../setup'` to AFTER the module-under-test import in
+  5 other test files, and `npm run test:ci` silently dropped from 111/111 to 106/111
+  — no lint error, no test-runner warning, just wrong results.
+- Root cause: `jest.mock()` calls are hoisted to the top of the FILE THEY'RE WRITTEN
+  IN by Jest's SWC/babel transform — that hoisting is per-file, not transitive. A
+  shared `__tests__/setup.ts` that calls `jest.mock('@/lib/db/prisma', ...)` only
+  registers that mock for a given test file if `setup.ts` itself is imported (and
+  therefore evaluated) before anything else in that file requires `@/lib/db/prisma`
+  — ES imports execute in declaration order. `alert-checker.test.ts` never imported
+  `setup.ts` at all (it imported `{ prisma }` directly from `@/lib/db/prisma`), so it
+  always got the real client regardless of anything else changed. The 5-file
+  regression was the same mechanism from the opposite direction: `eslint --fix`'s
+  `import/order` rule sorts relative parent imports (`'../../setup'`) after aliased
+  `@/...` ones, with zero awareness that THIS particular relative import has a
+  load-bearing side effect that must run first.
+- Rule: any test file using a shared `jest.mock()`-based setup file must import that
+  setup file as the FIRST import — before any import that transitively touches the
+  mocked module. Wrap that import (and everything that must stay after it but before
+  unrelated imports) in `/* eslint-disable import/order */` ... `/* eslint-enable
+import/order */` so `eslint --fix` can't silently re-break it — a plain comment
+  explaining "don't reorder this" is NOT sufficient, `eslint-disable-next-line` is
+  NOT sufficient either (verified: it left the comment in place but still moved the
+  import). A file that needs the shared mock but never imports the setup file at all
+  (only imports the mocked module directly) gets NO benefit from the shared mock no
+  matter what order anything is in — it needs its own local `jest.mock()` override
+  written directly in that file (hoisting works fine for that, same-file).
+- Detect early: after any commit that touches test files' imports (including via
+  `eslint --fix`), re-run the full suite and compare pass count — a drop with no
+  visible lint/type error is the signature of this bug, not a flaky test.
+- Source: Session 2-4, mid-execution (`alert-checker.test.ts`) and again at session
+  close via a pre-commit `eslint --fix` pass, 2026-07-20 · Status: ACTIVE
+
 ---
 
 ## Archive

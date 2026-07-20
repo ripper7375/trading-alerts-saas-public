@@ -20,29 +20,30 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 
 ## Flag register status (details in plan §11)
 
-| Flag | Topic                                            | Status                                                                                                                 |
-| ---- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                                                                                   |
-| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                                                                                 |
-| F3   | Where does the monolith's Postgres live?         | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
-| F4   | Full model census for schema split               | RESOLVED — Session 2-2                                                                                                 |
-| F5   | Prisma file-layout strategy                      | RESOLVED — Session 2-2                                                                                                 |
-| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled | OPEN — due Session 3-1 (Davin)                                                                                         |
-| F7   | HS256 shared secret vs JWKS + rotation timing    | OPEN — due Session 3-1 (Davin)                                                                                         |
-| F8   | Realtime/websocket architecture                  | OPEN — due Session 4B-17                                                                                               |
-| F9   | @trading-alerts/types packaging mechanics        | OPEN — due Session 4B-1                                                                                                |
-| F10  | Next.js 15→16 breaking-change audit              | OPEN — due Session 5-1                                                                                                 |
-| F11  | Frontend gap matrix                              | OPEN — due Session 6-1 (Davin triage)                                                                                  |
-| F12  | Whole-plan duration estimate                     | OPEN — revisit after F1–F5                                                                                             |
-| F13  | Observability/tracing backend                    | OPEN — due by first Phase 4 cutover                                                                                    |
-| F14  | Tier-update: outbox vs direct call               | OPEN — due Session 4A-8                                                                                                |
-| F15  | Redis topology/namespacing                       | OPEN — due Session 4A-1                                                                                                |
-| F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                                                                                        |
-| F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                                                                                         |
-| F18  | RPO/RTO targets                                  | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
-| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | RESOLVED — Session 2-1                                                                                                 |
-| F20  | Production migration history unbaselined         | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
-| F21  | 24h Account-Deletion GDPR gap                    | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
+| Flag | Topic                                                                         | Status                                                                                                                 |
+| ---- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| F1   | OpenAPI coverage from live routes                                             | RESOLVED — fully closed, Session 0-3                                                                                   |
+| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28                                       | RESOLVED — Session 0-1                                                                                                 |
+| F3   | Where does the monolith's Postgres live?                                      | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
+| F4   | Full model census for schema split                                            | RESOLVED — Session 2-2                                                                                                 |
+| F5   | Prisma file-layout strategy                                                   | RESOLVED — Session 2-2                                                                                                 |
+| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled                              | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F7   | HS256 shared secret vs JWKS + rotation timing                                 | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F8   | Realtime/websocket architecture                                               | OPEN — due Session 4B-17                                                                                               |
+| F9   | @trading-alerts/types packaging mechanics                                     | OPEN — due Session 4B-1                                                                                                |
+| F10  | Next.js 15→16 breaking-change audit                                           | OPEN — due Session 5-1                                                                                                 |
+| F11  | Frontend gap matrix                                                           | OPEN — due Session 6-1 (Davin triage)                                                                                  |
+| F12  | Whole-plan duration estimate                                                  | OPEN — revisit after F1–F5                                                                                             |
+| F13  | Observability/tracing backend                                                 | OPEN — due by first Phase 4 cutover                                                                                    |
+| F14  | Tier-update: outbox vs direct call                                            | OPEN — due Session 4A-8                                                                                                |
+| F15  | Redis topology/namespacing                                                    | OPEN — due Session 4A-1                                                                                                |
+| F16  | Public URL scheme + /v1 versioning                                            | OPEN — due Session 4A-1 (Davin)                                                                                        |
+| F17  | Staging data strategy                                                         | RESOLVED — Session 0-5 (Davin)                                                                                         |
+| F18  | RPO/RTO targets                                                               | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
+| F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                     | RESOLVED — Session 2-1                                                                                                 |
+| F20  | Production migration history unbaselined                                      | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
+| F21  | 24h Account-Deletion GDPR gap                                                 | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
+| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live) | OPEN — found Session 2-4, needs Davin's go-ahead + priority call                                                       |
 
 ---
 
@@ -665,3 +666,83 @@ string` (singular — checked the installed package's own `.d.ts` directly, not 
   `1c3179fb` (FK drop).
 - Approved by: Davin (live decisions on `drop_watchlists`, the staging-waiver, and
   the migration-history architecture deviation, all quoted verbatim above).
+
+## F5 — Prisma file-layout strategy — CLOSES the cutover half of F5
+
+- Status: RESOLVED (Session 2-2 resolved the split; this entry closes the
+  consumer-repoint half)
+- Session: 2-4 · Date: 2026-07-20
+- Decision: every app/lib consumer repointed from the retired default
+  `@prisma/client` output to the split clients — `lib/db/prisma.ts` (now
+  importing `.prisma/non-market-client`) for every model except MarketDataV6,
+  and a new `lib/db/market-prisma.ts` singleton (`.prisma/market-client`) for
+  the 2 call sites that genuinely query MarketDataV6 directly
+  (`app/api/market-data/channel/route.ts`, `lib/jobs/alert-checker.ts`).
+  `prisma/schema.prisma` deleted once parity was confirmed.
+- Evidence: full `npm run test:ci` — 111/111 suites, 2046/2046 tests, exact
+  parity with Session 2-3's baseline. `npm run type-check` clean except 2
+  pre-existing, unrelated Drawing-model errors (confirmed via git-stash
+  comparison against pristine main — predate this session). Commits
+  `b673f388`, `4c712820`, `7d34753d`, `ad7e6a4c`.
+- Approved by: n/a (technical, within the CONFIRMED order's corrected scope —
+  see F5's original CONFIRM-correction note below).
+
+## F5 (CONFIRM correction) — the original "16 known consumer files" scope was wrong
+
+- Status: RESOLVED — folded into the F5 closure above
+- Session: 2-4 (CONFIRM phase, before execution) · Date: 2026-07-20
+- Decision: at CONFIRM, re-verification found the order's "16 known consumer
+  files" premise (Session 2-1's literal `@prisma/client`-import grep) both (a)
+  drifted (14 files, not 16, by that narrow definition) and (b) was
+  methodologically incomplete: ~97 additional files consume Prisma via the
+  `lib/db/prisma.ts` singleton and were invisible to that grep; and the
+  FK-audit `.user`-include breakage (Session 2-3, F20) isn't confined to
+  direct importers — it hits any caller regardless of import path. A
+  full-repo grep found not 3 files/6 call sites (the CONFIRM report's own
+  first estimate) but 17 files/~24 call sites, several only surfacing via
+  `tsc --noEmit` after initial fixes (case-sensitive `MarketDataV6` vs
+  `marketDataV6` miss; the reverse relation direction —
+  `User.include.subscription/payments` — was never checked at all in the
+  original CONFIRM). Davin approved the scope correction live and cleared
+  execution of the corrected order.
+- Evidence: see the corrected entry criteria in
+  `2-4-rewire-monolith-cutover.migration-order.md`; `LESSONS-LEARNED.md` L25.
+- Approved by: Davin (live, at CONFIRM).
+
+## F22 — lib/affiliate/constants.ts breaks `npm run build` (pre-existing)
+
+- Status: OPEN
+- Session: found 2-4 (not caused by it) · Date: 2026-07-20
+- Problem: `npm run build` fails — `Module not found: Can't resolve 'dns'`
+  from `pg` (via `@prisma/adapter-pg` via `lib/db/prisma.ts`), pulled into a
+  **client-side** bundle. Import trace:
+  `app/affiliate/register/page.tsx` ('use client') →
+  `lib/affiliate/constants.ts` → `lib/db/prisma.ts` → `@prisma/adapter-pg` →
+  `pg` → needs Node's `dns`, unavailable in a browser bundle.
+  `lib/affiliate/constants.ts` mixes a client-safe constant
+  (`AFFILIATE_CONFIG`, all the client page actually wants) with server-only
+  DB-fetching functions (`getAffiliateConfigFromDB` etc.) in one file, behind
+  a single top-level `import { prisma } from '@/lib/db/prisma'` — that taints
+  the whole module for any client component that imports anything from it.
+- Evidence this is pre-existing, not caused by Session 2-4: `git log -1 --
+lib/db/prisma.ts` → commit `256f6e43` ("migrate(2-1): bump prisma/
+  @prisma/client to 7.8.0, driver adapters + config"), same calendar day but
+  a prior session — the `PrismaPg`/`pg` adapter dependency chain existed
+  before Session 2-4 touched anything; Session 2-4 only changed which
+  generated-client _specifier_ `lib/db/prisma.ts` imports, not that it uses
+  `@prisma/adapter-pg` at all. `lib/affiliate/constants.ts` was not edited by
+  Session 2-4. Reran `npm run build` before and after Session 2-4's changes
+  (via a temporary pristine-file swap) — identical failure both times.
+- Blast radius: at least `app/affiliate/register/page.tsx`; likely other
+  `'use client'` pages importing `lib/affiliate/constants.ts` or
+  `@/lib/db/prisma` — not fully enumerated (out of Session 2-4's scope to
+  chase). If Vercel's deploy pipeline runs `next build` (near-certain), this
+  may mean **production builds have been broken since Session 2-1**,
+  same-day, undetected because prior sessions verified via `npm run
+test:ci`/`validate`, not `npm run build`.
+- Not fixed this session: would require splitting `lib/affiliate/constants.ts`
+  into a client-safe constants module and a server-only DB-config module —
+  a real, if small, architecture change outside Session 2-4's FK/relation-
+  repoint mandate. Needs Davin's go-ahead and a priority call given the
+  live-build-risk implication.
+- Approved by: n/a — OPEN, awaiting Davin.

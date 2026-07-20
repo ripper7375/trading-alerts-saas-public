@@ -858,10 +858,23 @@ migrations are complete, not before.
 </details>
 
 <details>
-<summary><code>lib/db/</code> — 2 files</summary>
+<summary><code>lib/db/</code> — 3 files (Session 2-4: +1, market-prisma.ts)</summary>
 
-- `lib/db/prisma.ts`
-- `lib/db/seed.ts`
+- `lib/db/prisma.ts` — **Session 2-4:** repointed from `@prisma/client` to
+  `.prisma/non-market-client` (bare specifier import — same resolution mechanism
+  `@prisma/client`'s own `default.js` uses internally). This is the choke point every
+  `import { prisma } from '@/lib/db/prisma'` consumer goes through.
+- `lib/db/market-prisma.ts` — **new, Session 2-4.** A second singleton, same
+  adapter/pooling pattern as `prisma.ts` but for `.prisma/market-client`
+  (MarketDataV6 only). Exists because exactly 2 call sites genuinely query market
+  data directly (`app/api/market-data/channel/route.ts`,
+  `lib/jobs/alert-checker.ts`) — a case-sensitive grep miss during this session's own
+  CONFIRM (`MarketDataV6` the model name vs `marketDataV6` the camelCase client
+  property) meant this wasn't caught until `tsc --noEmit` surfaced it mid-execution.
+- `lib/db/seed.ts` — Session 2-4: repointed from `@prisma/client` to
+  `.prisma/non-market-client`; `cleanupTestData`'s `user.findUnique` include dropped
+  `payments`/`fraudAlerts` (unused, and now broken by the FK audit — `alerts` kept,
+  also unused but harmless).
 
 </details>
 
@@ -986,51 +999,50 @@ migrations are complete, not before.
   grant script (Plan §3 Stage A), applied to production.
 - `prisma/roles/roles.rollback.sql` — new, Session 1-3: paired `DROP ROLE`/`REVOKE`
   script, written but not applied.
-- `prisma/schema.prisma` — Session 1-3 added `directUrl = env("DIRECT_URL")` to the
-  datasource block (L3 prep for PgBouncer); Session 2-1 **removed** both `url` and
-  `directUrl` from the datasource block entirely — Prisma 7.8.0 hard-errors on them
-  (see `prisma.config.ts` below). **Session 2-2: unchanged, but now change-frozen
-  (CC-F)** — remains the single source of truth for all 16 existing consumers until
-  Session 2-4 repoints them and retires this file. **Session 2-3: still untouched as
-  a schema file**, but its migration history (`prisma/migrations/`) is now baselined
-  in production and remains the sole shared migration history for both split schema
-  files — see F20 in `DECISION-LOG.md` and L24 in `LESSONS-LEARNED.md`.
-- `prisma/market-data/schema.prisma` — **new, Session 2-2 (F4/F5).** Byte-for-byte
-  port of `model MarketDataV6` out of `prisma/schema.prisma`, own `generator client`
-  block (`output = "../../node_modules/.prisma/market-client"`). Not yet consumed by
-  any app code — Session 2-4's job.
-- `prisma/non-market-data/schema.prisma` — **new, Session 2-2 (F4/F5).** Byte-for-byte
-  port of the other 26 models + all 18 enums out of `prisma/schema.prisma`, own
-  `generator client` block (`output = "../../node_modules/.prisma/non-market-client"`),
-  plus one new model: `RefreshToken` (minimal 4-field stub — `id`, `token`, `userId`,
-  `expiresAt` — per the APPROVED order; real shape deferred to F6/F7, Session 3-1).
-  Not yet consumed by any app code — Session 2-4's job. **Session 2-3 (F20 FK
-  audit):** removed `@relation` to `User` from `Subscription`/`Payment`/
-  `FraudAlert`/`AffiliateProfile` (and `User`'s 4 matching reverse fields) — `userId`
-  columns + `@@index([userId])` unchanged, DB-level FK constraint gone in production.
+- `prisma/schema.prisma` — **DELETED, Session 2-4.** Was the single source of truth
+  for all consumers through Session 2-3; retired only after every consumer (the
+  `lib/db/prisma.ts`/`lib/db/market-prisma.ts` singletons, every direct
+  `@prisma/client` importer, and every FK-audit-broken relation call site) was
+  repointed/adapted and `npm run test:ci` showed full parity (111/111 suites,
+  2046/2046 tests) with Session 2-3's baseline.
+- `prisma/market-data/schema.prisma` — new, Session 2-2 (F4/F5); byte-for-byte port
+  of `model MarketDataV6` out of the old `prisma/schema.prisma`, own `generator
+client` block (`output = "../../node_modules/.prisma/market-client"`). **Session
+  2-4: now live** — consumed via the new `lib/db/market-prisma.ts` singleton by the 2
+  call sites that genuinely query `MarketDataV6` directly.
+- `prisma/non-market-data/schema.prisma` — new, Session 2-2 (F4/F5); byte-for-byte
+  port of the other 26 models + all 18 enums, own `generator client` block (`output =
+"../../node_modules/.prisma/non-market-client"`), plus one new model: `RefreshToken`
+  (minimal 4-field stub; real shape deferred to F6/F7, Session 3-1). Session 2-3 (F20
+  FK audit) removed `@relation` to `User` from `Subscription`/`Payment`/
+  `FraudAlert`/`AffiliateProfile` (and `User`'s 4 reverse fields). **Session 2-4: now
+  live** — consumed via `lib/db/prisma.ts`, the choke point for every other consumer
+  in the app; this is also now `prisma.config.ts`'s default `schema`.
 - `prisma/seed.ts` — Session 2-1: `new PrismaClient()` → `PrismaPg` driver adapter
   (mandatory in 7.8.0); `ts-node` → `tsx` for the `db:seed` script that runs it.
+  **Session 2-4:** repointed from `@prisma/client` to `.prisma/non-market-client`.
 
 </details>
 
 <details>
-<summary><code>(root)/</code> — Prisma CLI config, added Session 2-1; multi-schema generate scripts added Session 2-2</summary>
+<summary><code>(root)/</code> — Prisma CLI config, added Session 2-1; multi-schema generate scripts added Session 2-2; repointed off the retired default schema Session 2-4</summary>
 
-- `prisma.config.ts` — new. Replaces schema.prisma's now-removed `url`/`directUrl`
-  fields (Prisma 7 moved datasource config here). Loads `.env` then `.env.local`;
-  `datasource.url` = `DIRECT_URL` (CLI/migrate use, per L3) — runtime connection
-  string lives in `lib/db/prisma.ts`'s adapter instead (pooled `DATABASE_URL`).
-  Still points its default `schema` field at the old `prisma/schema.prisma` — Prisma
-  7's config type is `schema?: string` (singular, confirmed via
-  `@prisma/config@7.8.0`'s own `.d.ts`), so the two new schema files are generated via
-  an explicit `--schema=<path>` CLI flag per invocation instead (see below), not via
-  the config file.
+- `prisma.config.ts` — new (Session 2-1). Replaces schema.prisma's now-removed
+  `url`/`directUrl` fields (Prisma 7 moved datasource config here). Loads `.env` then
+  `.env.local`; `datasource.url` = `DIRECT_URL` (CLI/migrate use, per L3) — runtime
+  connection string lives in `lib/db/prisma.ts`'s adapter instead (pooled
+  `DATABASE_URL`). **Session 2-4:** default `schema` field repointed from the
+  now-deleted `prisma/schema.prisma` to `prisma/non-market-data/schema.prisma` (the
+  larger of the two split schemas) — only matters for bare `prisma migrate`/`studio`
+  invocations with no explicit `--schema` flag; the two split schemas are still
+  generated via explicit `--schema=<path>` CLI flags per invocation (see below).
 - `package.json` — Session 2-2: added `prisma:generate:market-data` and
-  `prisma:generate:non-market-data` scripts (`prisma generate --schema=<path>` each);
-  `type-check` now runs all three generates (old + market + non-market) before `tsc
---noEmit`, so a broken change to either new schema fails type-check, not just a
-  manual one-off check. `prebuild`/`postinstall` deliberately left untouched — no
-  runtime code consumes the new clients yet.
+  `prisma:generate:non-market-data` scripts (`prisma generate --schema=<path>` each).
+  **Session 2-4:** `type-check`, `prebuild`, and `postinstall` now run explicit
+  `prisma:generate:market-data` + `prisma:generate:non-market-data` calls (dropping
+  the bare `prisma generate` they used to run, which resolved against the now-deleted
+  default schema); `db:generate`/`prisma:generate` aliased to run both split-schema
+  generates together.
 
 </details>
 

@@ -11,124 +11,111 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Phase 2, Session 2-3 (complete — production migration history
-  baselined, F20 RESOLVED; cross-domain FK audit applied, 4 money models' `@relation`
-  to `User` dropped) — 2026-07-20. Phase 1 still formally NOT exit-clean (F18 the sole
-  blocker, unchanged, dashboard-only). Phase 0 still formally open (CC-A gap
-  unchanged, see below).
-- **Current order:** `docs/migration-orders/2-3-baseline-migration-fk-audit.migration-order.md`
-  (EXECUTED, both Ordered Steps complete, all 6 Slice-level verification items
-  checked)
-- **Order status:** EXECUTED — F20 RESOLVED. `drop_watchlists` handled per Davin's
-  live decision (option b, strip-and-orphan): removed from `prisma/migrations/`
-  entirely, never applied; `Watchlist`/`WatchlistItem` remain live in production,
-  permanently orphaned. The other 5 migrations baselined via `resolve --applied`
-  (zero SQL executed — live schema already matched). FK audit: `Subscription`,
-  `Payment`, `FraudAlert`, `AffiliateProfile`'s `@relation` to `User` removed in
-  `prisma/non-market-data/schema.prisma` (+ `User`'s 4 reverse fields); `userId`
-  columns + existing `@@index([userId])` unchanged. Applied to production via a
-  hand-written migration (4 `ALTER TABLE ... DROP CONSTRAINT ...`, constraint names
-  confirmed from the init migration's SQL — NOT via `prisma migrate dev`, which would
-  have shadow-diffed the partial schema and proposed dropping `market_data_v6`).
-  **Major deviation, Davin-approved live:** the PRE-DRAFT's plan for two independent
-  migration histories (one per split schema) was abandoned at CONFIRM — Prisma 7's
-  migrations path is a single, config-driven setting, not per-`--schema`, and two
-  histories would likely share one `_prisma_migrations` table untestably (no staging
-  env). Single shared `prisma/migrations/` kept as sole source of truth for both
-  schemas until a future physical DB split. Full detail: the order's own Deviations
-  section, `DECISION-LOG.md` F20, `LESSONS-LEARNED.md` L24. Full `npm run test:ci`:
-  111/111 suites, 2046/2046 tests, exact parity with Session 2-2's baseline, zero
-  deltas. Consumer imports and old `prisma/schema.prisma` still untouched — that's
-  Session 2-4, next.
+- **Current:** Phase 2 CODE-COMPLETE (all 4 sessions executed) — Session 2-4 done,
+  2026-07-20. Production still needs a deploy decision from Davin before Phase 2 is
+  fully exit-clean (see F22 below — `npm run build` currently fails on a
+  **pre-existing, unrelated** bug, unverified whether it also blocks real Vercel
+  builds). Phase 1 still formally NOT exit-clean (F18 the sole blocker, unchanged,
+  dashboard-only). Phase 0 still formally open (CC-A gap unchanged).
+- **Current order:** `docs/migration-orders/2-4-rewire-monolith-cutover.migration-order.md`
+  (EXECUTED — CONFIRMed, corrected, and fully executed in one session; all Slice-level
+  verification items checked except the pre-existing build issue, see below)
+- **Order status:** EXECUTED. CONFIRM found the order's original Entry Criteria #2/#3
+  ("16 known consumer files") both stale (14, not 16, by that narrow definition) and
+  methodologically wrong — ~97 more files consume Prisma via the `lib/db/prisma.ts`
+  singleton, invisible to the literal-import grep the "16" came from. Davin approved
+  a live scope correction (rewrote Entry Criteria #2/#3 to target the singleton +
+  full-repo `.user`-include grep; added a missing prisma.config.ts/script-wiring
+  step) and cleared execution. **What actually shipped, far beyond the original
+  "repoint imports" framing:**
+  - `lib/db/prisma.ts` repointed to `.prisma/non-market-client`; new
+    `lib/db/market-prisma.ts` singleton added for `.prisma/market-client` (2 call
+    sites genuinely touch `MarketDataV6` — a case-sensitive grep miss
+    (`MarketDataV6` vs `marketDataV6`) not caught until `tsc --noEmit`, itself found
+    only after CONFIRM's "zero files touch MarketDataV6" claim turned out false).
+  - 14 more direct `@prisma/client` importers repointed.
+  - **17 files / ~24 call sites** adapted for Session 2-3's FK-audit relation drop
+    (`Subscription`/`Payment`/`FraudAlert`/`AffiliateProfile`'s `.user` include →
+    separate `prisma.user` lookup) — not the 3 files/6 sites CONFIRM's own report
+    first estimated; found via full-repo grep, several only surfacing via `tsc
+--noEmit` (including the **reverse** relation direction —
+    `User.include.subscription/payments` in 5 files — which CONFIRM never checked
+    at all).
+  - `prisma.config.ts` default schema + `package.json` `prebuild`/`postinstall`/
+    `db:generate` repointed off the (now-deleted) default schema.
+  - `prisma/schema.prisma` **deleted**.
+  - Test infra: `__tests__/setup.ts` and every affected test file's mocks updated to
+    match the new call shapes. Hit and fixed a real, reproducible Jest gotcha:
+    `jest.mock()` hoisting is per-file, not cross-file — a test file only gets
+    `setup.ts`'s mocked Prisma client if it imports `'../../setup'` **before** any
+    import that transitively touches `@/lib/db/prisma`; import order matters and
+    `eslint --fix`'s `import/order` rule will silently reorder it wrong (did, once,
+    mid-session — see `LESSONS-LEARNED.md` L26). 5 files now carry
+    `eslint-disable`/`eslint-enable import/order` blocks to survive future
+    `eslint --fix` runs; do not remove them.
+  - Full `npm run test:ci`: **111/111 suites, 2046/2046 tests**, exact parity with
+    Session 2-3's baseline — re-verified AFTER running the exact `eslint --fix` the
+    pre-commit hook runs, twice, to be sure it survives commit-time auto-fix.
+  - `npm run type-check`: clean except 2 pre-existing, unrelated Drawing-model JSON
+    typing errors (confirmed pre-existing via git blame + a pristine-checkout
+    comparison).
+  - `npm run build`: **still fails** — see F22, new this session, OPEN.
+  - Six commits: `b6c92001` (order correction), `b48f74cd` (railway-gateway comment
+    sync), `b673f388` (repoint + FK-adapt), `4c712820` (test mocks),
+    `7d34753d` (eslint-proof fix), `ad7e6a4c` (retire + housekeeping).
 - **Waiting on:** (1, non-blocking, unchanged) `deploy.yml` still fails on every push
   to `main` at the GitHub workflow-file level (0s runtime) — known NOT to block real
   Vercel deploys (Session 2-1 confirmed Vercel's own mechanism works independently),
-  just dead/broken CI hygiene, not urgent. `DIRECT_URL` on Vercel RESOLVED (Session
-  2-1, Davin added it). (2, RESOLVED Session 2-3) Production's Prisma migration
-  history is now baselined — F20 closed, see `DECISION-LOG.md`. `drop_watchlists`
-  was never executed (Davin's option b); `Watchlist`/`WatchlistItem` remain live,
-  permanently orphaned. (3, non-blocking, unchanged) F18's RPO gap — Railway
-  automated-backup cadence still unverified via CLI (dashboard-only). (4, unchanged,
-  carried over) Davin to grant Vercel dashboard/preview-branch access — Railway
-  access exists in this environment, Vercel access still fully absent. (5, unchanged,
-  carried over) A human with delete permission to remove 5 remote branches — this
-  session's git credential can push/create branches but gets `HTTP 403` on
-  `git push --delete`. Branches: `fix/tsconfig-exclude-case-sensitivity`,
-  `salvage/windowed-centroid-cfl-indicator` (both merged), plus 3 stale `claude/*`
-  branches. (6, unchanged, carried over) `railway`'s `tcp-proxy`/`private-network`
-  CLI commands still not verified — low priority, nobody's blocked on it.
-  (7, unchanged, carried into Session 2-4) Session 2-2's preliminary grep found none
-  of the 16 known consumer files appear to touch `MarketDataV6` directly (all
-  reference disbursement/affiliate/auth/session models) — if this holds at Session
-  2-4's CONFIRM, all 16 repoint to the non-market client and zero to the market
-  client, but this needs re-verifying per-file (by model usage, not just the import
-  line), not assumed. (8, resolved Session 2-2's follow-up close, carried as
-  reference) Session numbering was corrected then — the cutover order is **Session
-  2-4** ("Rewire the monolith"), not "2-2b"; see `LESSONS-LEARNED.md` L23. (9,
-  RESOLVED Session 2-3) F20's hard escalation is closed — Davin gave his live
-  `drop_watchlists` decision (option b) and a staging-waiver; both executed exactly
-  as instructed and quoted verbatim in the order's Deviations section and
-  `DECISION-LOG.md` F20. (10, RESOLVED Session 2-3) The FK audit's 4 models
-  (`Subscription`, `Payment`, `FraudAlert`, `AffiliateProfile`) had their `@relation`
-  to `User` dropped in production this session — **now live, not just planned.**
-  Session 2-4 must grep for and adapt any consumer call site doing
-  `include: { user: true }` (or `select: { user: ... }`) on these 4 models, or it
-  will fail to compile once repointed to the non-market client. (11, unchanged,
-  carried over as F21) The 24h Account-Deletion GDPR gap — no production code path
-  performs the deletion `app/api/user/account/deletion-confirm/route.ts` promises;
-  only test/seed scripts call `prisma.user.delete()`. F21 in `DECISION-LOG.md`,
-  requires Davin's product decision (hard-delete vs anonymize), scheduled for a
-  future session — not this migration's scope. (12, new) **Architectural note for
-  future planning:** the two split schema files (`prisma/market-data/`,
-  `prisma/non-market-data/`) share ONE migration history (`prisma/migrations/`) and
-  ONE Postgres database as of this session — NOT two independent histories as
-  Phase 2's plan document originally implied. This is a deliberate, Davin-approved
-  deviation (see `DECISION-LOG.md` F20, `LESSONS-LEARNED.md` L24), not a bug, but the
-  plan document (`monolith-to-microservices-migration-implementation-plan.md`)
-  should be updated before any future session assumes the two-history model is real.
-  Doesn't block Session 2-4 (consumer-repointing doesn't touch migration history).
-- **Last session did:** Session 2-3 (Baseline migration history + cross-domain FK
-  audit, PORT + INFRA-borrowed rigor, hard-escalation session) — CONFIRM re-verified
-  all 6 entry criteria against live state: Session 2-2 closure + schema validity
-  confirmed; fresh `migrate status` re-run (still 6 unapplied, `drop_watchlists`
-  still last/only destructive); FK-audit grep re-verified (exactly 9 `@relation`s to
-  `User`, same 4 money models, zero drift); row-count check skipped (Davin's later
-  call, moot under option b); **the two-migration-histories open question answered —
-  and it changed the plan** (Prisma 7's migrations path is config-driven and
-  singular, not per-`--schema`; empirically confirmed via
-  `migrate status --schema=prisma/market-data/schema.prisma` still reading
-  `prisma/migrations`). Presented Step 1 findings and stopped per the order's own
-  hard gate. **Davin's live decisions, quoted verbatim in the order's Deviations and
-  `DECISION-LOG.md` F20:** `drop_watchlists` → option (b) strip-and-orphan; explicit
-  staging-waiver; row-count check skipped as moot; and — the major one — abandon the
-  two-independent-histories plan, keep the single shared `prisma/migrations/` for
-  both split schemas until a future physical DB split. **Executed both steps:** Step
-  2 removed `20260706000000_drop_watchlists/` from history (never applied) and
-  baselined the other 5 via `resolve --applied` (zero SQL executed). Step 3 edited
-  `prisma/non-market-data/schema.prisma` to remove `Subscription`/`Payment`/
-  `FraudAlert`/`AffiliateProfile`'s `@relation` to `User` (+ `User`'s 4 reverse
-  fields), then applied a **hand-written** migration (4
-  `ALTER TABLE ... DROP CONSTRAINT ...`, constraint names read directly from
-  `20251227000000_init`'s SQL per L16) via `migrate deploy` — deliberately not
-  `prisma migrate dev`, which would have shadow-diffed the partial schema and
-  proposed dropping `market_data_v6`. Verified: schema validates clean, generated
-  `.d.ts` spot-checked (no `user` accessor on the 4 payload/include types), full
-  `npm run test:ci` — 111/111 suites, 2046/2046 tests, exact parity with Session
-  2-2's baseline. F20 fully RESOLVED in `DECISION-LOG.md`. Two commits:
-  `2aca8b00` (baseline) and `1c3179fb` (FK drop). New `LESSONS-LEARNED.md` entry
-  L24 — the migrations-path-is-singular finding cost real CONFIRM-phase diagnostic
-  time and changed the session's plan, so it earned a rule, not just a note.
-- **Next session must:** Session 2-4 — Rewire the monolith (repoint all 16 consumer
-  imports to their correct new client, retire old `prisma/schema.prisma`).
-  PRE-DRAFTed: `docs/migration-orders/2-4-rewire-monolith-cutover.migration-order.md`
-  — currently **PRE-DRAFT** (needs the Advisor to produce the DRAFT, then Davin's
-  APPROVAL). Must additionally: (a) re-verify per-file which of the 16 consumers
-  actually touch `MarketDataV6` vs the other 26 models (Waiting-on item 7); (b) grep
-  for and adapt any consumer call site doing `include: { user: true }` on
-  `Subscription`/`Payment`/`FraudAlert`/`AffiliateProfile` — this now fails to
-  compile against the non-market client, not just a future risk (Waiting-on item
-  10); (c) be aware the two schema files share one migration history now, not two
-  (Waiting-on item 12) — doesn't change 2-4's scope, but don't assume otherwise.
+  just dead/broken CI hygiene, not urgent. (2, RESOLVED Session 2-3, unchanged)
+  Production's Prisma migration history is baselined — F20 closed. (3, non-blocking,
+  unchanged) F18's RPO gap — Railway automated-backup cadence still unverified via
+  CLI (dashboard-only). (4, unchanged, carried over) Davin to grant Vercel
+  dashboard/preview-branch access. (5, unchanged, carried over) A human with delete
+  permission to remove 5 remote stale branches (`HTTP 403` on `git push --delete`
+  from this environment's credential). (6, unchanged, carried over) `railway`'s
+  `tcp-proxy`/`private-network` CLI commands still not verified — low priority.
+  (7, RESOLVED Session 2-4) The "which of the consumers touch MarketDataV6" question
+  — answered for real: exactly 2 files, both now on `lib/db/market-prisma.ts`; every
+  other consumer is on the non-market client. (9)/(10) RESOLVED Session 2-3,
+  superseded by this session's execution. (11, unchanged, carried over as F21) The
+  24h Account-Deletion GDPR gap — requires Davin's product decision, scheduled for a
+  future session. (12, unchanged, carried over) The two split schema files still
+  share ONE migration history and ONE Postgres database — deliberate, Davin-approved
+  (F20, L24) — the plan document should still be updated before any future session
+  assumes the two-history model is real. **(13, NEW, urgent) F22 — `npm run build`
+  fails** on a confirmed pre-existing bug (predates Session 2-4; introduced by
+  Session 2-1's adapter-pg pattern, same calendar day): `lib/affiliate/constants.ts`
+  mixes a client-safe constant with a top-level `import { prisma } from
+'@/lib/db/prisma'`, tainting any `'use client'` page that imports it
+  (`app/affiliate/register/page.tsx` does) with the `pg`/`dns` server-only
+  dependency chain. **Needs Davin's go-ahead** — fix requires splitting that file
+  into client-safe vs server-only modules, out of Session 2-4's mandate. Unverified
+  whether this also blocks real Vercel deploys; if Vercel's pipeline runs `next
+build` (near-certain), production builds may have been broken since Session 2-1.
+  **(14, NEW) Production deploy of Session 2-4's changes has NOT happened** — code is
+  committed to `main` and fully tested, but per EXECUTOR-PROTOCOL.md §7 production
+  deploys need Davin's explicit approval, and deploying right now would hit F22's
+  build failure regardless.
+- **Last session did:** Session 2-4 (Rewire the monolith — CONFIRM found and
+  corrected a scope gap live, then full execution in the same session; PORT variant,
+  low creativity dial). See "Order status" above for the full breakdown — this was a
+  far larger session than its "repoint imports, retire old schema" framing implied.
+  New `LESSONS-LEARNED.md` entries L25 (grep-based consumer-inventory methodology
+  needs to account for indirect/singleton consumption, camelCase model-property
+  case-sensitivity, and the reverse relation direction, not just literal import
+  matches) and L26 (jest.mock() hoisting is per-file; `import/order` autofix can
+  silently break shared test-mock imports — needs an eslint-disable block, not just
+  correct ordering).
+- **Next session:** two independent threads, Davin to prioritize/sequence:
+  (a) **F22 fix** — split `lib/affiliate/constants.ts` into client-safe constants vs
+  server-only DB-config modules so `npm run build` (and likely real Vercel deploys)
+  work again; genuinely ad-hoc/incident work, not on the playbook, small in scope.
+  (b) **Session 3-1** (Phase 3, auth) per the playbook — resolve F6/F7 (auth
+  strategy, HS256 vs JWKS), scaffold `operation-service`, implement `JwtAuthGuard`.
+  Neither is PRE-DRAFTed yet pending Davin's sequencing call — F22 arguably blocks
+  verifying Session 2-4's own "production runs on split clients" done-when criterion
+  (per the playbook), so likely goes first, but that's Davin's call, not assumed
+  here.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -138,10 +125,12 @@
   RESOLVED (Session 2-3)** — migration history baselined, `drop_watchlists`
   strip-and-orphaned per Davin, FK audit applied to production · **F4 fully
   RESOLVED (Session 2-2)** — model census, 1 market + 26 non-market + `RefreshToken`
-  stub · **F5 fully RESOLVED (Session 2-2)** — two-file layout via explicit
-  `--schema=` CLI invocations, cutover split into 2-2/2-4 · **F21 OPEN** (24h
-  Account-Deletion GDPR gap — requires Davin's product decision on hard-delete vs
-  anonymize, scheduled for a future session) · F6–F16 OPEN
+  stub · **F5 fully RESOLVED (Session 2-4)** — split clients live in production code,
+  every consumer repointed, old schema retired · **F21 OPEN** (24h Account-Deletion
+  GDPR gap — requires Davin's product decision on hard-delete vs anonymize, scheduled
+  for a future session) · **F22 OPEN, new, urgent** (`npm run build` broken by a
+  pre-existing `lib/affiliate/constants.ts` client/server split bug — needs Davin's
+  go-ahead + priority call) · F6–F16 OPEN
   (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
