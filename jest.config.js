@@ -63,7 +63,13 @@ const config = {
     '<rootDir>/railway-gateway/', // Separate NestJS project (has own tsconfig.json + package.json)
     '<rootDir>/frontend-and-backend-python-stack/', // Prototype sub-projects (davintrade-prototype has own tsconfig.json + package.json)
     '<rootDir>/seed-code/', // Seed/template code
+    '<rootDir>/.claude/', // Claude worktrees
   ],
+
+  // ============================================================================
+  // Module Path Ignore Patterns (Prevents Haste Map Collisions)
+  // ============================================================================
+  modulePathIgnorePatterns: ['<rootDir>/.claude/', '<rootDir>/Archive/'],
 
   // ============================================================================
   // Coverage Collection (What Files to Measure)
