@@ -61,12 +61,32 @@
   CLI commands still not verified — low priority, nobody's blocked on it.
   (7, new) Session 2-2's preliminary grep found none of the 16 known consumer files
   appear to touch `MarketDataV6` directly (all reference disbursement/affiliate/
-  auth/session models) — if this holds at 2-2b's CONFIRM, all 16 repoint to the
-  non-market client and zero to the market client, but this needs re-verifying
-  per-file (by model usage, not just the import line), not assumed. (8, new)
-  Session 2-2b (PRE-DRAFTed this session) needs the Advisor to produce its DRAFT,
-  then Davin's APPROVAL, before a future session can CONFIRM and execute the
-  cutover (repoint 16 imports, retire old schema file).
+  auth/session models) — if this holds at Session 2-4's CONFIRM, all 16 repoint to
+  the non-market client and zero to the market client, but this needs re-verifying
+  per-file (by model usage, not just the import line), not assumed. (8, corrected)
+  **Session numbering fixed this session's follow-up close:** the cutover order
+  originally self-labeled "2-2b" was renamed to **Session 2-4** ("Rewire the
+  monolith") to match the playbook's own numbering
+  (`monolith-to-microservices-migration-session-playbook.md` lines 175–194) — the
+  playbook already scopes Session 2-3 as "Baseline migration + FK audit" (plan
+  steps 2.3–2.4) and Session 2-4 as the import-repointing work, in that order. See
+  `LESSONS-LEARNED.md` L23. (9, new) Session 2-3 (PRE-DRAFTed this session, per the
+  playbook, not an invented label) needs the Advisor to produce its DRAFT, then
+  Davin's APPROVAL. **It carries a hard escalation:** F20's `drop_watchlists`
+  migration needs Davin's live, explicit decision (execute the drop for real,
+  backed up first, vs. permanently orphan the tables) before that session can
+  execute past its own Step 1 — this is not a technical judgment call. (10, new)
+  Session 2-3's FK audit also identified exactly 4 models (`Subscription`,
+  `Payment`, `FraudAlert`, `AffiliateProfile`) whose `@relation` to `User` will be
+  dropped — Session 2-4 must adapt any consumer call site that does
+  `include: { user: true }` on those 4 models, or it will fail to compile.
+  (11, new, low-confidence, flagged as a background task not fixed) While
+  researching cascade-delete usage for the FK audit, found no production code path
+  (`prisma.user.delete()` — checked all 8 cron routes, `lib/jobs/queue.ts`, and a
+  full grep) that performs the 24-hour delayed account deletion
+  `app/api/user/account/deletion-confirm/route.ts` promises users under GDPR
+  language — only test/seed scripts call it. Possibly a real compliance gap,
+  possibly a missed code path; not this migration's scope to fix.
 - **Last session did:** Session 2-2 (Model census + schema split, PORT variant,
   low creativity dial) — CONFIRM re-verified all 4 entry criteria against live
   state: Session 2-1 closed or 7.8.0 confirmed installed; Prisma 7's multi-schema
@@ -93,14 +113,16 @@
   session's close. No new `LESSONS-LEARNED.md` entry — nothing this session cost
   > 30 min to diagnose or surfaced a surprise; straightforward execution once the
   > mechanism was confirmed.
-- **Next session must:** Session 2-2b — Schema split cutover (repoint all 16
-  consumer imports to the correct new client, retire old `prisma/schema.prisma`),
-  `TEMPLATE-PORT.md` variant (continuation of 2-2). PRE-DRAFTed:
-  `docs/migration-orders/2-2b-schema-split-cutover.migration-order.md` — currently
-  **PRE-DRAFT** (needs the Advisor to produce the DRAFT, then Davin's APPROVAL).
-  Waiting-on item 7 above (which of the 16 files need which client) needs
-  confirming per-file before 2-2b's Ordered steps can be trusted as more than a
-  sketch.
+- **Next session must:** Session 2-3 — Baseline migration history + cross-domain FK
+  audit (F20), per the playbook's own numbering (not "2-2b" — see Waiting-on item 8's
+  correction and `LESSONS-LEARNED.md` L23). PRE-DRAFTed:
+  `docs/migration-orders/2-3-baseline-migration-fk-audit.migration-order.md` —
+  currently **PRE-DRAFT** (needs the Advisor to produce the DRAFT, then Davin's
+  APPROVAL). Carries a hard escalation (Waiting-on item 9): Davin must decide
+  `drop_watchlists`'s handling live before that session's Step 2 can run. Session
+  2-4 ("Rewire the monolith" — repoint all 16 consumer imports, retire old
+  `prisma/schema.prisma`) is PRE-DRAFTed and comes after 2-3, not before:
+  `docs/migration-orders/2-4-rewire-monolith-cutover.migration-order.md`.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

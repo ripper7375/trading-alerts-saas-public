@@ -422,6 +422,39 @@ pgbouncer`, `chown` the config/auth-file directory to that user, and set
   first retry is free.
 - Source: Session 2-1 (Prisma 7 upgrade guide fetch) · Status: ACTIVE
 
+### L23 — Check the playbook's own session numbering before inventing an ad-hoc follow-on label
+
+- Symptom: at Session 2-2's close, PRE-DRAFTed a follow-on session self-labeled
+  "2-2b" for the consumer-import-repointing work, without checking whether the
+  playbook already scoped and numbered that work. Davin's next message asked to
+  "PRE-DRAFT session 2-3's order" — which, per
+  `monolith-to-microservices-migration-session-playbook.md` lines 175–194, is
+  actually "Baseline migration + FK audit" (plan steps 2.3–2.4), a materially
+  different and _earlier_ session than the import-repointing I'd invented. The
+  import-repointing work I'd called "2-2b" is really the playbook's own **Session
+  2-4** ("Rewire the monolith," plan steps 2.5–2.6) — meant to run **after** 2-3, not
+  immediately after 2-2.
+- Root cause: assumed the natural next step (cutover) needed its own session and
+  invented a label for it, without first grepping the playbook for whether the next
+  1-2 sessions were already numbered and scoped. Had the wrong PRE-DRAFT been
+  CONFIRMed and executed as-is, it would have skipped the migration-baseline/FK-audit
+  step entirely — repointing imports against an unbaselined migration history with
+  the money↔User FK constraints still live, silently dropping the intended
+  sequencing.
+- Rule: before PRE-DRAFTing any follow-on session at close, grep
+  `monolith-to-microservices-migration-session-playbook.md` for the current phase's
+  session list first. If the playbook already numbers and scopes the next session(s),
+  use those numbers/scopes verbatim — don't invent an ad-hoc sub-label (`<N>b`, `<N>c`)
+  for work the playbook already assigns its own number. Only invent an ad-hoc label
+  for genuinely unplanned/ad-hoc sessions (incidents, repairs) per
+  `EXECUTOR-PROTOCOL.md` §6's "Ad-hoc sessions" rule — never for in-plan follow-on
+  work.
+- Detect early: before writing a PRE-DRAFT's session number, run
+  `grep -n "Session <N+1>\|Session <N>b" docs/migration-orders/*session-playbook.md`
+  — if the playbook already has an entry for what you're about to invent a label for,
+  use its number and scope instead.
+- Source: Session 2-2 follow-up close (2026-07-20) · Status: ACTIVE
+
 ---
 
 ## Archive

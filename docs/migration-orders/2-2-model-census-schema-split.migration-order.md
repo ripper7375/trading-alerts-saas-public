@@ -7,9 +7,10 @@
 > new thing is the `RefreshToken` model the playbook calls for.
 > **Status: EXECUTED** — both new schema files created, validated, generating clean
 > clients; F4/F5 closed; all 3 Done-when items checked (test:ci 111/111 · 2046/2046,
-> exact parity). Cutover (repoint 16 consumer imports, retire old schema) explicitly
-> deferred to Session 2-2b per the Cutover & rollback section below — old
-> `prisma/schema.prisma` untouched, no app code changed. 2026-07-20.
+> exact parity). Cutover (repoint 16 consumer imports, retire old schema) deferred
+> per the playbook's own numbering to **Session 2-4** (not "2-2b" — see Deviations'
+> session-numbering correction) — old `prisma/schema.prisma` untouched, no app code
+> changed. Session 2-3 (Baseline migration + FK audit) runs before 2-4. 2026-07-20.
 
 **Session:** 2-2 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6) ·
 **Variant:** PORT · **Generated:** 2026-07-20 · **Flags touched:** F4 (full model
@@ -170,7 +171,7 @@ manifest)_
       2046/2046 tests, exact parity, exit 0, 89.9s.** No drift.
 - [x] `npm run type-check` clean with both new clients wired in — `type-check` script
       updated to generate all three clients (old + market + non-market) before `tsc
-    --noEmit`; ran clean, exit 0.
+  --noEmit`; ran clean, exit 0.
 
 ## Cutover & rollback (next session's order — reference only)
 
@@ -202,20 +203,42 @@ manifest)_
   either new schema would silently pass type-check. This makes the gate a real,
   repeatable check instead of something only verified by a one-off manual command
   today. Did NOT touch `prebuild`/`postinstall` — no runtime code consumes the new
-  clients yet (that's 2-2b's job), so wiring them into the deploy-time build pipeline
-  now isn't load-bearing; flagging for 2-2b to add once consumers actually depend on
-  either new client at runtime.
+  clients yet (that's Session 2-4's job), so wiring them into the deploy-time build
+  pipeline now isn't load-bearing; flagging for Session 2-4 to add once consumers
+  actually depend on either new client at runtime.
 - **`RefreshToken` implemented exactly as approved, nothing more.** Added to
   `prisma/non-market-data/schema.prisma` with exactly the 4 fields the APPROVED order
   specifies (`id`, `token`, `userId`, `expiresAt`) — no `@relation` to `User`, no extra
   indexes, no `createdAt`. Deliberately did not embellish beyond the approved stub,
   since its real shape is F6/F7's call (due Session 3-1), not this session's.
 - **Old `prisma/schema.prisma` left fully untouched.** No edits — it remains the
-  single source of truth for all existing consumers until 2-2b's cutover. Per this
-  variant's rules, it is now change-frozen (CC-F).
+  single source of truth for all existing consumers until Session 2-4's cutover. Per
+  this variant's rules, it is now change-frozen (CC-F).
 - **`npm run test:ci` run in full for parity verification** (order's own "done when"
   item) rather than assumed unchanged from Session 2-1's baseline, even though no
   existing source file was touched — results recorded below once the run completes.
+  **Result: 111/111 suites, 2046/2046 tests, exit 0, 89.9s. No drift.**
+- **Session-numbering correction (found at follow-up close, not during the session
+  proper).** The follow-on order PRE-DRAFTed at this session's close was originally
+  self-labeled "2-2b" (repoint 16 consumer imports, retire old schema) without first
+  checking the playbook's own session list. Davin asked to PRE-DRAFT "session 2-3,"
+  which surfaced the mismatch: `monolith-to-microservices-migration-session-
+playbook.md` (lines 175–194) already scopes **Session 2-3 as "Baseline migration +
+  FK audit"** (plan steps 2.3–2.4) and **Session 2-4 as "Rewire the monolith"** (plan
+  steps 2.5–2.6, the import-repointing work) — in that order, with 2-3 BEFORE the
+  import-repointing, not after. Corrected: renamed the "2-2b" file to
+  `2-4-rewire-monolith-cutover.migration-order.md` (updated its entry criteria to
+  depend on Session 2-3 closing, not Session 2-2, and added awareness of Session
+  2-3's FK-audit changes), and separately PRE-DRAFTed the actual Session 2-3 order
+  (`2-3-baseline-migration-fk-audit.migration-order.md`) per the playbook. Recorded
+  as `LESSONS-LEARNED.md` L23 since an executed-as-invented "2-2b" would have skipped
+  the migration-baseline/FK-audit step entirely.
+- **Full model census table added to `DECISION-LOG.md`'s F4 entry** (found missing at
+  follow-up close — the playbook's own Session 2-2 "done when" requires "census table
+  in Decision Log," and the original F4 resolution entry only had prose lists). All
+  28 rows (27 original models + `RefreshToken`) now shown with schema-file assignment,
+  money-domain flag, and direct-`User`-relation flag — the latter two columns feed
+  Session 2-3's FK-audit scope directly.
 
 ## Known wrinkles / do-not-touch
 

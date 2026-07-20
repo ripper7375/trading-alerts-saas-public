@@ -524,6 +524,50 @@ notifications,tier,user,market-data}` → zero matches;
   match); both new schema files (`prisma/market-data/schema.prisma`,
   `prisma/non-market-data/schema.prisma`) pass `prisma validate` and generate working
   clients.
+- **Full census table** (added at Session 2-2's follow-up close — the playbook's own
+  Session 2-2 "done when" requires a census table here, not just prose; the money
+  flag/User-relation columns feed Session 2-3's FK-audit scope directly):
+
+  | #   | Model                     | Schema file     | Money-domain? | Direct `@relation` to `User`?                 |
+  | --- | ------------------------- | --------------- | ------------- | --------------------------------------------- |
+  | 1   | `MarketDataV6`            | market-data     | No            | No                                            |
+  | 2   | `User`                    | non-market-data | No            | — (is User)                                   |
+  | 3   | `Account`                 | non-market-data | No            | Yes (auth, not money — kept)                  |
+  | 4   | `Session`                 | non-market-data | No            | Yes (auth, not money — kept)                  |
+  | 5   | `UserSession`             | non-market-data | No            | No (plain `userId`)                           |
+  | 6   | `LoginHistory`            | non-market-data | No            | No (plain `userId`)                           |
+  | 7   | `SecurityAlert`           | non-market-data | No            | No (plain `userId`)                           |
+  | 8   | `VerificationToken`       | non-market-data | No            | No (no `userId` field)                        |
+  | 9   | `UserPreferences`         | non-market-data | No            | Yes (core, not money — kept)                  |
+  | 10  | `AccountDeletionRequest`  | non-market-data | No            | No (plain `userId`)                           |
+  | 11  | `Subscription`            | non-market-data | **Yes**       | **Yes — DROP (Session 2-3)**                  |
+  | 12  | `Alert`                   | non-market-data | No            | Yes (core feature, not money — kept)          |
+  | 13  | `Payment`                 | non-market-data | **Yes**       | **Yes — DROP (Session 2-3)**                  |
+  | 14  | `FraudAlert`              | non-market-data | **Yes**       | **Yes — DROP (Session 2-3)**                  |
+  | 15  | `AffiliateProfile`        | non-market-data | **Yes**       | **Yes — DROP (Session 2-3)**                  |
+  | 16  | `AffiliateCode`           | non-market-data | **Yes**       | No (relates to `AffiliateProfile` only)       |
+  | 17  | `Commission`              | non-market-data | **Yes**       | No (`userId` already plain)                   |
+  | 18  | `Notification`            | non-market-data | No            | No (plain `userId`)                           |
+  | 19  | `AffiliateRiseAccount`    | non-market-data | **Yes**       | No (relates to `AffiliateProfile` only)       |
+  | 20  | `PaymentBatch`            | non-market-data | **Yes**       | No (no `User` relation)                       |
+  | 21  | `DisbursementTransaction` | non-market-data | **Yes**       | No (no `User` relation)                       |
+  | 22  | `RiseWorksWebhookEvent`   | non-market-data | **Yes**       | No (no `User` relation)                       |
+  | 23  | `DisbursementAuditLog`    | non-market-data | **Yes**       | No (no `User` relation)                       |
+  | 24  | `SystemConfig`            | non-market-data | **Yes**       | No (`updatedBy` already plain)                |
+  | 25  | `SystemConfigHistory`     | non-market-data | **Yes**       | No (`changedBy` already plain)                |
+  | 26  | `Drawing`                 | non-market-data | No            | Yes (core feature, not money — kept)          |
+  | 27  | `DrawingAlert`            | non-market-data | No            | No (relates to `Drawing`/`Alert`, not `User`) |
+  | 28  | `RefreshToken` (new)      | non-market-data | No            | No (minimal stub, no relations at all)        |
+
+  All 28 rows assigned, none ambiguous. **Minor plan-document inconsistency found and
+  flagged (not corrected here — out of this entry's scope):** the plan's Phase 1
+  section (§3) prose says "10 money tables" but its own parenthetical list names 12
+  distinct models (13 if `SystemConfig`/`SystemConfigHistory` count separately,
+  which this table does). Doesn't change the FK-audit scope above — that's derived
+  directly from which models have a live `@relation` to `User`, verified by grep, not
+  from the money-table count — but worth the Advisor correcting the plan text itself
+  at some point.
+
 - Approved by: Davin (approved the order's candidate census as written; this session
   re-verified it against live state before executing).
 
