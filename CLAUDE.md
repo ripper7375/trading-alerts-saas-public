@@ -116,11 +116,19 @@
   needs an eslint-disable block, not just correct ordering).
 - **Next session:** Session 3-1 (Phase 3, auth) per the playbook — resolve F6/F7
   (auth strategy, HS256 vs JWKS), scaffold `operation-service`, implement
-  `JwtAuthGuard`. Not PRE-DRAFTed yet. Before starting it, confirm with Davin whether
-  he wants Session 2-4's + F22's changes deployed to production first (nothing
-  code-side blocks that anymore) — Phase 2's playbook "done when" explicitly
-  includes "production runs on split clients," which is a deploy action, not
-  something this session could do unilaterally (EXECUTOR-PROTOCOL.md §7).
+  `JwtAuthGuard`. **PRE-DRAFTed** at this session's close:
+  `docs/migration-orders/3-1-auth-decisions-operation-service-skeleton.migration-order.md`
+  (INFRA variant, borrowing CONTRACT's decision-step shape for F6/F7) — needs the
+  Advisor to produce the DRAFT, then Davin's APPROVAL. It already flags one concrete
+  landmine found this session: NextAuth's `session.strategy: 'jwt'` with no custom
+  `jwt.encode`/`decode` produces an **encrypted JWE**, not a plain signed JWT — a
+  standard `@nestjs/jwt`/`passport-jwt` guard will not verify it as-is; F7's real
+  first decision is signed-vs-encrypted, not just the signing algorithm. Before
+  starting it, confirm with Davin whether he wants Session 2-4's + F22's changes
+  deployed to production first (nothing code-side blocks that anymore) — Phase 2's
+  playbook "done when" explicitly includes "production runs on split clients,"
+  which is a deploy action, not something this session could do unilaterally
+  (EXECUTOR-PROTOCOL.md §7).
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

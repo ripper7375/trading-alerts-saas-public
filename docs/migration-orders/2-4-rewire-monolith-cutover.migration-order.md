@@ -8,9 +8,14 @@
 > after re-verifying codebase/runtime state found the original Entry Criteria #2/#3
 > under-scoped (see the corrected criteria block below) — Davin approved the scope
 > correction live and cleared execution. **Fully executed the same session** — all
-> Slice-level verification items checked except one pre-existing, out-of-scope
-> `npm run build` failure (F22 in `DECISION-LOG.md`, unrelated to this order). See
-> the Deviations section for how much the actual scope grew beyond this order's
+> Slice-level verification items checked, including the one pre-existing,
+> originally out-of-scope `npm run build` failure (F22 in `DECISION-LOG.md`), which
+> Davin explicitly pulled into this session's scope as a same-session follow-up
+> once found — see the Deviations section's F22 addendum. **Every "done when" item
+> is now met**, including `npm run build` succeeding: `npm run build` exits 0,
+> `npm run type-check` clean with zero exceptions, `npm run test:ci` 111/111
+> suites / 2046/2046 tests, exact parity with Session 2-3's baseline. See the
+> Deviations section for how much the actual scope grew beyond this order's
 > original "repoint imports" framing.
 
 **Session:** 2-4 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6),
@@ -209,22 +214,24 @@ grep is a snapshot, not ground truth by then)_
 
 ## Slice-level verification (done when)
 
-- [ ] `lib/db/prisma.ts` singleton repointed to the non-market client; every direct
+- [x] `lib/db/prisma.ts` singleton repointed to the non-market client; every direct
       `@prisma/client` importer repointed to whichever new client actually owns the
       models it queries; zero remaining imports of the old default `@prisma/client`
       output anywhere in `app/**`/`lib/**`/`prisma/seed.ts`.
-- [ ] All FK-audit call sites (Payment/Subscription/FraudAlert/AffiliateProfile → User
+- [x] All FK-audit call sites (Payment/Subscription/FraudAlert/AffiliateProfile → User
       includes), found via the full-repo grep (not the old 16-file scope), adapted to
       plain lookups; no compile errors from the dropped relations.
-- [ ] `prisma.config.ts` and `package.json`'s `prebuild`/`postinstall`/`db:generate`
+- [x] `prisma.config.ts` and `package.json`'s `prebuild`/`postinstall`/`db:generate`
       repointed off the deleted default schema (see Config/build-wiring step).
-- [ ] `prisma/schema.prisma` deleted; `migration-cutover-table.md` updated if
+- [x] `prisma/schema.prisma` deleted; `migration-cutover-table.md` updated if
       applicable; `migration-stack-analysis.md`'s `prisma/` entries updated (file
       retired, not just added).
-- [ ] Full `npm run test:ci` still green, parity vs Session 2-3's baseline — any drift
+- [x] Full `npm run test:ci` still green, parity vs Session 2-3's baseline — any drift
       is a finding.
-- [ ] `npm run type-check` clean; `npm run build` succeeds (proves Next's bundler
-      resolves both new client import paths correctly, not just `tsc`).
+- [x] `npm run type-check` clean; `npm run build` succeeds (proves Next's bundler
+      resolves both new client import paths correctly, not just `tsc`) — met via the
+      F22 addendum in Deviations (fixed same session, at Davin's request, after the
+      original build failure was first logged as out-of-scope).
 
 ## Cutover & rollback (reference only — no separate service to shadow-run against)
 
@@ -285,6 +292,50 @@ grep is a snapshot, not ground truth by then)_
   header requirement. Field list was already identical; synced the comments only —
   the "known wrinkle" below (do not touch railway-gateway's file layout/Prisma
   version) was respected throughout.
+- **Addendum — F22 follow-up, requested and executed later the same session, after
+  the Deviations above were already written and this order's status first read
+  EXECUTED (commit `7d01adaa`):** the `npm run build` failure logged as F22 above
+  was not left OPEN. Davin explicitly asked for it to be fixed live, same session
+  ("A broken build means we cannot deploy, so we cannot leave Phase 2 with a
+  failing `npm run build`"), pulling it into this order's scope after the fact
+  rather than leaving it for a future session. This is a **material, boundary-
+  touching change** by this order's own Rules-specific-to-this-variant standard —
+  it edits `lib/affiliate/constants.ts`, a file this order's original File Port
+  Order never listed — so it is recorded here as a deviation, not silently folded
+  into the main narrative above.
+  - **Fix:** `lib/affiliate/constants.ts` mixed a client-safe constant
+    (`AFFILIATE_CONFIG`) with 6 server-only DB-backed functions behind one
+    top-level `import { prisma } from '@/lib/db/prisma'`, which tainted the whole
+    module — and therefore any `'use client'` page importing anything from it —
+    with `@prisma/adapter-pg`'s `pg`/`dns` dependency chain, unresolvable in a
+    browser bundle. Confirmed pre-existing (predates this order; introduced by
+    Session 2-1's adapter-pg pattern, same calendar day but a prior session) via
+    `git log`/`git blame` and a pristine-file-swap `npm run build` re-run — not
+    something this order's repoint work introduced. Split into two files: the 6
+    functions moved to a new `lib/affiliate/db.ts` (server-only); `constants.ts`
+    now exports only `AFFILIATE_CONFIG`, `CODE_GENERATION`, and types. 5 consumers
+    repointed to import the DB-backed functions from `./db` instead.
+  - **Bonus fix, same follow-up, Davin approved live after being surfaced as a
+    second, unrelated blocker:** once F22 was fixed, `npm run build` progressed
+    further and failed at the `tsc`-within-`next-build` stage on 2 more
+    pre-existing, unrelated errors — `app/api/drawings/route.ts` and
+    `app/api/drawings/[id]/route.ts`, where `lib/drawing/schema.ts`'s Zod
+    `.passthrough()` schema produces a type Prisma's strict `InputJsonValue`
+    can't structurally verify. Also confirmed pre-existing via git blame before
+    touching it. Fixed via `as Prisma.InputJsonValue` casts at both call sites
+    (following the existing pattern already used in
+    `lib/affiliate/registration.ts`), not by loosening the Zod schema.
+  - **Why this belongs in Deviations, not just DECISION-LOG.md:** this order's own
+    File Port Order (above) never named `lib/affiliate/constants.ts`,
+    `lib/affiliate/db.ts`, or either `app/api/drawings/*` route as in-scope files —
+    they were pulled in live, at Davin's explicit request, after the order's
+    original Slice-level verification was already fully checked. Full technical
+    detail, evidence, and Davin's exact request are in `DECISION-LOG.md` F22
+    (RESOLVED).
+  - **Parity proof:** full `npm run test:ci` re-run after both fixes — 111/111
+    suites, 2046/2046 tests, no regressions, same as the main repoint work above.
+  - **Commits:** `495cbea2` (constants/db split), `5b139acc` (Drawing
+    `InputJsonValue` cast), `27257e59` (DECISION-LOG.md F22 marked RESOLVED).
 
 ## Known wrinkles / do-not-touch
 

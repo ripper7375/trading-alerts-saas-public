@@ -565,6 +565,42 @@ import/order */` so `eslint --fix` can't silently re-break it — a plain commen
 - Source: Session 2-4, mid-execution (`alert-checker.test.ts`) and again at session
   close via a pre-commit `eslint --fix` pass, 2026-07-20 · Status: ACTIVE
 
+### L27 — A server-only import anywhere in a module taints the WHOLE module for every `'use client'` importer — and only `next build` catches it, not `tsc` or `jest`
+
+- Symptom: `npm run type-check` (`tsc --noEmit`) and `npm run test:ci` were both
+  fully green throughout Session 2-1 (which introduced the pattern) and Session
+  2-4 (which touched the same files) — production would have deployed with a
+  broken build undetected. `npm run build` alone failed with
+  `Module not found: Can't resolve 'dns'`, traced to
+  `app/affiliate/register/page.tsx` ('use client') → `lib/affiliate/constants.ts`
+  → `lib/db/prisma.ts` → `@prisma/adapter-pg` → `pg`, which needs Node's `dns`,
+  unavailable in a browser bundle.
+- Root cause: `lib/affiliate/constants.ts` mixed one client-safe constant
+  (`AFFILIATE_CONFIG`) with 6 server-only DB-backed functions in the same file,
+  behind a single top-level `import { prisma } from '@/lib/db/prisma'`. Next.js's
+  client/server module-graph boundary operates at the FILE level, not the
+  export level — a `'use client'` page importing even one client-safe export from
+  a file taints the entire module, pulling every one of that file's other
+  imports (including transitively server-only ones) into the client bundle.
+  Neither `tsc --noEmit` nor `jest` model Next's bundler-level module graph at
+  all, so both stay clean regardless — only `next build`'s actual webpack/
+  Turbopack bundling step evaluates which module ends up in which bundle.
+- Rule: any file that exports both client-safe values (constants, types) and
+  server-only logic (DB calls, Node built-ins, secrets) must be split into two
+  files — never trust that "the client component only imports the safe export"
+  is enough, because the import boundary is per-file, not per-export. When
+  auditing a `lib/*` file for client-safety, check its own imports transitively
+  (does it import a DB client, an adapter, `fs`, `crypto`'s Node module, etc.),
+  not just what it exports.
+- Detect early: `npm run build` must run at least once per session that touches
+  any file imported by a `'use client'` page — `tsc --noEmit`/`jest` passing is
+  NOT sufficient evidence a session's changes are deployable. Treat "build
+  hasn't been run this session" as its own gap, same weight as a failing test.
+- Source: Session 2-4 (F22, discovered via the corrected order's own "done when"
+  checklist requiring `npm run build`; confirmed pre-existing to Session 2-1 via
+  git blame, but invisible to both prior sessions' verification suites), 2026-07-20
+  · Status: ACTIVE
+
 ---
 
 ## Archive
