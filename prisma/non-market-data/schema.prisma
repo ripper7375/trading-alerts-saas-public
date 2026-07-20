@@ -127,10 +127,6 @@ model User {
   accounts          Account[]
   alerts            Alert[]
   drawings          Drawing[]
-  subscription      Subscription?
-  payments          Payment[]
-  fraudAlerts       FraudAlert[]
-  affiliateProfile  AffiliateProfile?  // Nullable - only if isAffiliate = true
   preferences       UserPreferences?   // User preferences (settings)
 
   sessions          Session[]
@@ -344,7 +340,6 @@ model AccountDeletionRequest {
 model Subscription {
   id        String   @id @default(cuid())
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Affiliate tracking
   affiliateCodeId    String?  // Track which affiliate code was used (nullable)
@@ -414,7 +409,6 @@ model Alert {
 model Payment {
   id                 String   @id @default(cuid())
   userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptionId     String?
   subscription       Subscription? @relation(fields: [subscriptionId], references: [id])
 
@@ -458,7 +452,6 @@ model Payment {
 model FraudAlert {
   id                String   @id @default(cuid())
   userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Alert Details
   pattern           String   // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'VELOCITY_LIMIT', 'IP_MISMATCH', etc.
@@ -500,7 +493,6 @@ model FraudAlert {
 model AffiliateProfile {
   id                String   @id @default(cuid())
   userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Affiliate Info
   fullName          String
