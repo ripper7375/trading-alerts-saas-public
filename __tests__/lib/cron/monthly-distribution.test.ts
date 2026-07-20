@@ -10,11 +10,19 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+/* eslint-disable import/order -- this whole block MUST stay in this exact
+ * order: '../../setup' first, before any '@/lib/...' import. Its
+ * jest.mock() calls only take effect if this file loads first (see
+ * __tests__/setup.ts's header comment). `eslint --fix`/import/order WILL
+ * silently reorder this without a disable — it already has once (Session
+ * 2-4) — breaking the Prisma mock for every test in this file with no
+ * error, just wrong results. Do not remove this disable block. */
+import { prismaMock, testFactories } from '../../setup';
+
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { runMonthlyDistribution } from '@/lib/cron/monthly-distribution';
 import type { DistributeCodesFunction } from '@/lib/cron/monthly-distribution';
-
-import { prismaMock, testFactories } from '../../setup';
+/* eslint-enable import/order */
 
 describe('Monthly Distribution Cron', () => {
   let mockDistributeCodes: jest.Mock<DistributeCodesFunction>;

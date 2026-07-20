@@ -9,9 +9,17 @@
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
-import { checkExpiringSubscriptions } from '@/lib/cron/check-expiring-subscriptions';
-
+/* eslint-disable import/order -- this whole block MUST stay in this exact
+ * order: '../../setup' first, before any '@/lib/...' import. Its
+ * jest.mock() calls only take effect if this file loads first (see
+ * __tests__/setup.ts's header comment). `eslint --fix`/import/order WILL
+ * silently reorder this without a disable — it already has once (Session
+ * 2-4) — breaking the Prisma mock for every test in this file with no
+ * error, just wrong results. Do not remove this disable block. */
 import { prismaMock, testFactories } from '../../setup';
+
+import { checkExpiringSubscriptions } from '@/lib/cron/check-expiring-subscriptions';
+/* eslint-enable import/order */
 
 describe('Check Expiring Subscriptions Cron', () => {
   beforeEach(() => {
