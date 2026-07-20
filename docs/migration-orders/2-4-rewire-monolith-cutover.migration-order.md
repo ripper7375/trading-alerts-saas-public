@@ -4,17 +4,11 @@
 > PORT). Read `00-SKELETON-AND-RULES.md` §4 first.
 > **Creativity dial: Low** — this is purely import-repointing; no model/field changes,
 > no new business logic.
-> **Status: PRE-DRAFT** — originally written by the Executor at Session 2-2's close
-> (2026-07-20) under the ad-hoc label "2-2b"; **corrected and renumbered to match the
-> playbook's own Session 2-4 ("Rewire the monolith")** at Session 2-2's follow-up
-> close, once it became clear the playbook already sequences this work as 2-4, after
-> a dedicated Session 2-3 (baseline + FK audit) — not as an immediate "2-2b" — see
-> `LESSONS-LEARNED.md` L23. **Refreshed at Session 2-3's close (2026-07-20) now that
-> 2-3 has actually executed** — the "should now be baselined" hedging below is
-> replaced with confirmed facts; see `DECISION-LOG.md` F20 and `LESSONS-LEARNED.md`
-> L24 for full detail. Needs the Advisor to produce the DRAFT, then Davin's APPROVAL,
-> before a future session CONFIRMs and executes it. **Entry criteria depend on
-> Session 2-3, which is now closed** (F20 RESOLVED).
+> **Status: CONFIRMED** — approved by Davin; CONFIRMed this session (2026-07-20)
+> after re-verifying codebase/runtime state found the original Entry Criteria #2/#3
+> under-scoped (see the corrected criteria block below) — Davin approved the scope
+> correction live and cleared execution. **Entry criteria depend on Session 2-3,
+> which is now closed** (F20 RESOLVED).
 
 **Session:** 2-4 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6),
 plan step 2.5–2.6 · **Variant:** PORT · **Generated:** 2026-07-20 (corrected) ·
@@ -89,23 +83,56 @@ cross-stack move).
 
 ## Entry criteria
 
+> **Corrected at CONFIRM (2026-07-20, this session)** — the original #2/#3 below
+> scoped everything to "the 16 consumer files," a count that only ever meant "files
+> with a literal `import ... from '@prisma/client'`" (Session 2-1's blast-radius
+> grep). Live-state re-verification found that count is now 14, and — far more
+> importantly — **97 additional files** get Prisma via the `{ prisma }` singleton
+> exported from `lib/db/prisma.ts` and never appear in that grep at all. Confirmed
+> zero of those 97 touch `MarketDataV6`, so repointing the singleton itself is safe
+> and every downstream singleton-consumer inherits the correct client for free. But
+> the FK-audit `.user`-include breakage isn't confined to the 14/16 — it hits ANY
+> caller regardless of which import path it uses. A full-repo grep (not scoped to
+> the 16-file list) found 3 such files / 6 call sites that were invisible to the
+> original scoping. See `DECISION-LOG.md` (or this session's CONFIRM report) for the
+> full finding. Corrected criteria below.
+
 - [ ] Session 2-3 fully closed — migration history baselined (single shared
       `prisma/migrations/`, per the deviation, not two independent histories; F20
       RESOLVED in `DECISION-LOG.md`), money↔User FK audit applied and documented —
       re-verify at CONFIRM, don't assume from this PRE-DRAFT's context.
-- [ ] File inventory re-verified: re-run the 16-consumer-file grep against live
-      `app/**`, `lib/**`, `prisma/seed.ts` (scoped to exclude `frontend/` mirror,
-      `railway-gateway/`, `seed-code/` vendor dirs per the standing do-not-touch list)
-      — confirm still 16, confirm which client(s) each one actually needs by reading
-      its Prisma model usage, not just its import line.
-- [ ] Grep all 16 files (plus any test files) for `.user` relation includes/selects on
-      `Payment`, `Subscription`, `FraudAlert`, `AffiliateProfile` specifically — build
-      the list of call sites that need a plain lookup instead of a relation include,
-      per Session 2-3's FK-audit changes.
+- [ ] **File inventory re-verified (corrected methodology):** `lib/db/prisma.ts` is
+      the real repoint choke-point — every consumer that imports `{ prisma }` from
+      `@/lib/db/prisma` (currently ~97 files) inherits whichever client that
+      singleton is instantiated against; confirm none of them reference
+      `MarketDataV6` (re-run
+      `grep -rl MarketDataV6 app/** lib/** prisma/**` — expect zero hits, meaning the
+      singleton can safely become the non-market client outright). Separately,
+      re-run the literal-import grep
+      (`grep -rlE "from ['\"]@prisma/client['\"]" app/** lib/** prisma/**`, excluding
+      `frontend/`, `railway-gateway/`, `seed-code/` per the standing do-not-touch
+      list) for the files that bypass the singleton and instantiate/import
+      `@prisma/client` directly (own `PrismaClient` instance, or just `Prisma.*`
+      namespace types) — confirm the current count and target client per file by
+      reading its actual Prisma model usage, not just its import line.
+- [ ] **Grep for `.user` relation includes/selects at full repo scope** — run
+      `grep -rn "include:.*user\|select:.*user" app/** lib/**` (not restricted to the
+      16/14-file list or test files only) for `.user` includes/selects on `Payment`,
+      `Subscription`, `FraudAlert`, `AffiliateProfile` specifically — build the
+      complete list of call sites needing a plain lookup instead of a relation
+      include, per Session 2-3's FK-audit changes. The literal-import file list is
+      not a valid proxy for this — files that only ever touch Prisma via the
+      singleton can still hit dropped relations.
 - [ ] `railway-gateway/prisma/schema.prisma`'s `MarketDataV6` mirror re-diffed against
       the now-separate `prisma/market-data/schema.prisma` — must stay byte-for-byte
       identical in field list (that file's own header comment requires it); confirm no
       drift crept in between sessions.
+- [ ] `prisma.config.ts`'s `schema` field and `package.json`'s `prebuild`/
+      `postinstall`/`db:generate` scripts still point at the bare default
+      `prisma generate` (which resolves against `prisma/schema.prisma` via
+      `prisma.config.ts`) — confirm this is still true; if so, the Retire step below
+      needs the explicit config/script-wiring fix, not just a file deletion, or
+      `npm run build` breaks immediately post-retirement.
 
 ## Integration points
 
@@ -138,9 +165,29 @@ grep is a snapshot, not ground truth by then)_
   vs Session 2-3's baseline.
 - **Commit:** `migrate(2-4): repoint <N> consumer imports to split Prisma clients`
 
+### Config/build-wiring step (added at CONFIRM — was missing from the original draft)
+
+- **SOURCE:** `prisma.config.ts`'s `schema:` field (currently
+  `'prisma/schema.prisma'`); `package.json`'s `prebuild`, `postinstall`, and
+  `db:generate` scripts (currently bare `prisma generate`, which resolves against
+  that same default schema).
+- **Kind:** adapt. Repoint `prisma.config.ts`'s default `schema` at
+  `prisma/non-market-data/schema.prisma` (the larger of the two, and the one
+  `migrate deploy`/`status` most plausibly need a resolvable schema for); replace
+  the bare `prisma generate` in `prebuild`/`postinstall`/`db:generate` with explicit
+  calls to both `prisma:generate:market-data` and `prisma:generate:non-market-data`
+  (both scripts already exist) so a fresh install/build still produces both
+  clients without relying on the now-deleted default schema.
+- **Invariants:** `npm run build` and a clean `npm ci && npm run build` must both
+  succeed after this step — this is what the original draft's "done when" checklist
+  assumed would just work without spelling out this step.
+- **Commit:** part of the repoint commit (see below) — this is infrastructure the
+  retire step depends on, not a separate deliverable.
+
 ### Retire step
 
-- **SOURCE:** `prisma/schema.prisma` → deleted once all 16 consumers are repointed and
+- **SOURCE:** `prisma/schema.prisma` → deleted once all consumers (singleton +
+  direct importers) are repointed, the config/build-wiring step above is done, and
   parity is re-confirmed.
 - **Commit:** `migrate(2-4): retire prisma/schema.prisma, split complete`
 
@@ -159,11 +206,15 @@ grep is a snapshot, not ground truth by then)_
 
 ## Slice-level verification (done when)
 
-- [ ] All 16 consumer files import from the correct new client (market vs
-      non-market); zero remaining imports of the old default `@prisma/client` output
-      in `app/**`/`lib/**`/`prisma/seed.ts`.
+- [ ] `lib/db/prisma.ts` singleton repointed to the non-market client; every direct
+      `@prisma/client` importer repointed to whichever new client actually owns the
+      models it queries; zero remaining imports of the old default `@prisma/client`
+      output anywhere in `app/**`/`lib/**`/`prisma/seed.ts`.
 - [ ] All FK-audit call sites (Payment/Subscription/FraudAlert/AffiliateProfile → User
-      includes) adapted to plain lookups; no compile errors from the dropped relations.
+      includes), found via the full-repo grep (not the old 16-file scope), adapted to
+      plain lookups; no compile errors from the dropped relations.
+- [ ] `prisma.config.ts` and `package.json`'s `prebuild`/`postinstall`/`db:generate`
+      repointed off the deleted default schema (see Config/build-wiring step).
 - [ ] `prisma/schema.prisma` deleted; `migration-cutover-table.md` updated if
       applicable; `migration-stack-analysis.md`'s `prisma/` entries updated (file
       retired, not just added).
