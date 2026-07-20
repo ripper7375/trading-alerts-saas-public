@@ -958,14 +958,30 @@ migrations are complete, not before.
 </details>
 
 <details>
-<summary><code>prisma/</code> — 12 files</summary>
+<summary><code>prisma/</code> — 13 files</summary>
 
-- `prisma/migrations/20251227000000_init/migration.sql`
-- `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
-- `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`
-- `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`
-- `prisma/migrations/20260705010000_drop_market_data/migration.sql`
-- `prisma/migrations/20260706000000_drop_watchlists/migration.sql`
+- `prisma/migrations/20251227000000_init/migration.sql` — **Session 2-3: baselined
+  applied** against production (`resolve --applied`, no SQL executed; live schema
+  already matched).
+- `prisma/migrations/20260214000000_rag_dual_memory/migration.sql` — **Session 2-3:
+  baselined applied**, same basis.
+- `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql` —
+  **Session 2-3: baselined applied**, same basis.
+- `prisma/migrations/20260705000000_add_market_data_v6/migration.sql` — **Session
+  2-3: baselined applied**, same basis.
+- `prisma/migrations/20260705010000_drop_market_data/migration.sql` — **Session 2-3:
+  baselined applied**, same basis.
+- `prisma/migrations/20260706000000_drop_watchlists/migration.sql` — **REMOVED,
+  Session 2-3** (F20, Davin's live decision, option b: strip-and-orphan). Never
+  applied; `Watchlist`/`WatchlistItem` remain live in production, permanently
+  orphaned, unreferenced by either new schema file.
+- `prisma/migrations/20260720000000_drop_money_user_fk_constraints/migration.sql` —
+  **new, Session 2-3.** Hand-written (not `prisma migrate dev`, to avoid its
+  shadow-DB diff proposing to drop `market_data_v6` against the partial
+  non-market-data schema — see `LESSONS-LEARNED.md` L24). 4
+  `ALTER TABLE ... DROP CONSTRAINT ...` statements dropping the FK from
+  `Subscription`/`Payment`/`FraudAlert`/`AffiliateProfile` to `User`. Applied to
+  production via `migrate deploy`.
 - `prisma/roles/roles.sql` — new, Session 1-3: idempotent `money_svc`/`core_app` role +
   grant script (Plan §3 Stage A), applied to production.
 - `prisma/roles/roles.rollback.sql` — new, Session 1-3: paired `DROP ROLE`/`REVOKE`
@@ -975,17 +991,23 @@ migrations are complete, not before.
   `directUrl` from the datasource block entirely — Prisma 7.8.0 hard-errors on them
   (see `prisma.config.ts` below). **Session 2-2: unchanged, but now change-frozen
   (CC-F)** — remains the single source of truth for all 16 existing consumers until
-  Session 2-2b repoints them and retires this file.
+  Session 2-4 repoints them and retires this file. **Session 2-3: still untouched as
+  a schema file**, but its migration history (`prisma/migrations/`) is now baselined
+  in production and remains the sole shared migration history for both split schema
+  files — see F20 in `DECISION-LOG.md` and L24 in `LESSONS-LEARNED.md`.
 - `prisma/market-data/schema.prisma` — **new, Session 2-2 (F4/F5).** Byte-for-byte
   port of `model MarketDataV6` out of `prisma/schema.prisma`, own `generator client`
   block (`output = "../../node_modules/.prisma/market-client"`). Not yet consumed by
-  any app code — Session 2-2b's job.
+  any app code — Session 2-4's job.
 - `prisma/non-market-data/schema.prisma` — **new, Session 2-2 (F4/F5).** Byte-for-byte
   port of the other 26 models + all 18 enums out of `prisma/schema.prisma`, own
   `generator client` block (`output = "../../node_modules/.prisma/non-market-client"`),
   plus one new model: `RefreshToken` (minimal 4-field stub — `id`, `token`, `userId`,
   `expiresAt` — per the APPROVED order; real shape deferred to F6/F7, Session 3-1).
-  Not yet consumed by any app code — Session 2-2b's job.
+  Not yet consumed by any app code — Session 2-4's job. **Session 2-3 (F20 FK
+  audit):** removed `@relation` to `User` from `Subscription`/`Payment`/
+  `FraudAlert`/`AffiliateProfile` (and `User`'s 4 matching reverse fields) — `userId`
+  columns + `@@index([userId])` unchanged, DB-level FK constraint gone in production.
 - `prisma/seed.ts` — Session 2-1: `new PrismaClient()` → `PrismaPg` driver adapter
   (mandatory in 7.8.0); `ts-node` → `tsx` for the `db:seed` script that runs it.
 

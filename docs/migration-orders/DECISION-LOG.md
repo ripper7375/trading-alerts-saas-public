@@ -20,28 +20,29 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 
 ## Flag register status (details in plan §11)
 
-| Flag | Topic                                            | Status                                                                                                 |
-| ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                                                                   |
-| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                                                                 |
-| F3   | Where does the monolith's Postgres live?         | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                           |
-| F4   | Full model census for schema split               | RESOLVED — Session 2-2                                                                                 |
-| F5   | Prisma file-layout strategy                      | RESOLVED — Session 2-2                                                                                 |
-| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled | OPEN — due Session 3-1 (Davin)                                                                         |
-| F7   | HS256 shared secret vs JWKS + rotation timing    | OPEN — due Session 3-1 (Davin)                                                                         |
-| F8   | Realtime/websocket architecture                  | OPEN — due Session 4B-17                                                                               |
-| F9   | @trading-alerts/types packaging mechanics        | OPEN — due Session 4B-1                                                                                |
-| F10  | Next.js 15→16 breaking-change audit              | OPEN — due Session 5-1                                                                                 |
-| F11  | Frontend gap matrix                              | OPEN — due Session 6-1 (Davin triage)                                                                  |
-| F12  | Whole-plan duration estimate                     | OPEN — revisit after F1–F5                                                                             |
-| F13  | Observability/tracing backend                    | OPEN — due by first Phase 4 cutover                                                                    |
-| F14  | Tier-update: outbox vs direct call               | OPEN — due Session 4A-8                                                                                |
-| F15  | Redis topology/namespacing                       | OPEN — due Session 4A-1                                                                                |
-| F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                                                                        |
-| F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                                                                         |
-| F18  | RPO/RTO targets                                  | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                  |
-| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | RESOLVED — Session 2-1                                                                                 |
-| F20  | Production migration history unbaselined         | OPEN — discovered Session 1-3, urgent (destructive pending migration); due before any `migrate deploy` |
+| Flag | Topic                                            | Status                                                                                                                 |
+| ---- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                                                                                   |
+| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                                                                                 |
+| F3   | Where does the monolith's Postgres live?         | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
+| F4   | Full model census for schema split               | RESOLVED — Session 2-2                                                                                                 |
+| F5   | Prisma file-layout strategy                      | RESOLVED — Session 2-2                                                                                                 |
+| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F7   | HS256 shared secret vs JWKS + rotation timing    | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F8   | Realtime/websocket architecture                  | OPEN — due Session 4B-17                                                                                               |
+| F9   | @trading-alerts/types packaging mechanics        | OPEN — due Session 4B-1                                                                                                |
+| F10  | Next.js 15→16 breaking-change audit              | OPEN — due Session 5-1                                                                                                 |
+| F11  | Frontend gap matrix                              | OPEN — due Session 6-1 (Davin triage)                                                                                  |
+| F12  | Whole-plan duration estimate                     | OPEN — revisit after F1–F5                                                                                             |
+| F13  | Observability/tracing backend                    | OPEN — due by first Phase 4 cutover                                                                                    |
+| F14  | Tier-update: outbox vs direct call               | OPEN — due Session 4A-8                                                                                                |
+| F15  | Redis topology/namespacing                       | OPEN — due Session 4A-1                                                                                                |
+| F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                                                                                        |
+| F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                                                                                         |
+| F18  | RPO/RTO targets                                  | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
+| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | RESOLVED — Session 2-1                                                                                                 |
+| F20  | Production migration history unbaselined         | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
+| F21  | 24h Account-Deletion GDPR gap                    | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
 
 ---
 
@@ -618,3 +619,49 @@ string` (singular — checked the installed package's own `.d.ts` directly, not 
 - Approved by: n/a (technical re-verification, no new decision). Recommendation
   unchanged from Session 1-1: Davin to check the Railway dashboard's `Postgres` service
   → Backups tab directly — this is the one item keeping Phase 1 from closing exit-clean.
+
+## F20 — Production migration history unbaselined — CLOSES F20
+
+- Status: RESOLVED
+- Session: 2-3 · Date: 2026-07-20
+- Decision: production's migration history baselined; the destructive pending
+  migration handled per Davin's live decision rather than executed.
+  - **`drop_watchlists` — Davin's exact words:** "drop_watchlists: (b)
+    Strip-and-orphan. Do not execute the drop. Remove the
+    20260706000000_drop_watchlists migration from the directory entirely and never
+    mark it applied. Leave the tables permanently orphaned." Executed exactly as
+    instructed — the migration folder was removed from `prisma/migrations/`, never
+    `resolve --applied`; `Watchlist`/`WatchlistItem` remain live in production,
+    untouched, permanently orphaned from both new schema files. No DROP TABLE ever
+    ran against them.
+  - **The other 5 migrations** (`init`, `rag_dual_memory`,
+    `update_kc_ha_body_columns`, `add_market_data_v6`, `drop_market_data`) were
+    baselined via `prisma migrate resolve --applied` — zero SQL executed, since
+    production's live schema already matched their end-state (confirmed by reading
+    every migration's actual SQL before baselining, per L16).
+  - **FK audit** (the session's other half): `Subscription`, `Payment`,
+    `FraudAlert`, `AffiliateProfile`'s `@relation` to `User` removed in
+    `prisma/non-market-data/schema.prisma` (and `User`'s 4 matching reverse fields);
+    `userId` columns + existing `@@index([userId])` unchanged. Applied to production
+    via a hand-written migration (4 `ALTER TABLE ... DROP CONSTRAINT ...`
+    statements, constraint names confirmed from `20251227000000_init`'s SQL) rather
+    than `prisma migrate dev`, to avoid that command's shadow-DB diff proposing to
+    drop `market_data_v6` when run against the partial non-market-data schema.
+  - **Architectural deviation, Davin-approved:** the PRE-DRAFT's plan to give the two
+    new schema files (`prisma/market-data/`, `prisma/non-market-data/`) independent
+    migration histories was abandoned at CONFIRM. Prisma 7's `--schema` flag doesn't
+    carry its own migrations path (that comes only from the single, repo-root
+    `prisma.config.ts`), and even with new per-schema config files, two histories
+    would very likely share one `_prisma_migrations` table with no per-schema
+    namespacing — untestable safely with no staging environment. Davin's decision:
+    keep the single shared `prisma/migrations/` as sole migration-history source for
+    both schemas until a future physical database split. Full detail in
+    `2-3-baseline-migration-fk-audit.migration-order.md`'s Deviations section.
+- Evidence: `prisma migrate status` clean after each step (zero pending both times);
+  `prisma validate` clean on the edited schema; generated `non-market-client`
+  `index.d.ts` spot-checked — `SubscriptionInclude`/etc. no longer expose a `user`
+  accessor; full `npm run test:ci` — 111/111 suites, 2046/2046 tests, exact parity
+  with Session 2-2's baseline, zero deltas. Commits `2aca8b00` (baseline) and
+  `1c3179fb` (FK drop).
+- Approved by: Davin (live decisions on `drop_watchlists`, the staging-waiver, and
+  the migration-history architecture deviation, all quoted verbatim above).

@@ -455,6 +455,42 @@ pgbouncer`, `chown` the config/auth-file directory to that user, and set
   use its number and scope instead.
 - Source: Session 2-2 follow-up close (2026-07-20) · Status: ACTIVE
 
+### L24 — Prisma 7's migrations path is singular and config-driven, not per-`--schema`; don't assume one Postgres DB can safely host two independent migration histories
+
+- Symptom: the Session 2-3 PRE-DRAFT assumed two split schema files
+  (`prisma/market-data/schema.prisma`, `prisma/non-market-data/schema.prisma`) could
+  each get their own migration history (`.../migrations/`) against the one shared
+  production Postgres instance, baselined independently. At CONFIRM, this turned out
+  to not be buildable as scoped.
+- Root cause: `prisma migrate status --schema=<other-schema>` was assumed to also
+  pick up a migrations folder next to that schema file (mirroring how `prisma
+generate --schema=<path>` cleanly produces a separate client per schema — the exact
+  mechanism F5 relied on). It doesn't. The migrations path is a single, global
+  setting on `prisma.config.ts` (`migrations.path`), not a per-`--schema` resolution.
+  Empirically confirmed: `prisma migrate status --schema=prisma/market-data/schema.prisma`
+  still read from `prisma/migrations`, the one shared folder. Building the intended
+  mechanism would have required new per-schema config files (`--config=`) _and_ an
+  unverified assumption on top — that two independent histories can share Postgres's
+  one `_prisma_migrations` table without one config's `migrate status`/`deploy`
+  choking on rows left by the other's migrations. No staging environment exists to
+  test that safely (Phase 0's CC-A gap).
+- Rule: when a migration order's plan assumes "N schema files → N independent
+  migration histories," verify the CLI/config mechanism empirically _before_ writing
+  the Ordered Steps around it — test the exact command with `--schema=<other-file>`
+  and read where it says it's finding migrations from, don't infer it from the
+  generate-side behavior (client generation and migration-history resolution are
+  governed by different config keys and don't necessarily parallel each other). If
+  physically splitting a database is still a future goal, keep one shared migration
+  history against the one shared database until that physical split actually
+  happens — don't simulate a multi-database posture against a single database via
+  config tricks alone.
+- Detect early: `grep -A3 "migrations:" prisma.config.ts` — if `path` is a single
+  hardcoded string (not derived from `--schema`), any "independent history per
+  schema" plan needs new config scaffolding designed and reviewed before an order's
+  Ordered Steps assume it already works.
+- Source: Session 2-3 (baseline migration history + FK audit), CONFIRM phase,
+  2026-07-20 · Status: ACTIVE
+
 ---
 
 ## Archive

@@ -10,9 +10,12 @@
 > **Creativity dial: Low for the FK-audit schema edits (pure structural removal); ZERO
 > for anything touching live production data** — the `drop_watchlists` handling below
 > is Davin's decision, not a technical judgment call.
-> **Status: APPROVED** — approved by Davin.
-> Ready for a future session to CONFIRM and execute it. **This is a hard escalation session — see "Davin must decide" below;
-> do not let CONFIRM be a rubber stamp.**
+> **Status: EXECUTED** — CONFIRMed and both steps executed 2026-07-20. F20 RESOLVED.
+> `drop_watchlists` handled per Davin's live decision: option (b), strip-and-orphan.
+> Migration history baselined (5 migrations), FK-drop migration applied (4
+> constraints). Full test:ci parity (111/111, 2046/2046). See Deviations below —
+> the two-migration-histories mechanism was found unworkable at CONFIRM and Davin
+> approved a deviation (single shared `prisma/migrations/`) on the spot.
 
 **Session:** 2-3 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6),
 plan steps 2.3–2.4 · **Variant:** PORT + INFRA-borrowed rigor · **Generated:**
@@ -105,26 +108,31 @@ must explicitly waive that (as he did for 2-1) or this session stops at Step 1.
 
 ## Entry criteria
 
-- [ ] Session 2-2 fully closed — F4/F5 RESOLVED in `DECISION-LOG.md`, both new schema
-      files `prisma validate` clean — re-verify at CONFIRM.
-- [ ] **Fresh, not memory-trusted** `prisma migrate status` (read-only, direct
-      connection) re-run against production — confirm still 6 unapplied, confirm
-      `drop_watchlists` is still the last/only destructive one, confirm no migration
-      file changed since Session 1-3's original finding.
-- [ ] **Fresh** read-only row-count check on `Watchlist`/`WatchlistItem` — confirm
-      still live with data (or note if Davin/anyone already cleaned them up between
-      sessions — don't assume Session 1-3's snapshot still holds).
-- [ ] Money↔User FK-audit model list (above) re-verified via direct grep against live
-      `prisma/non-market-data/schema.prisma`, not this PRE-DRAFT's census.
-- [ ] **Open technical question, must be answered before Step 2's Ordered steps can
-      be trusted:** does Prisma 7 support two independent migration histories
-      (`prisma/market-data/migrations/`, `prisma/non-market-data/migrations/`) against
-      ONE shared Postgres instance with ONE `_prisma_migrations` metadata table
-      without the two schemas' migration names/checksums colliding or confusing each
-      other? Not researched yet — first thing to check at CONFIRM (test against a
-      throwaway/staging-equivalent connection if at all possible before touching
-      production, per L19's pattern of preferring a safe verification path).
-- [ ] Davin's live decision on `drop_watchlists` (above) obtained BEFORE Step 2 runs.
+- [x] Session 2-2 fully closed — F4/F5 RESOLVED in `DECISION-LOG.md`, both new schema
+      files `prisma validate` clean — re-verified at CONFIRM (both still valid).
+- [x] **Fresh, not memory-trusted** `prisma migrate status` re-run against production —
+      confirmed still 6 unapplied, `drop_watchlists` still last/only destructive one,
+      no migration file changed since Session 1-3's original finding.
+- [x] Row-count check on `Watchlist`/`WatchlistItem` — **skipped by Davin's explicit
+      instruction**: irrelevant under option (b) since the tables are left untouched
+      either way.
+- [x] Money↔User FK-audit model list re-verified via direct grep against live
+      `prisma/non-market-data/schema.prisma`: exactly 9 `@relation`s to `User`,
+      narrows to the same 4 money models, all 4 already carry `@@index([userId])` —
+      zero drift from this PRE-DRAFT's census.
+- [x] **Open technical question — answered, and it changed the plan.** Prisma 7's
+      `--schema` flag does NOT carry its own migrations path; that comes only from
+      `prisma.config.ts`, which is a single, repo-root, singular `migrations.path`.
+      No per-schema config files or migration directories existed. Empirically
+      confirmed via `prisma migrate status --schema=prisma/market-data/schema.prisma`
+      still reading from `prisma/migrations`. Building the two-history mechanism would
+      have required new per-schema config files AND an untested assumption (two
+      independent histories sharing one `_prisma_migrations` table in one DB without
+      collision) — with no staging environment to test it safely. Presented to Davin;
+      he approved a deviation instead of building/testing the mechanism blind. See
+      Deviations.
+- [x] Davin's live decision on `drop_watchlists` obtained BEFORE Step 2 ran: **option
+      (b), strip-and-orphan** — quoted in Deviations below.
 
 ## Integration points
 
@@ -209,17 +217,20 @@ data/schema.prisma --name drop_money_user_fk_constraints`), **read the generated
 
 ## Slice-level verification (done when)
 
-- [ ] `prisma migrate status` (both new schemas) reports zero pending migrations.
-- [ ] `drop_watchlists` handled per Davin's explicit Step-1 decision, documented with
-      evidence (backup confirmation if (a); removal-from-history confirmation if (b)).
-- [ ] `prisma/non-market-data/schema.prisma`'s 4 money-model relations to `User`
-      removed; `prisma validate` still clean; generated client's types confirm the
-      relation accessors are gone (spot-check the `.d.ts`).
-- [ ] The FK-drop migration's SQL reviewed before applying; applied cleanly against
-      the direct URL; `prisma migrate status` clean afterward.
-- [ ] Full `npm run test:ci` — parity vs Session 2-2's baseline (111/111, 2046/2046)
-      or documented, justified deltas only.
-- [ ] F20 RESOLVED in `DECISION-LOG.md`, with Davin's `drop_watchlists` decision quoted.
+- [x] `prisma migrate status` reports zero pending migrations (single shared history,
+      per the deviation — not "both new schemas" as originally worded; see Deviations).
+- [x] `drop_watchlists` handled per Davin's explicit Step-1 decision: option (b) —
+      `20260706000000_drop_watchlists/` removed from `prisma/migrations/` entirely,
+      never marked applied, commit `2aca8b00`.
+- [x] `prisma/non-market-data/schema.prisma`'s 4 money-model relations to `User`
+      removed; `prisma validate` clean; generated client's `SubscriptionInclude` (and
+      the other 3) spot-checked in `index.d.ts` — no `user` accessor remains.
+- [x] The FK-drop migration's SQL reviewed before applying (hand-written, 4
+      `ALTER TABLE ... DROP CONSTRAINT ...` statements, nothing else); applied cleanly
+      via `prisma migrate deploy`; `prisma migrate status` clean afterward.
+- [x] Full `npm run test:ci` — 111/111 suites, 2046/2046 tests, exact parity with
+      Session 2-2's baseline, zero deltas.
+- [x] F20 RESOLVED in `DECISION-LOG.md`, with Davin's `drop_watchlists` decision quoted.
 
 ## Cutover & rollback
 
@@ -235,7 +246,92 @@ data/schema.prisma --name drop_money_user_fk_constraints`), **read the generated
 
 ## Deviations
 
-_(filled during execution)_
+**1. `drop_watchlists` — Davin's live decision, quoted verbatim:**
+
+> "drop_watchlists: (b) Strip-and-orphan. Do not execute the drop. Remove the
+> 20260706000000_drop_watchlists migration from the directory entirely and never
+> mark it applied. Leave the tables permanently orphaned."
+
+Executed exactly as instructed: the migration folder was `git rm`'d, never
+`resolve --applied`, `Watchlist`/`WatchlistItem` were never touched (no DROP TABLE
+ever ran against them). The row-count re-check in the entry criteria was explicitly
+waived by Davin as moot under this option: "Skip it. Since we are taking option (b)
+and leaving the tables alone, the row count is irrelevant."
+
+**2. Staging-waiver — quoted verbatim:** "Staging-waiver: I explicitly waive the
+staging requirement for this session. You are authorized to proceed with production
+writes." No staging environment exists (Phase 0's CC-A gap, still open); this
+session's Step 2/Step 3 production writes proceeded without a staging rehearsal on
+that explicit basis, same pattern as Session 2-1.
+
+**3. Two independent migration histories — abandoned, single shared history kept
+instead. This is the significant deviation from the PRE-DRAFT's plan.** CONFIRM's
+research (the order's own open technical question) found:
+
+- Prisma 7's `--schema` CLI flag does not carry its own migrations directory — that
+  path comes exclusively from `prisma.config.ts`'s singular `migrations.path`. Only
+  one `prisma.config.ts` exists in the repo, hardcoded to `prisma/migrations`.
+  Empirically confirmed: `prisma migrate status --schema=prisma/market-data/schema.prisma`
+  still read from `prisma/migrations`, not a market-data-specific folder.
+- Building the originally-scoped mechanism would have required creating two new
+  `prisma.config.ts`-equivalent files (via `--config=`), each with its own `schema`
+  and `migrations.path` — infrastructure that doesn't exist yet, PRE-DRAFT-scoped
+  but not actually specified in enough detail to build blind.
+- Even after building that, Prisma's `_prisma_migrations` metadata table name isn't
+  configurable per-schema in this version. Two independent histories against the
+  same database/`public` schema would very likely share **one** metadata table, and
+  each config's `migrate status`/`deploy` only sees its own local migrations folder
+  — meaning each would likely report the other's applied rows as "in the table but
+  not found locally." Whether that's cosmetic or genuinely breaks `deploy` was
+  untestable safely: no staging environment exists to rehearse it (Phase 0 CC-A gap).
+- Davin's own follow-on point sharpened this further, quoted verbatim: "Because
+  Prisma does not support custom `_prisma_migrations` tables, and running migrations
+  from a partial schema against a shared DB will generate destructive drops for the
+  other schema's tables, we must deviate from the plan." This is exactly correct —
+  confirmed independently below.
+
+**Decision (Davin's, quoted verbatim):** "Do not create separate migration
+histories for the two new schemas. We will retain the single, original
+prisma/migrations folder as our sole source of truth for database migrations until
+the databases are physically split. For Step 2, baseline the 5 remaining migrations
+using the original history folder. For Step 3, you must apply the FK drop by
+creating the new migration inside the original shared prisma/migrations folder."
+
+**Executed as:** Step 2 baselined all 5 remaining migrations (all `resolve
+--applied`, zero SQL executed, since production's live schema already matched
+their end-state) via the single `prisma/migrations/` folder — commit `2aca8b00`.
+
+**4. Step 3's mechanism further deviates from the order's literal command** (a
+consequence of deviation #3, not a separate decision — flagged for transparency).
+The order's Ordered Steps literally said to run
+`prisma migrate dev --schema=prisma/non-market-data/schema.prisma --name
+drop_money_user_fk_constraints`. This was **not run**. `migrate dev` rebuilds a
+shadow database from the full shared migration history and diffs it against
+whichever single schema file is passed — since `prisma/non-market-data/schema.prisma`
+does not declare `MarketDataV6` (that model lives only in the sibling
+`prisma/market-data/schema.prisma`), this diff would have proposed `DROP TABLE
+"market_data_v6"` alongside the intended FK drops. This is precisely the failure
+mode Davin's point 4 above describes.
+
+Instead: the 4 FK constraint names (`Subscription_userId_fkey`, `Payment_userId_fkey`,
+`FraudAlert_userId_fkey`, `AffiliateProfile_userId_fkey`) were confirmed directly
+from `prisma/migrations/20251227000000_init/migration.sql`'s `ADD CONSTRAINT`
+statements (read in full per L16 before any baselining), and the migration file was
+hand-written with exactly 4 `ALTER TABLE ... DROP CONSTRAINT ...` statements —
+matching the order's own "must be 4 ALTER TABLE ... DROP CONSTRAINT ... statements,
+nothing else" parity check, achieved via a safer path than the literal instruction.
+Placed inside the shared `prisma/migrations/` folder as instructed, applied via
+`prisma migrate deploy` (which applies pending SQL files in timestamp order with no
+shadow-DB diffing involved — the mechanism that made this safe). Commit `1c3179fb`.
+
+**5. Consequence for Session 2-4 (next session, not this one):** the "two schema
+files, two migration histories" architecture originally implied by Phase 2's plan is
+now "two schema files (for separate Prisma Client generation/type boundaries), one
+shared migration history" until a future, not-yet-scheduled physical database split.
+Session 2-4's scope (repoint 16 consumer imports) is unaffected by this — it was
+never going to touch migration history — but the plan document (`monolith-to-
+microservices-migration-implementation-plan.md`) should be updated to reflect this
+constraint before any future session assumes the two-history model is real.
 
 ## Known wrinkles / do-not-touch
 
