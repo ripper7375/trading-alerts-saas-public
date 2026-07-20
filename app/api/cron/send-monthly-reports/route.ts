@@ -147,8 +147,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Fetch all active affiliates
     const affiliates = await prisma.affiliateProfile.findMany({
       where: { status: 'ACTIVE' },
-      include: { user: true },
     });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const affiliateUsers = await prisma.user.findMany({
+      where: { id: { in: affiliates.map((a) => a.userId) } },
+    });
+    const affiliateUserById = new Map(affiliateUsers.map((u) => [u.id, u]));
 
     if (affiliates.length === 0) {
       console.log('[CRON] No active affiliates found for reports');
@@ -168,6 +174,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const reports: MonthlyReportData[] = [];
 
     for (const affiliate of affiliates) {
+      const affiliateUser = affiliateUserById.get(affiliate.userId);
       try {
         // Generate report data
         const reportData = await generateAffiliateReport(
@@ -178,7 +185,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const report: MonthlyReportData = {
           affiliateId: affiliate.id,
-          email: affiliate.user?.email ?? '',
+          email: affiliateUser?.email ?? '',
           month: monthName,
           codesDistributed: reportData.codesDistributed,
           codesUsed: reportData.codesUsed,
@@ -197,14 +204,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         sent++;
         console.log(
-          `[CRON] Generated report for ${affiliate.user?.email ?? 'unknown'}`
+          `[CRON] Generated report for ${affiliateUser?.email ?? 'unknown'}`
         );
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
-        errors.push(`${affiliate.user?.email ?? 'unknown'}: ${errorMessage}`);
+        errors.push(`${affiliateUser?.email ?? 'unknown'}: ${errorMessage}`);
         console.error(
-          `[CRON] Failed to generate report for ${affiliate.user?.email ?? 'unknown'}:`,
+          `[CRON] Failed to generate report for ${affiliateUser?.email ?? 'unknown'}:`,
           error
         );
       }

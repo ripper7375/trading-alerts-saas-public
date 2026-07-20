@@ -38,14 +38,14 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     // Require admin access
     await requireAdmin();
 
-    const accounts = await prisma.affiliateRiseAccount.findMany({
+    const accountRows = await prisma.affiliateRiseAccount.findMany({
       include: {
         affiliateProfile: {
           select: {
+            userId: true,
             fullName: true,
             country: true,
             status: true,
-            user: { select: { email: true } },
           },
         },
         _count: {
@@ -54,6 +54,29 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const accountUsers = await prisma.user.findMany({
+      where: {
+        id: {
+          in: accountRows
+            .map((a) => a.affiliateProfile?.userId)
+            .filter((id): id is string => !!id),
+        },
+      },
+      select: { id: true, email: true },
+    });
+    const accountUserById = new Map(accountUsers.map((u) => [u.id, u]));
+    const accounts = accountRows.map((a) => ({
+      ...a,
+      affiliateProfile: a.affiliateProfile
+        ? {
+            ...a.affiliateProfile,
+            user: accountUserById.get(a.affiliateProfile.userId),
+          }
+        : a.affiliateProfile,
+    }));
 
     type AccountWithProfile = (typeof accounts)[number];
 
@@ -197,7 +220,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         affiliateProfile: {
           select: {
             fullName: true,
-            user: { select: { email: true } },
           },
         },
       },

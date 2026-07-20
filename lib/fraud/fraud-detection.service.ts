@@ -341,24 +341,27 @@ export async function getFraudAlerts(
     }
   }
 
-  const [alerts, total] = await Promise.all([
+  const [alertRows, total] = await Promise.all([
     prisma.fraudAlert.findMany({
       where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
     prisma.fraudAlert.count({ where }),
   ]);
+
+  // FraudAlert no longer carries a `user` relation (Session 2-3 FK audit) —
+  // batch-fetch contact users separately by userId.
+  const alertUsers = await prisma.user.findMany({
+    where: { id: { in: alertRows.map((a) => a.userId) } },
+    select: { id: true, email: true, name: true },
+  });
+  const alertUserById = new Map(alertUsers.map((u) => [u.id, u]));
+  const alerts = alertRows.map((alert) => ({
+    ...alert,
+    user: alertUserById.get(alert.userId),
+  }));
 
   return {
     alerts,

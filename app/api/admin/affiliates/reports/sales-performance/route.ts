@@ -66,12 +66,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
 
     // Get affiliate performance grouped by affiliate
-    const affiliatePerformance = await prisma.affiliateProfile.findMany({
+    const affiliatePerformanceRows = await prisma.affiliateProfile.findMany({
       where: {
         status: 'ACTIVE',
       },
       select: {
         id: true,
+        userId: true,
         fullName: true,
         country: true,
         totalCodesDistributed: true,
@@ -88,17 +89,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             status: true,
           },
         },
-        user: {
-          select: {
-            email: true,
-          },
-        },
       },
       orderBy: {
         totalCodesUsed: 'desc',
       },
       take: limit,
     });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const performanceUsers = await prisma.user.findMany({
+      where: { id: { in: affiliatePerformanceRows.map((a) => a.userId) } },
+      select: { id: true, email: true },
+    });
+    const performanceUserById = new Map(performanceUsers.map((u) => [u.id, u]));
+    const affiliatePerformance = affiliatePerformanceRows.map((affiliate) => ({
+      ...affiliate,
+      user: performanceUserById.get(affiliate.userId),
+    }));
 
     // Transform data
     const topPerformers = affiliatePerformance.map((affiliate) => {

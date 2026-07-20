@@ -9,7 +9,9 @@
 
 import crypto from 'crypto';
 
-import type { InputJsonValue } from '@prisma/client/runtime/library';
+import type { Prisma } from '.prisma/non-market-client';
+
+type InputJsonValue = Prisma.InputJsonValue;
 
 import { prisma } from '@/lib/db/prisma';
 

@@ -62,7 +62,6 @@ export async function POST(): Promise<NextResponse> {
     // Get user with subscription
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { subscription: true },
     });
 
     if (!user) {
@@ -76,8 +75,14 @@ export async function POST(): Promise<NextResponse> {
       );
     }
 
+    // User no longer carries a `subscription` relation (Session 2-3 FK
+    // audit) — look it up separately by userId.
+    const userSubscription = await prisma.subscription.findUnique({
+      where: { userId },
+    });
+
     // Check if user has an active subscription
-    if (user.tier === 'FREE' || !user.subscription) {
+    if (user.tier === 'FREE' || !userSubscription) {
       return NextResponse.json(
         {
           error: 'No subscription',
@@ -89,11 +94,11 @@ export async function POST(): Promise<NextResponse> {
     }
 
     // Cancel Stripe subscription if exists
-    if (user.subscription.stripeSubscriptionId) {
+    if (userSubscription.stripeSubscriptionId) {
       try {
-        await cancelSubscription(user.subscription.stripeSubscriptionId);
+        await cancelSubscription(userSubscription.stripeSubscriptionId);
         console.log(
-          `[Cancel] Cancelled Stripe subscription: ${user.subscription.stripeSubscriptionId}`
+          `[Cancel] Cancelled Stripe subscription: ${userSubscription.stripeSubscriptionId}`
         );
       } catch (error) {
         console.error('[Cancel] Error cancelling Stripe subscription:', error);
@@ -114,7 +119,7 @@ export async function POST(): Promise<NextResponse> {
 
     // Update subscription status in database
     await prisma.subscription.update({
-      where: { id: user.subscription.id },
+      where: { id: userSubscription.id },
       data: { status: 'CANCELED' },
     });
 

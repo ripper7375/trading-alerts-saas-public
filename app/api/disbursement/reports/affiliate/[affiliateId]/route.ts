@@ -62,25 +62,29 @@ export async function GET(
     const { affiliateId } = await context.params;
 
     // Verify affiliate exists
-    const affiliate = await prisma.affiliateProfile.findUnique({
+    const affiliateProfile = await prisma.affiliateProfile.findUnique({
       where: { id: affiliateId },
       select: {
         id: true,
         fullName: true,
-        user: {
-          select: {
-            email: true,
-          },
-        },
+        userId: true,
       },
     });
 
-    if (!affiliate) {
+    if (!affiliateProfile) {
       return NextResponse.json(
         { error: 'Affiliate not found' },
         { status: 404 }
       );
     }
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — look the contact up separately by userId.
+    const affiliateUser = await prisma.user.findUnique({
+      where: { id: affiliateProfile.userId },
+      select: { email: true },
+    });
+    const affiliate = { ...affiliateProfile, user: affiliateUser };
 
     // Get transaction history
     const transactions = await prisma.disbursementTransaction.findMany({

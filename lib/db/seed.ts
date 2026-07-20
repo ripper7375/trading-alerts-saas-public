@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/non-market-client';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -221,8 +221,6 @@ export async function cleanupTestData(
       where: { email },
       include: {
         alerts: true,
-        payments: true,
-        fraudAlerts: true,
       },
     });
 

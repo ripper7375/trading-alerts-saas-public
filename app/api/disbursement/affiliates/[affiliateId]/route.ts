@@ -40,20 +40,27 @@ export async function GET(
     const { affiliateId } = await context.params;
 
     // Get affiliate profile with related data
-    const profile = await prisma.affiliateProfile.findUnique({
+    const profileRow = await prisma.affiliateProfile.findUnique({
       where: { id: affiliateId },
       include: {
-        user: { select: { email: true, createdAt: true } },
         riseAccount: true,
       },
     });
 
-    if (!profile) {
+    if (!profileRow) {
       return NextResponse.json(
         { error: 'Affiliate not found' },
         { status: 404 }
       );
     }
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — look the contact up separately by userId.
+    const profileUser = await prisma.user.findUnique({
+      where: { id: profileRow.userId },
+      select: { email: true, createdAt: true },
+    });
+    const profile = { ...profileRow, user: profileUser };
 
     // Get commission aggregate
     const aggregator = new CommissionAggregator(prisma);

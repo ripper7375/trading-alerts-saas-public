@@ -11,7 +11,7 @@ import {
   DisbursementProvider,
   PaymentBatchStatus,
   Prisma,
-} from '@prisma/client';
+} from '.prisma/non-market-client';
 import type { CommissionAggregate } from '@/types/disbursement';
 import { generateBatchNumber, MAX_BATCH_SIZE } from '../constants';
 import { TransactionLogger } from './transaction-logger';

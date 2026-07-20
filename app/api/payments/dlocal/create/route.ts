@@ -83,14 +83,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check if user is already PRO
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { subscription: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (user.tier === 'PRO' && user.subscription?.status === 'ACTIVE') {
+    // User no longer carries a `subscription` relation (Session 2-3 FK
+    // audit) — look it up separately by userId.
+    const userSubscription = await prisma.subscription.findUnique({
+      where: { userId },
+    });
+
+    if (user.tier === 'PRO' && userSubscription?.status === 'ACTIVE') {
       return NextResponse.json(
         { error: 'You already have an active subscription' },
         { status: 403 }

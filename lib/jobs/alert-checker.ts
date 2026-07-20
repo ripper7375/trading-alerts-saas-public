@@ -10,6 +10,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { marketPrisma } from '@/lib/db/market-prisma';
 
 // Flask MT5 service configuration
 const MT5_API_URL = process.env['MT5_API_URL'] || 'http://localhost:5000';
@@ -101,7 +102,7 @@ async function fetchXauusdPriceFromGatewayPipeline(
   timeframe: string
 ): Promise<number | null> {
   try {
-    const row = await prisma.marketDataV6.findFirst({
+    const row = await marketPrisma.marketDataV6.findFirst({
       where: { symbol: 'XAUUSD', timeframe },
       orderBy: { timestamp: 'desc' },
     });

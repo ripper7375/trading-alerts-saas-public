@@ -70,7 +70,14 @@ export function generate2FAToken(userId: string, email: string): string {
  * for new OAuth users (tier: FREE, role: USER, emailVerified: now)
  */
 function CustomPrismaAdapter(): Adapter {
-  const baseAdapter = PrismaAdapter(prisma);
+  // @next-auth/prisma-adapter's PrismaAdapter() signature is hardcoded to
+  // the default '@prisma/client' PrismaClient type (not generic) — it never
+  // touches marketDataV6 or $metrics, only User/Account/Session/
+  // VerificationToken (unchanged by the Session 2-3 FK audit), so this cast
+  // is safe: the runtime shape it actually calls into is identical.
+  const baseAdapter = PrismaAdapter(
+    prisma as unknown as Parameters<typeof PrismaAdapter>[0]
+  );
 
   return {
     ...baseAdapter,
@@ -351,7 +358,10 @@ export const authOptions: NextAuthOptions = {
           if (!user.email && account.provider === 'twitter') {
             const twitterId = account.providerAccountId;
             user.email = `twitter_${twitterId}@twitter.placeholder`;
-            console.log('[SignIn] Twitter user without email, using placeholder:', user.email);
+            console.log(
+              '[SignIn] Twitter user without email, using placeholder:',
+              user.email
+            );
           }
 
           if (!user.email) {

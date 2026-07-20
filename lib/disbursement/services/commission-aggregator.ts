@@ -5,7 +5,7 @@
  * Groups commissions and calculates totals for batch payment processing.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/non-market-client';
 import type {
   CommissionAggregate,
   PayableAffiliate,
@@ -121,35 +121,41 @@ export class CommissionAggregator {
    * @returns Array of payable affiliates with full details
    */
   async getPayableAffiliatesWithDetails(): Promise<PayableAffiliate[]> {
-    const affiliatesWithCommissions =
-      await this.prisma.affiliateProfile.findMany({
-        where: {
-          status: 'ACTIVE',
-          commissions: {
-            some: {
-              status: 'APPROVED',
-              disbursementTransaction: null,
-            },
+    const affiliateProfiles = await this.prisma.affiliateProfile.findMany({
+      where: {
+        status: 'ACTIVE',
+        commissions: {
+          some: {
+            status: 'APPROVED',
+            disbursementTransaction: null,
           },
         },
-        include: {
-          user: {
-            select: {
-              email: true,
-            },
+      },
+      include: {
+        commissions: {
+          where: {
+            status: 'APPROVED',
+            disbursementTransaction: null,
           },
-          commissions: {
-            where: {
-              status: 'APPROVED',
-              disbursementTransaction: null,
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
+          orderBy: {
+            createdAt: 'asc',
           },
-          riseAccount: true,
         },
-      });
+        riseAccount: true,
+      },
+    });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const affiliateUsers = await this.prisma.user.findMany({
+      where: { id: { in: affiliateProfiles.map((a) => a.userId) } },
+      select: { id: true, email: true },
+    });
+    const affiliateUserById = new Map(affiliateUsers.map((u) => [u.id, u]));
+    const affiliatesWithCommissions = affiliateProfiles.map((affiliate) => ({
+      ...affiliate,
+      user: affiliateUserById.get(affiliate.userId),
+    }));
 
     return affiliatesWithCommissions
       .map((affiliate) => {

@@ -79,13 +79,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Get affiliate details for preview
     const previewItems = await Promise.all(
       aggregates.map(async (agg: CommissionAgg) => {
-        const profile = await prisma.affiliateProfile.findUnique({
+        const profileRow = await prisma.affiliateProfile.findUnique({
           where: { id: agg.affiliateId },
           include: {
-            user: { select: { email: true } },
             riseAccount: true,
           },
         });
+        // AffiliateProfile no longer carries a `user` relation (Session 2-3
+        // FK audit) — look the contact up separately by userId.
+        const profileUser = profileRow
+          ? await prisma.user.findUnique({
+              where: { id: profileRow.userId },
+              select: { email: true },
+            })
+          : null;
+        const profile = profileRow
+          ? { ...profileRow, user: profileUser }
+          : null;
 
         const calculation = PayoutCalculator.calculatePayout(
           agg,

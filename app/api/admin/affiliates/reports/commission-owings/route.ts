@@ -63,7 +63,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const minimumPayout = minBalance ?? AFFILIATE_CONFIG.MINIMUM_PAYOUT;
 
     // Get affiliates with pending commissions
-    const affiliatesWithPending = await prisma.affiliateProfile.findMany({
+    const affiliatesWithPendingRows = await prisma.affiliateProfile.findMany({
       where: {
         status: 'ACTIVE',
         pendingCommissions: {
@@ -72,6 +72,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
       select: {
         id: true,
+        userId: true,
         fullName: true,
         country: true,
         paymentMethod: true,
@@ -79,11 +80,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         pendingCommissions: true,
         paidCommissions: true,
         totalEarnings: true,
-        user: {
-          select: {
-            email: true,
-          },
-        },
         commissions: {
           where: {
             status: 'PENDING',
@@ -104,6 +100,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const owingsUsers = await prisma.user.findMany({
+      where: {
+        id: { in: affiliatesWithPendingRows.map((a) => a.userId) },
+      },
+      select: { id: true, email: true },
+    });
+    const owingsUserById = new Map(owingsUsers.map((u) => [u.id, u]));
+    const affiliatesWithPending = affiliatesWithPendingRows.map((a) => ({
+      ...a,
+      user: owingsUserById.get(a.userId),
+    }));
 
     // Get total count
     const totalCount = await prisma.affiliateProfile.count({

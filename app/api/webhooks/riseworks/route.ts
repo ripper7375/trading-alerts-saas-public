@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '.prisma/non-market-client';
 import { prisma } from '@/lib/db/prisma';
 import { WebhookVerifier } from '@/lib/disbursement/providers/rise/webhook-verifier';
 import { WebhookEventProcessor } from '@/lib/disbursement/webhook/event-processor';

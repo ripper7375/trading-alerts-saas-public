@@ -40,14 +40,16 @@ export async function canPurchaseThreeDayPlan(
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        subscription: {
-          select: {
-            id: true,
-            status: true,
-            expiresAt: true,
-          },
-        },
+    });
+
+    // User no longer carries a `subscription` relation (Session 2-3 FK
+    // audit) — look it up separately by userId.
+    const userSubscription = await prisma.subscription.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        status: true,
+        expiresAt: true,
       },
     });
 
@@ -77,7 +79,7 @@ export async function canPurchaseThreeDayPlan(
     }
 
     // Check if user has an active subscription
-    const sub = user.subscription;
+    const sub = userSubscription;
     const hasActiveSubscription =
       sub !== null &&
       sub !== undefined &&
@@ -87,7 +89,7 @@ export async function canPurchaseThreeDayPlan(
     if (hasActiveSubscription) {
       logger.info('User has active subscription, cannot purchase 3-day plan', {
         userId,
-        subscriptionId: user.subscription?.id,
+        subscriptionId: userSubscription?.id,
       });
       return {
         canPurchase: false,

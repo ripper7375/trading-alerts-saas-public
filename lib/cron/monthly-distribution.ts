@@ -76,8 +76,14 @@ export async function runMonthlyDistribution(
     // Fetch all active affiliates with their user details
     const affiliates = await prisma.affiliateProfile.findMany({
       where: { status: 'ACTIVE' },
-      include: { user: true },
     });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const affiliateUsers = await prisma.user.findMany({
+      where: { id: { in: affiliates.map((a) => a.userId) } },
+    });
+    const affiliateUserById = new Map(affiliateUsers.map((u) => [u.id, u]));
 
     result.totalAffiliates = affiliates.length;
 
@@ -92,8 +98,9 @@ export async function runMonthlyDistribution(
 
     // Process each affiliate
     for (const affiliate of affiliates) {
+      const affiliateUser = affiliateUserById.get(affiliate.userId);
       try {
-        if (!affiliate.user) {
+        if (!affiliateUser) {
           result.errors.push(`Affiliate ${affiliate.id}: Missing user`);
           continue;
         }
@@ -106,7 +113,7 @@ export async function runMonthlyDistribution(
 
         result.distributed++;
         console.log(
-          `[CRON] Distributed ${AFFILIATE_CONFIG.CODES_PER_MONTH} codes to ${affiliate.user.email}`
+          `[CRON] Distributed ${AFFILIATE_CONFIG.CODES_PER_MONTH} codes to ${affiliateUser.email}`
         );
 
         // TODO: Send notification email
@@ -115,12 +122,12 @@ export async function runMonthlyDistribution(
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
-        const errorEntry = affiliate.user
-          ? `${affiliate.user.email}: ${errorMessage}`
+        const errorEntry = affiliateUser
+          ? `${affiliateUser.email}: ${errorMessage}`
           : `Affiliate ${affiliate.id}: ${errorMessage}`;
         result.errors.push(errorEntry);
         console.error(
-          `[CRON] Failed to distribute to ${affiliate.user?.email || affiliate.id}:`,
+          `[CRON] Failed to distribute to ${affiliateUser?.email || affiliate.id}:`,
           error
         );
       }

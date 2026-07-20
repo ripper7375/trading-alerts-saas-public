@@ -99,15 +99,20 @@ export async function GET(): Promise<
     // Get user with subscription from database
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { subscription: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // User no longer carries a `subscription` relation (Session 2-3 FK
+    // audit) — look it up separately by userId.
+    const userSubscription = await prisma.subscription.findUnique({
+      where: { userId },
+    });
+
     // If no subscription or FREE tier, return basic response
-    if (!user.subscription || user.tier === 'FREE') {
+    if (!userSubscription || user.tier === 'FREE') {
       return NextResponse.json({
         tier: user.tier,
         status: 'none',
@@ -119,16 +124,16 @@ export async function GET(): Promise<
     let stripeSubscription = null;
     let paymentMethod = null;
 
-    if (user.subscription.stripeSubscriptionId) {
+    if (userSubscription.stripeSubscriptionId) {
       try {
         stripeSubscription = await getSubscription(
-          user.subscription.stripeSubscriptionId
+          userSubscription.stripeSubscriptionId
         );
 
         // Get payment method if customer exists
-        if (user.subscription.stripeCustomerId) {
+        if (userSubscription.stripeCustomerId) {
           const paymentMethods = await getCustomerPaymentMethods(
-            user.subscription.stripeCustomerId
+            userSubscription.stripeCustomerId
           );
 
           const firstPaymentMethod = paymentMethods[0];
@@ -149,32 +154,32 @@ export async function GET(): Promise<
     }
 
     // Determine payment provider
-    const provider: 'STRIPE' | 'DLOCAL' | null = user.subscription
-      .dLocalPaymentId
-      ? 'DLOCAL'
-      : user.subscription.stripeSubscriptionId
-        ? 'STRIPE'
-        : null;
+    const provider: 'STRIPE' | 'DLOCAL' | null =
+      userSubscription.dLocalPaymentId
+        ? 'DLOCAL'
+        : userSubscription.stripeSubscriptionId
+          ? 'STRIPE'
+          : null;
 
     // Build unified response
     const response: SubscriptionResponse = {
       tier: user.tier,
-      status: user.subscription.status,
+      status: userSubscription.status,
       subscription: {
-        id: user.subscription.id,
-        status: user.subscription.status,
+        id: userSubscription.id,
+        status: userSubscription.status,
         provider,
-        planType: user.subscription.planType,
+        planType: userSubscription.planType,
         currentPeriodEnd:
-          user.subscription.stripeCurrentPeriodEnd?.toISOString() || null,
-        expiresAt: user.subscription.expiresAt?.toISOString() || null,
+          userSubscription.stripeCurrentPeriodEnd?.toISOString() || null,
+        expiresAt: userSubscription.expiresAt?.toISOString() || null,
         cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
         trialEnd: stripeSubscription?.trial_end
           ? new Date(stripeSubscription.trial_end * 1000).toISOString()
           : null,
         paymentMethod,
-        dLocalPaymentMethod: user.subscription.dLocalPaymentMethod,
-        dLocalCountry: user.subscription.dLocalCountry,
+        dLocalPaymentMethod: userSubscription.dLocalPaymentMethod,
+        dLocalCountry: userSubscription.dLocalCountry,
       },
     };
 

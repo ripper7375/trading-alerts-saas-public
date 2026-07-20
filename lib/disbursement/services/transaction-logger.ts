@@ -5,7 +5,11 @@
  * Logs batch creation, execution, payment success/failure events.
  */
 
-import { PrismaClient, AuditLogStatus, Prisma } from '@prisma/client';
+import {
+  PrismaClient,
+  AuditLogStatus,
+  Prisma,
+} from '.prisma/non-market-client';
 
 export interface AuditLogEntry {
   action: string;

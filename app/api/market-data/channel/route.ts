@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
-import { prisma } from '@/lib/db/prisma';
+import { marketPrisma } from '@/lib/db/market-prisma';
 import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
 import { CENTROID_VARIANTS, type CentroidVariant } from '@/types/indicator';
 
@@ -98,20 +98,18 @@ export async function GET(
       );
     }
 
-    const rows = (await prisma.marketDataV6.findMany({
+    const rows = (await marketPrisma.marketDataV6.findMany({
       where: { symbol, timeframe },
       orderBy: { timestamp: 'desc' },
       take: limit,
     })) as unknown as Array<Record<string, unknown>>;
 
-    const points: ChannelPoint[] = rows
-      .reverse()
-      .map((row) => ({
-        time: row['timestamp'] as number,
-        upper: (row[`${variant}_uoedt`] as number | null) ?? null,
-        mid: (row[`${variant}_base_fl`] as number | null) ?? null,
-        lower: (row[`${variant}_loedt`] as number | null) ?? null,
-      }));
+    const points: ChannelPoint[] = rows.reverse().map((row) => ({
+      time: row['timestamp'] as number,
+      upper: (row[`${variant}_uoedt`] as number | null) ?? null,
+      mid: (row[`${variant}_base_fl`] as number | null) ?? null,
+      lower: (row[`${variant}_loedt`] as number | null) ?? null,
+    }));
 
     return NextResponse.json(
       { success: true, symbol, timeframe, variant, points },

@@ -24,6 +24,18 @@ import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
 import { AFFILIATE_CONFIG, getBasePriceUsd } from '@/lib/affiliate/constants';
 
+/**
+ * Subscription/AffiliateProfile no longer carry a `user` relation (Session
+ * 2-3 FK audit dropped it) — look the contact fields up separately by
+ * `userId` instead of a relation include.
+ */
+async function getUserContact(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true },
+  });
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT COMPLETED
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -152,7 +164,6 @@ export async function handleSubscriptionUpdated(
     // Find subscription by Stripe subscription ID
     const dbSubscription = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscriptionId },
-      include: { user: true },
     });
 
     if (!dbSubscription) {
@@ -220,7 +231,6 @@ export async function handleSubscriptionDeleted(
     // Find subscription by Stripe subscription ID
     const dbSubscription = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscriptionId },
-      include: { user: true },
     });
 
     if (!dbSubscription) {
@@ -250,10 +260,11 @@ export async function handleSubscriptionDeleted(
     });
 
     // Send subscription canceled email with access end date
-    if (dbSubscription.user?.email) {
+    const cancelUser = await getUserContact(dbSubscription.userId);
+    if (cancelUser?.email) {
       await sendSubscriptionCanceledEmail(
-        dbSubscription.user.email,
-        dbSubscription.user.name || 'User',
+        cancelUser.email,
+        cancelUser.name || 'User',
         'PRO',
         cancelAt
       );
@@ -294,7 +305,6 @@ export async function handleInvoiceFailed(
     // Find subscription by Stripe customer ID
     const dbSubscription = await prisma.subscription.findFirst({
       where: { stripeCustomerId: customerId },
-      include: { user: true },
     });
 
     if (!dbSubscription) {
@@ -310,10 +320,11 @@ export async function handleInvoiceFailed(
       invoice.last_finalization_error?.message || 'Payment method declined';
 
     // Send payment failed email
-    if (dbSubscription.user?.email) {
+    const failedUser = await getUserContact(dbSubscription.userId);
+    if (failedUser?.email) {
       await sendPaymentFailedEmail(
-        dbSubscription.user.email,
-        dbSubscription.user.name || 'User',
+        failedUser.email,
+        failedUser.name || 'User',
         failureReason
       );
     }
@@ -368,7 +379,6 @@ export async function handleInvoiceSucceeded(
     // Find subscription by Stripe customer ID
     const dbSubscription = await prisma.subscription.findFirst({
       where: { stripeCustomerId: customerId },
-      include: { user: true },
     });
 
     if (!dbSubscription) {
@@ -413,10 +423,11 @@ export async function handleInvoiceSucceeded(
     });
 
     // Send payment receipt email
-    if (dbSubscription.user?.email) {
+    const receiptUser = await getUserContact(dbSubscription.userId);
+    if (receiptUser?.email) {
       await sendPaymentReceiptEmail(
-        dbSubscription.user.email,
-        dbSubscription.user.name || 'User',
+        receiptUser.email,
+        receiptUser.name || 'User',
         amountPaid / 100, // Convert cents to dollars
         nextBillingDate,
         invoice.invoice_pdf || undefined
@@ -555,14 +566,6 @@ async function processAffiliateCommission(
         totalEarnings: { increment: breakdown.commissionAmount },
         pendingCommissions: { increment: breakdown.commissionAmount },
       },
-      include: {
-        user: {
-          select: {
-            email: true,
-            name: true,
-          },
-        },
-      },
     });
 
     console.log(
@@ -570,10 +573,11 @@ async function processAffiliateCommission(
     );
 
     // Send commission notification email to affiliate
-    if (updatedProfile.user?.email) {
+    const affiliateUser = await getUserContact(updatedProfile.userId);
+    if (affiliateUser?.email) {
       await sendAffiliateCommissionEmail(
-        updatedProfile.user.email,
-        updatedProfile.user.name || 'Affiliate',
+        affiliateUser.email,
+        affiliateUser.name || 'Affiliate',
         code,
         breakdown.commissionAmount,
         updatedProfile.totalEarnings

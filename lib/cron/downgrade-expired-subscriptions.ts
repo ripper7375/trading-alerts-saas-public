@@ -65,7 +65,7 @@ export async function downgradeExpiredSubscriptions(
     });
 
     // Find expired dLocal subscriptions that are still active
-    const expiredSubscriptions = await prisma.subscription.findMany({
+    const expiredSubscriptionRows = await prisma.subscription.findMany({
       where: {
         status: 'ACTIVE',
         // Only dLocal subscriptions - they have dLocalPaymentId set
@@ -74,17 +74,19 @@ export async function downgradeExpiredSubscriptions(
           lt: now,
         },
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            tier: true,
-          },
-        },
-      },
     });
+
+    // Subscription no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const expiredUsers = await prisma.user.findMany({
+      where: { id: { in: expiredSubscriptionRows.map((s) => s.userId) } },
+      select: { id: true, email: true, name: true, tier: true },
+    });
+    const expiredUserById = new Map(expiredUsers.map((u) => [u.id, u]));
+    const expiredSubscriptions = expiredSubscriptionRows.map((sub) => ({
+      ...sub,
+      user: expiredUserById.get(sub.userId),
+    }));
 
     logger.info(`Found ${expiredSubscriptions.length} expired subscriptions`);
     result.processed = expiredSubscriptions.length;

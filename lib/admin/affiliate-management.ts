@@ -94,16 +94,10 @@ export async function getAffiliatesList(
   if (paymentMethod) where['paymentMethod'] = paymentMethod;
 
   // Execute queries in parallel
-  const [affiliates, total] = await Promise.all([
+  const [affiliateRows, total] = await Promise.all([
     prisma.affiliateProfile.findMany({
       where,
       include: {
-        user: {
-          select: {
-            email: true,
-            name: true,
-          },
-        },
         affiliateCodes: {
           where: { status: 'ACTIVE' },
           select: {
@@ -119,6 +113,20 @@ export async function getAffiliatesList(
     }),
     prisma.affiliateProfile.count({ where }),
   ]);
+
+  // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+  // audit) — batch-fetch contact users separately by userId.
+  const affiliateManagementUsers = await prisma.user.findMany({
+    where: { id: { in: affiliateRows.map((a) => a.userId) } },
+    select: { id: true, email: true, name: true },
+  });
+  const affiliateManagementUserById = new Map(
+    affiliateManagementUsers.map((u) => [u.id, u])
+  );
+  const affiliates = affiliateRows.map((a) => ({
+    ...a,
+    user: affiliateManagementUserById.get(a.userId),
+  }));
 
   return {
     affiliates: affiliates as AffiliateWithUser[],
@@ -143,15 +151,9 @@ export async function getAffiliatesList(
 export async function getAffiliateDetails(
   affiliateId: string
 ): Promise<AffiliateDetails> {
-  const affiliate = await prisma.affiliateProfile.findUnique({
+  const affiliateRow = await prisma.affiliateProfile.findUnique({
     where: { id: affiliateId },
     include: {
-      user: {
-        select: {
-          email: true,
-          name: true,
-        },
-      },
       affiliateCodes: {
         orderBy: { createdAt: 'desc' },
         select: {
@@ -180,9 +182,17 @@ export async function getAffiliateDetails(
     },
   });
 
-  if (!affiliate) {
+  if (!affiliateRow) {
     throw new Error('Affiliate not found');
   }
+
+  // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+  // audit) — look the contact up separately by userId.
+  const affiliateUser = await prisma.user.findUnique({
+    where: { id: affiliateRow.userId },
+    select: { email: true, name: true },
+  });
+  const affiliate = { ...affiliateRow, user: affiliateUser };
 
   return affiliate as unknown as AffiliateDetails;
 }

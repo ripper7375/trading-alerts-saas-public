@@ -5,7 +5,7 @@
  * Handles payment completion, payment failure, and invite acceptance events.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/non-market-client';
 import { TransactionLogger } from '../services/transaction-logger';
 
 export interface WebhookEvent {

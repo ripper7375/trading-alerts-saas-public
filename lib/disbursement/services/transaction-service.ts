@@ -9,7 +9,7 @@ import {
   PrismaClient,
   DisbursementProvider,
   DisbursementTransactionStatus,
-} from '@prisma/client';
+} from '.prisma/non-market-client';
 import { generateTransactionId, usdToRiseUnits } from '../constants';
 
 /**
@@ -93,7 +93,7 @@ export class TransactionService {
    * @returns Transaction with related data or null
    */
   async getTransactionById(id: string) {
-    return this.prisma.disbursementTransaction.findUnique({
+    const transaction = await this.prisma.disbursementTransaction.findUnique({
       where: { id },
       include: {
         commission: {
@@ -101,8 +101,8 @@ export class TransactionService {
             affiliateProfile: {
               select: {
                 id: true,
+                userId: true,
                 fullName: true,
-                user: { select: { email: true } },
               },
             },
           },
@@ -117,6 +117,27 @@ export class TransactionService {
         },
       },
     });
+
+    // AffiliateProfile no longer carries a `user` relation (Session 2-3 FK
+    // audit) — look the contact up separately by userId.
+    const affiliateUserId = transaction?.commission?.affiliateProfile?.userId;
+    if (!transaction?.commission?.affiliateProfile || !affiliateUserId) {
+      return transaction;
+    }
+    const affiliateUser = await this.prisma.user.findUnique({
+      where: { id: affiliateUserId },
+      select: { email: true },
+    });
+    return {
+      ...transaction,
+      commission: {
+        ...transaction.commission,
+        affiliateProfile: {
+          ...transaction.commission.affiliateProfile,
+          user: affiliateUser,
+        },
+      },
+    };
   }
 
   /**

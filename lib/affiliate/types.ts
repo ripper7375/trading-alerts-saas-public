@@ -7,7 +7,9 @@
  * @module lib/affiliate/types
  */
 
-import type { JsonValue } from '@prisma/client/runtime/library';
+import type { Prisma } from '.prisma/non-market-client';
+
+type JsonValue = Prisma.JsonValue;
 
 // Decimal type alias - Prisma Decimal maps to number in JavaScript
 type Decimal = number;

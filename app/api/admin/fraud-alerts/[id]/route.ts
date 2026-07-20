@@ -48,25 +48,28 @@ export async function GET(
 
     const { id } = await params;
 
-    const alert = await prisma.fraudAlert.findUnique({
+    const alertRow = await prisma.fraudAlert.findUnique({
       where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            tier: true,
-            isActive: true,
-            createdAt: true,
-          },
-        },
-      },
     });
 
-    if (!alert) {
+    if (!alertRow) {
       return NextResponse.json({ error: 'Alert not found' }, { status: 404 });
     }
+
+    // FraudAlert no longer carries a `user` relation (Session 2-3 FK audit)
+    // — look the contact up separately by userId.
+    const alertUser = await prisma.user.findUnique({
+      where: { id: alertRow.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        tier: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+    const alert = { ...alertRow, user: alertUser };
 
     // Cast to access fields that will exist after prisma generate
     const alertData = alert as typeof alert & {
@@ -163,18 +166,20 @@ export async function PATCH(
     }
 
     // Fetch updated alert
-    const updatedAlert = await prisma.fraudAlert.findUnique({
+    const updatedAlertRow = await prisma.fraudAlert.findUnique({
       where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
     });
+    // FraudAlert no longer carries a `user` relation (Session 2-3 FK audit)
+    // — look the contact up separately by userId.
+    const updatedAlertUser = updatedAlertRow
+      ? await prisma.user.findUnique({
+          where: { id: updatedAlertRow.userId },
+          select: { id: true, email: true, name: true },
+        })
+      : null;
+    const updatedAlert = updatedAlertRow
+      ? { ...updatedAlertRow, user: updatedAlertUser }
+      : null;
 
     // Cast to access fields that will exist after prisma generate
     const alertData = updatedAlert as

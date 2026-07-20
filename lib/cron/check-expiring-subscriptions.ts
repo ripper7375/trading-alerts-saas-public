@@ -75,7 +75,7 @@ export async function checkExpiringSubscriptions(
 
     // Find dLocal subscriptions expiring within the window
     // that haven't had a reminder sent yet
-    const expiringSubscriptions = await prisma.subscription.findMany({
+    const expiringSubscriptionRows = await prisma.subscription.findMany({
       where: {
         status: 'ACTIVE',
         renewalReminderSent: false,
@@ -86,16 +86,19 @@ export async function checkExpiringSubscriptions(
           lte: windowEnd,
         },
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
     });
+
+    // Subscription no longer carries a `user` relation (Session 2-3 FK
+    // audit) — batch-fetch contact users separately by userId.
+    const expiringUsers = await prisma.user.findMany({
+      where: { id: { in: expiringSubscriptionRows.map((s) => s.userId) } },
+      select: { id: true, email: true, name: true },
+    });
+    const expiringUserById = new Map(expiringUsers.map((u) => [u.id, u]));
+    const expiringSubscriptions = expiringSubscriptionRows.map((sub) => ({
+      ...sub,
+      user: expiringUserById.get(sub.userId),
+    }));
 
     logger.info(`Found ${expiringSubscriptions.length} expiring subscriptions`);
     result.processed = expiringSubscriptions.length;

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/non-market-client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
@@ -8,9 +8,17 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * Prevents connection pool exhaustion during development
  * Follows Prisma best practices for Next.js integration
  *
- * Note: We import from '@prisma/client' which uses the generated client
- * or falls back to type stubs (types/prisma-stubs.d.ts) when the client
- * cannot be generated locally due to network restrictions.
+ * Session 2-4: repointed from the default '@prisma/client' output to the
+ * split non-market client (generator output = node_modules/.prisma/non-market-client,
+ * prisma/non-market-data/schema.prisma). This is the choke point every
+ * `import { prisma } from '@/lib/db/prisma'` consumer goes through; the two
+ * call sites that genuinely need MarketDataV6 (app/api/market-data/channel/route.ts,
+ * lib/jobs/alert-checker.ts) import the separate `marketPrisma` singleton from
+ * `@/lib/db/market-prisma` instead/alongside — see that file's header for why a
+ * second singleton exists rather than one client exposing both.
+ * Imported via the bare `.prisma/non-market-client` specifier (not `@prisma/client`)
+ * because this generator has a custom `output` — same resolution mechanism
+ * `@prisma/client`'s own default.js uses internally (`require('.prisma/client/default')`).
  *
  * Prisma 7 requires a driver adapter for every PrismaClient instantiation —
  * DATABASE_URL here is the pooled (PgBouncer) connection string per

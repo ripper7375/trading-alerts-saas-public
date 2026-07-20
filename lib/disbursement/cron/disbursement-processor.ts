@@ -5,7 +5,7 @@
  * Handles automated disbursement processing and account syncing.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/non-market-client';
 import { CommissionAggregator } from '../services/commission-aggregator';
 import { BatchManager } from '../services/batch-manager';
 import { PaymentOrchestrator } from '../services/payment-orchestrator';
