@@ -33,6 +33,7 @@ model MarketDataV6 {
   close       Float
   volume      Int
 
+  // Centroid-regression variant: best_fit (admin layer + calculated lines)
   best_fit_horiz_high_map Float?
   best_fit_horiz_low_map  Float?
   best_fit_ssa            Float?
@@ -42,6 +43,7 @@ model MarketDataV6 {
   best_fit_uoedt          Float?
   best_fit_loedt          Float?
 
+  // Centroid-regression variant: cherry_a
   cherry_a_horiz_high_map Float?
   cherry_a_horiz_low_map  Float?
   cherry_a_ssa            Float?
@@ -51,6 +53,7 @@ model MarketDataV6 {
   cherry_a_uoedt          Float?
   cherry_a_loedt          Float?
 
+  // Centroid-regression variant: cherry_b
   cherry_b_horiz_high_map Float?
   cherry_b_horiz_low_map  Float?
   cherry_b_ssa            Float?
@@ -60,6 +63,7 @@ model MarketDataV6 {
   cherry_b_uoedt          Float?
   cherry_b_loedt          Float?
 
+  // Centroid-regression variant: most_recent
   most_recent_horiz_high_map Float?
   most_recent_horiz_low_map  Float?
   most_recent_ssa            Float?
@@ -69,6 +73,7 @@ model MarketDataV6 {
   most_recent_uoedt          Float?
   most_recent_loedt          Float?
 
+  // Centroid-regression variant: non_a
   non_a_horiz_high_map Float?
   non_a_horiz_low_map  Float?
   non_a_ssa            Float?
@@ -78,6 +83,7 @@ model MarketDataV6 {
   non_a_uoedt          Float?
   non_a_loedt          Float?
 
+  // Centroid-regression variant: non_b
   non_b_horiz_high_map Float?
   non_b_horiz_low_map  Float?
   non_b_ssa            Float?
@@ -87,17 +93,20 @@ model MarketDataV6 {
   non_b_uoedt          Float?
   non_b_loedt          Float?
 
+  // Fractal EDT + single best lines (calculated)
   fractal_best_fl Float?
   fractal_uoedt   Float?
   fractal_loedt   Float?
   best_resistance Float?
   best_support    Float?
 
-  body_direction      Int?
-  body_size           Float?
-  body_classification Int?
+  // Z-Score candle (calculated)
+  body_direction      Int? // -1, 0, 1
+  body_size           Float? // |z-score| (export convention)
+  body_classification Int? // 0-5
 
-  zigzag_point_type          String?
+  // ZigZag (pivot = admin layer; metrics + category calculated)
+  zigzag_point_type          String? // "Peak" | "Bottom"
   zigzag_current_point       Float?
   zigzag_price_change        Float?
   zigzag_pct_change          Float?
@@ -107,8 +116,9 @@ model MarketDataV6 {
   zigzag_price_per_bar       Float?
   zigzag_price_per_bar_class Int?
   zigzag_slope               Float?
-  zigzag_category            String?
+  zigzag_category            String? // HH | HL | LH | LL | EQH | EQL
 
+  // Provenance
   cycle_id      Int?
   collected_at  Int?
   calculated_at Int?
