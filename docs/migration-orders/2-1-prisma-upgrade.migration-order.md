@@ -49,17 +49,17 @@ first Phase 2 session, no prior data point).
 
 ## Entry criteria
 
-- [ ] Official Prisma 6→7 upgrade/breaking-change guide(s) fetched and read (list URLs
+- [x] Official Prisma 6→7 upgrade/breaking-change guide(s) fetched and read (list URLs
       consulted in Deviations).
-- [ ] Baselines recorded before touching anything: `npm run type-check` clean,
+- [x] Baselines recorded before touching anything: `npm run type-check` clean,
       `npm run test:ci` suite/test counts (compare against Session 1-4's 111/111 suites,
       2046/2046 tests — if these numbers have drifted by the time this session runs,
       that's this session's OWN new baseline, not a discrepancy to explain away).
-- [ ] Blast-radius statement: Prisma's `@prisma/client` is imported throughout
+- [x] Blast-radius statement: Prisma's `@prisma/client` is imported throughout
       `app/api/**`, `lib/**`, and `railway-gateway/` (if it ever ships) — re-verify the
       real current count at CONFIRM (`grep -rl "@prisma/client" --include=*.ts` or
       equivalent) rather than trusting this estimate.
-- [ ] `money_svc`/`core_app` roles and PgBouncer (Phase 1) still live and enforcing —
+- [x] `money_svc`/`core_app` roles and PgBouncer (Phase 1) still live and enforcing —
       quick re-check only (`railway status`), not a full re-run of Session 1-4's smoke
       test; this session doesn't touch grants.
 
@@ -107,11 +107,14 @@ first Phase 2 session, no prior data point).
 ## Done when
 
 - [ ] Production on `prisma@7.8.0`/`@prisma/client@7.8.0` (root only, `railway-gateway` left on `6.19.2`).
-- [ ] Full test suite green, count parity (or explained deltas) vs Session 1-4's
+      **NOT YET** — code is bumped/committed and green locally (commits `7ab2a696`,
+      `559c7cc8`, `256f6e43`), but nothing has deployed. Blocked on Step 5's
+      staging-vs-production-only decision below.
+- [x] Full test suite green, count parity (or explained deltas) vs Session 1-4's
       111/111 suites, 2046/2046 tests baseline.
-- [ ] Audit + hit-list + resolution committed; F19 marked fully RESOLVED in
+- [x] Audit + hit-list + resolution committed; F19 marked fully RESOLVED in
       `DECISION-LOG.md` (closing the "full audit due Session 2-1" note from Session 0-1).
-- [ ] `prisma migrate status` still resolves cleanly via `DIRECT_URL` post-upgrade
+- [x] `prisma migrate status` still resolves cleanly via `DIRECT_URL` post-upgrade
       (F20 unchanged, not resolved by this session — just confirm the upgrade didn't
       somehow disturb it).
 
@@ -139,6 +142,56 @@ document the exact re-deploy sequence needed, not just "git revert."
 - **Step 1 hit-list reviewed and approved by Davin (2026-07-20).** Davin authorized the following deviations to handle the Prisma 7 requirements:
   1. `railway-gateway` is decoupled and left on `6.19.2` to avoid wasting time on CJS/ESM interop for an undeployed service.
   2. The mandatory architectural changes (ESM for `db:seed`, driver adapters, `prisma.config.ts`, SSL configuration) are authorized to be completed in this session, as they are inseparable from the version bump.
+- **Steps 2-4 completed 2026-07-20** (commits `7ab2a696`, `559c7cc8`, `256f6e43`).
+  Bump: root `prisma`/`@prisma/client` → exactly `7.8.0`, `@prisma/adapter-pg@7.8.0`
+  added; `railway-gateway` untouched (verified via `git diff --stat` across all
+  commits — zero changes). Codemods, each tied to a Step 1 hit-list entry:
+  - `datasource` block's `url`/`directUrl` turned out to be a **hard error** in
+    7.8.0, not just deprecated — discovered empirically (`prisma generate`'s own
+    error output), not from the guide's prose. New `prisma.config.ts` replaces it;
+    loads `.env` then `.env.local` (mirrors Next.js's own precedence) since
+    `DIRECT_URL` only lives in `.env.local` and v7's CLI no longer auto-loads any
+    `.env` file — this gap would have surfaced regardless of this bump the moment
+    anyone ran a bare `prisma.config.ts`-based command, but wasn't visible before
+    since schema.prisma's lazy `env()` never actually resolved it at generate-time.
+  - `lib/db/prisma.ts` + `prisma/seed.ts` + 3 MT5 scripts
+    (`verify-sync-deployment.ts`, `test-mt5-deployment.ts`,
+    `monitor-mt5-pipeline.ts`) — every `PrismaClient` instantiation now takes a
+    `PrismaPg` driver adapter (mandatory in v7); `rejectUnauthorized: false` set
+    explicitly to preserve the pre-v7 Rust engine's permissive cert handling.
+  - `types/prisma-stubs.d.ts` (the network-restricted-environment fallback
+    mentioned in `lib/db/prisma.ts`'s own comment) was found to be **shadowing**
+    the real generated client's `PrismaClientOptions` type — its own ambient
+    `declare module '@prisma/client'` block pre-dated the `adapter` option and
+    was the actual source of the first `tsc` error, not Prisma's own types. Added
+    `adapter?: unknown` to keep it in sync, per its own header's stated
+    maintenance pattern ("Updated for Prisma X.x compatibility").
+  - `provider = "prisma-client-js"` kept as-is — confirmed via a clean `prisma
+generate` that it still works in 7.8.0 (not yet hard-removed despite the
+    guide's "will be removed in future releases" wording) — avoided rewriting all
+    16 files' `@prisma/client` import paths to a new generated-client location.
+  - `db:seed`/`worker:alerts` swapped `ts-node`→`tsx`; removed the now-dead
+    `TS_NODE_COMPILER_OPTIONS` workaround from `docker-compose.dev.yml` and the
+    `ts-node` devDependency entirely (no remaining root-side usage).
+  - Fixed 7 pre-existing `no-explicit-any`/unused-var lint errors in the 3 MT5
+    scripts and `seed.ts` (required to pass the pre-commit hook on files this
+    session was already touching, not separately in scope). Typing `redisClient`
+    properly (was `any`) surfaced 4 real `noUncheckedIndexedAccess` gaps
+    (`JSON.parse` on a possibly-empty array index) — fixed with `!` since each is
+    already guarded by an immediately-preceding `.length > 0` check.
+  - Parity re-verified 3 times across the session (initial bump, after lint
+    fixes, after the pre-commit hook's own auto-formatting): `npm run type-check`
+    clean every time; `npm run test:ci` → 111/111 suites, 2046/2046 tests, exact
+    match to Session 1-4's baseline, zero drift.
+  - `prisma migrate status` re-checked post-upgrade (read-only, per L16) —
+    resolves cleanly via `DIRECT_URL` through the new config; F20's state
+    reported identically to prior sessions (6 migrations unapplied,
+    `drop_watchlists` still pending) — unchanged, not touched.
+- **Stopping before Step 5** (staged rollout). Staging still doesn't exist
+  (`railway status` this session: only a `production` environment) — exactly the
+  scenario this order's own Step 5 text anticipated. Per that text and
+  `EXECUTOR-PROTOCOL.md` §7 (production deploys always escalate), this needs
+  Davin's explicit scoping decision before proceeding — not assumed either way.
 
 ## Next-session handoff
 

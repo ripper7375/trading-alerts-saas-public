@@ -40,7 +40,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F16  | Public URL scheme + /v1 versioning               | OPEN — due Session 4A-1 (Davin)                                                                        |
 | F17  | Staging data strategy                            | RESOLVED — Session 0-5 (Davin)                                                                         |
 | F18  | RPO/RTO targets                                  | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                  |
-| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | OPEN — npm check RESOLVED (0-1); full audit due Session 2-1                                            |
+| F19  | Prisma 6.19.2→7.8.0 breaking-change audit        | RESOLVED — Session 2-1                                                                                 |
 | F20  | Production migration history unbaselined         | OPEN — discovered Session 1-3, urgent (destructive pending migration); due before any `migrate deploy` |
 
 ---
@@ -461,6 +461,44 @@ notifications,tier,user,market-data}` → zero matches;
 - Approved by: Davin (explicit, live authorization for both the password reset and the
   Railway-variable persistence — a Non-negotiable-5-class decision, correctly escalated
   rather than assumed).
+
+## F19 — Prisma 6.19.2→7.8.0 breaking-change audit — CLOSES F19
+
+- Status: RESOLVED
+- Session: 2-1 · Date: 2026-07-20
+- Decision: Full audit performed (guide fetched via direct `curl` — WebFetch/WebSearch
+  were erroring on an unrelated internal fault, confirmed against 3 URLs first); actual
+  scope was much larger than the plan's "client bump only" framing. Real breaking changes
+  found and handled:
+  - **ESM-only client** — required swapping `ts-node`→`tsx` for `db:seed`/`worker:alerts`
+    (the two entry points that run outside Next.js's bundler); no repo-wide
+    `"type": "module"` needed since Next's own bundler abstracts this for everything else.
+  - **Driver adapters mandatory** — every `PrismaClient` instantiation (`lib/db/prisma.ts`,
+    `prisma/seed.ts`, 3 MT5 scripts) now takes a `@prisma/adapter-pg` `PrismaPg` adapter.
+  - **`datasource` block's `url`/`directUrl` are a hard error in 7.8.0**, not merely
+    deprecated (confirmed empirically via `prisma generate`'s actual error output — the
+    docs' prose alone undersold this). Replaced with a new root `prisma.config.ts`
+    (direct URL for CLI/migrate, matching L3) plus the adapter (pooled URL, for runtime).
+  - **SSL cert validation tightened** (node-pg vs the old Rust engine) —
+    `rejectUnauthorized: false` set explicitly in every adapter to preserve prior behavior
+    against Railway's proxy TLS.
+  - `provider = "prisma-client-js"` (not the new `prisma-client`) still works fine in
+    7.8.0, confirmed via a clean `prisma generate` — avoided rewriting all 16 files'
+    `@prisma/client` import paths.
+  - `railway-gateway/package.json` explicitly decoupled, stays on `6.19.2` (Davin's call,
+    given NestJS's CJS build has no clean low-effort path to an ESM-only dependency, and
+    the service was never deployed anyway).
+- Evidence: `npm run type-check` clean; `npm run test:ci` → 111/111 suites, 2046/2046
+  tests, exact parity with Session 1-4's baseline (re-confirmed 3 times across the
+  session, including after lint-staged's auto-fix on commit); `next lint` clean;
+  `prisma migrate status` still resolves cleanly via `DIRECT_URL` post-upgrade, F20's
+  known state unchanged (6 migrations unapplied, `drop_watchlists` still pending — not
+  touched, no `migrate deploy` run). Full hit-list and commit trail in
+  `docs/migration-orders/2-1-prisma-upgrade.migration-order.md`.
+- Approved by: Davin (hit-list reviewed live in-session before any code edit, per the
+  order's own hard STOP gate; explicit authorization for the railway-gateway decoupling
+  and for tackling the architecture-level changes — ESM, adapters, config, SSL — within
+  this one session rather than splitting them).
 
 ## F18 — progress note: backup-cadence gap re-checked, still open
 
