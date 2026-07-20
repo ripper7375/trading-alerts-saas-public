@@ -25,8 +25,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F1   | OpenAPI coverage from live routes                | RESOLVED — fully closed, Session 0-3                                                                   |
 | F2   | Pin next@16.2.10 / @nestjs/core@11.1.28          | RESOLVED — Session 0-1                                                                                 |
 | F3   | Where does the monolith's Postgres live?         | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                           |
-| F4   | Full model census for schema split               | OPEN — due Session 2-2                                                                                 |
-| F5   | Prisma file-layout strategy                      | OPEN — due Session 2-2 (revisit under F19)                                                             |
+| F4   | Full model census for schema split               | RESOLVED — Session 2-2                                                                                 |
+| F5   | Prisma file-layout strategy                      | RESOLVED — Session 2-2                                                                                 |
 | F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled | OPEN — due Session 3-1 (Davin)                                                                         |
 | F7   | HS256 shared secret vs JWKS + rotation timing    | OPEN — due Session 3-1 (Davin)                                                                         |
 | F8   | Realtime/websocket architecture                  | OPEN — due Session 4B-17                                                                               |
@@ -499,6 +499,63 @@ notifications,tier,user,market-data}` → zero matches;
   order's own hard STOP gate; explicit authorization for the railway-gateway decoupling
   and for tackling the architecture-level changes — ESM, adapters, config, SSL — within
   this one session rather than splitting them).
+
+## F4 — Full model census for schema split — CLOSES F4
+
+- Status: RESOLVED
+- Session: 2-2 · Date: 2026-07-20
+- Decision: 27 live models in `prisma/schema.prisma` split as **1 market-data model +
+  26 non-market-data models + 1 new model**:
+  - Market-data (1): `MarketDataV6` — the only trading-data table, no `@relation`
+    in/out (confirmed via `grep -n "@relation"` — 22 hits total in the file, all among
+    the other 26 models).
+  - Non-market-data (26): `User`, `Account`, `Session`, `UserSession`,
+    `LoginHistory`, `SecurityAlert`, `VerificationToken`, `UserPreferences`,
+    `AccountDeletionRequest`, `Subscription`, `Alert`, `Payment`, `FraudAlert`,
+    `AffiliateProfile`, `AffiliateCode`, `Commission`, `Notification`,
+    `AffiliateRiseAccount`, `PaymentBatch`, `DisbursementTransaction`,
+    `RiseWorksWebhookEvent`, `DisbursementAuditLog`, `SystemConfig`,
+    `SystemConfigHistory`, `Drawing`, `DrawingAlert`.
+  - New (1): `RefreshToken` — minimal stub (`id`, `token`, `userId`, `expiresAt`
+    only), no relations/indexes added. Real shape deferred to F6/F7 (auth strategy,
+    Session 3-1) so it isn't designed twice.
+- Evidence: `grep -c "^model " prisma/schema.prisma` → 27; full model list read
+  directly and diffed name-for-name against the PRE-DRAFT's candidate census (exact
+  match); both new schema files (`prisma/market-data/schema.prisma`,
+  `prisma/non-market-data/schema.prisma`) pass `prisma validate` and generate working
+  clients.
+- Approved by: Davin (approved the order's candidate census as written; this session
+  re-verified it against live state before executing).
+
+## F5 — Prisma file-layout strategy — CLOSES F5
+
+- Status: RESOLVED
+- Session: 2-2 · Date: 2026-07-20
+- Decision: **Two schema files, generated via explicit `--schema=` CLI flags, not via
+  `prisma.config.ts`.** Confirmed `@prisma/config@7.8.0`'s type declares `schema?:
+string` (singular — checked the installed package's own `.d.ts` directly, not just
+  docs), so the config file cannot hold two schema paths. `prisma generate --help`
+  and `prisma migrate dev --help` both expose a per-invocation `--schema=<path>` flag
+  that overrides the config's default — this is the only mechanism, and it works:
+  `prisma/market-data/schema.prisma` (own `generator client` output
+  `node_modules/.prisma/market-client`) and `prisma/non-market-data/schema.prisma`
+  (own output `node_modules/.prisma/non-market-client`) both validate and generate
+  cleanly. `prisma.config.ts` keeps its single default `schema` pointing at the old
+  `prisma/schema.prisma` (still needed until Session 2-2b retires it) and continues
+  to own the shared `datasource.url`/`migrations.path` settings for all schemas.
+  **Cutover split in two**, per the Advisor's decision reflected in the order:
+  Session 2-2 (this session) = create + validate both new files only, no consumer
+  imports touched, old schema untouched (now change-frozen). Session 2-2b (next) =
+  repoint all 16 consumer imports to the correct new client and retire the old file.
+- Evidence: `find node_modules/.pnpm -iname "*prisma*config*"` →
+  `@prisma+config@7.8.0`'s `.d.ts` read directly (`schema?: string`); `prisma generate
+--help` / `prisma migrate dev --help` output showing `--schema` flag; both new
+  schemas' `prisma validate` + `prisma generate` runs, both clean; full
+  `npm run test:ci` re-run post-split — 111/111 suites, 2046/2046 tests, exact parity
+  with Session 2-1's baseline, no drift.
+- Approved by: Davin (approved the order's F5 recommendation and the 2-2/2-2b cutover
+  split as written; this session verified the mechanism empirically before executing
+  rather than trusting the recommendation on its own).
 
 ## F18 — progress note: backup-cadence gap re-checked, still open
 

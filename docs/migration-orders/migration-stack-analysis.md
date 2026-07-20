@@ -958,7 +958,7 @@ migrations are complete, not before.
 </details>
 
 <details>
-<summary><code>prisma/</code> — 10 files</summary>
+<summary><code>prisma/</code> — 12 files</summary>
 
 - `prisma/migrations/20251227000000_init/migration.sql`
 - `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
@@ -973,19 +973,42 @@ migrations are complete, not before.
 - `prisma/schema.prisma` — Session 1-3 added `directUrl = env("DIRECT_URL")` to the
   datasource block (L3 prep for PgBouncer); Session 2-1 **removed** both `url` and
   `directUrl` from the datasource block entirely — Prisma 7.8.0 hard-errors on them
-  (see `prisma.config.ts` below).
+  (see `prisma.config.ts` below). **Session 2-2: unchanged, but now change-frozen
+  (CC-F)** — remains the single source of truth for all 16 existing consumers until
+  Session 2-2b repoints them and retires this file.
+- `prisma/market-data/schema.prisma` — **new, Session 2-2 (F4/F5).** Byte-for-byte
+  port of `model MarketDataV6` out of `prisma/schema.prisma`, own `generator client`
+  block (`output = "../../node_modules/.prisma/market-client"`). Not yet consumed by
+  any app code — Session 2-2b's job.
+- `prisma/non-market-data/schema.prisma` — **new, Session 2-2 (F4/F5).** Byte-for-byte
+  port of the other 26 models + all 18 enums out of `prisma/schema.prisma`, own
+  `generator client` block (`output = "../../node_modules/.prisma/non-market-client"`),
+  plus one new model: `RefreshToken` (minimal 4-field stub — `id`, `token`, `userId`,
+  `expiresAt` — per the APPROVED order; real shape deferred to F6/F7, Session 3-1).
+  Not yet consumed by any app code — Session 2-2b's job.
 - `prisma/seed.ts` — Session 2-1: `new PrismaClient()` → `PrismaPg` driver adapter
   (mandatory in 7.8.0); `ts-node` → `tsx` for the `db:seed` script that runs it.
 
 </details>
 
 <details>
-<summary><code>(root)/</code> — Prisma CLI config, added Session 2-1</summary>
+<summary><code>(root)/</code> — Prisma CLI config, added Session 2-1; multi-schema generate scripts added Session 2-2</summary>
 
 - `prisma.config.ts` — new. Replaces schema.prisma's now-removed `url`/`directUrl`
   fields (Prisma 7 moved datasource config here). Loads `.env` then `.env.local`;
   `datasource.url` = `DIRECT_URL` (CLI/migrate use, per L3) — runtime connection
   string lives in `lib/db/prisma.ts`'s adapter instead (pooled `DATABASE_URL`).
+  Still points its default `schema` field at the old `prisma/schema.prisma` — Prisma
+  7's config type is `schema?: string` (singular, confirmed via
+  `@prisma/config@7.8.0`'s own `.d.ts`), so the two new schema files are generated via
+  an explicit `--schema=<path>` CLI flag per invocation instead (see below), not via
+  the config file.
+- `package.json` — Session 2-2: added `prisma:generate:market-data` and
+  `prisma:generate:non-market-data` scripts (`prisma generate --schema=<path>` each);
+  `type-check` now runs all three generates (old + market + non-market) before `tsc
+--noEmit`, so a broken change to either new schema fails type-check, not just a
+  manual one-off check. `prebuild`/`postinstall` deliberately left untouched — no
+  runtime code consumes the new clients yet.
 
 </details>
 
