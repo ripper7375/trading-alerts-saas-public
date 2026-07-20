@@ -971,8 +971,21 @@ migrations are complete, not before.
 - `prisma/roles/roles.rollback.sql` — new, Session 1-3: paired `DROP ROLE`/`REVOKE`
   script, written but not applied.
 - `prisma/schema.prisma` — Session 1-3 added `directUrl = env("DIRECT_URL")` to the
-  datasource block (L3 prep for PgBouncer); not yet pushed (see CLAUDE.md Waiting-on).
-- `prisma/seed.ts`
+  datasource block (L3 prep for PgBouncer); Session 2-1 **removed** both `url` and
+  `directUrl` from the datasource block entirely — Prisma 7.8.0 hard-errors on them
+  (see `prisma.config.ts` below).
+- `prisma/seed.ts` — Session 2-1: `new PrismaClient()` → `PrismaPg` driver adapter
+  (mandatory in 7.8.0); `ts-node` → `tsx` for the `db:seed` script that runs it.
+
+</details>
+
+<details>
+<summary><code>(root)/</code> — Prisma CLI config, added Session 2-1</summary>
+
+- `prisma.config.ts` — new. Replaces schema.prisma's now-removed `url`/`directUrl`
+  fields (Prisma 7 moved datasource config here). Loads `.env` then `.env.local`;
+  `datasource.url` = `DIRECT_URL` (CLI/migrate use, per L3) — runtime connection
+  string lives in `lib/db/prisma.ts`'s adapter instead (pooled `DATABASE_URL`).
 
 </details>
 

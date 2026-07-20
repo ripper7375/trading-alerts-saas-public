@@ -378,6 +378,50 @@ pgbouncer`, `chown` the config/auth-file directory to that user, and set
   else — don't assume success means "deployed to the place I meant."
 - Source: Session 1-4 (combined smoke-test verifier deploy) · Status: ACTIVE
 
+### L21 — A hand-maintained ambient type stub can shadow a real package's generated types
+
+- Symptom: `new PrismaClient({ adapter, log: [...] })` failed `tsc` with "Object literal
+  may only specify known properties, and 'adapter' does not exist in type
+  'PrismaClientOptions'" — even though the actual generated `.d.ts`
+  (`node_modules/.prisma/client/index.d.ts`) clearly declared `adapter?:` as a valid
+  optional property, confirmed by reading the file directly.
+- Root cause: `types/prisma-stubs.d.ts` (a hand-written fallback for environments where
+  `prisma generate` can't reach the network, per its own header comment) declares its
+  own `declare module '@prisma/client' { ... export type PrismaClientOptions = {...}
+... export class PrismaClient {...} ... }` block — a full, independent redeclaration
+  of the module, not just an augmentation. That stub predated the `adapter` option and
+  was silently governing the type-check instead of the real generated types.
+- Rule: when a `tsc` error about a package's shape flatly contradicts what the
+  package's own installed `.d.ts` says, grep for `declare module '<package-name>'`
+  across the repo (especially `types/*.d.ts`, `*.d.ts` at the root) before assuming the
+  installed package is wrong or fighting the generic type machinery — a stub declaring
+  the _entire_ module (not just augmenting one field) fully shadows the real types.
+- Detect early: `grep -rn "declare module '<pkg>'" --include=*.d.ts` the moment a type
+  error about a well-known package's own documented API "doesn't exist."
+- Source: Session 2-1 (Prisma 7 upgrade, driver-adapter typing) · Status: ACTIVE
+
+### L22 — When WebFetch/WebSearch both fail with an unrelated internal error, work around via curl, don't keep retrying URLs
+
+- Symptom: both `WebFetch` and `WebSearch` returned the identical error "There's an
+  issue with the selected model (MiniMax-M2)" against 3 different URLs (Prisma docs,
+  GitHub releases, a generic search query) — clearly a tool/infrastructure fault, not
+  anything about the specific URLs.
+- Root cause: an internal summarization-model dependency these tools route through was
+  unavailable this session; retrying different URLs through the same broken tool never
+  helps.
+- Rule: after ONE confirmed failure with the same generic error across 2+ different
+  URLs/queries, stop retrying WebFetch/WebSearch and fall back to `curl -s -L <url> -o
+<scratchpad-path>` + a small Node script stripping HTML tags to extract readable
+  text, then `Read` the result directly — this fully substitutes for WebFetch when it's
+  down. Write the curl output to the scratchpad directory using forward-slash paths
+  (`C:/Users/...`), never `/tmp` — Git Bash mismaps `/tmp` to the wrong drive root on
+  Windows (`D:\tmp` instead of the real temp dir), and native `node.exe` needs
+  forward slashes anyway per L15.
+- Detect early: the exact string "issue with the selected model" from either tool is
+  the tell — don't waste a second call confirming it's not URL-specific unless the
+  first retry is free.
+- Source: Session 2-1 (Prisma 7 upgrade guide fetch) · Status: ACTIVE
+
 ---
 
 ## Archive

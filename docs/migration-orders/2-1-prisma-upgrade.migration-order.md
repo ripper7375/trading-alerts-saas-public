@@ -4,11 +4,9 @@
 > **Creativity dial: Medium** — how breakages get fixed is the Executor's call; "no
 > behavior change, no metric regression" is not. One variable at a time: this session
 > upgrades Prisma ONLY — no schema split (that's Session 2-2/F4/F5), no model changes.
-> **Status: CONFIRMED** — re-verified against live codebase and runtime state
-> 2026-07-20 (session 2-1): both `package.json`s still `^6.19.2`, type-check clean,
-> test:ci 111/111 suites · 2046/2046 tests (exact parity with Session 1-4's baseline),
-> Postgres + pgbouncer services RUNNING, no `previewFeatures`/`$use` usage, 16 files
-> import `@prisma/client`. Executing.
+> **Status: EXECUTED** — all 5 ordered steps complete, all Done-when items checked.
+> Production confirmed on `prisma@7.8.0` (commit `1b5a3436`), live runtime logs clean.
+> 2026-07-20.
 
 **Session:** 2-1 · **Phase:** Phase 2 (`non_market_data` Prisma Schema, Workstream 6) ·
 **Variant:** UPGRADE · **Generated:** 2026-07-19 · **Flags touched:** F19 (full audit,
@@ -106,10 +104,9 @@ first Phase 2 session, no prior data point).
 
 ## Done when
 
-- [ ] Production on `prisma@7.8.0`/`@prisma/client@7.8.0` (root only, `railway-gateway` left on `6.19.2`).
-      **NOT YET** — code is bumped/committed and green locally (commits `7ab2a696`,
-      `559c7cc8`, `256f6e43`), but nothing has deployed. Blocked on Step 5's
-      staging-vs-production-only decision below.
+- [x] Production on `prisma@7.8.0`/`@prisma/client@7.8.0` (root only, `railway-gateway` left on `6.19.2`).
+      **CONFIRMED** — Davin verified commit `1b5a3436` built and deployed successfully
+      on Vercel; live runtime logs clean (no `P1010`/SSL errors, no connection timeouts).
 - [x] Full test suite green, count parity (or explained deltas) vs Session 1-4's
       111/111 suites, 2046/2046 tests baseline.
 - [x] Audit + hit-list + resolution committed; F19 marked fully RESOLVED in
@@ -218,6 +215,11 @@ generate` that it still works in 7.8.0 (not yet hard-removed despite the
   PRE-DRAFT) until that confirmation comes back — code-side work is done and
   green, but "deployed and verified" isn't something this environment can attest
   to on its own.
+- **Davin confirmed deployment verified (2026-07-20).** Added `DIRECT_URL` to
+  Vercel's production env vars himself (closes the risk flagged above) and
+  manually triggered the deployment. Build for commit `1b5a3436` succeeded.
+  Tested the live app directly — runtime logs completely clean, no `P1010`/SSL
+  errors, no connection timeouts. Session closing out per this confirmation.
 
 ## Next-session handoff
 
