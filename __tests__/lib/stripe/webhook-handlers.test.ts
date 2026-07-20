@@ -335,8 +335,16 @@ describe('Stripe Webhook Handlers', () => {
       id: 'sub-db-123',
       userId: 'user-123',
       stripeSubscriptionId: 'sub_test_123',
-      user: { id: 'user-123', email: 'user@example.com', name: 'Test User' },
     };
+
+    // Subscription no longer carries a `user` relation (Session 2-3 FK
+    // audit) — the handler looks it up separately via prisma.user.findUnique.
+    beforeEach(() => {
+      mockUserFindUnique.mockResolvedValue({
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+    });
 
     it('should downgrade user to FREE and send cancellation email', async () => {
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
@@ -371,11 +379,11 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('should use fallback name if user has no name', async () => {
-      const dbSubNoName = {
-        ...mockDbSubscription,
-        user: { id: 'user-123', email: 'user@example.com', name: null },
-      };
-      mockSubscriptionFindFirst.mockResolvedValue(dbSubNoName);
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockUserFindUnique.mockResolvedValue({
+        email: 'user@example.com',
+        name: null,
+      });
       mockUserUpdate.mockResolvedValue({ id: 'user-123' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
       mockSendSubscriptionCanceledEmail.mockResolvedValue(undefined);
@@ -391,11 +399,8 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('should skip email if user has no email', async () => {
-      const dbSubNoEmail = {
-        ...mockDbSubscription,
-        user: { id: 'user-123', email: null, name: 'Test User' },
-      };
-      mockSubscriptionFindFirst.mockResolvedValue(dbSubNoEmail);
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockUserFindUnique.mockResolvedValue({ email: null, name: 'Test User' });
       mockUserUpdate.mockResolvedValue({ id: 'user-123' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
 
@@ -436,8 +441,16 @@ describe('Stripe Webhook Handlers', () => {
       id: 'sub-db-123',
       userId: 'user-123',
       stripeCustomerId: 'cus_test_123',
-      user: { id: 'user-123', email: 'user@example.com', name: 'Test User' },
     };
+
+    // Subscription no longer carries a `user` relation (Session 2-3 FK
+    // audit) — the handler looks it up separately via prisma.user.findUnique.
+    beforeEach(() => {
+      mockUserFindUnique.mockResolvedValue({
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+    });
 
     it('should update status to PAST_DUE and send failure email', async () => {
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
@@ -480,11 +493,11 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('should use fallback name if user has no name', async () => {
-      const dbSubNoName = {
-        ...mockDbSubscription,
-        user: { id: 'user-123', email: 'user@example.com', name: null },
-      };
-      mockSubscriptionFindFirst.mockResolvedValue(dbSubNoName);
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockUserFindUnique.mockResolvedValue({
+        email: 'user@example.com',
+        name: null,
+      });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
       mockSendPaymentFailedEmail.mockResolvedValue(undefined);
 
@@ -498,11 +511,8 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('should skip email if user has no email', async () => {
-      const dbSubNoEmail = {
-        ...mockDbSubscription,
-        user: { id: 'user-123', email: null, name: 'Test User' },
-      };
-      mockSubscriptionFindFirst.mockResolvedValue(dbSubNoEmail);
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockUserFindUnique.mockResolvedValue({ email: null, name: 'Test User' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
 
       await handleInvoiceFailed(mockInvoice);
@@ -552,8 +562,16 @@ describe('Stripe Webhook Handlers', () => {
       id: 'sub-db-123',
       userId: 'user-123',
       stripeCustomerId: 'cus_test_123',
-      user: { id: 'user-123', email: 'user@example.com', name: 'Test User' },
     };
+
+    // Subscription no longer carries a `user` relation (Session 2-3 FK
+    // audit) — the handler looks it up separately via prisma.user.findUnique.
+    beforeEach(() => {
+      mockUserFindUnique.mockResolvedValue({
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+    });
 
     it('should update subscription and send receipt email', async () => {
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
@@ -623,11 +641,11 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('should use fallback name if user has no name', async () => {
-      const dbSubNoName = {
-        ...mockDbSubscription,
-        user: { id: 'user-123', email: 'user@example.com', name: null },
-      };
-      mockSubscriptionFindFirst.mockResolvedValue(dbSubNoName);
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockUserFindUnique.mockResolvedValue({
+        email: 'user@example.com',
+        name: null,
+      });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
       mockUserUpdate.mockResolvedValue({ id: 'user-123' });
       mockSendPaymentReceiptEmail.mockResolvedValue(undefined);
@@ -644,11 +662,8 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('should skip email if user has no email', async () => {
-      const dbSubNoEmail = {
-        ...mockDbSubscription,
-        user: { id: 'user-123', email: null, name: 'Test User' },
-      };
-      mockSubscriptionFindFirst.mockResolvedValue(dbSubNoEmail);
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockUserFindUnique.mockResolvedValue({ email: null, name: 'Test User' });
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
       mockUserUpdate.mockResolvedValue({ id: 'user-123' });
 

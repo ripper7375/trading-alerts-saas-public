@@ -8,8 +8,10 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { prismaMock, testFactories } from '../../setup';
+
 import { checkExpiringSubscriptions } from '@/lib/cron/check-expiring-subscriptions';
+
+import { prismaMock, testFactories } from '../../setup';
 
 describe('Check Expiring Subscriptions Cron', () => {
   beforeEach(() => {
@@ -42,6 +44,7 @@ describe('Check Expiring Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       const result = await checkExpiringSubscriptions();
 
@@ -73,6 +76,7 @@ describe('Check Expiring Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       await checkExpiringSubscriptions();
 
@@ -85,6 +89,7 @@ describe('Check Expiring Subscriptions Cron', () => {
     it('should not send reminder if already sent', async () => {
       // Return empty array because reminders already sent are filtered out
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await checkExpiringSubscriptions();
 
@@ -94,6 +99,7 @@ describe('Check Expiring Subscriptions Cron', () => {
     it('should not include Stripe subscriptions', async () => {
       // Query filters for dLocalPaymentId not null, so Stripe subs are excluded
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await checkExpiringSubscriptions();
 
@@ -149,6 +155,10 @@ describe('Check Expiring Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([
+        mockUser1,
+        mockUser2,
+      ] as never);
 
       const result = await checkExpiringSubscriptions();
 
@@ -180,6 +190,7 @@ describe('Check Expiring Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUserNoEmail] as never);
 
       const result = await checkExpiringSubscriptions();
 
@@ -189,6 +200,7 @@ describe('Check Expiring Subscriptions Cron', () => {
 
     it('should handle no expiring subscriptions gracefully', async () => {
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await checkExpiringSubscriptions();
 
@@ -219,6 +231,7 @@ describe('Check Expiring Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       const result = await checkExpiringSubscriptions({ dryRun: true });
 
@@ -248,6 +261,7 @@ describe('Check Expiring Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
       prismaMock.subscription.update.mockRejectedValue(
         new Error('Update failed')
       );
@@ -271,6 +285,7 @@ describe('Check Expiring Subscriptions Cron', () => {
 
     it('should support custom days before expiry', async () => {
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       await checkExpiringSubscriptions({ daysBeforeExpiry: 5 });
 

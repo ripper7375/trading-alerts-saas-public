@@ -9,14 +9,14 @@
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
-import { prismaMock, testFactories } from '../../setup';
-
-// Import will fail initially (RED phase) - this is expected!
 import {
   getAffiliatesList,
   getAffiliateDetails,
-  type AffiliateListFilters,
 } from '@/lib/admin/affiliate-management';
+
+import { prismaMock, testFactories } from '../../setup';
+
+// Import will fail initially (RED phase) - this is expected!
 
 describe('Admin Affiliate Management', () => {
   beforeEach(() => {
@@ -46,6 +46,9 @@ describe('Admin Affiliate Management', () => {
         mockAffiliates as never
       );
       prismaMock.affiliateProfile.count.mockResolvedValue(2);
+      prismaMock.user.findMany.mockResolvedValue([
+        testFactories.createUser({ id: 'user-123' }),
+      ] as never);
 
       const result = await getAffiliatesList({ page: 1, limit: 20 });
 
@@ -58,6 +61,7 @@ describe('Admin Affiliate Management', () => {
     it('should filter by status', async () => {
       prismaMock.affiliateProfile.findMany.mockResolvedValue([]);
       prismaMock.affiliateProfile.count.mockResolvedValue(0);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       await getAffiliatesList({ status: 'ACTIVE', page: 1, limit: 20 });
 
@@ -71,6 +75,7 @@ describe('Admin Affiliate Management', () => {
     it('should filter by country', async () => {
       prismaMock.affiliateProfile.findMany.mockResolvedValue([]);
       prismaMock.affiliateProfile.count.mockResolvedValue(0);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       await getAffiliatesList({ country: 'US', page: 1, limit: 20 });
 
@@ -84,6 +89,7 @@ describe('Admin Affiliate Management', () => {
     it('should filter by payment method', async () => {
       prismaMock.affiliateProfile.findMany.mockResolvedValue([]);
       prismaMock.affiliateProfile.count.mockResolvedValue(0);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       await getAffiliatesList({ paymentMethod: 'PAYPAL', page: 1, limit: 20 });
 
@@ -97,6 +103,7 @@ describe('Admin Affiliate Management', () => {
     it('should apply pagination correctly', async () => {
       prismaMock.affiliateProfile.findMany.mockResolvedValue([]);
       prismaMock.affiliateProfile.count.mockResolvedValue(100);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       await getAffiliatesList({ page: 3, limit: 20 });
 
@@ -111,6 +118,7 @@ describe('Admin Affiliate Management', () => {
     it('should calculate total pages correctly', async () => {
       prismaMock.affiliateProfile.findMany.mockResolvedValue([]);
       prismaMock.affiliateProfile.count.mockResolvedValue(55);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await getAffiliatesList({ page: 1, limit: 20 });
 
@@ -131,9 +139,12 @@ describe('Admin Affiliate Management', () => {
 
       prismaMock.affiliateProfile.findUnique.mockResolvedValue({
         ...mockAffiliate,
-        user: { email: 'john@example.com', name: 'John Doe' },
         affiliateCodes: [],
         commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'john@example.com',
+        name: 'John Doe',
       } as never);
 
       const result = await getAffiliateDetails('1');
@@ -155,9 +166,12 @@ describe('Admin Affiliate Management', () => {
 
       prismaMock.affiliateProfile.findUnique.mockResolvedValue({
         ...mockAffiliate,
-        user: { email: 'test@example.com', name: 'Test User' },
         affiliateCodes: [],
         commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'test@example.com',
+        name: 'Test User',
       } as never);
 
       const result = await getAffiliateDetails('1');
@@ -174,9 +188,12 @@ describe('Admin Affiliate Management', () => {
 
       prismaMock.affiliateProfile.findUnique.mockResolvedValue({
         ...mockAffiliate,
-        user: { email: 'test@example.com', name: 'Test' },
         affiliateCodes: mockCodes,
         commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'test@example.com',
+        name: 'Test',
       } as never);
 
       const result = await getAffiliateDetails('1');

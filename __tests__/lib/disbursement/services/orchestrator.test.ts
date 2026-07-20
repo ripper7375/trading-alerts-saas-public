@@ -2,9 +2,10 @@
  * Tests for Payment Orchestrator (Part 19B)
  */
 
-import { PrismaClient } from '@prisma/client';
-import { PaymentOrchestrator } from '@/lib/disbursement/services/payment-orchestrator';
+import { PrismaClient } from '.prisma/non-market-client';
+
 import { MockPaymentProvider } from '@/lib/disbursement/providers/mock-provider';
+import { PaymentOrchestrator } from '@/lib/disbursement/services/payment-orchestrator';
 
 // Mock Prisma client
 const mockPrisma = {

@@ -37,6 +37,7 @@ const mockAffiliateCodeUpdateMany = jest.fn();
 const mockAffiliateFindMany = jest.fn();
 const mockCommissionAggregate = jest.fn();
 const mockAffiliateCodeCount = jest.fn();
+const mockUserFindMany = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -50,6 +51,9 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     commission: {
       aggregate: (...args: unknown[]) => mockCommissionAggregate(...args),
+    },
+    user: {
+      findMany: (...args: unknown[]) => mockUserFindMany(...args),
     },
   },
 }));
@@ -234,14 +238,18 @@ describe('Cron Jobs API Routes', () => {
       mockAffiliateFindMany.mockResolvedValue([
         {
           id: 'aff-1',
-          user: { email: 'affiliate1@example.com' },
+          userId: 'user-1',
           pendingCommissions: 100.0,
         },
         {
           id: 'aff-2',
-          user: { email: 'affiliate2@example.com' },
+          userId: 'user-2',
           pendingCommissions: 200.0,
         },
+      ]);
+      mockUserFindMany.mockResolvedValue([
+        { id: 'user-1', email: 'affiliate1@example.com' },
+        { id: 'user-2', email: 'affiliate2@example.com' },
       ]);
       mockAffiliateCodeCount.mockResolvedValue(15);
       mockCommissionAggregate.mockResolvedValue({
@@ -268,6 +276,7 @@ describe('Cron Jobs API Routes', () => {
 
     it('should handle no active affiliates', async () => {
       mockAffiliateFindMany.mockResolvedValue([]);
+      mockUserFindMany.mockResolvedValue([]);
 
       const { POST } = await import(
         '@/app/api/cron/send-monthly-reports/route'

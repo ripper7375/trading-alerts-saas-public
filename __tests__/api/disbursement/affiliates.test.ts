@@ -3,6 +3,7 @@
  */
 
 import { NextRequest } from 'next/server';
+
 import { GET } from '@/app/api/disbursement/affiliates/payable/route';
 
 // Mock auth
@@ -19,6 +20,9 @@ jest.mock('@/lib/db/prisma', () => ({
     affiliateProfile: {
       findUnique: jest.fn(),
       findMany: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn(),
     },
   },
 }));
@@ -109,14 +113,17 @@ describe('GET /api/disbursement/affiliates/payable', () => {
     // Mock affiliate profile
     (prisma.affiliateProfile.findUnique as jest.Mock).mockResolvedValue({
       id: 'aff-123',
+      userId: 'user-aff-123',
       fullName: 'Test Affiliate',
       country: 'US',
       paidCommissions: 100,
-      user: { email: 'test@example.com' },
       riseAccount: {
         riseId: 'rise-123',
         kycStatus: 'APPROVED',
       },
+    });
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      email: 'test@example.com',
     });
 
     const request = new NextRequest(

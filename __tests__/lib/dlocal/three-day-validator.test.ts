@@ -10,12 +10,14 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { prismaMock, testFactories } from '../../setup';
+
 import {
   canPurchaseThreeDayPlan,
   markThreeDayPlanUsed,
   validatePlanPurchase,
 } from '@/lib/dlocal/three-day-validator.service';
+
+import { prismaMock, testFactories } from '../../setup';
 
 describe('3-Day Plan Validator', () => {
   describe('canPurchaseThreeDayPlan', () => {
@@ -25,10 +27,8 @@ describe('3-Day Plan Validator', () => {
         hasUsedThreeDayPlan: false,
       });
 
-      prismaMock.user.findUnique.mockResolvedValue({
-        ...mockUser,
-        subscription: null,
-      } as never);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(null as never);
 
       const result = await canPurchaseThreeDayPlan('user-new');
 
@@ -46,8 +46,8 @@ describe('3-Day Plan Validator', () => {
       prismaMock.user.findUnique.mockResolvedValue({
         ...mockUser,
         threeDayPlanUsedAt: new Date('2024-01-01'),
-        subscription: null,
       } as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(null as never);
 
       const result = await canPurchaseThreeDayPlan('user-used');
 
@@ -71,10 +71,10 @@ describe('3-Day Plan Validator', () => {
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       };
 
-      prismaMock.user.findUnique.mockResolvedValue({
-        ...mockUser,
-        subscription: mockSubscription,
-      } as never);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        mockSubscription as never
+      );
 
       const result = await canPurchaseThreeDayPlan('user-active-sub');
 
@@ -97,10 +97,10 @@ describe('3-Day Plan Validator', () => {
         expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Expired yesterday
       };
 
-      prismaMock.user.findUnique.mockResolvedValue({
-        ...mockUser,
-        subscription: mockSubscription,
-      } as never);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        mockSubscription as never
+      );
 
       const result = await canPurchaseThreeDayPlan('user-expired-sub');
 
@@ -120,10 +120,10 @@ describe('3-Day Plan Validator', () => {
         expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
       };
 
-      prismaMock.user.findUnique.mockResolvedValue({
-        ...mockUser,
-        subscription: mockSubscription,
-      } as never);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        mockSubscription as never
+      );
 
       const result = await canPurchaseThreeDayPlan('user-cancelled-sub');
 
@@ -183,10 +183,8 @@ describe('3-Day Plan Validator', () => {
         hasUsedThreeDayPlan: false,
       });
 
-      prismaMock.user.findUnique.mockResolvedValue({
-        ...mockUser,
-        subscription: null,
-      } as never);
+      prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(null as never);
 
       const result = await validatePlanPurchase('user-validate', 'THREE_DAY');
 

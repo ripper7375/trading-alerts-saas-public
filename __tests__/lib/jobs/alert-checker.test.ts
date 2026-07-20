@@ -9,8 +9,33 @@
  * market_data_v6 table first (see the "XAUUSD price source" suite below).
  */
 
-import { checkAlertCondition, checkAlerts } from '@/lib/jobs/alert-checker';
+import { marketPrisma } from '@/lib/db/market-prisma';
 import { prisma } from '@/lib/db/prisma';
+import { checkAlertCondition, checkAlerts } from '@/lib/jobs/alert-checker';
+
+// Local override of the shared __tests__/setup.ts mocks (same pattern as
+// __tests__/e2e/dlocal-payment-flow.test.ts) — the shared mockDeep-based
+// mock reliably drops interception for this specific file for reasons not
+// fully root-caused (see __tests__/setup.ts's header comment); a local
+// plain-jest.fn() mock sidesteps it entirely.
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  prisma: {
+    alert: {
+      findMany: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+}));
+
+jest.mock('@/lib/db/market-prisma', () => ({
+  __esModule: true,
+  marketPrisma: {
+    marketDataV6: {
+      findFirst: jest.fn(),
+    },
+  },
+}));
 
 describe('Alert Checker Job', () => {
   beforeEach(() => {
@@ -117,13 +142,13 @@ describe('Alert Checker Job', () => {
       });
 
       it('uses market_data_v6 and never calls Flask when a synced row exists', async () => {
-        (prisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue({
+        (marketPrisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue({
           close: 1950.5,
         });
 
         await checkAlerts();
 
-        expect(prisma.marketDataV6.findFirst).toHaveBeenCalledWith({
+        expect(marketPrisma.marketDataV6.findFirst).toHaveBeenCalledWith({
           where: { symbol: 'XAUUSD', timeframe: 'M5' },
           orderBy: { timestamp: 'desc' },
         });
@@ -134,7 +159,9 @@ describe('Alert Checker Job', () => {
       });
 
       it('falls back to Flask when market_data_v6 has no synced row yet', async () => {
-        (prisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue(null);
+        (marketPrisma.marketDataV6.findFirst as jest.Mock).mockResolvedValue(
+          null
+        );
         fetchSpy.mockResolvedValue({
           ok: true,
           json: () =>
@@ -146,7 +173,7 @@ describe('Alert Checker Job', () => {
 
         await checkAlerts();
 
-        expect(prisma.marketDataV6.findFirst).toHaveBeenCalled();
+        expect(marketPrisma.marketDataV6.findFirst).toHaveBeenCalled();
         // Real Flask route: /api/indicators/{symbol}/{timeframe} (there is no
         // /api/mt5/price endpoint in mt5-service — 2026-07-05 audit fix).
         expect(fetchSpy).toHaveBeenCalledWith(
@@ -162,7 +189,7 @@ describe('Alert Checker Job', () => {
       });
 
       it('falls back to Flask when market_data_v6 query throws', async () => {
-        (prisma.marketDataV6.findFirst as jest.Mock).mockRejectedValue(
+        (marketPrisma.marketDataV6.findFirst as jest.Mock).mockRejectedValue(
           new Error('db unreachable')
         );
         fetchSpy.mockResolvedValue({
@@ -207,5 +234,4 @@ describe('Alert Checker Job', () => {
       });
     });
   });
-
 });

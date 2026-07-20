@@ -262,10 +262,10 @@ const MockPrismaClient = jest.fn().mockImplementation(() => {
   return mockPrismaInstance;
 });
 
-// Mock @prisma/client - the standard import path
-// This works because lib/db/prisma.ts now imports from '@prisma/client'
-// which resolves to either the generated client or our type stubs
-jest.mock('@prisma/client', () => ({
+// Mock '.prisma/non-market-client' - lib/db/prisma.ts imports PrismaClient
+// from this generator output (Session 2-4 split), not the default
+// '@prisma/client' output.
+jest.mock('.prisma/non-market-client', () => ({
   __esModule: true,
   PrismaClient: MockPrismaClient,
 }));
@@ -518,7 +518,6 @@ describe('Prisma Client Singleton', () => {
       expect(typeof prismaModule.prisma.alert.delete).toBe('function');
       expect(typeof prismaModule.prisma.alert.count).toBe('function');
     });
-
   });
 
   describe('Notification Model', () => {

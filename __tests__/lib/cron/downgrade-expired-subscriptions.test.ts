@@ -8,8 +8,10 @@
  */
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { prismaMock, testFactories } from '../../setup';
+
 import { downgradeExpiredSubscriptions } from '@/lib/cron/downgrade-expired-subscriptions';
+
+import { prismaMock, testFactories } from '../../setup';
 
 describe('Downgrade Expired Subscriptions Cron', () => {
   beforeEach(() => {
@@ -44,6 +46,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -74,6 +77,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       await downgradeExpiredSubscriptions();
 
@@ -104,6 +108,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       await downgradeExpiredSubscriptions();
 
@@ -134,6 +139,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       await downgradeExpiredSubscriptions();
 
@@ -151,6 +157,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
     it('should not process active subscriptions', async () => {
       // Active subscriptions are filtered out by the query
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -161,6 +168,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
     it('should not process Stripe subscriptions', async () => {
       // Query filters for dLocalPaymentId not null, so Stripe subs are excluded
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -212,6 +220,10 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([
+        mockUser1,
+        mockUser2,
+      ] as never);
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -224,6 +236,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
 
     it('should handle no expired subscriptions gracefully', async () => {
       prismaMock.subscription.findMany.mockResolvedValue([]);
+      prismaMock.user.findMany.mockResolvedValue([]);
 
       const result = await downgradeExpiredSubscriptions();
 
@@ -253,6 +266,7 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
 
       const result = await downgradeExpiredSubscriptions({ dryRun: true });
 
@@ -299,6 +313,10 @@ describe('Downgrade Expired Subscriptions Cron', () => {
       prismaMock.subscription.findMany.mockResolvedValue(
         mockSubscriptions as never
       );
+      prismaMock.user.findMany.mockResolvedValue([
+        mockUser1,
+        mockUser2,
+      ] as never);
 
       // First user update fails, second succeeds
       prismaMock.user.update

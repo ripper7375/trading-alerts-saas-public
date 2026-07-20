@@ -14,24 +14,8 @@
  * @module __tests__/e2e/dlocal-payment-flow
  */
 
-import { detectCountry } from '@/lib/geo/detect-country';
-import {
-  convertUSDToLocal,
-  clearExchangeRateCache,
-} from '@/lib/dlocal/currency-converter.service';
-import {
-  getPaymentMethodsForCountry,
-  isValidPaymentMethod,
-} from '@/lib/dlocal/payment-methods.service';
-import {
-  createPayment,
-  verifyWebhookSignature,
-  mapDLocalStatus,
-} from '@/lib/dlocal/dlocal-payment.service';
-import {
-  canPurchaseThreeDayPlan,
-  markThreeDayPlanUsed,
-} from '@/lib/dlocal/three-day-validator.service';
+import crypto from 'crypto';
+
 import {
   isDLocalCountry,
   getCurrency,
@@ -40,8 +24,25 @@ import {
   PRICING,
   DLOCAL_SUPPORTED_COUNTRIES,
 } from '@/lib/dlocal/constants';
+import {
+  convertUSDToLocal,
+  clearExchangeRateCache,
+} from '@/lib/dlocal/currency-converter.service';
+import {
+  createPayment,
+  verifyWebhookSignature,
+  mapDLocalStatus,
+} from '@/lib/dlocal/dlocal-payment.service';
+import {
+  getPaymentMethodsForCountry,
+  isValidPaymentMethod,
+} from '@/lib/dlocal/payment-methods.service';
+import {
+  canPurchaseThreeDayPlan,
+  markThreeDayPlanUsed,
+} from '@/lib/dlocal/three-day-validator.service';
+import { detectCountry } from '@/lib/geo/detect-country';
 import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
-import crypto from 'crypto';
 
 // Mock fetch for external APIs
 const mockFetch = jest.fn();
@@ -61,6 +62,7 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     subscription: {
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -99,8 +101,8 @@ describe('E2E: dLocal Payment Flow', () => {
       (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
         hasUsedThreeDayPlan: false,
-        subscription: null,
       });
+      (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue(null);
 
       const eligibility = await canPurchaseThreeDayPlan(userId);
       expect(eligibility.canPurchase).toBe(true);
@@ -224,8 +226,8 @@ describe('E2E: dLocal Payment Flow', () => {
         id: userId,
         hasUsedThreeDayPlan: true,
         threeDayPlanUsedAt: new Date('2024-01-01'),
-        subscription: null,
       });
+      (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue(null);
 
       const eligibility = await canPurchaseThreeDayPlan(userId);
       expect(eligibility.canPurchase).toBe(false);
@@ -239,11 +241,11 @@ describe('E2E: dLocal Payment Flow', () => {
       (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
         hasUsedThreeDayPlan: false,
-        subscription: {
-          id: 'active-sub',
-          status: 'ACTIVE',
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        },
+      });
+      (mockPrisma.subscription.findUnique as jest.Mock).mockResolvedValue({
+        id: 'active-sub',
+        status: 'ACTIVE',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       });
 
       const eligibility = await canPurchaseThreeDayPlan(userId);

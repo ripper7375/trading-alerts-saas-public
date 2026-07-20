@@ -2,7 +2,8 @@
  * Tests for Batch Manager (Part 19B)
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/non-market-client';
+
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 
 // Mock Prisma client
