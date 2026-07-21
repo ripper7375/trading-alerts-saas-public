@@ -1,0 +1,24 @@
+// Session 4A-1: skeleton only. No money-domain models yet — those land with
+// each domain module's own BUILD session (affiliate/billing/payments/
+// disbursement, 4A-4 onward per the blueprint), each hand-copied from the
+// root Next.js app's `prisma/non-market-data/schema.prisma` the same way
+// operation-service's own schema.prisma does for User/RefreshToken
+// (LESSONS-LEARNED.md L24: one shared migration history against one shared
+// Postgres — this file is never a migration source, only a `prisma generate`
+// target for a typed client). NEVER run `prisma migrate`/`db push` from this
+// package.
+//
+// This connects through PgBouncer as the `money_svc` role (blueprint §5.1) —
+// a distinct Postgres role from operation-service's `core_app`, scoped to
+// the money tables once they exist here. Until then, the generated client is
+// exercised only via `$queryRaw` in the /health check, which needs zero
+// declared models to prove the role can authenticate and query.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}

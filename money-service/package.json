@@ -1,0 +1,56 @@
+{
+  "name": "money-service",
+  "version": "0.1.0",
+  "description": "Trading-alerts MONEY service (Railway, NestJS). Session 4A-1: skeleton + deploy only — health, NextAuth JWE auth guard (same bridge as operation-service, F7), Prisma service. No domain business logic yet (affiliate/billing/payments/disbursement land in later BUILD sessions, 4A-4 onward). See docs/migration/money-service-migration-blueprint.md §5.2 and docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md.",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@nest-lab/throttler-storage-redis": "^1.2.0",
+    "@nestjs/bullmq": "^11.0.4",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-express": "11.1.28",
+    "@nestjs/throttler": "^6.5.0",
+    "@panva/hkdf": "1.2.1",
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
+    "bullmq": "^5.79.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "compression": "^1.8.1",
+    "helmet": "^8.3.0",
+    "ioredis": "^5.3.2",
+    "jose": "4.15.9",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/testing": "11.1.28",
+    "@types/compression": "^1.8.1",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.2",
+    "@types/supertest": "^7.2.1",
+    "jest": "^30.4.2",
+    "prisma": "7.8.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}
