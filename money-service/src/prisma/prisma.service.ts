@@ -5,9 +5,13 @@ import { PrismaClient } from '@prisma/client';
 // Prisma 7 requires a driver adapter for every PrismaClient instantiation.
 // DATABASE_URL is the pooled (PgBouncer) connection string, authenticating as
 // the `money_svc` role (blueprint §5.1) — a distinct, narrower-scoped role
-// than operation-service's `core_app`. Mirrors operation-service's own
-// PrismaService/lib/db/prisma.ts adapter setup so behavior is identical
-// across services.
+// than operation-service's `core_app`. Deliberately NOT using
+// operation-service's `ssl: { rejectUnauthorized: false }` here — Session
+// 4A-1's live deploy proved PgBouncer's own listener rejects a TLS
+// negotiation outright ("the server does not support SSL connections"),
+// unlike whatever operation-service's DATABASE_URL actually points at.
+// Connecting over Railway's private network (pgbouncer.railway.internal)
+// makes an app-level TLS hop redundant anyway. See this order's Deviations.
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -17,7 +21,6 @@ export class PrismaService
     super({
       adapter: new PrismaPg({
         connectionString: process.env['DATABASE_URL'],
-        ssl: { rejectUnauthorized: false },
       }),
       log:
         process.env['NODE_ENV'] === 'development'
