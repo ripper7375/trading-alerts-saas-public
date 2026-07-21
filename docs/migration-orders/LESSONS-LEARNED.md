@@ -828,6 +828,78 @@ connections`. The `PrismaService` code was byte-copied from operation-service's 
   option first, re-deploy, and only then re-diagnose if a real auth error surfaces.
 - Source: Session 4A-1 (money-service's first deploy), 2026-07-21 · Status: ACTIVE
 
+### L37 — Tracing "what does this file depend on" by grepping only relative (`./`/`../`) imports misses `@/`-alias imports entirely; the miss recurs at every layer, not just once
+
+- Symptom: this session's dependency-tree tracing missed a required file or model
+  THREE separate times, each caught later and more expensively than the last: (1) at
+  CONFIRM, `User`/`Notification`/`AffiliateProfile` were missing from a Prisma
+  schema-subset model list; (2) mid-port, `DisbursementAuditLog` (used by
+  `transaction-logger.ts`/`batch-manager.ts`, themselves already-known dependencies of
+  `disbursement-processor.ts`) was missing from the same list; (3) also mid-port,
+  `types/disbursement.ts` — imported via `@/types/disbursement` by 7 of 11 already-known
+  files — was invisible to an explicit CONFIRM-phase grep that only matched
+  `from ['"]\.\.?/` (relative paths only), because the alias form starts with `@` not
+  `.`/`..`.
+- Root cause: each miss came from trusting a shallow trace (this file's own direct
+  `prisma.*` calls, or a relative-import-only regex) instead of recursively reading
+  every file's actual import list, including `@/`-alias and other non-relative forms.
+  A dependency tree's leaves are only fully known once every file in it has been read,
+  not once the files you already suspect have been grepped.
+- Rule: when scoping "which files does X need," grep for BOTH relative
+  (`from ['"]\.\.?/`) AND alias (`from ['"]@/`) import forms across every file already
+  in the known set, and repeat on every newly-discovered file until a pass adds
+  nothing new — don't stop after one grep pass or assume a shallow trace generalizes.
+  For Prisma specifically, also check each file's actual `prisma.<model>.*` calls (not
+  just its imports) — a dependency can be a table touched directly, not just an
+  imported symbol.
+- Detect early: after any "N files in this dependency tree" claim, re-run the alias-form
+  grep (`from ['"]@/`) across the full set once — if it surfaces a file not already in
+  the list, the trace was incomplete.
+- Source: Session 4A-2 (money-service crons port, both at CONFIRM and mid-execution),
+  2026-07-21 · Status: ACTIVE
+
+### L38 — A doc comment quoting a real path containing `*/` silently closes the comment block early, corrupting everything after it
+
+- Symptom: `crons.scheduler.ts`'s first `npm run build` produced ~190 cascading,
+  nonsensical parse errors (`Cannot find name 'CRON'`, `'$' — jQuery?`, `Unterminated
+template literal` at the file's last line) with no single error pointing at the real
+  cause.
+- Root cause: the file's own opening `/** ... */` doc comment included the literal text
+  `` `app/api/cron/*/route.ts` `` as a path example — the `*/` inside that glob path is
+  indistinguishable from the comment's own closing delimiter to the parser, so the doc
+  comment ended 3 lines in and everything after was parsed as real TypeScript.
+- Rule: never write a literal `*/` sequence inside a `/** ... */` block comment, even
+  inside inline code-formatting backticks — a glob path like `dir/*/file.ts` must be
+  rewritten (e.g. `dir/<name>/file.ts`) before it's safe to quote in a doc comment.
+  Applies to any `/* */`-style comment in any C-like language, not just this file.
+- Detect early: ~100+ cascading parse errors from one file, especially ones naming
+  totally unrelated identifiers ("Cannot find name 'vercel'", jQuery `$` mentions) is
+  the signature of a prematurely-closed comment block, not a real logic bug — check the
+  file's own doc comments for a stray `*/` before reading past the first few errors.
+- Source: Session 4A-2 (money-service crons scheduler), 2026-07-21 · Status: ACTIVE
+
+### L39 — Booting a full Nest app (`app.init()`) with `ScheduleModule` registered hangs Jest indefinitely unless every `CronJob` is explicitly stopped first
+
+- Symptom: a verification test that called `Test.createTestingModule({...}).compile()`
+  → `moduleRef.createNestApplication()` → `app.init()` → inspected
+  `SchedulerRegistry.getCronJobs()` → `app.close()` hung forever — no output at all, not
+  even a Jest failure, just a stuck process needing to be killed.
+- Root cause: `@nestjs/schedule`'s registered `CronJob` instances hold live timers;
+  `app.close()` alone doesn't stop them, and Node's event loop stays non-empty forever,
+  so Jest waits indefinitely for the worker process to exit naturally (no
+  `--forceExit`).
+- Rule: don't boot a full Nest application (`app.init()`) just to verify `@Cron()`
+  registration or schedule behavior in Jest. Test the decorated methods' business logic
+  directly (call `service.methodName()`), and verify cron expressions by reading the
+  decorator arguments directly against the source of truth (e.g. `vercel.json`) rather
+  than instantiating the schedule at all. If a live `SchedulerRegistry` check is truly
+  needed, explicitly `job.stop()` every registered job before the test ends.
+- Detect early: a Jest test involving `ScheduleModule`/`SchedulerRegistry` that produces
+  zero output and doesn't finish within a normal test's timeframe is this, not a slow
+  test — kill it rather than waiting longer.
+- Source: Session 4A-2 (money-service crons File 4/6 verification attempt), 2026-07-21 ·
+  Status: ACTIVE
+
 ---
 
 ## Archive

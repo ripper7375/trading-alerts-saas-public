@@ -20,30 +20,31 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 
 ## Flag register status (details in plan §11)
 
-| Flag | Topic                                                                         | Status                                                                                                                 |
-| ---- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| F1   | OpenAPI coverage from live routes                                             | RESOLVED — fully closed, Session 0-3                                                                                   |
-| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28                                       | RESOLVED — Session 0-1                                                                                                 |
-| F3   | Where does the monolith's Postgres live?                                      | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
-| F4   | Full model census for schema split                                            | RESOLVED — Session 2-2                                                                                                 |
-| F5   | Prisma file-layout strategy                                                   | RESOLVED — Session 2-2                                                                                                 |
-| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled                              | OPEN — due Session 3-1 (Davin)                                                                                         |
-| F7   | HS256 shared secret vs JWKS + rotation timing                                 | OPEN — due Session 3-1 (Davin)                                                                                         |
-| F8   | Realtime/websocket architecture                                               | OPEN — due Session 4B-17                                                                                               |
-| F9   | @trading-alerts/types packaging mechanics                                     | OPEN — due Session 4B-1                                                                                                |
-| F10  | Next.js 15→16 breaking-change audit                                           | OPEN — due Session 5-1                                                                                                 |
-| F11  | Frontend gap matrix                                                           | OPEN — due Session 6-1 (Davin triage)                                                                                  |
-| F12  | Whole-plan duration estimate                                                  | OPEN — revisit after F1–F5                                                                                             |
-| F13  | Observability/tracing backend                                                 | OPEN — due by first Phase 4 cutover                                                                                    |
-| F14  | Tier-update: outbox vs direct call                                            | OPEN — due Session 4A-8                                                                                                |
-| F15  | Redis topology/namespacing                                                    | RESOLVED — Session 4A-1 (Davin)                                                                                        |
-| F16  | Public URL scheme + /v1 versioning                                            | RESOLVED — Session 4A-1 (Davin)                                                                                        |
-| F17  | Staging data strategy                                                         | RESOLVED — Session 0-5 (Davin)                                                                                         |
-| F18  | RPO/RTO targets                                                               | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
-| F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                     | RESOLVED — Session 2-1                                                                                                 |
-| F20  | Production migration history unbaselined                                      | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
-| F21  | 24h Account-Deletion GDPR gap                                                 | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
-| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live) | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
+| Flag | Topic                                                                          | Status                                                                                                                 |
+| ---- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| F1   | OpenAPI coverage from live routes                                              | RESOLVED — fully closed, Session 0-3                                                                                   |
+| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28                                        | RESOLVED — Session 0-1                                                                                                 |
+| F3   | Where does the monolith's Postgres live?                                       | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
+| F4   | Full model census for schema split                                             | RESOLVED — Session 2-2                                                                                                 |
+| F5   | Prisma file-layout strategy                                                    | RESOLVED — Session 2-2                                                                                                 |
+| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled                               | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F7   | HS256 shared secret vs JWKS + rotation timing                                  | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F8   | Realtime/websocket architecture                                                | OPEN — due Session 4B-17                                                                                               |
+| F9   | @trading-alerts/types packaging mechanics                                      | OPEN — due Session 4B-1                                                                                                |
+| F10  | Next.js 15→16 breaking-change audit                                            | OPEN — due Session 5-1                                                                                                 |
+| F11  | Frontend gap matrix                                                            | OPEN — due Session 6-1 (Davin triage)                                                                                  |
+| F12  | Whole-plan duration estimate                                                   | OPEN — revisit after F1–F5                                                                                             |
+| F13  | Observability/tracing backend                                                  | OPEN — due by first Phase 4 cutover                                                                                    |
+| F14  | Tier-update: outbox vs direct call                                             | OPEN — due Session 4A-8                                                                                                |
+| F15  | Redis topology/namespacing                                                     | RESOLVED — Session 4A-1 (Davin)                                                                                        |
+| F16  | Public URL scheme + /v1 versioning                                             | RESOLVED — Session 4A-1 (Davin)                                                                                        |
+| F17  | Staging data strategy                                                          | RESOLVED — Session 0-5 (Davin)                                                                                         |
+| F18  | RPO/RTO targets                                                                | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
+| F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                      | RESOLVED — Session 2-1                                                                                                 |
+| F20  | Production migration history unbaselined                                       | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
+| F21  | 24h Account-Deletion GDPR gap                                                  | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
+| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live)  | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
+| F35  | money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built | RESOLVED — Session 4A-2 (Davin)                                                                                        |
 
 ---
 
@@ -1123,3 +1124,31 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
 - Decision: The new money-service will use the `<api.domain/v1 + money.domain/v1>` URL scheme for its public endpoints.
 - Evidence: Explicit Davin instruction: "F16 decision: <api.domain/v1 + money.domain/v1>"
 - Approved by: Davin
+
+## F35 — money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built
+
+- Status: RESOLVED
+- Session: 4A-2 · Date: 2026-07-21
+- Decision: the order's own text assumed this slice's shadow-run would be "both Vercel
+  and NestJS execute crons in staging" — not buildable as literally scoped, since F34
+  (Session 3-5) only reserves which Railway project a future staging environment should
+  use, it doesn't mean one is deployed and ready today (CLAUDE.md Waiting-on #17, CC-A,
+  still open). Standing up money-service inside the "postgre for staging" project
+  (Prisma migrations, env vars, secrets, networking) is itself a real work item, out of
+  scope for finishing this BUILD session. Instead: (1) added a `CRON_ENABLED` env-var
+  gate — every `@Cron()`-scheduled entry point no-ops unless it's exactly `"true"`; (2)
+  deployed money-service to **production** Railway with `CRON_ENABLED=false`, fully
+  inert; (3) the already-built manual-trigger endpoints (File 5/6,
+  `POST /v1/cron-trigger/<job>`) are this slice's actual verification mechanism — fire
+  each job by hand, once, after Vercel's own cron completes each day, and confirm
+  idempotent behavior (a second run against already-processed data does nothing
+  further). `vercel.json`'s crons stay authoritative and unchanged; money-service's
+  scheduler exists in production but never fires on its own until 4A-3 flips the gate
+  (or a real staging environment gets built first, whichever comes first).
+- Evidence: Deploy verified live — `railway logs` showed `CronsModule`/`ScheduleModule`
+  dependencies initialized, all 8 `/v1/cron-trigger/*` routes mapped, `Nest application
+successfully started`, no errors; `railway variables --kv` confirms
+  `CRON_ENABLED=false` set on money-service's production environment; 24 new tests
+  (`crons.scheduler.spec.ts`) cover all 3 gate states (unset / non-`"true"` / `"true"`)
+  for each of the 8 scheduled wrappers.
+- Approved by: Davin (explicit, live instruction to add the toggle and deploy this way)
