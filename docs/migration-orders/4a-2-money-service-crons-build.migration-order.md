@@ -162,6 +162,31 @@ createdAt, updatedAt` — not the full ~30-field model.
   money-service's own domain tables (blueprint §5.1 grant list), not auth data.
 - **Impact:** none — no ported code touches any dropped field.
 
+### File 2/6 — file layout and class naming
+
+- **What:** Ported into `money-service/src/common/logger.util.ts` (logger),
+  `money-service/src/affiliate/{affiliate.types.ts, affiliate.constants.ts,
+affiliate-config.service.ts, code-generator.service.ts}` (the 4 affiliate
+  dependencies), and `money-service/src/crons/{subscription.service.ts,
+affiliate.service.ts}` (the 3 cron files, split as the order's own TARGET
+  named them: subscription.service.ts holds both
+  check-expiring-subscriptions.ts and downgrade-expired-subscriptions.ts;
+  affiliate.service.ts holds monthly-distribution.ts). Classes named
+  `SubscriptionCronService`/`AffiliateCronService` (not bare
+  `SubscriptionService`/`AffiliateService`) to leave room for genuine
+  business-domain services of those names in later slices (billing/payments,
+  4A-4+) without a collision.
+- **Why:** "plus shared utils as needed" in the order's own TARGET line;
+  logger and the affiliate config/code-generator pieces are cross-cutting,
+  not crons-specific, so they got their own directories rather than being
+  inlined into the two cron service files.
+- **Impact:** none — purely a file-organization choice, no behavior change.
+  `monthly-distribution.ts`'s `distributeCodes` override-via-options
+  parameter is preserved exactly (now defaults to the injected
+  `CodeGeneratorService.distributeCodes` instead of a module-level function
+  import) specifically so File 6/6's ported test can still inject a mock the
+  same way the original test does.
+
 ### File 1/6 — relation objects kept only where actually traversed, verified by grep not assumption
 
 - **What:** Of the source schema's relations among these 11 models, kept:
