@@ -601,6 +601,47 @@ import/order */` so `eslint --fix` can't silently re-break it — a plain commen
   git blame, but invisible to both prior sessions' verification suites), 2026-07-20
   · Status: ACTIVE
 
+### L28 — `cmd | tail` (or any pipe) hides the real command's exit code
+
+- Symptom: `npm install 2>&1 | tail -40` reported exit 0 via `run_in_background`'s
+  completion notification, but the tail of its own output clearly showed
+  `npm error code ERR_SSL_CIPHER_OPERATION_FAILED` — the install had actually failed.
+- Root cause: in a pipeline without `pipefail`, `$?` (and therefore the reported exit
+  code) reflects the LAST command in the pipe (`tail`), not the one that matters
+  (`npm install`). `tail` almost always succeeds, so the failure was fully invisible
+  to anything checking only the exit code.
+- Rule: never pipe a command whose exit code you intend to check (`| tail`, `| head`,
+  `| grep`) without `set -o pipefail` first, or check `${PIPESTATUS[0]}` explicitly.
+  When in doubt, redirect to a file and inspect separately instead of piping.
+- Detect early: a "successful" background-task notification for any piped command is
+  not proof of success — grep the actual output for `error`/`Error`/non-zero-looking
+  strings before trusting it, especially for `npm install`/`npm ci`.
+- Source: Session 3-1 (`operation-service` dependency install), 2026-07-21 · Status: ACTIVE
+
+### L29 — A leftover `.prisma/client` from a manual `prisma generate` masks a missing build-step wiring; only a genuinely clean install exposes it
+
+- Symptom: `operation-service`'s `npm run build` (`nest build`) passed locally every
+  time it was tried, but Railway's first real deploy failed:
+  `Module '"@prisma/client"' has no exported member 'PrismaClient'` — 4 TS errors,
+  all downstream of the same missing export.
+- Root cause: the `build` script (`nest build`) never ran `prisma generate`; nothing
+  in `package.json` wired it in. Local testing had manually run `npx prisma generate`
+  once early in the session, which silently left `node_modules/.prisma/client`
+  populated for every subsequent local build — masking that the automated path
+  (`npm ci` → `npm run build`, no human running `prisma generate` by hand in between)
+  was broken. Railway's build starts from a genuinely clean `node_modules` every time,
+  so it was the first environment to actually exercise the real, wired-up path.
+- Rule: any service with a Prisma schema needs `prisma generate` wired into
+  `postinstall` (or `prebuild`), matching the root app's own convention — never rely
+  on a manual `prisma generate` run earlier in the same session to prove the build is
+  self-sufficient. Before trusting a local "build succeeds," check whether anything in
+  the CURRENT shell session already ran `prisma generate` by hand.
+- Detect early: `rm -rf node_modules/.prisma dist && npm ci && npm run build` — a
+  genuinely clean reinstall-and-build, not just `npm run build` again — is the only
+  local check that would have caught this before the first real deploy attempt.
+- Source: Session 3-1 (`operation-service` first Railway deploy), 2026-07-21 ·
+  Status: ACTIVE
+
 ---
 
 ## Archive
