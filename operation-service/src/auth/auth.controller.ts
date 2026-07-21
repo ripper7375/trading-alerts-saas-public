@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   Post,
+  Query,
   Req,
   UseFilters,
   UseGuards,
@@ -12,9 +13,13 @@ import { Request } from 'express';
 
 import { AuthErrorFilter } from './auth-error.filter';
 import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { InvalidTokenError } from './errors';
 import { AuthenticatedRequest, JwtAuthGuard } from './jwt-auth.guard';
 
 function requestContext(request: Request): {
@@ -74,5 +79,31 @@ export class AuthController {
       role: request.user.role,
       isAffiliate: request.user.isAffiliate,
     };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token?: string) {
+    if (!token) {
+      throw new InvalidTokenError('Verification token is required');
+    }
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(200)
+  async resendVerification(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerification(dto.email);
   }
 }

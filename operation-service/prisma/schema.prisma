@@ -13,12 +13,13 @@
 //
 // `User` is intentionally a NARROW subset, not the full model: only the
 // fields operation-service's auth endpoints (login/register/refresh/logout/
-// me) actually read or write. No relations (Account[]/Alert[]/Drawing[]/
-// etc.) are declared — this service has no business logic for any of them
-// yet, and declaring them would require also modeling every related table.
-// Deviation from the order's open question (Known schema gap section):
-// narrow subset chosen over the full model, recorded in this order's
-// Deviations section.
+// me, plus Session 3-4's 2FA/forgot-password/reset-password/verify-email/
+// resend-verification endpoints) actually read or write. No relations
+// (Account[]/Alert[]/Drawing[]/etc.) are declared — this service has no
+// business logic for any of them yet, and declaring them would require
+// also modeling every related table. Deviation from the order's open
+// question (Known schema gap section): narrow subset chosen over the full
+// model, recorded in this order's Deviations section.
 
 generator client {
   provider = "prisma-client-js"
@@ -35,20 +36,25 @@ enum UserTier {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  name              String?
-  password          String?
-  image             String?
-  emailVerified     DateTime?
-  tier              UserTier  @default(FREE)
-  role              String    @default("USER")
-  isActive          Boolean   @default(true)
-  isAffiliate       Boolean   @default(false)
-  verificationToken String?   @unique
-  twoFactorEnabled  Boolean   @default(false)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  name                 String?
+  password             String?
+  image                String?
+  emailVerified        DateTime?
+  tier                 UserTier  @default(FREE)
+  role                 String    @default("USER")
+  isActive             Boolean   @default(true)
+  isAffiliate          Boolean   @default(false)
+  verificationToken    String?   @unique
+  resetToken           String?   @unique
+  resetTokenExpiry     DateTime?
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes String?
+  twoFactorVerifiedAt  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@index([email])
 }
@@ -66,4 +72,40 @@ model RefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+// Session 3-4: NARROW subset mirror of prisma/non-market-data/schema.prisma's
+// SecurityAlert, same convention as User above — only the fields the 2FA
+// enable/disable endpoints actually write (a create-only write path this
+// session; nothing here ever reads SecurityAlert rows back). `deviceInfo`/
+// `read`/`readAt` are the source model's own fields for its OTHER caller
+// (new-device-login alerts, out of this session's scope) and are
+// deliberately omitted — the real DB columns still get their own defaults
+// on insert regardless of what this generate-only schema declares.
+// @@map is load-bearing: the real table is `security_alerts`, not the
+// PascalCase default Prisma would otherwise assume.
+enum SecurityAlertType {
+  NEW_DEVICE_LOGIN
+  PASSWORD_CHANGED
+  EMAIL_CHANGED
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  SUSPICIOUS_LOGIN
+  ACCOUNT_LOCKED
+}
+
+model SecurityAlert {
+  id          String            @id @default(cuid())
+  userId      String
+  type        SecurityAlertType
+  title       String
+  message     String
+  ipAddress   String?
+  location    String?
+  emailSent   Boolean           @default(false)
+  emailSentAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([userId])
+  @@map("security_alerts")
 }

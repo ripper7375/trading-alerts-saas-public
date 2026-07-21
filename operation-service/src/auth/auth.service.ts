@@ -4,13 +4,21 @@ import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
 
 import {
   AccountExistsError,
+  AuthError,
   EmailNotVerifiedError,
+  ExpiredTokenError,
   InvalidCredentialsError,
   InvalidTokenError,
+  RateLimitError,
   TwoFactorRequiredError,
 } from './errors';
 import { encodeNextAuthToken } from './next-auth-jwt-encode.util';
@@ -281,5 +289,218 @@ export class AuthService {
    */
   async logout(rawRefreshToken: string): Promise<void> {
     await this.refreshTokens.revokeByRawToken(rawRefreshToken);
+  }
+
+  /**
+   * Ported from app/api/auth/forgot-password/route.ts (Session 3-4, F29).
+   * Always returns the same generic success message regardless of whether
+   * the email exists — the source route's own anti-enumeration behavior,
+   * preserved exactly. CSRF (validateOrigin()) stays Next.js-side, same as
+   * register/login never having it here either.
+   */
+  async forgotPassword(
+    email: string
+  ): Promise<{ success: true; message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (user) {
+      const resetToken = randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken, resetTokenExpiry },
+      });
+
+      const emailResult = await sendPasswordResetEmail(
+        email,
+        user.name || 'User',
+        resetToken
+      );
+
+      if (!emailResult.success) {
+        console.error(
+          'Failed to send password reset email:',
+          emailResult.error
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message:
+        'If an account exists with this email, you will receive a password reset link.',
+    };
+  }
+
+  /**
+   * Ported from app/api/auth/reset-password/route.ts (Session 3-4, F29).
+   */
+  async resetPassword(
+    token: string,
+    password: string
+  ): Promise<{ success: true; message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: { resetToken: token },
+    });
+
+    if (!user) {
+      throw new InvalidTokenError('Invalid or expired reset token');
+    }
+
+    if (user.resetTokenExpiry && user.resetTokenExpiry < new Date()) {
+      throw new ExpiredTokenError('Reset token has expired');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    return {
+      success: true,
+      message:
+        'Password reset successfully. You can now sign in with your new password.',
+    };
+  }
+
+  /**
+   * Ported from app/api/auth/verify-email/route.ts (Session 3-4, F29),
+   * including the "wait 5 seconds" guard against Gmail's link-preview
+   * bot pre-fetching the verification URL and burning the token before the
+   * real user clicks it.
+   */
+  async verifyEmail(
+    token: string
+  ): Promise<{ success: true; message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: { verificationToken: token },
+    });
+
+    if (!user) {
+      throw new InvalidTokenError('Invalid or expired verification token');
+    }
+
+    const tokenAge = Date.now() - user.updatedAt.getTime();
+    const MIN_DELAY_MS = 5000; // 5 seconds
+
+    if (tokenAge < MIN_DELAY_MS) {
+      const waitSeconds = Math.ceil((MIN_DELAY_MS - tokenAge) / 1000);
+      throw new RateLimitError(
+        `Please wait ${waitSeconds} more seconds, then refresh this page.`,
+        waitSeconds
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: new Date(),
+        verificationToken: null,
+      },
+    });
+
+    try {
+      const welcomeResult = await sendWelcomeEmail(
+        user.email,
+        user.name || 'User'
+      );
+      if (!welcomeResult.success) {
+        console.error(
+          '[verifyEmail] Failed to send welcome email:',
+          welcomeResult.error
+        );
+      }
+    } catch (emailError) {
+      console.error(
+        '[verifyEmail] Exception while sending welcome email:',
+        emailError
+      );
+    }
+
+    return {
+      success: true,
+      message: 'Email verified successfully. You can now sign in.',
+    };
+  }
+
+  /**
+   * Ported from app/api/auth/resend-verification/route.ts (Session 3-4,
+   * F29). Anti-enumeration (unknown email / already-verified both return
+   * the same generic success message) and the 60s per-user rate limit are
+   * both preserved exactly.
+   */
+  async resendVerification(
+    email: string
+  ): Promise<{ success: true; message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        emailVerified: true,
+        verificationToken: true,
+        updatedAt: true,
+      },
+    });
+
+    const genericSuccess = {
+      success: true as const,
+      message:
+        'If your email is registered, you will receive a verification email.',
+    };
+
+    if (!user || user.emailVerified) {
+      return genericSuccess;
+    }
+
+    const timeSinceLastUpdate = Date.now() - user.updatedAt.getTime();
+    const RATE_LIMIT_MS = 60 * 1000; // 60 seconds
+
+    if (user.verificationToken && timeSinceLastUpdate < RATE_LIMIT_MS) {
+      const waitSeconds = Math.ceil(
+        (RATE_LIMIT_MS - timeSinceLastUpdate) / 1000
+      );
+      throw new RateLimitError(
+        `Please wait ${waitSeconds} seconds before requesting another verification email.`,
+        waitSeconds
+      );
+    }
+
+    const verificationToken = randomBytes(32).toString('hex');
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken,
+        updatedAt: new Date(),
+      },
+    });
+
+    const emailResult = await sendVerificationEmail(
+      user.email,
+      user.name || 'User',
+      verificationToken
+    );
+
+    if (!emailResult.success) {
+      throw new AuthError(
+        'Failed to send verification email. Please try again.',
+        'EMAIL_SEND_FAILED',
+        500
+      );
+    }
+
+    return {
+      success: true,
+      message: 'Verification email sent. Please check your inbox.',
+    };
   }
 }
