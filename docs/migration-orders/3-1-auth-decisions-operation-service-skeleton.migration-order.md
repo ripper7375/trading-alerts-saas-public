@@ -10,13 +10,28 @@
 > verifying real NextAuth-issued tokens) is fixed by the plan; how the service is scaffolded
 > and how F6/F7 are resolved is this session's call, within the plan's pre-made architecture
 > decisions (§5 of the plan doc — Pattern 1, bridge-first, Prisma-backed refresh tokens).
-> **Status: PRE-DRAFT** — raw facts and candidate steps only, gathered at Session 2-4's
-> close. Needs the Advisor to produce the DRAFT, then Davin's APPROVAL, before any of this
-> is CONFIRMed or executed.
+> **Status: CONFIRMED** — 2026-07-21. Re-verified against live codebase/Railway per
+> EXECUTOR-PROTOCOL.md §1. Corrections made live at CONFIRM (Davin's resolutions, this
+> session): (1) Phase 2 + F22 confirmed live in production by Davin — entry criterion #1
+> satisfied. (2) `NEXTAUTH_SECRET`-grant entry criterion had a sequencing flaw (can't grant
+> access to a service that doesn't exist yet) — Davin re-sequenced it to a post-scaffold
+> Step 6 action; Claude will not handle the raw secret value itself (see Rules addendum
+> below), Davin sets it directly via Railway. (3) CONFIRM's fresh full-repo search
+> **found** the 3 "missing" F6 docs (`backend-stack-a/hybrid-authentication-for-backend-
+stack-a/`, committed 2026-02-02, predates this migration) — contrary to this PRE-DRAFT's
+> claim of zero matches. Davin reviewed and explicitly disregards them: they're exploratory
+> OpenAuth seed material for a future end-state, superseded by the plan's own §5 decision;
+> F6/F7 stand as resolved (bridge-first / Path B). (4) New gap found at CONFIRM, not in the
+> original entry criteria: Step 5/Done-when's "staging" deploy target refers to CC-A's
+> dedicated staging stack (plan §13, separate Postgres/Redis/Railway environment) — CC-A is
+> still open (Phase 0, unchanged) and only required live before Phase 4, not Phase 3; the
+> `trading-alerts` Railway project currently has exactly one environment (`production`).
+> Steps 1-4 don't depend on this and can proceed; Steps 5-6's actual deploy target needs
+> Davin's call before any Railway service is created — see Deviations.
 
 **Session:** 3-1 · **Phase:** Phase 3 — Hybrid (Dual) JWT Authentication (Workstream 2),
 plan steps 3.1 (partial) · **Variant:** INFRA (borrowing CONTRACT's decision-step shape) ·
-**Generated:** 2026-07-20 (PRE-DRAFT, at Session 2-4's close) · **Flags touched:** F6, F7 ·
+**Generated:** 2026-07-21 (DRAFT, prepared by Advisor) · **Flags touched:** F6, F7 ·
 **Estimated time:** unestimated (F12 open).
 **Target service:** new `operation-service` (Railway, NestJS 11.1.28 per F2's confirmed pin
 — **not** railway-gateway's installed NestJS 10.4.15; see reference-notes finding below).
@@ -106,22 +121,32 @@ per the plan's exit criteria).
 
 ## Entry criteria
 
-- [ ] Phase 2's actual production-deploy status re-confirmed with Davin (code-complete
-      ≠ deployed — re-verify which is true before assuming split-client code is live in
-      production, since Phase 3's new service will connect to the same production DB).
-- [ ] Davin has granted `NEXTAUTH_SECRET` access to the new `operation-service` Railway
-      service (via Railway's variable-set mechanism, matching the pattern already used for
-      `money_svc`/`core_app` credentials in Session 1-3b — never as a CLI arg, never printed).
-      Update `docs/secret-matrix.md` once granted.
-- [ ] Railway dashboard/CLI access for creating a new service in the `trading-alerts`
-      project confirmed available in this environment (re-verify — Session 1-4's
-      Waiting-on list still shows Vercel access absent; Railway access has existed since
-      Session 1-1, but re-confirm the specific permission to `railway add`/`railway up` a
-      new service, not just read existing ones).
-- [ ] `docs/railway-gateway-reference-notes.md` re-read in full at CONFIRM (not just this
-      PRE-DRAFT's summary above) — it's the template this session builds from.
-- [ ] Fresh full-repo search for the 3 F6 reference docs re-run at CONFIRM (this session's
-      search found none — re-verify before treating F6 as "recommendation-only").
+- [x] Phase 2's actual production-deploy status re-confirmed with Davin — **CONFIRMED LIVE**:
+      Davin states Phase 2 (Session 2-4 + F22) is deployed and live in production, 2026-07-21.
+- [x] Davin has granted `NEXTAUTH_SECRET` access to the new `operation-service` Railway
+      service — **RE-SEQUENCED, not blocking**: Davin approved treating this as a post-scaffold
+      step (can't grant access to a service that doesn't exist yet). Service is created in
+      Step 3; Davin injects the secret directly via Railway (dashboard or his own CLI session)
+      as part of Step 6 — Claude does not handle the raw value (see Rules addendum).
+      `docs/secret-matrix.md` updated once granted.
+- [x] Railway dashboard/CLI access for creating a new service in the `trading-alerts`
+      project confirmed available in this environment — verified at CONFIRM: `railway whoami`
+      succeeds (RipperAke), `trading-alerts` project reachable, and its existing `pgbouncer`
+      service's deployment metadata shows `cliCaller: claude_code` from a prior session
+      (this credential has created services here before).
+- [x] `docs/railway-gateway-reference-notes.md` re-read in full at CONFIRM — done (241 lines).
+- [x] Fresh full-repo search for the 3 F6 reference docs re-run at CONFIRM — **found all 3**
+      (`backend-stack-a/hybrid-authentication-for-backend-stack-a/`, committed 2026-02-02,
+      predates this migration; the PRE-DRAFT's "zero matches" claim was wrong, not stale).
+      Davin reviewed and explicitly disregards them as superseded exploratory material —
+      F6 stands as resolved (bridge-first).
+- [ ] **New, found at CONFIRM, not in original criteria — unresolved:** Step 5/Done-when's
+      "staging" deploy target assumes CC-A's dedicated staging stack (plan §13: separate
+      Postgres/Redis/Railway environment) exists. It doesn't — Phase 0's CC-A gap is still
+      open, only required live before Phase 4, and `trading-alerts` currently has one Railway
+      environment (`production`). Needs Davin's call before Step 5/6 touch Railway — see
+      Deviations. Steps 1-4 (decisions, F7 verification, local scaffold, guard + unit tests)
+      do not depend on this and proceed now.
 - [ ] Blast-radius statement: this session creates new infrastructure and modifies
       `lib/auth/auth-options.ts` only if path (a) above (custom JWT encode/decode) is
       chosen — that specific change is auth-semantics-touching and needs its own explicit
@@ -192,12 +217,19 @@ backend-stack-a/SUMMARY_hybrid-jwt-based-authentication-clarification-and-implem
   discovered mid-session.
 - Secrets: `NEXTAUTH_SECRET`'s value never appears in a CLI arg, script output, or commit —
   match Session 1-3b's `railway variable set --stdin` pattern exactly.
+- **Addendum, set at CONFIRM:** Claude does not type, pipe, or otherwise handle the raw
+  `NEXTAUTH_SECRET` value itself, even via CLI, even with Davin's authorization — this is a
+  standing operating constraint, not order-specific. For local F7 round-trip verification
+  (step 2), Claude reads it only indirectly via the existing local `.env.local` (already
+  present for dev use, never printed/logged). For the Railway grant (step 6), Davin performs
+  the `railway variables set` (or dashboard entry) himself; Claude verifies the grant
+  succeeded (e.g. a boolean health-check response) without ever seeing the value.
 
 ## Done when
 
 - [ ] A protected NestJS `/health-auth` endpoint on staging returns 200 with a real
       NextAuth-issued JWT, 401 without (the playbook's literal exit test).
-- [ ] F6 and F7 both resolved in `DECISION-LOG.md`, Davin's sign-off quoted for both.
+- [x] F6 and F7 both resolved in `DECISION-LOG.md`, Davin's sign-off quoted for both.
 - [ ] `operation-service/railway.toml` (or current equivalent) committed; secret matrix
       updated; `migration-stack-analysis.md` gets a new `operation-service/` entry.
 - [ ] NextAuth on Vercel re-verified unregressed (a real login still works end-to-end)
@@ -212,7 +244,12 @@ construction — additive-only per the Rules above.
 
 ## Deviations
 
-_(filled during execution)_
+- **CONFIRM, 2026-07-21:** Found the Step 5/Done-when "staging" deploy target assumes CC-A's
+  dedicated staging stack (plan §13), which doesn't exist yet (Phase 0 gap, only required
+  live before Phase 4; `trading-alerts` Railway project currently has one environment,
+  `production`). Not resolved yet — proceeding with Steps 1-4 (no Railway dependency) while
+  this is open; Steps 5-6 pause for Davin's direction on the actual deploy target before any
+  Railway service is created.
 
 ## Next-session handoff
 

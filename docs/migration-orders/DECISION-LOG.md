@@ -767,3 +767,19 @@ test:ci`/`validate`, not `npm run build`.
   Commits `495cbea2` (constants/db split) and `5b139acc` (Drawing JSON cast).
 - Approved by: Davin (live, explicit go-ahead for both the constants split
   and the Drawing fix).
+
+## F6 — Auth strategy: bridge vs OpenAuth vs hand-rolled
+
+- Status: RESOLVED
+- Session: 3-1 · Date: 2026-07-21
+- Decision: Confirm 'bridge first' - The new service verifies existing NextAuth tokens while NextAuth remains on Vercel.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F7 — HS256 shared secret vs JWKS + rotation timing
+
+- Status: RESOLVED
+- Session: 3-1 · Date: 2026-07-21
+- Decision: Path B: Build JwtAuthGuard to decrypt NextAuth's JWE directly (no NextAuth changes, safer for live users, but ties NestJS to NextAuth JWE format).
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
