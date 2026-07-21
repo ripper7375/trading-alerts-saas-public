@@ -997,14 +997,27 @@ model DrawingAlert {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// REFRESH TOKENS (new model — Session 2-2, F4 model census)
+// REFRESH TOKENS (Session 2-2 stub, hardened Session 3-2 per F23)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/// Minimal stub per Session 2-2's approved order — shape refined when F6/F7
-/// (auth strategy, due Session 3-1) land; not yet wired to any auth flow.
+/// F23 (DECISION-LOG.md, Session 3-2): hashed-at-rest + revocable. The raw
+/// token is never stored — only its SHA-256 digest (`hashedToken`), looked
+/// up by unique index; SHA-256 (not bcrypt) is correct here because the
+/// value being hashed is already a high-entropy random secret (unlike a
+/// user password), so O(1) unique-index lookup matters more than
+/// per-guess slow-hashing. No @relation to User — plain userId, matching
+/// the same-domain convention already used by UserSession/LoginHistory/
+/// SecurityAlert (F4 census).
 model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
+  id          String    @id @default(cuid())
+  hashedToken String    @unique
+  userId      String
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
