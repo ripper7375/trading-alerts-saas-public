@@ -9,10 +9,13 @@
 # Redis attached" entry criterion 4B-2-alert-engine.migration-order.md
 # already lists as depending on this session's output.
 #
-# NOT YET APPLIED to Railway as of Session 3-1's scaffold step — deploy
-# target (which environment) is pending Davin's call, see the order's
-# Deviations. This file is committed as-code per the INFRA rule
-# ("nothing dashboard-only") ahead of the actual `railway up`.
+# Deployed 2026-07-21 into trading-alerts/production (Davin's call at
+# CONFIRM: no dedicated staging stack exists yet, CC-A gap; additive-only,
+# same discipline as every other service in this environment). The Redis
+# service was created via `railway add --database redis` and is named
+# plainly "Redis" (the template's own name, not the `--service` flag's
+# requested "operation-service-redis" — Railway's redis template doesn't
+# take the custom name for `--database` mode).
 
 [build]
 builder = "nixpacks"
@@ -26,6 +29,6 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [[services]]
-name = "operation-service-redis"
+name = "Redis"
 type = "redis"
 plan = "hobby"
