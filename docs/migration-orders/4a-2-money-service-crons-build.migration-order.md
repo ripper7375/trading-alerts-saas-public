@@ -274,6 +274,26 @@ _(filled during execution — what/why/impact)_
   started" done-when item is NOT yet satisfied and is called out explicitly
   in this session's Slice-level verification results, not silently skipped.
 
+### File 5/6 — trigger endpoints call the scheduler directly, verified 401 behavior in isolation
+
+- **What:** `CronTriggerController` (8 `POST /v1/cron-trigger/<job>` routes,
+  one per cron) calls the exact same `CronsScheduler.handleX()` method the
+  `@Cron()` decorator invokes on schedule — a manual trigger and a
+  scheduled firing run identical code, not a reimplementation.
+  `CronSecretGuard` mirrors the `Bearer <CRON_SECRET>` check every source
+  route duplicated inline.
+- **Verified:** wrote a throwaway spec instantiating `CronSecretGuard`
+  directly (no Nest app, no timers — sidesteps File 4/6's Jest+
+  `@nestjs/schedule` hang entirely) confirming: no header → 401; wrong
+  secret → 401; correct `Bearer <CRON_SECRET>` → passes. Deleted after
+  confirming (File 6/6 will add the persisted version).
+- **Impact:** none — `npm run build` clean, existing 7/7 suite still green.
+  Same exposure model as source (technically internet-reachable at the URL
+  level, protected only by the secret check, matching money-service's own
+  real CORS posture — F30/blueprint §5.4, this service is called directly
+  from the browser, not server-proxied) — not stronger or weaker than what
+  Vercel's routes already had.
+
 ### File 1/6 — added `DisbursementAuditLog` as an 11th model (not in the CONFIRMed list)
 
 - **What:** `money-service/prisma/schema.prisma` includes `DisbursementAuditLog` in

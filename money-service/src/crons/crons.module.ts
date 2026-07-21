@@ -22,10 +22,13 @@ import { TransactionLoggerService } from '../disbursement/transaction-logger.ser
 import { TransactionService } from '../disbursement/transaction.service';
 
 import { AffiliateCronService } from './affiliate.service';
+import { CronSecretGuard } from './cron-secret.guard';
+import { CronTriggerController } from './cron-trigger.controller';
 import { CronsScheduler } from './crons.scheduler';
 import { SubscriptionCronService } from './subscription.service';
 
 @Module({
+  controllers: [CronTriggerController],
   providers: [
     // File 2/6
     AffiliateConfigService,
@@ -42,6 +45,8 @@ import { SubscriptionCronService } from './subscription.service';
     DisbursementProcessorService,
     // File 4/6
     CronsScheduler,
+    // File 5/6
+    CronSecretGuard,
   ],
 })
 export class CronsModule {}
