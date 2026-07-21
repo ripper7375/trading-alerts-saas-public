@@ -207,17 +207,36 @@ backend-stack-a/SUMMARY_hybrid-jwt-based-authentication-clarification-and-implem
    _Verify:_ deployed to Railway staging; `curl` with a real NextAuth-issued JWT (obtained
    from a real login against the current Vercel deployment or local dev) → 200; without a
    token, or with a garbage token → 401.
-   **PARTIALLY DONE, 2026-07-21:** the curl behavior itself is proven — against the live
-   local boot above, `GET /health-auth` returned 200 with correct claims for a valid
-   token (minted via the exact NextAuth JWE derivation, F7), 401 for no token and for a
-   garbage token. **The "deployed to Railway staging" half is NOT done** — blocked on
-   the same staging-target question as Step 6, see Deviations.
+   **DONE (deploy target: production, Davin's call), 2026-07-21:** deployed to
+   `trading-alerts`/`production` (no staging stack exists yet, see Deviations) at
+   `https://operation-service-production.up.railway.app`. Live `curl` results: no token
+   → 401 (`"Missing bearer token"`); garbage token → 401 (`"Auth is not configured"` —
+   expected and correct fail-closed behavior, `NEXTAUTH_SECRET` isn't granted yet).
+   **The real-token 200 case is NOT independently verified yet** — needs `NEXTAUTH_SECRET`
+   granted first (see Step 6), then Davin verifying with a token from his own real login
+   (Claude does not handle live session tokens any more than the raw secret — see Rules
+   addendum).
 6. **As-code step.** `operation-service/railway.toml` (or Railway's newer config
    mechanism — check current CLI conventions, don't assume `railway.toml` is still primary)
    committed, not dashboard-configured; secret matrix updated for `NEXTAUTH_SECRET`'s new
    scope and any new env vars this service needs (`DATABASE_URL` — same production Postgres
    per plan §1, `REDIS_*` if the Redis-backed throttler needs its own connection).
    _Verify:_ re-running the deploy config is a no-op (idempotent).
+   **PARTIALLY DONE, 2026-07-21:** `railway.toml` committed (matches the real deployed
+   service names — the Redis template names itself plainly "Redis", not the requested
+   "operation-service-redis"). `docs/secret-matrix.md` updated for both `NEXTAUTH_SECRET`
+   and `DATABASE_URL`'s new consumer. **Two values remain for Davin to set directly on the
+   `operation-service` Railway service** (Claude does not handle either): (1)
+   `NEXTAUTH_SECRET` (planned, per entry criteria); (2) `DATABASE_URL` — found live,
+   not anticipated in the PRE-DRAFT: `pgbouncer` has no native `DATABASE_URL` to
+   reference (it's a bespoke PgBouncer deploy, Session 1-3b, not a Railway-managed
+   template) — checked variable NAMES only (never values) via `railway variable list
+--json`, confirmed `pgbouncer` exposes no `DATABASE_URL`-shaped key, while the
+   `Postgres` service exposes a scoped `CORE_APP_DB_PASSWORD` (paired with
+   `MONEY_SVC_DB_PASSWORD` for money-service) meant to be combined with
+   `pgbouncer.railway.internal` into the real pooled connection string. `REDIS_URL` IS
+   correctly wired (`${{Redis.REDIS_URL}}` reference, Railway's own redis template
+   natively exposes this) — confirmed working, `ThrottlerModule` initializes cleanly.
 
 ## Rules specific to this variant
 
@@ -244,12 +263,15 @@ backend-stack-a/SUMMARY_hybrid-jwt-based-authentication-clarification-and-implem
 ## Done when
 
 - [ ] A protected NestJS `/health-auth` endpoint on staging returns 200 with a real
-      NextAuth-issued JWT, 401 without (the playbook's literal exit test).
+      NextAuth-issued JWT, 401 without (the playbook's literal exit test). **Deployed
+      (to production, not staging — see Deviations) and the 401 half is proven live.
+      The 200-with-a-real-token half needs `NEXTAUTH_SECRET` + `DATABASE_URL` set by
+      Davin first, then his own independent verification — not yet done.**
 - [x] F6 and F7 both resolved in `DECISION-LOG.md`, Davin's sign-off quoted for both.
-- [ ] `operation-service/railway.toml` (or current equivalent) committed; secret matrix
+- [x] `operation-service/railway.toml` (or current equivalent) committed; secret matrix
       updated; `migration-stack-analysis.md` gets a new `operation-service/` entry.
-- [ ] NextAuth on Vercel re-verified unregressed (a real login still works end-to-end)
-      after any `auth-options.ts` change, if step 2 required one.
+- [x] NextAuth on Vercel re-verified unregressed — **N/A, trivially satisfied**: F7
+      resolved to Path B, `auth-options.ts` was never touched this session.
 
 ## Rollback
 
@@ -274,6 +296,44 @@ construction — additive-only per the Rules above.
   `production`). Not resolved yet — proceeding with Steps 1-4 (no Railway dependency) while
   this is open; Steps 5-6 pause for Davin's direction on the actual deploy target before any
   Railway service is created.
+- **Steps 5-6, 2026-07-21:** Davin's resolution to the above — deploy into
+  `trading-alerts`/`production` as a new, additive-only service, same discipline as
+  everywhere else this session (nothing depends on it yet, NextAuth on Vercel untouched).
+  Created via `railway add --database redis` (Redis) + `railway add --service
+operation-service` + `railway up`.
+  - **Build bug found and fixed live:** first Railway deploy failed —
+    `Module '"@prisma/client"' has no exported member 'PrismaClient'`. Root cause: the
+    `build` script (`nest build`) never ran `prisma generate`; it only "worked" in local
+    testing because an earlier manual `npx prisma generate` left `node_modules/.prisma`
+    populated, masking the gap. Fixed with a `postinstall: "prisma generate"` script
+    (matches the root app's own convention), re-verified against a genuinely clean
+    `rm -rf node_modules/.prisma dist && npm ci && npm run build && npm test` before
+    redeploying. Second deploy succeeded (instance RUNNING).
+  - **`DATABASE_URL` reference wrong, found live, not anticipated in the PRE-DRAFT or
+    CONFIRM:** set as `${{pgbouncer.DATABASE_URL}}`, assuming pgbouncer exposes that key
+    the way a Railway-managed database template would. It doesn't — `pgbouncer` is a
+    bespoke deploy (Session 1-3b), confirmed via `railway variable list --json` piped
+    through a filter that printed key NAMES only (never values, per the standing secret-
+    handling constraint) — no `DATABASE_URL`-shaped key exists on it. The `Postgres`
+    service itself exposes `CORE_APP_DB_PASSWORD` (paired with `MONEY_SVC_DB_PASSWORD`
+    for the future money-service — Session 1-3b's per-service credential pattern),
+    intended to be combined with `pgbouncer.railway.internal` into the real connection
+    string. Left as Davin's action (`docs/secret-matrix.md` updated) rather than guessed
+    at or constructed blind — `/health`'s DB sub-check correctly reports `degraded` in
+    the meantime (fails closed/visibly, doesn't crash or lie about connectivity).
+    `REDIS_URL` (`${{Redis.REDIS_URL}}`) needed no such fix — Railway's own redis
+    template does natively expose that key.
+  - `railway variable delete` (attempting to clean up the wrong `DATABASE_URL` reference
+    before Davin sets the real one) was blocked by this environment's auto-mode
+    classifier — respected, not worked around. The stale reference is harmless (resolves
+    to empty, `/health` reports it honestly) and gets overwritten once Davin sets the
+    correct value.
+  - Live verification: `https://operation-service-production.up.railway.app/health-auth`
+    → 401 with no token (`"Missing bearer token"`) and 401 with a garbage token
+    (`"Auth is not configured"` — correct fail-closed behavior pending the secret grant).
+    The real-token 200 case needs `NEXTAUTH_SECRET` + the corrected `DATABASE_URL` first,
+    then Davin's own independent check (a live session token is exactly the kind of
+    bearer credential Claude does not handle, same reasoning as the raw secret itself).
 
 ## Next-session handoff
 
