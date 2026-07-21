@@ -896,6 +896,83 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
   in-bounds technical calls under the Autonomy & Deviation clause, not new
   material decisions).
 
+## F31 — SVC_TOKEN Verification
+
+- Status: RESOLVED
+- Session: 3-5 · Date: 2026-07-21
+- Decision: Descope the `SVC_TOKEN` leg for now. Keep this session as a pure VERIFY-RETIRE for the SSR and browser paths.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F32 — Missing Environment Variables
+
+- Status: RESOLVED
+- Session: 3-5 · Date: 2026-07-21
+- Decision: Davin will set `TWO_FACTOR_ENCRYPTION_KEY` and `NEXTAUTH_URL` manually in Railway before execution. Tests should run against the real configuration.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F33 — Vercel Production Check
+
+- Status: RESOLVED
+- Session: 3-5 · Date: 2026-07-21
+- Decision: Davin will perform the manual check on the live Vercel production site and confirm to Claude Code that there are no regressions, as Claude Code has no Vercel access.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F31/F32/F33 — execution evidence (Session 3-5) — CLOSES Phase 3 (pending F33 report-back)
+
+- Status: RESOLVED (execution evidence for the decisions above)
+- Session: 3-5 · Date: 2026-07-21
+- F31: SVC_TOKEN leg genuinely not built or verified this session, per Davin's
+  descope decision — repo-wide `.ts`/`.tsx` grep at CONFIRM re-confirmed zero
+  implementation exists anywhere (planning docs only), consistent with the
+  descope.
+- F32: `railway variables --service operation-service --environment production
+--json` confirmed both `TWO_FACTOR_ENCRYPTION_KEY` (44 chars) and
+  `NEXTAUTH_URL` (→ the real production Vercel domain) are now set, per Davin's
+  own action. Tests this session ran against the real local configuration
+  pattern (own dev-only secret, not the production one — see the order's
+  Deviations #2 for why touching the real secret wasn't necessary to prove the
+  mechanism).
+- F33: Davin's own manual Vercel production check is **still outstanding** as of
+  this session's close — not yet reported back. This session's own regression
+  evidence (real browser session against the local dev server: `/login` 200,
+  `/api/auth/session` → `{}`, `/dashboard` → redirect) is local-only, same
+  Vercel-access gap as every prior 3-x session (CLAUDE.md Waiting-on #4).
+  Carried forward as a CLAUDE.md Waiting-on item until Davin reports back.
+- **Full three-path verification, SSR + browser legs (SVC_TOKEN descoped by
+  F31):** real HTTP against live local servers proved the SSR leg (Next.js
+  route handler forwarding the session cookie as Bearer to operation-service's
+  `JwtAuthGuard`) — 200 valid / 401 missing / 401 garbage / 401 expired
+  (synthetic expired token, since the live access token's actual TTL is 30
+  days, not short-lived — see finding below). A **real browser session** (new
+  this session — no prior session used an actual browser, only curl/Node
+  fetch) proved the browser leg: real cookie-jar auto-attachment on a
+  same-origin `fetch()`, `httpOnly` cookie invisibility to page JS confirmed,
+  200 while logged in, 401 after logout. Refresh rotation, old-token rejection
+  after rotation, chain integrity across a second rotation, and revocation via
+  logout (subsequent refresh 401s) all proven directly against
+  operation-service.
+- **New finding, flagged not fixed (out of VERIFY-RETIRE scope):**
+  `AuthService.issueSession()`/`.refresh()` mint every access token via
+  `encodeNextAuthToken(...)` with no `maxAgeSeconds` override, defaulting to
+  the full 30-day `SESSION_MAX_AGE_SECONDS` — not the plan §5's originally
+  intended "~15 min short-lived access token." An unstated side-effect of F24's
+  "match NextAuth's cookie for compatibility" decision, never previously
+  flagged as a divergence from that design point. Not changed this session
+  (auth-semantics change, out of VERIFY-RETIRE scope) — flagged for Davin/the
+  Advisor to decide whether a real short-lived access token is still wanted.
+- Evidence: full transcript in
+  `3-5-three-path-verification.migration-order.md`'s Deviations section. Root
+  `npm run test:ci` — 117/117 suites, 2082/2082 tests (exact parity with
+  Session 3-4's baseline); `type-check`/`next lint`/`npm run build` all clean.
+  `operation-service`: 7/7 suites, 56/56 tests; build clean.
+- Approved by: Davin (F31/F32/F33 decisions themselves, quoted above); the
+  access-token-TTL finding and the local-testing approach are technical,
+  in-bounds observations under the Autonomy & Deviation clause, not new
+  material decisions.
+
 ## F28 — Staging for Email Flows
 
 - Status: RESOLVED

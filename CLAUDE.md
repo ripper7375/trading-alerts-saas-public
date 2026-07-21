@@ -11,85 +11,77 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Session 3-4 CLOSED, executed end-to-end — 2026-07-21. Phase 3
-  underway: F28/F29/F30 (this session) all resolved. operation-service now also
-  exposes the 2FA lifecycle (`setup`/`verify-setup`/`verify`/`backup-codes`/
-  `disable`) and the secondary email flows (`forgot-password`/`reset-password`/
-  `verify-email`/`resend-verification`), ported from `lib/auth/two-factor.ts` and
-  `lib/email/email.ts` (both ported in full). 9 new parallel Next.js `token-*` proxy
-  routes call them, following Session 3-3's established pattern exactly — all
-  additive, all verified via a real local walkthrough (real Resend delivery to the
-  account owner's own inbox, not simulated), deployed to production. **Still
-  bridge-first**: none of the live frontend forms/pages call any of this session's
-  new routes yet — same posture as every 3-x session so far. Phase 1 still formally
-  NOT exit-clean (F18 the sole blocker, unchanged). Phase 0 still formally open
-  (CC-A gap unchanged, same local-testing workaround as before, `LESSONS-LEARNED.md`
-  L31/L32).
-- **Current order:** `docs/migration-orders/3-4-cors-secondary-flows.migration-order.md`
+- **Current:** Session 3-5 CLOSED, executed end-to-end — 2026-07-21. **Phase 3 is
+  functionally done**: the hybrid-auth bridge is proven end-to-end via SSR path
+  and browser path (SVC_TOKEN/service-to-service leg formally descoped, F31,
+  Davin), refresh rotation, revocation, and expiry-rejection all proven, and
+  every auth flag (F6, F7, F23–F30, F31–F33) is RESOLVED in the Decision Log.
+  **One item keeps Phase 3 from being marked fully exit-clean:** F33's Vercel
+  production regression check is Davin's own manual action, per his decision —
+  not yet reported back as of this close (this session's own regression evidence
+  is local-only, real-browser-verified, same Waiting-on #4 gap as always). Phase
+  1 still formally NOT exit-clean (F18 the sole blocker, unchanged). Phase 0
+  still formally open (CC-A gap unchanged, same local-testing workaround as
+  before, `LESSONS-LEARNED.md` L31/L32/L33).
+- **Current order:**
+  `docs/migration-orders/3-5-three-path-verification.migration-order.md`
   (CONFIRMED and EXECUTED end-to-end — all entry criteria and "done when" items
-  checked off).
-- **Order status:** CLOSED, all-green. **What shipped:**
-  - **Real schema gap found and fixed:** `operation-service/prisma/schema.prisma`
-    (the hand-maintained, generate-only narrow mirror of
-    `prisma/non-market-data/schema.prisma` — NOT the migration source of truth)
-    was missing `resetToken`/`resetTokenExpiry`/`twoFactorSecret`/
-    `twoFactorBackupCodes`/`twoFactorVerifiedAt` on `User`, and had no
-    `SecurityAlert` model at all — would have been a hard compile/runtime failure
-    the moment this session's code touched those fields. Extended it (narrow
-    subset, same convention as the existing `User`/`RefreshToken` mirror),
-    including `SecurityAlert`'s load-bearing `@@map("security_alerts")`.
-  - **`lib/email/email.ts` and `lib/auth/two-factor.ts` both ported in full**
-    (not curated subsets) into `operation-service/src/email/email.util.ts` and
-    `.../two-factor/two-factor.util.ts` — matches F29's "self-contained" rationale
-    and the same full-port discipline `errors.ts` used in Session 3-2.
-    `lib/security/device-detection.ts` ported as a narrow 2-function subset
-    (`getGeoLocation`/`formatLocation` only — the rest is a different, out-of-
-    scope feature).
-  - **2FA endpoint errors use plain NestJS built-in exceptions**, not the ported
-    `AuthError` hierarchy — the 5 source Next.js 2FA routes never had a shared
-    error-code taxonomy either, so there was no existing contract to preserve.
-    The 4 email-flow endpoints DO reuse `AuthError`/`InvalidTokenError`/
-    `ExpiredTokenError`/`RateLimitError` (extended to carry `retryAfter` in its
-    JSON body, in the filter only — `errors.ts` itself untouched).
-  - **F30 (CORS) confirmed a genuine non-step** — `main.ts` untouched, every new
-    route calls operation-service server-side only, same as Session 3-3.
-  - **New deploy-infrastructure finding, cost real time (~30+ min, 4 attempts):**
-    `railway up` invoked from inside `operation-service/` uploaded an identical
-    ~433MB archive regardless of `.gitignore`, a new `.railwayignore`, or
-    physically deleting local `node_modules`/`dist` — the upload was never scoped
-    to that directory in the first place (almost certainly the whole monorepo).
-    Fixed with `railway up ./operation-service --path-as-root --service
-operation-service --environment production --ci --json` from the repo root.
-    New `LESSONS-LEARNED.md` L33.
-  - **Production env-var gap, Davin's explicit "deploy now, fix later" call:**
-    `RESEND_API_KEY` set on Railway (known value, same shared account already
-    used locally). `NEXTAUTH_URL` and `TWO_FACTOR_ENCRYPTION_KEY` still NOT set —
-    asked Davin directly rather than guessing; safe to defer since nothing routes
-    real traffic through these new endpoints yet (see Waiting-on #21/#22 below).
-  - **Full local walkthrough, zero production writes:** register → verify-email
-    (real welcome email delivered) → forgot-password → reset-password → login →
-    full 2FA lifecycle (setup → verify-setup with a real TOTP code → re-login
-    gated by `twoFactorRequired` → `/auth/2fa/verify` with the temp token →
-    sentinel-completed login → backup-codes status → disable), both 2FA
-    security-alert emails delivered for real. Verified through the real Next.js
-    dev server too (not just operation-service directly): `token-login` sets
-    cookies, `token-2fa-status` forwards the cookie as a Bearer token correctly,
-    an absent cookie 401s. Regression-checked unaffected: `/login` (200),
-    NextAuth's own `/api/auth/session` (`{}`), `/dashboard` 307-redirect.
-  - 18 new tests (2 new suites: `token-email-flows`/`token-2fa-flows` on the
-    Next.js side; 2 more on operation-service's own side), full suite 117/117
-    suites green (2082/2082 tests, up from 115/2064 — exact parity plus new
-    coverage). Root `npm run type-check`, `next lint --max-warnings 0`, and
-    `npm run build` all clean.
-  - **Post-deploy local-only hiccup, resolved, new lesson recorded:** restoring
-    `operation-service/node_modules` locally after the deploy hit 3 different-
-    looking failures in a row, all from the same root cause — Git Bash's
-    `rm -rf` silently leaving partial directories behind on this Windows
-    machine, corrupting the next `npm ci`. Fixed (killed the actual lingering
-    process via `tasklist`, not just the harness's stop confirmation, then
-    `npm rebuild`); re-confirmed via a genuinely clean `npm test`
-    (7/7, 56/56) and `npm run build`. **Never affected production** — deployed
-    and independently verified healthy throughout. New `LESSONS-LEARNED.md` L34.
+  checked off, one item explicitly left unchecked and explained: the
+  SVC_TOKEN leg, by design per F31).
+- **Order status:** CLOSED, all-green. **What shipped (pure verification — zero
+  code/schema/route/infra changes, matching the VERIFY-RETIRE variant):**
+  - **SSR path proven** via real HTTP against live local servers (not mocked
+    route handlers): `POST /api/auth/token-login` → `GET
+/api/auth/token-2fa-status` (Next.js route handler forwarding the session
+    cookie as `Authorization: Bearer` to operation-service's
+    `JwtAuthGuard`-protected `/auth/2fa/status`) — 200 valid / 401 missing / 401
+    garbage / 401 expired. Cross-checked directly against operation-service's
+    own `/auth/me`, bypassing the Next.js proxy.
+  - **Browser path proven via a real browser session — genuinely new this
+    session** (every prior session only used curl/Node fetch for this bridge).
+    The Claude Browser tool drove the live local dev server and ran `fetch()`
+    from inside the real page: `document.cookie` after login showed only the
+    HMR-refresh cookie (confirms the session/refresh cookies really are
+    `httpOnly`, invisible to page JS — a property no Node script can observe),
+    a same-origin `fetch()` with no manually-attached header succeeded purely
+    because the real browser's own cookie jar auto-attached the httpOnly
+    cookie, and 401'd correctly after logout. Also regression-spot-checked via
+    the same real browser: `/login` 200, NextAuth's own `/api/auth/session` →
+    `{}`, `/dashboard` → redirect — all unaffected, this time via a genuine
+    browser rather than curl.
+  - **Refresh + revocation + expiry all proven:** rotation issues a genuinely
+    new access+refresh pair; the pre-rotation refresh token is rejected
+    (401) if reused; a second rotation of the new token still works (chain
+    integrity); logout revokes the refresh token, confirmed via a subsequent
+    401'd refresh attempt. Expiry: since the live access token's actual TTL
+    turned out to be 30 days (see finding below), a synthetically-minted
+    expired token (same encode helper, `maxAgeSeconds: -60`) was rejected 401
+    both directly against operation-service and via the Next.js SSR proxy.
+  - **SVC_TOKEN leg: formally and deliberately not verified** (F31, Davin) — a
+    repo-wide grep re-confirmed zero real implementation exists anywhere in the
+    codebase, consistent with the descope.
+  - **New finding, flagged not fixed (VERIFY-RETIRE scope — no auth-semantics
+    changes made):** `AuthService.issueSession()`/`.refresh()` mint every
+    access token via `encodeNextAuthToken(...)` with no `maxAgeSeconds`
+    override, so it defaults to the full 30-day `SESSION_MAX_AGE_SECONDS` —
+    not the plan's originally-intended "~15 min short-lived access token." An
+    unstated side-effect of F24's "match NextAuth's cookie for compatibility"
+    decision, never previously called out as a divergence. Flagged for
+    Davin/the Advisor to decide on in a future session — not changed here.
+  - **Local walkthrough followed the L31/L32/L33 recipe exactly, zero new
+    incidents** — reused the SSL-enabled Postgres volume persisted from
+    Session 3-3/3-4 (remapped to port 5433 via a scratch
+    `docker-compose.override.yml`, deleted after), the `.env.local`
+    rename-restore dance (checksum-verified identical before/after), and
+    confirmed both dev servers' actual listening PIDs via `netstat`/`taskkill`
+    before stopping the local Postgres/Redis containers (L11/L14). All scratch
+    files (override YAML, operation-service `.env`, verification scripts)
+    were deleted before close — nothing new committed.
+  - **Full regression suite, zero drift:** root `npm run test:ci` — 117/117
+    suites, 2082/2082 tests, exact parity with Session 3-4's baseline (this
+    was pure verification — no new committed tests). `type-check`, `next
+lint`, `npm run build` all clean. `operation-service`: 7/7 suites, 56/56
+    tests; build clean.
 - **Waiting on:** (1, non-blocking, unchanged) `deploy.yml` still fails on every push
   to `main` at the GitHub workflow-file level (0s runtime) — known NOT to block real
   Vercel deploys, just dead/broken CI hygiene, not urgent. (2, RESOLVED Session 2-3,
@@ -97,63 +89,67 @@ operation-service --environment production --ci --json` from the repo root.
   non-blocking, unchanged) F18's RPO gap — Railway automated-backup cadence still
   unverified via CLI (dashboard-only). (4, unchanged, carried over) Davin to grant
   Vercel dashboard/preview-branch access — still the reason "confirm production
-  regression-free" claims in every 3-x session have only ever been checked via the
-  local dev server, never the real deployed Vercel app. (5, unchanged, carried over)
-  A human with delete permission to remove 5 remote stale branches (`HTTP 403` on
-  `git push --delete` from this environment's credential). (6, unchanged, carried
-  over) `railway`'s `tcp-proxy`/`private-network` CLI commands still not verified —
-  low priority. (11, unchanged, carried over as F21) The 24h Account-Deletion GDPR
-  gap — requires Davin's product decision, scheduled for a future session. (12,
+  regression-free" claims in every 3-x session (now also 3-5's real-browser check)
+  have only ever been checked via the local dev server, never the real deployed
+  Vercel app. (5, unchanged, carried over) A human with delete permission to
+  remove 5 remote stale branches (`HTTP 403` on `git push --delete` from this
+  environment's credential). (6, unchanged, carried over) `railway`'s
+  `tcp-proxy`/`private-network` CLI commands still not verified — low priority.
+  (11, unchanged, carried over as F21) The 24h Account-Deletion GDPR gap —
+  requires Davin's product decision, scheduled for a future session. (12,
   unchanged, carried over) The two split schema files still share ONE migration
   history and ONE Postgres database — deliberate, Davin-approved (F20, L24). (17,
   unchanged, non-blocking) CC-A's dedicated staging stack still doesn't exist
-  (Phase 0 gap) — repeatable local-testing workaround exists (L31/L32/L33), so not
-  blocking individual sessions; the underlying gap is still open. (18, unchanged,
-  non-blocking until real traffic is pointed at `/auth/register`)
-  `operation-service`'s `/auth/register` does not send verification emails (F27,
-  still deferred, unchanged). (19, unchanged, non-blocking) `docker-compose.dev.yml`
-  doesn't include `operation-service` — every session needing it locally must set it
-  up by hand per L31/L32. (20, unchanged, non-blocking, environment-specific) this
-  dev machine's native `postgres.exe` still shadows Docker's 5432 mapping — needs a
-  remapped host port for local Postgres work (L32). **(21, NEW, non-blocking until a
-  real user hits these paths)** `operation-service`'s `TWO_FACTOR_ENCRYPTION_KEY` is
-  not set on Railway — the new 2FA `setup`/`verify-setup`/`disable` endpoints 500
-  with a clear "not configured" error until it's set to the EXACT SAME value
-  Vercel's production env already uses (must byte-for-byte match — same encrypted
-  `twoFactorSecret` column both sides read/write). Davin's call to defer, Session
-  3-4. **(22, NEW, non-blocking until this service sends a real production email)**
-  `operation-service`'s `NEXTAUTH_URL` is not set on Railway — any email it sends
-  embeds `http://localhost:3000` links until set to the real production domain.
-  Davin's call to defer, Session 3-4. **(23, NEW, low priority)** any future
-  operation-service Railway deploy must use `railway up ./operation-service
---path-as-root --service operation-service --environment production --ci --json`
-  from the repo root — `railway up` invoked from inside the subdirectory silently
-  uploads far more than that directory regardless of `.gitignore`/`.railwayignore`
-  (L33).
-- **Last session did:** Session 3-4 ("CORS + secondary flows") — closed 2026-07-21,
-  all-green, executed end-to-end. Ported the full 2FA lifecycle and the 4 secondary
-  email flows into operation-service (both `lib/email/email.ts` and
-  `lib/auth/two-factor.ts` in full), found and fixed a real gap in
-  operation-service's own hand-maintained Prisma schema mirror, wired 9 new parallel
-  Next.js proxy routes, proved the whole thing end-to-end via a local walkthrough
-  with genuine Resend email delivery (not simulated), deployed to production after
-  working through a genuinely new `railway up` archive-scope footgun (L33), and
-  asked Davin directly about 2 missing production secrets rather than guessing
-  either value (he chose to defer both). 18 new tests, full suite + type-check +
-  lint + build all green.
-- **Next session:** Session 3-5 ("Three-path verification / Phase 3 exit") per the
-  playbook — **PRE-DRAFTed** at this close:
-  `docs/migration-orders/3-5-three-path-verification.migration-order.md` — needs the
-  Advisor to produce the DRAFT, then Davin's APPROVAL. Flags for the Advisor: (a) a
-  repo-wide grep found `SVC_TOKEN` (the playbook's "service-to-service" e2e leg)
-  only in planning docs, never actually implemented in any `.ts` file — this session
-  may need a small BUILD sub-step before it can verify anything on that leg, or that
-  leg needs explicit descoping with Davin's sign-off; (b) the "confirm NextAuth
-  production regression-free" done-when item hits the same Vercel-access gap
-  (Waiting-on #4) every prior 3-x session has hit — only ever checkable locally in
-  this environment unless that access gap closes first; (c) if the e2e needs the 2FA
-  or email-flow endpoints working for real, Waiting-on #21/#22's missing secrets
-  need to be set first.
+  (Phase 0 gap) — repeatable local-testing workaround exists (L31/L32/L33), now
+  exercised for a 3rd time (Session 3-5) with zero new incidents; the underlying
+  gap is still open. (18, unchanged, non-blocking until real traffic is pointed
+  at `/auth/register`) `operation-service`'s `/auth/register` does not send
+  verification emails (F27, still deferred, unchanged). (19, unchanged,
+  non-blocking) `docker-compose.dev.yml` doesn't include `operation-service` —
+  every session needing it locally must set it up by hand per L31/L32. (20,
+  unchanged, non-blocking, environment-specific) this dev machine's native
+  `postgres.exe` still shadows Docker's 5432 mapping — needs a remapped host
+  port for local Postgres work (L32). **(21, RESOLVED Session 3-5)**
+  `operation-service`'s `TWO_FACTOR_ENCRYPTION_KEY` is now set on Railway
+  (Davin's action, confirmed via `railway variables` at this session's CONFIRM —
+  44 chars; byte-for-byte match against Vercel's own value not independently
+  verifiable from this environment, trusted as reported). **(22, RESOLVED
+  Session 3-5)** `operation-service`'s `NEXTAUTH_URL` is now set on Railway to
+  the real production Vercel domain (same confirmation). (23, unchanged, low
+  priority) any future operation-service Railway deploy must use `railway up
+./operation-service --path-as-root --service operation-service --environment
+  production --ci --json` from the repo root (L33). **(24, NEW, non-blocking,
+  Davin's own action item)** F33's Vercel production regression check is still
+  outstanding — Davin's explicit choice to do this manually and confirm back to
+  Claude Code (DECISION-LOG.md); Phase 3's "NextAuth still functional on
+  Vercel" exit criterion stays open until he reports back. **(25, NEW,
+  non-blocking, Davin decision needed before Session 4A-1 can be APPROVED)**
+  F15 (Redis topology for money-service) and F16 (public URL scheme + `/v1`
+  versioning) both need Davin's decision — flagged in the 4A-1 PRE-DRAFT, a
+  shared Railway Redis instance already exists and matches F15's plan-recommended
+  default if Davin confirms reusing it.
+- **Last session did:** Session 3-5 ("Three-path verification / Phase 3 exit") —
+  closed 2026-07-21, all-green, executed end-to-end as a pure VERIFY-RETIRE
+  session (zero code changes). Proved the SSR and browser auth-bridge paths
+  end-to-end (SVC_TOKEN leg formally descoped per F31), proved refresh rotation/
+  revocation/expiry-rejection, found and flagged (not fixed) that the live
+  access token is actually 30 days not the plan's intended ~15 minutes,
+  confirmed Davin's F32 Railway env-var fixes are live, and closed out every
+  remaining Phase 3 flag in the Decision Log. Full regression suite green, zero
+  drift from Session 3-4's baseline.
+- **Next session:** Session 4A-1 ("money-service: skeleton + deploy") per the
+  playbook — the start of Phase 4A. **PRE-DRAFTed** at this close:
+  `docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md`
+  — an INFRA-variant session (no VERIFY-RETIRE fast-path), needs the Advisor to
+  produce the DRAFT, then Davin's APPROVAL. Flags for the Advisor: (a) F15/F16
+  both need Davin's decision before APPROVAL — see Waiting-on #25; (b) the
+  `money_svc`/`core_app` Postgres roles and PgBouncer already exist and are
+  credentialed (Session 1-3/1-3b) — this is a head start, not a from-scratch
+  step, re-verify rather than rebuild; (c) a shared Railway Redis instance
+  already exists (used today by operation-service) and matches F15's own
+  plan-recommended default; (d) `SVC_TOKEN` may finally need to be built for
+  real in this session if core↔money internal calls are in scope — Session 3-5
+  confirmed zero implementation exists anywhere yet.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -185,7 +181,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   precedent, using real Resend API keys · **F29 fully RESOLVED (Session 3-4)** —
   port `lib/email/email.ts` in full into operation-service · **F30 fully RESOLVED
   (Session 3-4)** — CORS confirmed unnecessary, server-side proxying continues ·
-  F8–F16 OPEN (register: plan §11 · resolutions:
+  **F31 fully RESOLVED (Session 3-5)** — SVC_TOKEN leg descoped, pure VERIFY-RETIRE
+  for SSR + browser legs · **F32 fully RESOLVED (Session 3-5)** — Davin set both
+  missing Railway env vars, confirmed live at CONFIRM · **F33 RESOLVED-as-decided
+  (Session 3-5)** — Davin's own manual Vercel check, decision made but the check
+  itself still outstanding (Waiting-on #24) ·
+  F8–F16 OPEN (F15/F16 due next session, 4A-1 · register: plan §11 · resolutions:
   `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
