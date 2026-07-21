@@ -334,6 +334,15 @@ operation-service` + `railway up`.
     The real-token 200 case needs `NEXTAUTH_SECRET` + the corrected `DATABASE_URL` first,
     then Davin's own independent check (a live session token is exactly the kind of
     bearer credential Claude does not handle, same reasoning as the raw secret itself).
+- **Session close, 2026-07-21:** Closed per Davin's explicit instruction with the two
+  Davin-only actions ((15) `NEXTAUTH_SECRET`, (16) `DATABASE_URL`) still outstanding —
+  not a normal EXECUTED close. Non-negotiable 2 ("never end mid-cutover or half-deployed")
+  is satisfied in spirit, not letter: `operation-service` IS deployed, but every route
+  that needs the missing secrets fails closed and visibly (`/health-auth` → 401,
+  `/health`'s DB check → `degraded`), not silently or dangerously — this is a genuinely
+  safe, honestly-incomplete state to pause in, not a broken one. Resume mechanics are in
+  `CLAUDE.md`'s Current state. Order status stays `CONFIRMED` (execution in progress),
+  not `EXECUTED` — the two remaining Done-when items are real, not paperwork.
 
 ## Next-session handoff
 

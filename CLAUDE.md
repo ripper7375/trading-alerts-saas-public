@@ -101,25 +101,31 @@
   raising with the Advisor whether Session 3-1's playbook entry should be corrected
   to not assume a staging environment exists, or whether CC-A should be pulled
   forward.
-- **Last session did:** Session 3-1, IN PROGRESS (not session-closed — resume same
-  session once Davin completes the two blocking actions above, then verify the
-  real-token 200 case and do a full close). F6/F7 resolved with round-trip proof;
-  `operation-service` scaffolded, `JwtAuthGuard` implemented (7/7 unit tests),
-  deployed to Railway production with a real build bug found and fixed live
-  (missing `postinstall: prisma generate`, `LESSONS-LEARNED.md` L29). See "Current"
-  above for the full breakdown. New `LESSONS-LEARNED.md` entries L28 (piping a
-  command whose exit code you check, e.g. `npm install | tail`, hides real failures
-  without `pipefail`) and L29 (a leftover manually-generated Prisma client masks a
-  missing `postinstall` wiring until a genuinely clean build exposes it).
-- **Next session:** N/A — Session 3-1 is not done. Resume it directly once Davin:
-  (1) grants `NEXTAUTH_SECRET` to `operation-service`, (2) sets a correct
-  `DATABASE_URL` on the same service. Then: verify `/health` reports the database
-  `up`; verify `/health-auth` returns 200 for a real token (Davin's own independent
-  check, from his own live login — Claude does not handle live session tokens);
-  finalize the order's Done-when checklist; THEN do the normal session close
-  (harvest lessons already captured above; PRE-DRAFT Session 3-2, "Token endpoints",
-  per the playbook — depends on this session's `operation-service` skeleton and
-  resolved F6/F7, both of which already exist).
+- **Last session did:** Session 3-1 — closed 2026-07-21 per Davin's explicit
+  instruction to wrap up, **with the two blocking actions below still outstanding**
+  (not a normal all-green close; see the order's final Deviations entry for the
+  explicit reasoning on why this is a safe state to pause in, not a broken one).
+  F6/F7 resolved with round-trip proof; `operation-service` scaffolded, `JwtAuthGuard`
+  implemented (7/7 unit tests), deployed to Railway production with a real build bug
+  found and fixed live (missing `postinstall: prisma generate`, `LESSONS-LEARNED.md`
+  L29). See "Current" above for the full breakdown. New `LESSONS-LEARNED.md` entries
+  L28 (piping a command whose exit code you check, e.g. `npm install | tail`, hides
+  real failures without `pipefail`) and L29 (a leftover manually-generated Prisma
+  client masks a missing `postinstall` wiring until a genuinely clean build exposes
+  it).
+- **Next session:** Session 3-2 ("Token endpoints") per the playbook — **PRE-DRAFTed**
+  at this close: `docs/migration-orders/3-2-token-endpoints.migration-order.md` (PORT
+  variant, low creativity dial) — needs the Advisor to produce the DRAFT, then Davin's
+  APPROVAL. Its own entry criteria lead with re-verifying Session 3-1's two blocking
+  actions are actually done before CONFIRM — this session's refresh-token persistence
+  needs a working DB connection, not just a deployed-but-degraded service. It also
+  flags two things found while drafting: (1) the `RefreshToken` Prisma model is
+  currently just a bare stub (`id`/`token`/`userId`/`expiresAt`, no revocation, stores
+  the raw token) — not sufficient for "hashed, revocable" per the plan, needs real
+  schema work before endpoint code; (2) whether `/auth/login` should issue the same
+  NextAuth-JWE format `JwtAuthGuard` already verifies, or a new NestJS-native token
+  format (the plan's Pattern 1 end-state implies the latter eventually) — flagged for
+  Davin/Advisor, not decided.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
