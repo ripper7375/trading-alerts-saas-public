@@ -895,3 +895,81 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
   live; the cookie-name correction and local-testing approach are both small,
   in-bounds technical calls under the Autonomy & Deviation clause, not new
   material decisions).
+
+## F28 — Staging for Email Flows
+
+- Status: RESOLVED
+- Session: 3-4 · Date: 2026-07-21
+- Decision: Continue the F25 precedent: test locally using local Resend API keys, then deploy directly to production. The CC-A staging gap remains deferred.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F29 — Porting Email Logic
+
+- Status: RESOLVED
+- Session: 3-4 · Date: 2026-07-21
+- Decision: Port the Resend email sending logic (`lib/email/email.ts`) directly into `operation-service`. This keeps the service self-contained.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F30 — CORS Necessity
+
+- Status: RESOLVED
+- Session: 3-4 · Date: 2026-07-21
+- Decision: Skip CORS config if we continue the pattern of proxying requests through Next.js server-side routes, meaning the browser never talks directly to NestJS.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F28/F29/F30 — execution evidence (Session 3-4) — CLOSES the session
+
+- Status: RESOLVED (execution evidence for the decisions above)
+- Session: 3-4 · Date: 2026-07-21
+- F30: confirmed a genuine non-step — `operation-service/src/main.ts`'s CORS config
+  untouched; every new route this session calls operation-service server-side only.
+- F29: `lib/email/email.ts` ported in full (not a curated subset) into
+  `operation-service/src/email/email.util.ts`; `lib/auth/two-factor.ts` also ported in
+  full into `two-factor.util.ts`; `lib/security/device-detection.ts` ported as a narrow
+  2-function subset (`getGeoLocation`/`formatLocation` only — the rest belongs to a
+  different, out-of-scope feature). All 5 real 2FA endpoints
+  (setup/verify-setup/verify/backup-codes/disable) and 4 email-flow endpoints
+  (forgot-password/reset-password/verify-email/resend-verification) built as new
+  operation-service endpoints, plus 9 parallel Next.js `token-*` proxy routes calling
+  them (bridge-first, additive-only — none wired into any live frontend form).
+- F28: tested locally against a real Resend API key (the same one `.env.local` already
+  holds) and a real recipient (the account owner's own email — the only address
+  Resend's sandbox mode accepts without a verified domain), proving genuine end-to-end
+  delivery, not just that the API was reached. Full lifecycle walkthrough: register →
+  verify-email (welcome email delivered) → forgot-password → reset-password → login →
+  full 2FA enable/verify/backup-codes/disable cycle (both security-alert emails
+  delivered) — all against a local Postgres, zero production writes. Then deployed
+  directly to production per Davin's call, exactly as F25 established the precedent.
+- **Real gap found and fixed:** `operation-service/prisma/schema.prisma` (hand-copied,
+  generate-only narrow mirror, Session 3-2's established pattern) was missing several
+  `User` fields and the entire `SecurityAlert` model this session's code needed —
+  extended following the same narrow-subset convention, including `SecurityAlert`'s
+  load-bearing `@@map("security_alerts")`.
+- **New deploy-infrastructure finding:** `railway up` invoked from inside
+  `operation-service/` uploaded an identical ~433MB archive across 4 attempts
+  regardless of `.gitignore`, a new `.railwayignore`, or physically deleting local
+  `node_modules`/`dist` — proving the upload was never scoped to that directory in the
+  first place (almost certainly the whole monorepo). Fixed with `railway up
+./operation-service --path-as-root --service operation-service --environment
+  production --ci --json` run from the repo root; deploy then succeeded in ~25s.
+  `LESSONS-LEARNED.md` updated.
+- **Production env-var gap, Davin's explicit call:** `RESEND_API_KEY` set on Railway by
+  the Executor (known value, same shared account already used locally). `NEXTAUTH_URL`
+  and `TWO_FACTOR_ENCRYPTION_KEY` still not set — Davin chose "deploy now, fix later"
+  for both live, since nothing routes real user traffic through these new endpoints
+  yet; carried forward as a new CLAUDE.md Waiting-on item.
+- Evidence: full local walkthrough (see the order's Deviations #15 for the complete
+  sequence); production verification — `/health` 200 `healthy`, all 9 new
+  operation-service routes spot-checked live (non-404, correct auth/validation status
+  codes) immediately after deploy. Test counts: operation-service 7/7 suites, 56/56
+  tests; root 117/117 suites, 2082/2082 tests (up from Session 3-3's 115/115, 2064/2064
+  — exact parity plus 18 new tests); root `type-check`/`next lint --max-warnings
+0`/`npm run build` all clean. Full detail in
+  `3-4-cors-secondary-flows.migration-order.md`'s Deviations section.
+- Approved by: Davin (live, for the production env-var gap's "deploy now, fix later"
+  call — both questions asked explicitly rather than guessed; the schema-gap fix and
+  the `railway up` deploy-mechanism fix are both technical, in-bounds corrections under
+  the Autonomy & Deviation clause, not new material decisions).

@@ -1481,6 +1481,78 @@ Modified:
 
 </details>
 
+<details>
+<summary><code>operation-service/</code> + FRONTEND — Session 3-4 (2FA, forgot/reset-password, verify/resend-email ported; CORS confirmed a non-step, F30)</summary>
+
+`lib/auth/two-factor.ts`, `lib/email/email.ts` (full port, F29), and the
+`app/api/auth/{forgot-password,reset-password,verify-email,resend-verification}/route.ts`
+
+- `app/api/user/2fa/{setup,verify-setup,verify,backup-codes,disable}/route.ts` logic all
+  ported into new operation-service endpoints. Additive-only, same bridge-first posture as
+  every prior 3-x session — none of these are wired into any live frontend form yet. F30
+  (CORS): confirmed a non-step, `main.ts`'s `ALLOWED_ORIGINS` left unchanged, since the new
+  Next.js routes proxy server-side exactly like Session 3-3's did (no browser ever talks to
+  operation-service directly).
+
+**Real gap found and fixed, not scope creep:** `operation-service/prisma/schema.prisma`
+(the hand-maintained, generate-only narrow mirror of `prisma/non-market-data/schema.prisma`
+— see its own header comment) was missing `resetToken`/`resetTokenExpiry`/
+`twoFactorSecret`/`twoFactorBackupCodes`/`twoFactorVerifiedAt` on `User` and had no
+`SecurityAlert` model at all. Extended it (narrow subset, same convention as the existing
+`User`/`RefreshToken` mirror) rather than switching to the full schema — this is the same
+"must be mirrored here by hand" maintenance burden the file's own comment already flags,
+now paid down for this session's fields.
+
+New (operation-service):
+
+- `operation-service/src/email/email.util.ts` (full verbatim port of `lib/email/email.ts`,
+  F29 — includes templates not yet called by anything in this service, matching how
+  `errors.ts` was ported in Session 3-2)
+- `operation-service/src/two-factor/two-factor.util.ts` (full verbatim port of
+  `lib/auth/two-factor.ts`)
+- `operation-service/src/security/geo-location.util.ts` (narrow port of
+  `lib/security/device-detection.ts` — only `getGeoLocation`/`formatLocation`, the two
+  functions the 2FA security-alert emails actually need)
+- `operation-service/src/auth/two-factor.service.ts` + `.spec.ts`
+- `operation-service/src/auth/two-factor.controller.ts` (`@Controller('auth/2fa')`)
+- `operation-service/src/auth/dto/forgot-password.dto.ts`,
+  `reset-password.dto.ts`, `resend-verification.dto.ts`,
+  `two-factor-verify-setup.dto.ts`, `two-factor-verify.dto.ts`,
+  `two-factor-backup-codes.dto.ts`, `two-factor-disable.dto.ts`
+- `operation-service/src/auth/auth.service.email-flows.spec.ts`
+
+Modified (operation-service):
+
+- `operation-service/prisma/schema.prisma` (extended `User` + new narrow `SecurityAlert`
+  mirror — see finding above)
+- `operation-service/src/auth/auth.service.ts` (+ `forgotPassword`/`resetPassword`/
+  `verifyEmail`/`resendVerification`)
+- `operation-service/src/auth/auth.controller.ts` (+ 4 new endpoints)
+- `operation-service/src/auth/auth.module.ts` (registers `TwoFactorController`/
+  `TwoFactorService`)
+- `operation-service/src/auth/auth-error.filter.ts` (`RateLimitError` now carries
+  `retryAfter` in its JSON body)
+- `operation-service/package.json` (added `otplib`, `qrcode` + `@types/qrcode`, `resend`)
+- `operation-service/.env.example` (`RESEND_API_KEY`/`RESEND_FROM_EMAIL`/
+  `RESEND_REPLY_TO`/`NEXTAUTH_URL`/`TWO_FACTOR_ENCRYPTION_KEY`)
+
+New (FRONTEND):
+
+- `app/api/auth/token-forgot-password/route.ts`, `token-reset-password/route.ts`,
+  `token-verify-email/route.ts` (GET), `token-resend-verification/route.ts`
+- `app/api/auth/token-2fa-status/route.ts` (GET), `token-2fa-setup/route.ts`,
+  `token-2fa-verify-setup/route.ts`, `token-2fa-verify/route.ts` (unauthenticated —
+  completes login itself, same as its source route), `token-2fa-backup-codes/route.ts`
+  (GET+POST), `token-2fa-disable/route.ts`
+- `__tests__/api/auth/token-email-flows.test.ts`, `token-2fa-flows.test.ts`
+
+Modified (FRONTEND):
+
+- `lib/operation-service/client.ts` (`OperationServiceErrorBody` gained an optional
+  `retryAfter` field)
+
+</details>
+
 ### SHARING
 
 <details>

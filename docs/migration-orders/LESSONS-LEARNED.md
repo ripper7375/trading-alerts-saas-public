@@ -711,6 +711,33 @@ failed`, even with the exact credentials `docker-compose.dev.yml` declares.
     migration's to stop.
 - Source: Session 3-3 (local walkthrough setup), 2026-07-21 · Status: ACTIVE
 
+### L33 — `railway up`'s default upload scope isn't limited to the directory it's invoked from; use `--path-as-root` for a monorepo subdirectory
+
+- Symptom: `railway up --service operation-service ...`, run from inside
+  `operation-service/`, failed 3 times in a row with `UPLOAD_FAILED: File too large
+(433MB)` — the byte count stayed identical (down to single-digit deltas explained only
+  by a just-added file's own size) across: (a) the default invocation, (b) after adding
+  `operation-service/.railwayignore` listing `node_modules`/`dist`/`coverage`, (c)
+  after physically deleting `operation-service/node_modules` and `dist` from disk
+  entirely. None of these changed the uploaded size at all.
+- Root cause: the upload was never scoped to `operation-service/`'s own contents in the
+  first place — `railway up`'s default archiving (no path argument, invoked from a
+  subdirectory of a large monorepo) bundled far more than that one service's directory,
+  regardless of any `.gitignore`/`.railwayignore` placed inside it. Neither ignore-file
+  mechanism had any effect; only explicitly rescoping the archive root fixed it.
+- Rule: when deploying a service that lives in a subdirectory of a larger repo, always
+  pass an explicit path with `--path-as-root`: `railway up ./<service-dir>
+--path-as-root --service <name> --environment <env> --ci --json`, run from the repo
+  root — don't rely on `cd <service-dir> && railway up` plus a local ignore file, even
+  though that's the pattern the CLI's own `--no-gitignore` flag implies should
+  otherwise work.
+- Detect early: if `railway up`'s reported failing byte count doesn't change at all
+  after removing/ignoring the thing you assumed was too big, the upload was never
+  scoped to your working directory to begin with — stop iterating on ignore files and
+  add `--path-as-root` with an explicit path instead.
+- Source: Session 3-4 (`operation-service` deploy, 2FA/email-flow endpoints),
+  2026-07-21 · Status: ACTIVE
+
 ---
 
 ## Archive
