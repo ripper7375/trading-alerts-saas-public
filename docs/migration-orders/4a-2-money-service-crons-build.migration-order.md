@@ -132,6 +132,64 @@ _(dependency order: pure/leaf modules → stateful adapters → orchestration �
 
 _(filled during execution — what/why/impact)_
 
+### File 3/6 — found a 12th SOURCE file (`types/disbursement.ts`) missed by every prior dependency trace
+
+- **What:** `money-service/src/disbursement/disbursement.types.ts` ports
+  `types/disbursement.ts` (162 lines) — not in the CONFIRMed 11-file list.
+- **Why:** it's imported via the `@/types/disbursement` alias by 7 of the 11
+  CONFIRMed files (constants, base-provider, mock-provider, provider-factory,
+  batch-manager, commission-aggregator, payment-orchestrator). Every prior
+  dependency trace (CONFIRM's, and this order's own pre-CONFIRM File-3
+  closure check) grepped only relative `./`/`../` imports and never the `@/`
+  alias form, so this file was invisible to all of them until actually
+  reading each file's full import list during the port itself.
+- **Impact:** none negative — pure types, zero further imports of its own,
+  closure terminates immediately. `npm run build` verified clean with it
+  included.
+
+### File 3/6 — `PaymentOrchestrator`'s `provider` moved from constructor to a method parameter; internally-`new`-ed collaborators became constructor-injected
+
+- **What:** `PaymentOrchestratorService.executeBatch(batchId, provider)` now
+  takes the `PaymentProvider` as a method argument instead of a constructor
+  argument. Separately, `TransactionLoggerService`/`RetryHandlerService`/
+  `BatchManagerService`/`TransactionService` (inside `PaymentOrchestratorService`)
+  and `CommissionAggregatorService`/`BatchManagerService`/
+  `PaymentOrchestratorService`/`TransactionLoggerService` (inside
+  `DisbursementProcessorService`) are constructor-injected rather than
+  `new`-ed inline from a raw `PrismaClient`, matching `BatchManagerService`'s
+  own already-noted pattern.
+- **Why:** a Nest `@Injectable()` is resolved once as a singleton by the DI
+  container: it cannot take a runtime-varying constructor argument the way
+  source's plain `new PaymentOrchestrator(prisma, paymentProvider)`
+  (re-constructed per call in `disbursement-processor.ts`) did. Moving
+  `provider` to a method parameter keeps the exact same call-site intent —
+  a provider is still chosen immediately before executing a batch — while
+  making the class a normal, DI-resolvable singleton. The other
+  collaborators have no such runtime-varying argument, so converting their
+  local `new X(prisma)` into injected singletons is the direct, unavoidable
+  consequence of "convert ... to @Injectable()s," not a behavior change.
+- **Impact:** none on business logic — every method's query/mutation/log
+  sequence is unchanged. Two call sites updated to match: `executeBatch`
+  now receives `paymentProvider` as its second argument, and
+  `retryFailedTransactions()` no longer constructs a fresh orchestrator per
+  batch (that method never touched `this.provider` in source either).
+
+### File 3/6 — two `Decimal`-vs-`number` cast fixes required for `npm run build` to pass
+
+- **What:** in `batch-manager.service.ts` (`getBatchStatistics`) and
+  `commission-aggregator.service.ts` (`getTotalPendingAmount`), the source's
+  `as { totalAmount?: number }` / `as { commissionAmount?: number }` casts on
+  Prisma `.aggregate()`'s `_sum` result now need `as unknown as {...}` —
+  TypeScript's structural-overlap check rejects the direct cast because
+  Prisma's generated `Decimal` type doesn't sufficiently overlap with
+  `number` under money-service's client. Root cause not chased further
+  (likely a Prisma client typings difference between this generation and the
+  monolith's `non-market-client` one) since the fix the compiler itself
+  suggests is purely a type-level annotation — zero runtime behavior change,
+  same `Number(...)` coercion immediately after.
+- **Impact:** none — `npm run build` clean, money-service's existing 7/7
+  suite still green.
+
 ### File 1/6 — added `DisbursementAuditLog` as an 11th model (not in the CONFIRMed list)
 
 - **What:** `money-service/prisma/schema.prisma` includes `DisbursementAuditLog` in
