@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
+import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 
@@ -26,6 +27,7 @@ import { PrismaModule } from './prisma/prisma.module';
       }),
     }),
     HealthModule,
+    AuthModule,
   ],
   providers: [
     {
