@@ -1364,6 +1364,36 @@ _(Excludes `__pycache__/` and `.pytest_cache/` — compiled/test-cache artifacts
 
 </details>
 
+<details>
+<summary><code>operation-service/</code> — 17 files (new, Session 3-1)</summary>
+
+CORE service (see line ~114 above) — NestJS 11.1.28 (not railway-gateway's 10.4.15, F2).
+Scaffolded this session: auth bridge only (`JwtAuthGuard` verifying NextAuth's JWE session
+token, F6/F7). Alert-engine/drawing-persistence logic is later-phase BUILD work, not yet
+ported. Not yet deployed to Railway (staging-target question open, see the order's
+Deviations) — code-complete and locally verified only.
+
+- `operation-service/.env.example`
+- `operation-service/jest.config.js`
+- `operation-service/nest-cli.json`
+- `operation-service/package-lock.json`
+- `operation-service/package.json`
+- `operation-service/prisma/schema.prisma` (generate-only, zero models this session — see
+  order Deviations)
+- `operation-service/railway.toml` (committed as-code, not yet applied to Railway)
+- `operation-service/src/app.module.ts`
+- `operation-service/src/auth/jwt-auth.guard.spec.ts`
+- `operation-service/src/auth/jwt-auth.guard.ts`
+- `operation-service/src/auth/next-auth-jwt.util.ts`
+- `operation-service/src/health/health.controller.ts` (`/health`, `/health-auth`)
+- `operation-service/src/health/health.module.ts`
+- `operation-service/src/main.ts`
+- `operation-service/src/prisma/prisma.module.ts`
+- `operation-service/src/prisma/prisma.service.ts`
+- `operation-service/tsconfig.json`
+
+</details>
+
 ### SHARING
 
 <details>

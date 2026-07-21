@@ -181,6 +181,13 @@ backend-stack-a/SUMMARY_hybrid-jwt-based-authentication-clarification-and-implem
    justifies a split.
    _Verify:_ `npm run build` (NestJS) succeeds; service boots locally against a real
    (non-production) Postgres connection.
+   **DONE, 2026-07-21:** `npm run build` exits 0. Booted locally (`node dist/main`)
+   against real, non-production Postgres+Redis (`docker-compose.dev.yml`); `/health`
+   attempted a real DB round-trip (degraded only because local docker Postgres has no
+   SSL configured — an environment quirk in the copied-verbatim `ssl:
+{rejectUnauthorized:false}` adapter config from `lib/db/prisma.ts`, not a code
+   defect; Railway's production Postgres does support SSL). Environment torn down
+   after verification (container + process killed).
    _Rollback:_ delete the new `operation-service/` directory and any created Railway
    service — nothing else in the repo depends on its existence yet (confirmed via the
    4B-2 dependency note above, which is itself not-yet-active).
@@ -191,11 +198,20 @@ backend-stack-a/SUMMARY_hybrid-jwt-based-authentication-clarification-and-implem
    only needs the base guard).
    _Verify:_ unit tests — valid token → request proceeds with correct claims attached;
    expired/malformed/wrong-secret token → 401, not a 500 or silent pass-through.
+   **DONE, 2026-07-21:** 7/7 unit tests pass (`operation-service/src/auth/jwt-auth.guard.spec.ts`):
+   valid token, missing header, non-Bearer header, malformed token, wrong-secret token,
+   expired token, missing-required-claims token — all 6 negative cases reject with
+   `UnauthorizedException` (401), none silently pass.
 5. **Denial-test step — `/health-auth` endpoint.** A minimal protected route using the new
    guard, per the playbook's own "done when."
    _Verify:_ deployed to Railway staging; `curl` with a real NextAuth-issued JWT (obtained
    from a real login against the current Vercel deployment or local dev) → 200; without a
    token, or with a garbage token → 401.
+   **PARTIALLY DONE, 2026-07-21:** the curl behavior itself is proven — against the live
+   local boot above, `GET /health-auth` returned 200 with correct claims for a valid
+   token (minted via the exact NextAuth JWE derivation, F7), 401 for no token and for a
+   garbage token. **The "deployed to Railway staging" half is NOT done** — blocked on
+   the same staging-target question as Step 6, see Deviations.
 6. **As-code step.** `operation-service/railway.toml` (or Railway's newer config
    mechanism — check current CLI conventions, don't assume `railway.toml` is still primary)
    committed, not dashboard-configured; secret matrix updated for `NEXTAUTH_SECRET`'s new
@@ -244,6 +260,14 @@ construction — additive-only per the Rules above.
 
 ## Deviations
 
+- **Step 3, 2026-07-21:** Context's "worth deciding whether to close [the byte-sync] gap here
+  or defer" question (re: `operation-service`'s own generate-only Prisma schema) — decided
+  **defer**. `operation-service/prisma/schema.prisma` has zero models this session: the only
+  Prisma need is the health-check's `SELECT 1` reachability probe, which needs none. Session
+  3-2 (token endpoints) adds `User`/`RefreshToken`, hand-copied from
+  `prisma/non-market-data/schema.prisma`, when it actually needs typed queries — avoids
+  duplicating `User`'s full relation graph (`Account[]`, `Alert[]`, `Drawing[]`, etc.) for a
+  session that never queries it.
 - **CONFIRM, 2026-07-21:** Found the Step 5/Done-when "staging" deploy target assumes CC-A's
   dedicated staging stack (plan §13), which doesn't exist yet (Phase 0 gap, only required
   live before Phase 4; `trading-alerts` Railway project currently has one environment,
