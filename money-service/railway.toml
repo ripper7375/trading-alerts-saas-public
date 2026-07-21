@@ -1,0 +1,21 @@
+# Single-service deployment, same rationale as operation-service's own
+# railway.toml. No dedicated Redis block here (unlike operation-service's) —
+# F15 (DECISION-LOG.md, Session 4A-1): money-service reuses the SAME shared
+# Railway Redis instance operation-service already has, namespaced apart via
+# the 'money:' key prefix / 'money' BullMQ queue prefix
+# (src/queue/queue.constants.ts), not a second dedicated instance.
+#
+# Deployed 2026-07-21 into trading-alerts/production (Davin's call at this
+# order's CONFIRM: no dedicated staging stack exists yet, CC-A gap;
+# additive-only greenfield service, same discipline as operation-service).
+
+[build]
+builder = "nixpacks"
+
+[[services]]
+name = "money-service"
+command = "npm run start:prod"
+
+[services.environment]
+NODE_ENV = "production"
+PORT = "3002"
