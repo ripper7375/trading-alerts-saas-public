@@ -711,6 +711,39 @@ failed`, even with the exact credentials `docker-compose.dev.yml` declares.
     migration's to stop.
 - Source: Session 3-3 (local walkthrough setup), 2026-07-21 · Status: ACTIVE
 
+### L34 — Git Bash's `rm -rf node_modules` on Windows can silently leave partial directories behind, corrupting the next install
+
+- Symptom: after a Railway deploy needed `operation-service/node_modules` temporarily
+  removed (L33's workaround while diagnosing the upload-size issue), a fresh `npm ci`
+  produced a broken install 3 times in a row — first `ts-jest`/`jest` binaries missing
+  entirely, then (after a clean reinstall) `@prisma/client`'s own runtime files missing
+  mid-package (`ENOENT ... index-browser.d.ts`), then (after another) the `nest` CLI
+  binary missing from `node_modules/.bin` even though its package (`@nestjs/cli`) was
+  present. Each looked like a different failure but had the same root cause.
+- Root cause: Git Bash's `rm -rf` on a large, deeply-nested `node_modules` tree on
+  Windows silently fails partway — `rm: cannot remove '...': Directory not empty` —
+  leaving stale files behind (likely a file-lock/long-path interaction, same family as
+  L12/L15's other Windows-Git-Bash path quirks). The next `npm ci` then installs on top
+  of that partial leftover state, producing inconsistent, hard-to-predict corruption
+  instead of a clean failure. A background `npm ci` that's stopped mid-flight (via
+  `TaskStop`) compounds this the same way L14 describes for dev servers — the tracked
+  PID isn't necessarily the process actually still writing files, so "stopped" doesn't
+  mean "safe to touch node_modules again" without checking `tasklist`/`Get-Process`
+  first.
+- Rule: after any `rm -rf node_modules` on this platform, check the command's own
+  output for `Directory not empty` before trusting the removal succeeded — if present,
+  don't just re-run `npm ci` on top of it. Either retry the `rm -rf` until it reports no
+  errors, or (faster and more reliable here) use PowerShell's
+  `Remove-Item -Recurse -Force` instead of Git Bash's `rm -rf` for this specific
+  directory. If `npm ci`/`npm test` then still fails with a missing-file error inside an
+  otherwise-present package, don't chase it as an application bug first — suspect a
+  partial node_modules and try `npm rebuild` (fixes missing `.bin` symlinks without a
+  full reinstall) before doing another full `rm -rf` + `npm ci` cycle.
+- Detect early: `rm -rf node_modules` printing any `Directory not empty` line is the
+  tell — treat the removal as incomplete, not successful, regardless of exit code.
+- Source: Session 3-4 (post-deploy local environment restoration), 2026-07-21 ·
+  Status: ACTIVE
+
 ### L33 — `railway up`'s default upload scope isn't limited to the directory it's invoked from; use `--path-as-root` for a monorepo subdirectory
 
 - Symptom: `railway up --service operation-service ...`, run from inside

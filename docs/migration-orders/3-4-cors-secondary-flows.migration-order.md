@@ -1,9 +1,12 @@
 # Migration Order — CORS + secondary flows (2FA, email verification, password reset)
 
 > **Status: CLOSED** — CONFIRMed and executed end-to-end, 2026-07-21. F28/F29/F30
-> resolved by Davin; all 4 candidate steps done; deployed to production. See Deviations
-> for the 2 unplanned findings (operation-service's narrow Prisma schema gap; `railway
-up`'s archive-scope deploy footgun).
+> resolved by Davin; all 4 candidate steps done; deployed to production and
+> re-verified green after a post-deploy local-environment hiccup (purely local, never
+> touched production). See Deviations for the 3 unplanned findings (operation-service's
+> narrow Prisma schema gap; `railway up`'s archive-scope deploy footgun; a Git-Bash
+> `rm -rf node_modules` corruption footgun found while restoring the local dev
+> environment afterward).
 > **Session:** 3-4 · **Phase:** Phase 3 — Hybrid (Dual) JWT Authentication (Workstream
 > 2), plan step 3.4 · **Variant:** PORT
 > **Flags touched:** F28 (Staging for Email Flows), F29 (Email Logic Porting), F30 (CORS Necessity).
@@ -279,3 +282,23 @@ described below, both in-bounds).
     `token-email-flows.test.ts`, `token-2fa-flows.test.ts`) — up from Session 3-3's
     115/115, 2064/2064 baseline, exact parity plus new coverage. Root `type-check`,
     `next lint --max-warnings 0`, and `npm run build` all clean.
+
+17. **Post-deploy local environment restoration cost real time (~45+ min, 3 broken
+    reinstalls), new lesson recorded.** After deploying (step 13 above required
+    temporarily removing `operation-service/node_modules`/`dist` locally), restoring
+    them via `npm ci` produced 3 different-looking but same-root-cause failures in a
+    row: missing `ts-jest`/`jest` binaries, then a mid-package `ENOENT` inside
+    `@prisma/client`'s own files, then a missing `node_modules/.bin/nest` symlink
+    despite `@nestjs/cli` itself being present. Root cause: Git Bash's `rm -rf` on this
+    Windows machine silently failed partway on the large, deeply-nested
+    `node_modules` tree (`Directory not empty` errors visible in the command's own
+    output, easy to miss), leaving stale files that each subsequent `npm ci` installed
+    on top of rather than into a truly clean directory — compounded once by stopping a
+    still-running background `npm ci` via `TaskStop` (L14's exact pattern: the tracked
+    PID wasn't the process still writing files) before checking `tasklist` first.
+    Resolved by killing the actual lingering process (confirmed via `tasklist`, not
+    the harness's stop confirmation alone), then `npm rebuild` (relinks `.bin`
+    symlinks without a full reinstall) — final state confirmed via a genuinely clean
+    `npm test` (7/7, 56/56) and `npm run build`. **This was purely a local-environment
+    hygiene issue — production was deployed and independently verified healthy
+    throughout, never affected.** New `LESSONS-LEARNED.md` L34.

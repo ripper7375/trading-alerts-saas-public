@@ -81,6 +81,15 @@ operation-service --environment production --ci --json` from the repo root.
     suites green (2082/2082 tests, up from 115/2064 — exact parity plus new
     coverage). Root `npm run type-check`, `next lint --max-warnings 0`, and
     `npm run build` all clean.
+  - **Post-deploy local-only hiccup, resolved, new lesson recorded:** restoring
+    `operation-service/node_modules` locally after the deploy hit 3 different-
+    looking failures in a row, all from the same root cause — Git Bash's
+    `rm -rf` silently leaving partial directories behind on this Windows
+    machine, corrupting the next `npm ci`. Fixed (killed the actual lingering
+    process via `tasklist`, not just the harness's stop confirmation, then
+    `npm rebuild`); re-confirmed via a genuinely clean `npm test`
+    (7/7, 56/56) and `npm run build`. **Never affected production** — deployed
+    and independently verified healthy throughout. New `LESSONS-LEARNED.md` L34.
 - **Waiting on:** (1, non-blocking, unchanged) `deploy.yml` still fails on every push
   to `main` at the GitHub workflow-file level (0s runtime) — known NOT to block real
   Vercel deploys, just dead/broken CI hygiene, not urgent. (2, RESOLVED Session 2-3,
