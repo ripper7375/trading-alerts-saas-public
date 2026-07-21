@@ -1,0 +1,24 @@
+// This schema exists ONLY so operation-service can `prisma generate` a typed
+// client. It is NOT the source of truth for migrations — the root Next.js
+// app's `prisma/non-market-data/schema.prisma` owns the actual tables and
+// migration history (LESSONS-LEARNED.md L24: one shared migration history
+// against one shared Postgres, even across split schema files).
+// NEVER run `prisma migrate`/`db push` from this package.
+//
+// Session 3-1 scope decision (recorded in the order's Deviations): this
+// service's only Prisma need this session is the health-check's raw
+// `SELECT 1` reachability probe, which needs zero typed models. Deferred,
+// not solved: the root schema's "byte-for-byte hand-sync, no automated
+// check" gap that railway-gateway/prisma/schema.prisma already carries for
+// MarketDataV6. Session 3-2 (token endpoints) will need `User` (and
+// `RefreshToken`) modeled here for real — add them then, hand-copied from
+// prisma/non-market-data/schema.prisma, not before.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}

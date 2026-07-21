@@ -1,0 +1,31 @@
+# Single-service deployment, same rationale as railway-gateway's own
+# railway.toml (docs/railway-gateway-reference-notes.md §8): one Nest
+# process handles everything this service does today. Revisit only if real
+# load justifies a split.
+#
+# A dedicated Redis is provisioned alongside it (own instance, not shared
+# with railway-gateway's) — needed for the Redis-backed ThrottlerGuard from
+# the start (this service runs replicas, plan §5.2) and is the "Railway
+# Redis attached" entry criterion 4B-2-alert-engine.migration-order.md
+# already lists as depending on this session's output.
+#
+# NOT YET APPLIED to Railway as of Session 3-1's scaffold step — deploy
+# target (which environment) is pending Davin's call, see the order's
+# Deviations. This file is committed as-code per the INFRA rule
+# ("nothing dashboard-only") ahead of the actual `railway up`.
+
+[build]
+builder = "nixpacks"
+
+[[services]]
+name = "operation-service"
+command = "npm run start:prod"
+
+[services.environment]
+NODE_ENV = "production"
+PORT = "3001"
+
+[[services]]
+name = "operation-service-redis"
+type = "redis"
+plan = "hobby"
