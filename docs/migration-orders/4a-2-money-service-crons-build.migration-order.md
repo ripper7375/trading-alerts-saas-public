@@ -294,6 +294,59 @@ _(filled during execution — what/why/impact)_
   from the browser, not server-proxied) — not stronger or weaker than what
   Vercel's routes already had.
 
+### File 6/6 — tests live colocated under `src/` (`.spec.ts`), not under `money-service/test/` as the order's TARGET literally said
+
+- **What:** all ported/new suites live at `money-service/src/{crons,disbursement}/*.spec.ts`
+  (`subscription.service.spec.ts`, `affiliate.service.spec.ts`,
+  `crons.scheduler.spec.ts`, `cron-secret.guard.spec.ts`,
+  `cron-trigger.controller.spec.ts`,
+  `disbursement/disbursement-processor.service.spec.ts`), not
+  `money-service/test/crons/*`.
+- **Why:** `money-service/jest.config.js`'s `testRegex` is
+  `'src/.*\\.spec\\.ts$'` — a top-level `test/` directory wouldn't be
+  discovered at all without also editing jest config, and money-service
+  already has one real precedent (`src/auth/jwt-auth.guard.spec.ts`) for
+  colocated `.spec.ts` files. Matched the existing, already-working local
+  convention instead of introducing a second one for this session alone.
+- **Impact:** none — `npm test` picks up all 7 suites (66 tests) correctly.
+
+### File 6/6 — added `jest-mock-extended` (mirrors the monolith's own convention), NestJS testing module used per the order's own instruction
+
+- **What:** `jest-mock-extended@^4.0.0` added as a money-service
+  devDependency (same version the monolith's own `__tests__/setup.ts`
+  pins), used for `createPrismaMock()` in
+  `money-service/src/test-utils/prisma-mock.ts`. Wired via
+  `Test.createTestingModule({...}).providers: [..., { provide:
+PrismaService, useValue: prismaMock }]` rather than `jest.mock()` module
+  hoisting — matches the order's own File 6/6 instruction ("Use NestJS
+  testing module to mock PrismaService").
+- **Ported 1:1 (assertions unchanged):** `check-expiring-subscriptions.test.ts`
+  - `downgrade-expired-subscriptions.test.ts` → `subscription.service.spec.ts`
+    (22 tests); `monthly-distribution.test.ts` → `affiliate.service.spec.ts`
+    (6 tests); the business-logic assertions (not the 401 checks, now the
+    guard's own concern) from `cron-jobs.test.ts`'s `expire-codes`/
+    `send-monthly-reports` blocks → `crons.scheduler.spec.ts`.
+    `process-pending.test.ts`'s "accept valid secret" smoke assertion →
+    `disbursement-processor.service.spec.ts`'s "no payable affiliates"
+    case, run through the REAL `CommissionAggregatorService`/
+    `BatchManagerService`/`PaymentOrchestratorService`/
+    `TransactionLoggerService` DI graph (only `PrismaService` mocked) —
+    a stronger check than source's own, which only ever exercised the route
+    wrapper.
+- **New backfill coverage (per this order's own explicit instruction —
+  zero coverage anywhere previously, flagged at CONFIRM):**
+  `crons.scheduler.spec.ts`'s `handleDailyMaintenance` block (3-task
+  composition, including the "task 1 throws, tasks 2/3 still run" case);
+  `disbursement-processor.service.spec.ts`'s `syncRiseWorksAccounts` and
+  `approveMaturedCommissions` blocks. Also added (new code, no source to
+  port from): `cron-secret.guard.spec.ts` (formalizes the File 5/6
+  throwaway check), `cron-trigger.controller.spec.ts` (thin
+  delegation checks for all 8 endpoints).
+- **Impact:** `npm test` → 7 suites, 66 tests, all green. `npm run build`
+  clean. Monolith's own 19 suites / 225 tests (cron + disbursement,
+  lib and api) re-run and still green, source untouched (`git status`
+  confirms zero changes under `lib/`, `app/`, `__tests__/`, `vercel.json`).
+
 ### File 1/6 — added `DisbursementAuditLog` as an 11th model (not in the CONFIRMed list)
 
 - **What:** `money-service/prisma/schema.prisma` includes `DisbursementAuditLog` in
