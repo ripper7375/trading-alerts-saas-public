@@ -814,6 +814,30 @@ test:ci`/`validate`, not `npm run build`.
   (not committed — one-off verification, logic ported into the guard in Step 4).
 - Approved by: Davin
 
+## F25 — Staging Blocker for Session 3-3
+
+- Status: RESOLVED
+- Session: 3-3 · Date: 2026-07-21
+- Decision: Test locally against `docker-compose.dev.yml` and deploy directly to production. The CC-A staging gap is intentionally deferred. We accept the risk by relying on thorough local testing before live deployment.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F26 — Cookie Compatibility for NextAuth
+
+- Status: RESOLVED
+- Session: 3-3 · Date: 2026-07-21
+- Decision: Reuse NextAuth's exact cookie name (`next-auth.session-token`). This perfectly aligns with the 'bridge-first' strategy and requires zero changes to the frontend client components.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F27 — Email Registration Gap
+
+- Status: RESOLVED
+- Session: 3-3 · Date: 2026-07-21
+- Decision: Defer routing `/auth/register` to the new service for now. Keep NextAuth handling registrations until the email logic (Resend integration) is ported in a future session.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
 ## F23 — execution evidence (RefreshToken table never existed in production)
 
 - Status: RESOLVED (execution evidence for the decision above)
@@ -837,3 +861,37 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
   hashed value is already a high-entropy random secret and needs O(1) unique-index
   lookup, not slow per-guess hashing; full rationale in the order's Deviations #8.
 - Approved by: Davin (production migration deploy, live in-session).
+
+## F25/F26/F27 — execution evidence (Session 3-3)
+
+- Status: RESOLVED (execution evidence for the decisions above)
+- Session: 3-3 · Date: 2026-07-21
+- F26 correction: the decision's literal cookie-name string
+  (`next-auth.session-token`) is `lib/auth/auth-options.ts`'s **non-production**
+  value only; production actually uses `__Secure-next-auth.session-token`
+  (`secure: true`, same `httpOnly`/`sameSite: 'lax'`/`path: '/'`). Implemented
+  against the live `NODE_ENV`-conditional, not the shorthand — F26's own stated
+  rationale (zero frontend changes) only holds if the real per-environment name is
+  matched. Centralized in `lib/operation-service/cookies.ts`.
+- F25 footgun found and worked around, not fixed: `operation-service` isn't in
+  `docker-compose.dev.yml` and its `.env.example` documents only the production
+  `DATABASE_URL` — "test locally" required running it locally too (previously
+  untried). Doing so surfaced `prisma.config.ts`'s `.env.local` `override: true`
+  silently defeating inline shell env vars for ANY Prisma CLI command run from repo
+  root (near-miss: a `db push` intended for a local Postgres briefly targeted
+  production; verified harmless afterward via `migrate status` showing zero drift).
+  New `LESSONS-LEARNED.md` L31/L32 — this is a standing hazard for every future
+  session that tries to point Prisma CLI at a non-production database.
+- F27: `/auth/register` confirmed untouched — no route wiring added, no email
+  logic ported, matches Davin's "defer" decision exactly.
+- Evidence: full local walkthrough (login → cookie-set → protected-page 200 →
+  SSR bearer-forward to `/auth/me` 200 → silent-refresh rotation, old token
+  independently confirmed revoked → logout, cookies cleared + token revoked →
+  protected-page 307 again), entirely against a local Postgres with zero
+  production writes; `/login`, NextAuth's own `/api/auth/session`, and the
+  separate `/admin/login` page all independently confirmed unaffected. Full
+  transcript in `3-3-nextjs-side.migration-order.md`'s Deviations section.
+- Approved by: n/a (technical execution evidence for decisions Davin already made
+  live; the cookie-name correction and local-testing approach are both small,
+  in-bounds technical calls under the Autonomy & Deviation clause, not new
+  material decisions).

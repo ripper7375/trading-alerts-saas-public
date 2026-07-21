@@ -5,11 +5,45 @@
 > NEW frontend-side surfaces that consume Session 3-2's endpoints, not a port of
 > existing code. **Creativity dial: High** — the contract (Session 3-2's 5 endpoints)
 > constrains the data, not the design.
-> **Status: PRE-DRAFT** — raw facts and candidate steps only; the Advisor upgrades this
-> to DRAFT.
+> **Status: CONFIRMED** — 2026-07-21. F25/F26/F27 resolved by Davin (DECISION-LOG.md).
+> CONFIRM re-verification this session:
+>
+> - `operation-service` production health: `/health` → `{"status":"healthy","services":{"database":{"status":"up"}}}`
+>   (live `curl` against `operation-service-production.up.railway.app`, domain
+>   confirmed via `railway status --json` to belong to the `operation-service`
+>   instance, not a sibling service).
+> - **Finding (cookie name):** F26's Decision Log text says "reuse
+>   `next-auth.session-token`" — but `lib/auth/auth-options.ts`'s live `cookies` block
+>   shows that name is the **non-production** value; production actually uses
+>   `__Secure-next-auth.session-token` (`secure: true`, same `httpOnly`/`sameSite:
+'lax'`/`path: '/'`). The Decision Log's literal string is dev-mode shorthand, not
+>   a deliberate departure — F26's own stated rationale ("perfectly aligns with
+>   bridge-first... zero changes to frontend client components") only holds if the
+>   _actual_ per-environment name/attributes are matched. Implementing this session's
+>   cookie-set route against the same `NODE_ENV`-conditional the existing code already
+>   uses, not the literal string — logged here per protocol rather than silently
+>   assumed.
+> - **Finding (local-testing scope, F25):** `docker-compose.dev.yml`'s own header
+>   comment says NestJS services "join this file in later phases" — `operation-service`
+>   is not in it today. Separately, `operation-service/.env.example`'s `DATABASE_URL`
+>   is documented as "the SAME production Postgres as the root Next.js app" — it has
+>   no non-production connection string at all. Taken together, F25's "test locally"
+>   would, if operation-service is called at its deployed Railway URL, still write
+>   real `RefreshToken` rows (and require a real user) against **production** Postgres
+>   even though the Next.js dev server itself runs locally. Resolution (small, in-bounds,
+>   recorded as a Deviation rather than escalated): run `operation-service` locally too,
+>   pointed at `docker-compose.dev.yml`'s local Postgres — `prisma.config.ts`'s default
+>   schema (`prisma/non-market-data/schema.prisma`, pushed via the `web` service's own
+>   `db:push`) already declares the exact same hardened `User`/`RefreshToken` shape
+>   operation-service's own hand-synced schema expects, and `prisma/seed.ts` already
+>   creates 5 known-password synthetic e2e users (F17) — so the full walkthrough can run
+>   entirely against local synthetic data, zero production writes, until the final
+>   deploy step.
+> - Entry criteria re-checked below.
 
 **Session:** 3-3 · **Phase:** Phase 3 — Hybrid (Dual) JWT Authentication (Workstream 2),
-plan step 3.3 · **Generated:** 2026-07-21 (Session 3-2 close).
+plan step 3.3 · **Variant:** UI-BUILD · **Generated:** 2026-07-21 (DRAFT).
+**Flags touched:** F25 (Staging Blocker), F26 (Cookie Compatibility), F27 (Email Registration Gap).
 **Playbook tasks:** cookie-set API route, middleware guard on protected matchers, ~14-min
 silent-refresh loop, SSR fetch helpers forwarding the bearer token.
 **Playbook done-when:** "staging walkthrough: login → dashboard SSR → browser call →
@@ -76,15 +110,15 @@ here rather than assumed either way.
 
 ## Entry criteria (candidate — re-verify at CONFIRM)
 
-- [ ] Session 3-2's endpoints still healthy in production (`/health` up,
-      `/auth/me` reachable with a freshly-minted token).
-- [ ] Davin/Advisor's decision on the staging-blocker question above, made BEFORE
-      writing ordered steps that assume either path.
-- [ ] Davin/Advisor's decision on cookie-compatibility (reuse NextAuth's exact cookie
-      vs. a new one) — security-adjacent, needs explicit sign-off.
-- [ ] Decide whether the `/auth/register` email-sending gap must close before or
-      alongside this session, given it's the session that would start sending real
-      traffic.
+- [x] Session 3-2's endpoints still healthy in production (`/health` up,
+      confirmed 2026-07-21 via live `curl`). `/auth/me` reachability confirmed via
+      this session's local walkthrough instead (Deviations #6) — real login → real
+      access token → real `/auth/me` 200 — rather than against production, avoiding
+      any account/RefreshToken row in production Postgres purely to satisfy this
+      check.
+- [x] F25: Davin's decision on the staging-blocker question (local testing vs building CC-A).
+- [x] F26: Davin's decision on cookie-compatibility (reuse NextAuth's exact cookie vs. a new one).
+- [x] F27: Decide whether the `/auth/register` email-sending gap must close before or alongside this session.
 
 ## Rollback
 
@@ -95,4 +129,53 @@ the actual approach.
 
 ## Deviations
 
-_(filled during execution)_
+1. **Cookie name (F26 correction):** implemented against `lib/auth/auth-options.ts`'s
+   real `NODE_ENV`-conditional cookie name/attributes, not the Decision Log's literal
+   `next-auth.session-token` string (that's the non-production value only) — see the
+   CONFIRM note at the top of this order. `lib/operation-service/cookies.ts` centralizes
+   this so both `middleware.ts` and every route agree.
+2. **`/admin` excluded from the middleware matcher.** Found at build time: a SEPARATE,
+   non-route-group tree (`app/admin/login`, `app/admin/affiliates`,
+   `app/admin/settings`) shares the `/admin` URL prefix with
+   `app/(dashboard)/admin/*` but has its own bespoke, logged-out-reachable login page
+   (`app/admin/login/page.tsx`, still `next-auth/react`'s `signIn()`, no page-level
+   guard above it). Matching `/admin/:path*` would have redirected logged-out admins
+   away from their own login page before they could reach it. Excluded rather than
+   special-cased — `(dashboard)/admin/*` already has its own working
+   `getServerSession` guard via `app/(dashboard)/layout.tsx` regardless of whether
+   middleware also covers it, so nothing loses protection.
+3. **Refresh token never reaches client JS.** The order's candidate step 3 assumed
+   client-visible storage ("client-side timer... store/replace the rotated raw token
+   client-side"); implemented instead as an httpOnly cookie rotated entirely
+   server-side (`app/api/auth/token-refresh/route.ts`), with the client-side loop
+   (`components/auth/token-refresh-provider.tsx`) firing blind and ignoring every
+   outcome. Stricter than specified, not a downgrade — not escalated per the
+   Autonomy & Deviation clause's "materially better approach" allowance.
+4. **Login/register forms not rewired.** `components/auth/login-form.tsx` and
+   `register-form.tsx` still call `next-auth/react`'s `signIn()`/NextAuth directly —
+   deliberately not switched to the new `token-login` route this session. The
+   "Known blocker" section's own framing ("NextAuth still untouched in production")
+   and `EXECUTOR-PROTOCOL.md` §7's cutover-approval requirement both point the same
+   way: this session builds and proves the new path, a dedicated cutover session
+   (Davin's live approval on the specific flip) switches real traffic onto it.
+5. **`/auth/register` not wired at all**, per F27 (deferred — email-sending gap).
+6. **Local walkthrough infra (F25), and a real footgun found along the way:**
+   `operation-service` isn't in `docker-compose.dev.yml` and its `.env.example`
+   documents only the production `DATABASE_URL` — running it locally required manual
+   setup (see LESSONS-LEARNED.md L31 for the `.env.local`/`prisma.config.ts` near-miss
+   this surfaced, and the new lesson about the native Windows `postgres.exe` port
+   conflict). Full walkthrough executed entirely against a local Postgres (SSL
+   enabled via a locally-generated self-signed cert, to match `PrismaService`'s/
+   `prisma/seed.ts`'s hardcoded `ssl: {rejectUnauthorized: false}` adapter config) +
+   a locally-run `operation-service`, using a hand-inserted synthetic test user (not
+   `prisma/seed.ts` — its adapter's SSL requirement is the same one this walkthrough
+   worked around, orthogonal to this session's scope to fix). Zero production writes.
+   Result: login → cookie-set (both cookies) → `/dashboard` 200 (proves F26 cookie
+   compatibility against BOTH `middleware.ts`'s `getToken()` and
+   `(dashboard)/layout.tsx`'s `getServerSession()`) → SSR bearer-forward to
+   operation-service's `/auth/me` 200 → silent-refresh rotates both cookies (old
+   refresh token independently confirmed revoked) → logout clears both cookies +
+   revokes the current refresh token → `/dashboard` 307→ `/login` again. Also
+   confirmed unaffected: `/login` (200), NextAuth's own `/api/auth/session` ({}),
+   and `/admin/login` (200, not redirected — confirms deviation #2 above).
+   Entry-criterion checkbox above updated from "deferred" to this evidence.

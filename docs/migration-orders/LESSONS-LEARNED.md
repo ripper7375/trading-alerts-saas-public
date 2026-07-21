@@ -672,6 +672,45 @@ type-check` (or `npm run validate`) once before considering the scaffold done �
 - Source: Session 3-1 (`operation-service` scaffold, discovered at `git push`),
   2026-07-21 · Status: ACTIVE
 
+### L31 — `prisma.config.ts`'s `.env.local` load uses `override: true`; inline shell env vars for a "local-only" Prisma CLI command are silently defeated
+
+- Symptom: `DATABASE_URL=<local> DIRECT_URL=<local> npx prisma db push --schema=prisma/non-market-data/schema.prisma`, intended to target a local Docker Postgres for local-only testing, instead printed `Datasource "db": PostgreSQL database "railway"... at "maglev.proxy.rlwy.net"` — the live PRODUCTION host — despite the inline env vars being set correctly in the same command.
+- Root cause: `prisma.config.ts` calls `config({ path: '.env.local', override: true })` (dotenv) unconditionally on every `prisma` CLI invocation. `override: true` means .env.local's stored values overwrite already-set `process.env` entries — including ones a caller just set inline on the same command line — not just fill in gaps. Since `.env.local` holds the real production `DATABASE_URL`/`DIRECT_URL`, ANY bare `prisma <command>` run from repo root silently re-targets production regardless of what the invoking shell exported.
+- Rule: never try to point a Prisma CLI command at a different database via inline env vars alone from this repo's root — it will not work and will not warn you. Instead, temporarily `mv .env.local .env.local.bak` (dotenv's `config()` no-ops silently on a missing file) so the override has nothing to load, run the command, then `mv` it back immediately — verify the restore with a `sha256sum` taken before the move, compared after. Never edit .env.local's contents in place for this — a rename-and-restore is zero-diff-risk; an in-place edit is not.
+- Detect early: any `prisma` command's own printed `Datasource "db": ...` line — read it every time before trusting a "local" run; a hostname you didn't just type is the tell, and it appears BEFORE anything is actually applied, giving a chance to Ctrl-C. This session's actual `db push` turned out to be a harmless no-op (verified via a follow-up `migrate status` showing zero drift) purely because the schema already matched production — that was luck, not the safe case, and must not be relied on again.
+- Source: Session 3-3 (local walkthrough setup), 2026-07-21 · Status: ACTIVE
+
+### L32 — Local Docker Postgres needs SSL explicitly enabled to satisfy code written for Railway's Postgres, and this dev machine has a native `postgres.exe` already squatting on 5432
+
+- Symptom: (a) `operation-service`'s `/health` reported `degraded`/`database: down`
+  with `Error opening a TLS connection: The server does not support SSL connections`
+  against a freshly-started `docker-compose.dev.yml` Postgres; (b) separately, a
+  plain `prisma db push` against `localhost:5432` failed with `P1000: Authentication
+failed`, even with the exact credentials `docker-compose.dev.yml` declares.
+- Root cause: (a) every Prisma driver-adapter instantiation in this codebase
+  (`lib/db/prisma.ts`, `prisma/seed.ts`, `operation-service/src/prisma/prisma.service.ts`)
+  hardcodes `ssl: { rejectUnauthorized: false }` — written for Railway's
+  TLS-terminating proxy, with no non-SSL branch for local dev; the stock
+  `postgres:15-alpine` image has SSL off by default. (b) this dev machine has a
+  native Windows `postgres.exe` service already bound to port 5432 (unrelated to
+  this migration), silently shadowing Docker Desktop's own `5432:5432` port mapping
+  — connections to `localhost:5432` were reaching the native service, not the
+  container, hence the credential mismatch.
+- Rule: to actually exercise a code path that assumes Railway-style SSL against a
+  local Postgres, generate a throwaway self-signed cert (`openssl req -x509 -nodes
+...`), `docker cp` it into the container (a Windows bind-mount leaves the key file
+  world-readable, which Postgres refuses — copy, then `chown postgres:postgres` +
+  `chmod 600` the key, `docker exec -u root`), enable via `ALTER SYSTEM SET ssl = on`
+  - `ssl_cert_file`/`ssl_key_file` (each as its own `psql -c`, not combined — combined
+    hits `ALTER SYSTEM cannot run inside a transaction block`), then restart the
+    container. Separately, if `localhost:5432` auth fails with otherwise-correct
+    credentials, check `netstat -ano | grep 5432` / `tasklist /FI "PID eq <pid>"` for a
+    second, non-Docker listener before assuming the container's credentials are wrong —
+    remap the container to a different host port (a scratch `docker-compose.override.yml`,
+    deleted after) rather than touching a pre-existing native service that isn't this
+    migration's to stop.
+- Source: Session 3-3 (local walkthrough setup), 2026-07-21 · Status: ACTIVE
+
 ---
 
 ## Archive

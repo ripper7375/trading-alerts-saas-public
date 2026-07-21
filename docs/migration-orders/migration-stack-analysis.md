@@ -1438,6 +1438,49 @@ New root migration:
 
 </details>
 
+<details>
+<summary>FRONTEND — 11 new files + 1 modified (Session 3-3, Next.js token bridge)</summary>
+
+Additive parallel path alongside `app/api/auth/[...nextauth]/route.ts` (bridge-first,
+F6) — `components/auth/login-form.tsx`/`register-form.tsx` still call
+`next-auth/react`'s `signIn()` unchanged; a dedicated cutover session (Davin's live
+approval) switches real traffic onto this path later. `middleware.ts` is this repo's
+first-ever Next.js middleware — additive, not a cutover: it decodes the exact same
+cookie `app/(dashboard)/layout.tsx` already reads via `getServerSession`, in the exact
+format NextAuth itself uses (F26), so every existing real user's session passes
+through it unchanged; local walkthrough evidence in the order's Deviations #6.
+
+New:
+
+- `lib/operation-service/client.ts` (server-only fetch helper — SSR/route-handler
+  callers only, never the browser; sidesteps operation-service's CORS entirely)
+- `lib/operation-service/cookies.ts` (shared cookie name/attribute constants —
+  imported by both route handlers and `middleware.ts`, so Edge-runtime-safe: no
+  Node-only APIs)
+- `app/api/auth/token-login/route.ts` (cookie-set login; passes through
+  `twoFactorRequired` unmodified — same two-step flow the existing NextAuth path uses)
+- `app/api/auth/token-refresh/route.ts` (rotates both cookies; clears them on a failed
+  rotation)
+- `app/api/auth/token-logout/route.ts` (idempotent; clears cookies even if
+  operation-service is unreachable)
+- `components/auth/token-refresh-provider.tsx` (client-side ~14 min interval, mounted
+  in `(dashboard)/layout.tsx`; fire-and-forget, ignores every outcome — a no-op for any
+  session that only carries a NextAuth cookie)
+- `middleware.ts` (guards `/dashboard`, `/alerts`, `/charts`, `/settings` — deliberately
+  excludes `/admin`, see the order's Deviations #2 for the separate `app/admin/login`
+  conflict found at build time)
+- `__tests__/api/auth/token-login.test.ts`, `token-refresh.test.ts`,
+  `token-logout.test.ts`, `__tests__/middleware.test.ts`
+
+Modified:
+
+- `app/(dashboard)/layout.tsx` (mounts `<TokenRefreshProvider />` alongside the
+  existing `<LoginTracker />`)
+- `.env.example` / `.env.local` (new `OPERATION_SERVICE_URL`, server-only — no
+  `NEXT_PUBLIC_` prefix)
+
+</details>
+
 ### SHARING
 
 <details>
