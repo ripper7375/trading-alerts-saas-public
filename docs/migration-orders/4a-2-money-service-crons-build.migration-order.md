@@ -294,6 +294,35 @@ _(filled during execution — what/why/impact)_
   from the browser, not server-proxied) — not stronger or weaker than what
   Vercel's routes already had.
 
+### Post-File-6/6 — `CRON_ENABLED` safety gate added before deploy (Davin's explicit direction)
+
+- **What:** `crons.scheduler.ts`'s 8 `@Cron()` decorators moved off the
+  `handleX()` business-logic methods onto 8 new thin wrapper methods
+  (`scheduledX()`). Each wrapper checks `process.env.CRON_ENABLED === 'true'`
+  first; if not exactly `'true'`, it logs a skip message and returns
+  without calling the real logic. The `handleX()` methods themselves are
+  UNCHANGED and ungated — `CronTriggerController`'s manual-trigger
+  endpoints (File 5/6) still call them directly, bypassing the gate
+  entirely.
+- **Why:** raised at this session's own slice-level verification: deploying
+  money-service with `vercel.json`'s crons still active would otherwise
+  mean both systems executing the same jobs at the same scheduled minute
+  against the same production database — a real double-disbursement risk.
+  Davin's call: add the gate, deploy with `CRON_ENABLED` unset/`false`
+  (fully inert in production), and use the already-built manual-trigger
+  endpoints to fire each job by hand once — after Vercel's own cron
+  completes — as this slice's actual shadow-run verification (checking
+  idempotency: a second run against already-processed data should do
+  nothing further). This replaces the original "both Vercel and NestJS
+  execute crons in staging" mechanism the order assumed, given CC-A's
+  staging gap is unresolved.
+- **Verified:** 24 new tests (`crons.scheduler.spec.ts`) — each of the 8
+  `scheduledX()` wrappers checked for: no-ops with `CRON_ENABLED` unset;
+  no-ops with any non-`"true"` value (e.g. `"false"`); delegates to its
+  `handleX()` exactly once when `CRON_ENABLED="true"`.
+- **Impact:** `npm run build` clean; money-service now 7 suites / 90 tests,
+  all green.
+
 ### File 6/6 — tests live colocated under `src/` (`.spec.ts`), not under `money-service/test/` as the order's TARGET literally said
 
 - **What:** all ported/new suites live at `money-service/src/{crons,disbursement}/*.spec.ts`

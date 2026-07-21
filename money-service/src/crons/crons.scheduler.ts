@@ -79,6 +79,22 @@ export class CronsScheduler {
   ) {}
 
   /**
+   * Safety toggle (Session 4A-2, added post-CONFIRM at Davin's direction):
+   * with `vercel.json`'s crons still active, a live money-service deploy
+   * would otherwise fire these jobs on the same schedule against the same
+   * production database — a real double-processing risk for
+   * process-pending-disbursements specifically. Every scheduled entry
+   * point below checks this before running; the underlying `handleX()`
+   * methods (used directly by CronTriggerController's manual-trigger
+   * endpoints, File 5/6) are NOT gated — manual triggers are how this
+   * session's actual shadow-run verification happens (fired once, by
+   * hand, after Vercel's own cron completes, to check idempotency).
+   */
+  private isCronEnabled(): boolean {
+    return process.env['CRON_ENABLED'] === 'true';
+  }
+
+  /**
    * Ported from lib/cron/monthly-distribution.ts's own private helper... no —
    * this one is send-monthly-reports/route.ts's inline `generateAffiliateReport`.
    */
@@ -127,7 +143,6 @@ export class CronsScheduler {
   /**
    * Job: check-expiring-subscriptions — vercel.json "0 0 * * *"
    */
-  @Cron('0 0 * * *')
   async handleCheckExpiringSubscriptions(): Promise<CheckExpiringResult> {
     const result = await this.subscriptionCron.checkExpiringSubscriptions();
     logger.info(
@@ -141,7 +156,6 @@ export class CronsScheduler {
    * expiry + expiring/downgrade subscription checks, matching source's
    * 3-task sequence.
    */
-  @Cron('0 4 * * *')
   async handleDailyMaintenance(): Promise<DailyMaintenanceResult> {
     logger.info('[CRON] Starting daily maintenance...');
     const startTime = Date.now();
@@ -202,7 +216,6 @@ export class CronsScheduler {
   /**
    * Job: distribute-codes — vercel.json "0 0 1 * *"
    */
-  @Cron('0 0 1 * *')
   async handleDistributeCodes(): Promise<MonthlyDistributionResult> {
     const result = await this.affiliateCron.runMonthlyDistribution();
     logger.info(`[CRON] Distributed codes to ${result.distributed} affiliates`);
@@ -212,7 +225,6 @@ export class CronsScheduler {
   /**
    * Job: downgrade-expired-subscriptions — vercel.json "0 1 * * *"
    */
-  @Cron('0 1 * * *')
   async handleDowngradeExpiredSubscriptions(): Promise<DowngradeExpiredResult> {
     const result = await this.subscriptionCron.downgradeExpiredSubscriptions();
     logger.info(`[CRON] Downgraded ${result.downgrades.length} users`);
@@ -222,7 +234,6 @@ export class CronsScheduler {
   /**
    * Job: expire-codes — vercel.json "59 23 28-31 * *"
    */
-  @Cron('59 23 28-31 * *')
   async handleExpireCodes(): Promise<ExpireCodesResult> {
     console.log('[CRON] Starting code expiry check...');
     const startTime = Date.now();
@@ -242,7 +253,6 @@ export class CronsScheduler {
   /**
    * Job: process-pending-disbursements — vercel.json "0 2 * * *"
    */
-  @Cron('0 2 * * *')
   async handleProcessPendingDisbursements(): Promise<AutoDisbursementResult> {
     console.log('Starting automated disbursement processing...');
     const result =
@@ -262,7 +272,6 @@ export class CronsScheduler {
   /**
    * Job: send-monthly-reports — vercel.json "0 6 1 * *"
    */
-  @Cron('0 6 1 * *')
   async handleSendMonthlyReports(): Promise<SendMonthlyReportsResult> {
     console.log('[CRON] Starting monthly report distribution...');
     const startTime = Date.now();
@@ -352,7 +361,6 @@ export class CronsScheduler {
   /**
    * Job: sync-riseworks-accounts — vercel.json "0 3 * * *"
    */
-  @Cron('0 3 * * *')
   async handleSyncRiseWorksAccounts(): Promise<AccountSyncResult> {
     console.log('Starting RiseWorks account sync...');
     const result = await this.disbursementProcessor.syncRiseWorksAccounts();
@@ -364,5 +372,98 @@ export class CronsScheduler {
       errorCount: result.errors.length,
     });
     return result;
+  }
+
+  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SCHEDULED ENTRY POINTS — CRON_ENABLED-gated (see isCronEnabled above).
+  // These carry the actual @Cron() decorators; the handleX() methods
+  // above are the shared logic, called directly (ungated) by
+  // CronTriggerController's manual-trigger endpoints.
+  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  @Cron('0 0 * * *')
+  async scheduledCheckExpiringSubscriptions(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped check-expiring-subscriptions — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleCheckExpiringSubscriptions();
+  }
+
+  @Cron('0 4 * * *')
+  async scheduledDailyMaintenance(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped daily-maintenance — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleDailyMaintenance();
+  }
+
+  @Cron('0 0 1 * *')
+  async scheduledDistributeCodes(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped distribute-codes — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleDistributeCodes();
+  }
+
+  @Cron('0 1 * * *')
+  async scheduledDowngradeExpiredSubscriptions(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped downgrade-expired-subscriptions — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleDowngradeExpiredSubscriptions();
+  }
+
+  @Cron('59 23 28-31 * *')
+  async scheduledExpireCodes(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info('[CRON] Skipped expire-codes — CRON_ENABLED is not "true"');
+      return;
+    }
+    await this.handleExpireCodes();
+  }
+
+  @Cron('0 2 * * *')
+  async scheduledProcessPendingDisbursements(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped process-pending-disbursements — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleProcessPendingDisbursements();
+  }
+
+  @Cron('0 6 1 * *')
+  async scheduledSendMonthlyReports(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped send-monthly-reports — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleSendMonthlyReports();
+  }
+
+  @Cron('0 3 * * *')
+  async scheduledSyncRiseWorksAccounts(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped sync-riseworks-accounts — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleSyncRiseWorksAccounts();
   }
 }

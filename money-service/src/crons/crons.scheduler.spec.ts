@@ -210,6 +210,99 @@ describe('CronsScheduler', () => {
     });
   });
 
+  describe('CRON_ENABLED safety gate (scheduled*() wrappers)', () => {
+    const originalEnv = process.env['CRON_ENABLED'];
+
+    afterEach(() => {
+      process.env['CRON_ENABLED'] = originalEnv;
+    });
+
+    const scheduledMethods: Array<
+      keyof Pick<
+        CronsScheduler,
+        | 'scheduledCheckExpiringSubscriptions'
+        | 'scheduledDailyMaintenance'
+        | 'scheduledDistributeCodes'
+        | 'scheduledDowngradeExpiredSubscriptions'
+        | 'scheduledExpireCodes'
+        | 'scheduledProcessPendingDisbursements'
+        | 'scheduledSendMonthlyReports'
+        | 'scheduledSyncRiseWorksAccounts'
+      >
+    > = [
+      'scheduledCheckExpiringSubscriptions',
+      'scheduledDailyMaintenance',
+      'scheduledDistributeCodes',
+      'scheduledDowngradeExpiredSubscriptions',
+      'scheduledExpireCodes',
+      'scheduledProcessPendingDisbursements',
+      'scheduledSendMonthlyReports',
+      'scheduledSyncRiseWorksAccounts',
+    ];
+
+    const underlyingHandlerFor: Record<string, keyof CronsScheduler> = {
+      scheduledCheckExpiringSubscriptions: 'handleCheckExpiringSubscriptions',
+      scheduledDailyMaintenance: 'handleDailyMaintenance',
+      scheduledDistributeCodes: 'handleDistributeCodes',
+      scheduledDowngradeExpiredSubscriptions:
+        'handleDowngradeExpiredSubscriptions',
+      scheduledExpireCodes: 'handleExpireCodes',
+      scheduledProcessPendingDisbursements: 'handleProcessPendingDisbursements',
+      scheduledSendMonthlyReports: 'handleSendMonthlyReports',
+      scheduledSyncRiseWorksAccounts: 'handleSyncRiseWorksAccounts',
+    };
+
+    it.each(scheduledMethods)(
+      '%s no-ops when CRON_ENABLED is unset',
+      async (method) => {
+        delete process.env['CRON_ENABLED'];
+        const handlerName = underlyingHandlerFor[method];
+        const spy = jest.spyOn(
+          scheduler,
+          handlerName as never
+        ) as unknown as jest.SpyInstance;
+
+        await scheduler[method]();
+
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
+      }
+    );
+
+    it.each(scheduledMethods)(
+      '%s no-ops when CRON_ENABLED is any value other than "true"',
+      async (method) => {
+        process.env['CRON_ENABLED'] = 'false';
+        const handlerName = underlyingHandlerFor[method];
+        const spy = jest.spyOn(
+          scheduler,
+          handlerName as never
+        ) as unknown as jest.SpyInstance;
+
+        await scheduler[method]();
+
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
+      }
+    );
+
+    it.each(scheduledMethods)(
+      '%s delegates to its handler when CRON_ENABLED="true"',
+      async (method) => {
+        process.env['CRON_ENABLED'] = 'true';
+        const handlerName = underlyingHandlerFor[method];
+        const spy = jest
+          .spyOn(scheduler, handlerName as never)
+          .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;
+
+        await scheduler[method]();
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        spy.mockRestore();
+      }
+    );
+  });
+
   describe('delegation to Files 2/6-3/6 services', () => {
     it('handleCheckExpiringSubscriptions delegates to SubscriptionCronService', async () => {
       await scheduler.handleCheckExpiringSubscriptions();
