@@ -12,17 +12,15 @@
 ## Current state _(update at the end of EVERY session)_
 
 - **Current:** Session 3-5 CLOSED, executed end-to-end — 2026-07-21. **Phase 3 is
-  functionally done**: the hybrid-auth bridge is proven end-to-end via SSR path
-  and browser path (SVC_TOKEN/service-to-service leg formally descoped, F31,
-  Davin), refresh rotation, revocation, and expiry-rejection all proven, and
-  every auth flag (F6, F7, F23–F30, F31–F33) is RESOLVED in the Decision Log.
-  **One item keeps Phase 3 from being marked fully exit-clean:** F33's Vercel
-  production regression check is Davin's own manual action, per his decision —
-  not yet reported back as of this close (this session's own regression evidence
-  is local-only, real-browser-verified, same Waiting-on #4 gap as always). Phase
-  1 still formally NOT exit-clean (F18 the sole blocker, unchanged). Phase 0
-  still formally open (CC-A gap unchanged, same local-testing workaround as
-  before, `LESSONS-LEARNED.md` L31/L32/L33).
+  fully exit-clean, no outstanding items**: the hybrid-auth bridge is proven
+  end-to-end via SSR path and browser path (SVC_TOKEN/service-to-service leg
+  formally descoped, F31, Davin), refresh rotation, revocation, and
+  expiry-rejection all proven, every auth flag (F6, F7, F23–F33) is RESOLVED in
+  the Decision Log, and F33's production regression check was completed
+  same-session (at Davin's request) directly against the live Vercel URL — see
+  below. Phase 1 still formally NOT exit-clean (F18 the sole blocker,
+  unchanged). Phase 0 still formally open (CC-A gap unchanged, same
+  local-testing workaround as before, `LESSONS-LEARNED.md` L31/L32/L33).
 - **Current order:**
   `docs/migration-orders/3-5-three-path-verification.migration-order.md`
   (CONFIRMED and EXECUTED end-to-end — all entry criteria and "done when" items
@@ -82,16 +80,28 @@
     was pure verification — no new committed tests). `type-check`, `next
 lint`, `npm run build` all clean. `operation-service`: 7/7 suites, 56/56
     tests; build clean.
+  - **F33 production check completed same-session, at Davin's request**
+    (supersedes his own "I'll check it personally" call): the "no Vercel
+    access" gap (Waiting-on #4) turns out to block only Vercel dashboard/CLI
+    access, not the live public site — a real browser hit
+    `https://trading-alerts-saas-frontend.vercel.app` directly and confirmed
+    NextAuth is fully intact and unregressed: `/login` 200 (correct rendered
+    content), `/api/auth/session` → `{}`, `/dashboard` redirects logged-out,
+    `/api/auth/providers` shows all 3 providers with correct URLs, zero
+    console errors. Fully unauthenticated checks, no login attempted. New
+    `LESSONS-LEARNED.md` L35 generalizes this so future sessions don't
+    rediscover it.
 - **Waiting on:** (1, non-blocking, unchanged) `deploy.yml` still fails on every push
   to `main` at the GitHub workflow-file level (0s runtime) — known NOT to block real
   Vercel deploys, just dead/broken CI hygiene, not urgent. (2, RESOLVED Session 2-3,
   unchanged) Production's Prisma migration history is baselined — F20 closed. (3,
   non-blocking, unchanged) F18's RPO gap — Railway automated-backup cadence still
-  unverified via CLI (dashboard-only). (4, unchanged, carried over) Davin to grant
-  Vercel dashboard/preview-branch access — still the reason "confirm production
-  regression-free" claims in every 3-x session (now also 3-5's real-browser check)
-  have only ever been checked via the local dev server, never the real deployed
-  Vercel app. (5, unchanged, carried over) A human with delete permission to
+  unverified via CLI (dashboard-only). (4, unchanged, narrowed by L35) Davin to
+  grant Vercel dashboard/preview-branch access — still blocks anything needing
+  deployment logs, env-var inspection, or build status. Does NOT block
+  read-only regression checks against the live public site, which Session 3-5
+  proved work fine with just the known production URL (no dashboard access
+  needed) — see L35. (5, unchanged, carried over) A human with delete permission to
   remove 5 remote stale branches (`HTTP 403` on `git push --delete` from this
   environment's credential). (6, unchanged, carried over) `railway`'s
   `tcp-proxy`/`private-network` CLI commands still not verified — low priority.
@@ -118,11 +128,13 @@ lint`, `npm run build` all clean. `operation-service`: 7/7 suites, 56/56
   the real production Vercel domain (same confirmation). (23, unchanged, low
   priority) any future operation-service Railway deploy must use `railway up
 ./operation-service --path-as-root --service operation-service --environment
-  production --ci --json` from the repo root (L33). **(24, NEW, non-blocking,
-  Davin's own action item)** F33's Vercel production regression check is still
-  outstanding — Davin's explicit choice to do this manually and confirm back to
-  Claude Code (DECISION-LOG.md); Phase 3's "NextAuth still functional on
-  Vercel" exit criterion stays open until he reports back. **(25, NEW,
+  production --ci --json` from the repo root (L33). **(24, RESOLVED Session
+  3-5)** F33's Vercel production regression check — Davin asked for it to be
+  run same-session rather than waiting for his own separate manual pass; a
+  real browser hit the live production URL directly and confirmed NextAuth
+  fully intact (see this session's "What shipped" above and
+  `LESSONS-LEARNED.md` L35: the Vercel-access gap only blocks dashboard/CLI
+  access, not the public site). **(25, NEW,
   non-blocking, Davin decision needed before Session 4A-1 can be APPROVED)**
   F15 (Redis topology for money-service) and F16 (public URL scheme + `/v1`
   versioning) both need Davin's decision — flagged in the 4A-1 PRE-DRAFT, a
@@ -135,8 +147,11 @@ lint`, `npm run build` all clean. `operation-service`: 7/7 suites, 56/56
   revocation/expiry-rejection, found and flagged (not fixed) that the live
   access token is actually 30 days not the plan's intended ~15 minutes,
   confirmed Davin's F32 Railway env-var fixes are live, and closed out every
-  remaining Phase 3 flag in the Decision Log. Full regression suite green, zero
-  drift from Session 3-4's baseline.
+  remaining Phase 3 flag in the Decision Log. At Davin's same-session request,
+  also completed F33's production regression check directly against the live
+  Vercel URL (discovered the Vercel-access gap only blocks dashboard/CLI
+  access, not the public site — L35) — Phase 3 closed with zero outstanding
+  items. Full regression suite green, zero drift from Session 3-4's baseline.
 - **Next session:** Session 4A-1 ("money-service: skeleton + deploy") per the
   playbook — the start of Phase 4A. **PRE-DRAFTed** at this close:
   `docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md`
@@ -183,9 +198,9 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   (Session 3-4)** — CORS confirmed unnecessary, server-side proxying continues ·
   **F31 fully RESOLVED (Session 3-5)** — SVC_TOKEN leg descoped, pure VERIFY-RETIRE
   for SSR + browser legs · **F32 fully RESOLVED (Session 3-5)** — Davin set both
-  missing Railway env vars, confirmed live at CONFIRM · **F33 RESOLVED-as-decided
-  (Session 3-5)** — Davin's own manual Vercel check, decision made but the check
-  itself still outstanding (Waiting-on #24) ·
+  missing Railway env vars, confirmed live at CONFIRM · **F33 fully RESOLVED
+  (Session 3-5)** — production check completed same-session against the live
+  Vercel URL, NextAuth confirmed unregressed, no outstanding items ·
   F8–F16 OPEN (F15/F16 due next session, 4A-1 · register: plan §11 · resolutions:
   `docs/migration-orders/DECISION-LOG.md`)
 

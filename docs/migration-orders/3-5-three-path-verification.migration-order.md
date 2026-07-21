@@ -1,9 +1,11 @@
 # Migration Order — Three-path verification (Phase 3 exit)
 
-> **Status: CONFIRMED, EXECUTED** — F31/F32/F33 decisions resolved by Davin
-> (DECISION-LOG.md); re-verified against live code + Railway runtime state
-> 2026-07-21. Executed as a pure VERIFY-RETIRE session covering the SSR and
-> browser legs only (SVC_TOKEN leg descoped per F31).
+> **Status: CONFIRMED, EXECUTED, CLOSED — Phase 3 fully exit-clean.**
+> F31/F32/F33 decisions resolved by Davin (DECISION-LOG.md); re-verified
+> against live code + Railway runtime state 2026-07-21. Executed as a pure
+> VERIFY-RETIRE session covering the SSR and browser legs only (SVC_TOKEN leg
+> descoped per F31). F33's production check completed same-session at Davin's
+> request — zero outstanding items remain.
 > **Session:** 3-5 · **Phase:** Phase 3 — Hybrid (Dual) JWT Authentication,
 > plan step 3.5 · **Variant:** VERIFY-RETIRE
 > **Flags touched:** F31 (SVC_TOKEN Verification), F32 (Missing Environment Variables), F33 (Vercel Production Check).
@@ -123,10 +125,15 @@ backup-codes,disable}` — see `migration-stack-analysis.md`'s Session 3-4 entry
 - [x] Token revocation proven.
 - [x] Token expiry rejection proven (via a synthetically-minted expired token —
       see the CONFIRM note's flagged finding on the live access-token TTL).
-- [x] All auth flags (F6, F7, F23–F30, F31–F33) resolved in `DECISION-LOG.md`.
-- [ ] NextAuth confirmed regression-free **on production Vercel** — Davin's own
-      manual check (F33), not yet reported back as of this session's close. Local
-      regression checks (real browser this session) all pass.
+- [x] All auth flags (F6, F7, F23–F33) resolved in `DECISION-LOG.md`.
+- [x] NextAuth confirmed regression-free **on production Vercel** — checked
+      directly this session (same-session follow-up, Davin's request): a real
+      browser hit `https://trading-alerts-saas-frontend.vercel.app` directly
+      (the "no Vercel access" gap blocks dashboard/CLI access, not the public
+      site itself — new `LESSONS-LEARNED.md` L35). `/login` 200 with correct
+      rendered content, `/api/auth/session` → `{}`, `/dashboard` redirects
+      logged-out, `/api/auth/providers` shows all 3 providers intact, zero
+      console errors. No login attempted, fully unauthenticated checks.
 - [x] Full regression suite green: root 117/117 suites/2082/2082 tests,
       type-check/lint/build clean; operation-service 7/7 suites/56/56 tests,
       build clean.
@@ -215,18 +222,27 @@ Bearer` to operation-service's `JwtAuthGuard`-protected `/auth/2fa/status`) → 
    `next lint`, and `npm run build` all clean. `operation-service`: `npm test` —
    7/7 suites, 56/56 tests; `npm run build` clean.
 
-7. **F33 (Vercel production regression check) still outstanding from Davin's
-   side** — Davin's own decision was to perform this manually and confirm back
-   (DECISION-LOG.md); this session's own regression evidence (item 4 above) is
-   local-only, same Vercel-access gap as every prior 3-x session
-   (CLAUDE.md Waiting-on #4). Phase 3's "NextAuth still functional on Vercel"
-   exit criterion is NOT marked closed by this session — it's marked closed once
-   Davin reports back. See CLAUDE.md's Waiting-on for the carried-forward item.
+7. **F33 (Vercel production regression check) — resolved same-session, at
+   Davin's request, superseding his own "I'll do it personally" call.** The
+   "no Vercel access" gap (Waiting-on #4) turns out to block Vercel
+   dashboard/CLI access only, not the live public site itself — every prior
+   session's regression check is read-only/unauthenticated and needs nothing
+   but the production URL, already known from `operation-service`'s own
+   `NEXTAUTH_URL` Railway variable. Checked directly via a real browser
+   against `https://trading-alerts-saas-frontend.vercel.app`: `/login` → 200
+   with correct rendered content (form fields, OAuth options, sign-up link),
+   `/api/auth/session` → `{}`, `/dashboard` → redirect for a logged-out
+   request, `/api/auth/providers` → all 3 providers intact with correct
+   callback URLs, zero console errors. No login attempted anywhere — fully
+   unauthenticated, same class of check as every local walkthrough. New
+   `LESSONS-LEARNED.md` L35 generalizes this so future sessions don't
+   rediscover it. **Phase 3's "NextAuth still functional on Vercel" exit
+   criterion is now closed — no outstanding items remain.**
 
 ## Next-session handoff
 
-Phase 3 is done (pending Davin's F33 confirmation only — a reporting gap, not a
-blocking one). Per the playbook, Phase 4A begins next:
+Phase 3 is fully done — every exit criterion met, no outstanding items. Per
+the playbook, Phase 4A begins next:
 `docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md`
 (PRE-DRAFT, this close) — an INFRA-variant session (money-service NestJS
 skeleton + Railway deploy + `money_svc`/PgBouncer wiring), **not** VERIFY-RETIRE,

@@ -771,6 +771,35 @@ failed`, even with the exact credentials `docker-compose.dev.yml` declares.
 - Source: Session 3-4 (`operation-service` deploy, 2FA/email-flow endpoints),
   2026-07-21 · Status: ACTIVE
 
+### L35 — "No Vercel dashboard access" blocks dashboard/CLI actions, not reaching the live public site
+
+- Symptom: three consecutive sessions (3-3, 3-4, 3-5) recorded "confirm NextAuth
+  production regression-free" as blocked by the standing Vercel-access gap
+  (Waiting-on #4) and only ever ran the regression check against the local dev
+  server — until Session 3-5 was explicitly asked to check production directly
+  and it worked on the first try, no new access of any kind required.
+- Root cause: conflated two different gaps. Vercel dashboard/CLI access
+  (deployment logs, env-var inspection, build status, preview-branch listing)
+  genuinely doesn't exist in this environment. But the production URL is
+  public — a real browser (or plain HTTP) can hit it directly, and every prior
+  session's own "regression check" (`/login` 200, NextAuth's
+  `/api/auth/session` → `{}`, `/dashboard` redirect for a logged-out request)
+  is entirely unauthenticated and read-only. None of that needs a Vercel
+  account at all, only the URL — which was already sitting in
+  `operation-service`'s own `NEXTAUTH_URL` Railway variable the whole time.
+- Rule: before writing off a "confirm production behavior" step as blocked by
+  the Vercel-access gap, ask whether the specific check is read-only/
+  unauthenticated against the public site (works with just the URL) or
+  actually needs dashboard/CLI-level information (deployment status, env-var
+  values, logs — genuinely still blocked). Don't generalize one gap into the
+  other without checking which kind of check is actually needed.
+- Detect early: if a "verify production" step only needs a GET/fetch against
+  known public routes with no auth, no dashboard login is required — just
+  navigate a browser (or Node fetch) to the real production URL directly.
+- Source: Session 3-5 (Davin explicitly requested the check; it succeeded
+  immediately against `https://trading-alerts-saas-frontend.vercel.app`),
+  2026-07-21 · Status: ACTIVE
+
 ---
 
 ## Archive

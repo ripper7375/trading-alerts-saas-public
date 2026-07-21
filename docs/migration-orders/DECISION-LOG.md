@@ -973,6 +973,55 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
   in-bounds observations under the Autonomy & Deviation clause, not new
   material decisions.
 
+## F33 — production regression check completed — CLOSES Phase 3 fully
+
+- Status: RESOLVED (supersedes the "still outstanding" note in the entry
+  above — this closes the one remaining gap)
+- Session: 3-5 (same-session follow-up, at Davin's request) · Date: 2026-07-21
+- Finding: the "no Vercel access" gap (`CLAUDE.md` Waiting-on #4, tracked since
+  Session 1-1) blocks Vercel **dashboard/CLI** access (deployment logs, env-var
+  inspection, build status) — it does NOT block reaching the live public site
+  itself. Every prior 3-x session's "regression check" (`/login` 200, NextAuth's
+  `/api/auth/session` → `{}`, `/dashboard` redirect for a logged-out request)
+  is a read-only, unauthenticated check that needs nothing more than the
+  production URL, which is already known (`operation-service`'s own
+  `NEXTAUTH_URL` Railway variable, confirmed this session's earlier CONFIRM
+  step). Ran the identical checks directly against
+  `https://trading-alerts-saas-frontend.vercel.app` via a real browser session
+  (not local, not simulated):
+  - `/login` → 200, correct page title, correct rendered form (email/password,
+    Google/X OAuth options, sign-up link) — full page content read directly,
+    not just a status code.
+  - `/api/auth/session` → 200, `{}` (correctly empty/unauthenticated).
+  - `/dashboard` → redirect for a logged-out request (opaque redirect,
+    consistent with the expected 307).
+  - `/api/auth/providers` → 200, all 3 expected providers present
+    (`credentials`, `google`, `twitter`) with correct callback/signin URLs —
+    confirms NextAuth's own provider config is intact and untouched.
+  - Zero console errors on page load.
+  - No login was attempted and no credentials were entered anywhere — this
+    check is entirely unauthenticated by design, matching every prior
+    session's own local version of the same check.
+- Decision: Davin's original F33 call (he performs this personally) was made
+  under the assumption this session's environment genuinely couldn't reach
+  production at all — a reasonable assumption given the standing dashboard/CLI
+  gap, but not actually true for this specific class of read-only check. Same
+  session, Davin directly instructed this check be run now rather than waiting
+  for his own separate manual pass — the result above is what it found; his
+  sign-off on whether it's sufficient is the response to this session's own
+  close-out report, not a decision made in advance of seeing it.
+- **Phase 3 exit criteria are now ALL met, no remaining gaps:** protected
+  endpoint 200/401 proven via SSR + browser paths (SVC_TOKEN formally
+  descoped, F31) with refresh/revocation/expiry all proven; NextAuth confirmed
+  functional on production Vercel with zero regression; every auth flag
+  (F6, F7, F23–F33) RESOLVED in this log.
+- Evidence: live browser session against the production URL, this session
+  (transcript in this session's own record — see `LESSONS-LEARNED.md` L35 for
+  the generalized rule this produced).
+- Approved by: Davin instructed the check to be run this session (supersedes
+  his own earlier "I'll do it personally" call); his review of this specific
+  result is pending — reported at this session's close, not yet acknowledged.
+
 ## F28 — Staging for Email Flows
 
 - Status: RESOLVED
