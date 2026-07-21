@@ -800,6 +800,34 @@ failed`, even with the exact credentials `docker-compose.dev.yml` declares.
   immediately against `https://trading-alerts-saas-frontend.vercel.app`),
   2026-07-21 · Status: ACTIVE
 
+### L36 — Don't copy a working service's Prisma `ssl` config to a new service without checking what it actually connects to
+
+- Symptom: money-service's first Railway deploy came up ● Online, but `/health` reported
+  `database: down` — `Error opening a TLS connection: The server does not support SSL
+connections`. The `PrismaService` code was byte-copied from operation-service's own
+  (already proven live in production), including `ssl: { rejectUnauthorized: false }` on
+  the `PrismaPg` adapter.
+- Root cause: `node-postgres`'s `ssl` option, once set to any truthy value, always
+  attempts a TLS handshake before authentication even starts. operation-service's copy of
+  this code works — but money-service's `DATABASE_URL` genuinely routes through
+  `pgbouncer.railway.internal` per its own order's explicit instruction, and PgBouncer's
+  listener in this environment rejects TLS outright. Whatever operation-service's own
+  `DATABASE_URL` actually resolves to (never printed, per the "never printed" secret
+  policy) must be reachable over TLS, or the identical code wouldn't work there — the two
+  services' connection targets are NOT interchangeable even though the code was.
+- Rule: when porting a `PrismaService`/database-adapter pattern from one already-working
+  service to a brand-new one, don't assume `ssl`/TLS options transfer unchanged just
+  because the code compiles and the source service works — the actual network path
+  (direct-to-Postgres vs. through PgBouncer vs. a different pooler) determines whether TLS
+  is even offered. Deploy once, check `/health`'s (or equivalent) database status, and
+  read the error text literally — "does not support SSL connections" means remove `ssl`,
+  it does not mean the credentials are wrong.
+- Detect early: if a freshly-deployed service's DB healthcheck fails with a TLS-negotiation
+  error (not an auth error like "password authentication failed" or "role does not
+  exist"), the failure is happening before authentication is even attempted — fix the TLS
+  option first, re-deploy, and only then re-diagnose if a real auth error surfaces.
+- Source: Session 4A-1 (money-service's first deploy), 2026-07-21 · Status: ACTIVE
+
 ---
 
 ## Archive

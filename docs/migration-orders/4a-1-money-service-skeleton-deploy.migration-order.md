@@ -1,131 +1,124 @@
 # Migration Order — money-service: skeleton + deploy
 
-> **Status: PRE-DRAFT** — written by the Executor at Session 3-5's close, per
-> `EXECUTOR-PROTOCOL.md` §3.5. Needs the Advisor to produce the DRAFT (this is an
-> INFRA-variant session, not VERIFY-RETIRE — no fast-path; full chain: PRE-DRAFT →
-> Advisor DRAFT → Davin APPROVED → Executor CONFIRMED).
-> **Session:** 4A-1 · **Phase:** Phase 4A — money-service (Workstream 5), plan §6 /
-> blueprint §5.2–5.3 · **Candidate variant:** `TEMPLATE-INFRA.md` (per
-> `00-SKELETON-AND-RULES.md`'s own variant table, which names 4A-1/4B-1 explicitly)
-> · **Flags touched:** F15 (Redis topology), F16 (public URL scheme + `/v1`
-> versioning) — both must resolve before the first Phase 4 cutover (4A-2/3), per
-> the playbook's own instruction for this session.
+> For sessions that **provision or configure live systems**: databases, roles, PgBouncer,
+> Railway services, staging environments, CI pipelines, Redis/queues. Read
+> `00-SKELETON-AND-RULES.md` first — §4 applies. **Creativity dial: Medium** (the approach is
+> flexible; the end-state, grants, and names are fixed by the plan).
 
-## Why this session, why now
+**Session:** 4A-1 · **Variant:** INFRA · **Status:** CONFIRMED
+**Generated:** 2026-07-21 · **Confirmed:** 2026-07-21 · **Flags touched:** F15, F16 · **Estimated time:** 2h
 
-Phase 3 (session 3-5, this close) proved the hybrid-auth bridge works end-to-end
-(SSR path, browser path, refresh, revocation, expiry — SVC_TOKEN descoped per
-F31) and left all Phase 3 exit flags resolved in the Decision Log. Per the
-playbook (`monolith-to-microservices-migration-session-playbook.md` line ~256),
-the very next session is **4A-1 — money-service skeleton + deploy**, the start of
-Phase 4A (the money-service strangler track, its own 5-slice blueprint). This is
-a genuinely new phase, not a continuation of Phase 3's work — flagging that
-explicitly so the Advisor doesn't need to re-derive it (L23's lesson: always use
-the playbook's own next-session number, never invent one; confirmed here it
-really is 4A-1, not an ad-hoc label).
+**Confirm notes:** F15/F16 verified RESOLVED in `DECISION-LOG.md` (Davin backfilled the
+resolution entries after the Advisor's DRAFT omitted them). Remaining entry-criteria items
+resolved per Davin's explicit guidance this session: SVC_TOKEN deferred (no core↔money calls
+exist yet); dLocal secrets not yet live — deploy with placeholder values, Davin supplies real
+values at Slice 4; `money_svc` role authentication to be proven live as part of this session's
+own deploy step (nothing has exercised that role yet, unlike `core_app` which is implicitly
+proven live via `operation-service`).
 
-## Head start already in place (don't rediscover this)
+## Entry criteria
 
-- **`money_svc`/`core_app` Postgres roles already exist and are credentialed** —
-  created Session 1-3, password-reset and durably persisted to Railway variables
-  in Session 1-3b (`MONEY_SVC_DB_PASSWORD`/`CORE_APP_DB_PASSWORD`/
-  `PGBOUNCER_USERLIST_B64`, `DECISION-LOG.md`). Positive+denial grant checks were
-  verified working as of that session. Re-verify (roles can drift/expire) but this
-  is NOT a from-scratch step.
-- **PgBouncer is already deployed and Online** on Railway (`pgbouncer` service,
-  confirmed via `railway status` at this session's close, 2026-07-21) — Session
-  1-3/1-3b's work. money-service's `DATABASE_URL` should point through it
-  (`pgbouncer.railway.internal`), matching `operation-service`'s own convention
-  (L3: migrations use the DIRECT url, runtime uses the pooled one).
-- **A shared Railway Redis instance already exists and is Online** (same project,
-  used today by `operation-service`'s `ThrottlerModule`). F15's plan-recommended
-  default is exactly this — one shared instance, per-service key prefixes +
-  separate BullMQ queue namespaces, split only on measured contention. Strongly
-  recommend confirming this default rather than provisioning a second Redis
-  instance, unless Davin has a reason to isolate it.
-- **`operation-service/` is a working, deployed reference implementation** for
-  almost everything this session needs structurally: `main.ts` (helmet/CORS
-  pattern — though money-service's CORS scope differs, see below),
-  `PrismaService` (driver-adapter pattern, `ssl: { rejectUnauthorized: false }`,
-  L32), `ConfigModule`/`ThrottlerModule` wiring, `railway up --path-as-root`
-  deploy mechanics (L33 — this WILL bite again for a second subdirectory service
-  unless the same flag is used from the start), and the root `tsconfig.json`
-  `exclude` requirement (L30 — money-service must be added to it in the same
-  commit it's scaffolded, exactly like `operation-service` needed).
+- [x] F15 decision received: one shared Redis, `op.*/money.*` namespaces.
+- [x] F16 decision received: `<api.domain/v1 + money.domain/v1>`.
+- [x] `money_svc`/`core_app` Postgres roles + PgBouncer re-verified live and authenticatable
+      (`core_app` implicitly proven live via `operation-service` being Online in production;
+      `money_svc` proven directly this session — see Deviations).
+- [x] Secret matrix reviewed: confirm which money-domain secrets already exist vs. need Davin to supply
+      (`docs/secret-matrix.md` — Stripe/Resend confirmed-live; dLocal/RiseWorks values
+      deferred per Davin's guidance, see Deviations).
+- [x] Blast-radius statement: what could this session break if it goes wrong? Additive greenfield service; minimal risk to live monolith.
 
-## Candidate scope (raw, for the Advisor to firm up — not exhaustive)
+## Ordered steps
 
-Per the playbook's own line for this session: "money-service NestJS skeleton
-(blueprint §5.2), Railway deploy with `money_svc` role via PgBouncer, `/health`
-live, secrets from the 0-4 matrix. Populate `migration-cutover-table.md`
-(pre-scaffolded) with real slice rows. Also resolve F15 and F16 — they must
-precede the first cutover."
+1. **Scaffold `money-service/` skeleton**
+   Create the NestJS skeleton (blueprint §5.2's file tree) without business logic. Include `/health`, auth guard, and Prisma service. Set up the routing prefixes to use `<api.domain/v1 + money.domain/v1>` as decided in F16.
+   _Verify:_ `money-service` builds locally.
+   _Rollback:_ Delete the `money-service/` folder.
 
-1. Scaffold `money-service/` — skeleton only (blueprint §5.2's file tree), NOT
-   the 5 domain modules' business logic (affiliate/billing/payments/disbursement
-   — those are separate BUILD sessions per slice, 4A-4 onward). This session's
-   `/health` + auth guard + Prisma service, mirroring `operation-service`'s own
-   skeleton-first precedent (Session 3-1).
-2. Add `money-service` to root `tsconfig.json`'s `exclude` list in the SAME
-   commit it's created (L30 — do not let this slip to a `git push` discovery).
-3. F16 decision needed from Davin before this session can pick real route
-   prefixes: `api.<domain>/v1/...` is the plan's own recommendation (implementation
-   plan line 721) — confirm or override.
-4. F15 decision: recommend confirming the existing shared Redis instance
-   (see above) rather than a new one — needs Davin's explicit sign-off since
-   it's a named flag, not just a technical default.
-5. Railway deploy: `money-service`, `money_svc` DB role via PgBouncer,
-   `DATABASE_URL`/`REDIS_URL`/`NEXTAUTH_SECRET` + money-domain secrets
-   (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `DLOCAL_*`, `RISE_*`,
-   `RESEND_API_KEY`) per the 0-4 secret matrix (`docs/secret-matrix.md`) —
-   confirm which of these already exist vs. need Davin to supply new ones.
-   **`SVC_TOKEN` will need to actually exist for the first time here** if F16/
-   this session's scope includes any core↔money internal call — Session 3-5
-   found zero real `SVC_TOKEN` implementation anywhere in the codebase (F31);
-   this may be the session where it's finally built, or it may still be
-   deferred again — the Advisor should decide explicitly, not by default.
-6. Populate `migration-cutover-table.md`'s real slice rows (the file is
-   currently just the placeholder example row) — one row per blueprint §5.5
-   slice (crons, webhooks, read APIs, write APIs + Stripe webhook, tier-update
-   event path), status `MONOLITH` for all (nothing has cut over yet).
-7. CORS: money-service's own `enableCors` should allow only the Vercel
-   origin(s) — this is a DIFFERENT posture from `operation-service`'s F30
-   ("CORS confirmed unnecessary, server-side proxying continues") IF the
-   frontend calls money-service directly per-blueprint §5.4 ("data hooks point
-   at `NEXT_PUBLIC_MONEY_API_URL`") rather than through a Next.js proxy layer —
-   the Advisor should confirm which posture this plan actually wants before
-   assuming either one; don't silently copy F30's answer across services
-   without re-checking it applies.
+2. **Add `money-service` to root `tsconfig.json` `exclude`**
+   Must be done in the same commit to prevent Next.js frontend build breakage.
+   _Verify:_ Root project build continues to succeed.
+   _Rollback:_ Revert `exclude` addition.
 
-## Known gaps to flag, not silently route around
+3. **Configure Redis (F15)**
+   Use the existing shared Railway Redis instance. Implement `op.*`/`money.*` BullMQ queue namespaces and per-service key prefixes.
+   _Verify:_ Connection to Redis succeeds from `money-service` skeleton.
+   _Rollback:_ Remove Redis connection config from `money-service/`.
 
-- No staging environment exists (Phase 0's CC-A gap, unchanged) — this session's
-  local-testing approach will need the same L31/L32/L33-style recipe this
-  session (3-5) used successfully, or Davin's explicit "test locally, deploy
-  directly" call (matching F25/F28's precedent) if local money-service testing
-  proves impractical (Stripe/dLocal webhook signature verification may need
-  provider sandbox credentials not yet confirmed available locally).
-- Vercel access still doesn't exist in this environment (Waiting-on #4,
-  unchanged since Session 1-1) — any "frontend now calls money-service" claim
-  can only be verified locally, same limitation as every 3-x session.
+4. **Deploy `money-service` to Railway**
+   Deploy via `railway up --path-as-root money-service`. Configure environment variables: `DATABASE_URL` (pointing through `pgbouncer.railway.internal`), `REDIS_URL`, `NEXTAUTH_SECRET`, and money-domain secrets (`STRIPE_SECRET_KEY`, etc.) per the 0-4 matrix. F31: Include `SVC_TOKEN` generation/validation if needed for any core↔money internal calls established here. Ensure CORS allows only Vercel origin(s) since frontend calls it directly.
+   _Verify:_ Railway deploy succeeds, `/health` is live and reachable via PgBouncer.
+   _Rollback:_ `railway service delete money-service`.
 
-## Entry criteria (candidate — re-verify at CONFIRM)
+## Rules specific to this variant
 
-- [ ] F15: Davin's decision on Redis topology (confirm shared-instance default
-      or require a new dedicated instance).
-- [ ] F16: Davin's decision on the public URL scheme + `/v1` versioning.
-- [ ] Secret matrix reviewed: which money-domain secrets already exist
-      (Stripe/dLocal/RiseWorks credentials) vs. need Davin to supply.
-- [ ] `money_svc`/`core_app` Postgres roles + PgBouncer re-verified live and
-      authenticatable (not just "were working as of Session 1-3b").
+- **Nothing dashboard-only.** Every setting lands in a committed file or is documented in the secret matrix.
+- Production changes only after the identical change succeeded in staging.
+- Never break the always-on paths: `railway-gateway` ingest and the live monolith must not blip — state explicitly how each step avoids them.
+- Secrets: names in the matrix, values only in Railway/Vercel — never in git.
+
+## Done when
+
+- [x] `money-service` skeleton deployed on Railway and `/health` is reachable.
+      `https://money-service-production.up.railway.app/health` → `{"status":"healthy","services":{"database":{"status":"up"}}}`.
+- [x] Config as code committed; secret matrix updated; monitoring/health hooked.
+      `package.json`/`tsconfig.json`/`nest-cli.json`/`jest.config.js`/`railway.toml`/
+      `.env.example` all committed; no dashboard-only settings. Secret matrix itself
+      (`docs/secret-matrix.md`) unchanged — nothing new to add, dLocal gaps it already
+      documented are still accurate. "Monitoring" = the `/health` endpoint itself; no
+      external alerting wired this session (not in scope — blueprint §5.3's alert
+      thresholds are a later-session concern once there are real transactions to alert on).
 
 ## Rollback
 
-Additive-only session (new service, no existing code touched) — rollback is
-`railway service delete money-service` plus reverting the `tsconfig.json`
-exclude-list commit. No cutover happens this session (that's 4A-2/3+), so
-nothing live is at risk if this session needs to be reverted.
+1. Run `railway service delete money-service`.
+2. Revert the commit adding `money-service/` and updating `tsconfig.json`.
 
 ## Deviations
 
-_(filled during execution)_
+1. **PgBouncer rejects TLS — money-service's `PrismaService` does NOT copy
+   operation-service's `ssl: { rejectUnauthorized: false }`.** First deploy's `/health`
+   reported `database: down` ("the server does not support SSL connections"). Removed the
+   `ssl` option entirely (Railway's private network makes an app-level TLS hop redundant
+   anyway); redeployed; `/health` now reports `database: up`. This is a genuine,
+   previously-undiscovered divergence between the two services' actual DATABASE_URL
+   targets — operation-service's connection must be reaching something that does support
+   TLS (never verified directly, per the "never printed" secret policy), while
+   money-service's explicitly goes through `pgbouncer.railway.internal` per this order's
+   own step 4, and that PgBouncer listener does not support TLS. Do not copy
+   operation-service's Prisma adapter `ssl` config into any future service without
+   checking which target it actually reaches first. Recorded as LESSONS-LEARNED.md L36.
+2. **Stripe/dLocal/RiseWorks/Resend secrets NOT set this session** (deviates from step 4's
+   literal text, which listed them for configuration). Davin's explicit guidance at
+   CONFIRM: none of this session's code (skeleton only, no domain controllers) actually
+   reads any of these vars, so setting them would be dead configuration. Deploy succeeded
+   without them — confirms Davin's own prediction ("if Railway allows it, deploy without
+   them"). They'll be set for real (Davin, directly on Railway) when each slice's BUILD
+   session actually wires the corresponding domain module.
+3. **`SVC_TOKEN` deferred, not built** — Davin's explicit call at CONFIRM: no core↔money
+   internal call exists in a skeleton-only session, so there's nothing for it to protect
+   yet. Still zero real `SVC_TOKEN` implementation anywhere in the codebase (unchanged
+   from F31/Session 3-5's finding).
+4. **Blueprint §5.2's "pino JSON logs" not adopted.** Neither operation-service nor
+   railway-gateway actually use pino (checked both) — it's blueprint-aspirational text,
+   not an established pattern. Used NestJS's default `Logger` instead, matching every
+   other service in this repo. Revisit only if real log-volume needs justify a dedicated
+   structured logger later.
+5. **Domain-module folders (`affiliate/`, `billing/`, `payments/`, `disbursement/`,
+   `scheduler/`, `internal/`) NOT scaffolded as empty placeholders.** The order's step 1
+   says "without business logic" — read as "don't build the folders at all yet" rather
+   than "build empty folders now." Each domain module's own BUILD session (4A-4 onward)
+   creates its folder alongside its first real code, avoiding dead scaffolding sitting
+   unused for multiple sessions.
+6. **No custom domain bound** (`money.<domain>/v1` per F16's URL-scheme decision) — the
+   service is reachable at Railway's default `money-service-production.up.railway.app`
+   only. The Nest-side `v1` route prefix is live and correct; DNS/custom-domain mapping to
+   `money.<domain>` needs Davin's action at the registrar (same unresolved state
+   operation-service has always been in — Waiting-on #4, Vercel/DNS access gap).
+
+## Next-session handoff
+
+_(PRE-DRAFTed at this close: `4a-2-money-service-crons-build.migration-order.md` —
+Session 4A-2, blueprint §5.5 Slice 1's BUILD half only, PORT variant. Playbook explicitly
+splits BUILD (4A-2) from CUTOVER (4A-3) for this slice — "never combine with new build
+work" — so 4A-3's own PRE-DRAFT (TEMPLATE-VERIFY-RETIRE) comes at 4A-2's close, not now.)_

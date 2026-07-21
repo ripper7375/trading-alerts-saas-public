@@ -1711,6 +1711,45 @@ content not file count)</summary>
 
 </details>
 
+<details>
+<summary><code>money-service/</code> — 17 files (new, Session 4A-1)</summary>
+
+BUSINESS FUNCTION service (see line ~114 above) — NestJS 11.1.28 / Prisma 7.8.0, same pins
+as operation-service (F2/F19). Scaffolded and deployed this session: skeleton only — `/health`,
+NextAuth JWE auth guard (same F6/F7 bridge, ported from operation-service), Prisma service
+authenticating as the `money_svc` role through PgBouncer (proven live in production this
+session), Redis wired under the `money.*` namespace (F15, shared instance with
+operation-service, not a dedicated one). No domain business logic yet — affiliate/billing/
+payments/disbursement/scheduler modules are later BUILD sessions, 4A-4 onward; their folders
+were deliberately not pre-stubbed (see the order's Deviations). Prisma schema is still
+model-less (generate-only, zero models — same convention operation-service's own
+schema.prisma started with). Deployed to Railway (`money-service-production.up.railway.app`);
+custom domain (`money.<domain>` per F16) not yet bound (DNS is Davin's action, same
+unresolved gap operation-service has always had).
+
+- `money-service/.env.example`
+- `money-service/jest.config.js`
+- `money-service/nest-cli.json`
+- `money-service/package-lock.json`
+- `money-service/package.json`
+- `money-service/prisma/schema.prisma` (generate-only, zero models this session — same
+  as operation-service's own starting point)
+- `money-service/railway.toml` (committed as-code; deployed this session, unlike
+  operation-service's own railway.toml which was committed a session before its first deploy)
+- `money-service/src/app.module.ts`
+- `money-service/src/auth/jwt-auth.guard.spec.ts`
+- `money-service/src/auth/jwt-auth.guard.ts`
+- `money-service/src/auth/next-auth-jwt.util.ts`
+- `money-service/src/health/health.controller.ts` (`/health`, `/health-auth`)
+- `money-service/src/health/health.module.ts`
+- `money-service/src/main.ts` (global `v1` route prefix per F16, excluding `/health`)
+- `money-service/src/prisma/prisma.module.ts`
+- `money-service/src/prisma/prisma.service.ts` (no `ssl` option — PgBouncer here rejects
+  TLS, unlike whatever operation-service's own DATABASE_URL reaches; LESSONS-LEARNED.md L36)
+- `money-service/src/queue/queue.constants.ts` (`money:`/`money` key/queue prefixes, F15)
+
+</details>
+
 ---
 
 **Compiled:** 2026-07-08

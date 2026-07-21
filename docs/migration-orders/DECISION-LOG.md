@@ -36,8 +36,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F12  | Whole-plan duration estimate                                                  | OPEN — revisit after F1–F5                                                                                             |
 | F13  | Observability/tracing backend                                                 | OPEN — due by first Phase 4 cutover                                                                                    |
 | F14  | Tier-update: outbox vs direct call                                            | OPEN — due Session 4A-8                                                                                                |
-| F15  | Redis topology/namespacing                                                    | OPEN — due Session 4A-1                                                                                                |
-| F16  | Public URL scheme + /v1 versioning                                            | OPEN — due Session 4A-1 (Davin)                                                                                        |
+| F15  | Redis topology/namespacing                                                    | RESOLVED — Session 4A-1 (Davin)                                                                                        |
+| F16  | Public URL scheme + /v1 versioning                                            | RESOLVED — Session 4A-1 (Davin)                                                                                        |
 | F17  | Staging data strategy                                                         | RESOLVED — Session 0-5 (Davin)                                                                                         |
 | F18  | RPO/RTO targets                                                               | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
 | F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                     | RESOLVED — Session 2-1                                                                                                 |
@@ -1099,3 +1099,27 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
   call — both questions asked explicitly rather than guessed; the schema-gap fix and
   the `railway up` deploy-mechanism fix are both technical, in-bounds corrections under
   the Autonomy & Deviation clause, not new material decisions).
+
+## F34 — Staging Infrastructure Allocation (CC-A Gap)
+
+- Status: RESOLVED
+- Session: 3-5 (Advisor chat) · Date: 2026-07-21
+- Decision: When the CC-A Staging Environment gap is eventually addressed, Claude Code MUST use the existing Railway project named "postgre for staging" rather than creating a completely new project from scratch. It already has the base Postgres and Redis services provisioned (though they may need configuration).
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F15 — Redis topology/namespacing
+
+- Status: RESOLVED
+- Session: 4A-1 · Date: 2026-07-21
+- Decision: Use the existing shared Railway Redis instance. Implement `op.*/money.*` BullMQ queue namespaces and per-service key prefixes, rather than standing up a separate Redis instance.
+- Evidence: Explicit Davin instruction: "F15 default (one Redis, op._/money._ namespaces)"
+- Approved by: Davin
+
+## F16 — Public URL scheme + /v1 versioning
+
+- Status: RESOLVED
+- Session: 4A-1 · Date: 2026-07-21
+- Decision: The new money-service will use the `<api.domain/v1 + money.domain/v1>` URL scheme for its public endpoints.
+- Evidence: Explicit Davin instruction: "F16 decision: <api.domain/v1 + money.domain/v1>"
+- Approved by: Davin

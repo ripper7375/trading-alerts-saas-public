@@ -11,86 +11,63 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Session 3-5 CLOSED, executed end-to-end — 2026-07-21. **Phase 3 is
-  fully exit-clean, no outstanding items**: the hybrid-auth bridge is proven
-  end-to-end via SSR path and browser path (SVC_TOKEN/service-to-service leg
-  formally descoped, F31, Davin), refresh rotation, revocation, and
-  expiry-rejection all proven, every auth flag (F6, F7, F23–F33) is RESOLVED in
-  the Decision Log, and F33's production regression check was completed
-  same-session (at Davin's request) directly against the live Vercel URL — see
-  below. Phase 1 still formally NOT exit-clean (F18 the sole blocker,
-  unchanged). Phase 0 still formally open (CC-A gap unchanged, same
+- **Current:** Session 4A-1 CLOSED, executed end-to-end — 2026-07-21. **Phase 4A has
+  begun**: `money-service` exists, is deployed to Railway, and its skeleton
+  (health/auth/Prisma) is proven live — see below. Phase 3 unchanged (still fully
+  exit-clean, no outstanding items). Phase 1 still formally NOT exit-clean (F18 the sole
+  blocker, unchanged). Phase 0 still formally open (CC-A gap unchanged, same
   local-testing workaround as before, `LESSONS-LEARNED.md` L31/L32/L33).
 - **Current order:**
-  `docs/migration-orders/3-5-three-path-verification.migration-order.md`
-  (CONFIRMED and EXECUTED end-to-end — all entry criteria and "done when" items
-  checked off, one item explicitly left unchecked and explained: the
-  SVC_TOKEN leg, by design per F31).
-- **Order status:** CLOSED, all-green. **What shipped (pure verification — zero
-  code/schema/route/infra changes, matching the VERIFY-RETIRE variant):**
-  - **SSR path proven** via real HTTP against live local servers (not mocked
-    route handlers): `POST /api/auth/token-login` → `GET
-/api/auth/token-2fa-status` (Next.js route handler forwarding the session
-    cookie as `Authorization: Bearer` to operation-service's
-    `JwtAuthGuard`-protected `/auth/2fa/status`) — 200 valid / 401 missing / 401
-    garbage / 401 expired. Cross-checked directly against operation-service's
-    own `/auth/me`, bypassing the Next.js proxy.
-  - **Browser path proven via a real browser session — genuinely new this
-    session** (every prior session only used curl/Node fetch for this bridge).
-    The Claude Browser tool drove the live local dev server and ran `fetch()`
-    from inside the real page: `document.cookie` after login showed only the
-    HMR-refresh cookie (confirms the session/refresh cookies really are
-    `httpOnly`, invisible to page JS — a property no Node script can observe),
-    a same-origin `fetch()` with no manually-attached header succeeded purely
-    because the real browser's own cookie jar auto-attached the httpOnly
-    cookie, and 401'd correctly after logout. Also regression-spot-checked via
-    the same real browser: `/login` 200, NextAuth's own `/api/auth/session` →
-    `{}`, `/dashboard` → redirect — all unaffected, this time via a genuine
-    browser rather than curl.
-  - **Refresh + revocation + expiry all proven:** rotation issues a genuinely
-    new access+refresh pair; the pre-rotation refresh token is rejected
-    (401) if reused; a second rotation of the new token still works (chain
-    integrity); logout revokes the refresh token, confirmed via a subsequent
-    401'd refresh attempt. Expiry: since the live access token's actual TTL
-    turned out to be 30 days (see finding below), a synthetically-minted
-    expired token (same encode helper, `maxAgeSeconds: -60`) was rejected 401
-    both directly against operation-service and via the Next.js SSR proxy.
-  - **SVC_TOKEN leg: formally and deliberately not verified** (F31, Davin) — a
-    repo-wide grep re-confirmed zero real implementation exists anywhere in the
-    codebase, consistent with the descope.
-  - **New finding, flagged not fixed (VERIFY-RETIRE scope — no auth-semantics
-    changes made):** `AuthService.issueSession()`/`.refresh()` mint every
-    access token via `encodeNextAuthToken(...)` with no `maxAgeSeconds`
-    override, so it defaults to the full 30-day `SESSION_MAX_AGE_SECONDS` —
-    not the plan's originally-intended "~15 min short-lived access token." An
-    unstated side-effect of F24's "match NextAuth's cookie for compatibility"
-    decision, never previously called out as a divergence. Flagged for
-    Davin/the Advisor to decide on in a future session — not changed here.
-  - **Local walkthrough followed the L31/L32/L33 recipe exactly, zero new
-    incidents** — reused the SSL-enabled Postgres volume persisted from
-    Session 3-3/3-4 (remapped to port 5433 via a scratch
-    `docker-compose.override.yml`, deleted after), the `.env.local`
-    rename-restore dance (checksum-verified identical before/after), and
-    confirmed both dev servers' actual listening PIDs via `netstat`/`taskkill`
-    before stopping the local Postgres/Redis containers (L11/L14). All scratch
-    files (override YAML, operation-service `.env`, verification scripts)
-    were deleted before close — nothing new committed.
-  - **Full regression suite, zero drift:** root `npm run test:ci` — 117/117
-    suites, 2082/2082 tests, exact parity with Session 3-4's baseline (this
-    was pure verification — no new committed tests). `type-check`, `next
-lint`, `npm run build` all clean. `operation-service`: 7/7 suites, 56/56
-    tests; build clean.
-  - **F33 production check completed same-session, at Davin's request**
-    (supersedes his own "I'll check it personally" call): the "no Vercel
-    access" gap (Waiting-on #4) turns out to block only Vercel dashboard/CLI
-    access, not the live public site — a real browser hit
-    `https://trading-alerts-saas-frontend.vercel.app` directly and confirmed
-    NextAuth is fully intact and unregressed: `/login` 200 (correct rendered
-    content), `/api/auth/session` → `{}`, `/dashboard` redirects logged-out,
-    `/api/auth/providers` shows all 3 providers with correct URLs, zero
-    console errors. Fully unauthenticated checks, no login attempted. New
-    `LESSONS-LEARNED.md` L35 generalizes this so future sessions don't
-    rediscover it.
+  `docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md`
+  (CONFIRMED and EXECUTED end-to-end — every entry criterion and "done when" item
+  checked off; F15/F16 were the two entry criteria this order gated on).
+- **Order status:** CLOSED, all-green. **What shipped:**
+  - **`money-service/` NestJS skeleton scaffolded and deployed** — NestJS 11.1.28 /
+    Prisma 7.8.0 (same pins as operation-service, F2/F19), `/health` + `/health-auth`,
+    the same NextAuth-JWE `JwtAuthGuard`/`next-auth-jwt.util.ts` bridge ported from
+    operation-service (F6/F7), global `v1` route prefix per F16 (excluding
+    `/health`/`/health-auth`). Added to root `tsconfig.json`'s `exclude` in the same
+    commit (L30). No domain business logic yet (affiliate/billing/payments/disbursement
+    modules are later BUILD sessions, 4A-4 onward) — deliberately didn't pre-stub their
+    folders either (order's Deviations).
+  - **Redis wired per F15** — reuses the SAME shared Railway Redis instance
+    operation-service already uses (not a second dedicated one), namespaced apart via an
+    ioredis `keyPrefix: 'money:'` on the Throttler storage client and a `BullModule.forRoot`
+    `prefix: 'money'` for future queue registration (`src/queue/queue.constants.ts`).
+    Verified locally against a throwaway `docker-compose.dev.yml` Redis container (SET/GET
+    round-trip through the prefix, BullMQ `Queue.waitUntilReady()`), then torn down.
+  - **Deployed to Railway** (`money-service-production.up.railway.app`) via `railway add
+--service money-service` + `railway up ./money-service --path-as-root --service
+money-service --environment production --ci --json` (L33 form). `DATABASE_URL`/
+    `REDIS_URL`/`NEXTAUTH_SECRET` all set as `${{Service.VAR}}` Railway references —
+    no raw secret value was ever typed, printed, or committed. `ALLOWED_ORIGINS` set to
+    the known production Vercel origin only (money-service is called directly from the
+    browser per blueprint §5.4, unlike operation-service's server-proxied posture, F30).
+  - **First deploy's `/health` reported `database: down`** — PgBouncer's listener
+    rejects a TLS handshake outright, but the `PrismaService` code (copied from
+    operation-service's own, which works) unconditionally requested TLS. Removed the
+    `ssl` option, redeployed: `/health` → `{"status":"healthy","services":{"database":
+{"status":"up"}}}`. **This is the first-ever live proof the `money_svc` Postgres role
+    actually authenticates through PgBouncer** — nothing had exercised that role before
+    this session (unlike `core_app`, implicitly proven live the whole time via
+    operation-service being Online). New `LESSONS-LEARNED.md` L36 generalizes the
+    "don't copy a working service's Prisma `ssl` config without checking what it
+    actually connects to" trap so it isn't rediscovered.
+  - **Davin's guidance followed on 3 items flagged at CONFIRM:** SVC_TOKEN deferred (no
+    core↔money call exists yet in a skeleton-only session); Stripe/dLocal/RiseWorks/Resend
+    secrets NOT set (nothing in this session's code reads them yet — deploy succeeded
+    without them, confirming Davin's own prediction); `money_svc` authentication proven
+    live as part of this session's own deploy (see above), resolving the gap flagged at
+    CONFIRM.
+  - **Local test suites green:** money-service's own 7/7 (`JwtAuthGuard` spec, ported from
+    operation-service). Root `type-check` and `npm run build` both stay clean with
+    `money-service` excluded (L30's own detect-early check, re-run this session).
+  - **F15/F16 resolution — a CONFIRM-time process gap, caught and fixed:** the order
+    arrived at this session already marked `APPROVED` with F15/F16 checked off, but
+    `DECISION-LOG.md`'s flag register still read both as OPEN and carried no resolution
+    entries — the Advisor's DRAFT had omitted backfilling them. Flagged to Davin before
+    executing; Davin confirmed the decisions were genuine and added the proper `## F15`/
+    `## F16` entries himself before authorizing CONFIRMED. Executed only after that.
 - **Waiting on:** (1, non-blocking, unchanged) `deploy.yml` still fails on every push
   to `main` at the GitHub workflow-file level (0s runtime) — known NOT to block real
   Vercel deploys, just dead/broken CI hygiene, not urgent. (2, RESOLVED Session 2-3,
@@ -134,37 +111,47 @@ lint`, `npm run build` all clean. `operation-service`: 7/7 suites, 56/56
   real browser hit the live production URL directly and confirmed NextAuth
   fully intact (see this session's "What shipped" above and
   `LESSONS-LEARNED.md` L35: the Vercel-access gap only blocks dashboard/CLI
-  access, not the public site). **(25, NEW,
-  non-blocking, Davin decision needed before Session 4A-1 can be APPROVED)**
-  F15 (Redis topology for money-service) and F16 (public URL scheme + `/v1`
-  versioning) both need Davin's decision — flagged in the 4A-1 PRE-DRAFT, a
-  shared Railway Redis instance already exists and matches F15's plan-recommended
-  default if Davin confirms reusing it.
-- **Last session did:** Session 3-5 ("Three-path verification / Phase 3 exit") —
-  closed 2026-07-21, all-green, executed end-to-end as a pure VERIFY-RETIRE
-  session (zero code changes). Proved the SSR and browser auth-bridge paths
-  end-to-end (SVC_TOKEN leg formally descoped per F31), proved refresh rotation/
-  revocation/expiry-rejection, found and flagged (not fixed) that the live
-  access token is actually 30 days not the plan's intended ~15 minutes,
-  confirmed Davin's F32 Railway env-var fixes are live, and closed out every
-  remaining Phase 3 flag in the Decision Log. At Davin's same-session request,
-  also completed F33's production regression check directly against the live
-  Vercel URL (discovered the Vercel-access gap only blocks dashboard/CLI
-  access, not the public site — L35) — Phase 3 closed with zero outstanding
-  items. Full regression suite green, zero drift from Session 3-4's baseline.
-- **Next session:** Session 4A-1 ("money-service: skeleton + deploy") per the
-  playbook — the start of Phase 4A. **PRE-DRAFTed** at this close:
-  `docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md`
-  — an INFRA-variant session (no VERIFY-RETIRE fast-path), needs the Advisor to
-  produce the DRAFT, then Davin's APPROVAL. Flags for the Advisor: (a) F15/F16
-  both need Davin's decision before APPROVAL — see Waiting-on #25; (b) the
-  `money_svc`/`core_app` Postgres roles and PgBouncer already exist and are
-  credentialed (Session 1-3/1-3b) — this is a head start, not a from-scratch
-  step, re-verify rather than rebuild; (c) a shared Railway Redis instance
-  already exists (used today by operation-service) and matches F15's own
-  plan-recommended default; (d) `SVC_TOKEN` may finally need to be built for
-  real in this session if core↔money internal calls are in scope — Session 3-5
-  confirmed zero implementation exists anywhere yet.
+  access, not the public site). **(25, RESOLVED Session 4A-1)** F15/F16 both
+  decided by Davin (reuse the existing shared Redis; `<api.domain/v1 +
+money.domain/v1>` URL scheme) — see Open flags. **(26, NEW, non-blocking until
+  Slice 3+ of blueprint §5.5)** Stripe/dLocal/RiseWorks/Resend secrets are NOT
+  yet set on money-service's Railway service — this session's skeleton has no
+  code that reads them, so it wasn't needed yet, but each will need setting
+  (Davin, directly on Railway) before the domain-module BUILD session that
+  first depends on it. dLocal specifically has no live values anywhere yet
+  (secret-matrix.md Gaps section, unchanged). **(27, NEW, non-blocking)**
+  money-service has no custom domain bound (`money.<domain>` per F16) — reachable
+  only at `money-service-production.up.railway.app`. Needs Davin's DNS action,
+  same unresolved gap operation-service has always had (Waiting-on #4). **(28,
+  NEW, non-blocking, carried from F31)** `SVC_TOKEN` still has zero real
+  implementation anywhere — deferred again this session (Davin's explicit call,
+  no core↔money call exists yet); will need building for real whenever a
+  future slice actually establishes one.
+- **Last session did:** Session 4A-1 ("money-service: skeleton + deploy") — closed
+  2026-07-21, all-green, executed end-to-end as an INFRA session. CONFIRMed only after
+  catching and resolving a Decision Log backfill gap (F15/F16 — see "What shipped"
+  above). Scaffolded and deployed `money-service`'s skeleton (health/auth/Prisma, no
+  domain logic yet), wired the shared Redis under a `money.*` namespace (F15), and
+  proved — for the first time ever — that the `money_svc` Postgres role authenticates
+  live through PgBouncer, after fixing a PgBouncer-doesn't-support-TLS mismatch found
+  during the deploy itself (L36). Deferred SVC_TOKEN and the Stripe/dLocal/RiseWorks
+  secrets per Davin's explicit guidance (nothing in this session's code needs them yet).
+- **Next session:** Session 4A-2 ("money-service: crons — Slice 1 BUILD") per the
+  playbook — blueprint §5.5 Slice 1's BUILD half only (CUTOVER is a separate 4A-3
+  session; the playbook explicitly says never to combine BUILD and CUTOVER work).
+  **PRE-DRAFTed** at this close:
+  `docs/migration-orders/4a-2-money-service-crons-build.migration-order.md` — a
+  PORT-variant session (Low creativity dial), needs the Advisor to produce the DRAFT,
+  then Davin's APPROVAL. Flags for the Advisor: (a) the 8 cron jobs and their real
+  `lib/cron/*`/`lib/disbursement/cron/disbursement-processor.ts` dependencies are
+  already enumerated with line counts in the PRE-DRAFT — re-verify rather than
+  re-discover; (b) `daily-maintenance` and `expire-codes`/`send-monthly-reports` don't
+  have their own `lib/cron/*` file (logic is inline in the route or composed from other
+  jobs') — read them before assuming they're thin wrappers; (c) money-service's Prisma
+  schema is still model-less — this session must add the specific money-domain models
+  these 8 jobs actually touch, narrow subset only, same hand-sync convention
+  operation-service's schema.prisma already established (L24); (d) money-service's
+  `PrismaService` deliberately has no `ssl` option (L36) — don't reintroduce it.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -200,9 +187,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   for SSR + browser legs · **F32 fully RESOLVED (Session 3-5)** — Davin set both
   missing Railway env vars, confirmed live at CONFIRM · **F33 fully RESOLVED
   (Session 3-5)** — production check completed same-session against the live
-  Vercel URL, NextAuth confirmed unregressed, no outstanding items ·
-  F8–F16 OPEN (F15/F16 due next session, 4A-1 · register: plan §11 · resolutions:
-  `docs/migration-orders/DECISION-LOG.md`)
+  Vercel URL, NextAuth confirmed unregressed, no outstanding items · **F15 fully
+  RESOLVED (Session 4A-1, Davin)** — money-service reuses the existing shared
+  Railway Redis instance, `op.*`/`money.*` namespaces, not a dedicated instance ·
+  **F16 fully RESOLVED (Session 4A-1, Davin)** — public URL scheme
+  `<api.domain/v1 + money.domain/v1>` ·
+  F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 
