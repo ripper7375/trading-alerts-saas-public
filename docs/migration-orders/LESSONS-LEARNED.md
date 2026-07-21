@@ -642,6 +642,36 @@ import/order */` so `eslint --fix` can't silently re-break it — a plain commen
 - Source: Session 3-1 (`operation-service` first Railway deploy), 2026-07-21 ·
   Status: ACTIVE
 
+### L30 — A new standalone NestJS sibling project must be added to the root `tsconfig.json`'s `exclude` list the moment it's created
+
+- Symptom: `git push` failed at the pre-push hook's `npm run type-check` — real `tsc`
+  errors inside `operation-service/src/health/health.controller.ts` (decorator-related:
+  TS1241/TS1270/TS1206), even though `operation-service`'s own `npm run build`/`npm test`
+  were both green and had been re-verified moments earlier.
+- Root cause: the root `tsconfig.json`'s `include` is `**/*.ts` (repo-wide) and its
+  `exclude` list already carries a `"railway-gateway"` entry (comment: "Separate NestJS
+  project, has own tsconfig.json + package.json") for exactly this reason — but
+  `operation-service`, a brand-new sibling NestJS project created this session, was
+  never added alongside it. Root's `tsconfig.json` has no `experimentalDecorators`/
+  `emitDecoratorMetadata` (a Next.js app doesn't need them), so any NestJS decorator
+  syntax root's `tsc` accidentally picks up fails to parse correctly. None of
+  `operation-service`'s own local checks (`npm run build`, `npm test`, run from inside
+  `operation-service/`) can catch this — they only ever see their own tsconfig, never
+  the root's. Only the ROOT's `type-check`/`validate`/pre-push hook exercises the
+  contaminated path, and nothing in this session's own verification loop ran it until
+  `git push` did.
+- Rule: the moment a new standalone sibling project (own `package.json`/`tsconfig.json`,
+  e.g. a new NestJS service) is created anywhere in the repo root, add it to root
+  `tsconfig.json`'s `exclude` array in the SAME commit that creates it, mirroring the
+  existing `railway-gateway` entry exactly — don't wait for `npm run type-check` or a
+  push to discover the gap.
+- Detect early: after scaffolding any new sibling project, run root `npm run
+type-check` (or `npm run validate`) once before considering the scaffold done — not
+  just the new project's own build/test scripts. `grep -A20 '"exclude"' tsconfig.json`
+  to confirm the new directory name is actually listed.
+- Source: Session 3-1 (`operation-service` scaffold, discovered at `git push`),
+  2026-07-21 · Status: ACTIVE
+
 ---
 
 ## Archive
