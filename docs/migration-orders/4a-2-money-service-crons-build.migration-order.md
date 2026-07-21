@@ -190,6 +190,90 @@ _(filled during execution — what/why/impact)_
 - **Impact:** none — `npm run build` clean, money-service's existing 7/7
   suite still green.
 
+### File 4/6 — added `@nestjs/schedule` (not yet a dependency), fixed a self-inflicted syntax bug, scheduler methods now return results instead of void
+
+- **What:** Added `@nestjs/schedule@^6.1.3` to `money-service/package.json`
+  (confirmed at CONFIRM this wasn't installed yet). Wrote
+  `crons.scheduler.ts` with 8 `@Cron()` handlers using the exact UTC
+  expressions from `vercel.json` (verified by direct side-by-side
+  comparison, not just visual confidence), `crons.module.ts` wiring every
+  provider from Files 2/6-3/6, and registered `ScheduleModule.forRoot()` +
+  `CronsModule` in `app.module.ts`. `check-expiring-subscriptions`,
+  `downgrade-expired-subscriptions`, `distribute-codes`,
+  `process-pending-disbursements`, `sync-riseworks-accounts` delegate to
+  the ported services; `expire-codes` and `send-monthly-reports` (no
+  dedicated service in source) stay inline; `daily-maintenance` composes
+  the same 3-task sequence as source, calling the injected
+  `SubscriptionCronService` for tasks 2-3 per this order's own Known
+  Wrinkles note.
+- **Also:** each `@Cron()` handler now returns its result object (e.g.
+  `CheckExpiringResult`, `MonthlyDistributionResult`) instead of `void` —
+  `@Cron()` itself ignores return values, so this is a no-op for the
+  schedule, but it lets File 5/6's manual-trigger controller return
+  something useful instead of an empty 201. `send-monthly-reports`'
+  inline logic also now collects an `errors: string[]` array (source's
+  route did too; my first pass had dropped it — restored for fidelity).
+- **Caught and fixed:** the first `npm run build` after writing
+  `crons.scheduler.ts` produced ~190 cascading, nonsensical parse errors.
+  Root cause: this file's own opening doc-comment literally contained the
+  text `` `app/api/cron/*/route.ts` `` — the `*/` inside that path
+  prematurely closed the `/** ... */` block, and everything after was
+  parsed as real code. Fixed by rewriting the example path as
+  `` `app/api/cron/<job>/route.ts` ``. Worth flagging as a reusable
+  lesson: any doc-comment quoting a real glob path containing `*/` will
+  do this, in any TS/JS file, not just this one.
+- **Impact:** none on business logic. `npm run build` clean; money-service's
+  existing 7/7 suite still green.
+
+### File 4/6 — a live SchedulerRegistry check was attempted, then abandoned in favor of static verification (Jest+node-cron hang)
+
+- **What:** tried booting a Nest `TestingModule` with `PrismaService`
+  mocked (no real DB) and inspecting `SchedulerRegistry.getCronJobs()` to
+  programmatically confirm all 8 jobs register with the right patterns,
+  rather than trusting a visual read. The test hung indefinitely after
+  `app.init()`/`app.close()` — a known Jest+`@nestjs/schedule` interaction
+  (registered `CronJob` timers keep Node's event loop alive past the test
+  finishing, and without `--forceExit` or explicitly stopping each job,
+  Jest waits forever for the process to exit naturally).
+- **Why abandoned rather than fixed:** this was a nice-to-have
+  double-check, not File 4/6's actual parity-proof mechanism (the order's
+  own proof is "NestJS startup logs show crons registered" — a much
+  lighter bar). Debugging the hang (stopping every job explicitly, adding
+  `--forceExit`, or restructuring around `moduleRef.close()`'s own
+  teardown order) would have cost real time for a check that direct
+  string comparison against `vercel.json` already answers unambiguously.
+  Deleted the throwaway spec after killing the hung process.
+- **Impact:** none — the 8 cron expressions were verified by direct
+  side-by-side comparison against `vercel.json` instead (documented
+  above), which is exactly as authoritative for "are these the right
+  strings" and doesn't have the same failure mode.
+
+### File 4/6 — deferred the actual live shadow-run start; flagged for Davin before any Railway deploy
+
+- **What:** `CronsModule`/`ScheduleModule.forRoot()` are wired into
+  `AppModule` and committed, but this session does **not** trigger a
+  Railway deploy of money-service with this code.
+- **Why:** the moment this code actually boots somewhere with a real
+  `DATABASE_URL` (i.e., a real deploy, not just `git commit`), every
+  `@Cron()` job starts firing live on its own schedule — including
+  `process-pending-disbursements` and `sync-riseworks-accounts`, which
+  move real money. `vercel.json`'s crons are still active (cutover is the
+  NEXT session, 4A-3), so a production deploy right now would mean BOTH
+  Vercel's cron and money-service's `@Cron()` executing the same jobs
+  against the same production database, at the same scheduled minute —
+  a real double-disbursement risk (two processes could both pass the
+  `disbursementTransaction: null` payable-affiliate check before either
+  creates its batch). The order's own "done when" line says this shadow-run
+  should happen "in staging" — but CC-A's dedicated staging stack still
+  doesn't exist (CLAUDE.md Waiting-on #17), which is exactly the ambiguity
+  flagged at this session's CONFIRM. This isn't a decision the Executor
+  should make unilaterally (CLAUDE.md non-negotiable #5: money changes
+  escalate) — surfaced to Davin as part of this session's close rather than
+  deploying speculatively.
+- **Impact:** File 4/6's code is complete and committed; the "Shadow/mirror-run
+  started" done-when item is NOT yet satisfied and is called out explicitly
+  in this session's Slice-level verification results, not silently skipped.
+
 ### File 1/6 — added `DisbursementAuditLog` as an 11th model (not in the CONFIRMed list)
 
 - **What:** `money-service/prisma/schema.prisma` includes `DisbursementAuditLog` in

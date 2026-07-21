@@ -3,9 +3,11 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
+import { CronsModule } from './crons/crons.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
@@ -36,7 +38,15 @@ import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
       connection: { url: process.env['REDIS_URL'] ?? 'redis://localhost:6379' },
       prefix: MONEY_QUEUE_PREFIX,
     }),
+    // Session 4A-2 (File 4/6): registers Nest's cron scheduling registry
+    // once for the whole app, per Nest's own convention. NOTE: the moment
+    // this app actually boots somewhere with a real DATABASE_URL, every
+    // @Cron() in CronsModule starts firing live on its own schedule — see
+    // this order's Deviations for why that isn't the same thing as this
+    // code merely existing/being committed.
+    ScheduleModule.forRoot(),
     HealthModule,
+    CronsModule,
   ],
   providers: [
     {
