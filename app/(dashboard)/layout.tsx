@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { LoginTracker } from '@/components/auth/login-tracker';
+import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
 import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -47,17 +48,22 @@ export default async function DashboardLayout({
       {/* Login tracking - records device/location for security */}
       <LoginTracker />
 
+      {/* Session 3-3: operation-service refresh-token rotation loop — no-op
+          for sessions that only carry a NextAuth cookie (see the component's
+          own doc comment) */}
+      <TokenRefreshProvider />
+
       {/* Header - sticky at top */}
       <Header user={user} />
 
       <div className="flex">
         {/* Sidebar - hidden on mobile, fixed on desktop */}
-        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:pt-16 lg:z-30">
+        <aside className="hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:pt-16">
           <Sidebar userTier={user.tier} />
         </aside>
 
         {/* Main content area */}
-        <main className="flex-1 lg:pl-64 pt-16 min-h-[calc(100vh-4rem)]">
+        <main className="min-h-[calc(100vh-4rem)] flex-1 pt-16 lg:pl-64">
           <div className="px-4 py-6 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>
