@@ -1,18 +1,49 @@
-// Session 4A-1: skeleton only. No money-domain models yet — those land with
-// each domain module's own BUILD session (affiliate/billing/payments/
-// disbursement, 4A-4 onward per the blueprint), each hand-copied from the
-// root Next.js app's `prisma/non-market-data/schema.prisma` the same way
-// operation-service's own schema.prisma does for User/RefreshToken
-// (LESSONS-LEARNED.md L24: one shared migration history against one shared
-// Postgres — this file is never a migration source, only a `prisma generate`
-// target for a typed client). NEVER run `prisma migrate`/`db push` from this
+// Session 4A-2: hand-copied model subset for the 8 cron jobs (blueprint §5.5
+// Slice 1). Same "byte-for-byte hand-sync, no automated check" convention
+// operation-service/prisma/schema.prisma already carries for User/RefreshToken
+// (LESSONS-LEARNED.md L24) — any future change to any of these models in
+// prisma/non-market-data/schema.prisma must be mirrored here by hand. This
+// file is NEVER a migration source (one shared migration history against one
+// shared Postgres, L24) — NEVER run `prisma migrate`/`db push` from this
 // package.
 //
-// This connects through PgBouncer as the `money_svc` role (blueprint §5.1) —
-// a distinct Postgres role from operation-service's `core_app`, scoped to
-// the money tables once they exist here. Until then, the generated client is
-// exercised only via `$queryRaw` in the /health check, which needs zero
-// declared models to prove the role can authenticate and query.
+// Model selection: the 7 models the order named up front (Subscription,
+// AffiliateCode, Commission, PaymentBatch, DisbursementTransaction,
+// AffiliateRiseAccount, SystemConfig) plus 4 more found only by tracing the
+// 8 crons' and their dependency tree's actual `prisma.<model>` calls:
+// User, Notification, AffiliateProfile (CONFIRM-phase finding) and
+// DisbursementAuditLog (found during this file's own port — used directly by
+// lib/disbursement/services/transaction-logger.ts and batch-manager.ts,
+// missed at CONFIRM because that pass only traced disbursement-processor.ts's
+// own direct prisma calls, not its dependencies' calls one level deeper).
+//
+// `User` is a NARROW subset (like operation-service's own convention): only
+// id/email/name/tier are ever read or written by these 8 crons (verified by
+// reading every `prisma.user.*` call site) — no password/2FA/trial/fraud
+// fields, which have zero business reason to exist in a money service's
+// schema. The other 10 models are money-service's own domain tables per
+// blueprint §5.1's `money_svc` grant list, so they're copied in full.
+//
+// Relations: kept ONLY where a real Prisma relation (`include`, or a
+// relation-shaped `where` filter like `disbursementTransaction: null`) is
+// actually used somewhere in the ported code — verified by grepping every
+// `include:`/relation-filter across the full File 2/6 + File 3/6 dependency
+// trees, not assumed from the source schema's own shape. Concretely:
+//   - AffiliateProfile <-> Commission, AffiliateProfile <-> AffiliateRiseAccount,
+//     Commission <-> DisbursementTransaction, PaymentBatch <-> DisbursementTransaction,
+//     PaymentBatch <-> DisbursementAuditLog, AffiliateRiseAccount <-> DisbursementTransaction
+//     are all real Prisma relations (commission-aggregator.ts, transaction-service.ts,
+//     batch-manager.ts all traverse them).
+//   - Commission <-> AffiliateCode and AffiliateCode <-> AffiliateProfile are
+//     NOT traversed anywhere (every AffiliateCode touch is by scalar
+//     affiliateCodeId/affiliateProfileId only) — declared as bare scalars,
+//     no relation object, on both sides.
+//   - DisbursementAuditLog.transactionId is a bare scalar (no relation
+//     object) — transaction-logger.ts only ever queries/creates it by that
+//     scalar field, never via `DisbursementTransaction.auditLogs` include.
+//   - Every relation to a model outside this subset (Payment, Account,
+//     Alert, Drawing, UserPreferences, Session, RiseWorksWebhookEvent) is
+//     dropped, scalar FK kept where the source schema has one.
 
 generator client {
   provider = "prisma-client-js"
@@ -21,4 +52,439 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ENUMS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum UserTier {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+enum AffiliateStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum CodeStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum DistributionReason {
+  INITIAL
+  MONTHLY
+  ADMIN_BONUS
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum NotificationType {
+  ALERT
+  SUBSCRIPTION
+  PAYMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiseWorksKycStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum PaymentBatchStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementTransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementProvider {
+  RISE
+  MOCK
+}
+
+enum AuditLogStatus {
+  SUCCESS
+  FAILURE
+  WARNING
+  INFO
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MODELS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// NARROW subset (see header) — only fields these 8 crons read/write.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  tier      UserTier @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+/// No `user` relation by design — Session 2-3's FK audit dropped it upstream;
+/// every ported cron batch-fetches contact users separately by userId
+/// (see lib/cron/check-expiring-subscriptions.ts's own comment).
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  affiliateCodeId String?
+
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
+  dLocalPaymentId     String? @unique
+  dLocalPaymentMethod String?
+  dLocalCountry       String?
+  dLocalCurrency      String?
+
+  planType            String?
+  amountUsd           Float
+  status              SubscriptionStatus
+  expiresAt           DateTime?
+  renewalReminderSent Boolean            @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([affiliateCodeId])
+}
+
+model AffiliateProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  fullName String
+  country  String
+
+  facebookUrl  String?
+  instagramUrl String?
+  twitterUrl   String?
+  youtubeUrl   String?
+  tiktokUrl    String?
+
+  paymentMethod  String
+  paymentDetails Json
+
+  totalCodesDistributed Int     @default(0)
+  totalCodesUsed        Int     @default(0)
+  totalEarnings         Decimal @default(0)
+  pendingCommissions    Decimal @default(0)
+  paidCommissions       Decimal @default(0)
+
+  status           AffiliateStatus @default(PENDING_VERIFICATION)
+  verifiedAt       DateTime?
+  suspendedAt      DateTime?
+  suspensionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Kept: both traversed via `include`/relation-filter in commission-aggregator.ts.
+  commissions Commission[]
+  riseAccount AffiliateRiseAccount?
+
+  @@index([userId])
+  @@index([status])
+  @@index([country])
+}
+
+/// `affiliateProfile`/`commissions` relation objects intentionally omitted —
+/// every AffiliateCode touch across the 8 crons and disbursement tree uses
+/// scalar affiliateProfileId only, never traverses a relation (verified: zero
+/// `affiliateCode` include hits anywhere in lib/disbursement).
+model AffiliateCode {
+  id   String @id @default(cuid())
+  code String @unique
+
+  affiliateProfileId String
+
+  discountPercent   Int
+  commissionPercent Int
+
+  status             CodeStatus         @default(ACTIVE)
+  distributedAt      DateTime           @default(now())
+  expiresAt          DateTime
+  usedAt             DateTime?
+  cancelledAt        DateTime?
+  distributionReason DistributionReason @default(MONTHLY)
+
+  usedBy         String?
+  subscriptionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([affiliateProfileId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([code])
+}
+
+model Commission {
+  id String @id @default(cuid())
+
+  affiliateProfileId String
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  // Scalar only — see AffiliateCode's own note above.
+  affiliateCodeId String
+
+  userId         String
+  subscriptionId String?
+
+  grossRevenue     Decimal
+  discountAmount   Decimal
+  netRevenue       Decimal
+  commissionAmount Decimal
+
+  status      CommissionStatus @default(PENDING)
+  earnedAt    DateTime         @default(now())
+  approvedAt  DateTime?
+  paidAt      DateTime?
+  cancelledAt DateTime?
+
+  paymentBatchId   String?
+  paymentMethod    String?
+  paymentReference String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Kept: used as a relation-filter (`disbursementTransaction: null`) in
+  // commission-aggregator.ts to find not-yet-disbursed commissions.
+  disbursementTransaction DisbursementTransaction?
+
+  @@index([affiliateProfileId])
+  @@index([status])
+  @@index([earnedAt])
+  @@index([paidAt])
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+
+  type     NotificationType
+  title    String
+  body     String
+  priority NotificationPriority @default(MEDIUM)
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  link String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model AffiliateRiseAccount {
+  id String @id @default(cuid())
+
+  affiliateProfileId String           @unique
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  riseId String @unique
+  email  String
+
+  kycStatus      RiseWorksKycStatus @default(PENDING)
+  kycCompletedAt DateTime?
+
+  invitationSentAt     DateTime?
+  invitationAcceptedAt DateTime?
+
+  lastSyncAt DateTime?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Kept: required by Prisma to pair with DisbursementTransaction's own
+  // `affiliateRiseAccount` relation (batch-manager.ts, transaction-service.ts),
+  // even though nothing traverses it from this side.
+  disbursementTransactions DisbursementTransaction[]
+
+  @@index([affiliateProfileId])
+  @@index([riseId])
+  @@index([kycStatus])
+}
+
+model PaymentBatch {
+  id String @id @default(cuid())
+
+  batchNumber String @unique
+
+  paymentCount Int     @default(0)
+  totalAmount  Decimal @default(0)
+  currency     String  @default("USD")
+
+  provider DisbursementProvider
+
+  status PaymentBatchStatus @default(PENDING)
+
+  scheduledAt DateTime?
+  executedAt  DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+
+  errorMessage String?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Kept: both traversed via `include` in batch-manager.ts (getBatchById,
+  // getBatchByNumber, getBatchesWithSummary's `_count`).
+  transactions DisbursementTransaction[]
+  auditLogs    DisbursementAuditLog[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([provider])
+  @@index([batchNumber])
+}
+
+model DisbursementTransaction {
+  id String @id @default(cuid())
+
+  batchId String
+  batch   PaymentBatch @relation(fields: [batchId], references: [id])
+
+  commissionId String     @unique
+  commission   Commission @relation(fields: [commissionId], references: [id])
+
+  transactionId String  @unique
+  providerTxId  String?
+
+  provider DisbursementProvider
+
+  affiliateRiseAccountId String?
+  affiliateRiseAccount   AffiliateRiseAccount? @relation(fields: [affiliateRiseAccountId], references: [id])
+  payeeRiseId            String?
+
+  amount          Decimal
+  amountRiseUnits BigInt?
+  currency        String  @default("USD")
+
+  status DisbursementTransactionStatus @default(PENDING)
+
+  retryCount  Int       @default(0)
+  lastRetryAt DateTime?
+
+  errorMessage String?
+  metadata     Json?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  failedAt    DateTime?
+
+  @@index([batchId])
+  @@index([commissionId])
+  @@index([status])
+  @@index([providerTxId])
+  @@index([createdAt])
+}
+
+/// `transaction`/`DisbursementTransaction.auditLogs` pair intentionally
+/// omitted — transaction-logger.ts only ever queries/creates by the scalar
+/// `transactionId`, never via a `DisbursementTransaction.auditLogs` include
+/// (unlike `batchId`, which batch-manager.ts DOES include through
+/// `PaymentBatch.auditLogs` — that pair is kept below).
+model DisbursementAuditLog {
+  id String @id @default(cuid())
+
+  transactionId String?
+
+  batchId String?
+  batch   PaymentBatch? @relation(fields: [batchId], references: [id])
+
+  action String
+  actor  String?
+
+  status AuditLogStatus
+
+  details   Json?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([batchId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+/// System-wide configuration settings (admin-tunable, e.g. the disbursement
+/// processor's `affiliate_commission_approval_days` window).
+model SystemConfig {
+  id String @id @default(cuid())
+
+  key   String @unique
+  value String
+
+  valueType   String  @default("string")
+  description String?
+  category    String
+  updatedBy   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([key])
 }
