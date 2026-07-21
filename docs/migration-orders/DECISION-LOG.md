@@ -773,7 +773,12 @@ test:ci`/`validate`, not `npm run build`.
 - Status: RESOLVED
 - Session: 3-1 · Date: 2026-07-21
 - Decision: Confirm 'bridge first' - The new service verifies existing NextAuth tokens while NextAuth remains on Vercel.
-- Evidence: Live decision from Davin via interactive prompt.
+- Evidence: Live decision from Davin via interactive prompt. At CONFIRM, a fresh full-repo
+  search found the plan's 3 "missing" F6 reference docs actually exist
+  (`backend-stack-a/hybrid-authentication-for-backend-stack-a/`, committed 2026-02-02,
+  predates this migration) and recommend OpenAuth as primary reference — Davin reviewed
+  and explicitly disregards them as superseded exploratory seed material for a future
+  end-state; bridge-first stands per the plan's own §5 decision.
 - Approved by: Davin
 
 ## F7 — HS256 shared secret vs JWKS + rotation timing
@@ -781,5 +786,14 @@ test:ci`/`validate`, not `npm run build`.
 - Status: RESOLVED
 - Session: 3-1 · Date: 2026-07-21
 - Decision: Path B: Build JwtAuthGuard to decrypt NextAuth's JWE directly (no NextAuth changes, safer for live users, but ties NestJS to NextAuth JWE format).
-- Evidence: Live decision from Davin via interactive prompt.
+- Evidence: Live decision from Davin via interactive prompt. Round-trip proven same session,
+  before building the guard: `next-auth/jwt`'s own `encode()` (the real production code path,
+  invoked with the actual local `NEXTAUTH_SECRET`) minted a genuine JWE; a fully standalone
+  decrypt (raw `jose@4.15.9` + `@panva/hkdf@1.2.1`, no `next-auth` import — the exact
+  mechanism `JwtAuthGuard` will use, since `operation-service` is a separate NestJS process)
+  derived the key via HKDF-SHA256(secret, salt="", info="NextAuth.js Generated Encryption
+  Key") and correctly decrypted all claims (`sub`/`id`/`email`/`tier`/`role`/`isAffiliate`).
+  Negative cases confirmed too: wrong-secret → `JWEDecryptionFailed`, malformed token →
+  `JWEInvalid` (neither silently passes). Script: scratchpad `verify-jwe-roundtrip.js`
+  (not committed — one-off verification, logic ported into the guard in Step 4).
 - Approved by: Davin
