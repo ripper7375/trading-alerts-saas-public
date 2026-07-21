@@ -18,6 +18,10 @@ const BASE_URL =
 export interface OperationServiceErrorBody {
   error?: string;
   message?: string;
+  // Session 3-4: RateLimitError's body (verify-email's 5s guard,
+  // resend-verification's 60s per-user limit) carries this alongside
+  // error/message — see operation-service/src/auth/auth-error.filter.ts.
+  retryAfter?: number;
 }
 
 export class OperationServiceError extends Error {
