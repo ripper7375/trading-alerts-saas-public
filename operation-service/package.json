@@ -12,6 +12,7 @@
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "test": "jest",
     "test:watch": "jest --watch"
