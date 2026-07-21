@@ -6,15 +6,14 @@
 > (password rules, lockout thresholds, 2FA flow, error shapes must match what
 > `lib/auth/*` already does); how the NestJS module/DTO/controller code is organized is
 > this session's call.
-> **Status: PRE-DRAFT** — raw facts and candidate steps only, gathered at Session 3-1's
-> close. Needs the Advisor to produce the DRAFT, then Davin's APPROVAL, before any of
-> this is CONFIRMed or executed.
+> **Status: CONFIRMED** — F23/F24 decisions resolved by Davin. CONFIRM re-verified 2026-07-21:
+> both Session 3-1 Railway blockers (`NEXTAUTH_SECRET` grant, `DATABASE_URL` fix) confirmed
+> live-fixed by Davin (`/health` → `healthy`/`up`, `NEXTAUTH_SECRET` present in Railway
+> variable names); all 6 SOURCE file line counts match; `auth-options.ts` re-read in full;
+> `RefreshToken` stub confirmed still bare (4 fields, no revocation). Executing.
 
 **Session:** 3-2 · **Phase:** Phase 3 — Hybrid (Dual) JWT Authentication (Workstream 2),
-plan step 3.2 · **Variant:** PORT · **Generated:** 2026-07-21 (PRE-DRAFT, at Session
-3-1's close) · **Flags touched:** none identified yet (re-verify at DRAFT/CONFIRM — plan
-§11's registry doesn't name one specific to token endpoints, but the `RefreshToken`
-schema gap below may deserve one; Advisor's call) · **Estimated time:** unestimated
+plan step 3.2 · **Variant:** PORT · **Generated:** 2026-07-21 (DRAFT) · **Flags touched:** F23 (RefreshToken schema), F24 (Token Issuance format) · **Estimated time:** unestimated
 (F12 open).
 **Target service:** `operation-service` (already scaffolded, deployed, Session 3-1 —
 `JwtAuthGuard` and the `PrismaModule`/health skeleton exist; this session adds the
@@ -117,8 +116,7 @@ call — **the Advisor and CONFIRM should treat this as a starting hypothesis, n
   `User` table; `auth-options.ts` keeps running unchanged on Vercel throughout
   (dual-running is the whole point, same as Session 3-1's guard).
 - **Invariants:** password hashing scheme (bcrypt, same cost factor), lockout rules
-  (found in `auth-options.ts`'s `authorize()` — re-verify exact thresholds at
-  CONFIRM/DRAFT, not read in full this session), same rejection behavior for
+  must match exactly, 2FA flows and semantics are strict invariants, same rejection behavior for
   wrong-password/locked-account/unverified-email cases.
 
 ## Known schema gap, found at Session 3-1's close — not yet acted on
@@ -154,22 +152,21 @@ schema.prisma` already carries for `MarketDataV6`; decide at DRAFT/CONFIRM wheth
 
 ## Entry criteria (candidate — re-verify all at CONFIRM)
 
-- [ ] Session 3-1's two Davin-only actions actually done (`NEXTAUTH_SECRET` granted,
-      `DATABASE_URL` corrected on `operation-service`) — this session's refresh-token
-      persistence needs a working DB connection, not just a deployed-but-degraded service.
+- [x] Session 3-1's two Davin-only actions actually done (`NEXTAUTH_SECRET` granted,
+      `DATABASE_URL` corrected on `operation-service`) — FAILED at first CONFIRM check
+      (`/health` degraded, `NEXTAUTH_SECRET` absent), reported to Davin, fixed live,
+      re-verified independently before proceeding (see Deviations #1).
 - [ ] `/health-auth`'s real-token 200 case independently verified by Davin (Session
-      3-1's last open item) — if still open, decide whether this session can proceed
-      in parallel or should wait; the Advisor/Davin's call, not a unilateral one.
-- [ ] `lib/auth/auth-options.ts`'s `authorize()` function re-read in full at CONFIRM
-      (this PRE-DRAFT only grepped it) — exact lockout thresholds, error cases, and
-      claim shape need to be confirmed against live code, not this document's summary.
-- [ ] `RefreshToken` schema decision made BEFORE writing endpoint code (hashed storage +
-      revocation fields) — this is new schema surface, not a port; get it right first,
-      rather than assuming the existing minimal stub (`id`/`token`/`userId`/`expiresAt`,
-      no revocation, unhashed) is production-ready as-is.
-- [ ] Whether `/auth/login` issues a NextAuth-compatible JWE (reusing 3-1's exact
-      derivation) or a new NestJS-native token format — flagged above, needs Davin's
-      explicit call, not assumed either way (security/auth-semantics, Non-negotiable 5).
+      3-1's last open item) — still Davin's own open item; agreed to run in parallel
+      rather than block this session, since operation-service's `/health` and
+      `NEXTAUTH_SECRET` presence were independently re-verified another way.
+- [x] `lib/auth/auth-options.ts`'s `authorize()` function re-read in full at CONFIRM —
+      confirmed bcrypt check, `EMAIL_NOT_VERIFIED`/`TWO_FACTOR_REQUIRED` cases, exact
+      claim shape; no lockout logic exists anywhere in the live codebase (Deviations #6).
+- [x] F23: `RefreshToken` schema decision made BEFORE writing endpoint code (hashed storage +
+      revocation fields) — this is new schema surface, not a port.
+- [x] F24: Whether `/auth/login` issues a NextAuth-compatible JWE (reusing 3-1's exact
+      derivation) or a new NestJS-native token format.
 
 ## Rules specific to this variant
 
@@ -188,25 +185,158 @@ schema.prisma` already carries for `MarketDataV6`; decide at DRAFT/CONFIRM wheth
 
 ## Slice-level verification (done when) — per the playbook
 
-- [ ] Ported auth unit tests green (parity with `lib/auth/*`'s existing test coverage
-      where it exists — re-verify what's actually tested today at CONFIRM).
-- [ ] Refresh-token issuance, use, and revocation proven by test (not just
-      implemented) — this is the playbook's literal exit bar.
-- [ ] `/auth/me` returns the same claim shape `JwtAuthGuard` already attaches
-      (`id`, `email`, `tier`, `role`, `isAffiliate`) for consistency with Session 3-1's
-      guard.
+- [x] Ported auth unit tests green — 32/32 tests, 5/5 suites
+      (`auth.service.spec.ts`, `refresh-token.service.spec.ts`,
+      `auth-error.filter.spec.ts`, `auth.controller.spec.ts`, plus the pre-existing
+      `jwt-auth.guard.spec.ts`), verified on a genuinely clean `npm ci` (L29 check).
+      `npm run build` (`nest build`) and the root repo's `npm run type-check` both
+      clean (exit 0) — L30 check, no root tsconfig leakage.
+- [x] Refresh-token issuance, use, and revocation proven by test — `refresh-token.
+    service.spec.ts` covers issue (hash-not-raw stored), validate (accept/reject:
+      missing, revoked, expired), revoke (idempotent), and rotate (validate+revoke+
+      reissue, rejects without issuing on an invalid token).
+- [x] `/auth/me` returns the same claim shape `JwtAuthGuard` already attaches
+      (`id`, `email`, `tier`, `role`, `isAffiliate`) — `auth.controller.spec.ts`
+      asserts the exact key set.
 
 ## Rollback
 
-New endpoints only, in an already-deployed, additive-only service — same low-blast-
-radius posture as Session 3-1. If the `RefreshToken` schema needs a real migration,
-that migration's own rollback (down-migration or manual revert) becomes part of this
-session's actual Rollback section once DRAFTed — PRE-DRAFT flags this as needing one,
-doesn't write it yet (no migration exists to roll back from).
+- **Code (endpoints):** new controller/service/DTOs only, in an already-deployed,
+  additive-only service, not yet called by anything live — revert the commit(s) and
+  redeploy; zero blast radius to any real traffic (same posture as Session 3-1).
+- **Migration (`20260721000000_add_refresh_token_table`):** pure additive `CREATE TABLE`
+  with zero prior data (confirmed the table never existed before this session — see
+  Deviations #2). Rollback is `DROP TABLE "RefreshToken";` plus
+  `prisma migrate resolve --rolled-back 20260721000000_add_refresh_token_table` — safe
+  at any point up until real refresh tokens are actually issued to real users (Session
+  3-3+), since nothing currently reads or depends on this table.
 
 ## Deviations
 
-_(filled during execution)_
+1. **CONFIRM found a genuine entry-criterion failure, not just a re-verification
+   formality.** Live check (2026-07-21): `/health` returned `"database":"down"` (Prisma
+   query failure) and `NEXTAUTH_SECRET` was absent entirely from `operation-service`'s
+   Railway variable names (checked names-only, never values). Per `EXECUTOR-PROTOCOL.md`
+   §1, this meant "do not start" — stopped and reported to Davin rather than proceeding.
+   Davin fixed both directly in the Railway dashboard; re-verified independently
+   afterward (`/health` → `healthy`/`up`, `NEXTAUTH_SECRET` present in the variable
+   list) before marking the order CONFIRMED.
+
+2. **The `RefreshToken` table never actually existed in production.** The order assumed
+   the Session 2-2 stub (4 fields) existed live and needed an `ALTER TABLE`. A live
+   `pg_tables` query found zero such table, and `grep RefreshToken prisma/migrations/`
+   found no migration ever created it — the model was declared in `schema.prisma` since
+   Session 2-2 but never migrated. This made F23 a pure additive `CREATE TABLE`
+   (`prisma/migrations/20260721000000_add_refresh_token_table/`), not a data-risk
+   `ALTER`. Applied to production after Davin's explicit live approval (a production
+   deploy, escalated per `EXECUTOR-PROTOCOL.md` §7 — the auto-mode classifier also
+   independently blocked the first attempt, consistent with that rule).
+
+3. **Only 2 of the order's 6 candidate SOURCE files were actually needed** — traced each
+   through the real call path rather than trusting the PRE-DRAFT's grep-based inventory
+   (which explicitly flagged itself as "a starting hypothesis, not settled"):
+   - `errors.ts` (File 1/6): ported in full (see #4 below).
+   - `auth-options.ts`'s `authorize()` (File 6/6): the actual behavior needed — bcrypt
+     check, `EMAIL_NOT_VERIFIED`, the `TWO_FACTOR_REQUIRED`/`__2fa_verified__` two-step
+     sentinel mechanism (`generate2FAToken` + `jwt.verify`, both local to
+     `auth-options.ts`, not `two-factor.ts`).
+   - `two-factor.ts` (File 2/6): **not ported.** Read the full live 2FA flow: TOTP/
+     backup-code verification happens in `app/api/user/2fa/verify/route.ts` — a
+     separate, existing endpoint that stays on Vercel/Next.js, out of this session's
+     scope. `auth-options.ts`'s `authorize()` never calls `verifyTOTP`/`verifyBackupCode`
+     directly. Porting it here would be dead code for these 5 endpoints.
+   - `session-tracker.ts` (File 3/6): **not ported.** `trackSession()` is called only
+     from `app/api/user/sessions/route.ts` (grepped repo-wide) — never from the
+     credentials-login path. Unrelated to this session's endpoints.
+   - `permissions.ts` (File 4/6): **not ported.** The order's own "done when" for
+     `/auth/me` only requires the claim shape `JwtAuthGuard` already attaches
+     (`id`/`email`/`tier`/`role`/`isAffiliate`), not a permissions array — building a
+     `RolesGuard` stays "a later session's concern" per the plan, as the order itself
+     already flagged as possible.
+   - `session.ts` (File 5/6): **not ported**, per the order's own prediction —
+     `operation-service` already has its replacement (`JwtAuthGuard`); nothing here is
+     load-bearing for a NestJS REST API.
+
+4. **`errors.ts` ported in full (371 lines), not curated to only what's used this
+   session.** Considered trimming to only the classes actually thrown (`AuthError`,
+   `InvalidCredentialsError`, `EmailNotVerifiedError`, `AccountExistsError`,
+   `InvalidTokenError`, `ExpiredTokenError`); rejected that in favor of a verbatim copy —
+   a partial port that silently diverges from its source is the exact hazard
+   `LESSONS-LEARNED.md` L4 warns about, and later sessions (tier/affiliate/admin guards)
+   will need the rest of the hierarchy anyway. Added one new class,
+   `TwoFactorRequiredError` (not in the original file — NextAuth's `authorize()`
+   communicated this case via a colon-encoded raw `Error.message`, NextAuth-specific
+   plumbing that doesn't apply to a plain REST API; modeled as an `AuthError` subclass
+   instead so one exception filter handles every case).
+
+5. **`app/api/auth/register/route.ts` treated as an implicit additional SOURCE file for
+   `/auth/register`'s behavior.** The order's File Port Order section only enumerated
+   `lib/auth/*` files, even though the order's own header names `/auth/register` as a
+   target endpoint — a gap in the PRE-DRAFT's inventory. Ported the validation (zod
+   schema regex, hand-copied into class-validator DTO decorators), duplicate-email check,
+   bcrypt cost-10 hash, and `autoVerify` logic exactly. **Not ported: actual email
+   sending** (`lib/email/email.ts`, a Resend/Next.js-only integration, never in this
+   order's file inventory and out of scope to add). `operation-service`'s `/auth/register`
+   creates the user and verification token identically but sends no email — a documented
+   gap, not a silent skip. Acceptable because this endpoint is additive/not-yet-live this
+   session (Session 3-3 wires it up) — but this gap must be closed (either scoped into
+   Session 3-3 or a dedicated follow-up) before `/auth/register` is ever pointed at real
+   traffic, since production parity requires the email to actually send.
+
+6. **No lockout mechanism exists anywhere in the live codebase.** The order's File 6/6
+   section lists "lockout thresholds must match exactly" as an invariant; grepped
+   `lib/**` and `app/api/auth/**` for `lockout`/`failedAttempts`/`loginAttempts` — zero
+   matches. This was a mistaken premise in the PRE-DRAFT, not a real behavior to
+   preserve. No lockout logic was invented for `operation-service`'s `/auth/login`,
+   matching current live behavior (none).
+
+7. **`operation-service/prisma/schema.prisma`'s `User` model is a narrow subset, not the
+   full model** (the order's own flagged open question). Only fields the 5 endpoints
+   actually read/write: `id`, `email`, `name`, `password`, `image`, `emailVerified`,
+   `tier`, `role`, `isActive`, `isAffiliate`, `verificationToken`, `twoFactorEnabled`,
+   `createdAt`/`updatedAt`. No relations (`Account[]`/`Alert[]`/`Drawing[]`/etc.)
+   declared — this service has no business logic for any of them yet, and the narrower
+   surface means less to hand-sync (the same "byte-for-byte, no automated check" burden
+   `railway-gateway/prisma/schema.prisma` already carries for `MarketDataV6`).
+
+8. **Refresh-token hashing uses SHA-256, not bcrypt.** F23 says "hashed" without
+   specifying the algorithm. Chose SHA-256 (`createHash`) over bcrypt deliberately: the
+   value being hashed is already a high-entropy random secret (32 random bytes), not a
+   low-entropy user password — bcrypt's per-hash salt would make unique-index lookup by
+   hash impossible (O(n) comparison against every stored token instead of O(1)), and its
+   slow-hashing property defends against a brute-force threat model that doesn't apply
+   here. Standard practice for opaque bearer secrets.
+
+9. **Refresh-token rotation (revoke-old-issue-new on every `/auth/refresh` call), not
+   reuse.** Not a port — the old `RefreshToken` stub was never wired into any real flow
+   (F4 census: "not yet wired to any auth flow"), so there was no prior "refresh"
+   behavior to preserve. Rotation is standard practice for limiting a leaked token's
+   blast radius to one use; within F23's "revocable" requirement, not a security
+   downgrade from any existing behavior.
+
+10. **Unit tests only this session, no live-DB integration test.** `docker-compose.dev.yml`
+    was not running at session start (checked, per `LESSONS-LEARNED.md` L11) and wasn't
+    started — all 29 tests (`refresh-token.service.spec.ts`, `auth.service.spec.ts`,
+    plus the pre-existing `jwt-auth.guard.spec.ts`) mock `PrismaService` and use the real
+    `bcryptjs`/`jsonwebtoken`/`jose` libraries (matching this repo's existing testing
+    philosophy — `jwt-auth.guard.spec.ts` does the same — and avoiding
+    `LESSONS-LEARNED.md` L1's "mocked-the-entire-boundary" trap for the crypto/token
+    logic that actually matters). The F23 migration itself was verified directly against
+    production (schema shape + indexes read back after `migrate deploy`), which is the
+    real database these endpoints will eventually run against — there is no staging
+    environment (Phase 0 gap, unchanged) to integration-test against instead.
+
+11. **Added `app.set('trust proxy', 1)` to `main.ts`.** Small, directly-related fix, not
+    scope creep: Railway sits in front of `operation-service` as a reverse proxy, so
+    Express's `request.ip` would report the proxy's address rather than the real client's
+    — this session is the first to actually read `request.ip` (the new
+    `RefreshToken.ipAddress` field, F23). Audit-trail accuracy only, not a
+    security-critical decision. `NestFactory.create(AppModule)`'s default return type
+    (`INestApplication`) has no `.set()` — the clean `npm run build` (L29 check) caught
+    this immediately (`TS2339`); fixed by typing the factory call
+    `NestFactory.create<NestExpressApplication>(AppModule)` (`@nestjs/platform-express`).
+    Cost minutes, not the >30-minute bar for a new `LESSONS-LEARNED.md` entry — noted here
+    instead.
 
 ## Known wrinkles / do-not-touch
 

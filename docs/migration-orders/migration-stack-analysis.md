@@ -1394,6 +1394,50 @@ Deviations) — code-complete and locally verified only.
 
 </details>
 
+<details>
+<summary><code>operation-service/src/auth/</code> — 10 new files + 4 modified (Session 3-2, token endpoints)</summary>
+
+`/auth/{register,login,refresh,logout,me}` — additive only, not yet called by anything
+live (Session 3-3 wires the Next.js side). F23 (RefreshToken hardened: hashed-at-rest +
+revocable) and F24 (issues NextAuth-compatible JWEs) both resolved by Davin,
+`DECISION-LOG.md`. Of the order's 6-file candidate port list, only 2 were actually
+needed (`errors.ts` full port, `auth-options.ts`'s `authorize()` logic copied into
+`auth.service.ts`) — `two-factor.ts`/`session-tracker.ts`/`permissions.ts`/`session.ts`
+traced to not being in this session's actual call path; see the order's Deviations.
+
+New:
+
+- `operation-service/src/auth/errors.ts` (full port of `lib/auth/errors.ts`, plus new
+  `TwoFactorRequiredError`)
+- `operation-service/src/auth/auth-error.filter.ts`
+- `operation-service/src/auth/next-auth-jwt-encode.util.ts` (F24 — encode half, mirrors
+  `next-auth-jwt.util.ts`'s existing decode half)
+- `operation-service/src/auth/refresh-token.service.ts` + `.spec.ts`
+- `operation-service/src/auth/auth.service.ts` + `.spec.ts`
+- `operation-service/src/auth/auth.controller.ts`
+- `operation-service/src/auth/auth.module.ts`
+- `operation-service/src/auth/dto/register.dto.ts`
+- `operation-service/src/auth/dto/login.dto.ts`
+- `operation-service/src/auth/dto/refresh.dto.ts` (reused for both `/refresh` and
+  `/logout` — identical `{ refreshToken }` shape)
+
+Modified:
+
+- `operation-service/prisma/schema.prisma` (zero models -> hand-copied narrow `User` +
+  `RefreshToken`, see the order's Deviations for the narrow-vs-full-model call)
+- `operation-service/src/app.module.ts` (registers `AuthModule`)
+- `operation-service/package.json` (added `bcryptjs`, `jsonwebtoken` + their `@types`)
+- `prisma/non-market-data/schema.prisma` (`RefreshToken` hardened per F23)
+
+New root migration:
+
+- `prisma/migrations/20260721000000_add_refresh_token_table/` — applied to production
+  (Davin-approved). Pure `CREATE TABLE`, not `ALTER` — the table never actually existed
+  in production despite the model being declared since Session 2-2 (confirmed via a live
+  `pg_tables` query; no prior migration ever created it).
+
+</details>
+
 ### SHARING
 
 <details>

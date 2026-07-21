@@ -786,6 +786,22 @@ test:ci`/`validate`, not `npm run build`.
 - Status: RESOLVED
 - Session: 3-1 · Date: 2026-07-21
 - Decision: Path B: Build JwtAuthGuard to decrypt NextAuth's JWE directly (no NextAuth changes, safer for live users, but ties NestJS to NextAuth JWE format).
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F23 — RefreshToken Schema Upgrade
+
+- Status: RESOLVED
+- Session: 3-2 · Date: 2026-07-21
+- Decision: Full upgrade: Add `hashedToken`, `revokedAt`, `userAgent`, and `ipAddress` via a new Prisma migration to fully support the 'hashed, revocable' requirement.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
+## F24 — Token Issuance Format for /auth/login
+
+- Status: RESOLVED
+- Session: 3-2 · Date: 2026-07-21
+- Decision: Issue NextAuth-compatible JWEs to ensure perfect compatibility with the existing Next.js frontend during the 'bridge-first' phase.
 - Evidence: Live decision from Davin via interactive prompt. Round-trip proven same session,
   before building the guard: `next-auth/jwt`'s own `encode()` (the real production code path,
   invoked with the actual local `NEXTAUTH_SECRET`) minted a genuine JWE; a fully standalone
@@ -797,3 +813,27 @@ test:ci`/`validate`, not `npm run build`.
   `JWEInvalid` (neither silently passes). Script: scratchpad `verify-jwe-roundtrip.js`
   (not committed — one-off verification, logic ported into the guard in Step 4).
 - Approved by: Davin
+
+## F23 — execution evidence (RefreshToken table never existed in production)
+
+- Status: RESOLVED (execution evidence for the decision above)
+- Session: 3-2 · Date: 2026-07-21
+- Finding: at execution time, a live `pg_tables` query and a repo-wide
+  `grep RefreshToken prisma/migrations/` both confirmed the `RefreshToken` table
+  declared in `schema.prisma` since Session 2-2 was **never actually migrated into
+  production** — zero rows, zero table, no migration file ever created it. This
+  changed the shape of F23's migration from a risky `ALTER TABLE` on live data to a
+  pure additive `CREATE TABLE` with the hardened shape (`hashedToken`, `userId`,
+  `userAgent`, `ipAddress`, `expiresAt`, `revokedAt`, `createdAt`) — no prior data to
+  preserve or migrate.
+- Evidence: `prisma/migrations/20260721000000_add_refresh_token_table/migration.sql`,
+  applied to production via `prisma migrate deploy --schema=prisma/non-market-data/
+schema.prisma` (Davin's explicit live approval — a production deploy, escalated per
+  `EXECUTOR-PROTOCOL.md` §7; the auto-mode classifier also independently blocked the
+  first attempt). Verified post-apply: `prisma migrate status` → "up to date"; a
+  direct `information_schema.columns`/`pg_indexes` query confirmed all 8 columns and
+  4 indexes (`pkey`, unique `hashedToken`, `userId`, `expiresAt`) match the schema
+  exactly. Refresh-token hashing uses SHA-256 (not bcrypt) — deliberate, since the
+  hashed value is already a high-entropy random secret and needs O(1) unique-index
+  lookup, not slow per-guess hashing; full rationale in the order's Deviations #8.
+- Approved by: Davin (production migration deploy, live in-session).
