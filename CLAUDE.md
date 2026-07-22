@@ -16,80 +16,73 @@
 > Session 4A-5's (webhooks) shadow-run verification himself; webhooks cut over FIRST,
 > before 4A-7 or any Slice 4 work. The next session that opens should check with Davin
 > before starting anything beyond what he explicitly asks for — see Waiting-on #33.
+> **Session 4A-3 (below) was an explicit, scoped exception Davin asked for directly in
+> chat — Slice 1 (crons) cutover, independent of the 4A-5/4A-7 chain-length-one question
+> — not a lifting of the standing instruction. Slice 3/4 and further BUILD work remain
+> blocked exactly as before.**
 
-- **Current:** Session 4A-6 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
-  blueprint §5.5 Slice 3 (Read APIs) is BUILT and deployed** — money-service's own read
-  API controllers exist in production at unique paths (`/v1/affiliate/dashboard/*`,
-  `/v1/admin/*`) not yet called by the frontend, so zero live traffic. Slice 2
-  (webhooks) unchanged from Session 4A-4's close — still not wired to either provider's
-  dashboard, still blocked on Session 4A-5's own unresolved entry criteria (see Waiting
-  on). Slice 1 (crons) unchanged from Session 4A-2's close, still `CRON_ENABLED=false`.
-  Phase 3/Phase 1/Phase 0 all unchanged from Session 4A-1's close.
+- **Current:** Session 4A-3 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
+  blueprint §5.5 Slice 1 (crons) is CUT OVER** — money-service's own `@nestjs/schedule`
+  scheduler is now the live, sole execution path for all 8 cron jobs (`CRON_ENABLED=true`
+  on Railway production; `vercel.json`'s crons array emptied and deployed). Slice 3 (read
+  APIs) unchanged from Session 4A-6's close — BUILT and deployed, zero live traffic.
+  Slice 2 (webhooks) unchanged from Session 4A-4's close — still not wired to either
+  provider's dashboard, still blocked on Session 4A-5's own unresolved entry criteria.
+  Phase 3/Phase 1/Phase 0 all unchanged from Session 4A-1's close. **Note on session
+  ordering:** 4A-3 was PRE-DRAFTed at 4A-2's close (2026-07-21) but sat dormant while
+  4A-4 through 4A-6 (Slices 2/3 BUILD) executed around it — Davin brought it back for
+  execution this session, out of numeric order but not out of scope order (Slice 1 is
+  independent of Slices 2/3).
 - **Current order:**
-  `docs/migration-orders/4a-6-money-service-read-apis-build.migration-order.md`
-  (arrived with a self-contradictory status — header said APPROVED, its own Entry
-  Criteria checkbox still said `[ ] Davin approves this DRAFT`, no git history at all —
-  see the order's own CONFIRM note. Davin confirmed approval live in-session; CONFIRMED
-  and EXECUTED end-to-end after that, all 3 File Port Order steps done plus a
-  CONFIRM-phase file-list correction and a schema-relation fix; every "done when" item
-  satisfied, see below).
-- **Order status:** CLOSED, all-green. **What shipped:**
-  - **CONFIRM found the order's SOURCE file list was simply wrong, not just imprecise**
-    (`lib/affiliate/stats.ts`/`lib/admin/commission-queries.ts` don't exist anywhere in
-    the repo) — traced the real files fresh from all 12 GET routes' actual imports
-    before writing any code. Also found 3 of the order's own in-scope files
-    (`admin/affiliates/{suspend,reactivate,distribute-codes}`) and the entirety of
-    `admin/commissions/*` (just `pay/route.ts`) are POST-only mutations, correctly
-    excluded per the order's own Slice-4 boundary. See the order's own Deviations
-    section for the full corrected file list and reasoning.
-  - **File 1/3 — schema expansion**: added `Commission.affiliateCode` relation +
-    `AffiliateCode.commissions` back-relation — `commission-report/route.ts`'s port
-    needs `include: { affiliateCode: { code, usedAt } }` on `Commission`, which Session
-    4A-4 had correctly omitted for its own narrower scope. 4th occurrence of this
-    schema-relation-gap pattern (`LESSONS-LEARNED.md` L37 recurrence note, 2nd
-    recurrence of this specific variant). `npx prisma generate` clean; per Session
-    4A-2/4A-4 precedent, no `db push`/`migrate deploy` was run against production this
-    session either — see Waiting-on, this gap now spans all 3 built slices.
-  - **File 2/3 — controllers & services**: `lib/affiliate/report-builder.ts` (440
-    lines) ported as `ReportBuilderService` (`@Injectable`, `PrismaService` DI, same
-    conversion pattern as `ConversionProcessorService`). Read-relevant subset of
-    `lib/affiliate/validators.ts` ported (pagination/codes-list/commission-report
-    schemas only — registration/payment-detail schemas are Slice 4). `lib/admin/
-pnl-calculator.ts` and `lib/admin/affiliate-management.ts` ported (the latter as
-    `AdminAffiliateManagementService`). 3 files already ported in Session 4A-2
-    (`affiliate.constants.ts`, `affiliate.types.ts`, `affiliate-config.service.ts`)
-    reused as-is, not re-ported. New `AdminGuard`/`AffiliateGuard` replicate
-    `requireAdmin()`/`requireAffiliate()`'s 403 shapes; `JwtAuthGuard` (already built,
-    Session 3-1/3-2's F6/F7 bridge) supplies 401. `AffiliateDashboardController` (4
-    routes), `AdminAffiliatesController` (list+detail), `AdminAffiliateReportsController`
-    (5 report routes), and `AdminAnalyticsController` (its own bespoke inline
-    admin-check, NOT the shared `AdminGuard` — confirmed at CONFIRM that its source
-    never calls `requireAdmin()`/`session.ts` at all) map their source routes 1:1,
-    response shapes matching exactly. Added `zod` as a direct money-service dependency
-    (wasn't one at all before this session).
-  - **Found a real bug in the source, not fixed there (out of scope), documented in the
-    port instead**: the 4 `app/api/affiliate/dashboard/*` routes' own catch blocks
-    check `error.message.includes('AFFILIATE_REQUIRED'/'UNAUTHORIZED')`, but
-    `lib/auth/session.ts` only ever sets that marker on the error's `.code`, never its
-    `.message` — both branches are dead code, every real auth failure on these 4 routes
-    falls through to a generic 500 in production today, zero test coverage either way.
-    The NestJS port implements the CORRECT/documented contract (`AffiliateGuard`) each
-    route's own JSDoc promises, not the unreachable bug.
-  - **File 3/3 — tests**: ported `affiliate-management.test.ts` assertions unchanged
-    (DI adaptation only). New backfill coverage (zero existing coverage anywhere,
-    confirmed at CONFIRM) for `report-builder.ts` (never had a test file) and
-    `pnl-calculator.ts`'s `calculateStandardSale`/`getReportingPeriod` (source test
-    only covered `calculatePnL`) — same precedent as Session 4A-4. New guard specs +
-    controller specs for all 4 new controllers (success/validation/not-found/forbidden
-    paths). **money-service: 24 suites → 24 suites, 202 → 256 tests, all green.**
-  - **Deployed to Railway production** (`railway up --path-as-root`, `{"status":
-"success"}`). `railway logs` shows a clean boot: `AffiliateModule`/`AdminModule`
-    initialized, all 12 new routes mapped, `Nest application successfully started`, no
-    errors. `/health` confirms `database: up`.
-  - **Verification plan step 3, done against the live production URL**: all 12 new
-    routes hit with no `Authorization` header → `401`, `{"message":"Missing bearer
-token","error":"Unauthorized","statusCode":401}`. Matches the order's "done when"
-    criterion exactly.
+  `docs/migration-orders/4a-3-money-service-crons-cutover.migration-order.md`
+  (arrived with the same self-contradictory-status pattern as 4A-6's predecessor —
+  header note block said PRE-DRAFT/needs-Advisor-DRAFT/needs-Davin-approval, the
+  metadata status line said APPROVED, and that edit was uncommitted with no recorded
+  Advisor-DRAFT or Davin-approval history — see `LESSONS-LEARNED.md` L11's recurrence
+  note. 3 of 4 entry criteria were also unchecked at CONFIRM time, most importantly the
+  manual-trigger idempotency verification for all 8 cron jobs. Did not trust the header;
+  asked Davin directly, live in-session — he confirmed the verification was genuinely
+  done for all 8 jobs with clean idempotent results, just not checked off in the guide
+  file, and gave live approval via the order's own "what's the rollback?" ritual
+  question. CONFIRMED and EXECUTED end-to-end after that; see the order's own
+  Deviations section for the full trail).
+- **Order status:** CLOSED, all-green (with one monitoring caveat — see below). **What shipped:**
+  - **CONFIRM found the same L11 self-contradiction pattern as Session 4A-6** — see
+    "Current order" above for the full description. Cross-checked all 4 entry criteria
+    live with Davin rather than trusting the header: (1) `CRON_SECRET` set — already
+    true since 4A-2. (2) Manual-trigger idempotency verification, all 8 jobs — the
+    paired evidence file showed 0/8 boxes checked; Davin confirmed live that the
+    verification genuinely happened and all 8 came back clean (0 items reprocessed, no
+    duplicate `PaymentBatch`/`DisbursementTransaction`/`Notification`/`AffiliateCode`
+    rows, including the ⚠️-flagged `process-pending-disbursements` job) — corroborated
+    by a `railway logs` timestamp (~2026-07-22T09:34-35 UTC) showing all 8 jobs
+    completing cleanly via the manual-trigger path. (3) Davin present/available —
+    confirmed live in this session. (4) Deploy still at 4A-2 or newer with no unreviewed
+    cron-logic changes — verified via `git log -- money-service/src/crons/`: last
+    commit touching that path is `a8ae3586`, part of 4A-2's own close.
+  - **Flip executed in order** (order's Checklist step 3): (a) `railway variables
+--service money-service --environment production --set "CRON_ENABLED=true"` —
+    confirmed via `railway variables` read-back, then `railway logs` showed all 8 jobs
+    already having fired cleanly (0 errors, 0 batches from the brief overlap window).
+    (b) `vercel.json`'s `crons` array emptied, committed (`a63d9b11`), pushed to `main`
+    — pre-push hook ran full type-check + test suite (117 suites, 2082 tests, all
+    green) before the push landed. GitHub commit status confirmed `Vercel: success`
+    ("Deployment has completed"); two unrelated Railway contexts (`prisma-migration`,
+    `postgre for staging`) showed `failure` but were already failing identically on the
+    prior commit (pre-existing, out of scope — unrelated staging projects, F34).
+  - **Monitoring caveat (order's Checklist step 4, not fully closed this session):**
+    today's clean-idempotency evidence comes from the manual-trigger endpoints (which
+    bypass the `CRON_ENABLED` gate by design), not yet from the scheduler's own natural
+    tick under the new live regime. The daily jobs' first natural fire is the next UTC
+    00:00–04:00 windows (2026-07-23) — someone should spot-check `railway logs` for
+    money-service then (no errors, no duplicate rows) before treating this as fully
+    stable. Recorded in `migration-cutover-table.md`'s Slice 1 row and this order's own
+    Deviations rather than silently assumed done.
+  - **Artifacts updated:** `migration-cutover-table.md` (Slice 1 → CUT-OVER, with the
+    monitoring caveat in Notes), `DECISION-LOG.md` (F35 update note — cutover executed),
+    `LESSONS-LEARNED.md` L11 (recurrence note — 2nd occurrence of the same
+    self-contradicted-order pattern, worth the Advisor's attention on how these status
+    edits are happening outside the Advisor→Davin pipeline).
 - **Waiting on:** all Session 4A-4 items unchanged except where noted below (renumbered
   continuation). (1)-(6), (11)-(12), (17)-(20), (23), (27)-(29) unchanged — see prior
   closes for full text. (26) Stripe/dLocal/RiseWorks/Resend secrets still not set —
@@ -134,30 +127,44 @@ token","error":"Unauthorized","statusCode":401}`. Matches the order's "done when
   affiliate-support modules) were never recorded there, a standing gap this session
   found and flagged but did not backfill (out of scope, full regen is an 8.6-only task
   per `00-SKELETON-AND-RULES.md` §5) — only this session's own additions were appended.
-- **Last session did:** Session 4A-6 ("money-service: read APIs — Slice 3 BUILD") —
-  closed 2026-07-22, all-green, executed end-to-end as a PORT session after a CONFIRM
-  that found the order's own SOURCE file list was simply wrong (fabricated file names,
-  not just imprecise ones) and its approval-chain paperwork self-contradictory (Davin
-  confirmed live that approval was genuine). Ported all 3 File Port Order steps
-  (schema relation, 5 new service/controller files + 2 reused, tests — 256 tests green,
-  up from 202). Found and documented (not fixed — out of scope) a real dead-code bug in
-  4 monolith routes' own auth-error handling. Deployed to Railway production; verified
-  all 12 new endpoints correctly return 401 without a valid token. New
-  `LESSONS-LEARNED.md` L37 recurrence note (2nd recurrence of the schema-relation-gap
-  variant); 2 more new lessons found but deliberately NOT added as L41/L42 (cap
-  discipline, Waiting-on #30) — recorded in this order's Deviations instead.
-  PRE-DRAFTed Session 4A-7 (read APIs CUTOVER) with an explicit open design question
-  flagged rather than guessed at.
-- **Next session:** **Ambiguous — Davin must choose.** Two cutover orders are now
-  pending: Session 4A-5 ("webhooks — Slice 2 CUTOVER", already at DRAFT, blocked on
-  secrets + signed-payload replay, Waiting-on #26/#31) and Session 4A-7 ("read APIs —
-  Slice 3 CUTOVER", **PRE-DRAFTed this close** at
-  `docs/migration-orders/4a-7-money-service-read-apis-cutover.migration-order.md`,
-  blocked on an unresolved browser-auth design question, Waiting-on #34). They're
-  independent — either can go first — but per `00-SKELETON-AND-RULES.md` §1.5 ("chain
-  length is exactly one"), do NOT start a 3rd Slice-4 BUILD session before at least one
-  of these two resolves (Waiting-on #33). Both also share Waiting-on #32 (production DB
-  schema never synced) as a blocker regardless of which goes first.
+  **(29, RESOLVED Session 4A-3)** money-service's own unfinished manual-trigger
+  verification step (4A-2's blocker for the crons cutover) — completed and confirmed
+  live with Davin this session, all 8 jobs idempotent. **(36, NEW)** Session 4A-3's
+  cutover landed, but the order's own Checklist step 4 ("monitor one full cycle") isn't
+  fully closed: today's clean-idempotency evidence is from the manual-trigger endpoints
+  (bypass the `CRON_ENABLED` gate by design), not the scheduler's own natural tick under
+  the new live regime. First natural fire for the daily jobs is the next UTC 00:00–04:00
+  windows (2026-07-23) — spot-check `railway logs` for money-service then (no errors, no
+  duplicate `PaymentBatch`/`DisbursementTransaction` rows) before treating Slice 1 as
+  fully stable. Not a blocker for other work, just an open follow-up.
+- **Last session did:** Session 4A-3 ("money-service: crons — Slice 1 CUTOVER") —
+  closed 2026-07-22, all-green, executed as a VERIFY-RETIRE/CUTOVER session after a
+  CONFIRM that found the same self-contradicted-order-status pattern as 4A-6
+  (`LESSONS-LEARNED.md` L11 recurrence) and 3 of 4 entry criteria unchecked. Rather than
+  trusting the header, asked Davin directly, live in-session, for each entry criterion
+  and for the order's own required "what's the rollback?" approval ritual — all
+  confirmed genuinely satisfied, just not reflected in the paperwork. Flipped
+  `CRON_ENABLED=true` on Railway production, emptied `vercel.json`'s crons array
+  (commit `a63d9b11`, pre-push hook ran full type-check + 2082 tests green), confirmed
+  the Vercel deploy succeeded via GitHub commit status. money-service's own scheduler is
+  now the sole live execution path for all 8 cron jobs. Left one honest gap open rather
+  than claiming false completion: the scheduler's own natural (non-manual-trigger) tick
+  hasn't been observed yet (Waiting-on #36) — daily jobs' next natural fire is
+  2026-07-23. Updated `migration-cutover-table.md` (Slice 1 → CUT-OVER),
+  `DECISION-LOG.md` (F35 update note), `LESSONS-LEARNED.md` (L11 recurrence note).
+- **Next session:** Unchanged from 4A-6's close — **ambiguous, Davin must choose,
+  independent of this session's work.** Two cutover orders remain pending: Session 4A-5
+  ("webhooks — Slice 2 CUTOVER", already at DRAFT, blocked on secrets + signed-payload
+  replay, Waiting-on #26/#31) and Session 4A-7 ("read APIs — Slice 3 CUTOVER",
+  `docs/migration-orders/4a-7-money-service-read-apis-cutover.migration-order.md`, its
+  own browser-auth design question already resolved — Waiting-on #34 — but still
+  blocked on chain-length-one). They're independent of each other — either can go first
+  — but per `00-SKELETON-AND-RULES.md` §1.5 ("chain length is exactly one") and the
+  standing instruction at the top of this file, do NOT start a 3rd Slice-4 BUILD session
+  or either of these two cutovers before Davin explicitly says so (Waiting-on #33). Both
+  also share Waiting-on #32 (production DB schema never synced) as a blocker regardless
+  of which goes first. Separately, low-effort follow-up: spot-check Slice 1's first
+  natural cron cycle per Waiting-on #36 (not a session, just a log check).
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -200,11 +207,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   `<api.domain/v1 + money.domain/v1>` · **F34 fully RESOLVED (Session 3-5, Davin)** —
   reuse the existing "postgre for staging" Railway project whenever CC-A's staging
   gap is actually addressed (base Postgres/Redis already provisioned there; nothing
-  else built yet) · **F35 fully RESOLVED (Session 4A-2, Davin)** — money-service
-  crons Slice 1's shadow-run mechanism given F34/CC-A isn't ready: `CRON_ENABLED` gate
-  - manual-trigger verification, not a literal parallel staging run — see "What
-    shipped" above ·
-    F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  else built yet) · **F35 fully RESOLVED (Session 4A-2, Davin) — cutover EXECUTED
+  Session 4A-3** — money-service crons Slice 1's shadow-run mechanism given F34/CC-A
+  isn't ready: `CRON_ENABLED` gate + manual-trigger verification, not a literal parallel
+  staging run; 4A-3 flipped the gate and emptied `vercel.json`'s crons, Slice 1 is now
+  CUT-OVER (monitoring caveat, Waiting-on #36) ·
+  F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 

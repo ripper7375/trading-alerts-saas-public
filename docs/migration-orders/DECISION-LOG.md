@@ -1164,3 +1164,13 @@ successfully started`, no errors; `railway variables --kv` confirms
   (`crons.scheduler.spec.ts`) cover all 3 gate states (unset / non-`"true"` / `"true"`)
   for each of the 8 scheduled wrappers.
 - Approved by: Davin (explicit, live instruction to add the toggle and deploy this way)
+- **Update, Session 4A-3 (2026-07-22): gate flipped, cutover executed.** `CRON_ENABLED=true`
+  set on money-service production (`railway variables`), then `vercel.json`'s crons array
+  emptied (commit `a63d9b11`, Vercel deploy confirmed `success`). Order's own entry criteria
+  arrived with a self-contradicted header (PRE-DRAFT note vs. an uncommitted `APPROVED` edit
+  — see `LESSONS-LEARNED.md` L11) and 3 of 4 entry-criteria checkboxes unchecked at CONFIRM
+  time; cross-checked live with Davin rather than trusted at face value — see the order's own
+  Deviations section for the full trail. Money-service's own scheduler is now the sole live
+  execution path for these 8 jobs; `migration-cutover-table.md` Slice 1 row updated to
+  CUT-OVER, with a documented caveat that the scheduler's own natural (non-manual-trigger)
+  tick hasn't been observed yet — first occurrence is the next UTC 00:00-04:00 windows.
