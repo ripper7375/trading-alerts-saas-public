@@ -7,6 +7,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
+import { AdminModule } from './admin/admin.module';
+import { AffiliateModule } from './affiliate/affiliate.module';
 import { CronsModule } from './crons/crons.module';
 import { DlocalModule } from './dlocal/dlocal.module';
 import { HealthModule } from './health/health.module';
@@ -56,6 +58,12 @@ import { RiseworksModule } from './riseworks/riseworks.module';
     // traffic risk until Session 4A-5.
     DlocalModule,
     RiseworksModule,
+    // Session 4A-6 (File 2/3): Slice 3 read APIs (affiliate dashboard,
+    // admin affiliate/analytics reports). Unique paths under
+    // /v1/affiliate/dashboard/* and /v1/admin/* — no live traffic until
+    // Session 4A-7 (this order's own Safety Gate).
+    AffiliateModule,
+    AdminModule,
   ],
   providers: [
     {
