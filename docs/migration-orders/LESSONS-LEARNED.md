@@ -867,6 +867,19 @@ build` (`Type ... is not assignable to type 'never'`), so the generalized rule h
   a prior session's "not used, omitted" note is scoped to THAT session's file set, not
   a permanent property of the model — re-verify relation/field omissions against the
   NEW session's actual code, don't assume a previous CONFIRM's trace still holds.
+- **Recurred Session 4A-6 (5th occurrence overall — 4th of this "prior session's
+  narrower-scope omission" schema-relation variant):** same variant as the 4A-4
+  recurrence above — Session 4A-4's own schema comment said `Commission.affiliateCodeId`
+  stays "a bare scalar" because "nothing in scope traverses it." Session 4A-6's
+  `commission-report/route.ts` port genuinely does `include: { affiliateCode: { code,
+usedAt } } }` on `Commission`. Caught this time at CONFIRM (reading the route file
+  before writing any code), not at `tsc` — proactive dependency tracing generalizes:
+  before trusting ANY prior session's "not used, omitted" schema comment, grep the NEW
+  session's actual route/service files for `include:`/`select:` blocks touching that
+  relation, don't just read the comment and move on. This variant recurring on its 2nd
+  try (4A-4, then 4A-6) means it is no longer an edge case — it is the DEFAULT
+  expectation every time a new slice's scope expands on a schema shared with prior
+  slices.
 
 ### L38 — A doc comment quoting a real path containing `*/` silently closes the comment block early, corrupting everything after it
 
@@ -945,12 +958,17 @@ theFunction: jest.fn() }))`). That `jest.mock()` call must be the literal FIRST
 
 ---
 
-**Header note, 2026-07-22 (Session 4A-4):** now at 40 active lessons (L1-L40) — AT the
-stated cap. Per this file's own header instructions, the NEXT session that touches this
-file must pause and flag the Advisor for a consolidation pass (merge duplicates,
-generalize, archive rarely-relevant entries) before adding another — this is now the
-second session in a row to note this (see CLAUDE.md Waiting-on #30, unresolved since
-Session 4A-2).
+**Header note, 2026-07-22 (Session 4A-6):** still at 40 active lessons (L1-L40) — this
+session found 2 genuinely new lessons (an order-approval-chain-integrity gap, and a
+"catch block checks `.message` instead of `.code`" dead-code bug pattern) but did NOT add
+L41/L42, per this file's own explicit "pause and flag the Advisor... before adding
+another" instruction — only appended a recurrence note to the existing L37 (maintenance
+on an existing entry, not a new one). This is now the THIRD session in a row to hit the
+cap without a consolidation pass happening (Sessions 4A-2, 4A-4, 4A-6 — see CLAUDE.md
+Waiting-on #30, unresolved since Session 4A-2). The 2 new lessons' substance is recorded
+in Session 4A-6's own order Deviations section and CLAUDE.md instead, for the Advisor to
+fold in during the (increasingly overdue) consolidation pass — don't lose them by
+treating "no numbered entry yet" as "nothing to consolidate."
 
 ## Archive
 

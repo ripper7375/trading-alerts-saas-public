@@ -11,130 +11,141 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Session 4A-4 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
-  blueprint §5.5 Slice 2 (RiseWorks + dLocal webhooks) is BUILT and deployed** —
-  money-service's own webhook receivers exist in production at unique paths
-  (`/v1/webhooks/{dlocal,riseworks}`) not yet wired to either provider's dashboard, so
-  zero live traffic. Slice 1 (crons) unchanged from Session 4A-2's close, still
-  `CRON_ENABLED=false`, still blocked on 4A-3's own entry criteria. Phase 3/Phase 1/
-  Phase 0 all unchanged from Session 4A-1's close.
+- **Current:** Session 4A-6 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
+  blueprint §5.5 Slice 3 (Read APIs) is BUILT and deployed** — money-service's own read
+  API controllers exist in production at unique paths (`/v1/affiliate/dashboard/*`,
+  `/v1/admin/*`) not yet called by the frontend, so zero live traffic. Slice 2
+  (webhooks) unchanged from Session 4A-4's close — still not wired to either provider's
+  dashboard, still blocked on Session 4A-5's own unresolved entry criteria (see Waiting
+  on). Slice 1 (crons) unchanged from Session 4A-2's close, still `CRON_ENABLED=false`.
+  Phase 3/Phase 1/Phase 0 all unchanged from Session 4A-1's close.
 - **Current order:**
-  `docs/migration-orders/4a-4-money-service-webhooks-build.migration-order.md`
-  (CONFIRMED and EXECUTED end-to-end — all 4 File Port Order steps done, plus a
-  post-CONFIRM schema-relation fix caught by `tsc`; every "done when" item satisfied,
-  see below).
+  `docs/migration-orders/4a-6-money-service-read-apis-build.migration-order.md`
+  (arrived with a self-contradictory status — header said APPROVED, its own Entry
+  Criteria checkbox still said `[ ] Davin approves this DRAFT`, no git history at all —
+  see the order's own CONFIRM note. Davin confirmed approval live in-session; CONFIRMED
+  and EXECUTED end-to-end after that, all 3 File Port Order steps done plus a
+  CONFIRM-phase file-list correction and a schema-relation fix; every "done when" item
+  satisfied, see below).
 - **Order status:** CLOSED, all-green. **What shipped:**
-  - **CONFIRM caught 3 untraced transitive dependencies + a path error in the APPROVED
-    order before execution**, all fixed in place (order stayed APPROVED → CONFIRMED, no
-    DRAFT bounce): (1) File 1/4's schema path (`packages/db/prisma/schema.prisma`
-    doesn't exist; real path is `money-service/prisma/schema.prisma`); (2) File 2/4
-    named `dlocal-payment.service.ts`/`three-day-validator.service.ts`/
-    `conversion-processor.ts` but missed `lib/dlocal/constants.ts` (163 lines),
-    `types/dlocal.ts` (150 lines), and `lib/affiliate/commission-calculator.ts` (253
-    lines) — all 3 genuinely imported by the named files. Same L37 pattern
-    (`LESSONS-LEARNED.md`) as Session 4A-2, third occurrence.
-  - **File 1/4 — schema expansion**: added `Payment` and `RiseWorksWebhookEvent`
-    models (full copies, no relation objects — neither is traversed via `include` in
-    this slice's scope), `hasUsedThreeDayPlan`/`threeDayPlanUsedAt` on the existing
-    narrow `User` subset (read/written by `three-day-validator.service.ts`).
-    **Execution-phase deviation**: `npm run build` caught a 4th gap `tsc` alone could
-    surface — Session 4A-2's schema had deliberately omitted
-    `AffiliateCode.affiliateProfile` ("not traversed" in the crons-only scope), but
-    `conversion-processor.service.ts` genuinely does `include: { affiliateProfile:
-... }`. Added the relation + `AffiliateProfile.affiliateCodes` back-relation,
-    `AffiliateCode.commissions` still correctly omitted. `LESSONS-LEARNED.md` L37 got a
-    recurrence note; `npx prisma generate` + `npm run build` clean after the fix.
-  - **File 2/4 — dLocal webhook logic**: `dlocal-payment.service.ts` ported as plain
-    functions (no DI in source — matches `webhook-verifier.ts`'s own treatment).
-    `three-day-validator.service.ts` and `conversion-processor.ts` converted to
-    `@Injectable()`s (`ThreeDayValidatorService`, `ConversionProcessorService`) with
-    `PrismaService`/`AffiliateConfigService` DI, same pattern as Session 4A-2's cron
-    services. `DlocalWebhookController` maps the source route 1:1, using `@Res()` +
-    Nest's `rawBody: true` option (added to `main.ts`) so HMAC verification sees the
-    exact bytes dLocal signed, not a JSON round-trip.
-  - **File 3/4 — RiseWorks webhook logic**: `webhook-verifier.ts` ported as a plain
-    class (no DI in source). `event-processor.ts` converted to `@Injectable()`
-    `WebhookEventProcessorService` with `PrismaService` + the already-ported
-    `TransactionLoggerService` DI (same conversion pattern as the rest of Session
-    4A-2's disbursement tree); reuses the existing `WebhookEvent` type from
-    `disbursement.types.ts` instead of a local redeclaration.
-    `RiseworksWebhookController` maps the source route 1:1.
-  - **File 4/4 — tests + backfill**: ported 1:1 (assertions unchanged): dlocal-payment,
-    three-day-validator, webhook-verifier, commission-calculator specs (the 4 pure
-    calculator functions only — its 3 `*WithDynamicConfig` wrappers had no source
-    coverage either, confirmed unused anywhere in the monolith via grep). **New
-    backfill coverage** (zero existing coverage anywhere, flagged at CONFIRM):
-    `WebhookEventProcessorService` (event-processor.ts never had a test file at all),
-    `ConversionProcessorService` (the one existing "affiliate-conversion" test covers
-    `/api/checkout/validate-code`, a different route — not `processAffiliateConversion`
-    itself), and both new controllers' full orchestration (source's own
-    `route.test.ts` explicitly scoped itself to signature/status logic only: "Full API
-    route integration tests require a database connection"). One test-infra fix
-    required: `verifyWebhookSignature` reads a module-level `const` captured from
-    `process.env` at import time — a per-test `process.env` assignment runs too late
-    to affect it, so the controller spec mocks the function directly instead (new
-    `LESSONS-LEARNED.md` L40). **money-service: 15 suites → 202 tests, all green**
-    (was 90 at Session 4A-2's close). Monolith's own 10 relevant suites / 182 tests
-    re-run green, source untouched.
-  - **Deployed to Railway production** (`railway up --path-as-root`, deployment
-    `073a0478-dfe4-4226-aa97-9d08d5eee23e`). `railway logs` shows a clean boot:
-    `DlocalModule`/`RiseworksModule` initialized, `DlocalWebhookController
-{/v1/webhooks/dlocal}` and `RiseworksWebhookController {/v1/webhooks/riseworks}`
-    both mapped, `Nest application successfully started`, no errors. `/health`
-    confirms `database: up`.
-  - **Verification plan step 3, done against the live production URL**: `POST
-/v1/webhooks/dlocal` with a bogus `x-signature` → `400 Bad Request`,
-    `{"error":"Invalid signature"}`. `POST /v1/webhooks/riseworks` with no
-    `x-rise-signature` header → `401 Unauthorized`, `{"error":"Missing signature"}`.
-    Both match the order's "done when" criterion exactly — proves the routes are
-    registered and protected, without needing `DLOCAL_WEBHOOK_SECRET`/
-    `RISE_WEBHOOK_SECRET` to be set (they aren't, see Waiting-on #26 below).
-- **Waiting on:** all Session 4A-2 items unchanged except where noted below (renumbered
-  continuation). (1)-(6), (11)-(12), (17)-(20), (23), (27)-(28) unchanged — see prior
-  closes for full text. (17) CC-A's dedicated staging stack still doesn't exist. **(26,
-  narrowed)** Stripe/dLocal/RiseWorks/Resend secrets still not set on money-service —
-  now genuinely blocking: this session's webhook receivers are live in production and
-  correctly reject unsigned requests, but a REAL signed payload from either provider
-  can't be end-to-end verified until `DLOCAL_WEBHOOK_SECRET`/`RISE_WEBHOOK_SECRET` are
-  set (confirmed unset via `railway variables --kv` at this session's deploy step) —
-  this is now Session 4A-5's own first entry criterion. **(29)** `CRON_SECRET` — per
-  4A-3's own PRE-DRAFT, unchanged, not this session's concern. **(30, unresolved, now
-  2 sessions running)** `LESSONS-LEARNED.md` is now at 40 active lessons (L1-L40) — AT
-  the stated cap; the NEXT session that touches it must flag the Advisor for a
-  consolidation pass before adding another (file's own header instructions; CLAUDE.md
-  has now flagged this twice, Sessions 4A-2 and 4A-4). **(31, NEW)** Session 4A-5's
-  entry criteria need a real signed-payload replay per provider (playbook's own framing
-  for this slice: "BUILD (replay tests with recorded signed payloads) then CUTOVER") —
-  this session's own deploy verification only proved unsigned/invalid-signature
-  rejection (400/401), not a real signed payload's full happy path against the new
-  endpoints. Needs waiting-on #26 resolved first (secrets), then a provider dashboard
-  "send test webhook" or a Davin-provided recorded real payload.
-- **Last session did:** Session 4A-4 ("money-service: webhooks — Slice 2 BUILD") —
-  closed 2026-07-22, all-green, executed end-to-end as a PORT session. CONFIRM caught
-  3 untraced transitive dependencies + a schema path error in the APPROVED order
-  before execution (same L37 pattern as Session 4A-2, third occurrence) — see "What
-  shipped" above. Ported all 4 File Port Order steps (schema, dLocal logic, RiseWorks
-  logic, tests — 202 tests green, up from 90). Execution-phase `tsc` caught a 4th gap:
-  a schema relation Session 4A-2 had correctly omitted for its own narrower scope but
-  this session's code genuinely needs (`LESSONS-LEARNED.md` L37 recurrence note).
-  Added Nest's `rawBody: true` to preserve exact HMAC verification. Deployed to Railway
-  production; verified both new endpoints correctly reject unsigned/invalid-signature
-  requests (400/401) against the live URL — proving registration/protection without
-  needing the still-unset provider secrets. New `LESSONS-LEARNED.md` L40 (module-level
-  `process.env` capture defeats per-test mocking; `jest.mock()` must precede all
-  imports). File now at the 40-lesson cap (Waiting-on #30).
-- **Next session:** Session 4A-5 ("money-service: webhooks — Slice 2 CUTOVER") per the
-  playbook and this order's own Next-session handoff — a small, separate
-  TEMPLATE-VERIFY-RETIRE session (never combine BUILD and CUTOVER). **PRE-DRAFTed**
-  at this close: `docs/migration-orders/4a-5-money-service-webhooks-cutover.migration-order.md`.
-  Its entry criteria will need: (a) `DLOCAL_WEBHOOK_SECRET`/`RISE_WEBHOOK_SECRET` set on
-  Railway (waiting-on #26/#31); (b) at least one real signed test event per provider
-  verified end-to-end against the new endpoints (waiting-on #31); (c) Davin's live
-  approval to update each provider dashboard's webhook URL — a cutover flag-flip per
-  EXECUTOR-PROTOCOL §7, always escalated. Unlike Slice 1's crons, this cutover has no
-  dual-execution-path risk (a provider only ever calls one configured URL), so no
-  `CRON_ENABLED`-style safety gate is needed — rollback is just reverting the
-  dashboard URL.
+  - **CONFIRM found the order's SOURCE file list was simply wrong, not just imprecise**
+    (`lib/affiliate/stats.ts`/`lib/admin/commission-queries.ts` don't exist anywhere in
+    the repo) — traced the real files fresh from all 12 GET routes' actual imports
+    before writing any code. Also found 3 of the order's own in-scope files
+    (`admin/affiliates/{suspend,reactivate,distribute-codes}`) and the entirety of
+    `admin/commissions/*` (just `pay/route.ts`) are POST-only mutations, correctly
+    excluded per the order's own Slice-4 boundary. See the order's own Deviations
+    section for the full corrected file list and reasoning.
+  - **File 1/3 — schema expansion**: added `Commission.affiliateCode` relation +
+    `AffiliateCode.commissions` back-relation — `commission-report/route.ts`'s port
+    needs `include: { affiliateCode: { code, usedAt } }` on `Commission`, which Session
+    4A-4 had correctly omitted for its own narrower scope. 4th occurrence of this
+    schema-relation-gap pattern (`LESSONS-LEARNED.md` L37 recurrence note, 2nd
+    recurrence of this specific variant). `npx prisma generate` clean; per Session
+    4A-2/4A-4 precedent, no `db push`/`migrate deploy` was run against production this
+    session either — see Waiting-on, this gap now spans all 3 built slices.
+  - **File 2/3 — controllers & services**: `lib/affiliate/report-builder.ts` (440
+    lines) ported as `ReportBuilderService` (`@Injectable`, `PrismaService` DI, same
+    conversion pattern as `ConversionProcessorService`). Read-relevant subset of
+    `lib/affiliate/validators.ts` ported (pagination/codes-list/commission-report
+    schemas only — registration/payment-detail schemas are Slice 4). `lib/admin/
+pnl-calculator.ts` and `lib/admin/affiliate-management.ts` ported (the latter as
+    `AdminAffiliateManagementService`). 3 files already ported in Session 4A-2
+    (`affiliate.constants.ts`, `affiliate.types.ts`, `affiliate-config.service.ts`)
+    reused as-is, not re-ported. New `AdminGuard`/`AffiliateGuard` replicate
+    `requireAdmin()`/`requireAffiliate()`'s 403 shapes; `JwtAuthGuard` (already built,
+    Session 3-1/3-2's F6/F7 bridge) supplies 401. `AffiliateDashboardController` (4
+    routes), `AdminAffiliatesController` (list+detail), `AdminAffiliateReportsController`
+    (5 report routes), and `AdminAnalyticsController` (its own bespoke inline
+    admin-check, NOT the shared `AdminGuard` — confirmed at CONFIRM that its source
+    never calls `requireAdmin()`/`session.ts` at all) map their source routes 1:1,
+    response shapes matching exactly. Added `zod` as a direct money-service dependency
+    (wasn't one at all before this session).
+  - **Found a real bug in the source, not fixed there (out of scope), documented in the
+    port instead**: the 4 `app/api/affiliate/dashboard/*` routes' own catch blocks
+    check `error.message.includes('AFFILIATE_REQUIRED'/'UNAUTHORIZED')`, but
+    `lib/auth/session.ts` only ever sets that marker on the error's `.code`, never its
+    `.message` — both branches are dead code, every real auth failure on these 4 routes
+    falls through to a generic 500 in production today, zero test coverage either way.
+    The NestJS port implements the CORRECT/documented contract (`AffiliateGuard`) each
+    route's own JSDoc promises, not the unreachable bug.
+  - **File 3/3 — tests**: ported `affiliate-management.test.ts` assertions unchanged
+    (DI adaptation only). New backfill coverage (zero existing coverage anywhere,
+    confirmed at CONFIRM) for `report-builder.ts` (never had a test file) and
+    `pnl-calculator.ts`'s `calculateStandardSale`/`getReportingPeriod` (source test
+    only covered `calculatePnL`) — same precedent as Session 4A-4. New guard specs +
+    controller specs for all 4 new controllers (success/validation/not-found/forbidden
+    paths). **money-service: 24 suites → 24 suites, 202 → 256 tests, all green.**
+  - **Deployed to Railway production** (`railway up --path-as-root`, `{"status":
+"success"}`). `railway logs` shows a clean boot: `AffiliateModule`/`AdminModule`
+    initialized, all 12 new routes mapped, `Nest application successfully started`, no
+    errors. `/health` confirms `database: up`.
+  - **Verification plan step 3, done against the live production URL**: all 12 new
+    routes hit with no `Authorization` header → `401`, `{"message":"Missing bearer
+token","error":"Unauthorized","statusCode":401}`. Matches the order's "done when"
+    criterion exactly.
+- **Waiting on:** all Session 4A-4 items unchanged except where noted below (renumbered
+  continuation). (1)-(6), (11)-(12), (17)-(20), (23), (27)-(29) unchanged — see prior
+  closes for full text. (26) Stripe/dLocal/RiseWorks/Resend secrets still not set —
+  unchanged, Session 4A-5's own first entry criterion. (31) Session 4A-5's real
+  signed-payload replay requirement — unchanged, still needed. **(30, unresolved, now 3
+  sessions running)** `LESSONS-LEARNED.md` still at 40 active lessons (L1-L40) — AT the
+  stated cap; this session found 2 more genuinely new lessons (recorded in the 4A-6
+  order's own Deviations + LESSONS-LEARNED.md's header note instead of as new numbered
+  entries, per the file's own "pause before adding another" instruction) without a
+  consolidation pass happening. Flagged in Sessions 4A-2, 4A-4, and now 4A-6 — this is
+  no longer a one-off, it needs the Advisor's attention before the next order that
+  touches this file. **(32, NEW, CRITICAL)** money-service's live production Postgres
+  schema has never actually been synced to `schema.prisma` — Sessions 4A-2, 4A-4, and
+  4A-6 have all only ever run `prisma generate` (client codegen, no DB connection), never
+  `prisma db push`/`migrate deploy`, matching a pattern none of the 3 sessions' own
+  orders called out explicitly until this one did. Safe today only because none of the 3
+  built slices carry live traffic yet — but this now blocks EVERY pending cutover (4A-5
+  AND 4A-7 both), not just one, and needs resolving before either. **(33, NEW)** Session
+  4A-6's own predecessor order (this session) arrived APPROVED with an internally
+  contradicted, untracked, no-git-history file while Session 4A-5 (the actual "next
+  session" per this file's own prior close) was still unresolved at DRAFT — Davin
+  confirmed live that this was genuine and authorized proceeding anyway, but this means
+  there are now TWO pending cutover orders in flight (4A-5 for webhooks, 4A-7 PRE-DRAFTed
+  this close for read APIs) instead of the protocol's own "chain length is exactly one."
+  Davin needs to pick a sequencing order for 4A-5 vs 4A-7 (they're independent — either
+  can go first) before a 4th BUILD session starts the same pattern a third time.
+  **(34, NEW)** Session 4A-7's own entry criteria surface a genuinely open design
+  question with no answer yet anywhere in this repo's artifacts: how does a BROWSER
+  authenticate directly to money-service (blueprint §5.4's own committed design) given
+  `JwtAuthGuard` expects the same httpOnly-cookie-only NextAuth JWE the monolith's
+  server-side `getServerSession()` reads — not readable by client JS, not sent
+  cross-origin by default. Needs the Advisor/Davin to resolve against the blueprint and
+  F16 before 4A-7's DRAFT can be written; see that order's own header note. **(35, NEW)**
+  `migration-stack-analysis.md`'s money-service section was never updated after Session
+  4A-1 — Sessions 4A-2 and 4A-4's new files (crons/dlocal/riseworks/disbursement/
+  affiliate-support modules) were never recorded there, a standing gap this session
+  found and flagged but did not backfill (out of scope, full regen is an 8.6-only task
+  per `00-SKELETON-AND-RULES.md` §5) — only this session's own additions were appended.
+- **Last session did:** Session 4A-6 ("money-service: read APIs — Slice 3 BUILD") —
+  closed 2026-07-22, all-green, executed end-to-end as a PORT session after a CONFIRM
+  that found the order's own SOURCE file list was simply wrong (fabricated file names,
+  not just imprecise ones) and its approval-chain paperwork self-contradictory (Davin
+  confirmed live that approval was genuine). Ported all 3 File Port Order steps
+  (schema relation, 5 new service/controller files + 2 reused, tests — 256 tests green,
+  up from 202). Found and documented (not fixed — out of scope) a real dead-code bug in
+  4 monolith routes' own auth-error handling. Deployed to Railway production; verified
+  all 12 new endpoints correctly return 401 without a valid token. New
+  `LESSONS-LEARNED.md` L37 recurrence note (2nd recurrence of the schema-relation-gap
+  variant); 2 more new lessons found but deliberately NOT added as L41/L42 (cap
+  discipline, Waiting-on #30) — recorded in this order's Deviations instead.
+  PRE-DRAFTed Session 4A-7 (read APIs CUTOVER) with an explicit open design question
+  flagged rather than guessed at.
+- **Next session:** **Ambiguous — Davin must choose.** Two cutover orders are now
+  pending: Session 4A-5 ("webhooks — Slice 2 CUTOVER", already at DRAFT, blocked on
+  secrets + signed-payload replay, Waiting-on #26/#31) and Session 4A-7 ("read APIs —
+  Slice 3 CUTOVER", **PRE-DRAFTed this close** at
+  `docs/migration-orders/4a-7-money-service-read-apis-cutover.migration-order.md`,
+  blocked on an unresolved browser-auth design question, Waiting-on #34). They're
+  independent — either can go first — but per `00-SKELETON-AND-RULES.md` §1.5 ("chain
+  length is exactly one"), do NOT start a 3rd Slice-4 BUILD session before at least one
+  of these two resolves (Waiting-on #33). Both also share Waiting-on #32 (production DB
+  schema never synced) as a blocker regardless of which goes first.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

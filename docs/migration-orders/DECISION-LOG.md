@@ -1124,6 +1124,17 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
 - Decision: The new money-service will use the `<api.domain/v1 + money.domain/v1>` URL scheme for its public endpoints.
 - Evidence: Explicit Davin instruction: "F16 decision: <api.domain/v1 + money.domain/v1>"
 - Approved by: Davin
+- **Progress note, Session 4A-6 (2026-07-22, does not reopen F16):** this scheme's own
+  premise — the browser calling `money.domain/v1` directly (blueprint §5.4, quoted in
+  `money-service/src/app.module.ts`'s CORS comment) — has an unresolved sub-question
+  F16's own resolution never addressed: HOW the browser authenticates to a different
+  origin than the one holding its httpOnly NextAuth session cookie. Session 4A-6's new
+  `JwtAuthGuard`-protected read routes are the first ones a signed-in browser would
+  actually need to call, and there's no existing mechanism in this repo for getting a
+  Bearer token to it cross-origin. Not a new flag (F16's scheme itself is unchanged and
+  still correct) — see CLAUDE.md Waiting-on #34 and
+  `4a-7-money-service-read-apis-cutover.migration-order.md`'s own header note for the
+  open question the Advisor needs to resolve before that cutover's DRAFT can be written.
 
 ## F35 — money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built
 

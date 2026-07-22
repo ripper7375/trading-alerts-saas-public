@@ -1748,6 +1748,39 @@ unresolved gap operation-service has always had).
   TLS, unlike whatever operation-service's own DATABASE_URL reaches; LESSONS-LEARNED.md L36)
 - `money-service/src/queue/queue.constants.ts` (`money:`/`money` key/queue prefixes, F15)
 
+**Gap note (found at Session 4A-6's close, not fixed here):** this block was never
+updated after Session 4A-1 — it still lists only the 17 skeleton files, but Sessions
+4A-2 (crons) and 4A-4 (webhooks) both added substantial new files
+(`src/crons/*`, `src/dlocal/*`, `src/riseworks/*`, `src/disbursement/*`,
+`src/affiliate/{affiliate-config.service,affiliate.constants,affiliate.types,
+code-generator.service,commission-calculator,conversion-processor.service}.ts` + specs)
+that were never recorded in this file, despite `00-SKELETON-AND-RULES.md` §5 requiring
+it every session that creates/moves/deletes files. Full regeneration is out of this
+session's scope (§5's own carve-out: "full regeneration only at 8.6") — flagging so the
+Advisor knows this file undercounts money-service by 2 sessions' worth of files, not
+just this session's own addition below.
+
+- `money-service/src/affiliate/affiliate-dashboard.controller.spec.ts` (Session 4A-6)
+- `money-service/src/affiliate/affiliate-dashboard.controller.ts` (Session 4A-6 — 4 GET
+  routes, `JwtAuthGuard`+`AffiliateGuard`)
+- `money-service/src/affiliate/affiliate-read.validators.ts` (Session 4A-6 — read-scope
+  subset of `lib/affiliate/validators.ts`)
+- `money-service/src/affiliate/affiliate.guard.spec.ts` (Session 4A-6)
+- `money-service/src/affiliate/affiliate.guard.ts` (Session 4A-6)
+- `money-service/src/affiliate/affiliate.module.ts` (Session 4A-6)
+- `money-service/src/affiliate/report-builder.service.spec.ts` (Session 4A-6 — new
+  backfill coverage, source never had a test file)
+- `money-service/src/affiliate/report-builder.service.ts` (Session 4A-6 — ported from
+  `lib/affiliate/report-builder.ts`)
+- `money-service/src/admin/` (new directory, Session 4A-6 — 12 files: 3 controllers +
+  specs, `AdminAffiliateManagementService` + spec, `AdminGuard` + spec,
+  `pnl-calculator.ts` + spec, `admin.module.ts`)
+- `money-service/prisma/schema.prisma` (Session 4A-6 — added `Commission.affiliateCode`
+  relation + `AffiliateCode.commissions` back-relation)
+- `money-service/src/app.module.ts` (Session 4A-6 — wires `AffiliateModule`/
+  `AdminModule`)
+- `money-service/package.json` (Session 4A-6 — added `zod` as a direct dependency)
+
 </details>
 
 ---
