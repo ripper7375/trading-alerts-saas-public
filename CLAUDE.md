@@ -11,6 +11,12 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **STANDING INSTRUCTION (Davin, 2026-07-22, still in force until Davin lifts it):
+> chain-length-one invoked — NO further BUILD sessions.** Davin is manually running
+> Session 4A-5's (webhooks) shadow-run verification himself; webhooks cut over FIRST,
+> before 4A-7 or any Slice 4 work. The next session that opens should check with Davin
+> before starting anything beyond what he explicitly asks for — see Waiting-on #33.
+
 - **Current:** Session 4A-6 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
   blueprint §5.5 Slice 3 (Read APIs) is BUILT and deployed** — money-service's own read
   API controllers exist in production at unique paths (`/v1/affiliate/dashboard/*`,
@@ -95,28 +101,34 @@ token","error":"Unauthorized","statusCode":401}`. Matches the order's "done when
   entries, per the file's own "pause before adding another" instruction) without a
   consolidation pass happening. Flagged in Sessions 4A-2, 4A-4, and now 4A-6 — this is
   no longer a one-off, it needs the Advisor's attention before the next order that
-  touches this file. **(32, NEW, CRITICAL)** money-service's live production Postgres
-  schema has never actually been synced to `schema.prisma` — Sessions 4A-2, 4A-4, and
-  4A-6 have all only ever run `prisma generate` (client codegen, no DB connection), never
-  `prisma db push`/`migrate deploy`, matching a pattern none of the 3 sessions' own
-  orders called out explicitly until this one did. Safe today only because none of the 3
-  built slices carry live traffic yet — but this now blocks EVERY pending cutover (4A-5
-  AND 4A-7 both), not just one, and needs resolving before either. **(33, NEW)** Session
-  4A-6's own predecessor order (this session) arrived APPROVED with an internally
-  contradicted, untracked, no-git-history file while Session 4A-5 (the actual "next
-  session" per this file's own prior close) was still unresolved at DRAFT — Davin
-  confirmed live that this was genuine and authorized proceeding anyway, but this means
-  there are now TWO pending cutover orders in flight (4A-5 for webhooks, 4A-7 PRE-DRAFTed
-  this close for read APIs) instead of the protocol's own "chain length is exactly one."
-  Davin needs to pick a sequencing order for 4A-5 vs 4A-7 (they're independent — either
-  can go first) before a 4th BUILD session starts the same pattern a third time.
-  **(34, NEW)** Session 4A-7's own entry criteria surface a genuinely open design
-  question with no answer yet anywhere in this repo's artifacts: how does a BROWSER
-  authenticate directly to money-service (blueprint §5.4's own committed design) given
-  `JwtAuthGuard` expects the same httpOnly-cookie-only NextAuth JWE the monolith's
-  server-side `getServerSession()` reads — not readable by client JS, not sent
-  cross-origin by default. Needs the Advisor/Davin to resolve against the blueprint and
-  F16 before 4A-7's DRAFT can be written; see that order's own header note. **(35, NEW)**
+  touches this file. **RESOLVED same-day by Davin**: the Advisor ran the consolidation
+  pass 2026-07-22 — old lessons moved to `LESSONS-ARCHIVE.md`, active file is now clean
+  (L1-L10), and L1 codifies item #32 below. **(32, CORRECTED — was wrongly framed as
+  CRITICAL/actionable by this session, corrected same-day by Davin):** money-service does
+  **NOT** have its own database — per blueprint §5.1 ("Phase 1: one instance, two
+  roles/schemas"), it shares the MONOLITH's single Postgres instance via the `money_svc`
+  role (L36) and only ever defines a schema SUBSET. Sessions 4A-2/4A-4/4A-6 running only
+  `prisma generate` (never `db push`/`migrate deploy`) from money-service was therefore
+  the CORRECT and ONLY safe behavior, not a gap — running either from money-service would
+  risk dropping the monolith's own tables that aren't in money-service's subset. The
+  monolith remains the sole owner of all schema migrations; money-service's schema.prisma
+  subset just needs to keep matching whatever the monolith's migration history already
+  established. New `LESSONS-LEARNED.md` L1 (Session 4A-6, Advisor review) makes this a
+  hard rule — read it before ever considering a Prisma migration command from
+  money-service again. **(33, RESOLVED same-day by Davin — chain-length-one invoked)**
+  Session 4A-6's own predecessor order arrived APPROVED with an internally contradicted,
+  untracked, no-git-history file while Session 4A-5 was still unresolved at DRAFT, so two
+  cutover orders (4A-5, 4A-7) ended up pending simultaneously. Davin's ruling: invoke
+  "chain-length-one" — **stop all BUILD work**; Davin is manually running 4A-5's
+  shadow-run verification himself and webhooks (Slice 2) will cut over FIRST, before
+  anything else (including 4A-7) proceeds. No further Slice 3/4 work until Davin says so.
+  **(34, RESOLVED same-day by Davin)** 4A-7's browser-auth design question: blueprint
+  §4.2 — "No cookie sharing across domains — the frontend sends `Authorization: Bearer`."
+  The Next.js frontend will manually extract its JWT and attach it as a Bearer header
+  when calling money-service's Read APIs. `JwtAuthGuard`/`AdminGuard`/`AffiliateGuard`
+  (already built, Session 4A-6) need no changes — confirmed correct as-is by Davin. 4A-7's
+  order updated to reflect this; still blocked on chain-length-one (#33) regardless.
+  **(35, NEW)**
   `migration-stack-analysis.md`'s money-service section was never updated after Session
   4A-1 — Sessions 4A-2 and 4A-4's new files (crons/dlocal/riseworks/disbursement/
   affiliate-support modules) were never recorded there, a standing gap this session

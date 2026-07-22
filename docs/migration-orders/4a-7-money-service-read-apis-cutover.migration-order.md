@@ -8,24 +8,25 @@
 
 > **Status: PRE-DRAFT** — written by the Executor at Session 4A-6's close, per
 > `EXECUTOR-PROTOCOL.md` §3.5. Needs the Advisor to produce the DRAFT, then Davin's
-> APPROVAL. No fast-path here — unlike Session 4A-5's webhook cutover (a single provider-
-> dashboard URL flip with no auth question), this cutover is the FIRST time the browser
-> calls money-service directly with a user's own session — a genuinely open design
-> question below, not just an open blocker.
+> APPROVAL.
 >
-> **Sequencing note for Davin/the Advisor:** this is now the SECOND pending cutover in the
-> pipeline — Session 4A-5 (webhooks CUTOVER) is still sitting at DRAFT, blocked on its own
-> entry criteria (secrets unset, no signed-payload replay yet), and was never resolved
-> before Session 4A-6 (this order's own predecessor) went ahead and built Slice 3 anyway,
-> on Davin's live instruction. Per `00-SKELETON-AND-RULES.md` §1.5 ("chain length is
-> exactly one"), having TWO unresolved cutovers queued is already off the rails — please
-> pick which of 4A-5 or 4A-7 goes first (they're independent, either order is safe), rather
-> than letting a third BUILD session start before either resolves.
+> **UPDATE (Davin, 2026-07-22, same day):** the browser-auth design question below is now
+> ANSWERED — blueprint §4.2: "No cookie sharing across domains — the frontend sends
+> `Authorization: Bearer`." The Next.js frontend manually extracts its JWT and attaches it
+> as a Bearer header when calling money-service. `JwtAuthGuard`/`AdminGuard`/
+> `AffiliateGuard` (Session 4A-6) need no changes — confirmed correct as-is. See the
+> corrected Entry criteria below.
+>
+> **STANDING BLOCK (Davin, 2026-07-22): chain-length-one invoked — this order does NOT
+> advance regardless of the above.** Davin is manually running Session 4A-5's (webhooks)
+> shadow-run verification himself; webhooks cut over FIRST. No further Slice 3 work
+> (including handing this PRE-DRAFT to the Advisor) until Davin says so. This order stays
+> parked at PRE-DRAFT.
 
-**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT
-**Generated:** 2026-07-22 · **Estimated time:** unknown — depends on the auth design
-question below; could be <1h if the answer is simple, or this PRE-DRAFT may need to
-become a small BUILD session first (a token-exchange endpoint, if that's the answer)
+**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT (parked — see
+STANDING BLOCK above)
+**Generated:** 2026-07-22 · **Estimated time:** <1h once unblocked (auth design resolved,
+frontend-side change only, no new backend code)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 3 (of 5), CUTOVER
 half
 **Target service:** money-service / frontend data-fetching hooks
@@ -40,59 +41,48 @@ hooks at money-service instead of the monolith's own `/api/*` routes. Per the pl
 never combine BUILD and CUTOVER — same reasoning already established for Slice 1
 (4A-2/4A-3) and Slice 2 (4A-4/4A-5).
 
-**Open design question, not yet answered anywhere in this repo's artifacts:** Slices 1
+**Browser-auth design question — RESOLVED same-day by Davin (blueprint §4.2):** Slices 1
 and 2 never needed the BROWSER to authenticate to money-service directly — crons are
 server-triggered (Vercel cron → `CRON_SECRET`) and webhooks are provider-triggered (HMAC
 signature, no user session involved). This slice is different: `AffiliateDashboardController`
 and the 3 admin controllers all sit behind `JwtAuthGuard`, which expects a `Bearer <token>`
-header carrying the SAME NextAuth-issued JWE the monolith's own `getServerSession()`
-reads from an httpOnly cookie (see `money-service/src/auth/jwt-auth.guard.ts`, F6/F7's
-bridge). A same-origin server-rendered page has that cookie automatically; a
-browser-side `fetch()` to a DIFFERENT origin (`money.domain` per F16, not `api.domain`
-or the frontend's own origin) does not — httpOnly cookies aren't readable by JS and
-aren't sent cross-origin by default even if they were. Options, none yet evaluated:
-(a) the frontend already has some mechanism for calling operation-service that this
-slice can reuse — F30's own note says operation-service is "server-side proxied,
-CORS unnecessary," which is a DIFFERENT approach than this money-service being called
-"directly from the browser" (blueprint §5.4, quoted in `app.module.ts`'s own CORS
-comment) — these two statements describe two different integration patterns for two
-different services, so operation-service's approach may not transfer; (b) a small new
-endpoint that exchanges the NextAuth session for a Bearer token the browser CAN hold
-(e.g. in memory, from a same-origin Next.js API route that proxies the cookie); (c) the
-frontend proxies these money-service calls server-side too (same-origin Next.js API
-routes calling money-service with a server-to-server credential), which would make
-`ALLOWED_ORIGINS` CORS config moot for these specific routes. **The Advisor should
-resolve this against the blueprint (§5.4) and F16 before writing the DRAFT — this
-PRE-DRAFT deliberately does not guess.**
+header. §4.2's answer: **no cookie sharing across domains at all** — the frontend
+manually extracts its own JWT (from wherever it already holds the NextAuth session
+client-side) and attaches it as `Authorization: Bearer <token>` on every call to
+money-service. This is a frontend-side change only; `JwtAuthGuard`/`AdminGuard`/
+`AffiliateGuard` already expect exactly this header shape (Session 4A-6) and need no
+changes — Davin confirmed the guards are correct as built. The 3 alternative mechanisms
+this PRE-DRAFT originally sketched (token-exchange endpoint, server-side proxy, reusing
+operation-service's pattern) are moot — none needed.
 
 ## Entry criteria
 
-- [ ] **The browser-auth design question above is answered** (blueprint §5.4 already
-      committed to "browser calls money-service directly" — but the DECISION-LOG.md
-      doesn't yet record how that's supposed to authenticate). Escalate per
-      `EXECUTOR-PROTOCOL.md` §7 ("auth semantics" always escalates) if the answer isn't
-      already implicit in an existing decision.
+- [x] **The browser-auth design question is answered** — blueprint §4.2, Bearer-header
+      pattern, confirmed by Davin 2026-07-22 (see UPDATE note above). No guard changes
+      needed.
+- [ ] **Chain-length-one: Session 4A-5 (webhooks CUTOVER) has completed first.** Standing
+      block from Davin, 2026-07-22 — this order does not proceed to DRAFT, let alone
+      execution, until 4A-5 is done. Not this order's call to lift.
 - [ ] **A real signed-in browser session has successfully called at least one of the 12
-      new endpoints end-to-end** (not just the 401-unauthenticated check Session 4A-6
-      already did) — proves whatever the auth answer above turns out to be actually
-      works, not just compiles.
-- [ ] **money-service's production database schema actually matches `schema.prisma`.**
-      Per Session 4A-6's own Deviations: no session since 4A-1 has run `prisma db push`/
-      `migrate deploy` against production — only `prisma generate` (client codegen,
-      no DB connection). Any of these 12 routes hitting a real Postgres today would
-      likely fail with "relation/column does not exist" the moment a real query runs
-      past the auth guard. This has to happen before ANY real traffic reaches Slice 1,
-      2, or 3 — verify `prisma migrate status`/`db push --accept-data-loss=false` (dry
-      run first) against production before this cutover, regardless of which slice
-      triggers it first.
+      new endpoints end-to-end using the Bearer-header pattern above** (not just the
+      401-unauthenticated check Session 4A-6 already did) — proves the frontend's
+      manual-JWT-attach actually works, not just that the design is decided.
+- [ ] **Confirm the MONOLITH's own migration history already covers whatever
+      money-service's `schema.prisma` subset assumes.** Corrected understanding
+      (Davin, 2026-07-22): money-service shares the monolith's ONE database (blueprint
+      §5.1, `money_svc` role) — this is a READ-ONLY verification (`prisma migrate
+    status` against the shared DB, or asking the monolith side directly), never a
+      `db push`/`migrate deploy` run FROM money-service (`LESSONS-LEARNED.md` L1 now
+      forbids that outright).
 - [ ] Davin present/available — cutovers require his live approval.
 - [ ] `NEXT_PUBLIC_MONEY_API_URL` (or equivalent) is actually set somewhere the frontend
       build can read it — not confirmed either way in this repo's artifacts.
 
 ## Checklist
 
-**CUTOVER block** — cannot be filled in further until the entry criteria above resolve
-the auth design question. Sketch, to be replaced by the Advisor's DRAFT:
+**CUTOVER block** — auth design is resolved, but this order stays parked until the
+chain-length-one entry criterion (4A-5 completing first) clears. Sketch, to be replaced
+by the Advisor's DRAFT once unblocked:
 
 1. Present the end-to-end signed-in-browser verification evidence (Entry criteria
    above). Missing → abort, this session cannot proceed.
@@ -111,9 +101,11 @@ the auth design question. Sketch, to be replaced by the Advisor's DRAFT:
 
 ## Rules specific to this variant
 
-- No new code, no fixes, no "while I'm here" — observation and execution only. If
-  resolving the auth design question requires new code (a token-exchange endpoint, a
-  proxy route), that's a BUILD session, not this cutover.
+- No new code, no fixes, no "while I'm here" — observation and execution only. The
+  auth design (Bearer header, frontend-side) needs no new backend code, but any
+  frontend data-hook change to attach the header is itself real work — if it turns out
+  more involved than a straightforward header attach, that's its own scoped change, not
+  something to improvise mid-cutover.
 - Any red result = stop and document, never "probably fine".
 
 ## Deviations

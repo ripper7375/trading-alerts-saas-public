@@ -163,9 +163,20 @@ money-service port, not the still-live Next.js routes).
 4A-2/4A-4 precedent, this session did NOT run `prisma db push`/`migrate deploy` against
 money-service's production database — only `npx prisma generate` (client codegen from the
 schema file, no DB connection needed) was run, matching every prior BUILD session's own
-pattern. money-service's live Postgres schema may not yet match `schema.prisma` for any of
-the models/relations added across Sessions 4A-2/4A-4/4A-6. This is safe today only because
-none of these routes receive live traffic yet (Safety Gate). Whoever plans the Slice 3
-CUTOVER (or any earlier cutover) needs a real `prisma db push`/`migrate deploy` against
-production as an explicit entry criterion — not yet true for ANY of the 3 slices built so
-far, and not previously called out this plainly in an order's own text.
+pattern.
+
+**CORRECTION (Davin, same day, 2026-07-22):** the paragraph above's closing sentence —
+recommending a `prisma db push`/`migrate deploy` from money-service as a future cutover
+entry criterion — was wrong and is retracted, left visible here rather than deleted so
+the correction is on record. Per blueprint §5.1 ("Phase 1: one instance, two
+roles/schemas"), money-service does NOT have its own database; it shares the MONOLITH's
+single Postgres instance via the `money_svc` role (`LESSONS-LEARNED.md` L36) and only
+ever defines a schema SUBSET. Running `db push`/`migrate deploy` FROM money-service risks
+DROPPING the monolith's own tables that aren't in that subset. Only ever running `prisma
+generate` from money-service (as every BUILD session so far has done) was the CORRECT and
+ONLY safe behavior — not a gap. The monolith remains the sole owner of all schema
+migrations; new `LESSONS-LEARNED.md` L1 (Advisor consolidation pass, 2026-07-22) codifies
+this as a hard rule. Any future cutover's real entry criterion is the inverse of what was
+written above: confirm the MONOLITH's own migration history already covers whatever
+money-service's schema.prisma subset assumes — a read-only check, never a migration run
+from this service.
