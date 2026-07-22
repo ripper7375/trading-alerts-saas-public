@@ -11,142 +11,130 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-- **Current:** Session 4A-2 CLOSED, executed end-to-end — 2026-07-21. **Phase 4A,
-  blueprint §5.5 Slice 1 (8 cron jobs) is BUILT and deployed** — money-service's own
-  NestJS scheduler exists in production, gated fully inert via `CRON_ENABLED=false`
-  (F35). Phase 3/Phase 1/Phase 0 all unchanged from Session 4A-1's close (Phase 1 F18
-  RPO gap unchanged; Phase 0 CC-A gap unchanged, see Waiting-on #17).
+- **Current:** Session 4A-4 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
+  blueprint §5.5 Slice 2 (RiseWorks + dLocal webhooks) is BUILT and deployed** —
+  money-service's own webhook receivers exist in production at unique paths
+  (`/v1/webhooks/{dlocal,riseworks}`) not yet wired to either provider's dashboard, so
+  zero live traffic. Slice 1 (crons) unchanged from Session 4A-2's close, still
+  `CRON_ENABLED=false`, still blocked on 4A-3's own entry criteria. Phase 3/Phase 1/
+  Phase 0 all unchanged from Session 4A-1's close.
 - **Current order:**
-  `docs/migration-orders/4a-2-money-service-crons-build.migration-order.md`
-  (CONFIRMED and EXECUTED end-to-end — all 6 File Port Order steps done, plus a
-  post-CONFIRM `CRON_ENABLED` safety-gate addition; every "done when" item satisfied
-  or explicitly resolved via F35, see below).
+  `docs/migration-orders/4a-4-money-service-webhooks-build.migration-order.md`
+  (CONFIRMED and EXECUTED end-to-end — all 4 File Port Order steps done, plus a
+  post-CONFIRM schema-relation fix caught by `tsc`; every "done when" item satisfied,
+  see below).
 - **Order status:** CLOSED, all-green. **What shipped:**
-  - **CONFIRM caught 2 material gaps in the APPROVED order before execution**, both
-    fixed by the Advisor in place (order stayed APPROVED, no DRAFT bounce): (1) File
-    1/6's Prisma model list was missing `User`/`Notification`/`AffiliateProfile` — all
-    3 genuinely read/written by the 8 crons; (2) File 3/6's disbursement-processor
-    dependency list was missing its entire transitive tree (10 more files, 2,415
-    lines — `constants.ts`, `providers/{base,mock,factory}.ts`, 6 `services/*.ts`
-    files) and File 2/6 similarly needed 5 more (`logger.ts`,
-    `affiliate/{types,constants,db,code-generator}.ts`). See
-    `LESSONS-LEARNED.md` L37 for the generalized rule this exposed (relative-import-only
-    greps miss `@/`-alias imports).
-  - **File 1/6 — Prisma schema subset**: 11 models (10 CONFIRMed + `DisbursementAuditLog`,
-    found mid-port — a 12th dependency, `types/disbursement.ts`, was also found and
-    ported). `User` is a NARROW subset (id/email/name/tier only — no
-    password/2FA/trial fields, matching operation-service's own precedent); the other
-    10 are full-model copies (money-service's own domain tables). Relations kept only
-    where a real `include`/relation-filter is actually used (verified by reading every
-    call site, not assumed from the source schema). `npx prisma generate` clean.
-  - **File 2/6 — cron business logic**: `SubscriptionCronService`
-    (check-expiring-subscriptions + downgrade-expired-subscriptions) and
-    `AffiliateCronService` (monthly-distribution), plus their full leaf-first
-    dependency tree, all converted to `@Injectable()`s with `PrismaService`
-    constructor-injected. Query/mutation logic byte-identical to source.
-  - **File 3/6 — disbursement processor + its full dependency tree** (11 files, 2,802
-    lines): `DisbursementProcessorService`,
-    `{Commission,BatchManager,PaymentOrchestrator}Service`,
-    `{TransactionLogger,Transaction,RetryHandler}Service`, the 3 provider files, and
-    `disbursement.{types,constants}.ts`. All converted to real `@Injectable()`s wired
-    through Nest's DI container (previously manually `new`-ed from a raw
-    `PrismaClient`). `PaymentOrchestratorService.executeBatch()`'s `provider` argument
-    moved from constructor to method parameter — a Nest singleton can't take a
-    runtime-varying constructor value the way source's per-call `new
-PaymentOrchestrator(prisma, provider)` did.
-  - **File 4/6 — `@nestjs/schedule` mapping**: added the dependency (wasn't installed).
-    All 8 `vercel.json` cron expressions copied verbatim into `crons.scheduler.ts`,
-    verified byte-for-byte against `vercel.json` directly (not just visual read).
-    `daily-maintenance` composes the same 3-task sequence as source via the injected
-    `SubscriptionCronService` (per the order's Known Wrinkles). Caught and fixed a
-    self-inflicted bug: a doc comment quoting `` `app/api/cron/*/route.ts` `` — the
-    literal `*/` prematurely closed the file's own JSDoc block, producing ~190
-    cascading parse errors (`LESSONS-LEARNED.md` L38).
-  - **File 5/6 — manual trigger endpoints**: `CronTriggerController`, 8
-    `POST /v1/cron-trigger/<job>` routes, each calling the exact method the schedule
-    itself invokes. `CronSecretGuard` mirrors the source routes' `Bearer <CRON_SECRET>`
-    check.
-  - **File 6/6 — tests + backfill**: added `jest-mock-extended` (mirrors the
-    monolith's own convention). Ported 1:1 (assertions unchanged): both subscription
-    cron test files (22 tests), monthly-distribution (6 tests), and the business-logic
-    half of `cron-jobs.test.ts`/`process-pending.test.ts` (the 401 assertions in those
-    are now `CronSecretGuard`'s own tests instead). **New backfill coverage** (zero
-    existing coverage anywhere, flagged at CONFIRM): `daily-maintenance`'s 3-task
-    composition, `syncRiseWorksAccounts`, `approveMaturedCommissions` — plus new tests
-    for File 5/6's own guard and controller. Tests live colocated under
-    `src/*.spec.ts` (money-service's existing `jwt-auth.guard.spec.ts` convention),
-    not `money-service/test/` as the order's TARGET literally said — that path isn't
-    in `jest.config.js`'s `testRegex`. **money-service: 7 suites → 90 tests, all
-    green** (66 + 24 for the CRON_ENABLED gate, below). Monolith's own 19 suites / 225
-    tests re-run green, source untouched.
-  - **`CRON_ENABLED` safety gate added post-CONFIRM, before deploy (F35, Davin's
-    explicit direction):** at slice-level verification, deploying with `vercel.json`'s
-    crons still active would mean both Vercel and money-service executing the same
-    jobs at the same scheduled minute against the same production database — a real
-    double-disbursement risk. Fix: the 8 `@Cron()` decorators moved off the
-    `handleX()` business-logic methods onto new `scheduledX()` wrappers that no-op
-    unless `process.env.CRON_ENABLED === 'true'`. The `handleX()` methods stay
-    ungated — `CronTriggerController`'s manual triggers call them directly. 24 new
-    tests cover all 3 gate states per wrapper.
-  - **Deployed to Railway production** with `CRON_ENABLED=false` (set via `railway
-variables --set`, confirmed via `--kv`). `railway logs` shows a clean boot:
-    `CronsModule`/`ScheduleModule` initialized, all 8 `/v1/cron-trigger/*` routes
-    mapped, `Nest application successfully started`, no errors — this is File 4/6's
-    own "Parity proof" (NestJS startup logs show crons registered), now verified
-    against the real production log rather than an abandoned local Jest attempt (see
-    `LESSONS-LEARNED.md` L39 for why that attempt was abandoned, not fixed). `/health`
+  - **CONFIRM caught 3 untraced transitive dependencies + a path error in the APPROVED
+    order before execution**, all fixed in place (order stayed APPROVED → CONFIRMED, no
+    DRAFT bounce): (1) File 1/4's schema path (`packages/db/prisma/schema.prisma`
+    doesn't exist; real path is `money-service/prisma/schema.prisma`); (2) File 2/4
+    named `dlocal-payment.service.ts`/`three-day-validator.service.ts`/
+    `conversion-processor.ts` but missed `lib/dlocal/constants.ts` (163 lines),
+    `types/dlocal.ts` (150 lines), and `lib/affiliate/commission-calculator.ts` (253
+    lines) — all 3 genuinely imported by the named files. Same L37 pattern
+    (`LESSONS-LEARNED.md`) as Session 4A-2, third occurrence.
+  - **File 1/4 — schema expansion**: added `Payment` and `RiseWorksWebhookEvent`
+    models (full copies, no relation objects — neither is traversed via `include` in
+    this slice's scope), `hasUsedThreeDayPlan`/`threeDayPlanUsedAt` on the existing
+    narrow `User` subset (read/written by `three-day-validator.service.ts`).
+    **Execution-phase deviation**: `npm run build` caught a 4th gap `tsc` alone could
+    surface — Session 4A-2's schema had deliberately omitted
+    `AffiliateCode.affiliateProfile` ("not traversed" in the crons-only scope), but
+    `conversion-processor.service.ts` genuinely does `include: { affiliateProfile:
+... }`. Added the relation + `AffiliateProfile.affiliateCodes` back-relation,
+    `AffiliateCode.commissions` still correctly omitted. `LESSONS-LEARNED.md` L37 got a
+    recurrence note; `npx prisma generate` + `npm run build` clean after the fix.
+  - **File 2/4 — dLocal webhook logic**: `dlocal-payment.service.ts` ported as plain
+    functions (no DI in source — matches `webhook-verifier.ts`'s own treatment).
+    `three-day-validator.service.ts` and `conversion-processor.ts` converted to
+    `@Injectable()`s (`ThreeDayValidatorService`, `ConversionProcessorService`) with
+    `PrismaService`/`AffiliateConfigService` DI, same pattern as Session 4A-2's cron
+    services. `DlocalWebhookController` maps the source route 1:1, using `@Res()` +
+    Nest's `rawBody: true` option (added to `main.ts`) so HMAC verification sees the
+    exact bytes dLocal signed, not a JSON round-trip.
+  - **File 3/4 — RiseWorks webhook logic**: `webhook-verifier.ts` ported as a plain
+    class (no DI in source). `event-processor.ts` converted to `@Injectable()`
+    `WebhookEventProcessorService` with `PrismaService` + the already-ported
+    `TransactionLoggerService` DI (same conversion pattern as the rest of Session
+    4A-2's disbursement tree); reuses the existing `WebhookEvent` type from
+    `disbursement.types.ts` instead of a local redeclaration.
+    `RiseworksWebhookController` maps the source route 1:1.
+  - **File 4/4 — tests + backfill**: ported 1:1 (assertions unchanged): dlocal-payment,
+    three-day-validator, webhook-verifier, commission-calculator specs (the 4 pure
+    calculator functions only — its 3 `*WithDynamicConfig` wrappers had no source
+    coverage either, confirmed unused anywhere in the monolith via grep). **New
+    backfill coverage** (zero existing coverage anywhere, flagged at CONFIRM):
+    `WebhookEventProcessorService` (event-processor.ts never had a test file at all),
+    `ConversionProcessorService` (the one existing "affiliate-conversion" test covers
+    `/api/checkout/validate-code`, a different route — not `processAffiliateConversion`
+    itself), and both new controllers' full orchestration (source's own
+    `route.test.ts` explicitly scoped itself to signature/status logic only: "Full API
+    route integration tests require a database connection"). One test-infra fix
+    required: `verifyWebhookSignature` reads a module-level `const` captured from
+    `process.env` at import time — a per-test `process.env` assignment runs too late
+    to affect it, so the controller spec mocks the function directly instead (new
+    `LESSONS-LEARNED.md` L40). **money-service: 15 suites → 202 tests, all green**
+    (was 90 at Session 4A-2's close). Monolith's own 10 relevant suites / 182 tests
+    re-run green, source untouched.
+  - **Deployed to Railway production** (`railway up --path-as-root`, deployment
+    `073a0478-dfe4-4226-aa97-9d08d5eee23e`). `railway logs` shows a clean boot:
+    `DlocalModule`/`RiseworksModule` initialized, `DlocalWebhookController
+{/v1/webhooks/dlocal}` and `RiseworksWebhookController {/v1/webhooks/riseworks}`
+    both mapped, `Nest application successfully started`, no errors. `/health`
     confirms `database: up`.
-  - **This slice's actual shadow-run mechanism (F35, replaces the order's original
-    "staging" assumption):** fire each `POST /v1/cron-trigger/<job>` by hand, once,
-    after Vercel's own cron completes each day, and confirm idempotent behavior (a
-    second run against already-processed data does nothing further). Chosen because
-    F34 (Session 3-5) only reserves which Railway project ("postgre for staging")
-    a future staging environment should use — it doesn't mean one is deployed and
-    ready; actually standing money-service up there is a real, separate work item, out
-    of scope for finishing this BUILD session.
-- **Waiting on:** all Session 4A-1 items unchanged except where noted below (renumbered
-  continuation). (1)-(6), (11)-(12), (17)-(20), (23) unchanged from Session 4A-1 — see
-  prior close for full text; the load-bearing ones: (17) CC-A's dedicated staging stack
-  still doesn't exist (now narrowed by F34/F35 — the Railway project to eventually use
-  is already decided, but nothing is deployed into it yet). (26) Stripe/dLocal/
-  RiseWorks/Resend secrets still not set on money-service — narrowed: this session's
-  disbursement code defaults to the MOCK provider (`DISBURSEMENT_PROVIDER` env var
-  unset), so real Rise secrets still aren't needed yet, consistent with Davin's
-  original 4A-1 prediction. (27) money-service still has no custom domain bound. (28)
-  `SVC_TOKEN` still unimplemented. **(29, NEW, blocks this slice's own shadow-run
-  verification)** `CRON_SECRET` is NOT set on money-service's Railway environment at
-  all (confirmed via `railway variables --kv`) — every `POST /v1/cron-trigger/<job>`
-  call currently 401s with "Server configuration error" regardless of what secret is
-  presented. Davin to set it directly on Railway (this environment's policy: secrets
-  are Davin's action, never generated/typed by the Executor) before the manual-trigger
-  verification plan (F35) can actually be exercised. **(30, NEW, non-blocking,
-  informational)** `LESSONS-LEARNED.md` is now at 39 active lessons (L1-L39, cap
-  ~40) — next session that touches it should flag the Advisor for a consolidation
-  pass per the file's own header instructions.
-- **Last session did:** Session 4A-2 ("money-service: crons — Slice 1 BUILD") — closed
-  2026-07-21, all-green, executed end-to-end as a PORT session. CONFIRM caught and the
-  Advisor fixed 2 rounds of file-inventory gaps in the APPROVED order before execution
-  (schema models; two files' full transitive dependency trees, missing ~15 files/2,500+
-  lines total between them) — see "What shipped" above and `LESSONS-LEARNED.md` L37.
-  Ported all 6 File Port Order steps (schema, cron logic, disbursement processor +
-  tree, `@nestjs/schedule` mapping, manual triggers, tests — 90 tests green). At
-  slice-level verification, identified a real double-disbursement risk from deploying
-  with `vercel.json`'s crons still active and no staging environment to shadow-run
-  against instead (CC-A/F34 gap) — Davin's call (F35): add a `CRON_ENABLED` safety
-  gate, deploy inert, verify via the manual-trigger endpoints instead of a literal
-  parallel staging run. Deployed to Railway production with `CRON_ENABLED=false`,
-  verified via clean startup logs. Blocked on Davin setting `CRON_SECRET` before the
-  manual-trigger verification can actually run (waiting-on #29).
-- **Next session:** Session 4A-3 ("money-service: crons — Slice 1 CUTOVER") per the
+  - **Verification plan step 3, done against the live production URL**: `POST
+/v1/webhooks/dlocal` with a bogus `x-signature` → `400 Bad Request`,
+    `{"error":"Invalid signature"}`. `POST /v1/webhooks/riseworks` with no
+    `x-rise-signature` header → `401 Unauthorized`, `{"error":"Missing signature"}`.
+    Both match the order's "done when" criterion exactly — proves the routes are
+    registered and protected, without needing `DLOCAL_WEBHOOK_SECRET`/
+    `RISE_WEBHOOK_SECRET` to be set (they aren't, see Waiting-on #26 below).
+- **Waiting on:** all Session 4A-2 items unchanged except where noted below (renumbered
+  continuation). (1)-(6), (11)-(12), (17)-(20), (23), (27)-(28) unchanged — see prior
+  closes for full text. (17) CC-A's dedicated staging stack still doesn't exist. **(26,
+  narrowed)** Stripe/dLocal/RiseWorks/Resend secrets still not set on money-service —
+  now genuinely blocking: this session's webhook receivers are live in production and
+  correctly reject unsigned requests, but a REAL signed payload from either provider
+  can't be end-to-end verified until `DLOCAL_WEBHOOK_SECRET`/`RISE_WEBHOOK_SECRET` are
+  set (confirmed unset via `railway variables --kv` at this session's deploy step) —
+  this is now Session 4A-5's own first entry criterion. **(29)** `CRON_SECRET` — per
+  4A-3's own PRE-DRAFT, unchanged, not this session's concern. **(30, unresolved, now
+  2 sessions running)** `LESSONS-LEARNED.md` is now at 40 active lessons (L1-L40) — AT
+  the stated cap; the NEXT session that touches it must flag the Advisor for a
+  consolidation pass before adding another (file's own header instructions; CLAUDE.md
+  has now flagged this twice, Sessions 4A-2 and 4A-4). **(31, NEW)** Session 4A-5's
+  entry criteria need a real signed-payload replay per provider (playbook's own framing
+  for this slice: "BUILD (replay tests with recorded signed payloads) then CUTOVER") —
+  this session's own deploy verification only proved unsigned/invalid-signature
+  rejection (400/401), not a real signed payload's full happy path against the new
+  endpoints. Needs waiting-on #26 resolved first (secrets), then a provider dashboard
+  "send test webhook" or a Davin-provided recorded real payload.
+- **Last session did:** Session 4A-4 ("money-service: webhooks — Slice 2 BUILD") —
+  closed 2026-07-22, all-green, executed end-to-end as a PORT session. CONFIRM caught
+  3 untraced transitive dependencies + a schema path error in the APPROVED order
+  before execution (same L37 pattern as Session 4A-2, third occurrence) — see "What
+  shipped" above. Ported all 4 File Port Order steps (schema, dLocal logic, RiseWorks
+  logic, tests — 202 tests green, up from 90). Execution-phase `tsc` caught a 4th gap:
+  a schema relation Session 4A-2 had correctly omitted for its own narrower scope but
+  this session's code genuinely needs (`LESSONS-LEARNED.md` L37 recurrence note).
+  Added Nest's `rawBody: true` to preserve exact HMAC verification. Deployed to Railway
+  production; verified both new endpoints correctly reject unsigned/invalid-signature
+  requests (400/401) against the live URL — proving registration/protection without
+  needing the still-unset provider secrets. New `LESSONS-LEARNED.md` L40 (module-level
+  `process.env` capture defeats per-test mocking; `jest.mock()` must precede all
+  imports). File now at the 40-lesson cap (Waiting-on #30).
+- **Next session:** Session 4A-5 ("money-service: webhooks — Slice 2 CUTOVER") per the
   playbook and this order's own Next-session handoff — a small, separate
   TEMPLATE-VERIFY-RETIRE session (never combine BUILD and CUTOVER). **PRE-DRAFTed**
-  at this close: `docs/migration-orders/4a-3-money-service-crons-cutover.migration-order.md`.
-  Its entry criteria will need: (a) `CRON_SECRET` set on Railway (waiting-on #29); (b)
-  at least one full manual-trigger verification cycle per job showing idempotent
-  behavior, logged somewhere durable (this order's Deviations or a fresh note) so
-  4A-3's own CONFIRM has real evidence to point at, not just "it was built"; (c) Davin's
-  live approval to flip `CRON_ENABLED=true` and empty `vercel.json`'s `crons` array —
-  both are cutover-flag-flips per EXECUTOR-PROTOCOL §7, always escalated.
+  at this close: `docs/migration-orders/4a-5-money-service-webhooks-cutover.migration-order.md`.
+  Its entry criteria will need: (a) `DLOCAL_WEBHOOK_SECRET`/`RISE_WEBHOOK_SECRET` set on
+  Railway (waiting-on #26/#31); (b) at least one real signed test event per provider
+  verified end-to-end against the new endpoints (waiting-on #31); (c) Davin's live
+  approval to update each provider dashboard's webhook URL — a cutover flag-flip per
+  EXECUTOR-PROTOCOL §7, always escalated. Unlike Slice 1's crons, this cutover has no
+  dual-execution-path risk (a provider only ever calls one configured URL), so no
+  `CRON_ENABLED`-style safety gate is needed — rollback is just reverting the
+  dashboard URL.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

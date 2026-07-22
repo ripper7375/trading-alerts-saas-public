@@ -857,6 +857,16 @@ connections`. The `PrismaService` code was byte-copied from operation-service's 
   the list, the trace was incomplete.
 - Source: Session 4A-2 (money-service crons port, both at CONFIRM and mid-execution),
   2026-07-21 · Status: ACTIVE
+- **Recurred Session 4A-4:** a variant one layer up — not a missing FILE this time, but
+  a missing SCHEMA RELATION deliberately omitted by a prior session's own narrower
+  scope. Session 4A-2's schema comment explicitly said `AffiliateCode.affiliateProfile`
+  was "NOT traversed anywhere" and declared it a bare scalar — true for the crons-only
+  scope at the time, but Session 4A-4's `conversion-processor.service.ts` genuinely
+  does `include: { affiliateProfile: ... }`. `tsc` caught it immediately at `npm run
+build` (`Type ... is not assignable to type 'never'`), so the generalized rule holds:
+  a prior session's "not used, omitted" note is scoped to THAT session's file set, not
+  a permanent property of the model — re-verify relation/field omissions against the
+  NEW session's actual code, don't assume a previous CONFIRM's trace still holds.
 
 ### L38 — A doc comment quoting a real path containing `*/` silently closes the comment block early, corrupting everything after it
 
@@ -900,7 +910,47 @@ template literal` at the file's last line) with no single error pointing at the 
 - Source: Session 4A-2 (money-service crons File 4/6 verification attempt), 2026-07-21 ·
   Status: ACTIVE
 
+### L40 — A module-level `const X = process.env[...] || ''` can't be un-captured by a per-test `process.env` assignment; mock the function instead, and `jest.mock()` must be the file's literal first statement
+
+- Symptom: `dlocal-webhook.controller.spec.ts` had 9 failing tests, all showing
+  `console.warn [WARN] No webhook secret configured` — even though every test's
+  `beforeEach` set `process.env['DLOCAL_WEBHOOK_SECRET']` before calling the
+  controller.
+- Root cause: `dlocal-payment.service.ts` reads
+  `const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || ''` at
+  MODULE level (same pattern as the monolith source it was ported from) — evaluated
+  once, the moment the module is first `require()`d (via the test file's own `import`
+  chain), which happens before ANY `beforeEach` in that file ever runs. Setting
+  `process.env` afterward changes nothing; the constant already captured the empty
+  string.
+- Rule: never rely on a per-test `process.env` mutation to affect a module-level
+  `const` read from `process.env` at import time — mock the function that reads it
+  instead (`jest.mock('./the-module', () => ({ ...jest.requireActual('./the-module'),
+theFunction: jest.fn() }))`). That `jest.mock()` call must be the literal FIRST
+  statement in the file, before every `import` (including the one for the
+  controller/service under test, which itself transitively `require()`s the module to
+  be mocked) — `jest.mock()` only intercepts requires that happen after it registers;
+  TypeScript allows non-import statements before `import` declarations at the top
+  level, and ts-jest preserves that ordering in its CommonJS output (no
+  babel-plugin-jest-hoist auto-hoisting the way a Babel-based Jest config would). This
+  is a different failure mode than L26 (a shared `jest.mock()` setup file not imported
+  first) — L26 is about inter-file import order; this is about a `jest.mock()` call's
+  own position relative to imports within the SAME file.
+- Detect early: a mocked/injected value having no effect, paired with console output
+  showing the REAL implementation's own internal defaults/warnings (not a thrown error
+  about a missing mock) — that combination means something read real `process.env`
+  before your test's `beforeEach` ran, not that the mock is wired wrong.
+- Source: Session 4A-4 (money-service webhooks, File 4/4 — `dlocal-webhook.controller.spec.ts`),
+  2026-07-22 · Status: ACTIVE
+
 ---
+
+**Header note, 2026-07-22 (Session 4A-4):** now at 40 active lessons (L1-L40) — AT the
+stated cap. Per this file's own header instructions, the NEXT session that touches this
+file must pause and flag the Advisor for a consolidation pass (merge duplicates,
+generalize, archive rarely-relevant entries) before adding another — this is now the
+second session in a row to note this (see CLAUDE.md Waiting-on #30, unresolved since
+Session 4A-2).
 
 ## Archive
 

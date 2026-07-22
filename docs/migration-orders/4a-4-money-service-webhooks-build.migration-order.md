@@ -64,6 +64,25 @@ Slice 1 (Crons) is currently BUILT and shadow-running in production. To continue
 - Deploy `money-service` to Railway.
 - Verify the new endpoints (`POST /webhooks/dlocal` and `POST /webhooks/riseworks`) return a `401 Unauthorized` or `400 Bad Request` when hit manually without valid signatures (proving the routes are registered and protected).
 
+**Result (2026-07-22):** Deployed to Railway production (`railway up --path-as-root`,
+deployment `073a0478-dfe4-4226-aa97-9d08d5eee23e`). Boot log clean: `DlocalModule`/
+`RiseworksModule` initialized, `DlocalWebhookController {/v1/webhooks/dlocal}` and
+`RiseworksWebhookController {/v1/webhooks/riseworks}` both mapped, `Nest application
+successfully started`, no errors. `/health` → `{"status":"healthy","database":{"status":"up"}}`.
+Manual verification against the live production URL:
+
+- `POST /v1/webhooks/dlocal` with a bogus `x-signature` header → **`400 Bad Request`**,
+  `{"error":"Invalid signature"}`.
+- `POST /v1/webhooks/riseworks` with no `x-rise-signature` header → **`401 Unauthorized`**,
+  `{"error":"Missing signature"}`.
+
+Both match the "done when" criterion exactly. Neither provider's dashboard has been
+repointed (Safety Gate holds) — `DLOCAL_WEBHOOK_SECRET`/`RISE_WEBHOOK_SECRET` are still
+unset on Railway (Waiting-on #26, unchanged), which is why this verification deliberately
+used the "no/invalid signature" path rather than a real signed payload — that path doesn't
+require the secrets to be set and is exactly what "prove the routes are registered and
+protected" calls for.
+
 ## Retire (after cutover proves stable)
 
 _(Not this session. After 4A-5 cutover proves stable, we will delete the NextJS routes.)_
