@@ -6,12 +6,13 @@
 > lines for a cutover). If executing it uncovers real work, STOP — that work gets its own
 > session with the right variant.
 
-> **Status: PRE-DRAFT** — written by the Executor at Session 4A-2's close, per
-> `EXECUTOR-PROTOCOL.md` §3.5. Needs the Advisor to produce the DRAFT, then Davin's
-> APPROVAL. No fast-path here (fast-path is only for a VERIFY-RETIRE whose PRE-DRAFT
-> already looks CONFIRMABLE as-is — this one has a real open blocker, see Entry criteria).
+> **Status: CONFIRMED** — see Deviations for the CONFIRM trail. The header status field
+> arrived self-contradicted (PRE-DRAFT note block vs. an uncommitted `APPROVED` edit on
+> the metadata line, no Advisor-DRAFT/Davin-approval commit history) — the same pattern
+> `LESSONS-LEARNED.md` L11 warns about. Cross-checked live with Davin in-session rather
+> than trusted at face value; see Deviations for what was actually verified.
 
-**Session:** 4A-3 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT
+**Session:** 4A-3 · **Variant:** VERIFY-RETIRE · **Status:** CONFIRMED
 **Generated:** 2026-07-21 · **Estimated time:** <1h (if entry criteria hold)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 1 (of 5), CUTOVER half
 **Target service:** money-service / `vercel.json`
@@ -29,16 +30,16 @@ CUTOVER work in one session, which is exactly why 4A-2 stopped short of this.
 ## Entry criteria
 
 - [x] **`CRON_SECRET` is set on money-service's Railway production environment.** (Davin confirmed this was set at the end of 4A-2).
-- [ ] At least one manual-trigger cycle per job (`POST /v1/cron-trigger/<job>` for all 8) has been fired by hand, once, after `vercel.json`'s own cron completed that
+- [x] At least one manual-trigger cycle per job (`POST /v1/cron-trigger/<job>` for all 8) has been fired by hand, once, after `vercel.json`'s own cron completed that
       day, with results showing idempotent behavior (a second run against
       already-processed data does nothing further — no duplicate `PaymentBatch`/
       `DisbursementTransaction` rows, no duplicate `Notification`/`AffiliateCode`
       mutations). This is this slice's actual "shadow-run diff" per F35 — re-verify the
       evidence is real and logged somewhere durable (this order's own Deviations once
       DRAFTed, or a dated note), not just "it was probably fine."
-- [ ] Davin present/available — cutovers require his live approval (per this variant's
+- [x] Davin present/available — cutovers require his live approval (per this variant's
       own standing rule).
-- [ ] Money-service's production deploy is still the 4A-2 commit (or newer, but nothing
+- [x] Money-service's production deploy is still the 4A-2 commit (or newer, but nothing
       that changed cron logic without its own port order) — `railway logs`/`git log`
       cross-check before flipping.
 
@@ -94,7 +95,30 @@ CUTOVER work in one session, which is exactly why 4A-2 stopped short of this.
 
 ## Deviations
 
-_(should normally be empty; a deviation here is itself a warning sign)_
+- **CONFIRM found the same self-contradiction pattern as Session 4A-6 (`LESSONS-LEARNED.md`
+  L11).** Header note block said PRE-DRAFT/needs-Advisor-DRAFT/needs-Davin-approval; the
+  metadata status line said APPROVED; `git diff` showed that APPROVED edit was uncommitted
+  (only committed value was DRAFT, from commit `1b7d8def`). No Advisor DRAFT step or
+  recorded Davin-approval commit exists for this order. Per L11, did not trust the header —
+  cross-checked all 4 entry criteria live with Davin instead of proceeding.
+  - Entry criterion 2 (manual-trigger idempotency, all 8 jobs): the paired evidence file
+    (`prompt-to-claude-code/manually test_for_4A-3_idempotency_shadow_run_guide.md`) showed
+    0/8 boxes checked at CONFIRM time. Asked Davin directly rather than accepting the
+    unchecked-but-claimed-done state; Davin confirmed live in-session that the manual
+    verification was actually performed for all 8 jobs and all 8 came back idempotent
+    (success response, 0 items reprocessed, no duplicate `PaymentBatch`/
+    `DisbursementTransaction`/`Notification`/`AffiliateCode` rows, including the
+    ⚠️-flagged `process-pending-disbursements` job) — just not checked off in the guide
+    file itself.
+  - Entry criterion 3 (Davin present/available): confirmed — live in this session.
+  - Entry criterion 4 (deploy still 4A-2 or newer, no unreviewed cron-logic changes):
+    verified via `git log -- money-service/src/crons/` — last commit touching that path is
+    `a8ae3586` ("add CRON_ENABLED safety gate before deploy"), which predates and is part
+    of 4A-2's own close (`1b7d8def`). No cron-logic commits since 4A-2 closed.
+  - Ran the order's own required approval ritual (Checklist step 2) explicitly: asked
+    Davin "what's the rollback?" and restated the answer (`CRON_ENABLED=false` instant
+    Railway flip + git revert of the `vercel.json` commit if step 3b already shipped)
+    before he approved. Live go-ahead received in-session.
 
 ## Next-session handoff
 
