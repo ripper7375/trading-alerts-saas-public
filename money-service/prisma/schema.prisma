@@ -291,10 +291,15 @@ model AffiliateProfile {
 
 /// `affiliateProfile` relation object added Session 4A-4 (File 2/4) —
 /// conversion-processor.service.ts does `include: { affiliateProfile: ... }`
-/// to check the affiliate's ACTIVE status. `commissions` relation object
-/// (AffiliateCode -> Commission) still intentionally omitted — nothing in
-/// the 8 crons, disbursement tree, or this session's webhook scope
-/// traverses it (Commission.affiliateCodeId stays a bare scalar).
+/// to check the affiliate's ACTIVE status. `commissions` back-relation
+/// (AffiliateCode -> Commission) added Session 4A-6 (File 1/3) —
+/// commission-report/route.ts's port does `include: { affiliateCode: {
+/// select: { code, usedAt } } }` on Commission, which requires the
+/// Commission -> AffiliateCode relation object below; Prisma requires the
+/// back-relation array declared here too. Previously correctly omitted
+/// (Session 4A-4 note) because nothing in scope up to that point traversed
+/// it — 4th recorded occurrence of this "narrower-slice omission becomes
+/// the next slice's gap" pattern, see LESSONS-LEARNED.md L37.
 model AffiliateCode {
   id   String @id @default(cuid())
   code String @unique
@@ -318,6 +323,8 @@ model AffiliateCode {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  commissions Commission[]
+
   @@index([affiliateProfileId])
   @@index([status])
   @@index([expiresAt])
@@ -330,8 +337,10 @@ model Commission {
   affiliateProfileId String
   affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
-  // Scalar only — see AffiliateCode's own note above.
+  // Relation object added Session 4A-6 (File 1/3) — see AffiliateCode's own
+  // note above.
   affiliateCodeId String
+  affiliateCode   AffiliateCode @relation(fields: [affiliateCodeId], references: [id])
 
   userId         String
   subscriptionId String?
