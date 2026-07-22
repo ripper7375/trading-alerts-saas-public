@@ -8,9 +8,11 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
 import { CronsModule } from './crons/crons.module';
+import { DlocalModule } from './dlocal/dlocal.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
+import { RiseworksModule } from './riseworks/riseworks.module';
 
 // F15 (DECISION-LOG.md): the SAME shared Railway Redis instance
 // operation-service's ThrottlerModule already uses (not a dedicated
@@ -47,6 +49,13 @@ import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
     ScheduleModule.forRoot(),
     HealthModule,
     CronsModule,
+    // Session 4A-4 (File 2/4, 3/4): Slice 2 webhook receivers. Unique paths
+    // (/v1/webhooks/dlocal, /v1/webhooks/riseworks per F16's /v1 prefix) —
+    // not wired to either provider's dashboard yet (Safety Gate, this
+    // order's own scope note), so registering these modules carries no live
+    // traffic risk until Session 4A-5.
+    DlocalModule,
+    RiseworksModule,
   ],
   providers: [
     {
