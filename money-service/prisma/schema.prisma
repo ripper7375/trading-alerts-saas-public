@@ -153,12 +153,18 @@ enum AuditLogStatus {
 // MODELS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/// NARROW subset (see header) — only fields these 8 crons read/write.
+/// NARROW subset (see header) — only fields the 8 crons + Slice 2 webhooks
+/// read/write. hasUsedThreeDayPlan/threeDayPlanUsedAt added Session 4A-4
+/// (File 1/4) — read/written by three-day-validator.service.ts.
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
   tier      UserTier @default(FREE)
+
+  hasUsedThreeDayPlan Boolean   @default(false)
+  threeDayPlanUsedAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -199,6 +205,48 @@ model Subscription {
   @@index([affiliateCodeId])
 }
 
+/// Added Session 4A-4 (File 1/4, Slice 2 webhooks). No `subscription`
+/// relation object — the dLocal webhook only ever assigns `subscriptionId`
+/// as a bare scalar (`tx.payment.update({ data: { subscriptionId } })`),
+/// never traverses an `include`, matching this schema's own
+/// "relation only where actually used" convention (see AffiliateCode).
+model Payment {
+  id             String  @id @default(cuid())
+  userId         String
+  subscriptionId String?
+
+  provider String // 'STRIPE' or 'DLOCAL'
+
+  providerPaymentId String @unique
+  providerStatus    String
+
+  amount    Decimal
+  amountUSD Decimal
+  currency  String
+  country   String?
+
+  paymentMethod String?
+
+  planType       String? // 'THREE_DAY', 'MONTHLY'
+  duration       Int?
+  discountCode   String?
+  discountAmount Decimal?
+
+  status        String // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'
+  failureReason String?
+
+  ipAddress         String?
+  deviceFingerprint String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+}
+
 model AffiliateProfile {
   id     String @id @default(cuid())
   userId String @unique
@@ -232,21 +280,27 @@ model AffiliateProfile {
   // Kept: both traversed via `include`/relation-filter in commission-aggregator.ts.
   commissions Commission[]
   riseAccount AffiliateRiseAccount?
+  // Kept: traversed via `include: { affiliateProfile: ... }` in
+  // conversion-processor.service.ts (Session 4A-4, File 2/4).
+  affiliateCodes AffiliateCode[]
 
   @@index([userId])
   @@index([status])
   @@index([country])
 }
 
-/// `affiliateProfile`/`commissions` relation objects intentionally omitted —
-/// every AffiliateCode touch across the 8 crons and disbursement tree uses
-/// scalar affiliateProfileId only, never traverses a relation (verified: zero
-/// `affiliateCode` include hits anywhere in lib/disbursement).
+/// `affiliateProfile` relation object added Session 4A-4 (File 2/4) —
+/// conversion-processor.service.ts does `include: { affiliateProfile: ... }`
+/// to check the affiliate's ACTIVE status. `commissions` relation object
+/// (AffiliateCode -> Commission) still intentionally omitted — nothing in
+/// the 8 crons, disbursement tree, or this session's webhook scope
+/// traverses it (Commission.affiliateCodeId stays a bare scalar).
 model AffiliateCode {
   id   String @id @default(cuid())
   code String @unique
 
   affiliateProfileId String
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
   discountPercent   Int
   commissionPercent Int
@@ -437,6 +491,36 @@ model DisbursementTransaction {
   @@index([status])
   @@index([providerTxId])
   @@index([createdAt])
+}
+
+/// Added Session 4A-4 (File 1/4, Slice 2 webhooks). `transactionId` is a
+/// bare scalar (no relation object) — the RiseWorks webhook route creates
+/// these rows standalone and never sets/traverses a `transaction` relation,
+/// same convention as DisbursementAuditLog.transactionId below.
+model RiseWorksWebhookEvent {
+  id String @id @default(cuid())
+
+  transactionId String?
+
+  eventType String
+  provider  DisbursementProvider
+
+  payload Json
+
+  signature String?
+  hash      String?
+  verified  Boolean @default(false)
+
+  processed    Boolean   @default(false)
+  processedAt  DateTime?
+  errorMessage String?
+
+  receivedAt DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([eventType])
+  @@index([processed])
+  @@index([receivedAt])
 }
 
 /// `transaction`/`DisbursementTransaction.auditLogs` pair intentionally
