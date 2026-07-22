@@ -12,7 +12,7 @@
 > already looks CONFIRMABLE as-is — this one has two real open blockers, see Entry
 > criteria).
 
-**Session:** 4A-5 · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT
+**Session:** 4A-5 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT
 **Generated:** 2026-07-22 · **Estimated time:** <1h (if entry criteria hold)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 2 (of 5), CUTOVER half
 **Target service:** money-service / dLocal + RiseWorks provider dashboards

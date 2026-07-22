@@ -11,7 +11,7 @@
 > APPROVAL. No fast-path here (fast-path is only for a VERIFY-RETIRE whose PRE-DRAFT
 > already looks CONFIRMABLE as-is — this one has a real open blocker, see Entry criteria).
 
-**Session:** 4A-3 · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT
+**Session:** 4A-3 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT
 **Generated:** 2026-07-21 · **Estimated time:** <1h (if entry criteria hold)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 1 (of 5), CUTOVER half
 **Target service:** money-service / `vercel.json`
@@ -28,13 +28,7 @@ CUTOVER work in one session, which is exactly why 4A-2 stopped short of this.
 
 ## Entry criteria
 
-- [ ] **`CRON_SECRET` is set on money-service's Railway production environment.**
-      Confirmed OPEN at 4A-2's close (CLAUDE.md Waiting-on #29) — every
-      `POST /v1/cron-trigger/<job>` manual-trigger call currently 401s with "Server
-      configuration error" regardless of what secret is presented, which means the
-      shadow-run verification below (the actual substitute for a real parallel
-      staging run, per F35) cannot have happened yet. **If this is still unset, STOP
-      — this session cannot CONFIRM.**
+- [x] **`CRON_SECRET` is set on money-service's Railway production environment.** (Davin confirmed this was set at the end of 4A-2).
 - [ ] At least one manual-trigger cycle per job (`POST /v1/cron-trigger/<job>` for all 8) has been fired by hand, once, after `vercel.json`'s own cron completed that
       day, with results showing idempotent behavior (a second run against
       already-processed data does nothing further — no duplicate `PaymentBatch`/
@@ -65,7 +59,7 @@ CUTOVER work in one session, which is exactly why 4A-2 stopped short of this.
    emptied it) is a one-line revert of that commit.
 3. Flip, in this exact order (not simultaneously — confirm each lands before the next):
    a. `railway variables --service money-service --environment production --set
-   "CRON_ENABLED=true"` — money-service's own crons go live.
+"CRON_ENABLED=true"` — money-service's own crons go live.
    b. Empty `vercel.json`'s `crons` array (commit + deploy) — Vercel's crons stop
    firing. Between (a) and (b) both systems run in parallel for however long the
    Vercel deploy takes to land; this is a known, brief, one-time overlap window,

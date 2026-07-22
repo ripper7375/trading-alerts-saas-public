@@ -23,7 +23,7 @@
 > (including handing this PRE-DRAFT to the Advisor) until Davin says so. This order stays
 > parked at PRE-DRAFT.
 
-**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT (parked — see
+**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT (parked — see
 STANDING BLOCK above)
 **Generated:** 2026-07-22 · **Estimated time:** <1h once unblocked (auth design resolved,
 frontend-side change only, no new backend code)
@@ -71,7 +71,7 @@ operation-service's pattern) are moot — none needed.
       money-service's `schema.prisma` subset assumes.** Corrected understanding
       (Davin, 2026-07-22): money-service shares the monolith's ONE database (blueprint
       §5.1, `money_svc` role) — this is a READ-ONLY verification (`prisma migrate
-    status` against the shared DB, or asking the monolith side directly), never a
+  status` against the shared DB, or asking the monolith side directly), never a
       `db push`/`migrate deploy` run FROM money-service (`LESSONS-LEARNED.md` L1 now
       forbids that outright).
 - [ ] Davin present/available — cutovers require his live approval.
