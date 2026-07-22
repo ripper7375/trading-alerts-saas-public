@@ -21,12 +21,16 @@ export const testFactories = {
       email: string;
       name: string | null;
       tier: 'FREE' | 'PRO';
+      hasUsedThreeDayPlan: boolean;
+      threeDayPlanUsedAt: Date | null;
     }> = {}
   ) => ({
     id: 'user-123',
     email: 'test@example.com',
     name: 'Test User',
     tier: 'FREE' as const,
+    hasUsedThreeDayPlan: false,
+    threeDayPlanUsedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
