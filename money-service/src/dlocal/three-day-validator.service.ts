@@ -1,0 +1,193 @@
+/**
+ * 3-Day Plan Validator Service
+ *
+ * Ported from lib/dlocal/three-day-validator.service.ts (Session 4A-4, File
+ * 2/4). Converted to a real `@Injectable()` with `PrismaService`
+ * constructor-injected (was free functions taking the `prisma` singleton
+ * import), same pattern as Session 4A-2's cron services. Query/mutation
+ * logic byte-identical.
+ *
+ * Handles validation and anti-abuse logic for the 3-day plan:
+ * - Ensures 3-day plan can only be purchased ONCE per account (lifetime)
+ * - Validates user doesn't have active subscription
+ * - Marks 3-day plan as used after successful purchase
+ */
+
+import { Injectable } from '@nestjs/common';
+
+import { logger } from '../common/logger.util';
+import { PrismaService } from '../prisma/prisma.service';
+
+/**
+ * Result of 3-day plan eligibility check
+ */
+export interface ThreeDayPlanEligibilityResult {
+  canPurchase: boolean;
+  reason?: string;
+  details?: {
+    hasUsedThreeDayPlan: boolean;
+    hasActiveSubscription: boolean;
+  };
+}
+
+@Injectable()
+export class ThreeDayValidatorService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Check if a user can purchase the 3-day plan
+   *
+   * Rules:
+   * 1. User must not have already used the 3-day plan (lifetime limit)
+   * 2. User must not have an active subscription (any provider)
+   *
+   * @param userId - User's database ID
+   * @returns Eligibility result with reason if not eligible
+   */
+  async canPurchaseThreeDayPlan(
+    userId: string
+  ): Promise<ThreeDayPlanEligibilityResult> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      // User no longer carries a `subscription` relation (Session 2-3 FK
+      // audit) — look it up separately by userId.
+      const userSubscription = await this.prisma.subscription.findUnique({
+        where: { userId },
+        select: {
+          id: true,
+          status: true,
+          expiresAt: true,
+        },
+      });
+
+      if (!user) {
+        logger.error('User not found for 3-day plan validation', { userId });
+        return {
+          canPurchase: false,
+          reason: 'User not found',
+        };
+      }
+
+      // Check if user has already used 3-day plan
+      if (user.hasUsedThreeDayPlan) {
+        logger.info('User already used 3-day plan', {
+          userId,
+          usedAt: user.threeDayPlanUsedAt,
+        });
+        return {
+          canPurchase: false,
+          reason:
+            'You have already used the 3-day plan. This offer is available only once per account.',
+          details: {
+            hasUsedThreeDayPlan: true,
+            hasActiveSubscription: false,
+          },
+        };
+      }
+
+      // Check if user has an active subscription
+      const sub = userSubscription;
+      const hasActiveSubscription =
+        sub !== null &&
+        sub !== undefined &&
+        sub.status === 'ACTIVE' &&
+        (sub.expiresAt === null || sub.expiresAt > new Date());
+
+      if (hasActiveSubscription) {
+        logger.info(
+          'User has active subscription, cannot purchase 3-day plan',
+          {
+            userId,
+            subscriptionId: userSubscription?.id,
+          }
+        );
+        return {
+          canPurchase: false,
+          reason:
+            'You already have an active subscription. The 3-day plan is only available for users without an active subscription.',
+          details: {
+            hasUsedThreeDayPlan: false,
+            hasActiveSubscription: true,
+          },
+        };
+      }
+
+      logger.info('User eligible for 3-day plan', { userId });
+      return {
+        canPurchase: true,
+        details: {
+          hasUsedThreeDayPlan: false,
+          hasActiveSubscription: false,
+        },
+      };
+    } catch (error) {
+      logger.error('Error checking 3-day plan eligibility', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Mark the 3-day plan as used for a user
+   *
+   * Called after successful payment to prevent reuse.
+   *
+   * @param userId - User's database ID
+   */
+  async markThreeDayPlanUsed(userId: string): Promise<void> {
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          hasUsedThreeDayPlan: true,
+          threeDayPlanUsedAt: new Date(),
+        },
+      });
+
+      logger.info('Marked 3-day plan as used', { userId });
+    } catch (error) {
+      logger.error('Error marking 3-day plan as used', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Validate that user can purchase a specific plan type
+   *
+   * This is a unified validation function that handles both 3-day and monthly plans.
+   *
+   * @param userId - User's database ID
+   * @param planType - Type of plan to validate
+   * @returns Eligibility result with reason if not eligible
+   */
+  async validatePlanPurchase(
+    userId: string,
+    planType: 'THREE_DAY' | 'MONTHLY'
+  ): Promise<ThreeDayPlanEligibilityResult> {
+    if (planType === 'THREE_DAY') {
+      return this.canPurchaseThreeDayPlan(userId);
+    }
+
+    // For monthly plan, just check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return {
+        canPurchase: false,
+        reason: 'User not found',
+      };
+    }
+
+    return { canPurchase: true };
+  }
+}

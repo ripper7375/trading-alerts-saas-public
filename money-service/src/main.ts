@@ -7,7 +7,15 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: true (Session 4A-4, Slice 2 webhooks) — dLocal/RiseWorks HMAC
+  // verification needs the exact raw request bytes (request.rawBody), not a
+  // JSON.parse/stringify round-trip through Nest's default body-parser,
+  // which can silently differ from what the provider actually signed
+  // (whitespace, key order). Additive: request.body still parses as JSON
+  // as before for every other route.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   app.set('trust proxy', 1);
 
