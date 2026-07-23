@@ -1782,9 +1782,12 @@ just this session's own addition below.
   `AdminModule`)
 - `money-service/package.json` (Session 4A-6 — added `zod` as a direct dependency)
 
+- `eslint.config.mjs` (Session 5-3 — ESLint 9 / Next 16 flat config)
+- `app/layout.tsx` (Session 5-4 — Google `Inter` font system fallbacks & zero CLS optimization)
+
 </details>
 
 ---
 
-**Compiled:** 2026-07-08
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-23 (Phase 5 Exit)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

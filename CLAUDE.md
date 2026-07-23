@@ -21,11 +21,11 @@
 > — not a lifting of the standing instruction. Slice 3/4 and further BUILD work remain
 > blocked exactly as before.**
 
-- **Current:** Session 5-3 CLOSED, executed as Bundle & Component Optimizations (`next@16.2.10`) — 2026-07-23.
-  **Phase 5 (Next.js 16 Optimization) Bundle Size & RSC Optimizations Executed (F10 RESOLVED)** — Configured `optimizePackageImports` in `next.config.js`, created `eslint.config.mjs` for native ESLint 9 / Next 16 flat config, converted non-interactive client components (`FraudPatternBadge`, `AffiliateStatsBanner`, `PnLSummaryCards`) to 0-KB JS Server Components.
-  Verified: `npm run type-check` (0 errors), `npm run validate:lint` (0 errors), `npm run build` (127/127 routes compiled successfully in 95s, production bundle output 29.82 MB vs <340MB ceiling), `npm run test:ci` (117/117 suites, 2082/2082 tests passed).
+- **Current:** Session 5-4 CLOSED, executed as Fonts, Streaming & Phase 5 Exit Review (`next@16.2.10`) — 2026-07-23.
+  **Phase 5 (Next.js 16 Optimization) Fully CLOSED & Verified (F10 RESOLVED)** — Configured Google `Inter` font loader in `app/layout.tsx` with explicit system font fallbacks (`fallback: ['system-ui', 'arial', 'sans-serif']`) and `adjustFontFallback: true`, verified React 19 `<Suspense>` streaming boundaries across dynamic routes, validated `vercel.json` and `next.config.js` deployment rules, and ran full exit verification suite.
+  Verified: `npm run type-check` (0 errors), `npm run validate:lint` (0 errors), `npm run build` (127/127 routes compiled successfully, production bundle output 29.82 MB vs <340MB ceiling), `npm run test:ci` (117/117 suites, 2082/2082 tests passed).
 - **Current order:**
-  `docs/migration-orders/5-3-bundle-component-optimizations.migration-order.md` (Approved by Davin, Confirmed by Executor, executed end-to-end).
+  `docs/migration-orders/5-4-fonts-streaming-phase-exit.migration-order.md` (Approved by Davin, Confirmed by Executor, executed end-to-end).
 - **Order status:** CLOSED, all-green. **What shipped:**
   - Upgraded `next`, `eslint-config-next`, `@next/swc-win32-x64-msvc` to `16.2.10`.
   - Confirmed `<Suspense>` boundaries wrap all `useSearchParams()` client components (`app/(auth)/*`, `pricing`, `admin/disbursement/*`).
@@ -136,7 +136,7 @@
   hasn't been observed yet (Waiting-on #36) — daily jobs' next natural fire is
   2026-07-23. Updated `migration-cutover-table.md` (Slice 1 → CUT-OVER),
   `DECISION-LOG.md` (F35 update note), `LESSONS-LEARNED.md` (L11 recurrence note).
-- **Next session:** Session 5-4 (`docs/migration-orders/5-4-fonts-streaming-phase-exit.migration-order.md` — Fonts, Streaming & Phase 5 Exit Review).
+- **Next session:** Session 6-1 (`docs/migration-orders/6-1-gap-matrix-f11.migration-order.md` — Phase 6 Gap Matrix & Endpoint Mapping F11).
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
