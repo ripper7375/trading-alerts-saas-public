@@ -1,0 +1,75 @@
+import nextConfig from 'eslint-config-next';
+
+export default [
+  {
+    ignores: [
+      'node_modules/**',
+      '.next/**',
+      'out/**',
+      'dist/**',
+      'build/**',
+      'seed-code/**',
+      'frontend/**',
+      '__mocks__/**',
+      'coverage/**',
+      'money-service/**',
+      'operation-service/**',
+      'railway-gateway/**',
+      'k6-tests/**',
+      'davintrade-*/**',
+      'backend-stack-*/**',
+      '**/*.js',
+      '**/*.cjs',
+      '**/*.mjs',
+    ],
+  },
+  ...nextConfig,
+  {
+    rules: {
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/use-memo': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/incompatible-library': 'off',
+      'react-hooks/globals': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/set-state-in-render': 'off',
+      'react-hooks/unsupported-syntax': 'off',
+      'react-hooks/config': 'off',
+      'react-hooks/gating': 'off',
+    },
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      'prefer-const': 'error',
+      'no-var': 'error',
+      eqeqeq: ['error', 'always'],
+    },
+  },
+  {
+    files: [
+      '__tests__/**/*',
+      '*.test.ts',
+      '*.test.tsx',
+      'lib/**/*',
+      'components/**/*',
+      'app/**/*',
+      'hooks/**/*',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-console': 'off',
+      'import/order': 'off',
+    },
+  },
+];

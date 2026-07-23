@@ -94,7 +94,6 @@ export async function registerAffiliate(
   }
 
   // Generate verification token (to be stored/emailed in future implementation)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const verificationToken = crypto.randomBytes(32).toString('hex');
   void verificationToken; // Will be used when email verification is implemented
 

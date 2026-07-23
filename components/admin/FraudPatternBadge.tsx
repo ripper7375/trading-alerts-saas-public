@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Fraud Pattern Badge Component
  *

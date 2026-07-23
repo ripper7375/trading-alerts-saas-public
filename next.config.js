@@ -42,12 +42,19 @@ const nextConfig = {
     // Actual API calls go through Next.js API routes
   },
 
-  // Experimental features for Next.js 15
+  // Experimental & Optimization features for Next.js 16
   experimental: {
-    // Enable server actions (stable in Next.js 15)
+    // Enable server actions (stable in Next.js 15/16)
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Tree-shake heavy UI and icon libraries
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      '@radix-ui/react-icons',
+      'date-fns',
+    ],
   },
 
   // Transpile packages for Turbopack compatibility

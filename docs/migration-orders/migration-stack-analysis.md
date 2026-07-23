@@ -228,9 +228,10 @@ re-derive it if the codebase has moved on significantly.
 ### FRONTEND
 
 <details>
-<summary><code>(root)/</code> — 4 files</summary>
+<summary><code>(root)/</code> — 5 files</summary>
 
 - `next.config.js`
+- `eslint.config.mjs`
 - `postcss.config.js`
 - `tailwind.config.ts`
 - `vercel.json`

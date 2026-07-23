@@ -51,7 +51,7 @@
     "format:check": "prettier --check .",
     "validate": "npm run validate:types && npm run validate:lint && npm run validate:format && npm run validate:policies",
     "validate:types": "echo '🔍 Checking TypeScript types...' && tsc --noEmit",
-    "validate:lint": "echo '🔍 Checking code quality...' && next lint --max-warnings 0",
+    "validate:lint": "echo '🔍 Checking code quality...' && eslint app components lib hooks --max-warnings 0",
     "validate:format": "echo '🔍 Checking code formatting...' && prettier --check .",
     "validate:policies": "echo '🔍 Checking policy compliance...' && node scripts/validate-file.js --all",
     "validate:file": "node scripts/validate-file.js",

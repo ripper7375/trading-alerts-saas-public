@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Affiliate Stats Banner Component
  *
