@@ -215,7 +215,7 @@ export class CommissionAggregator {
     });
 
     return Number(
-      (result['_sum'] as { commissionAmount?: number } | undefined)
+      (result['_sum'] as { commissionAmount?: unknown } | undefined)
         ?.commissionAmount ?? 0
     );
   }

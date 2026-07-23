@@ -411,7 +411,7 @@ export async function buildCommissionSummary(
       (b: Record<string, unknown>) => b['status'] === status
     );
     return Number(
-      (result?.['_sum'] as { commissionAmount?: number } | undefined)
+      (result?.['_sum'] as { commissionAmount?: unknown } | undefined)
         ?.commissionAmount ?? 0
     );
   };
@@ -429,11 +429,11 @@ export async function buildCommissionSummary(
     paid,
     cancelled,
     thisMonth: Number(
-      (thisMonth['_sum'] as { commissionAmount?: number } | undefined)
+      (thisMonth['_sum'] as { commissionAmount?: unknown } | undefined)
         ?.commissionAmount ?? 0
     ),
     lastMonth: Number(
-      (lastMonth['_sum'] as { commissionAmount?: number } | undefined)
+      (lastMonth['_sum'] as { commissionAmount?: unknown } | undefined)
         ?.commissionAmount ?? 0
     ),
   };

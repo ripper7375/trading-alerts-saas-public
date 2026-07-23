@@ -1177,8 +1177,8 @@ successfully started`, no errors; `railway variables --kv` confirms
 
 ## F10 — Next.js 15→16 breaking-change audit & baseline recording
 
-- Status: RESOLVED
-- Session: 5-1 · Date: 2026-07-23
-- Decision: Read-only audit completed across all Next.js 16 breaking change vectors (`next@15.5.20` → `next@16.2.10`). Identified that key auth route handlers (`app/api/auth/token-*`) and webhook handlers already use `await cookies()` and `await headers()`. App Router pages (`charts/[symbol]/[timeframe]/page.tsx`) already use `await params`. Client components using `useSearchParams()` must be verified to sit inside `<Suspense>` boundaries during Session 5-2. Pre-upgrade baselines established: `npm run test:ci` (117/117 passed suites, 2082/2082 passed tests, 27.74% statement coverage), `npm run type-check` (0 errors), bundle target `<340MB`, CWV targets (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.10, TTFB ≤ 800ms).
-- Evidence: Full hit-list table and metrics recorded in `docs/migration-orders/5-1-nextjs16-upgrade-audit.migration-order.md`.
-- Approved by: Davin (live in-session confirmation)
+- Status: RESOLVED — Execution Completed Session 5-2
+- Session: 5-1 & 5-2 · Date: 2026-07-23
+- Decision: Next.js framework upgraded from `15.5.20` to `16.2.10` (`next@16.2.10`, `eslint-config-next@16.2.10`, `@next/swc-win32-x64-msvc@16.2.10`). Executed official Next 16 codemods and verified all cataloged breaking change vectors. Confirmed `<Suspense>` boundaries wrap all `useSearchParams()` client components across `app/(auth)/*`, `app/pricing/page.tsx`, and `app/(dashboard)/admin/disbursement/*`. Adjusted `next.config.js` for Next 16 Turbopack compatibility (`transpilePackages: ['ioredis']` and removed legacy `lucide-react` `modularizeImports`). Aligned Prisma aggregate sum casts (`Decimal` to `number`) for strict TypeScript 5.4 check. Full verification green: `npm run type-check` (0 errors), `npm run validate:lint` (0 errors), `npm run build` (127/127 routes compiled dynamically/statically), `npm run test:ci` (117/117 suites, 2082/2082 tests passing).
+- Evidence: Order execution log and deviations in `docs/migration-orders/5-2-nextjs16-upgrade-codemods.migration-order.md`.
+- Approved by: Davin (live in-session approval & execution authorization)

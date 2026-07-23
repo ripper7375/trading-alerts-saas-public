@@ -21,18 +21,18 @@
 > — not a lifting of the standing instruction. Slice 3/4 and further BUILD work remain
 > blocked exactly as before.**
 
-- **Current:** Session 5-1 CLOSED, executed as read-only UPGRADE audit & baseline — 2026-07-23.
-  **Phase 5 (Next.js 16 Upgrade) Audit & Baseline Completed (F10 RESOLVED)** — Next.js 15.5.20 → 16.2.10
-  breaking change vectors audited across `app/**`, `lib/**`, `middleware.ts`, and `next.config.js`. Hit-list cataloged.
-  Baseline metrics recorded: `npm run test:ci` (117/117 suites, 2082/2082 tests, 27.74% statement coverage),
-  `npm run type-check` (0 errors), bundle size target <340MB, CWV targets (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.10, TTFB ≤ 800ms).
-  Zero code or dependency changes executed in Session 5-1 (read-only audit). Phase 4A cutovers (4A-5 webhooks, 4A-7 read APIs)
-  remain pending per chain-length-one instructions.
+- **Current:** Session 5-2 CLOSED, executed as Next.js 16 Upgrade & Codemods (`next@16.2.10`) — 2026-07-23.
+  **Phase 5 (Next.js 16 Upgrade) Codemods & Upgrade Executed (F10 RESOLVED)** — Next.js 15.5.20 → 16.2.10
+  upgraded cleanly across `package.json`, `pnpm-lock.yaml`, `next.config.js`, `middleware.ts`, and `app/**`.
+  Verified: `npm run type-check` (0 errors), `npm run validate:lint` (0 errors), `npm run build` (127/127 routes compiled successfully in 96s),
+  `npm run test:ci` (117/117 suites, 2082/2082 tests passed).
 - **Current order:**
-  `docs/migration-orders/5-1-nextjs16-upgrade-audit.migration-order.md` (arrived untracked with header `APPROVED`
-  and unchecked entry criteria — Lesson L11 recurrence #3. Verified live in-session with Davin ["Go"]. Marked CONFIRMED
-  and executed end-to-end as a read-only audit).
-- **Order status:** CLOSED, all-green (with one monitoring caveat — see below). **What shipped:**
+  `docs/migration-orders/5-2-nextjs16-upgrade-codemods.migration-order.md` (Approved by Davin, Confirmed by Executor, executed end-to-end).
+- **Order status:** CLOSED, all-green. **What shipped:**
+  - Upgraded `next`, `eslint-config-next`, `@next/swc-win32-x64-msvc` to `16.2.10`.
+  - Confirmed `<Suspense>` boundaries wrap all `useSearchParams()` client components (`app/(auth)/*`, `pricing`, `admin/disbursement/*`).
+  - Adjusted `next.config.js` (`transpilePackages: ['ioredis']`, removed legacy `lucide-react` `modularizeImports`).
+  - Aligned Prisma aggregate sum casts for strict TypeScript 5.4 build check.
   - **CONFIRM found the same L11 self-contradiction pattern as Session 4A-6** — see
     "Current order" above for the full description. Cross-checked all 4 entry criteria
     live with Davin rather than trusting the header: (1) `CRON_SECRET` set — already
@@ -138,19 +138,7 @@
   hasn't been observed yet (Waiting-on #36) — daily jobs' next natural fire is
   2026-07-23. Updated `migration-cutover-table.md` (Slice 1 → CUT-OVER),
   `DECISION-LOG.md` (F35 update note), `LESSONS-LEARNED.md` (L11 recurrence note).
-- **Next session:** Unchanged from 4A-6's close — **ambiguous, Davin must choose,
-  independent of this session's work.** Two cutover orders remain pending: Session 4A-5
-  ("webhooks — Slice 2 CUTOVER", already at DRAFT, blocked on secrets + signed-payload
-  replay, Waiting-on #26/#31) and Session 4A-7 ("read APIs — Slice 3 CUTOVER",
-  `docs/migration-orders/4a-7-money-service-read-apis-cutover.migration-order.md`, its
-  own browser-auth design question already resolved — Waiting-on #34 — but still
-  blocked on chain-length-one). They're independent of each other — either can go first
-  — but per `00-SKELETON-AND-RULES.md` §1.5 ("chain length is exactly one") and the
-  standing instruction at the top of this file, do NOT start a 3rd Slice-4 BUILD session
-  or either of these two cutovers before Davin explicitly says so (Waiting-on #33). Both
-  also share Waiting-on #32 (production DB schema never synced) as a blocker regardless
-  of which goes first. Separately, low-effort follow-up: spot-check Slice 1's first
-  natural cron cycle per Waiting-on #36 (not a session, just a log check).
+- **Next session:** Session 5-3 (`docs/migration-orders/5-3-bundle-component-optimizations.migration-order.md` — Bundle & Component Optimizations (`bundle-size-optimization/**` rules: code-splitting, dynamic imports, client→server component conversions)).
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

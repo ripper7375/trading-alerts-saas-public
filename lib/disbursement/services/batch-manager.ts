@@ -358,12 +358,13 @@ export class BatchManager {
       total: batches['_count'] as number,
       byStatus,
       totalAmount: Number(
-        (batches['_sum'] as { totalAmount?: number } | undefined)
+        (batches['_sum'] as { totalAmount?: unknown } | undefined)
           ?.totalAmount ?? 0
       ),
-      totalPayments:
-        (batches['_sum'] as { paymentCount?: number } | undefined)
-          ?.paymentCount ?? 0,
+      totalPayments: Number(
+        (batches['_sum'] as { paymentCount?: unknown } | undefined)
+          ?.paymentCount ?? 0
+      ),
     };
   }
 }

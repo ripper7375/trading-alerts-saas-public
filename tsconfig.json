@@ -15,7 +15,7 @@
       "DOM", // Browser DOM APIs
       "DOM.Iterable" // Iterable DOM collections
     ],
-    "jsx": "preserve", // Keep JSX as-is for Next.js to handle
+    "jsx": "react-jsx", // Keep JSX as-is for Next.js to handle
     "module": "esnext", // Use latest ES modules
     // ==========================================================================
     // Module Resolution (Path Aliases)
@@ -25,7 +25,9 @@
     "allowImportingTsExtensions": false, // Don't allow .ts/.tsx in imports
     "baseUrl": ".", // Base directory for module resolution
     "paths": {
-      "@/*": ["./*"] // @ alias maps to project root
+      "@/*": [
+        "./*"
+      ] // @ alias maps to project root
     },
     // ==========================================================================
     // Type Checking - STRICT MODE (CRITICAL QUALITY GATES)

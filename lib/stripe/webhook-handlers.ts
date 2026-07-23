@@ -581,7 +581,7 @@ async function processAffiliateCommission(
         affiliateUser.name || 'Affiliate',
         code,
         breakdown.commissionAmount,
-        updatedProfile.totalEarnings
+        Number(updatedProfile.totalEarnings)
       );
     }
   } catch (error) {

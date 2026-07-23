@@ -167,7 +167,14 @@ export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
       where: { userId: session.user.id },
     });
 
-    return affiliateProfile;
+    if (!affiliateProfile) {
+      return null;
+    }
+
+    return {
+      ...affiliateProfile,
+      totalEarnings: Number(affiliateProfile.totalEarnings),
+    } as unknown as AffiliateProfile;
   } catch (error) {
     console.error('Failed to fetch affiliate profile:', error);
     return null;
