@@ -31,7 +31,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F7   | HS256 shared secret vs JWKS + rotation timing                                  | OPEN — due Session 3-1 (Davin)                                                                                         |
 | F8   | Realtime/websocket architecture                                                | OPEN — due Session 4B-17                                                                                               |
 | F9   | @trading-alerts/types packaging mechanics                                      | OPEN — due Session 4B-1                                                                                                |
-| F10  | Next.js 15→16 breaking-change audit                                            | OPEN — due Session 5-1                                                                                                 |
+| F10  | Next.js 15→16 breaking-change audit                                            | RESOLVED — Session 5-1                                                                                                 |
 | F11  | Frontend gap matrix                                                            | OPEN — due Session 6-1 (Davin triage)                                                                                  |
 | F12  | Whole-plan duration estimate                                                   | OPEN — revisit after F1–F5                                                                                             |
 | F13  | Observability/tracing backend                                                  | OPEN — due by first Phase 4 cutover                                                                                    |
@@ -1174,3 +1174,11 @@ successfully started`, no errors; `railway variables --kv` confirms
   execution path for these 8 jobs; `migration-cutover-table.md` Slice 1 row updated to
   CUT-OVER, with a documented caveat that the scheduler's own natural (non-manual-trigger)
   tick hasn't been observed yet — first occurrence is the next UTC 00:00-04:00 windows.
+
+## F10 — Next.js 15→16 breaking-change audit & baseline recording
+
+- Status: RESOLVED
+- Session: 5-1 · Date: 2026-07-23
+- Decision: Read-only audit completed across all Next.js 16 breaking change vectors (`next@15.5.20` → `next@16.2.10`). Identified that key auth route handlers (`app/api/auth/token-*`) and webhook handlers already use `await cookies()` and `await headers()`. App Router pages (`charts/[symbol]/[timeframe]/page.tsx`) already use `await params`. Client components using `useSearchParams()` must be verified to sit inside `<Suspense>` boundaries during Session 5-2. Pre-upgrade baselines established: `npm run test:ci` (117/117 passed suites, 2082/2082 passed tests, 27.74% statement coverage), `npm run type-check` (0 errors), bundle target `<340MB`, CWV targets (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.10, TTFB ≤ 800ms).
+- Evidence: Full hit-list table and metrics recorded in `docs/migration-orders/5-1-nextjs16-upgrade-audit.migration-order.md`.
+- Approved by: Davin (live in-session confirmation)

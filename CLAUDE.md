@@ -21,31 +21,17 @@
 > — not a lifting of the standing instruction. Slice 3/4 and further BUILD work remain
 > blocked exactly as before.**
 
-- **Current:** Session 4A-3 CLOSED, executed end-to-end — 2026-07-22. **Phase 4A,
-  blueprint §5.5 Slice 1 (crons) is CUT OVER** — money-service's own `@nestjs/schedule`
-  scheduler is now the live, sole execution path for all 8 cron jobs (`CRON_ENABLED=true`
-  on Railway production; `vercel.json`'s crons array emptied and deployed). Slice 3 (read
-  APIs) unchanged from Session 4A-6's close — BUILT and deployed, zero live traffic.
-  Slice 2 (webhooks) unchanged from Session 4A-4's close — still not wired to either
-  provider's dashboard, still blocked on Session 4A-5's own unresolved entry criteria.
-  Phase 3/Phase 1/Phase 0 all unchanged from Session 4A-1's close. **Note on session
-  ordering:** 4A-3 was PRE-DRAFTed at 4A-2's close (2026-07-21) but sat dormant while
-  4A-4 through 4A-6 (Slices 2/3 BUILD) executed around it — Davin brought it back for
-  execution this session, out of numeric order but not out of scope order (Slice 1 is
-  independent of Slices 2/3).
+- **Current:** Session 5-1 CLOSED, executed as read-only UPGRADE audit & baseline — 2026-07-23.
+  **Phase 5 (Next.js 16 Upgrade) Audit & Baseline Completed (F10 RESOLVED)** — Next.js 15.5.20 → 16.2.10
+  breaking change vectors audited across `app/**`, `lib/**`, `middleware.ts`, and `next.config.js`. Hit-list cataloged.
+  Baseline metrics recorded: `npm run test:ci` (117/117 suites, 2082/2082 tests, 27.74% statement coverage),
+  `npm run type-check` (0 errors), bundle size target <340MB, CWV targets (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.10, TTFB ≤ 800ms).
+  Zero code or dependency changes executed in Session 5-1 (read-only audit). Phase 4A cutovers (4A-5 webhooks, 4A-7 read APIs)
+  remain pending per chain-length-one instructions.
 - **Current order:**
-  `docs/migration-orders/4a-3-money-service-crons-cutover.migration-order.md`
-  (arrived with the same self-contradictory-status pattern as 4A-6's predecessor —
-  header note block said PRE-DRAFT/needs-Advisor-DRAFT/needs-Davin-approval, the
-  metadata status line said APPROVED, and that edit was uncommitted with no recorded
-  Advisor-DRAFT or Davin-approval history — see `LESSONS-LEARNED.md` L11's recurrence
-  note. 3 of 4 entry criteria were also unchecked at CONFIRM time, most importantly the
-  manual-trigger idempotency verification for all 8 cron jobs. Did not trust the header;
-  asked Davin directly, live in-session — he confirmed the verification was genuinely
-  done for all 8 jobs with clean idempotent results, just not checked off in the guide
-  file, and gave live approval via the order's own "what's the rollback?" ritual
-  question. CONFIRMED and EXECUTED end-to-end after that; see the order's own
-  Deviations section for the full trail).
+  `docs/migration-orders/5-1-nextjs16-upgrade-audit.migration-order.md` (arrived untracked with header `APPROVED`
+  and unchecked entry criteria — Lesson L11 recurrence #3. Verified live in-session with Davin ["Go"]. Marked CONFIRMED
+  and executed end-to-end as a read-only audit).
 - **Order status:** CLOSED, all-green (with one monitoring caveat — see below). **What shipped:**
   - **CONFIRM found the same L11 self-contradiction pattern as Session 4A-6** — see
     "Current order" above for the full description. Cross-checked all 4 entry criteria
