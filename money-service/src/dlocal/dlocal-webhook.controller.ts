@@ -46,6 +46,7 @@ interface PaymentRecord {
   paymentMethod: string | null;
   providerPaymentId: string;
   discountCode?: string | null;
+  status: string;
 }
 
 @Controller('webhooks/dlocal')
@@ -163,10 +164,19 @@ export class DlocalWebhookController {
     payment: PaymentRecord,
     webhookData: DLocalWebhookPayload
   ): Promise<void> {
+    // Captured before any writes below — reflects DB state prior to this
+    // delivery. Payment/Subscription/User-tier writes further down are all
+    // idempotent upserts and safe to repeat on replay; the one-time side
+    // effects gated behind `!alreadyCompleted` (3-day-plan mark, affiliate
+    // conversion, notification) are not all self-guarded, so a webhook
+    // replay for an already-COMPLETED payment must skip them explicitly.
+    const alreadyCompleted = payment.status === 'COMPLETED';
+
     logger.info('Processing payment completion', {
       paymentId: payment.id,
       userId: payment.userId,
       planType: payment.planType,
+      alreadyCompleted,
     });
 
     // Calculate subscription expiry based on plan type
@@ -253,64 +263,71 @@ export class DlocalWebhookController {
       }
     });
 
-    // 5. Mark 3-day plan as used if applicable (outside transaction for isolation)
-    if (payment.planType === 'THREE_DAY') {
-      await this.threeDayValidator.markThreeDayPlanUsed(payment.userId);
-      logger.info('3-day plan marked as used', { userId: payment.userId });
-    }
+    if (!alreadyCompleted) {
+      // 5. Mark 3-day plan as used if applicable (outside transaction for isolation)
+      if (payment.planType === 'THREE_DAY') {
+        await this.threeDayValidator.markThreeDayPlanUsed(payment.userId);
+        logger.info('3-day plan marked as used', { userId: payment.userId });
+      }
 
-    // 5b. Process affiliate conversion if a discount code was used (Part 17 seam)
-    // Mirrors the Stripe webhook path; idempotent on webhook retries.
-    if (payment.discountCode && payment.planType === 'MONTHLY') {
-      try {
-        const linkedSubscription = await this.prisma.subscription.findUnique({
-          where: { userId: payment.userId },
-          select: { id: true },
-        });
-
-        const conversion =
-          await this.conversionProcessor.processAffiliateConversion({
-            code: payment.discountCode,
-            userId: payment.userId,
-            subscriptionId: linkedSubscription?.id ?? null,
-            grossRevenueUsd: planAmountUsd,
-            provider: 'DLOCAL',
+      // 5b. Process affiliate conversion if a discount code was used (Part 17 seam)
+      // Mirrors the Stripe webhook path; idempotent on webhook retries.
+      if (payment.discountCode && payment.planType === 'MONTHLY') {
+        try {
+          const linkedSubscription = await this.prisma.subscription.findUnique({
+            where: { userId: payment.userId },
+            select: { id: true },
           });
 
-        if (conversion.processed) {
-          logger.info('Affiliate commission created for dLocal payment', {
+          const conversion =
+            await this.conversionProcessor.processAffiliateConversion({
+              code: payment.discountCode,
+              userId: payment.userId,
+              subscriptionId: linkedSubscription?.id ?? null,
+              grossRevenueUsd: planAmountUsd,
+              provider: 'DLOCAL',
+            });
+
+          if (conversion.processed) {
+            logger.info('Affiliate commission created for dLocal payment', {
+              paymentId: payment.id,
+              commissionId: conversion.commissionId,
+              commissionAmount: conversion.commissionAmount,
+            });
+          } else {
+            logger.warn('Affiliate conversion not processed', {
+              paymentId: payment.id,
+              reason: conversion.reason,
+            });
+          }
+        } catch (conversionError) {
+          // Never fail the payment webhook because of commission bookkeeping
+          logger.error('Affiliate conversion processing failed', {
             paymentId: payment.id,
-            commissionId: conversion.commissionId,
-            commissionAmount: conversion.commissionAmount,
-          });
-        } else {
-          logger.warn('Affiliate conversion not processed', {
-            paymentId: payment.id,
-            reason: conversion.reason,
+            error:
+              conversionError instanceof Error
+                ? conversionError.message
+                : 'Unknown error',
           });
         }
-      } catch (conversionError) {
-        // Never fail the payment webhook because of commission bookkeeping
-        logger.error('Affiliate conversion processing failed', {
-          paymentId: payment.id,
-          error:
-            conversionError instanceof Error
-              ? conversionError.message
-              : 'Unknown error',
-        });
       }
-    }
 
-    // 6. Create success notification
-    await this.prisma.notification.create({
-      data: {
-        userId: payment.userId,
-        type: 'SUBSCRIPTION',
-        title: 'Welcome to PRO!',
-        body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
-        priority: 'HIGH',
-      },
-    });
+      // 6. Create success notification
+      await this.prisma.notification.create({
+        data: {
+          userId: payment.userId,
+          type: 'SUBSCRIPTION',
+          title: 'Welcome to PRO!',
+          body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
+          priority: 'HIGH',
+        },
+      });
+    } else {
+      logger.info(
+        'Payment was already COMPLETED — skipping one-time completion side effects (3-day-plan mark, affiliate conversion, notification) on replay',
+        { paymentId: payment.id, userId: payment.userId }
+      );
+    }
 
     logger.info('Payment completed and subscription created', {
       paymentId: payment.id,

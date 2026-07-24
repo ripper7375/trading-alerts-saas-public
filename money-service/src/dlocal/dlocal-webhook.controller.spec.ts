@@ -420,6 +420,110 @@ describe('DlocalWebhookController', () => {
     expect(response.status).toHaveBeenCalledWith(200);
   });
 
+  it('should be fully idempotent when the same COMPLETED webhook is replayed: no duplicate Subscription row, no duplicate Notification', async () => {
+    const payload = JSON.stringify({
+      id: 'payment-replay',
+      status: 'PAID',
+      order_id: 'order-user-replay-123',
+    });
+
+    const basePayment = {
+      id: 'payment-replay',
+      userId: 'user-replay',
+      planType: 'MONTHLY',
+      amountUSD: 29,
+      currency: 'USD',
+      country: null,
+      paymentMethod: null,
+      providerPaymentId: 'payment-replay',
+      discountCode: null,
+    };
+
+    // First delivery finds the payment still PENDING; by the second delivery
+    // (replay) the first delivery's own write has already landed, so the
+    // lookup now returns COMPLETED — this is what a real replay would see.
+    prismaMock.payment.findFirst
+      .mockResolvedValueOnce({ ...basePayment, status: 'PENDING' } as never)
+      .mockResolvedValueOnce({ ...basePayment, status: 'COMPLETED' } as never);
+    prismaMock.payment.update.mockResolvedValue({} as never);
+    prismaMock.user.update.mockResolvedValue({} as never);
+    prismaMock.subscription.create.mockResolvedValue({} as never);
+    prismaMock.subscription.update.mockResolvedValue({} as never);
+
+    // First delivery: no subscription exists yet -> create(), then link-back finds it.
+    // Second delivery (replay): the row from the first delivery is now found on
+    // the "existingSubscription" check -> update(), not create().
+    prismaMock.subscription.findUnique
+      .mockResolvedValueOnce(null) // call 1: existingSubscription check
+      .mockResolvedValueOnce({ id: 'sub-replay' } as never) // call 1: link-back
+      .mockResolvedValueOnce({ id: 'sub-replay' } as never) // call 2: existingSubscription check
+      .mockResolvedValueOnce({ id: 'sub-replay' } as never); // call 2: link-back
+
+    const makeRequest = () =>
+      createMockRequest(payload, {
+        authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+        'x-date': '2026-07-24T09:23:38.899Z',
+        'x-login': 'test-merchant-login',
+      });
+
+    await controller.handleWebhook(makeRequest(), createMockResponse());
+    await controller.handleWebhook(makeRequest(), createMockResponse());
+
+    // Subscription: upsert keyed on unique userId correctly avoids a duplicate row.
+    expect(prismaMock.subscription.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.subscription.update).toHaveBeenCalledTimes(1);
+
+    // Payment.update fires twice per delivery (status write + subscriptionId
+    // link-back), both naturally idempotent — same values written both times.
+    expect(prismaMock.payment.update).toHaveBeenCalledTimes(4);
+
+    // Fixed: handlePaymentCompleted now skips the one-time completion side
+    // effects (3-day-plan mark, affiliate conversion, notification) when the
+    // payment was already COMPLETED, so replay creates exactly one Notification.
+    expect(prismaMock.notification.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('should skip 3-day-plan marking and affiliate conversion, not just notification, on a replay of an already-COMPLETED payment', async () => {
+    const payload = JSON.stringify({
+      id: 'payment-replay-2',
+      status: 'PAID',
+      order_id: 'order-user-replay-2-123',
+    });
+
+    prismaMock.payment.findFirst.mockResolvedValue({
+      id: 'payment-replay-2',
+      userId: 'user-replay-2',
+      planType: 'THREE_DAY',
+      amountUSD: 1.99,
+      currency: 'USD',
+      country: null,
+      paymentMethod: null,
+      providerPaymentId: 'payment-replay-2',
+      discountCode: null,
+      status: 'COMPLETED', // already completed prior to this delivery
+    } as never);
+    prismaMock.payment.update.mockResolvedValue({} as never);
+    prismaMock.user.update.mockResolvedValue({} as never);
+    prismaMock.subscription.findUnique
+      .mockResolvedValueOnce({ id: 'sub-replay-2' } as never)
+      .mockResolvedValueOnce({ id: 'sub-replay-2' } as never);
+    prismaMock.subscription.update.mockResolvedValue({} as never);
+
+    const request = createMockRequest(payload, {
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
+    });
+
+    await controller.handleWebhook(request, createMockResponse());
+
+    expect(threeDayValidatorMock.markThreeDayPlanUsed).not.toHaveBeenCalled();
+    expect(
+      conversionProcessorMock.processAffiliateConversion
+    ).not.toHaveBeenCalled();
+    expect(prismaMock.notification.create).not.toHaveBeenCalled();
+  });
+
   it('should return 500 when an unexpected error is thrown', async () => {
     const payload = JSON.stringify({
       id: 'payment-7',
