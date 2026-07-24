@@ -101,6 +101,40 @@ change itself, and rollback is just reverting that URL.
 
 _(should normally be empty; a deviation here is itself a warning sign)_
 
+**2026-07-24 — out-of-band bugfix, explicit scoped exception (Davin, live in chat).**
+Live Railway log inspection (real dLocal traffic hitting `/v1/webhooks/dlocal`, e.g.
+2026-07-24T09:23:38.899Z, retried 10:23:38.891Z) surfaced a genuine bug ahead of this
+order's own real-signed-payload verification step (Entry criterion #2):
+`DlocalWebhookController` read the signature from an `x-signature` header dLocal never
+sends (real signature arrives in `Authorization: V2-HMAC-SHA256, Signature: <hex>`),
+and `verifyWebhookSignature()` HMAC'd only the raw body instead of dLocal's actual
+`X-Login + X-Date + body` construction — every real signed webhook was failing
+verification and being rejected with 400, dLocal was retrying.
+
+Per this order's own "Rules specific to this variant" ("if the real-signed-payload
+verification reveals a genuine bug, STOP — that's a finding, gets its own BUILD-variant
+fix session, not a patch bolted onto this cutover"), this should by default have become
+its own PRE-DRAFT→DRAFT→APPROVED→CONFIRMED session. Davin authorized fixing it directly
+as an explicit, scoped exception in chat instead — same pattern as Session 4A-3's crons
+exception — given it's a pure bugfix blocking this order's own Entry criterion #2 and
+money/auth-adjacent (EXECUTOR-PROTOCOL.md §7 escalation). Also confirmed live: secret
+precedence for `verifyWebhookSignature()` is `DLOCAL_SECRET_KEY` (dLocal uses one
+merchant secret for both outbound signing and inbound verification, no separate webhook
+secret per their docs) falling back to `DLOCAL_WEBHOOK_SECRET` — this order's own Entry
+criterion #1 (`DLOCAL_WEBHOOK_SECRET` set on Railway by Davin) remains valid as the
+fallback path.
+
+**What changed:** `money-service/src/dlocal/dlocal-webhook.controller.ts` (read
+signature + `X-Date`/`X-Login` from the real headers) and
+`dlocal-payment.service.ts`'s `verifyWebhookSignature()` (HMAC over
+`X-Login + X-Date + body`, `crypto.timingSafeEqual` comparison). Both spec files
+updated to match — 34/34 tests pass, `tsc --noEmit` clean. Commit `8e681297`.
+
+**Impact on this order:** does NOT itself satisfy Entry criterion #2 — a real signed
+test event still needs to be sent and verified against the FIXED code before CUTOVER.
+CONFIRM must re-verify that criterion live, against this new commit, not assume it from
+this deviation note.
+
 ## Next-session handoff
 
 _(DRAFT order for the RETIRE session — delete
