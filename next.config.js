@@ -10,7 +10,6 @@ const nextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
 
-
   // Image optimization configuration
   images: {
     // Allow images from these domains
@@ -172,8 +171,14 @@ const nextConfig = {
     ];
   },
 
-  // Exclude test packages from the bundle
-  serverExternalPackages: ['@playwright/test', 'playwright', 'playwright-core'],
+  // Exclude test and prisma packages from the bundle
+  serverExternalPackages: [
+    '@playwright/test',
+    'playwright',
+    'playwright-core',
+    '@prisma/client',
+    '@prisma/client-runtime-utils',
+  ],
 
   // Webpack configuration (for advanced customization)
   webpack: (config, { isServer }) => {
