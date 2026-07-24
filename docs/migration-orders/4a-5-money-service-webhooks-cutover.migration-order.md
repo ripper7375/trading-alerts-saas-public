@@ -12,10 +12,48 @@
 > already looks CONFIRMABLE as-is — this one has two real open blockers, see Entry
 > criteria).
 
-**Session:** 4A-5 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT
-**Generated:** 2026-07-22 · **Estimated time:** <1h (if entry criteria hold)
+**Session:** 4A-5 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT (scope-amended, awaiting Davin's approval of the amendment below)
+**Generated:** 2026-07-22 · **Amended:** 2026-07-24 (Advisor, at Davin's request — RiseWorks is
+unresponsive on webhook/API settings and blocking downstream Session-4 work; dLocal
+credentials are already in hand)
+**Estimated time:** <1h (if entry criteria hold)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 2 (of 5), CUTOVER half
-**Target service:** money-service / dLocal + RiseWorks provider dashboards
+**Target service:** money-service / **dLocal provider dashboard only this session** —
+RiseWorks split out to a follow-up session (see Scope Amendment)
+
+## Scope Amendment (2026-07-24, Advisor, pending Davin's approval)
+
+Splitting Slice 2 into two independent cutover sessions instead of one combined one:
+
+- **4A-5 (this session, amended): dLocal only.** Everything below (Entry criteria,
+  Checklist) is narrowed to dLocal. RiseWorks's rows/steps are struck from this
+  session's scope — not skipped, just moved out.
+- **4A-5-RW (new, PRE-DRAFT, not yet written): RiseWorks only.** Opens once Riseworks
+  replies with webhook/API settings. Tracked as a new Waiting-on item in CLAUDE.md
+  until then. Reuses this order's original RiseWorks-specific Entry criteria and
+  Checklist steps 3c-3d verbatim — nothing about RiseWorks's requirements changes,
+  it's just deferred rather than blocking dLocal.
+
+**Why this is safe to split:** the original checklist already treated the two
+providers as independently-flippable ("one provider at a time — confirm one is stable
+before touching the other," step 3). The only thing that changes is step 1's gate,
+which required evidence for _both_ providers before either could flip. That combined
+gate is what's removed — dLocal's own verification is unaffected by RiseWorks being
+unavailable.
+
+**What does NOT change:** money-service's RiseWorks route
+(`POST /v1/webhooks/riseworks`) stays exactly as-is — deployed, registered, rejecting
+unsigned/invalid-signature requests, zero live traffic, RiseWorks's dashboard still
+pointed at the monolith. Nothing about it is touched, weakened, or exposed by cutting
+dLocal over alone.
+
+**Governance note — does not itself resolve:** CLAUDE.md's 2026-07-22 standing
+instruction ("chain-length-one invoked... webhooks cut over FIRST, before 4A-7 or any
+Slice 4 work") was written when Slice 2 meant _both_ providers. Davin narrowing that to
+"dLocal-cutover-first is enough to unblock 4A-7; RiseWorks can trail" is itself a
+standing-instruction change and needs to be recorded as one — see the chat response
+for the exact language to confirm. This order does not assume that narrowing on its
+own.
 
 ## Why this session, why now
 
@@ -31,61 +69,70 @@ a payment provider only ever POSTs to the one URL configured in its dashboard, s
 there is no `CRON_ENABLED`-style flag needed — the cutover moment IS the dashboard URL
 change itself, and rollback is just reverting that URL.
 
-## Entry criteria
+## Entry criteria (dLocal-only, per Scope Amendment above)
 
-- [ ] **`DLOCAL_WEBHOOK_SECRET` and `RISE_WEBHOOK_SECRET` are set on money-service's
-      Railway production environment.** Confirmed NOT set as of 4A-4's close
-      (`railway variables --kv`, Waiting-on #26) — every real signed request would
-      currently fail verification. Davin to set both directly on Railway (this
-      environment's standing policy: secrets are Davin's action, never
-      generated/typed by the Executor).
-- [ ] **At least one real signed test event per provider has been sent to the NEW
+- [ ] **`DLOCAL_WEBHOOK_SECRET` is set on money-service's Railway production
+      environment.** Confirmed NOT set as of 4A-4's close (`railway variables --kv`,
+      Waiting-on #26) — every real signed request would currently fail verification.
+      **Davin sets this directly on Railway himself — this environment's standing
+      policy is that secrets are never generated or typed by the Executor, and the
+      raw dLocal credential values must not be pasted into a Claude Code prompt or
+      committed anywhere either.** (`RISE_WEBHOOK_SECRET` moves to 4A-5-RW — not
+      required for this session.)
+- [ ] **At least one real signed test event for dLocal has been sent to the NEW
       money-service endpoint and produced the expected result**, per the playbook's own
       framing for this slice ("BUILD (replay tests with recorded signed payloads) then
-      CUTOVER"). 4A-4's own deploy verification only proved the routes are registered
-      and reject _unsigned_/_invalid-signature_ requests (400/401) — it did not exercise
-      a real signed payload end-to-end (no secrets were set yet to do so). Use each
-      provider's own dashboard "send test webhook" feature if available, or a
-      Davin-provided recorded real payload + its real signature, POSTed by hand to
-      `https://money-service-production.up.railway.app/v1/webhooks/<dlocal|riseworks>`.
-      Confirm: correct DB writes (`Payment`/`Subscription`/`RiseWorksWebhookEvent`
-      rows), and a second identical replay is idempotent (no duplicate processing).
+      CUTOVER"). 4A-4's own deploy verification only proved the route is registered
+      and rejects _unsigned_/_invalid-signature_ requests (400/401) — it did not exercise
+      a real signed payload end-to-end (no secret was set yet to do so). Use dLocal's
+      own dashboard "send test webhook" feature if available, or a Davin-provided
+      recorded real payload + its real signature, POSTed by hand to
+      `https://money-service-production.up.railway.app/v1/webhooks/dlocal`.
+      Confirm: correct DB writes (`Payment`/`Subscription` rows), and a second
+      identical replay is idempotent (no duplicate processing). (RiseWorks's
+      equivalent moves to 4A-5-RW — not required for this session.)
 - [ ] Davin present/available — cutovers require his live approval (per this variant's
       own standing rule).
 - [ ] Money-service's production deploy is still the 4A-4 commit (or newer, but nothing
       that changed webhook logic without its own port order) — `railway logs`/`git log`
       cross-check before flipping.
+- [ ] **Davin has confirmed, live in this session, that the 2026-07-22 CLAUDE.md
+      standing instruction ("webhooks cut over FIRST, before 4A-7") is narrowed to mean
+      dLocal-cutover-first — not full Slice 2** — see this order's Scope Amendment and
+      the governance note in the chat response. Without this, CONFIRM should stop and
+      ask rather than assume.
 
-## Checklist
+## Checklist (dLocal-only, per Scope Amendment above)
 
 **CUTOVER block**
 
-1. Present the real-signed-payload verification evidence for both providers (Entry
+1. Present the real-signed-payload verification evidence for **dLocal** (Entry
    criteria above) — not a shadow-run diff in the traditional sense, closer to 4A-3's
-   own manual-trigger precedent. Either missing → abort, this session cannot proceed.
+   own manual-trigger precedent. Missing → abort, this session cannot proceed.
+   (RiseWorks evidence is not required and not gated on here — that's 4A-5-RW.)
 2. Davin approves. His question ritual: "what's the rollback?" — answer: revert the
    provider dashboard's webhook URL back to the monolith's
-   `https://<monolith-domain>/api/webhooks/<dlocal|riseworks>` — a dashboard-side
-   config change, no money-service redeploy needed, no code flag to flip.
-3. Flip, one provider at a time (not both simultaneously — confirm one is stable
-   before touching the other):
+   `https://<monolith-domain>/api/webhooks/dlocal` — a dashboard-side config change,
+   no money-service redeploy needed, no code flag to flip.
+3. Flip dLocal only:
    a. dLocal dashboard: update the webhook URL to
    `https://money-service-production.up.railway.app/v1/webhooks/dlocal` (or the
    custom domain, if bound by then — Waiting-on #27 still open as of 4A-4's close).
    b. Monitor for at least one real payment webhook to land correctly (Railway logs,
-   no errors; `Payment`/`Subscription` rows updated as expected) before touching
-   RiseWorks.
-   c. RiseWorks dashboard: update the webhook URL to
-   `https://money-service-production.up.railway.app/v1/webhooks/riseworks`.
-   d. Monitor for at least one real disbursement event to land correctly.
-4. Record: `migration-cutover-table.md` (Slice 2 row → CUT-OVER), CLAUDE.md,
-   DECISION-LOG.md if any flag closes. Freeze (CC-F on
-   `app/api/webhooks/{dlocal,riseworks}/route.ts` + their `lib/dlocal/*`/
-   `lib/disbursement/*`/`lib/affiliate/conversion-processor.ts` logic) stays until the
-   RETIRE session (later, separate — deleting the monolith's own copies is explicitly
-   NOT this session's job, per this order's own "Retire" section below).
+   no errors; `Payment`/`Subscription` rows updated as expected).
+   c. ~~RiseWorks dashboard: update the webhook URL~~ — **out of scope this session,
+   moved to 4A-5-RW.** RiseWorks's dashboard stays pointed at the monolith; its
+   money-service route stays deployed-but-silent exactly as 4A-4 left it.
+   d. ~~Monitor for at least one real disbursement event~~ — **moved to 4A-5-RW.**
+4. Record: `migration-cutover-table.md` (Slice 2 row → status reflects **dLocal
+   CUT-OVER / RiseWorks still MONOLITH**, not a blanket CUT-OVER — the row covers both
+   providers, so its Notes column needs to spell out the split), CLAUDE.md (new
+   Waiting-on item for 4A-5-RW, plus the standing-instruction narrowing from the Entry
+   criteria above), DECISION-LOG.md if any flag closes. Freeze (CC-F on
+   `app/api/webhooks/dlocal/route.ts` + `lib/dlocal/*` logic) stays until the RETIRE
+   session — RiseWorks's own freeze/retire is untouched and separately tracked.
 
-- **Rollback:** revert the provider dashboard's webhook URL back to the monolith route
+- **Rollback:** revert dLocal's dashboard webhook URL back to the monolith route
   (dashboard-side config change only — instant, no redeploy, no data migration). Not
   pre-verified in a staging environment (none exists, CC-A/F34, same standing gap 4A-3
   noted) — the rollback mechanism itself is reasoned-about, not rehearsed.
@@ -134,6 +181,49 @@ updated to match — 34/34 tests pass, `tsc --noEmit` clean. Commit `8e681297`.
 test event still needs to be sent and verified against the FIXED code before CUTOVER.
 CONFIRM must re-verify that criterion live, against this new commit, not assume it from
 this deviation note.
+
+**2026-07-24 — second out-of-band bugfix, explicit scoped exception (Davin, live in
+chat). Duplicate-Notification on webhook replay.**
+Code-level review of `DlocalWebhookController.handlePaymentCompleted` (requested
+directly in chat, ahead of Entry criterion #2's live real-payload test, as a safer
+alternative to creating a real dLocal-sandbox payment against the shared production
+database) found a second, independent bug: none of the top-level webhook-completion
+side effects were guarded against replay. `Payment`/`Subscription`/`User.tier` writes
+are all safe (idempotent upserts — `Subscription` keyed on unique `userId`; `Commission`
+creation already self-guards via `ConversionProcessorService`'s
+`affiliateCode.status === 'USED'` check), but `prisma.notification.create()` had no
+existence check at all — every replay of an already-COMPLETED payment's webhook created
+a second "Welcome to PRO!" `Notification` row for the user. Confirmed with a new mocked
+(no live DB) replay test before fixing: two deliveries of the same payload produced
+`notification.create` called twice against one `subscription.create` + one
+`subscription.update`.
+
+Same authorization pattern as the signature-verification fix above — explicit, scoped
+exception authorized directly in chat rather than its own BUILD session, given it's a
+pure bugfix discovered during this order's own verification work and money-adjacent
+(EXECUTOR-PROTOCOL.md §7 escalation).
+
+**What changed:** `money-service/src/dlocal/dlocal-webhook.controller.ts` —
+`handlePaymentCompleted` now captures `alreadyCompleted = payment.status === 'COMPLETED'`
+before its transaction runs, and gates the one-time completion side effects (3-day-plan
+mark, affiliate-conversion call, notification creation) behind `!alreadyCompleted`. The
+`Payment`/`Subscription`/`User.tier` transaction itself is unchanged — it was already
+correctly idempotent. `PaymentRecord`'s local interface gained a `status: string` field
+(the Prisma row already carried it; the interface just hadn't declared it). Two new
+tests added to `dlocal-webhook.controller.spec.ts` covering the replay scenario and the
+already-COMPLETED skip path. Full money-service suite: 260/260 pass, `tsc --noEmit`
+clean.
+
+**Known, deliberately untouched:** `app/api/webhooks/dlocal/route.ts` (the monolith) has
+byte-identical logic and the same latent gap. Per this order's own CC-F freeze on that
+file (see Next-session handoff below), it was NOT touched — it's slated for deletion at
+the RETIRE session rather than a parallel fix, and dLocal's dashboard is not yet pointed
+at it exclusively pending this order's cutover.
+
+**Impact on this order:** does not touch Entry criterion #2's own requirement (a real
+signed payload replay against money-service) — that live verification is still Davin's
+to run. This fix only makes that eventual replay test (and any real-world webhook retry
+after cutover) safe from creating a duplicate Notification row.
 
 ## Next-session handoff
 
