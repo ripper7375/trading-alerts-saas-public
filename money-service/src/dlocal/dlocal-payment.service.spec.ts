@@ -100,15 +100,32 @@ describe('dLocal Payment Service', () => {
 
   describe('verifyWebhookSignature', () => {
     const testSecret = 'test-webhook-secret';
+    const testXDate = '2026-07-24T09:23:38.899Z';
+    const testXLogin = 'test-merchant-login';
+
+    function sign(
+      payload: string,
+      xLogin = testXLogin,
+      xDate = testXDate,
+      secret = testSecret
+    ): string {
+      return crypto
+        .createHmac('sha256', secret)
+        .update(`${xLogin}${xDate}${payload}`)
+        .digest('hex');
+    }
 
     it('should verify valid webhook signature', () => {
       const payload = JSON.stringify({ id: 'payment-123', status: 'PAID' });
-      const signature = crypto
-        .createHmac('sha256', testSecret)
-        .update(payload)
-        .digest('hex');
+      const signature = sign(payload);
 
-      const isValid = verifyWebhookSignature(payload, signature, testSecret);
+      const isValid = verifyWebhookSignature(
+        payload,
+        signature,
+        testXDate,
+        testXLogin,
+        testSecret
+      );
       expect(isValid).toBe(true);
     });
 
@@ -119,6 +136,8 @@ describe('dLocal Payment Service', () => {
       const isValid = verifyWebhookSignature(
         payload,
         invalidSignature,
+        testXDate,
+        testXLogin,
         testSecret
       );
       expect(isValid).toBe(false);
@@ -129,10 +148,7 @@ describe('dLocal Payment Service', () => {
         id: 'payment-123',
         status: 'PAID',
       });
-      const signature = crypto
-        .createHmac('sha256', testSecret)
-        .update(originalPayload)
-        .digest('hex');
+      const signature = sign(originalPayload);
 
       const tamperedPayload = JSON.stringify({
         id: 'payment-123',
@@ -141,23 +157,60 @@ describe('dLocal Payment Service', () => {
       const isValid = verifyWebhookSignature(
         tamperedPayload,
         signature,
+        testXDate,
+        testXLogin,
+        testSecret
+      );
+      expect(isValid).toBe(false);
+    });
+
+    it('should reject when X-Date or X-Login does not match what was signed', () => {
+      const payload = JSON.stringify({ id: 'payment-123', status: 'PAID' });
+      const signature = sign(payload);
+
+      const isValid = verifyWebhookSignature(
+        payload,
+        signature,
+        'wrong-date',
+        testXLogin,
         testSecret
       );
       expect(isValid).toBe(false);
     });
 
     it('should handle empty payload', () => {
-      const signature = crypto
-        .createHmac('sha256', testSecret)
-        .update('')
-        .digest('hex');
-      const isValid = verifyWebhookSignature('', signature, testSecret);
+      const signature = sign('');
+      const isValid = verifyWebhookSignature(
+        '',
+        signature,
+        testXDate,
+        testXLogin,
+        testSecret
+      );
       expect(isValid).toBe(true);
     });
 
     it('should return false for missing secret', () => {
       const payload = JSON.stringify({ id: 'payment-123' });
-      const isValid = verifyWebhookSignature(payload, 'any-signature', '');
+      const isValid = verifyWebhookSignature(
+        payload,
+        'any-signature',
+        testXDate,
+        testXLogin,
+        ''
+      );
+      expect(isValid).toBe(false);
+    });
+
+    it('should return false for missing signature', () => {
+      const payload = JSON.stringify({ id: 'payment-123' });
+      const isValid = verifyWebhookSignature(
+        payload,
+        '',
+        testXDate,
+        testXLogin,
+        testSecret
+      );
       expect(isValid).toBe(false);
     });
   });

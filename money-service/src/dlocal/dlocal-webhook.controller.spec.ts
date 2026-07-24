@@ -12,7 +12,8 @@
  * affiliate conversion, notifications) had zero coverage anywhere — same
  * gap class as Session 4A-2's own backfills.
  *
- * `verifyWebhookSignature` reads a module-level
+ * `verifyWebhookSignature` reads module-level
+ * `const DLOCAL_SECRET_KEY = process.env[...] || ''` /
  * `const DLOCAL_WEBHOOK_SECRET = process.env[...] || ''` in the real module
  * (same pattern as the source it was ported from), captured once at first
  * import — a per-test `process.env` assignment in `beforeEach` runs too
@@ -106,7 +107,9 @@ describe('DlocalWebhookController', () => {
     mockedVerifyWebhookSignature.mockReturnValue(false);
     const payload = JSON.stringify({ id: 'p-1', status: 'PAID' });
     const request = createMockRequest(payload, {
-      'x-signature': 'not-the-right-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: not-the-right-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -122,7 +125,9 @@ describe('DlocalWebhookController', () => {
   it('should reject invalid JSON with 400', async () => {
     const payload = 'not valid json';
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -143,7 +148,9 @@ describe('DlocalWebhookController', () => {
     prismaMock.payment.findFirst.mockResolvedValue(null);
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -182,7 +189,9 @@ describe('DlocalWebhookController', () => {
     prismaMock.subscription.create.mockResolvedValue({} as never);
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -238,7 +247,9 @@ describe('DlocalWebhookController', () => {
     prismaMock.subscription.create.mockResolvedValue({} as never);
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -281,7 +292,9 @@ describe('DlocalWebhookController', () => {
     });
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -328,7 +341,9 @@ describe('DlocalWebhookController', () => {
     );
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -353,7 +368,9 @@ describe('DlocalWebhookController', () => {
     prismaMock.payment.update.mockResolvedValue({} as never);
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -388,7 +405,9 @@ describe('DlocalWebhookController', () => {
     prismaMock.payment.update.mockResolvedValue({} as never);
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 
@@ -410,7 +429,9 @@ describe('DlocalWebhookController', () => {
     prismaMock.payment.findFirst.mockRejectedValue(new Error('db down'));
 
     const request = createMockRequest(payload, {
-      'x-signature': 'valid-signature',
+      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+      'x-date': '2026-07-24T09:23:38.899Z',
+      'x-login': 'test-merchant-login',
     });
     const response = createMockResponse();
 

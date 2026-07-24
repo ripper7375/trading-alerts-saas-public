@@ -13,8 +13,10 @@
  * - Marks 3-day plan as used (anti-abuse)
  * - Creates notifications
  *
- * Headers:
- * - x-signature: HMAC signature for verification
+ * Headers (per docs.dlocal.com/docs/receive-notifications):
+ * - authorization: "V2-HMAC-SHA256, Signature: <hex>" — the HMAC signature
+ * - x-date / x-login: inputs to the signature comparison string, alongside
+ *   the raw body (see verifyWebhookSignature in dlocal-payment.service.ts)
  */
 
 import { Controller, Post, Req, Res } from '@nestjs/common';
@@ -62,12 +64,24 @@ export class DlocalWebhookController {
     try {
       // Get raw payload for signature verification
       const payload = request.rawBody?.toString('utf-8') ?? '';
-      const signature = (request.headers['x-signature'] as string) || '';
+
+      // dLocal sends the webhook signature in the Authorization header, not a
+      // custom x-signature header, formatted as: "V2-HMAC-SHA256, Signature: <hex>"
+      // (see docs.dlocal.com/docs/receive-notifications). X-Date and X-Login are
+      // also required inputs to the signature comparison string.
+      const authHeader = (request.headers['authorization'] as string) || '';
+      const signatureMatch = authHeader.match(/Signature:\s*([a-f0-9]+)/i);
+      const signature = signatureMatch ? signatureMatch[1] : '';
+      const xDate = (request.headers['x-date'] as string) || '';
+      const xLogin = (request.headers['x-login'] as string) || '';
 
       // Verify webhook signature
-      if (!verifyWebhookSignature(payload, signature)) {
+      if (!verifyWebhookSignature(payload, signature ?? '', xDate, xLogin)) {
         logger.warn('Invalid webhook signature', {
-          signaturePrefix: signature.substring(0, 10),
+          signaturePrefix: (signature ?? '').substring(0, 10),
+          hasAuthHeader: Boolean(authHeader),
+          hasXDate: Boolean(xDate),
+          hasXLogin: Boolean(xLogin),
         });
         response.status(400).json({ error: 'Invalid signature' });
         return;

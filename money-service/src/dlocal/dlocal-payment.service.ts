@@ -131,26 +131,50 @@ export async function createPayment(
 }
 
 /**
- * Verifies webhook signature from dLocal
+ * Verifies webhook signature from dLocal.
+ *
+ * dLocal signs notification requests the same way it signs outbound API
+ * requests: HMAC-SHA256 over the concatenation of X-Login + X-Date + raw
+ * body, using the merchant secret key. The signature arrives in the
+ * Authorization header as "V2-HMAC-SHA256, Signature: <hex>" — the caller
+ * is expected to have already parsed out just the hex digest.
+ *
+ * Secret precedence: DLOCAL_SECRET_KEY (the same key used for outbound
+ * signing, per dLocal's docs — there is no separate webhook secret),
+ * falling back to DLOCAL_WEBHOOK_SECRET if a caller-supplied `secret` and
+ * DLOCAL_SECRET_KEY are both unset. Confirmed with Davin 2026-07-24.
  */
 export function verifyWebhookSignature(
   payload: string,
   signature: string,
+  xDate?: string,
+  xLogin?: string,
   secret?: string
 ): boolean {
-  const webhookSecret = secret || DLOCAL_WEBHOOK_SECRET;
+  const webhookSecret = secret || DLOCAL_SECRET_KEY || DLOCAL_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     logger.warn('No webhook secret configured');
     return false;
   }
 
+  if (!signature) {
+    logger.warn('No signature provided on webhook request');
+    return false;
+  }
+
+  const signedString = `${xLogin ?? ''}${xDate ?? ''}${payload}`;
+
   const expectedSignature = crypto
     .createHmac('sha256', webhookSecret)
-    .update(payload)
+    .update(signedString)
     .digest('hex');
 
-  const isValid = signature === expectedSignature;
+  const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+  const receivedBuffer = Buffer.from(signature, 'hex');
+  const isValid =
+    expectedBuffer.length === receivedBuffer.length &&
+    crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
 
   if (!isValid) {
     logger.warn('Webhook signature mismatch', {
