@@ -6,25 +6,9 @@
 > lines for a cutover). If executing it uncovers real work, STOP — that work gets its own
 > session with the right variant.
 
-> **Status: PRE-DRAFT** — written by the Executor at Session 4A-6's close, per
-> `EXECUTOR-PROTOCOL.md` §3.5. Needs the Advisor to produce the DRAFT, then Davin's
-> APPROVAL.
->
-> **UPDATE (Davin, 2026-07-22, same day):** the browser-auth design question below is now
-> ANSWERED — blueprint §4.2: "No cookie sharing across domains — the frontend sends
-> `Authorization: Bearer`." The Next.js frontend manually extracts its JWT and attaches it
-> as a Bearer header when calling money-service. `JwtAuthGuard`/`AdminGuard`/
-> `AffiliateGuard` (Session 4A-6) need no changes — confirmed correct as-is. See the
-> corrected Entry criteria below.
->
-> **STANDING BLOCK (Davin, 2026-07-22): chain-length-one invoked — this order does NOT
-> advance regardless of the above.** Davin is manually running Session 4A-5's (webhooks)
-> shadow-run verification himself; webhooks cut over FIRST. No further Slice 3 work
-> (including handing this PRE-DRAFT to the Advisor) until Davin says so. This order stays
-> parked at PRE-DRAFT.
+> **Status: DRAFT** — updated by Advisor after Session 4A-5 (webhooks cutover) completed. Unblocked for shadow-run verification and cutover.
 
-**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT (parked — see
-STANDING BLOCK above)
+**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT
 **Generated:** 2026-07-22 · **Estimated time:** <1h once unblocked (auth design resolved,
 frontend-side change only, no new backend code)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 3 (of 5), CUTOVER
@@ -60,9 +44,7 @@ operation-service's pattern) are moot — none needed.
 - [x] **The browser-auth design question is answered** — blueprint §4.2, Bearer-header
       pattern, confirmed by Davin 2026-07-22 (see UPDATE note above). No guard changes
       needed.
-- [ ] **Chain-length-one: Session 4A-5 (webhooks CUTOVER) has completed first.** Standing
-      block from Davin, 2026-07-22 — this order does not proceed to DRAFT, let alone
-      execution, until 4A-5 is done. Not this order's call to lift.
+- [x] **Chain-length-one: Session 4A-5 (webhooks CUTOVER) has completed first.** (dLocal cutover completed 2026-07-24).
 - [ ] **A real signed-in browser session has successfully called at least one of the 12
       new endpoints end-to-end using the Bearer-header pattern above** (not just the
       401-unauthenticated check Session 4A-6 already did) — proves the frontend's
@@ -71,7 +53,7 @@ operation-service's pattern) are moot — none needed.
       money-service's `schema.prisma` subset assumes.** Corrected understanding
       (Davin, 2026-07-22): money-service shares the monolith's ONE database (blueprint
       §5.1, `money_svc` role) — this is a READ-ONLY verification (`prisma migrate
-  status` against the shared DB, or asking the monolith side directly), never a
+status` against the shared DB, or asking the monolith side directly), never a
       `db push`/`migrate deploy` run FROM money-service (`LESSONS-LEARNED.md` L1 now
       forbids that outright).
 - [ ] Davin present/available — cutovers require his live approval.

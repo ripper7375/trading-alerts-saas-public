@@ -11,68 +11,100 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-> **STANDING INSTRUCTION (Davin, 2026-07-22, still in force until Davin lifts it):
-> chain-length-one invoked — NO further BUILD sessions.** Davin is manually running
-> Session 4A-5's (webhooks) shadow-run verification himself; webhooks cut over FIRST,
-> before 4A-7 or any Slice 4 work. The next session that opens should check with Davin
-> before starting anything beyond what he explicitly asks for — see Waiting-on #33.
+> **STANDING INSTRUCTION (Davin, 2026-07-22, NARROWED 2026-07-24 — still in force
+> until Davin lifts it further):** chain-length-one originally read as "webhooks cut
+> over FIRST (both providers), before 4A-7 or any Slice 4 work." **Davin confirmed
+> live, 2026-07-24, that this narrows to dLocal-cutover-first**: with dLocal now
+> CUT-OVER (Session 4A-5, see Current below), 4A-7/Slice 4 work is unblocked — it does
+> NOT need to wait for RiseWorks. RiseWorks's own cutover (`4A-5-RW`) trails
+> independently, gated on RiseWorks replying with webhook/API settings (see Waiting on).
 > **Session 4A-3 (below) was an explicit, scoped exception Davin asked for directly in
-> chat — Slice 1 (crons) cutover, independent of the 4A-5/4A-7 chain-length-one question
-> — not a lifting of the standing instruction. Slice 3/4 and further BUILD work remain
-> blocked exactly as before.**
+> chat — Slice 1 (crons) cutover, independent of this question — not itself a lifting
+> of the standing instruction.** With dLocal cut over too, Slice 3/4 BUILD work (4A-7
+> onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
+> criteria.
 
-- **Current:** Session 5-4 CLOSED, executed as Fonts, Streaming & Phase 5 Exit Review (`next@16.2.10`) — 2026-07-23.
-  **Phase 5 (Next.js 16 Optimization) Fully CLOSED & Verified (F10 RESOLVED)** — Configured Google `Inter` font loader in `app/layout.tsx` with explicit system font fallbacks (`fallback: ['system-ui', 'arial', 'sans-serif']`) and `adjustFontFallback: true`, verified React 19 `<Suspense>` streaming boundaries across dynamic routes, validated `vercel.json` and `next.config.js` deployment rules, and ran full exit verification suite.
-  Verified: `npm run type-check` (0 errors), `npm run validate:lint` (0 errors), `npm run build` (127/127 routes compiled successfully, production bundle output 29.82 MB vs <340MB ceiling), `npm run test:ci` (117/117 suites, 2082/2082 tests passed).
-  **Live Vercel Production Deployment:** Verified live deployment on Vercel (`Status: Ready Latest`, domain: `trading-alerts-saas-frontend.vercel.app`, commit `be62d87f`). Root directory set to `./`, `@prisma/client-runtime-utils` and `.npmrc` pnpm hoist pattern configured.
+- **Current:** Session 4A-5 CLOSED, executed as money-service webhooks Slice 2 CUTOVER
+  (dLocal-only, scope-amended 2026-07-24) — 2026-07-24.
+  **CONFIRM (two live passes this session):** first pass found the order's own header
+  read `DRAFT (scope-amended, awaiting Davin's approval)` — not APPROVED, contrary to
+  the initial framing — and found no evidence yet of Entry Criterion #2 (a real signed
+  dLocal webhook verified against the new endpoint); stopped and asked Davin live
+  rather than assume, per the order's own explicit gate. Second pass, after Davin's own
+  shadow-run/debugging work landed: found two real bugs already fixed and recorded as
+  Deviations, both explicit Davin-authorized scoped exceptions (EXECUTOR-PROTOCOL.md §7
+  money/auth escalation) — `8e681297` (signature verification read a `x-signature`
+  header dLocal never sends; real signature is `Authorization: V2-HMAC-SHA256,
+Signature: <hex>` over `X-Login+X-Date+body`, not the raw body alone) and `1cc31b24`
+  (webhook replay of an already-COMPLETED payment created a duplicate "Welcome to
+  PRO!" `Notification` row — `Payment`/`Subscription`/`Commission` writes were already
+  idempotent, only `notification.create()` lacked a guard). The order's own Deviations
+  notes explicitly flagged that neither fix alone satisfied Entry Criterion #2 — asked
+  Davin live whether the actual post-fix real-signed-payload replay had been verified;
+  confirmed yes (correct `Payment`/`Subscription` DB writes, second replay idempotent).
+  Also confirmed live: chain-length-one narrows to dLocal-cutover-first (see standing
+  instruction above).
+  **Flip executed** (order's Checklist step 3, dashboard-side, by Davin): dLocal
+  Merchant Dashboard webhook URL updated to
+  `https://money-service-production.up.railway.app/v1/webhooks/dlocal`. Railway logs
+  checked immediately after: clean boot, no errors, but no real payment webhook had
+  landed in that log window yet.
+  **Monitoring caveat (order's Checklist step 4, not fully closed this session):** the
+  first live post-flip delivery hasn't been directly observed — spot-check `railway
+logs` for money-service on the next real dLocal payment (expect no errors, correct
+  `Payment`/`Subscription` row updates) before treating dLocal as fully stable.
+  Recorded in `migration-cutover-table.md`'s Slice 2 row.
+  **Process note:** a `railway variables --kv` check (to confirm `DLOCAL_WEBHOOK_SECRET`
+  was set) printed the actual secret value into the session transcript — should have
+  been a value-blind existence check instead. Value not reproduced in any artifact;
+  Davin may want to weigh rotation given it now sits in a transcript. New
+  `LESSONS-LEARNED.md` entry recorded.
+  **Artifacts updated:** `migration-cutover-table.md` (Slice 2 row →
+  `CUT-OVER (dLocal only)`, RiseWorks portion noted separately), `CLAUDE.md` (this
+  block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
+  to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/5-4-fonts-streaming-phase-exit.migration-order.md` (Approved by Davin, Confirmed by Executor, executed end-to-end).
-- **Order status:** CLOSED, all-green. **What shipped:**
-  - Upgraded `next`, `eslint-config-next`, `@next/swc-win32-x64-msvc` to `16.2.10`.
-  - Confirmed `<Suspense>` boundaries wrap all `useSearchParams()` client components (`app/(auth)/*`, `pricing`, `admin/disbursement/*`).
-  - Adjusted `next.config.js` (`transpilePackages: ['ioredis']`, removed legacy `lucide-react` `modularizeImports`).
-  - Aligned Prisma aggregate sum casts for strict TypeScript 5.4 build check.
-  - **CONFIRM found the same L11 self-contradiction pattern as Session 4A-6** — see
-    "Current order" above for the full description. Cross-checked all 4 entry criteria
-    live with Davin rather than trusting the header: (1) `CRON_SECRET` set — already
-    true since 4A-2. (2) Manual-trigger idempotency verification, all 8 jobs — the
-    paired evidence file showed 0/8 boxes checked; Davin confirmed live that the
-    verification genuinely happened and all 8 came back clean (0 items reprocessed, no
-    duplicate `PaymentBatch`/`DisbursementTransaction`/`Notification`/`AffiliateCode`
-    rows, including the ⚠️-flagged `process-pending-disbursements` job) — corroborated
-    by a `railway logs` timestamp (~2026-07-22T09:34-35 UTC) showing all 8 jobs
-    completing cleanly via the manual-trigger path. (3) Davin present/available —
-    confirmed live in this session. (4) Deploy still at 4A-2 or newer with no unreviewed
-    cron-logic changes — verified via `git log -- money-service/src/crons/`: last
-    commit touching that path is `a8ae3586`, part of 4A-2's own close.
-  - **Flip executed in order** (order's Checklist step 3): (a) `railway variables
---service money-service --environment production --set "CRON_ENABLED=true"` —
-    confirmed via `railway variables` read-back, then `railway logs` showed all 8 jobs
-    already having fired cleanly (0 errors, 0 batches from the brief overlap window).
-    (b) `vercel.json`'s `crons` array emptied, committed (`a63d9b11`), pushed to `main`
-    — pre-push hook ran full type-check + test suite (117 suites, 2082 tests, all
-    green) before the push landed. GitHub commit status confirmed `Vercel: success`
-    ("Deployment has completed"); two unrelated Railway contexts (`prisma-migration`,
-    `postgre for staging`) showed `failure` but were already failing identically on the
-    prior commit (pre-existing, out of scope — unrelated staging projects, F34).
-  - **Monitoring caveat (order's Checklist step 4, not fully closed this session):**
-    today's clean-idempotency evidence comes from the manual-trigger endpoints (which
-    bypass the `CRON_ENABLED` gate by design), not yet from the scheduler's own natural
-    tick under the new live regime. The daily jobs' first natural fire is the next UTC
-    00:00–04:00 windows (2026-07-23) — someone should spot-check `railway logs` for
-    money-service then (no errors, no duplicate rows) before treating this as fully
-    stable. Recorded in `migration-cutover-table.md`'s Slice 1 row and this order's own
-    Deviations rather than silently assumed done.
-  - **Artifacts updated:** `migration-cutover-table.md` (Slice 1 → CUT-OVER, with the
-    monitoring caveat in Notes), `DECISION-LOG.md` (F35 update note — cutover executed),
-    `LESSONS-LEARNED.md` L11 (recurrence note — 2nd occurrence of the same
-    self-contradicted-order pattern, worth the Advisor's attention on how these status
-    edits are happening outside the Advisor→Davin pipeline).
+  `docs/migration-orders/4a-5-money-service-webhooks-cutover.migration-order.md`
+  (CONFIRMED by Executor 2026-07-24, executed for dLocal). RiseWorks split out to
+  `docs/migration-orders/4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md`
+  (still PRE-DRAFT, gated on RiseWorks's reply).
+- **Order status:** dLocal CUT-OVER, all-green (monitoring caveat above). RiseWorks
+  portion not started. **What shipped (dLocal only):**
+  - Two live-escalated bugfixes (full detail in Current above): dLocal webhook
+    signature verification (`8e681297`) and a replay-guard on webhook completion side
+    effects (`1cc31b24`). Both documented as Deviations in the order itself, both
+    tested (34/34 then full-suite 260/260 pass, `tsc --noEmit` clean).
+  - dLocal's provider-dashboard webhook URL repointed to money-service's
+    `/v1/webhooks/dlocal` endpoint — the cutover moment itself, per this order's own
+    framing (no code flag, no redeploy).
+  - RiseWorks's route stays deployed-but-silent exactly as 4A-4 left it — untouched,
+    unweakened, zero live traffic, dashboard still pointed at the monolith.
+- **Last session did:** Session 5-4 ("Fonts, Streaming & Phase 5 Exit Review",
+  `next@16.2.10`) — closed 2026-07-23. Phase 5 (Next.js 16 Optimization) fully closed &
+  verified (F10 RESOLVED): Google `Inter` font loader with system-font fallbacks,
+  React 19 `<Suspense>` streaming boundaries verified across dynamic routes,
+  `vercel.json`/`next.config.js` deployment rules validated. Full exit suite green:
+  `type-check` 0 errors, `validate:lint` 0 errors, `build` 127/127 routes (29.82 MB
+  bundle vs <340MB ceiling), `test:ci` 117/117 suites, 2082/2082 tests. Live Vercel
+  production deployment verified (commit `be62d87f`).
 - **Waiting on:** all Session 4A-4 items unchanged except where noted below (renumbered
   continuation). (1)-(6), (11)-(12), (17)-(20), (23), (27)-(29) unchanged — see prior
-  closes for full text. (26) Stripe/dLocal/RiseWorks/Resend secrets still not set —
-  unchanged, Session 4A-5's own first entry criterion. (31) Session 4A-5's real
-  signed-payload replay requirement — unchanged, still needed. **(30, unresolved, now 3
+  closes for full text. **(26, PARTIALLY RESOLVED Session 4A-5)** `DLOCAL_WEBHOOK_SECRET`
+  now confirmed set on Railway production (this session) — `RISE_WEBHOOK_SECRET` still
+  not set, moves to `4A-5-RW`'s own entry criteria; Stripe/Resend secrets status
+  unchanged/unverified this session. **(31, RESOLVED Session 4A-5)** Session 4A-5's real
+  signed-payload replay requirement — done: real dLocal webhook traffic verified against
+  the fixed signature-verification code, correct `Payment`/`Subscription` writes,
+  second replay confirmed idempotent (Davin, live). **(37, NEW)** `4A-5-RW` (RiseWorks
+  webhook cutover) is PRE-DRAFT and blocked on RiseWorks actually replying with
+  webhook/API settings — including resolving the open `event`/`event_type` field-name
+  question in that order's own Entry criteria. Do not approve/execute it without that
+  information present, per its own Gate note. **(38, NEW)** dLocal's cutover (this
+  session) flipped the dashboard URL, but the first live post-flip webhook delivery
+  hasn't been directly observed in Railway logs yet (log buffer only covered the
+  immediate post-flip window, no request traffic in it) — spot-check `railway logs` for
+  money-service on the next real dLocal payment before treating dLocal as fully stable;
+  same "monitoring caveat" pattern as Slice 1's #36. **(30, unresolved, now 3
   sessions running)** `LESSONS-LEARNED.md` still at 40 active lessons (L1-L40) — AT the
   stated cap; this session found 2 more genuinely new lessons (recorded in the 4A-6
   order's own Deviations + LESSONS-LEARNED.md's header note instead of as new numbered
@@ -122,22 +154,13 @@
   windows (2026-07-23) — spot-check `railway logs` for money-service then (no errors, no
   duplicate `PaymentBatch`/`DisbursementTransaction` rows) before treating Slice 1 as
   fully stable. Not a blocker for other work, just an open follow-up.
-- **Last session did:** Session 4A-3 ("money-service: crons — Slice 1 CUTOVER") —
-  closed 2026-07-22, all-green, executed as a VERIFY-RETIRE/CUTOVER session after a
-  CONFIRM that found the same self-contradicted-order-status pattern as 4A-6
-  (`LESSONS-LEARNED.md` L11 recurrence) and 3 of 4 entry criteria unchecked. Rather than
-  trusting the header, asked Davin directly, live in-session, for each entry criterion
-  and for the order's own required "what's the rollback?" approval ritual — all
-  confirmed genuinely satisfied, just not reflected in the paperwork. Flipped
-  `CRON_ENABLED=true` on Railway production, emptied `vercel.json`'s crons array
-  (commit `a63d9b11`, pre-push hook ran full type-check + 2082 tests green), confirmed
-  the Vercel deploy succeeded via GitHub commit status. money-service's own scheduler is
-  now the sole live execution path for all 8 cron jobs. Left one honest gap open rather
-  than claiming false completion: the scheduler's own natural (non-manual-trigger) tick
-  hasn't been observed yet (Waiting-on #36) — daily jobs' next natural fire is
-  2026-07-23. Updated `migration-cutover-table.md` (Slice 1 → CUT-OVER),
-  `DECISION-LOG.md` (F35 update note), `LESSONS-LEARNED.md` (L11 recurrence note).
-- **Next session:** Session 6-1 (`docs/migration-orders/6-1-gap-matrix-f11.migration-order.md` — Phase 6 Gap Matrix & Endpoint Mapping F11).
+- **Next session:** Davin's call. Chain-length-one now unblocks
+  `docs/migration-orders/4a-7-money-service-read-apis-cutover.migration-order.md`
+  (Read APIs cutover — its own browser-auth question already resolved, Waiting-on #34)
+  — no longer needs to wait on RiseWorks. `4A-5-RW` (RiseWorks) stays PRE-DRAFT,
+  gated on RiseWorks's reply (new Waiting-on item below). `Session 6-1` (Phase 6 Gap
+  Matrix, `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was
+  PRE-DRAFTed at 5-4's close, a separate track — Davin to decide ordering against 4A-7.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

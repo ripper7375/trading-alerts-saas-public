@@ -12,7 +12,7 @@
 > already looks CONFIRMABLE as-is — this one has two real open blockers, see Entry
 > criteria).
 
-**Session:** 4A-5 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT (scope-amended, awaiting Davin's approval of the amendment below)
+**Session:** 4A-5 · **Variant:** VERIFY-RETIRE · **Status:** CONFIRMED (2026-07-24, live in chat — scope amendment approved, all 5 entry criteria re-verified against codebase + runtime state; see checkboxes and Deviations below)
 **Generated:** 2026-07-22 · **Amended:** 2026-07-24 (Advisor, at Davin's request — RiseWorks is
 unresponsive on webhook/API settings and blocking downstream Session-4 work; dLocal
 credentials are already in hand)
@@ -71,36 +71,33 @@ change itself, and rollback is just reverting that URL.
 
 ## Entry criteria (dLocal-only, per Scope Amendment above)
 
-- [ ] **`DLOCAL_WEBHOOK_SECRET` is set on money-service's Railway production
-      environment.** Confirmed NOT set as of 4A-4's close (`railway variables --kv`,
-      Waiting-on #26) — every real signed request would currently fail verification.
-      **Davin sets this directly on Railway himself — this environment's standing
-      policy is that secrets are never generated or typed by the Executor, and the
-      raw dLocal credential values must not be pasted into a Claude Code prompt or
-      committed anywhere either.** (`RISE_WEBHOOK_SECRET` moves to 4A-5-RW — not
-      required for this session.)
-- [ ] **At least one real signed test event for dLocal has been sent to the NEW
-      money-service endpoint and produced the expected result**, per the playbook's own
-      framing for this slice ("BUILD (replay tests with recorded signed payloads) then
-      CUTOVER"). 4A-4's own deploy verification only proved the route is registered
-      and rejects _unsigned_/_invalid-signature_ requests (400/401) — it did not exercise
-      a real signed payload end-to-end (no secret was set yet to do so). Use dLocal's
-      own dashboard "send test webhook" feature if available, or a Davin-provided
-      recorded real payload + its real signature, POSTed by hand to
-      `https://money-service-production.up.railway.app/v1/webhooks/dlocal`.
-      Confirm: correct DB writes (`Payment`/`Subscription` rows), and a second
-      identical replay is idempotent (no duplicate processing). (RiseWorks's
-      equivalent moves to 4A-5-RW — not required for this session.)
-- [ ] Davin present/available — cutovers require his live approval (per this variant's
-      own standing rule).
-- [ ] Money-service's production deploy is still the 4A-4 commit (or newer, but nothing
-      that changed webhook logic without its own port order) — `railway logs`/`git log`
-      cross-check before flipping.
-- [ ] **Davin has confirmed, live in this session, that the 2026-07-22 CLAUDE.md
+- [x] **`DLOCAL_WEBHOOK_SECRET` is set on money-service's Railway production
+      environment.** Confirmed set via `railway variables --kv` this session (2026-07-24;
+      value not reproduced in any artifact per standing secret-handling policy).
+      (`RISE_WEBHOOK_SECRET` moves to 4A-5-RW — not required for this session.)
+- [x] **At least one real signed test event for dLocal has been sent to the NEW
+      money-service endpoint and produced the expected result.** Real dLocal webhook
+      traffic (`2026-07-24T09:23:38.899Z`, retried `10:23:38.891Z`) initially failed
+      against buggy signature-verification code (see Deviations — fixed in `8e681297`)
+      and a latent replay/duplicate-notification bug (fixed in `1cc31b24`). Davin
+      confirmed live in this session (2026-07-24) that a post-fix real signed webhook
+      was verified against the corrected code: correct `Payment`/`Subscription` DB
+      writes, and a second replay confirmed idempotent. (RiseWorks's equivalent moves
+      to 4A-5-RW — not required for this session.)
+- [x] Davin present/available — confirmed, live in this chat.
+- [x] Money-service's production deploy is still the 4A-4 commit (or newer, but nothing
+      that changed webhook logic without its own port order). Two webhook-logic changes
+      did land since 4A-4's close (`8e681297`, `1cc31b24`) — both via the documented,
+      live-escalated Deviation path below, not unreviewed drift; no other money-service
+      commits since 4A-4 touch webhook/dlocal/riseworks code (verified via
+      `git log 6861e86f..HEAD`).
+- [x] **Davin has confirmed, live in this session, that the 2026-07-22 CLAUDE.md
       standing instruction ("webhooks cut over FIRST, before 4A-7") is narrowed to mean
-      dLocal-cutover-first — not full Slice 2** — see this order's Scope Amendment and
-      the governance note in the chat response. Without this, CONFIRM should stop and
-      ask rather than assume.
+      dLocal-cutover-first — not full Slice 2.** Confirmed live 2026-07-24: dLocal
+      cutover alone satisfies the standing instruction; 4A-7/Slice 4 may proceed once
+      dLocal (not RiseWorks) is cut over. RiseWorks trails independently via 4A-5-RW.
+      CLAUDE.md's standing instruction should be updated to reflect this narrowing at
+      session close.
 
 ## Checklist (dLocal-only, per Scope Amendment above)
 

@@ -1,0 +1,105 @@
+# dLocal Sandbox Payment Testing — Reference Guide
+
+## 1. Credentials & Environment
+
+Stored in Postman under the **"dLocal Sandbox"** environment (workspace: Dhapanart Kevalee's Workspace):
+
+- `x_login`
+- `x_trans_key`
+- `x_secret_key`
+
+These three values are required for every authenticated request (see signature generation below).
+
+## 2. Endpoint Routing
+
+dLocal sandbox uses different endpoints depending on payment type:
+
+| Endpoint                                                 | Use case                                                                                                                   |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `POST https://sandbox.dlocal.com/secure_payments`        | Raw card data (card number, CVV, expiration sent directly)                                                                 |
+| `POST https://sandbox.dlocal.com/payments`               | Card payments using a `card_id` or saved token instead of raw card data                                                    |
+| `POST https://sandbox.dlocal.com/sandbox-tools/payments` | Force a status change on an existing payment (mainly for async methods like cash/bank transfer) — no auth headers required |
+
+## 3. Authentication / Signature Generation
+
+Every request to `/secure_payments` or `/payments` needs these headers:
+
+```
+X-Date: <ISO8601 datetime with timezone, e.g. 2018-07-12T13:46:28.629Z>
+X-Login: <x_login>
+X-Trans-Key: <x_trans_key>
+Content-Type: application/json
+X-Version: 2.1
+User-Agent: <your app name>/1.0
+Authorization: V2-HMAC-SHA256, Signature: <signature>
+```
+
+**Signature algorithm:** concatenate `x-login + x-date + requestBody` (as strings, no delimiters), then HMAC-SHA256 that string using `x_secret_key`, output as lowercase hex.
+
+In Postman, this should be computed in a **pre-request script** using `CryptoJS.HmacSHA256(...)` (available in Postman's sandbox), setting `pm.request.headers` for `X-Date` and `Authorization` dynamically before each send. Note: at the time of writing, no such pre-request script existed in the saved Postman requests — this needs to be added for this workflow to work end-to-end.
+
+## 4. Sample Request Body (secure_payments)
+
+```json
+{
+  "amount": 100,
+  "currency": "USD",
+  "country": "BR",
+  "payment_method_id": "CARD",
+  "payment_method_flow": "DIRECT",
+  "payer": {
+    "name": "Thiago Gabriel",
+    "email": "thiago@example.com",
+    "document": "53033315550",
+    "user_reference": "12345",
+    "address": {
+      "state": "Rio de Janeiro",
+      "city": "Volta Redonda",
+      "zip_code": "27275-595",
+      "street": "Servidao B-1",
+      "number": "1106"
+    }
+  },
+  "card": {
+    "holder_name": "Thiago Gabriel",
+    "number": "4111111111111111",
+    "cvv": "123",
+    "expiration_month": 10,
+    "expiration_year": 2040
+  },
+  "order_id": "657434343",
+  "description": "200",
+  "notification_url": "http://merchantsite.com/notifications"
+}
+```
+
+`4111111111111111` is dLocal's/Visa's standard public sandbox test card number, not a real card.
+
+## 5. Forcing a Test Outcome via `description`
+
+| `description` value | Simulated result              |
+| ------------------- | ----------------------------- |
+| `"200"`             | PAID (approved)               |
+| `"300"`             | REJECTED (generic)            |
+| `"302"`             | REJECTED (insufficient funds) |
+
+For cash-style payments, force status directly with `"PAID"`, `"REJECTED"`, or `"ERROR"`.
+
+## 6. money-service Webhook Endpoint
+
+- URL: `POST https://money-service-production.up.railway.app/v1/webhooks/dlocal`
+- Handled by `DlocalWebhookController`
+- Matches incoming webhooks strictly on `providerPaymentId` + `provider: 'DLOCAL'` — a webhook for an unrecognized payment returns `Payment record not found for webhook`.
+
+## 7. Important Gotchas / Safety Notes
+
+- **`notification_url` is currently hardcoded** in the legacy monolith's `createPayment()` to `${NEXTAUTH_URL}/api/webhooks/dlocal` — i.e. it points at the **monolith**, not money-service. Even a real dLocal sandbox transaction will not automatically call money-service's webhook — it must be manually replayed there.
+- **The only endpoint that creates a real Payment record** is `POST /api/payments/dlocal/create` in the legacy monolith, requiring an authenticated NextAuth session. Its body shape: `country`, `paymentMethod`, `planType` (`THREE_DAY`/`MONTHLY`), `currency`, optional `discountCode`.
+- **This writes to the shared production Postgres database** — money-service and the monolith use the same database. There is no sandboxed/isolated database for this flow. Any real payment created this way results in a real Subscription upgrade and real Commission payout, not test data.
+- `order_id` format when created via the monolith: `order-{userId}-{timestamp}` (generated by `generateOrderId()`).
+- money-service itself has **no real test-database harness** — its Jest tests all run against a fully mocked Prisma client, never a live database connection.
+- Given the shared production database, creating a new live test payment should only be done with explicit sign-off, since it produces real financial/subscription side effects, not sandboxed ones.
+
+---
+
+Let me know if you'd like this saved anywhere specific (e.g. a Google Doc or Notion page) — I can help you get it there, though I'd need you to handle the actual account/document creation step yourself per usual.
