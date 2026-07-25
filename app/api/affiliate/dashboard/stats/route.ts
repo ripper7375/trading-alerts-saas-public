@@ -11,6 +11,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { buildDashboardStats } from '@/lib/affiliate/report-builder';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAffiliateReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAffiliateDashboardStats,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET /api/affiliate/dashboard/stats
@@ -31,6 +37,25 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     // Require affiliate access
     await requireAffiliate();
+
+    // Session 4A-7a (F45 server-side proxy) — when the flag is on, forward
+    // the already-authenticated session's token to money-service instead of
+    // querying Prisma locally. Falls through to the monolith logic below if
+    // the flag is off or the session cookie is unexpectedly absent.
+    if (isAffiliateReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const stats = await fetchAffiliateDashboardStats(token);
+          return NextResponse.json(stats);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
+    }
 
     // Get affiliate profile
     const profile = await getAffiliateProfile();

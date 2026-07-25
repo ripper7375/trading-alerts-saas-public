@@ -11,6 +11,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { getAffiliateDetails } from '@/lib/admin/affiliate-management';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAdminReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAdminAffiliateDetail,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -54,6 +60,22 @@ export async function GET(
         { error: 'Affiliate ID is required' },
         { status: 400 }
       );
+    }
+
+    // Session 4A-7a (F45 server-side proxy) — see affiliate stats/route.ts's comment.
+    if (isAdminReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const affiliate = await fetchAdminAffiliateDetail(token, id);
+          return NextResponse.json(affiliate);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
     }
 
     // Get affiliate details

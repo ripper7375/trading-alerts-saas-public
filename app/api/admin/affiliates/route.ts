@@ -12,6 +12,12 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { getAffiliatesList } from '@/lib/admin/affiliate-management';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAdminReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAdminAffiliates,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VALIDATION SCHEMAS
@@ -72,6 +78,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const { status, country, paymentMethod, page, limit } = validation.data;
+
+    // Session 4A-7a (F45 server-side proxy) — see affiliate stats/route.ts's comment.
+    if (isAdminReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const result = await fetchAdminAffiliates(token, {
+            status,
+            country,
+            paymentMethod,
+            page,
+            limit,
+          });
+          return NextResponse.json(result);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
+    }
 
     // Get affiliates with filters
     const result = await getAffiliatesList({

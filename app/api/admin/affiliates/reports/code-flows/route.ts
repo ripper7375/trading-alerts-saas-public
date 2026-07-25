@@ -14,6 +14,12 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { buildGlobalCodeInventoryReport } from '@/lib/affiliate/report-builder';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAdminReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAdminCodeFlowsReport,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VALIDATION SCHEMAS
@@ -82,6 +88,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { error: 'start must be before end' },
         { status: 400 }
       );
+    }
+
+    // Session 4A-7a (F45 server-side proxy) — see affiliate stats/route.ts's comment.
+    if (isAdminReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const result = await fetchAdminCodeFlowsReport(token, {
+            start: validation.data.start,
+            end: validation.data.end,
+          });
+          return NextResponse.json(result);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
     }
 
     const report = await buildGlobalCodeInventoryReport({ start, end });

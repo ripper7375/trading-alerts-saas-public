@@ -6,21 +6,31 @@
 > right variant.
 
 **Session:** 4A-7b · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT (fast-path candidate)
-**Generated:** 2026-07-25 (Advisor) · **Estimated time:** <1h
+**Generated:** 2026-07-25 (Advisor) · **Updated:** 2026-07-25 (Executor, at 4A-7a's close — corrected
+flag names/count and the end-to-end evidence description below to match what 4A-7a actually built)
+**Estimated time:** <1h per group (2 groups)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 **Slice 3 (of 5)**, CUTOVER half
 **Supersedes:** `4a-7-money-service-read-apis-cutover.migration-order.md` (together with `4a-7a-…`)
-**Flags:** none — F44/F45 were resolved in 4A-7a
+**Flags:** `MIGRATE_READ_APIS_MONEY_AFFILIATE` (4 routes) and `MIGRATE_READ_APIS_MONEY_ADMIN`
+(8 routes) — **two** flags, not one; both currently OFF everywhere. F44/F45 resolved in 4A-7a
+(`DECISION-LOG.md`).
 
 ---
 
 ## Entry criteria
 
-- [ ] **4A-7a closed all-green**, and its browser end-to-end evidence is in its Deviations: one real
-      signed-in call served by money-service, plus observed 401 (signed out) and 403 (wrong role).
-- [ ] **`MIGRATE_READ_APIS_MONEY` exists and is currently OFF in production** — verified value-blind.
-- [ ] **The F44 evidence is in hand**, whichever form Davin chose: - dual-call diff → the 48h clock has genuinely elapsed (**check the dates in CLAUDE.md, not
-      your memory**) and the diff summary is explained-clean; - progressive-cutover substitute → nothing to wait for; state that explicitly so nobody later
-      assumes a shadow-run happened.
+- [ ] **4A-7a closed all-green**, and its end-to-end evidence is in its Deviations: a script-minted
+      test-fixture token's request confirmed (via Railway logs) reaching money-service, correctly
+      passing `JwtAuthGuard`+`AffiliateGuard`, correctly executing a real Prisma lookup (404, because
+      the test fixture lived in a different DB than money-service's production one — a transport/auth
+      success, not a data-path failure — see 4A-7a's own Deviations section for the full explanation
+      before assuming this means something's broken). 403 (wrong role) verified clean. 401 (signed out) hit a **pre-existing,
+      unrelated** bug (`LESSONS-LEARNED.md` L12) — not a 4A-7a regression, don't let it block this order.
+- [ ] **Both `MIGRATE_READ_APIS_MONEY_AFFILIATE` and `MIGRATE_READ_APIS_MONEY_ADMIN` exist and are
+      currently OFF in production** — verified value-blind (grep for the key, never print the value).
+- [ ] **The F44 evidence is in hand** — resolved to Option (a), manual parity verification: the
+      12/12-route parity table in `4a-6_test-results_ready_to_proceed_with_4a-7a.md`. No shadow-run
+      clock to check, no dual-call diff path to review — that evidence file itself is the gate.
 - [ ] **Davin present** — cutovers require his live approval.
 
 ---
@@ -29,32 +39,39 @@
 
 **CUTOVER block**
 
-1. Present the F44 evidence. **Every mismatch explained?** If not → abort and schedule an
-   investigation session.
-2. Davin approves. His ritual question — _"what's the rollback?"_ — answer below.
-3. **Flip, one route group at a time**, confirming each is clean before the next:
-   **(a)** affiliate dashboard reads → **(b)** admin affiliate lists/reports → **(c)** admin
-   analytics. Lowest blast radius first; money reports last.
-4. Monitor error rate and p95 for each group before proceeding to the next. Green?
-5. If F44 = dual-call: **remove the temporary diff path** now. It is the one deletion this session
-   owns, and leaving it is a silent cost on every read.
-6. Record: `migration-cutover-table.md` (Slice 3 → `CUT-OVER`, with the F44 substitution named in
-   Notes), CLAUDE.md, DECISION-LOG. CC-F freeze on `app/api/affiliate/dashboard/*`,
+1. Present the F44 evidence (the 12/12 parity table). **Every mismatch explained?** (The only
+   observed difference anywhere was `period.start`/`period.end` timestamps reflecting each request's
+   own execution time — expected, not a real mismatch.) If anything else is unexplained → abort and
+   schedule an investigation session.
+2. Davin approves, **per group**. His ritual question — _"what's the rollback?"_ — answer below.
+3. **Flip one group at a time**, confirming each is clean before the next: **(a)**
+   `MIGRATE_READ_APIS_MONEY_AFFILIATE` (4 affiliate-dashboard routes) → **(b)**
+   `MIGRATE_READ_APIS_MONEY_ADMIN` (all 8 admin/report routes together — 4A-7a built one flag for the
+   whole admin group, not separate flags per admin route; there is no finer granularity available
+   without a code change). Lowest blast radius first; money reports last.
+4. Set the flag in Vercel's production environment variables and **redeploy** — Vercel does not
+   re-read env vars into already-built serverless functions without a redeploy, so this is a
+   config-only redeploy (no code change), not a silent runtime flip.
+5. Monitor error rate and p95 for the flipped group (Vercel + Railway money-service logs) before
+   proceeding to the next group. Green?
+6. Record: `migration-cutover-table.md` (Slice 3 → `CUT-OVER`, noting F44's substitution), CLAUDE.md,
+   DECISION-LOG. CC-F freeze on `app/api/affiliate/dashboard/*`,
    `app/api/admin/{affiliates,analytics}/*` and their `lib/` logic **stays until the RETIRE session**
    — deleting the monolith's copies is explicitly NOT this session's job.
 
-- **Rollback:** set `MIGRATE_READ_APIS_MONEY=false` (or the specific group's flag) → traffic returns
-  to the monolith's own `/api/*` routes immediately, no redeploy needed if the flag is read at
-  request time. **Not rehearsed in staging** — none exists (CC-A/**F34**) — so this is
-  reasoned-about only, the same caveat carried by Slices 1 and 2. Davin should know that before
-  approving.
+- **Rollback (either group):** set the relevant flag back to `false` in Vercel's production
+  environment and **redeploy**. No code change, no data migration — the monolith's own Prisma logic
+  is untouched underneath the flag the whole time. **Not rehearsed in staging** — none exists
+  (CC-A/**F34**) — so this is reasoned-about only, the same caveat carried by Slices 1 and 2. Davin
+  should know that before approving.
 
 ---
 
 ## Rules specific to this variant
 
-- No new code, no fixes, no "while I'm here". The only permitted deletion is the F44 dual-call diff
-  path (step 5), because 4A-7a created it expressly for this session to remove.
+- No new code, no fixes, no "while I'm here". F44 resolved to manual parity verification (not the
+  dual-call diff option), so there is no temporary diff path to delete — nothing to clean up beyond
+  the flag flips themselves.
 - Any red result = stop and document, never "probably fine".
 - If flipping a group reveals that the transport needs a change, **that is 4A-7a's work reopening** —
   stop, flip back, and give it its own session. This split exists precisely so that cannot be

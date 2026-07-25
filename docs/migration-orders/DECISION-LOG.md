@@ -45,8 +45,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F21  | 24h Account-Deletion GDPR gap                                                  | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
 | F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live)  | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
 | F35  | money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built | RESOLVED — Session 4A-2 (Davin)                                                                                        |
-| F44  | Read-API (Slice 3) shadow-run mechanism, given CC-A/F34 still not built        | OPEN — due Session 4A-7a (Davin)                                                                                       |
-| F45  | Browser → money-service transport, given NextAuth's cookies are `httpOnly`     | OPEN — due Session 4A-7a (Davin) · auth-semantics decision, EXECUTOR-PROTOCOL §7                                       |
+| F44  | Read-API (Slice 3) shadow-run mechanism, given CC-A/F34 still not built        | RESOLVED — Session 4A-7a (Davin)                                                                                       |
+| F45  | Browser → money-service transport, given NextAuth's cookies are `httpOnly`     | RESOLVED — Session 4A-7a (Davin) · auth-semantics decision, EXECUTOR-PROTOCOL §7                                       |
 | F46  | Schema-vs-transport failure classification at the first authenticated read     | RESOLVED — 2026-07-25 (Davin, pre-registered ahead of Session 4A-7a)                                                   |
 
 > **Note on numbering.** F36–F43 (Part 19.5 / Wise) are registered at Session **4A-W1** — their
@@ -1198,6 +1198,53 @@ successfully started`, no errors; `railway variables --kv` confirms
 - Vercel Deployment Verification (2026-07-24): Verified live production deployment on Vercel. Corrected Vercel Dashboard Root Directory configuration (`frontend` -> `./`), added `@prisma/client-runtime-utils` dependency and `.npmrc` pnpm hoisting pattern, and configured `serverExternalPackages` in `next.config.js`. Deployment succeeded live (`Status: Ready Latest`, domain: `trading-alerts-saas-frontend.vercel.app`, commit `be62d87f`).
 - Evidence: Order execution logs and deviations in `docs/migration-orders/5-2-nextjs16-upgrade-codemods.migration-order.md`, `docs/migration-orders/5-3-bundle-component-optimizations.migration-order.md`, and `docs/migration-orders/5-4-fonts-streaming-phase-exit.migration-order.md`. Recorded lessons L15 & L16 in `LESSONS-LEARNED.md`.
 - Approved by: Davin (live in-session approval & execution authorization)
+
+## F45 — Browser → money-service transport, given NextAuth's cookies are `httpOnly`
+
+- Status: **RESOLVED** — Session 4A-7a, 2026-07-25 (Davin, live)
+- Decision: **Option (a) — Server-side proxy.** Next.js route handlers read the NextAuth session
+  JWE server-side from the `httpOnly` cookie (via the existing `SESSION_COOKIE_NAME` from
+  `lib/operation-service/cookies.ts`) and forward it as `Authorization: Bearer <token>` to
+  money-service. The browser talks only to its own origin (`/api/...`); it never sees the token.
+- Rationale: consistent with **F30** (CORS confirmed unnecessary, server-side proxying continues)
+  and the pattern already shipped for operation-service (`lib/operation-service/client.ts`).
+  Rejected (b) token-vending endpoint — puts a 30-day session JWE into JS-reachable memory, one
+  XSS away from account takeover. Rejected (c) short-lived scoped token — correct long-term answer
+  for a genuine browser-direct design but too much new surface (minting + refresh) for a Slice 3
+  BUILD session.
+- Impact on blueprint §5.4 / `ALLOWED_ORIGINS`: §5.4's "browser calls money-service directly with a
+  Bearer header" vision is **not** implemented by this decision — the browser still only ever talks
+  to the Next.js origin. money-service's `ALLOWED_ORIGINS` CORS allowlist becomes **dead config**
+  under this transport; do not widen it later to "fix CORS" (see this order's own do-not-touch
+  list) — if CORS ever appears necessary, that means F45 was effectively re-opened, not that the
+  allowlist needs adjusting.
+- Evidence: Blocker-1 httpOnly evidence re-verified live at CONFIRM (`lib/auth/auth-options.ts:552,
+564, 576`; `app/api/auth/token-refresh/route.ts:27`; `lib/operation-service/cookies.ts:34-40`;
+  `lib/operation-service/client.ts:1-13`) — client-side JS has no access to the session token,
+  ruling out (b)/(c) as low-effort alternatives.
+- Approved by: Davin (live, 2026-07-25, in response to the CONFIRM report for Session 4A-7a).
+
+## F44 — Read-API (Slice 3) verification standard, given CC-A/F34 still not built
+
+- Status: **RESOLVED** — Session 4A-7a, 2026-07-25 (Davin, live)
+- Decision: **Option (a) — Manual Parity Verification.** The 12/12-route parity check recorded in
+  `4a-6_test-results_ready_to_proceed_with_4a-7a.md` (all 12 GET routes 200 with monolith-identical
+  payloads, plus both negative-case guard checks — 401 unauthenticated, 403 wrong-role) stands as
+  the verification standard for Slice 3, replacing the 48h read shadow-run the playbook originally
+  specified.
+- Rationale: matches the **F35** precedent (Slice 1 crons substituted manual-trigger verification
+  for a literal parallel staging run, given CC-A/F34 was never built). Rejected (b) dual-call diff
+  logger — real 48h shadow but costs a temporary diff code path that must be stripped again at
+  4A-7b. Rejected (c) progressive-cutover-as-substitute — collapses F44 into the cutover order
+  itself rather than answering it here.
+- Playbook / script amendment: `monolith-to-microservices-migration-session-playbook.md`'s 4A-6/7
+  "BUILD then ⏸ 48h ➜ CUTOVER" language and `SESSION-PROMPT-SCRIPT.md` both need the 48h shadow-run
+  step replaced with "manual parity verification per F44 (see `4a-6_test-results...md`)" — carried
+  forward as a Deviation on this order; amend both files in the same commit as this session's other
+  artifact updates, so they never disagree.
+- Evidence: `4a-6_test-results_ready_to_proceed_with_4a-7a.md` (full parity table, both negative
+  cases, explicit non-scope note that this is F44 input only and does not itself answer F45).
+- Approved by: Davin (live, 2026-07-25, in response to the CONFIRM report for Session 4A-7a).
 
 ## F46 — Schema-vs-transport failure classification at the first authenticated read (Session 4A-7a step 5)
 

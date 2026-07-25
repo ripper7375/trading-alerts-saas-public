@@ -3,6 +3,12 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAdminReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAdminAnalytics,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
@@ -68,6 +74,25 @@ export async function GET(): Promise<
         { error: 'Forbidden: Admin access required' },
         { status: 403 }
       );
+    }
+
+    // Session 4A-7a (F45 server-side proxy) — see affiliate stats/route.ts's comment.
+    if (isAdminReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const analytics = await fetchAdminAnalytics<AnalyticsResponse>(token);
+          return NextResponse.json(analytics);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(
+              { error: error.body.message ?? error.body.error ?? 'Error' },
+              { status: error.status }
+            );
+          }
+          throw error;
+        }
+      }
     }
 
     // Get user counts by tier

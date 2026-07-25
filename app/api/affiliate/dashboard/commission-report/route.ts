@@ -13,6 +13,12 @@ import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { buildCommissionSummary } from '@/lib/affiliate/report-builder';
 import { commissionReportQuerySchema } from '@/lib/affiliate/validators';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAffiliateReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAffiliateDashboardCommissionReport,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET /api/affiliate/dashboard/commission-report
@@ -36,6 +42,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Require affiliate access
     await requireAffiliate();
 
+    // Parse query params (also needed for the money-service branch below)
+    const searchParams = Object.fromEntries(request.nextUrl.searchParams);
+
+    // Session 4A-7a (F45 server-side proxy) — see stats/route.ts's comment.
+    if (isAffiliateReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const report = await fetchAffiliateDashboardCommissionReport(token, {
+            status: searchParams['status'],
+            startDate: searchParams['startDate'],
+            endDate: searchParams['endDate'],
+            page: searchParams['page']
+              ? Number(searchParams['page'])
+              : undefined,
+            limit: searchParams['limit']
+              ? Number(searchParams['limit'])
+              : undefined,
+          });
+          return NextResponse.json(report);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
+    }
+
     // Get affiliate profile
     const profile = await getAffiliateProfile();
 
@@ -50,8 +85,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Parse and validate query params
-    const searchParams = Object.fromEntries(request.nextUrl.searchParams);
+    // Validate query params
     const validation = commissionReportQuerySchema.safeParse(searchParams);
 
     if (!validation.success) {

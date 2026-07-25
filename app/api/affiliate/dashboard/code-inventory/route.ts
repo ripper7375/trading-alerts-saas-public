@@ -11,6 +11,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { buildCodeInventoryReport } from '@/lib/affiliate/report-builder';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAffiliateReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAffiliateDashboardCodeInventory,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET /api/affiliate/dashboard/code-inventory
@@ -37,6 +43,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Require affiliate access
     await requireAffiliate();
 
+    // Parse date range from query params (also needed for the money-service branch below)
+    const searchParams = request.nextUrl.searchParams;
+    const endDateParam = searchParams.get('endDate');
+    const startDateParam = searchParams.get('startDate');
+
+    // Session 4A-7a (F45 server-side proxy) — see stats/route.ts's comment.
+    if (isAffiliateReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const report = await fetchAffiliateDashboardCodeInventory(token, {
+            startDate: startDateParam ?? undefined,
+            endDate: endDateParam ?? undefined,
+          });
+          return NextResponse.json(report);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
+    }
+
     // Get affiliate profile
     const profile = await getAffiliateProfile();
 
@@ -50,11 +80,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { status: 404 }
       );
     }
-
-    // Parse date range from query params
-    const searchParams = request.nextUrl.searchParams;
-    const endDateParam = searchParams.get('endDate');
-    const startDateParam = searchParams.get('startDate');
 
     const endDate = endDateParam ? new Date(endDateParam) : new Date();
     const startDate = startDateParam

@@ -13,6 +13,12 @@ import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { getReportingPeriod } from '@/lib/admin/pnl-calculator';
+import { MoneyServiceError } from '@/lib/money-service/client';
+import { isAdminReadApiMigrated } from '@/lib/money-service/flags';
+import {
+  getMoneyServiceToken,
+  fetchAdminSalesPerformanceReport,
+} from '@/lib/money-service/routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VALIDATION SCHEMAS
@@ -61,6 +67,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const { period, limit } = validation.data;
+
+    // Session 4A-7a (F45 server-side proxy) — see affiliate stats/route.ts's comment.
+    if (isAdminReadApiMigrated()) {
+      const token = await getMoneyServiceToken();
+      if (token) {
+        try {
+          const result = await fetchAdminSalesPerformanceReport(token, {
+            period,
+            limit,
+          });
+          return NextResponse.json(result);
+        } catch (error) {
+          if (error instanceof MoneyServiceError) {
+            return NextResponse.json(error.body, { status: error.status });
+          }
+          throw error;
+        }
+      }
+    }
+
     const { start, end } = getReportingPeriod(
       period as '3months' | '6months' | '1year'
     );

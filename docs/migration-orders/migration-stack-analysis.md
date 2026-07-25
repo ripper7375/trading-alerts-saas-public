@@ -1787,6 +1787,50 @@ just this session's own addition below.
 
 </details>
 
+<details>
+<summary>FRONTEND — 3 new files + 12 modified + 2 config (Session 4A-7a, money-service Slice 3 read-API transport)</summary>
+
+F45 (server-side proxy, `DECISION-LOG.md`) — mirrors `lib/operation-service/*`'s proven
+pattern from Session 3-3 above. Additive: every one of the 12 modified route handlers
+still runs its existing monolith auth check + Prisma logic unchanged; the new code only
+adds a flag-gated branch that proxies to money-service instead, and the flags
+(`MIGRATE_READ_APIS_MONEY_AFFILIATE`/`_ADMIN`) default OFF everywhere, so production
+behavior is bit-identical until 4A-7b flips them.
+
+New:
+
+- `lib/money-service/client.ts` (server-only fetch helper, `MoneyServiceError` —
+  mirrors `lib/operation-service/client.ts`'s shape exactly)
+- `lib/money-service/routes.ts` (server-only cookie read via the existing
+  `SESSION_COOKIE_NAME` + typed wrappers for all 12 Slice-3 GET routes)
+- `lib/money-service/flags.ts` (`isAffiliateReadApiMigrated()` /
+  `isAdminReadApiMigrated()`, both default OFF)
+
+Modified (flag-gated branch added, existing logic otherwise unchanged):
+
+- `app/api/affiliate/dashboard/stats/route.ts`
+- `app/api/affiliate/dashboard/codes/route.ts`
+- `app/api/affiliate/dashboard/code-inventory/route.ts`
+- `app/api/affiliate/dashboard/commission-report/route.ts`
+- `app/api/admin/affiliates/route.ts`
+- `app/api/admin/affiliates/[id]/route.ts`
+- `app/api/admin/analytics/route.ts`
+- `app/api/admin/affiliates/reports/code-flows/route.ts`
+- `app/api/admin/affiliates/reports/code-inventory/route.ts`
+- `app/api/admin/affiliates/reports/commission-owings/route.ts`
+- `app/api/admin/affiliates/reports/profit-loss/route.ts`
+- `app/api/admin/affiliates/reports/sales-performance/route.ts`
+
+Config:
+
+- `.env.example` (`MONEY_SERVICE_URL`, `MIGRATE_READ_APIS_MONEY_AFFILIATE`,
+  `MIGRATE_READ_APIS_MONEY_ADMIN` — following the `OPERATION_SERVICE_URL` pattern)
+
+money-service's own source is unchanged this session (out of scope — see this order's
+known-wrinkles list).
+
+</details>
+
 ---
 
 **Compiled:** 2026-07-08 · **Updated:** 2026-07-23 (Phase 5 Exit)

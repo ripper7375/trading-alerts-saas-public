@@ -24,8 +24,79 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-5 CLOSED, executed as money-service webhooks Slice 2 CUTOVER
-  (dLocal-only, scope-amended 2026-07-24) — 2026-07-24.
+- **Current:** Session 4A-7a CLOSED, executed as UI-BUILD (+CONTRACT) — money-service
+  Slice 3 read-API transport BUILD, zero traffic cut over — 2026-07-25.
+  **CONFIRM:** re-verified Blocker-1's httpOnly evidence live (all four points held
+  exactly at their cited lines); re-verified Session 4A-6's 12 GET routes still 401
+  unauthenticated (live spot-check); reviewed the parity baseline
+  (`4a-6_test-results_ready_to_proceed_with_4a-7a.md`, 12/12 green). Audited Waiting-on
+  #36/#38 against live Railway deployment history rather than trusting the existing
+  CLAUDE.md claims: **#36 closed clean** (deployment `b401bc62`'s natural `[CRON]` ticks
+  across the full 2026-07-23 UTC 00:00–04:00 window, `errorCount: 0`, zero duplicate
+  rows). **#38 found NOT closed** — walked every deployment since the signature fix and
+  found the "confirmed live — correct DB writes, second replay idempotent" language in
+  this file and `migration-cutover-table.md` unsupported by the logs (the only two
+  logged deliveries were pre-replay-guard-fix synthetic payloads that both 404'd on
+  `Payment record not found`, zero DB writes). Raised this live with Davin rather than
+  silently resolving either way; Davin's correction: that verification never actually
+  happened against a live DB record, only unit/integration-tested in development — #38
+  stays OPEN with this corrected context (see Waiting-on below), non-blocking for this
+  BUILD-only session. Also found `npm run validate`'s `validate:format` step failing on
+  287 files — traced to `core.autocrlf=true` on this Windows checkout (CRLF vs.
+  prettier's LF default), a pre-existing environmental artifact, not a regression;
+  Davin's live ruling: `tsc --noEmit` + `eslint --max-warnings 0` (both re-verified
+  clean after every edit) is the code baseline for this repo on Windows, not the full
+  `validate:format`/`validate:policies` chain — `prettier --write` across 287 files was
+  explicitly declined as an out-of-scope drive-by.
+  **F45 resolved** (Davin, live): Option (a) server-side proxy — Next.js route handlers
+  read the httpOnly session cookie server-side and forward it as `Authorization: Bearer`
+  to money-service, mirroring `lib/operation-service/client.ts`'s proven pattern.
+  money-service's `ALLOWED_ORIGINS` CORS allowlist becomes dead config under this
+  decision — do not widen it later "to fix CORS." **F44 resolved** (Davin, live):
+  Option (a) manual parity verification (the 12/12-route parity check already on file)
+  stands in for the 48h shadow-run, matching the F35 precedent. Both logged in full in
+  `DECISION-LOG.md`.
+  **Built:** `lib/money-service/client.ts` (mirrors operation-service's
+  `MoneyServiceError`/error-mapping shape), `lib/money-service/routes.ts` (server-only
+  cookie read + typed wrappers for all 12 Slice-3 routes), `lib/money-service/flags.ts`
+  (`MIGRATE_READ_APIS_MONEY_AFFILIATE` / `_ADMIN`, both default OFF — split per-group so
+  4A-7b's own per-group flip order and its "no code work" constraint both hold). Wired
+  the flag check into all 12 existing Next.js API route handlers — the monolith's own
+  `requireAffiliate()`/`requireAdmin()` check always runs first, unchanged; only on a
+  pass does the flag gate a branch to money-service, falling through to the existing
+  Prisma logic when OFF (the default in every environment, including production).
+  `MONEY_SERVICE_URL` + both flags added to `.env.example`.
+  **Step 5 (prove one signed-in call end-to-end):** per Davin's explicit direction, used
+  a temporary scratch script minting a real NextAuth v4 session token (via
+  `next-auth/jwt`'s own `encode()`, same `NEXTAUTH_SECRET`) for the project's canonical
+  `affiliate-test@trading-alerts.test` / `free-test@trading-alerts.test` fixtures
+  (seeded via the existing dev-only `/api/test/seed` endpoint — no real customer data
+  touched), run against a local dev server with the affiliate flag on and
+  `MONEY_SERVICE_URL` pointed at live production money-service. Confirmed in Railway's
+  HTTP logs that the forwarded request genuinely reached money-service (not the
+  monolith fallback); `JwtAuthGuard` correctly decoded the forwarded Bearer JWE and
+  `AffiliateGuard` correctly authorized it. The response was a `404` rather than `200`
+  — traced to local dev's `DATABASE_URL` (likely the F34 staging Postgres project)
+  being a **different database** than money-service's production `DATABASE_URL`
+  (confirmed by querying each directly) — the seeded test fixture genuinely doesn't
+  exist in the DB money-service reads, so the 404 is money-service's Prisma layer
+  working correctly against real data, not a transport failure. 403 negative case
+  (non-affiliate token) verified correct. 401 negative case (no cookie) surfaced a
+  **pre-existing, unrelated bug**: `LESSONS-LEARNED.md` L12 (the monolith's
+  `stats/route.ts` catch block checks `error.message` for a marker `AuthError` only
+  ever sets on `.code`) — falls through to a generic 500 instead of 401; untouched by
+  this session's edits, out of scope to fix here. Davin's live call: this evidence is
+  sufficient proof of the F45 transport/auth-bridge working end-to-end — did not write
+  test data into production to force a literal 200. Scratch script + local dev server
+  both cleaned up after use.
+  **Artifacts updated:** `4a-7-money-service-read-apis-cutover.migration-order.md`
+  (already SUPERSEDED by the Advisor when 4A-7a was drafted), `DECISION-LOG.md` (F44/F45
+  full entries), `migration-cutover-table.md` (Slice 3 row), `migration-stack-analysis.md`
+  (new `lib/money-service/*` files + 12 modified route handlers), this file.
+  `4a-7b-money-service-read-apis-cutover.migration-order.md` PRE-DRAFTed (VERIFY-RETIRE).
+- \_(superseded-by-above, retained for context) Session 4A-5 CLOSED, executed as
+  money-service webhooks Slice 2 CUTOVER (dLocal-only, scope-amended 2026-07-24) —
+  2026-07-24.
   **CONFIRM (two live passes this session):** first pass found the order's own header
   read `DRAFT (scope-amended, awaiting Davin's approval)` — not APPROVED, contrary to
   the initial framing — and found no evidence yet of Entry Criterion #2 (a real signed
@@ -64,12 +135,19 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-5-money-service-webhooks-cutover.migration-order.md`
-  (CONFIRMED by Executor 2026-07-24, executed for dLocal). RiseWorks split out to
-  `docs/migration-orders/4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md`
-  (still PRE-DRAFT, gated on RiseWorks's reply).
-- **Order status:** dLocal CUT-OVER, all-green (monitoring caveat above). RiseWorks
-  portion not started. **What shipped (dLocal only):**
+  `docs/migration-orders/4a-7a-money-service-frontend-transport.migration-order.md`
+  (CONFIRMED and executed by Executor 2026-07-25). Predecessor
+  `4a-7-money-service-read-apis-cutover.migration-order.md` stays SUPERSEDED (file
+  retained as audit trail). `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md`
+  unchanged, still PRE-DRAFT, gated on RiseWorks's reply.
+- **Order status (4A-7a):** BUILT, zero traffic cut over — flags default OFF in every
+  environment. **What shipped:** transport module (`lib/money-service/client.ts`,
+  `routes.ts`, `flags.ts`), flag wiring into all 12 existing Slice-3 route handlers,
+  F44/F45 resolved and logged, end-to-end proxy+auth-bridge proof (see Current above).
+  `4a-7b-money-service-read-apis-cutover.migration-order.md` (VERIFY-RETIRE, the actual
+  flag-flip cutover) PRE-DRAFTed — Davin's call on when it runs.
+- **Prior order (4A-5, historical):** dLocal CUT-OVER, all-green (monitoring caveat
+  above). RiseWorks portion not started. **What shipped (dLocal only):**
   - Two live-escalated bugfixes (full detail in Current above): dLocal webhook
     signature verification (`8e681297`) and a replay-guard on webhook completion side
     effects (`1cc31b24`). Both documented as Deviations in the order itself, both
@@ -99,12 +177,34 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   webhook cutover) is PRE-DRAFT and blocked on RiseWorks actually replying with
   webhook/API settings — including resolving the open `event`/`event_type` field-name
   question in that order's own Entry criteria. Do not approve/execute it without that
-  information present, per its own Gate note. **(38, NEW)** dLocal's cutover (this
-  session) flipped the dashboard URL, but the first live post-flip webhook delivery
-  hasn't been directly observed in Railway logs yet (log buffer only covered the
-  immediate post-flip window, no request traffic in it) — spot-check `railway logs` for
-  money-service on the next real dLocal payment before treating dLocal as fully stable;
-  same "monitoring caveat" pattern as Slice 1's #36. **(30, unresolved, now 3
+  information present, per its own Gate note. **(38, still OPEN, audited Session 4A-7a —
+  narrowed and corrected)** dLocal's cutover flipped the dashboard URL, but the
+  completion/replay-guard execution path against a live database record has still never
+  been exercised by a real HTTP request in production. 4A-7a walked every Railway
+  deployment from the signature fix (`8e681297`, live 2026-07-24 11:58 UTC) through the
+  current deployment (HTTP edge logs + app stdout logs): the only two deliveries logged
+  anywhere are `shadow-run-cash`-labeled synthetic payloads (12:02/12:23 UTC on
+  deployment `ea69c732`) that both hit `Payment record not found for webhook`
+  (zero DB writes) and both predate the replay-guard fix (`1cc31b24`, live 13:48 UTC) —
+  every deployment since shows zero webhook activity of any kind. This corrects the
+  "confirmed live by Davin — correct Payment/Subscription DB writes, second replay
+  idempotent" language recorded under Session 4A-5 above and in
+  `migration-cutover-table.md`'s Slice 2 row: **Davin's live clarification (4A-7a,
+  2026-07-25) is that no such verification against a live DB record has actually
+  happened yet — only unit/integration-tested during development.** Per Davin's call
+  this is non-blocking for 4A-7a (BUILD-only, zero traffic cut over) and carries forward;
+  it remains a real open item before dLocal Slice 2 can be called fully stable — spot-check
+  `railway logs` on the next real (or deliberately-run realistic synthetic) dLocal
+  payment. **(39, NEW)** `npm run validate`'s `validate:format` step (`prettier --check
+.`) fails on 287 files repo-wide — traced this session to `core.autocrlf=true` on this
+  Windows checkout (files carry CRLF line terminators, prettier's default expects LF),
+  not a content/style regression. Davin's live ruling let 4A-7a proceed on
+  `tsc --noEmit` + `eslint --max-warnings 0` alone, but the underlying gap (no
+  `.gitattributes` line-ending normalization, `validate:format`/`validate:policies`
+  effectively unenforceable on Windows) is still there — worth a future session's
+  attention (likely a `.gitattributes` fix + one-time `prettier --write` pass on a
+  dedicated branch, not a drive-by inside a feature session) before relying on
+  `validate:format` again. **(30, unresolved, now 3
   sessions running)** `LESSONS-LEARNED.md` still at 40 active lessons (L1-L40) — AT the
   stated cap; this session found 2 more genuinely new lessons (recorded in the 4A-6
   order's own Deviations + LESSONS-LEARNED.md's header note instead of as new numbered
@@ -146,21 +246,21 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   per `00-SKELETON-AND-RULES.md` §5) — only this session's own additions were appended.
   **(29, RESOLVED Session 4A-3)** money-service's own unfinished manual-trigger
   verification step (4A-2's blocker for the crons cutover) — completed and confirmed
-  live with Davin this session, all 8 jobs idempotent. **(36, NEW)** Session 4A-3's
-  cutover landed, but the order's own Checklist step 4 ("monitor one full cycle") isn't
-  fully closed: today's clean-idempotency evidence is from the manual-trigger endpoints
-  (bypass the `CRON_ENABLED` gate by design), not the scheduler's own natural tick under
-  the new live regime. First natural fire for the daily jobs is the next UTC 00:00–04:00
-  windows (2026-07-23) — spot-check `railway logs` for money-service then (no errors, no
-  duplicate `PaymentBatch`/`DisbursementTransaction` rows) before treating Slice 1 as
-  fully stable. Not a blocker for other work, just an open follow-up.
-- **Next session:** Davin's call. Chain-length-one now unblocks
-  `docs/migration-orders/4a-7-money-service-read-apis-cutover.migration-order.md`
-  (Read APIs cutover — its own browser-auth question already resolved, Waiting-on #34)
-  — no longer needs to wait on RiseWorks. `4A-5-RW` (RiseWorks) stays PRE-DRAFT,
-  gated on RiseWorks's reply (new Waiting-on item below). `Session 6-1` (Phase 6 Gap
-  Matrix, `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was
-  PRE-DRAFTed at 5-4's close, a separate track — Davin to decide ordering against 4A-7.
+  live with Davin this session, all 8 jobs idempotent. **(36, RESOLVED Session 4A-7a)**
+  Session 4A-3's cutover landed; this item tracked the scheduler's own natural tick
+  (not the manual-trigger bypass) under the new live regime. Confirmed clean at 4A-7a
+  CONFIRM: Railway deployment `b401bc62` ran continuously 2026-07-22 10:12 UTC →
+  2026-07-24 05:34 UTC, spanning the natural 2026-07-23 UTC 00:00–04:00 window. All five
+  hourly `[CRON]` ticks fired and completed with `errorCount: 0`, zero duplicate
+  `PaymentBatch`/`DisbursementTransaction` rows. Slice 1 is fully stable.
+- **Next session:** Davin's call.
+  `docs/migration-orders/4a-7b-money-service-read-apis-cutover.migration-order.md`
+  (VERIFY-RETIRE, PRE-DRAFTed this close) is ready whenever Davin wants to actually flip
+  the Slice 3 read-API flags — affiliate-dashboard group first, admin group last, per
+  its own Checklist. `4A-5-RW` (RiseWorks) stays PRE-DRAFT, gated on RiseWorks's reply
+  (Waiting-on #37). `Session 6-1` (Phase 6 Gap Matrix,
+  `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was PRE-DRAFTed at
+  5-4's close, a separate track — Davin to decide ordering against 4A-7b/4A-8+.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

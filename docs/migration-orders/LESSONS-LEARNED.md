@@ -111,3 +111,17 @@
 - Root cause: a 401 from an auth guard exercises the guard, not the handler. Services that define a hand-mirrored schema **subset** (money-service, operation-service) can diverge from the monolith without any test noticing.
 - Rule: the first **authenticated** call to a newly deployed route is its first real schema test. If it fails on a Prisma column/model/relation/enum, that is a SCHEMA finding — stop and scope it as its own session. Never patch the transport/client around it (`select`, `omit`, defaulting, mapping), and never author schema from the consuming service (L1). See `DECISION-LOG.md` **F46**.
 - Source: Session 4A-7a (Advisor review, 2026-07-25) · Status: ACTIVE
+
+### L19 — "Money-service shares the monolith's DB" is an architecture doc, not a runtime guarantee — compare actual `DATABASE_URL` hosts before trusting local-DB test results
+
+- Symptom: seeded a test affiliate profile via the local Next.js dev server, minted a session token for that same user, called money-service (production) with it, and got a genuine `404 Profile not found` — not a bug, just a different database. Cost real diagnostic time (comparing masked `DATABASE_URL`/`DATABASE_PUBLIC_URL` hosts across services, querying both DBs directly) before the mismatch was confirmed.
+- Root cause: local dev's `.env.local` `DATABASE_URL` (`turntable.proxy.rlwy.net:...`, likely the F34 staging Postgres project) is a **different host** than money-service's production `DATABASE_URL` (`postgres.railway.internal` / public proxy `maglev.proxy.rlwy.net:...`) — even though blueprint §5.1 correctly describes money-service and the monolith as sharing one production Postgres instance in principle, that doesn't mean _local dev_ is pointed at that same instance.
+- Rule: before trusting "I seeded/verified it locally, so it'll be there when the Railway service reads it," diff the actual host in both services' `DATABASE_URL` (masked, per L17 — never print credentials) rather than relying on the architecture doc. If they differ, either seed through the target Railway service's own DB connection, or treat a "not found" from that service as inconclusive rather than a bug.
+- Source: Session 4A-7a · Status: ACTIVE
+
+### L20 — `npm run validate`'s `validate:format`/`validate:policies` steps are not part of this repo's actual green bar on Windows
+
+- Symptom: `npm run validate` (the full chain) fails on `validate:format` (`prettier --check .`, 287 files) even on an otherwise-clean checkout with zero relevant edits.
+- Root cause: `core.autocrlf=true` on Windows checkouts converts tracked LF files to CRLF on disk; prettier's default `endOfLine: "lf"` then flags nearly every file. No `.gitattributes` normalizes this. Every session's actual historical exit-suite report (`type-check`/`validate:lint`/`build`/`test:ci`) already omitted `validate:format`/`validate:policies` — this isn't a new regression, just never verified as failing until this session actually ran the full chain instead of the split scripts.
+- Rule: on this repo, treat `tsc --noEmit` + `eslint --max-warnings 0` + `next build` + the relevant test suites as the real green bar, not the literal `npm run validate` chain, until a dedicated session adds `.gitattributes` line-ending normalization and re-baselines `validate:format`/`validate:policies`. Don't run `prettier --write` repo-wide as a drive-by fix inside an unrelated session.
+- Source: Session 4A-7a · Status: ACTIVE

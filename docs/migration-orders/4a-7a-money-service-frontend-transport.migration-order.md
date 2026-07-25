@@ -1,276 +1,209 @@
-# Migration Order — UI-BUILD variant (with an embedded decision)
+# Migration Order — UI-BUILD variant (with embedded CONTRACT decisions)
 
-> For **new/redesigned frontend surfaces**. Read `00-SKELETON-AND-RULES.md` first — §4 applies with
-> the dial at **High** for design, but **Low** for anything touching auth semantics: the contract
-> constrains the data, not the design, and auth is not a place to be creative.
+> For **new/redesigned frontend surfaces** (UI-BUILD) and **specs/decisions** (CONTRACT).
+> Read `00-SKELETON-AND-RULES.md` first — §4 applies with the dial at **High** for design, but
+> **Low** for anything touching auth semantics: the contract constrains the data, not the design,
+> and auth is not a place to be creative.
 
-**Session:** 4A-7a · **Variant:** UI-BUILD (+ CONTRACT for the two decisions) · **Status:** DRAFT
+**Session:** 4A-7a · **Variant:** UI-BUILD (+ CONTRACT for decisions) · **Status:** CONFIRMED (2026-07-25, Executor — re-verified codebase/runtime state per EXECUTOR-PROTOCOL.md §1.3; type-check + eslint 100% clean per Davin's live clarification on the `npm run validate` gate, `validate:format`'s 287-file failure isolated to a pre-existing Windows CRLF checkout artifact, not a regression)
 **Generated:** 2026-07-25 (Advisor) · **Estimated time:** 3–4h (split 4A-7a1/4A-7a2 if it overruns)
-**Phase / plan section:** Phase 4A — money-service, blueprint §5.5 **Slice 3 (of 5)** — the BUILD
-half of what `4a-7-…` tried to do in one session
-**Flags touched:** **F44** (resolve — read-API shadow mechanism) · **F45** (resolve — browser→
-money-service transport) · re-opens the assumption recorded as CLAUDE.md Waiting-on **#34**
+**Phase / plan section:** Phase 4A — money-service, blueprint §5.5 **Slice 3 (of 5)** — BUILD half of split Session 4A-7
+**Flags touched:** **F44** (resolve — read-API shadow/verification mechanism) · **F45** (resolve — browser→money-service transport)
+**Re-opens / updates:** CLAUDE.md Waiting-on **#34**
 **Target service:** monolith frontend + Next.js route handlers (money-service unchanged)
-**Contract:** the 12 GET routes money-service already exposes (Session 4A-6) — shapes are frozen,
-this session only changes _who calls them and how_
+**Contract:** 12 GET routes in money-service (Session 4A-6) — shapes are frozen; this session changes _who calls them and how_.
 
 ---
 
-## Why this session exists (and why `4a-7-…` cannot be executed as drafted)
+## Why this session exists (and why `4a-7-…` is SUPERSEDED)
 
-`4a-7-money-service-read-apis-cutover.migration-order.md` is a VERIFY-RETIRE order carrying
-**real build work** — introducing an env var, a fetch transport, and a Bearer-header attach. Its
-template forbids exactly that: _"No new code, no fixes, no 'while I'm here' — observation and
-execution only"_, dial **near zero**. The order itself admits it: _"any frontend data-hook change to
-attach the header is itself real work — if it turns out more involved than a straightforward header
-attach, that's its own scoped change, not something to improvise mid-cutover."_
+`4a-7-money-service-read-apis-cutover.migration-order.md` was drafted as a VERIFY-RETIRE order carrying **real build work** (env vars, transport module, client-side header attachment). VERIFY-RETIRE forbids new build work. Furthermore, execution uncovered **two blockers (one architectural)**:
 
-It is more involved. **Two blockers, one of them architectural:**
+### Blocker 1 — The browser cannot read the JWT (planned mechanism impossible)
 
-### Blocker 1 — the browser cannot read the JWT. The planned mechanism is impossible.
+Waiting-on #34 recorded: _"The Next.js frontend will manually extract its JWT and attach it as a Bearer header when calling money-service's Read APIs."_
+Verified against live code (2026-07-25), client-side JS **cannot** access the session token:
 
-Waiting-on #34 records the resolution as: _"The Next.js frontend will manually extract its JWT and
-attach it as a Bearer header when calling money-service's Read APIs."_ Verified against the live
-codebase 2026-07-25, that cannot work:
+| Evidence                                                                        | Path                                                                                                                                      |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| NextAuth session cookies are `httpOnly: true` (×3 cookie definitions)           | [`lib/auth/auth-options.ts:552, 564, 576`](file:///d:/SaaS%20Project/trading-alerts-saas-public/lib/auth/auth-options.ts#L552-L576)       |
+| _"token never reaches client JS — it lives only in this httpOnly cookie"_       | [`app/api/auth/token-refresh/route.ts:27`](file:///d:/SaaS%20Project/trading-alerts-saas-public/app/api/auth/token-refresh/route.ts#L27)  |
+| `tokenCookieOptions()` sets `httpOnly: true`                                    | [`lib/operation-service/cookies.ts:34-40`](file:///d:/SaaS%20Project/trading-alerts-saas-public/lib/operation-service/cookies.ts#L34-L40) |
+| _"Server-only fetch helper… browser never talks to operation-service directly"_ | [`lib/operation-service/client.ts:1-13`](file:///d:/SaaS%20Project/trading-alerts-saas-public/lib/operation-service/client.ts#L1-L13)     |
 
-| Evidence                                                                                                                                                                  | Path                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| NextAuth session cookies are `httpOnly: true` (×3 cookie definitions)                                                                                                     | `lib/auth/auth-options.ts:552, 564, 576`           |
-| _"token never reaches client JS — it lives only in this httpOnly cookie"_                                                                                                 | `app/api/auth/token-refresh/route.ts:27`           |
-| `tokenCookieOptions()` returns `httpOnly: true`                                                                                                                           | `lib/operation-service/cookies.ts`                 |
-| _"**Server-only** fetch helper… the browser never talks to operation-service directly, so the access token never has to leave the server (also sidesteps CORS entirely)"_ | `lib/operation-service/client.ts:1–13` (103 lines) |
+Client-side JavaScript has no access to an `httpOnly` cookie. **F45 resolves how browser requests reach money-service.**
 
-Client-side JavaScript has no access to an `httpOnly` cookie. There is nothing for a data hook to
-"manually extract". **This is a design contradiction between two already-resolved decisions**, and
-both were confirmed by Davin:
+### Blocker 2 — No shadow-run was started, and no mechanism exists for one
 
-- **F30** (Session 3-4, RESOLVED): _CORS confirmed unnecessary, server-side proxying continues_ —
-  the pattern actually built and shipped for operation-service.
-- **Waiting-on #34** (blueprint §4.2 / §5.4): browser talks to money-service directly with a Bearer
-  header, which is why `money-service/src/main.ts` carries a real `ALLOWED_ORIGINS` CORS allowlist
-  (unlike operation-service, which needs none).
+The cutover table shows `shadow start: —`, `diff clean?: —`. A 48h read shadow-run requires dual-calling old and new backends, or a staging environment (CC-A/**F34**, never built). Slice 1 hit this wall and Davin resolved it via **F35** (manual parity verification instead of a parallel run). **F44 resolves the verification standard for Slice 3.**
 
-They are not literally contradictory — different services — but the money-service half rests on a
-capability the auth design deliberately removed. **F45 resolves which one wins.**
-
-### Blocker 2 — there is no shadow-run, and no mechanism to have one.
-
-The cutover table records Slice 3 as `shadow start: —`, `diff clean?: —`, while the playbook
-specifies 4A-6/7 as _"BUILD then ⏸ 48h ➜ CUTOVER"_. A read-API shadow-run needs something calling
-**both** old and new and diffing — which needs either a dual-call code path or the staging
-environment that CC-A/**F34** has never built. Slice 1 hit this same wall and Davin resolved it with
-**F35** (manual-trigger verification instead of a literal parallel run). Slice 3 needs its own
-equivalent ruling: **F44**.
-
-**Consequence:** `4a-7-…` is **superseded by this order plus `4a-7b-…`**. Do not execute it. Mark it
-`SUPERSEDED` at this session's close (keep the file — order files are the audit trail).
+**Consequence:** `4a-7-…` is **SUPERSEDED** by `4a-7a-…` (this BUILD order) plus `4a-7b-…` (the eventual CUTOVER order). **This session (4A-7a) does NOT cut over any traffic.**
 
 ---
 
 ## Entry criteria
 
-_(verified at CONFIRM time, not assumed — `EXECUTOR-PROTOCOL.md` §1.3)_
+_ (verified at CONFIRM time — `EXECUTOR-PROTOCOL.md` §1.3)_
 
-- [ ] **Davin available** — F45 is an auth-semantics decision (`EXECUTOR-PROTOCOL.md` §7) and F44 is
-      a verification-standard decision. Neither can be inferred.
-- [ ] Session 4A-6 is still `BUILT`: all 12 GET routes respond **401** to unauthenticated requests.
-      Re-verify by actual request, not by reading the cutover table.
-- [ ] The four Blocker-1 evidence points above still hold (re-grep — if someone has since made the
-      cookie non-httpOnly, that is itself a finding to escalate before anything else).
-- [ ] **Stale monitoring claims closed first** — both are one-command checks and both concern money
-      paths that are _already live_: - CLAUDE.md Waiting-on **#36**: Slice 1's first _natural_ cron tick (due 2026-07-23, still
-      open). `railway logs` for money-service across a UTC 00:00–04:00 window — no errors, no
-      duplicate `PaymentBatch`/`DisbursementTransaction` rows. - CLAUDE.md Waiting-on **#38**: dLocal's first live post-flip webhook delivery, never
-      observed. This matters more than it looks: Session 4A-5's two signature/replay bugfixes went
-      live **without** passing through their own DRAFT→APPROVED cycle (Davin-authorised scoped
-      exception, recorded in that order's Deviations) — so the only remaining proof that the fixed
-      code is correct in production is a real delivery nobody has yet looked at.
-- [ ] **Confirm the monolith's migration history already covers what money-service's
-      `schema.prisma` subset assumes** — carried forward from `4a-7-…`'s entry criterion #4, and it
-      belongs here rather than in 4A-7b because **step 5 is the first authenticated read** these
-      routes will ever serve. Session 4A-6's 401 checks proved the guards work, not that the DB
-      reads do: `JwtAuthGuard` rejects before Prisma is ever touched. Slice 1's crons already read
-      the shared DB through the same subset, so this is expected to pass — but expected is not
-      verified.
-      ⚠️ **This is a READ-ONLY check** (`prisma migrate status` against the shared DB from the
-      **monolith**, or asking the monolith side directly). Never a `db push` or `migrate deploy`
-      from money-service — `LESSONS-LEARNED.md` **L1** forbids it outright, because money-service
-      defines only a _subset_ and migrating from there drops the monolith's own tables.
-- [ ] `npm run validate` green on the monolith before any edit (a clean baseline to diff against).
-
-**A failed entry criterion means do not start.** If #36/#38 cannot be closed (log buffer rolled
-over, no traffic yet), that is not a blocker for _this_ session — record it and proceed — but say so
-explicitly rather than leaving the claim dangling a third time.
+- [ ] **Davin available** — F45 (auth semantics) and F44 (verification standard) require authorizer decision.
+- [ ] Session 4A-6 is `BUILT`: all 12 GET routes respond **401** to unauthenticated requests. Re-verify by actual request.
+- [ ] The four Blocker-1 `httpOnly` evidence points above still hold (re-grep `lib/auth/auth-options.ts`).
+- [ ] **Parity test baseline verified**: review [`4a-6_test-results_ready_to_proceed_with_4a-7a.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/4a-6_test-results_ready_to_proceed_with_4a-7a.md) (12/12 GET routes parity match + 401/403 guard checks green).
+- [ ] **Stale monitoring items checked**:
+  - CLAUDE.md Waiting-on **#36**: Slice 1 cron tick logs in Railway (`money-service` UTC 00:00–04:00 window — clean).
+  - CLAUDE.md Waiting-on **#38**: dLocal live webhook delivery log check.
+- [ ] **Confirm monolith migration history covers money-service's `schema.prisma` subset** — read-only check (`prisma migrate status` from monolith). **Never run `db push` or `migrate deploy` from money-service** ([`LESSONS-LEARNED.md` L1](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/LESSONS-LEARNED.md)).
+- [ ] `npm run validate` green on monolith before any edit.
 
 ---
 
 ## Integration points
 
-- **In:** the browser and Next.js server components/route handlers.
+- **In:** Browser, Next.js server components, Next.js route handlers.
 - **Out:** money-service's 12 GET routes (`/v1/affiliate/dashboard/*`, `/v1/admin/*`).
-- **Owns:** the transport module and the feature flag. **Owns no money logic and no auth logic** —
-  it reuses `lib/operation-service/*`'s proven pattern or extends it, per F45.
+- **Owns:** Transport module (`lib/money-service/client.ts`, `lib/money-service/routes.ts`) and feature flag `MIGRATE_READ_APIS_MONEY`. Owns **no business/money logic** and **no auth logic**.
 
 ---
 
 ## Ordered steps
 
-### 1. Resolve F45 — how does a browser-initiated read reach money-service?
+### 1. Resolve F45 — How does a browser-initiated read reach money-service?
 
-Present these three options to Davin with the Blocker-1 evidence. **Do not proceed to step 2 until
-he chooses.**
+Present options to Davin with the Blocker-1 evidence. **Do not proceed to step 2 until he decides.**
 
-| Option                                    | Mechanism                                                                                                                                                                                                                                   | Cost                                                                                                                                                                       | Honest assessment                                                                                                                                                                                                               |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **(a) Server-side proxy** — _recommended_ | Next.js route handlers call money-service using a copy of `lib/operation-service/client.ts`'s pattern; the JWE is read server-side from the httpOnly cookie and forwarded as `Authorization: Bearer`. Browser talks only to its own origin. | Low — mirrors code that already works. `NEXT_PUBLIC_MONEY_API_URL` becomes `MONEY_SERVICE_URL` (server-only), and money-service's `ALLOWED_ORIGINS` becomes unused config. | Consistent with **F30**. Token never reaches JS. No CORS. Makes 4A-7b a genuine base-URL swap. Cost: defers blueprint §5.4's browser-direct vision and forgoes the direct-call latency win.                                     |
-| (b) Token-vending endpoint                | A Next.js route reads the httpOnly cookie and returns the JWE to the browser, which attaches it as Bearer on direct money-service calls.                                                                                                    | Medium                                                                                                                                                                     | Delivers §5.4 literally — but **deliberately puts a 30-day session JWE into JS-reachable memory**. One XSS becomes a 30-day account takeover. I do not recommend trading the httpOnly guarantee for a latency win on read APIs. |
-| (c) Short-lived scoped token              | As (b), but mint a ~5-minute, money-service-audience token instead of handing over the session JWE.                                                                                                                                         | High — money-service must accept a second token shape; new minting + refresh path                                                                                          | The _correct_ long-term answer if browser-direct is genuinely wanted. Too much for a Slice 3 cutover; propose it as its own session if Davin wants §5.4 honoured properly.                                                      |
+| Option                                      | Mechanism                                                                                                                                                                                                                                   | Impact / Assessment                                                                                                                                                                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a) Server-side proxy** — _(Recommended)_ | Next.js route handlers call money-service using `lib/operation-service/client.ts` pattern; session JWE read server-side from `httpOnly` cookie and forwarded as `Authorization: Bearer`. Browser talks only to its own origin (`/api/...`). | **Consistent with F30.** Token stays server-side in `httpOnly` cookie. No CORS needed. Makes 4A-7b a clean base-URL proxy swap. `NEXT_PUBLIC_MONEY_API_URL` replaced by server-only `MONEY_SERVICE_URL`. `ALLOWED_ORIGINS` in `money-service` becomes unused config. |
+| (b) Token-vending endpoint                  | Next.js route reads `httpOnly` cookie and returns session JWE to client JS, which attaches `Bearer` on direct call to money-service.                                                                                                        | **Security risk:** Puts 30-day session JWE into JS-accessible memory. One XSS yields account takeover. Not recommended.                                                                                                                                              |
+| (c) Short-lived scoped token                | Mint ~5-min money-service-scoped token for browser direct calls.                                                                                                                                                                            | High complexity for Slice 3; requires new token minting/refresh logic in money-service.                                                                                                                                                                              |
 
-**Verification:** a `DECISION-LOG.md` F45 entry quoting Davin, **and** an explicit note on what it
-means for blueprint §5.4 and for money-service's `ALLOWED_ORIGINS` (if (a): say plainly that the
-CORS allowlist is now dead config, so nobody later "fixes" it by widening it).
+**Verification:** Record decision in [`DECISION-LOG.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/DECISION-LOG.md) under **F45**, noting impact on blueprint §5.4 and `ALLOWED_ORIGINS`.
 
-### 2. Resolve F44 — what replaces the 48h read shadow-run?
+---
 
-| Option                                                              | Mechanism                                                                                                                                                                                          |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **(a) Dual-call diff — _recommended if Davin wants a real shadow_** | The transport calls old **and** new for a chosen route group, returns the old response, logs a structured diff. Run 48h, then cut over. Costs a temporary code path that must be removed at 4A-7b. |
-| (b) Progressive cutover as the substitute                           | No shadow. Cut over **one route group at a time** behind the flag, each with instant rollback, watching errors between groups. Same reasoning that let 4A-5 substitute replay for a 48h shadow.    |
-| (c) Build CC-A staging first (**F34**)                              | Correct, and long overdue — but it is a multi-session project and would park Slice 3 indefinitely.                                                                                                 |
+### 2. Resolve F44 — What verification standard replaces the 48h read shadow-run?
 
-**Verification:** `DECISION-LOG.md` F44 entry; the playbook's _"⏸ 48h"_ for 4A-6/7 amended in the
-same breath (`00-SKELETON-AND-RULES.md` §5 — playbook amendments ship with the order that needs
-them), and `SESSION-PROMPT-SCRIPT.md` updated to match so the two never disagree.
+Present options to Davin:
 
-### 3. Build the transport (shape per F45)
+| Option                                                             | Mechanism                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a) Manual Parity Verification** — _(Recommended, matching F35)_ | Accept the manual parity test results in [`4a-6_test-results_ready_to_proceed_with_4a-7a.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/4a-6_test-results_ready_to_proceed_with_4a-7a.md) (12/12 routes + 401/403 negative cases verified) as the verification standard. |
+| (b) Dual-call diff logger                                          | Route handler calls monolith and money-service, logs diffs for 48h. Costs temporary diff code that must be removed at 4A-7b.                                                                                                                                                                              |
+| (c) Progressive cutover substitute                                 | No shadow. Cut over one route group at a time behind flag with instant rollback.                                                                                                                                                                                                                          |
 
-For the recommended (a): `lib/money-service/client.ts` + `lib/money-service/routes.ts`.
-**Invariants — the dial is Low here:**
+**Verification:** Record decision in [`DECISION-LOG.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/DECISION-LOG.md) under **F44**. Amend playbook & `SESSION-PROMPT-SCRIPT.md` accordingly per `00-SKELETON-AND-RULES.md` §5.
 
-- Reuse `lib/operation-service/client.ts`'s error-mapping shape (`MoneyServiceError` with
-  `status` + `body`) so callers behave identically. Do not invent a second error convention.
-- **Server-only.** Same header comment and the same rule: never imported from a `'use client'`
-  file (`LESSONS-LEARNED.md` **L6** — one server-only import taints the whole module for every
-  client importer, and **only `next build` catches it**, not `tsc` or `jest`).
-- Read the session cookie via the existing `SESSION_COOKIE_NAME` from
-  `lib/operation-service/cookies.ts` — **do not re-derive the per-environment cookie name.**
-  Session 3-3's CONFIRM already found the Decision Log's literal string was the dev-only value.
-- `cache: 'no-store'` on every call (these are per-user reads).
-- **Do not touch `lib/api/index.ts`** — known-broken by design until Phase 7.
+---
 
-### 4. Add the flag, defaulting OFF
+### 3. Build the transport module (server-only)
 
-`MIGRATE_READ_APIS_MONEY` (or per-group flags — the Executor may choose finer granularity, that is
-inside the dial). **Default off in every environment**, including local. The flag's only job is to
-let 4A-7b flip route groups one at a time without a code deploy.
+Build `lib/money-service/client.ts` and `lib/money-service/routes.ts` (shaped per F45 decision):
 
-**Verification:** with the flag unset, every one of the 12 routes still resolves to the monolith and
-`npm run validate` + the full suite are green — i.e. this session is a no-op in production until
-someone flips something.
+- **Invariants (Low creativity dial for auth/transport semantics):**
+  - Reuse [`lib/operation-service/client.ts`](file:///d:/SaaS%20Project/trading-alerts-saas-public/lib/operation-service/client.ts)'s error-mapping shape (`MoneyServiceError` with `status` and `body`).
+  - **Server-only:** Never imported by `'use client'` files ([`LESSONS-LEARNED.md` L6](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/LESSONS-LEARNED.md)).
+  - Reuse `SESSION_COOKIE_NAME` from [`lib/operation-service/cookies.ts`](file:///d:/SaaS%20Project/trading-alerts-saas-public/lib/operation-service/cookies.ts). Do not re-derive cookie names.
+  - Set `cache: 'no-store'` on every fetch call.
+  - **Do NOT touch `lib/api/index.ts`** (known-broken, reserved for Phase 7).
+
+---
+
+### 4. Add the feature flag, defaulting OFF
+
+Add `MIGRATE_READ_APIS_MONEY` (or fine-grained flags `MIGRATE_READ_APIS_MONEY_AFFILIATE`, `MIGRATE_READ_APIS_MONEY_ADMIN`).
+
+- Default **OFF** in all environments (including local/dev).
+- When flag is OFF, all 12 routes resolve strictly to the monolith.
+
+**Verification:** `npm run validate` and full test suite remain 100% green with flag OFF.
+
+---
 
 ### 5. Prove one signed-in browser call end-to-end
 
-This is `4a-7-…`'s unmet entry criterion #3, and it is this session's real deliverable. Pick the
-**lowest-risk** route group (affiliate dashboard read, not an admin money report). With the flag on
-in a preview/local environment only:
+In local/preview environment with flag turned ON for test execution:
 
-1. Sign in as a real user in a browser.
-2. Load the page. Confirm the response came from money-service (correlation id / Railway log line),
-   not the monolith.
-3. Confirm a signed-out browser gets 401, and a wrong-role user gets 403 (`AffiliateGuard` /
-   `AdminGuard` still bite).
-4. Capture the evidence into the order's Deviations — 4A-7b's entry criteria depend on it.
+1. Sign in as a valid user in browser.
+2. Load lowest-risk route group (`/api/affiliate/dashboard/stats`).
+3. Verify response is served by money-service (check correlation ID / Railway logs).
+4. Verify negative cases: unauthenticated returns 401, wrong role returns 403.
+5. Record evidence in order's Deviations section.
 
-**⛔ Note what this step really proves — governed by `DECISION-LOG.md` F46 (RESOLVED, pre-registered
-2026-07-25 at Davin's instruction) and `LESSONS-LEARNED.md` L18.**
+**⚠️ Schema-gap rule ([`DECISION-LOG.md` F46](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/DECISION-LOG.md), [`LESSONS-LEARNED.md` L18](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/LESSONS-LEARNED.md)):**
+If the DB read fails on a Prisma model/column/relation error when money-service hits Postgres, that is a **SCHEMA finding**, not a transport bug. Stop, log exact error in Deviations, report to Davin, and handle via separate schema session. Do **NOT** patch transport code, alter Prisma queries, or run Prisma write commands from money-service (L1).
 
-This is the first time these 12 routes serve an _authenticated_ request, and therefore the first time
-they touch Prisma at all — 4A-6's 401s never reached the database, because `JwtAuthGuard` rejects
-before any query runs. **If the read fails on a Prisma column, model, relation or enum value, that is
-a SCHEMA finding, not a transport bug.** Stop, record model + field + exact error in Deviations,
-report to Davin, and let it become its own scoped session.
-
-**Specifically forbidden as a "fix" here:** adding a `select`/`omit` to dodge the missing field ·
-defaulting or mapping the value inside `lib/money-service/*` · editing
-`money-service/prisma/schema.prisma` · any Prisma write command from money-service (**L1**). A
-transport-side workaround would make the route return **plausible but wrong data** on the
-affiliate-commission read path and bake the divergence in permanently.
+---
 
 ### 6. Close per `EXECUTOR-PROTOCOL.md` §3
 
-Mark `4a-7-money-service-read-apis-cutover.migration-order.md` **SUPERSEDED** (file retained),
-update CLAUDE.md / DECISION-LOG / cutover table (Slice 3 notes only — status stays `BUILT`) /
-`migration-stack-analysis.md` (new `lib/money-service/*` files), then **PRE-DRAFT `4a-7b-…`**.
+1. Mark `4a-7-money-service-read-apis-cutover.migration-order.md` as **SUPERSEDED**.
+2. Update `CLAUDE.md`, `DECISION-LOG.md`, `migration-cutover-table.md`, and `migration-stack-analysis.md`.
+3. **PRE-DRAFT `4a-7b-money-service-read-apis-cutover.migration-order.md`**.
 
 ---
 
 ## Done when
 
-- [ ] **F45 resolved** with a Decision-Log entry and its consequence for §5.4 / `ALLOWED_ORIGINS`
-      written down explicitly.
-- [ ] **F44 resolved**; playbook **and** `SESSION-PROMPT-SCRIPT.md` amended together.
-- [ ] Transport module exists, server-only, reusing the 3-3 cookie constant and error shape.
-- [ ] Flag exists and defaults **off**; with it off, production behaviour is **bit-identical** —
-      proved by the full suite plus `npm run build` (L6's only real detector).
-- [ ] **One real signed-in browser call to money-service succeeded end-to-end**, with 401/403
-      negative cases also observed. Evidence in Deviations.
-- [ ] If F44 = dual-call: the diff logger is live and the 48h clock is recorded in CLAUDE.md under
-      "Waiting on" with all four WAIT fields (what started, exact end UTC, what to watch, what ends
-      it early).
+- [ ] **F45 resolved** and logged in Decision Log with impact on §5.4 / CORS documented.
+- [ ] **F44 resolved** and logged in Decision Log; playbook & `SESSION-PROMPT-SCRIPT.md` amended.
+- [ ] Transport module built, server-only, reusing cookie constants and error shapes.
+- [ ] Feature flag `MIGRATE_READ_APIS_MONEY` implemented, defaulting **OFF**.
+- [ ] Signed-in end-to-end call + 401/403 negative cases verified in preview/local.
 - [ ] `4a-7-…` marked SUPERSEDED; `4a-7b-…` PRE-DRAFTed.
-- [ ] **No route group is actually cut over in this session.** `git diff` shows a new module, a new
-      flag, and no change to which service serves production traffic.
+- [ ] **Zero production traffic cut over in this session.**
 
 ---
 
 ## Rollback
 
-Revert the commit and redeploy. Because the flag defaults off, production behaviour is unchanged
-throughout, so the rollback is precautionary rather than corrective — which is the entire reason for
-splitting this work out of the cutover.
+Revert the commit and redeploy. Since the feature flag defaults OFF, production behavior remains 100% untouched throughout this session.
 
 ---
 
 ## Rules specific to this variant
 
-- Dial is **High** on how the transport is organised, **Low** on anything auth-shaped. If a step
-  seems to require changing how tokens are minted, read, or scoped — **stop and ask Davin.** That is
-  F45 territory, not implementation detail.
-- Do not widen `ALLOWED_ORIGINS` on money-service to "make CORS work". If CORS appears to be needed,
-  F45 was answered differently than the code assumes — stop.
-- Ported/existing tests may be extended, never weakened (`LESSONS-LEARNED.md` **L3**).
+- Dial is **High** on transport module layout/structure, **Low** on auth semantics.
+- Do not widen `ALLOWED_ORIGINS` on money-service to "fix CORS" — CORS is bypassed if F45 uses server proxying.
+- Ported/existing tests may be extended, never weakened ([`LESSONS-LEARNED.md` L3](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/migration-orders/LESSONS-LEARNED.md)).
 
 ---
 
 ## Deviations
 
-_(filled DURING execution — what/why/impact)_
+_(Filled DURING execution — what/why/impact)_
 
-**Expected entries at minimum:** F45's decision and its blast radius · F44's decision and the
-playbook amendment · the browser end-to-end evidence · outcome of the #36/#38 monitoring checks ·
-any drift in the Blocker-1 evidence.
+**Expected entries:** F45 decision & blast radius · F44 decision & playbook amendment · end-to-end browser call evidence · outcome of #36/#38 monitoring checks.
+
+---
+
+**CONFIRM-time findings (2026-07-25), before any step-3 code was written:**
+
+- **F45 resolved** — Option (a), server-side proxy. Full decision + blast radius on `ALLOWED_ORIGINS`/§5.4 recorded in `DECISION-LOG.md` F45.
+- **F44 resolved** — Option (a), manual parity verification, matching the F35 precedent. Full decision recorded in `DECISION-LOG.md` F44. Playbook + `SESSION-PROMPT-SCRIPT.md` amendment carried to step 6 close.
+- **Waiting-on #36 — CLOSED clean.** Re-verified against Railway deployment `b401bc62` (live 2026-07-22 10:12 UTC → 2026-07-24 05:34 UTC, spanning the natural 2026-07-23 UTC 00:00–04:00 cron window). All five hourly `[CRON]` ticks fired and completed with `errorCount: 0`, zero duplicate `PaymentBatch`/`DisbursementTransaction` rows. This is the scheduler's own natural tick, not a manual-trigger bypass. Marked RESOLVED in CLAUDE.md.
+- **Waiting-on #38 — audited, NOT closed, deliberately kept OPEN.** Walked every Railway deployment from the signature-fix commit (`8e681297`, live 2026-07-24 11:58 UTC) through the current deployment, using both HTTP edge logs and app stdout logs (the webhook controller logs `"dLocal webhook received"` on every hit). Findings: (1) two `shadow-run-cash`-labeled synthetic payloads hit the endpoint at 12:02/12:23 UTC on deployment `ea69c732` — both resolved `Payment record not found for webhook` (early-return, zero DB writes) and both predate the replay-guard fix (`1cc31b24`, live 13:48 UTC) by ~1h20m; (2) every deployment since 13:48 UTC (`cd5f12b4`, `94fdc812`, `a36a1306`, `d4bf22cf`) shows **zero** webhook activity of any kind — no real delivery, no further synthetic test. Raised the discrepancy against CLAUDE.md's/`migration-cutover-table.md`'s existing "confirmed yes — correct Payment/Subscription DB writes, second replay idempotent" language live with Davin. **Davin's live clarification (2026-07-25): the completion/replay-guard execution path against a live database record has not yet been exercised by a real HTTP request in production — only unit/integration tested during development.** Per Davin's explicit call: **non-blocking for Session 4A-7a** (this is a BUILD-only order, zero traffic cut over regardless), the live/synthetic completion-and-replay verification is carried forward rather than closed. CLAUDE.md's Waiting-on #38 stays OPEN with this corrected context; the cutover table's Slice 2 "confirmed live" language should be read alongside this correction, not relied on as-is.
+- **Pre-existing Windows CRLF line-ending diff on `validate:format` noted; type-check and eslint verified 100% clean baseline.** `npm run validate`'s `validate:format` step (`prettier --check .`) fails on 287 files — confirmed traced to `core.autocrlf=true` on this Windows checkout (files carry CRLF terminators prettier's default LF expectation rejects), not a content/style regression, and not something touched by this session. Per Davin's live instruction, `tsc --noEmit` + `eslint app components lib hooks --max-warnings 0` (both 100% clean, re-verified after steps 3/4's edits) is the code baseline for proceeding — `prettier --write` across 287 files was explicitly declined as an out-of-scope drive-by fix.
+- **Steps 3-4 complete.** Built `lib/money-service/client.ts` (mirrors `lib/operation-service/client.ts`'s `MoneyServiceError`/error-mapping shape exactly), `lib/money-service/routes.ts` (server-only cookie read via the existing `SESSION_COOKIE_NAME` + typed wrappers for all 12 Slice-3 routes), and `lib/money-service/flags.ts` (`MIGRATE_READ_APIS_MONEY_AFFILIATE` / `MIGRATE_READ_APIS_MONEY_ADMIN`, both default OFF — split per-group rather than one flag, so 4A-7b's own per-group flip order, and 4A-7b's "no code work" constraint, both hold). Wired the flag check into all 12 existing Next.js API route handlers: the monolith's own `requireAffiliate()`/`requireAdmin()` check always runs first unchanged (auth semantics untouched, Low dial honored), and only on a pass does the flag gate a branch to money-service — falling through to the existing Prisma logic when OFF or when the session cookie is unexpectedly absent. `MONEY_SERVICE_URL` + both flags added to `.env.example` following the `OPERATION_SERVICE_URL` pattern. `tsc --noEmit` and `eslint app components lib hooks --max-warnings 0` both clean with flags OFF (default) — confirms production behavior is unchanged by this session's edits.
+- **Step 5 complete — end-to-end proof via script-minted session token (Davin's explicit direction, 2026-07-25).** Built a temporary scratch script (`scratch/mint-test-session.js`, deleted after use) that mints a real NextAuth v4 session token via `next-auth/jwt`'s own `encode()` (same function NextAuth itself uses, same `NEXTAUTH_SECRET`) for the project's canonical test fixtures (`affiliate-test@trading-alerts.test` / `free-test@trading-alerts.test`, seeded via the existing `/api/test/seed` dev-only endpoint — matching `e2e/utils/test-data.ts`, no real customer data touched). Ran a local Next.js dev server with `MIGRATE_READ_APIS_MONEY_AFFILIATE=true` and `MONEY_SERVICE_URL` pointed at the live production money-service instance.
+  - **200/positive-path proxy proof:** the affiliate token's request to `/api/affiliate/dashboard/stats` was confirmed in money-service's Railway HTTP logs (`clientUa: "node"`, `GET /v1/affiliate/dashboard/stats`, `404`) — i.e. the request genuinely reached money-service, not the monolith fallback. The `404 "Affiliate profile not found"` is a _correct_ response, not a transport failure: local dev's `DATABASE_URL` (`turntable.proxy.rlwy.net:55082`, likely the F34 staging Postgres project) turned out to be a **different database** than money-service's production `DATABASE_URL` (`postgres.railway.internal` / public proxy `maglev.proxy.rlwy.net:58290`) — confirmed by directly querying each DB. The seeded test user/profile genuinely exists in the DB local dev writes to and genuinely does not exist in the DB money-service reads, so money-service's own Prisma lookup correctly reported not-found. Davin's explicit call (2026-07-25): this is **sufficient, clean proof for step 5** — do NOT write test data into the production database to force a 200. The chain this proves end-to-end: the forwarded request reached money-service on Railway; `JwtAuthGuard` correctly decoded the forwarded Bearer JWE; `AffiliateGuard` correctly authorized it (isAffiliate claim honored); money-service's own Prisma lookup executed for real (proving the full transport + auth-bridge path works, independent of this particular test fixture's DB placement).
+  - **403 negative case:** the non-affiliate (`free-test`) token against the same route returned `403 {"error":"Forbidden","message":"Affiliate access required","code":"AFFILIATE_REQUIRED"}` — `AffiliateGuard` correctly rejecting a valid-but-wrong-role token, exactly as designed.
+  - **401 negative case — pre-existing bug, not a regression:** the no-cookie request returned `500 "Failed to fetch stats"` instead of `401`. Traced to `LESSONS-LEARNED.md` **L12** (Session 4A-6 finding): `stats/route.ts`'s catch block checks `error.message.includes('UNAUTHORIZED')`, but `requireAffiliate()`'s thrown `AuthError` only ever sets the marker on `.code`, never `.message` — so the 401 branch is unreachable and every real auth failure falls through to a generic 500. This is a documented, pre-existing, zero-coverage monolith bug untouched by this session's edits (my added branch sits entirely inside the same `try` block, after `requireAffiliate()`, and never runs when that call throws) — out of scope to fix here per this order's own change-frozen/scope-discipline rules; flagged for a future session, not fixed as a drive-by.
+  - Local dev server stopped and `scratch/mint-test-session.js` deleted after the run; no test data was written to production Postgres.
+- **Session-close test run.** `npx jest __tests__/api/{admin-affiliates,admin-reports,admin,affiliate-dashboard}.test.ts` (the existing suites covering all 12 modified routes): **4/4 suites passed, 29/29 tests passed** — flag-off behavior unchanged, no regressions from the added branches. `tsc --noEmit` and `eslint --max-warnings 0` both clean (re-confirmed).
+- **`npm run build` (L6 check — the only tool that actually catches a server-only import leaking into a client bundle).** Clean: `✓ Compiled successfully in 98s`, TypeScript finished in 30.7s, all **127/127 routes** generated (unchanged from the 5-4 exit-suite baseline), zero bundling errors. Confirms `lib/money-service/*` stayed server-only — no `'use client'` file pulled it in.
+- **Two new lessons recorded** (`LESSONS-LEARNED.md` L19/L20 — both cost real diagnostic time this session): L19 — local dev's `DATABASE_URL` and money-service's production `DATABASE_URL` are different hosts, so a local-DB seed isn't visible to a Railway service reading production; compare masked hosts before trusting local-seeded test data against another service. L20 — `npm run validate`'s `validate:format`/`validate:policies` steps aren't part of this repo's actual green bar on Windows (pre-existing `core.autocrlf` CRLF issue, not a regression); treat `tsc`+`eslint`+`build`+relevant tests as the real gate until a dedicated session fixes it.
 
 ---
 
 ## Known wrinkles / do-not-touch
 
-- `lib/api/index.ts` — known-broken by design. Phase 7 only.
-- `lib/operation-service/*` — **read it, copy its pattern, do not refactor it.** It serves live auth
-  traffic. A "shared base client" extraction is Phase 7's job.
-- `middleware.ts` imports `lib/operation-service/cookies.ts` and runs on the **Edge runtime** — no
-  Node-only APIs may enter that import graph. If the new transport shares anything with it, keep the
-  shared part Edge-safe.
-- money-service is **not** modified by this session. Its 12 routes and its guards are already
-  correct (Davin confirmed at 4A-6).
-- Do not start any Part 19.5 (`4A-W*`) work here. Slice 3 finishes first.
+- `lib/api/index.ts` — known-broken by design (Phase 7).
+- `lib/operation-service/*` — read-only reference for pattern; do not refactor live auth code.
+- `middleware.ts` / Edge runtime — keep shared cookie imports Edge-safe.
+- money-service source code is **unchanged** in this session.
 
 ---
 
 ## Next-session handoff
 
-_(PRE-DRAFT `4a-7b-money-service-read-apis-cutover.migration-order.md` — variant
-`TEMPLATE-VERIFY-RETIRE.md`, dial near zero, **~10 lines**. It must contain: the concrete rollback
-(flip `MIGRATE_READ_APIS_MONEY` back — no longer "TBD"), the per-route-group flip order with
-affiliate-dashboard reads first and admin money reports last, the F44-mandated evidence to present
-before flipping, and — if F44 = dual-call — removal of the temporary diff path. **No code work of
-any kind belongs in that order.**)_
+PRE-DRAFT `4a-7b-money-service-read-apis-cutover.migration-order.md` (variant VERIFY-RETIRE, ~10 lines). It will contain the concrete flag-flip steps (affiliate dashboard first, admin reports last), rollback procedure (flip flag back OFF), and F44 verification evidence check before flipping. No code work belongs in 4A-7b.
