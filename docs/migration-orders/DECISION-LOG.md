@@ -45,6 +45,19 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F21  | 24h Account-Deletion GDPR gap                                                  | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
 | F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live)  | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
 | F35  | money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built | RESOLVED — Session 4A-2 (Davin)                                                                                        |
+| F44  | Read-API (Slice 3) shadow-run mechanism, given CC-A/F34 still not built        | OPEN — due Session 4A-7a (Davin)                                                                                       |
+| F45  | Browser → money-service transport, given NextAuth's cookies are `httpOnly`     | OPEN — due Session 4A-7a (Davin) · auth-semantics decision, EXECUTOR-PROTOCOL §7                                       |
+| F46  | Schema-vs-transport failure classification at the first authenticated read     | RESOLVED — 2026-07-25 (Davin, pre-registered ahead of Session 4A-7a)                                                   |
+
+> **Note on numbering.** F36–F43 (Part 19.5 / Wise) are registered at Session **4A-W1** — their
+> paste-ready rows live in
+> `replace-rise-with-wise/05-artifact-amendments.md` §2a. F44–F46 are registered here ahead of
+> Session 4A-7a because that session needs them at CONFIRM time. So this register is intentionally
+> non-contiguous (F35 → F44) until 4A-W1 runs.
+>
+> ⚠️ **Flags are `F<n>`; CLAUDE.md "Waiting on" items are `#<n>`.** They are different sequences and
+> they overlap numerically — `F37` (Wise funding mode) and `#37` (the revoked RiseWorks-reply
+> blocker) are unrelated. Always write the prefix.
 
 ---
 
@@ -1185,3 +1198,41 @@ successfully started`, no errors; `railway variables --kv` confirms
 - Vercel Deployment Verification (2026-07-24): Verified live production deployment on Vercel. Corrected Vercel Dashboard Root Directory configuration (`frontend` -> `./`), added `@prisma/client-runtime-utils` dependency and `.npmrc` pnpm hoisting pattern, and configured `serverExternalPackages` in `next.config.js`. Deployment succeeded live (`Status: Ready Latest`, domain: `trading-alerts-saas-frontend.vercel.app`, commit `be62d87f`).
 - Evidence: Order execution logs and deviations in `docs/migration-orders/5-2-nextjs16-upgrade-codemods.migration-order.md`, `docs/migration-orders/5-3-bundle-component-optimizations.migration-order.md`, and `docs/migration-orders/5-4-fonts-streaming-phase-exit.migration-order.md`. Recorded lessons L15 & L16 in `LESSONS-LEARNED.md`.
 - Approved by: Davin (live in-session approval & execution authorization)
+
+## F46 — Schema-vs-transport failure classification at the first authenticated read (Session 4A-7a step 5)
+
+- Status: **RESOLVED** (pre-registered 2026-07-25, ahead of the session that needs it)
+- Session: 4A-7a · Date: 2026-07-25
+- Decision: **If session 4A-7a's first authenticated browser call to any of money-service's 12
+  Slice-3 GET routes fails on a Prisma column, model, relation or enum value, that is a SCHEMA
+  finding — not a transport bug. STOP and classify it as such. Do not patch the transport around it,
+  do not add a `select`/`omit` to dodge the missing field, do not map or default the value in
+  `lib/money-service/*`, and do not "just add the column" from money-service.**
+  The correct response is: record the exact model + field + error in the order's Deviations, report
+  it to Davin, and let it become its own scoped session (schema work is authored **only** in
+  `prisma/non-market-data/schema.prisma` — `LESSONS-LEARNED.md` **L1**).
+- Rationale / why this needed pre-deciding: **step 5 is the first time these 12 routes ever serve an
+  authenticated request, and therefore the first time they touch Prisma at all.** Session 4A-6
+  verified them with unauthenticated requests returning **401** — `JwtAuthGuard` rejects before any
+  query runs, so 4A-6 proved the guards work and proved nothing about the database. money-service
+  defines a hand-mirrored **subset** of the monolith's schema (`money-service/prisma/schema.prisma`,
+  583 lines, hand-synced with no automated check — the same convention flagged for
+  `operation-service`), so a subset/reality divergence is a live possibility. Slice 1's crons already
+  read the shared DB through that subset, which makes a failure _unlikely_ — but unlikely is not
+  verified, and the failure mode is easy to mistake for a client bug because it surfaces as a 500
+  from a brand-new fetch wrapper.
+- Consequence if ignored: a transport-side workaround would make the route return **plausible but
+  wrong data** (a silently omitted or defaulted field) and would bake the schema divergence in
+  permanently — on the affiliate-commission read path, i.e. numbers Davin and affiliates both read.
+- Evidence: `money-service/src/auth/jwt-auth.guard.ts` runs before the controller;
+  `migration-cutover-table.md` Slice 3 row records verification as _"manual unauthenticated
+  requests (401), routes registered and protected, zero live traffic"_;
+  `money-service/prisma/schema.prisma`'s own header documents the hand-sync convention and states
+  it is NEVER a migration source.
+- Related: **L1** (never migrate from money-service) · **L18** (this rule, in reflex form) ·
+  4A-7a entry criterion on `prisma migrate status` (read-only) and step 5's own note.
+- Approved by: **Davin** (explicit instruction, 2026-07-25: _"Could you add this to decision log so
+  that executor could proceed right away."_)
+- Authored by: Advisor (Claude Cowork). Normally the Executor writes Decision-Log entries at session
+  close; this one is pre-registered at Davin's direct instruction so 4A-7a can act on it at CONFIRM
+  time rather than discovering it mid-session.

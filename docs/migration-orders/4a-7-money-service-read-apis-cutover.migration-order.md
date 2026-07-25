@@ -6,9 +6,34 @@
 > lines for a cutover). If executing it uncovers real work, STOP — that work gets its own
 > session with the right variant.
 
-> **Status: DRAFT** — updated by Advisor after Session 4A-5 (webhooks cutover) completed. Unblocked for shadow-run verification and cutover.
+> ## ⛔ Status: SUPERSEDED (2026-07-25, Advisor) — DO NOT EXECUTE
+>
+> **Replaced by `4a-7a-money-service-frontend-transport.migration-order.md` (BUILD) +
+> `4a-7b-money-service-read-apis-cutover.migration-order.md` (CUTOVER).** File retained as audit
+> trail per `00-SKELETON-AND-RULES.md` — order files are never deleted.
+>
+> **Three reasons it cannot be executed as written:**
+>
+> 1. **Its core mechanism is architecturally impossible.** This order assumes the frontend can
+>    "manually extract its JWT" and send it as a Bearer header (Waiting-on #34). NextAuth's session
+>    cookies are `httpOnly: true` (`lib/auth/auth-options.ts:552,564,576`), so client-side JS cannot
+>    read them — `app/api/auth/token-refresh/route.ts:27` states it outright: _"token never reaches
+>    client JS."_ The shipped pattern is **server-side proxying** (`lib/operation-service/client.ts`,
+>    F30). Resolving this is new flag **F45**, handled in 4A-7a.
+> 2. **`Rollback: TBD`** (line ~82). A cutover order cannot pass Davin's ritual question, or
+>    `TEMPLATE-VERIFY-RETIRE`'s own requirement, with an unspecified rollback. 4A-7b's rollback is
+>    concrete: flip `MIGRATE_READ_APIS_MONEY` back.
+> 3. **It carries real build work inside a near-zero-dial cutover session** — an env var, a transport
+>    module, a header attach. `NEXT_PUBLIC_MONEY_API_URL` does not exist anywhere in the codebase, so
+>    the "base-URL swap behind an env flag" mechanism had nothing to swap. This order's own Rules
+>    section anticipated the problem; 4A-7a exists to do that work properly, and new flag **F44**
+>    settles the missing read-API shadow-run mechanism (cutover table shows `shadow start: —`).
+>
+> Everything below is preserved unchanged for reference. Its correct content — the resolved
+> browser-auth discussion, the CC-F freeze list, the retire-session handoff — carried forward into
+> the two replacement orders.
 
-**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** DRAFT
+**Session:** 4A-7 · **Variant:** VERIFY-RETIRE · **Status:** SUPERSEDED (was DRAFT)
 **Generated:** 2026-07-22 · **Estimated time:** <1h once unblocked (auth design resolved,
 frontend-side change only, no new backend code)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 3 (of 5), CUTOVER

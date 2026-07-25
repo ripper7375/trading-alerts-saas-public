@@ -1,0 +1,1076 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS — Part 19.5 Wise Disbursement API (money-service)
+  version: 0.1.0-draft
+  description: |
+    **Part 19.5 — Wise disbursement, money-service surface.**
+
+    Supersedes the *provider layer* of `riseworks/Part-19/part19-disbursement-openapi.yaml`.
+    Part 19's aggregation / batch / transaction / report / audit endpoints are unchanged and are
+    NOT redefined here — this spec covers only what Part 19.5 adds or changes.
+
+    Per the migration plan §6 ("Contract fidelity"), this document is **law** for the endpoints it
+    defines: shapes are a drop-in contract for the frontend, and the Executor may not change them
+    without an explicit Deviation.
+
+    ## Status
+    DRAFT — frozen as contract law at session 4A-W1, implemented across 4A-W3 … 4A-W6.
+
+    ## Base path and versioning
+    F16 resolved the URL scheme as `<money.domain>/v1`. money-service sets a global `/v1` prefix
+    (`main.ts`, excluding `/health` and `/health-auth`).
+
+    ## Authentication
+    * `bearerAuth` — the browser attaches the NextAuth JWT as `Authorization: Bearer <token>`
+      (blueprint §4.2; no cross-domain cookies). Verified by `JwtAuthGuard`, then
+      `AdminGuard` / `AffiliateGuard`.
+    * `POST /webhooks/wise` has **no** bearer auth. Its authentication is the
+      `X-Signature-SHA256` RSA-SHA256 signature verified against Wise's published public key.
+      It is also exempt from the global `ThrottlerGuard`.
+
+    ## Money-safety invariants encoded by this spec
+    1. Nothing in this API marks a commission as PAID. Only the webhook reducer (or the
+       reconciliation cron running the same reducer) may do that.
+    2. `POST /wise/batches` and `POST /wise/batches/{id}/complete` do **not** move money.
+    3. `POST /wise/batches/{id}/fund` moves money and returns `501` when
+       `WISE_FUNDING_MODE=MANUAL` (the Thailand default).
+    4. `POST /wise/batches/{id}/mark-funded` is an **assertion by a human**, is idempotent, and
+       never itself changes commission state.
+
+servers:
+  - url: https://money-service-production.up.railway.app/v1
+    description: Production (Railway)
+  - url: http://localhost:3002/v1
+    description: Local
+
+tags:
+  - name: Wise Webhooks
+    description: Inbound Wise event delivery. Signature-authenticated, no bearer token.
+  - name: Wise Recipients
+    description: Affiliate payout accounts at Wise, created from dynamic account requirements.
+  - name: Wise Batches
+    description: Batch-group drafting, completion and the funding gate.
+  - name: Wise Ops
+    description: Health, reconciliation and funding-queue visibility.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ───────────────────────────────────────────────────────────── webhooks
+  /webhooks/wise:
+    post:
+      tags: [Wise Webhooks]
+      summary: Receive a Wise webhook event
+      description: |
+        Verifies `X-Signature-SHA256` (RSA-SHA256 over the **raw** body, Base64) against the
+        environment-appropriate Wise public key, persists the delivery, enqueues it for
+        asynchronous processing, and returns `200` — targeting < 500 ms against Wise's 5 s budget.
+
+        Deduplication is on `X-Delivery-Id`; a duplicate returns `200` without reprocessing.
+        Ordering is reconciled on `data.occurred_at`, never on arrival order.
+
+        Handled event types: `transfers#state-change`, `transfers#payout-failure`,
+        `balances#update`. Unhandled types are persisted and skipped, never rejected.
+      operationId: wiseWebhookReceive
+      security: []
+      parameters:
+        - name: X-Signature-SHA256
+          in: header
+          required: true
+          schema: { type: string }
+          description: RSA-SHA256 signature of the raw body, Base64 encoded.
+        - name: X-Delivery-Id
+          in: header
+          required: false
+          schema: { type: string, format: uuid }
+          description: Unique per delivery attempt. Used as the dedupe key.
+        - name: X-Test-Notification
+          in: header
+          required: false
+          schema: { type: boolean }
+          description: Present with value `true` for the test event sent at subscription creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WiseEventEnvelope' }
+      responses:
+        '200':
+          description: Accepted (including duplicates and unhandled event types).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                required: [status]
+        '400':
+          description: Body is not valid JSON. Persisted with `signatureVerified` as evaluated.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+        '401':
+          description: Missing or invalid signature. The attempt is still persisted.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+
+  # ─────────────────────────────────────────────────────────── recipients
+  /wise/recipients/requirements:
+    get:
+      tags: [Wise Recipients]
+      summary: Get the dynamic field schema required to create a Wise recipient
+      description: |
+        Proxies Wise's quote-scoped account-requirements endpoint
+        (`Accept-Minor-Version: 1`) and returns a normalised field schema for the frontend to
+        render. Fields are never hard-coded — they vary by currency, country and payout route.
+      operationId: wiseRecipientRequirementsGet
+      parameters:
+        - name: targetCurrency
+          in: query
+          required: true
+          schema: { type: string, minLength: 3, maxLength: 3, example: THB }
+        - name: recipientCountry
+          in: query
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 2, example: TH }
+        - name: legalType
+          in: query
+          required: false
+          schema: { type: string, enum: [PRIVATE, BUSINESS], default: PRIVATE }
+        - name: addressRequired
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Normalised requirement groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quoteId:
+                    {
+                      type: string,
+                      description: Throwaway quote the schema was derived from.,
+                    }
+                  groups:
+                    type: array
+                    items: { $ref: '#/components/schemas/RequirementGroup' }
+                required: [groups]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/ProviderError' }
+    post:
+      tags: [Wise Recipients]
+      summary: Refresh the requirement schema after a refreshRequirementsOnChange field changed
+      description: |
+        Any field returned with `refreshRequirementsOnChange: true` can alter the rest of the
+        schema (Wise's example: `address.country = "US"` reveals `state`). POST the
+        partially-filled payload back to learn the follow-on fields.
+      operationId: wiseRecipientRequirementsRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quoteId: { type: string }
+                partial:
+                  { $ref: '#/components/schemas/RecipientDetailsPayload' }
+              required: [quoteId, partial]
+      responses:
+        '200':
+          description: Updated requirement groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items: { $ref: '#/components/schemas/RequirementGroup' }
+                required: [groups]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  /wise/recipients:
+    get:
+      tags: [Wise Recipients]
+      summary: List Wise recipients (admin)
+      operationId: wiseRecipientsList
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/WiseRecipientStatus' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        '200':
+          description: Paged recipients.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/WiseRecipient' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                required: [items, total, page, pageSize]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Wise Recipients]
+      summary: Create (or replace) the Wise recipient for an affiliate
+      description: |
+        Submits the collected details to Wise (`POST /v1/accounts`) and stores **only**
+        `wiseRecipientId`, `accountTail` and an irreversible `detailsFingerprint`. Raw bank
+        details are never persisted and never logged.
+
+        Replacing an existing recipient archives the previous row rather than mutating it, so
+        historical transfers keep pointing at the account that was actually paid.
+
+        Guard depends on flag **F39**: `AffiliateGuard` for self-service (affiliate may only
+        create their own — `affiliateProfileId` is then ignored and taken from the token), or
+        `AdminGuard` for admin-entered.
+      operationId: wiseRecipientCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                affiliateProfileId:
+                  type: string
+                  description: Admin-mode only. Ignored in self-service mode.
+                targetCurrency: { type: string, minLength: 3, maxLength: 3 }
+                recipientCountry: { type: string, minLength: 2, maxLength: 2 }
+                legalType: { type: string, enum: [PRIVATE, BUSINESS] }
+                accountHolderName:
+                  { type: string, minLength: 1, maxLength: 255 }
+                requirementsType:
+                  type: string
+                  description: The `type` value from the requirement group the user filled in.
+                details:
+                  { $ref: '#/components/schemas/RecipientDetailsPayload' }
+              required:
+                [
+                  targetCurrency,
+                  recipientCountry,
+                  legalType,
+                  accountHolderName,
+                  requirementsType,
+                  details,
+                ]
+      responses:
+        '201':
+          description: Recipient created at Wise and stored locally.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/WiseRecipient' } },
+            }
+        '400':
+          description: Wise rejected the details. `fieldErrors` maps requirement keys to messages.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/ValidationError' } },
+            }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  /wise/recipients/me:
+    get:
+      tags: [Wise Recipients]
+      summary: Get the calling affiliate's own Wise recipient
+      operationId: wiseRecipientGetMine
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/WiseRecipient' } },
+            }
+          description: The affiliate's recipient.
+        '204': { description: No recipient on file yet. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /wise/recipients/{recipientId}/revalidate:
+    post:
+      tags: [Wise Recipients]
+      summary: Re-read the recipient from Wise and refresh local status
+      operationId: wiseRecipientRevalidate
+      parameters:
+        - name: recipientId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/WiseRecipient' } },
+            }
+          description: Refreshed recipient.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  /wise/recipients/{recipientId}:
+    delete:
+      tags: [Wise Recipients]
+      summary: Deactivate a Wise recipient
+      description: |
+        Deactivates at Wise and sets local status to `ARCHIVED`. Referenced by flag **F41** —
+        affiliate account deletion (open flag F21) must call this so a deleted user's bank
+        details do not remain at the processor.
+      operationId: wiseRecipientDeactivate
+      parameters:
+        - name: recipientId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Deactivated. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  # ────────────────────────────────────────────────────────────── batches
+  /wise/batches:
+    get:
+      tags: [Wise Batches]
+      summary: List Wise batch groups
+      operationId: wiseBatchList
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/WiseBatchGroupStatus' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        '200':
+          description: Paged batch groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/WiseBatchGroup' }
+                  total: { type: integer }
+                required: [items, total]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Wise Batches]
+      summary: Draft a Wise batch group from an existing PaymentBatch (no money moves)
+      description: |
+        Creates the Wise batch group and, for every eligible commission in the referenced
+        `PaymentBatch`, creates a quote and a batch-group transfer. Resumable: a retry skips
+        commissions that already have a `WiseTransfer` (idempotency via `customerTransactionId`).
+
+        On completion the batch group is `NEW` and **no money has moved**. Per-affiliate failures
+        are returned in `failures[]` and do not abort the batch.
+      operationId: wiseBatchPrepare
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentBatchId: { type: string }
+                idempotencyKey:
+                  type: string
+                  format: uuid
+                  description: Client-supplied. Repeated calls with the same key return the same batch.
+              required: [paymentBatchId, idempotencyKey]
+      responses:
+        '201':
+          description: Batch group drafted.
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/WiseBatchGroupDetail' },
+                },
+            }
+        '400':
+          description: PaymentBatch not in a draftable state, or provider is not WISE.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: A Wise batch group already exists for this PaymentBatch.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  /wise/batches/{batchId}:
+    get:
+      tags: [Wise Batches]
+      summary: Get a Wise batch group with its transfers and pay-in details
+      operationId: wiseBatchGet
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/WiseBatchGroupDetail' },
+                },
+            }
+          description: Batch group detail.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /wise/batches/{batchId}/complete:
+    post:
+      tags: [Wise Batches]
+      summary: Close the batch group to further changes and obtain pay-in instructions (no money moves)
+      description: |
+        Transitions the Wise batch group `NEW → COMPLETED` and stores the returned
+        `payInDetails` verbatim. Local status becomes `AWAITING_MANUAL_FUNDING` when
+        `WISE_FUNDING_MODE=MANUAL`, otherwise `COMPLETED`.
+
+        `payInDetails[].reference` is **opaque** — render it verbatim, never parse or modify it.
+      operationId: wiseBatchComplete
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/WiseBatchGroupDetail' },
+                },
+            }
+          description: Completed; pay-in instructions attached.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Batch group is not in `NEW`, or the stored `version` is stale.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  /wise/batches/{batchId}/fund:
+    post:
+      tags: [Wise Batches]
+      summary: Fund the batch group from the Wise balance — MOVES REAL MONEY
+      description: |
+        Calls `POST /v3/profiles/{profileId}/batch-payments/{groupId}/payments` with
+        `{"type":"BALANCE"}`.
+
+        Returns **501 Not Implemented** when `WISE_FUNDING_MODE=MANUAL` — the documented state for
+        a Thailand-registered account on a personal API token, where Wise does not permit API
+        funding. Use `mark-funded` after funding in the Wise app instead.
+
+        Returns **428 Precondition Required** when Wise demands SCA (`403` + `x-2fa-approval`);
+        the response carries the one-time-token so a caller can drive the challenge chain. SCA
+        handling is designed but not implemented in Phase 1.
+      operationId: wiseBatchFund
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/WiseBatchGroupDetail' },
+                },
+            }
+          description: Funded. Transfers are paid out by Wise immediately.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Batch group not `COMPLETED`, already funded, or insufficient funds at Wise.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+        '428':
+          description: SCA required. `oneTimeToken` must be cleared and the call retried.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      oneTimeToken: { type: string }
+        '501':
+          description: '`WISE_FUNDING_MODE=MANUAL` — API funding unavailable for this account/region.'
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+
+  /wise/batches/{batchId}/mark-funded:
+    post:
+      tags: [Wise Batches]
+      summary: Record that a human funded this batch group (idempotent; moves no money)
+      description: |
+        The authoritative signal in `MANUAL` funding mode. Records who asserted it and the
+        evidence (bank reference, screenshot id, note). Idempotent — a second call is a no-op.
+
+        This endpoint does **not** change any commission or affiliate balance. Those move only
+        when Wise's `transfers#state-change` events arrive.
+      operationId: wiseBatchMarkFunded
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fundedAt: { type: string, format: date-time }
+                bankReference: { type: string, maxLength: 255 }
+                note: { type: string, maxLength: 1000 }
+              required: [fundedAt]
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/WiseBatchGroupDetail' },
+                },
+            }
+          description: Recorded (or already recorded).
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Batch group is not in a fundable state.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+
+  /wise/batches/{batchId}/cancel:
+    post:
+      tags: [Wise Batches]
+      summary: Request cancellation of an unfunded batch group
+      description: |
+        `PATCH`es the Wise batch group to `MARKED_FOR_CANCELLATION`. Only valid before funding —
+        after funding, individual transfers must be cancelled at Wise and will arrive as
+        `cancelled` / `funds_refunded` state-change events, which the reducer reverts correctly.
+      operationId: wiseBatchCancel
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/WiseBatchGroupDetail' },
+                },
+            }
+          description: Cancellation requested.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Already funded, or not cancellable.
+          content:
+            {
+              application/json:
+                { schema: { $ref: '#/components/schemas/Error' } },
+            }
+        '502': { $ref: '#/components/responses/ProviderError' }
+
+  # ────────────────────────────────────────────────────────────────── ops
+  /wise/funding-queue:
+    get:
+      tags: [Wise Ops]
+      summary: Batches awaiting a human funding action, oldest first
+      description: |
+        Drives the admin dashboard's funding-queue card. `slaBreached` is true when the batch has
+        been awaiting funding longer than `WISE_FUNDING_SLA_HOURS` (default 72) — the dead-man
+        switch on the human gate. Wise auto-cancels transfers unfunded for ~14 days.
+      operationId: wiseFundingQueueGet
+      responses:
+        '200':
+          description: Funding queue.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/WiseBatchGroup'
+                        - type: object
+                          properties:
+                            awaitingHours: { type: number }
+                            slaBreached: { type: boolean }
+                  slaHours: { type: integer }
+                required: [items, slaHours]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /wise/health:
+    get:
+      tags: [Wise Ops]
+      summary: Wise integration health
+      description: |
+        Reports connectivity, configuration presence (**boolean only — never secret values**),
+        webhook subscription state, unprocessed-event backlog, funding-SLA breaches and the count
+        of transfers stuck in non-terminal states.
+      operationId: wiseHealthGet
+      responses:
+        '200':
+          description: Health snapshot.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  environment: { type: string, enum: [sandbox, production] }
+                  fundingMode: { type: string, enum: [MANUAL, API] }
+                  activeProvider: { type: string, enum: [MOCK, WISE, RISE] }
+                  tokenConfigured:
+                    {
+                      type: boolean,
+                      description: Presence only. Never the value.,
+                    }
+                  profileIdConfigured: { type: boolean }
+                  apiReachable: { type: boolean }
+                  webhookSubscriptions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        eventType: { type: string }
+                        schemaVersion: { type: string }
+                        active: { type: boolean }
+                  unprocessedEvents: { type: integer }
+                  signatureFailures24h: { type: integer }
+                  unknownStateEvents24h: { type: integer }
+                  fundingSlaBreaches: { type: integer }
+                  stuckTransfers: { type: integer }
+                required:
+                  [environment, fundingMode, activeProvider, apiReachable]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /wise/reconcile:
+    post:
+      tags: [Wise Ops]
+      summary: Manually trigger Wise reconciliation
+      description: |
+        Same code path as the hourly `wise-reconciliation` cron: polls every non-terminal
+        `WiseTransfer` and feeds the result through the **same reducer** as a synthetic event, so
+        it can never double-apply an affiliate balance.
+
+        Protected by the cron secret guard when called by the scheduler, and by `AdminGuard` when
+        called from the UI — matching the existing manual-trigger pattern from Session 4A-2.
+      operationId: wiseReconcileTrigger
+      responses:
+        '200':
+          description: Reconciliation result.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transfersChecked: { type: integer }
+                  transfersUpdated: { type: integer }
+                  slaAlertsRaised: { type: integer }
+                  errors: { type: array, items: { type: string } }
+                required: [transfersChecked, transfersUpdated]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: NextAuth JWT attached by the frontend (blueprint §4.2). Verified by JwtAuthGuard.
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Authenticated but lacking the required role (ADMIN / AFFILIATE).
+      content:
+        { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Resource not found.
+      content:
+        { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ProviderError:
+      description: Wise returned an error or was unreachable. Never leaks the API token.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  providerStatus: { type: integer }
+                  providerCode: { type: string }
+                  retryable: { type: boolean }
+                  correlationId:
+                    type: string
+                    description: The X-External-Correlation-Id sent to Wise. Quote it in support tickets.
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+      required: [error]
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            fieldErrors:
+              type: object
+              additionalProperties: { type: string }
+              description: Maps requirement field keys to human-readable messages.
+
+    # ── Wise event envelope ────────────────────────────────────────────
+    WiseEventEnvelope:
+      type: object
+      description: |
+        Wise's common event envelope. `data` is event-type and schema-version specific; only the
+        variants Part 19.5 handles are modelled.
+      properties:
+        subscription_id: { type: string }
+        event_type:
+          type: string
+          example: transfers#state-change
+        schema_version:
+          type: string
+          example: '4.0.0'
+        sent_at: { type: string, format: date-time }
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/WiseTransferStateChangeData'
+            - $ref: '#/components/schemas/WisePayoutFailureData'
+            - type: object
+              description: Any other event type — persisted and skipped.
+      required: [event_type, schema_version, data]
+
+    WiseTransferStateChangeData:
+      type: object
+      properties:
+        resource:
+          type: object
+          properties:
+            type: { type: string, example: transfer }
+            id: { type: integer, description: Wise transfer id. }
+            profile_id: { type: integer }
+            account_id: { type: integer, description: Recipient account id. }
+          required: [type, id]
+        current_state: { $ref: '#/components/schemas/WiseTransferState' }
+        previous_state:
+          allOf: [{ $ref: '#/components/schemas/WiseTransferState' }]
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+          description: THE ordering key. Events may arrive out of order; never trust arrival order.
+      required: [resource, current_state, occurred_at]
+
+    WisePayoutFailureData:
+      type: object
+      description: |
+        Processed independently of state changes — a payout failure does not always change
+        transfer state, and it never by itself changes commission state.
+      properties:
+        transfer_id: { type: integer }
+        profile_id: { type: integer }
+        failure_reason_code: { type: string, example: WRONG_ID_NUMBER }
+        failure_description: { type: string }
+        occurred_at: { type: string, format: date-time }
+      required: [transfer_id, failure_reason_code, occurred_at]
+
+    WiseTransferState:
+      type: string
+      description: |
+        Wise transfer status. Stored as a free string, not an enum — Wise may add states, and an
+        unrecognised value must be logged and skipped, never cause a write failure.
+      example: outgoing_payment_sent
+      enum:
+        - incoming_payment_waiting
+        - incoming_payment_initiated
+        - processing
+        - funds_converted
+        - outgoing_payment_sent
+        - cancelled
+        - funds_refunded
+        - bounced_back
+        - charged_back
+        - unknown
+
+    # ── recipients ─────────────────────────────────────────────────────
+    WiseRecipientStatus:
+      type: string
+      enum: [DRAFT, PENDING_DETAILS, ACTIVE, INVALID, ARCHIVED]
+
+    WiseRecipient:
+      type: object
+      description: |
+        Local projection of a Wise recipient account. Deliberately carries **no** raw bank
+        details — only the last four digits and an irreversible fingerprint.
+      properties:
+        id: { type: string }
+        affiliateProfileId: { type: string }
+        affiliateFullName: { type: string }
+        wiseRecipientId: { type: string, nullable: true }
+        accountHolderName: { type: string }
+        targetCurrency: { type: string }
+        recipientCountry: { type: string }
+        legalType: { type: string, enum: [PRIVATE, BUSINESS] }
+        requirementsType: { type: string, example: thailand }
+        accountTail: { type: string, nullable: true, example: '4842' }
+        status: { $ref: '#/components/schemas/WiseRecipientStatus' }
+        invalidReason: { type: string, nullable: true }
+        lastValidatedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+      required:
+        [id, affiliateProfileId, accountHolderName, targetCurrency, status]
+
+    RecipientDetailsPayload:
+      type: object
+      description: |
+        Free-form key/value map matching the keys returned by the account-requirements schema.
+        Contents vary entirely by currency/country/route. **Never persisted, never logged.**
+      additionalProperties: true
+
+    RequirementGroup:
+      type: object
+      properties:
+        type: { type: string, example: thailand }
+        title: { type: string }
+        usageInfo: { type: string, nullable: true }
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              group:
+                type: array
+                items: { $ref: '#/components/schemas/RequirementField' }
+      required: [type, fields]
+
+    RequirementField:
+      type: object
+      properties:
+        key: { type: string }
+        name: { type: string }
+        type: { type: string, example: text }
+        required: { type: boolean }
+        refreshRequirementsOnChange:
+          type: boolean
+          description: When true, POST the partial payload back to learn follow-on fields.
+        example: { type: string, nullable: true }
+        displayFormat: { type: string, nullable: true }
+        minLength: { type: integer, nullable: true }
+        maxLength: { type: integer, nullable: true }
+        validationRegexp: { type: string, nullable: true }
+        valuesAllowed:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              name: { type: string }
+      required: [key, name, type, required]
+
+    # ── batches ────────────────────────────────────────────────────────
+    WiseBatchGroupStatus:
+      type: string
+      enum:
+        - NEW
+        - COMPLETED
+        - AWAITING_MANUAL_FUNDING
+        - FUNDED
+        - MARKED_FOR_CANCELLATION
+        - PROCESSING_CANCEL
+        - CANCELLED
+
+    WiseBatchGroup:
+      type: object
+      properties:
+        id: { type: string }
+        paymentBatchId: { type: string }
+        batchNumber:
+          { type: string, description: From the linked PaymentBatch. }
+        wiseBatchGroupId: { type: string, format: uuid }
+        sourceCurrency: { type: string }
+        transferCount: { type: integer }
+        totalSourceAmount:
+          { type: string, description: Decimal serialised as string. }
+        status: { $ref: '#/components/schemas/WiseBatchGroupStatus' }
+        fundingSource:
+          type: string
+          nullable: true
+          enum: [API_BALANCE, MANUAL_ADMIN, MANUAL_DETECTED]
+        fundedAt: { type: string, format: date-time, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+      required: [id, paymentBatchId, wiseBatchGroupId, sourceCurrency, status]
+
+    WiseBatchGroupDetail:
+      allOf:
+        - $ref: '#/components/schemas/WiseBatchGroup'
+        - type: object
+          properties:
+            payInDetails:
+              type: array
+              nullable: true
+              description: Present only once COMPLETED. Stored and rendered verbatim.
+              items: { $ref: '#/components/schemas/WisePayInInstruction' }
+            transfers:
+              type: array
+              items: { $ref: '#/components/schemas/WiseTransferSummary' }
+            failures:
+              type: array
+              description: Per-affiliate drafting failures. Non-fatal.
+              items:
+                type: object
+                properties:
+                  affiliateProfileId: { type: string }
+                  commissionId: { type: string }
+                  reason: { type: string }
+                  retryable: { type: boolean }
+
+    WisePayInInstruction:
+      type: object
+      description: |
+        Verbatim Wise `payInDetails[]` entry. Route-dependent fields are passed through
+        unmodelled in `raw`; `reference` is **opaque** and must never be parsed or altered.
+      properties:
+        type: { type: string, enum: [bank_transfer] }
+        reference: { type: string }
+        amount: { type: number }
+        currency: { type: string }
+        name: { type: string }
+        accountNumber: { type: string, nullable: true }
+        iban: { type: string, nullable: true }
+        bankCode: { type: string, nullable: true }
+        raw:
+          type: object
+          additionalProperties: true
+          description: Full Wise object, stored as received.
+      required: [type, reference, amount, currency]
+
+    WiseTransferSummary:
+      type: object
+      properties:
+        id: { type: string }
+        disbursementTransactionId: { type: string }
+        commissionId: { type: string }
+        affiliateProfileId: { type: string }
+        affiliateFullName: { type: string }
+        wiseTransferId: { type: string }
+        customerTransactionId: { type: string, format: uuid }
+        sourceCurrency: { type: string }
+        sourceValue: { type: string }
+        targetCurrency: { type: string }
+        targetValue: { type: string }
+        rate: { type: string }
+        feeAmount: { type: string }
+        feeBearer: { type: string, enum: [PLATFORM, AFFILIATE] }
+        currentState: { $ref: '#/components/schemas/WiseTransferState' }
+        previousState:
+          allOf: [{ $ref: '#/components/schemas/WiseTransferState' }]
+          nullable: true
+        lastEventOccurredAt: { type: string, format: date-time, nullable: true }
+        payoutFailureCode: { type: string, nullable: true }
+        payoutFailureDescription: { type: string, nullable: true }
+        hasActiveIssues: { type: boolean }
+        balanceAppliedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set once, when pending→paid was applied. The at-most-once guard.
+        balanceRevertedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set once, when a rollback transition reverted the balance.
+        internalStatus:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED]
+          description: The mapped DisbursementTransaction.status.
+      required: [id, wiseTransferId, currentState, internalStatus]

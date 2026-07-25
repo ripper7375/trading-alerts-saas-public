@@ -1,4 +1,28 @@
-# Read APIs Shadow-Run Guide (Session 4A-7)
+# Read APIs Shadow-Run Guide (Session 4A-7) — SUPERSEDED
+
+> ## ⛔ Use `manually test_for_4A-7a_read_api_parity_guide.md` instead
+>
+> Session 4A-7 is SUPERSEDED (split into 4A-7a BUILD + 4A-7b CUTOVER). **The steps below still
+> work** — DevTools can read `httpOnly` cookies even though JavaScript cannot — but three things
+> needed correcting, so the replacement guide is the one to run:
+>
+> 1. **It proves less than it sounds like.** You pasting a cookie into Postman validates the
+>    _server-side_ contract (`JwtAuthGuard` accepts a NextAuth JWE as Bearer). It does **not** show
+>    that a Next.js data hook can obtain that token unattended — NextAuth's cookies are
+>    `httpOnly: true`, so client JS cannot read them. That gap is flag **F45**, decided in 4A-7a.
+> 2. **"Your shadow-run is complete" overstates it** (line 39). This is a point-in-time,
+>    single-sample parity check, not a 48h shadow-run. It is strong _input_ to flag **F44**, which
+>    still needs Davin's ruling.
+> 3. **It is missing the most valuable instruction it could carry:** this is the first
+>    _authenticated_ call these routes ever serve, hence the first time they touch Prisma at all
+>    (4A-6's 401s never reached the DB). A 500 or a missing field here is a **schema** finding, not a
+>    client bug — `DECISION-LOG.md` **F46** / `LESSONS-LEARNED.md` **L18**.
+>
+> The replacement also lists all **12 verified route pairs** (this version has none), warns that
+> query strings must match on both sides, and flags that the copied token stays valid for **30 days**
+> because NextAuth JWEs are stateless — logging out does not revoke it.
+>
+> Retained as audit trail. Original content unchanged below.
 
 ## The Concept
 
