@@ -23,7 +23,7 @@ export async function getMoneyServiceToken(): Promise<string | null> {
 }
 
 function buildQuery(
-  params: Record<string, string | number | undefined>
+  params: Record<string, string | number | boolean | undefined>
 ): string {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -160,5 +160,84 @@ export async function fetchAdminSalesPerformanceReport<T>(
   return callMoneyServiceWithToken<T>(
     `/v1/admin/affiliates/reports/sales-performance${buildQuery(params)}`,
     token
+  );
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Wise recipient routes (Session 4A-W3b) — flag-less per Davin's live call
+// at this session's CONFIRM; F39/F41 already resolved and nothing else
+// reads these routes yet.
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export async function fetchWiseRecipientRequirements<T>(
+  token: string,
+  params: {
+    targetCurrency: string;
+    recipientCountry?: string;
+    legalType?: string;
+    addressRequired?: boolean;
+  }
+): Promise<T> {
+  return callMoneyServiceWithToken<T>(
+    `/v1/wise/recipients/requirements${buildQuery(params)}`,
+    token
+  );
+}
+
+/**
+ * Not in this order's own File 1 route-handler list, but the Contract
+ * section documents it and File 2's field-refresh interaction requires it —
+ * added as a deviation (see order Deviations).
+ */
+export async function refreshWiseRecipientRequirements<T>(
+  token: string,
+  body: { quoteId: string; partial: Record<string, unknown> }
+): Promise<T> {
+  return callMoneyServiceWithToken<T>(
+    '/v1/wise/recipients/requirements/refresh',
+    token,
+    { method: 'POST', body: JSON.stringify(body) }
+  );
+}
+
+export async function fetchWiseRecipientMe<T>(token: string): Promise<T> {
+  return callMoneyServiceWithToken<T>('/v1/wise/recipients/me', token);
+}
+
+export async function createWiseRecipient<T>(
+  token: string,
+  body: {
+    targetCurrency: string;
+    recipientCountry: string;
+    legalType: 'PRIVATE' | 'BUSINESS';
+    accountHolderName: string;
+    requirementsType: string;
+    details: Record<string, unknown>;
+  }
+): Promise<T> {
+  return callMoneyServiceWithToken<T>('/v1/wise/recipients', token, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchWiseRecipientsAdmin<T>(
+  token: string,
+  params: { status?: string; page?: number; pageSize?: number } = {}
+): Promise<T> {
+  return callMoneyServiceWithToken<T>(
+    `/v1/wise/recipients${buildQuery(params)}`,
+    token
+  );
+}
+
+export async function revalidateWiseRecipient<T>(
+  token: string,
+  id: string
+): Promise<T> {
+  return callMoneyServiceWithToken<T>(
+    `/v1/wise/recipients/${encodeURIComponent(id)}/revalidate`,
+    token,
+    { method: 'POST' }
   );
 }
