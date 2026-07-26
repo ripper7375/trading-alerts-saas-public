@@ -149,9 +149,9 @@ Register **F43** (Funding-SLA alert delivery channel — money-service has no em
 
 ## Done when
 
-- [ ] Idempotency audit matrix committed in order Deviations (one row per money write endpoint, no "TBD" verdicts).
-- [ ] dLocal webhook dedupe mechanism evidenced with exact code line citations.
-- [ ] `app.enableShutdownHooks()` added to `money-service/src/main.ts`; `PrismaService.onModuleDestroy` observed firing.
+- [x] Idempotency audit matrix committed in order Deviations (one row per money write endpoint, no "TBD" verdicts).
+- [x] dLocal webhook dedupe mechanism evidenced with exact code line citations.
+- [x] `app.enableShutdownHooks()` added to `money-service/src/main.ts`; `PrismaService.onModuleDestroy` observed firing.
 - [ ] Explicit `@Throttle({ default: { ttl: 60_000, limit: 300 } })` added to `dlocal-webhook.controller.ts`; replayed dLocal webhook payload processes identically before and after.
 - [ ] BullMQ job-ID policy (`jobId = wise:event:<deliveryId>`) documented in design §8 and order Deviations.
 - [ ] Flag **F43** registered OPEN in `DECISION-LOG.md` (owner Davin, due 4A-W6).
@@ -189,6 +189,14 @@ _(filled DURING execution — what / why / impact.)_
 - **Plan §13's own "template" doesn't hold up under inspection**: `RiseWorksWebhookEvent` (`prisma/non-market-data/schema.prisma:837-867`, mirrored `money-service/prisma/schema.prisma:550-568`) is cited by Plan §13 as the dedupe template, but its `hash`/`signature` fields carry **no unique constraint** — only non-unique `@@index([transactionId|eventType|processed|receivedAt])`. RiseWorks's actual dedup (`lib/disbursement/webhook/event-processor.ts:100`) is the same business-state-check shape as dLocal/Stripe (`transaction.status === 'COMPLETED'` short-circuits), not a lookup against `RiseWorksWebhookEvent` by hash. The one model in either schema with a real DB-enforced dedupe key is `WiseWebhookEvent.deliveryId String @unique` (`prisma/non-market-data/schema.prisma:1053`) — built at 4A-W2, not yet wired to a live webhook receiver (that's 4A-W5's job). Worth 4A-W5 inheriting `WiseWebhookEvent`'s `@unique` pattern rather than `RiseWorksWebhookEvent`'s, since the latter's own field never actually enforced dedup.
 
 **Audit conclusion:** every live money webhook (dLocal, Stripe, RiseWorks) dedupes via downstream business-state checks (a status field that only transitions once), not via a webhook-delivery-ID table. This has worked so far with zero known duplicate-processing incidents, but it is a weaker guarantee than `WiseWebhookEvent`'s unique-key design — the business-state check only protects the specific side effects the code author remembered to gate (as the L-series 4A-5 notification bug proved once already). No fix applied here — this is an audit-only step; flagging the pattern gap for whoever owns 4A-8's outbox/idempotency work and confirming 4A-W5 should use `WiseWebhookEvent`'s stronger design for the new Wise receiver.
+
+### Graceful Shutdown Fix (Step 3)
+
+- Added `app.enableShutdownHooks()` to `money-service/src/main.ts` (before `app.listen()`), with a comment documenting the drain policy 4A-W5's BullMQ worker must follow (below).
+- Added an observable log line to `PrismaService.onModuleDestroy()` (`money-service/src/prisma/prisma.service.ts`) — previously silent, so the fix would have been unverifiable even once wired up.
+- **Verification (new test, not just reasoning):** `money-service/src/prisma/prisma.shutdown.spec.ts` boots a real `NestApplication` containing `PrismaService` (with only `$connect`/`$disconnect` stubbed — no live DB touched), calls the real `app.enableShutdownHooks()`, and delivers a synthetic in-process `SIGTERM` (`process.emit`, not a real OS signal — safe under Jest, and confirmed _not_ safe to skip this stubbing: an unstubbed first run genuinely killed the Jest worker mid-test, because Nest's `listenToShutdownSignals()` re-sends the OS signal via `process.kill(process.pid, signal)` after cleanup finishes — confirmed by reading `node_modules/@nestjs/core/nest-application-context.js:214-220`). Stubbed `process.kill`/`process.exit` to observe the hook without dying; test asserts `$disconnect` was called, the new log line fired, and `process.kill` was actually invoked with `(pid, 'SIGTERM')` — proving Nest's real end-to-end shutdown path ran, not a hand-called `onModuleDestroy()`.
+- `npm run build` clean; full `money-service` suite 28/28 suites, 286/286 tests (was 27/285 at 4A-W3a's close — +1 suite/+1 test, this new spec).
+- **BullMQ worker drain policy for 4A-W5** (documented per Step 3's own ask, so the next session inherits it ready-made): any `@Processor()` class 4A-W5 registers must implement `onModuleDestroy()` (or `onApplicationShutdown()`) calling `await this.worker.close()` — BullMQ's own `Worker.close()` waits for the currently-processing job to finish before returning, so it composes correctly with `enableShutdownHooks()`'s `await this.callDestroyHook()` step (all providers' destroy hooks are awaited in sequence before the process exits). No queue consumer exists yet in `app.module.ts` (confirmed: only `BullModule.forRoot`, no `registerQueue()`/`@Processor()` — this order's own Entry Criteria claim, re-verified), so this is a policy for 4A-W5 to follow, not code to write now.
 
 ---
 

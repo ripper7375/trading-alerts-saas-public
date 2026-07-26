@@ -2,6 +2,8 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
+import { logger } from '../common/logger.util';
+
 // Prisma 7 requires a driver adapter for every PrismaClient instantiation.
 // DATABASE_URL is the pooled (PgBouncer) connection string, authenticating as
 // the `money_svc` role (blueprint §5.1) — a distinct, narrower-scoped role
@@ -34,6 +36,10 @@ export class PrismaService
   }
 
   async onModuleDestroy() {
+    // Session 4A-W4: only observable now that main.ts calls
+    // enableShutdownHooks() — previously this method was wired to Nest's
+    // lifecycle but never actually invoked on SIGTERM/SIGINT.
     await this.$disconnect();
+    logger.info('PrismaService disconnected cleanly on module shutdown');
   }
 }
