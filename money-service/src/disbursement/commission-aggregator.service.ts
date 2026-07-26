@@ -10,6 +10,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
+import type { DisbursementProvider } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -120,6 +121,84 @@ export class CommissionAggregatorService {
     }
 
     // Sort by total amount descending
+    return aggregates.sort((a, b) => b.totalAmount - a.totalAmount);
+  }
+
+  /**
+   * Provider-aware eligibility (Session 4A-W6, design §6.2 step 1): for
+   * `WISE`, replaces the Rise KYC-APPROVED filter with
+   * `AffiliateWiseRecipient.status === 'ACTIVE'`. Every other provider
+   * falls through to the existing, byte-for-byte unmodified
+   * `getAllPayableAffiliates()` — this is a NEW, additive method, not a
+   * signature change to the existing one.
+   *
+   * `AffiliateWiseRecipient` has no back-relation on `AffiliateProfile` in
+   * money-service's mirrored schema subset (only a scalar
+   * `affiliateProfileId` FK, same convention as `AffiliateCode`/
+   * `Commission` — see `4a-w2-…`'s own Deviations), so eligibility is
+   * resolved as two queries rather than one relation-filtered `findMany`.
+   *
+   * Not yet wired into `disbursement-processor.service.ts`'s cron call —
+   * `DISBURSEMENT_PROVIDER` stays `MOCK` this session (order Rules) and that
+   * file isn't in this order's own file list; wiring the cron to call this
+   * for `WISE` is 4A-W7's job, when the provider actually flips.
+   *
+   * @param provider Payment provider driving this aggregation pass
+   * @returns Array of commission aggregates for payable, eligible affiliates
+   */
+  async getAllPayableAffiliatesForProvider(
+    provider: DisbursementProvider
+  ): Promise<CommissionAggregate[]> {
+    if (provider !== 'WISE') {
+      return this.getAllPayableAffiliates();
+    }
+
+    const activeRecipients = await this.prisma.affiliateWiseRecipient.findMany({
+      where: { status: 'ACTIVE' },
+      select: { affiliateProfileId: true },
+    });
+    const eligibleAffiliateIds = activeRecipients.map(
+      (r) => r.affiliateProfileId
+    );
+    if (eligibleAffiliateIds.length === 0) {
+      return [];
+    }
+
+    const commissions = await this.prisma.commission.findMany({
+      where: {
+        status: 'APPROVED',
+        disbursementTransaction: null,
+        affiliateProfileId: { in: eligibleAffiliateIds },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const groupedByAffiliate = new Map<string, typeof commissions>();
+    for (const comm of commissions) {
+      const affiliateId = comm.affiliateProfileId;
+      const existing = groupedByAffiliate.get(affiliateId) ?? [];
+      existing.push(comm);
+      groupedByAffiliate.set(affiliateId, existing);
+    }
+
+    const aggregates: CommissionAggregate[] = [];
+    for (const [affiliateId, comms] of groupedByAffiliate) {
+      const totalAmount = comms.reduce(
+        (sum, c) => sum + Number(c.commissionAmount),
+        0
+      );
+      if (totalAmount >= MINIMUM_PAYOUT_USD) {
+        aggregates.push({
+          affiliateId,
+          commissionIds: comms.map((c) => c.id),
+          totalAmount,
+          commissionCount: comms.length,
+          oldestDate: comms[0]?.createdAt ?? new Date(),
+          canPayout: true,
+        });
+      }
+    }
+
     return aggregates.sort((a, b) => b.totalAmount - a.totalAmount);
   }
 

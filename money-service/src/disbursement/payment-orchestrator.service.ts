@@ -137,7 +137,12 @@ export class PaymentOrchestratorService {
     // Build payment requests from transactions
     const paymentRequests: PaymentRequest[] = pendingTransactions.map(
       (txn: BatchTransaction) => ({
-        affiliateId: txn.affiliateRiseAccount?.affiliateProfileId || '',
+        // Hard Invariant #2 / design §3.5(a) fix: Commission.affiliateProfileId
+        // is always present (required FK); txn.affiliateRiseAccount is absent
+        // for any non-Rise transaction and silently produced '' here before.
+        // Behavior-preserving for Rise: affiliateRiseAccount.affiliateProfileId
+        // and commission.affiliateProfileId are the same value by construction.
+        affiliateId: txn.commission.affiliateProfileId || '',
         riseId: txn.payeeRiseId || '',
         amount: Number(txn.amount),
         currency: txn.currency,

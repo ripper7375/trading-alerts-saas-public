@@ -183,6 +183,22 @@ describe('PaymentOrchestratorService', () => {
         })
       );
     });
+
+    it('Hard Invariant #2 / design §3.5(a) fix: the PaymentRequest carries a non-empty affiliateId even when affiliateRiseAccount is absent', async () => {
+      prismaMock.paymentBatch.findUnique.mockResolvedValue({
+        ...baseBatch,
+        transactions: [{ ...baseTransaction, affiliateRiseAccount: null }],
+      } as never);
+
+      const provider = new MockPaymentProvider({ failureRate: 0, delay: 0 });
+      const sendBatchPaymentSpy = jest.spyOn(provider, 'sendBatchPayment');
+
+      await service.executeBatch('batch-1', provider);
+
+      expect(sendBatchPaymentSpy).toHaveBeenCalledWith([
+        expect.objectContaining({ affiliateId: 'aff-1' }), // from commission.affiliateProfileId, not the null affiliateRiseAccount
+      ]);
+    });
   });
 
   describe('fundable provider (isFundable branch, Wise — Hard Invariant #1)', () => {
