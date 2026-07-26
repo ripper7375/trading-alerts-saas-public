@@ -24,6 +24,8 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { isFundable } from '../wise/providers/provider-capabilities';
+import type { FundableProvider } from '../wise/providers/provider-capabilities';
 
 import { BatchManagerService } from './batch-manager.service';
 import type { PaymentRequest } from './disbursement.types';
@@ -31,6 +33,11 @@ import { PaymentProvider } from './providers/base-provider';
 import { RetryHandlerService } from './retry-handler.service';
 import { TransactionLoggerService } from './transaction-logger.service';
 import { TransactionService } from './transaction.service';
+
+type BatchWithTransactions = NonNullable<
+  Awaited<ReturnType<BatchManagerService['getBatchById']>>
+>;
+type BatchTransactionRow = BatchWithTransactions['transactions'][number];
 
 /**
  * Result of batch execution
@@ -111,6 +118,22 @@ export class PaymentOrchestratorService {
       };
     }
 
+    // §3.4 branch (Hard Invariant #1): a fundable provider (Wise) drafts a
+    // batch but must NEVER itself set Commission.status = 'PAID' or touch
+    // AffiliateProfile.balance — that stays 4A-W5's webhook reducer's
+    // exclusive job. Every non-fundable provider (Mock, archived Rise) is
+    // completely unaffected by this branch and falls through to the
+    // existing logic below, unmodified (Hard Invariant #4 — the parity
+    // oracle for this session's only genuinely risky edit).
+    if (isFundable(provider)) {
+      return this.executeFundableBatch(
+        batchId,
+        batch,
+        pendingTransactions,
+        provider
+      );
+    }
+
     // Build payment requests from transactions
     const paymentRequests: PaymentRequest[] = pendingTransactions.map(
       (txn: BatchTransaction) => ({
@@ -187,6 +210,78 @@ export class PaymentOrchestratorService {
       successCount,
       failedCount,
       errors,
+    };
+  }
+
+  /**
+   * §3.4 fundable-provider path (Wise). Drafts the batch at the provider
+   * (quote + transfer per commission, no money moved) and closes it to
+   * obtain pay-in instructions. Writes `DisbursementTransaction.status`
+   * only for per-affiliate drafting FAILURES (housekeeping — Hard
+   * Invariant #1 only prohibits touching `Commission.status`/balance, not
+   * marking a drafting failure). Successful drafts stay `PENDING` exactly
+   * as `TransactionService.createTransactionsForCommissions` left them —
+   * they advance only when 4A-W5's reducer processes a real Wise webhook.
+   * `PaymentBatch.status` stays `PROCESSING` (set unconditionally above);
+   * there is no `COMPLETED` transition here, since "complete" for a Wise
+   * batch means every transfer actually paid out, which is asynchronous
+   * and reducer-driven, not something `executeBatch` can observe synchronously.
+   */
+  private async executeFundableBatch(
+    batchId: string,
+    batch: BatchWithTransactions,
+    pendingTransactions: BatchTransactionRow[],
+    provider: PaymentProvider & FundableProvider
+  ): Promise<ExecutionResult> {
+    const prepared = await provider.prepareBatch({
+      paymentBatchId: batchId,
+      batchName: batch.batchNumber,
+      sourceCurrency: batch.currency,
+      items: pendingTransactions.map((txn) => ({
+        commissionId: txn.commissionId,
+        // Hard Invariant #2 / design §3.5(a) fix: resolve the affiliate from
+        // Commission.affiliateProfileId (always present, required FK), NOT
+        // txn.affiliateRiseAccount?.affiliateProfileId — a Wise transaction
+        // has no Rise account, so that path silently produced ''.
+        affiliateProfileId: txn.commission.affiliateProfileId,
+        amount: Number(txn.amount),
+      })),
+    });
+
+    if (prepared.transfers.length > 0) {
+      await provider.completeBatch(prepared.providerBatchId);
+    }
+
+    for (const failure of prepared.failures) {
+      const txn = pendingTransactions.find(
+        (t) => t.commissionId === failure.commissionId
+      );
+      if (txn) {
+        await this.transactionService.updateTransactionStatus(
+          txn.id,
+          'FAILED',
+          {
+            errorMessage: failure.reason,
+          }
+        );
+      }
+    }
+
+    await this.logger.logBatchExecuted(batchId, {
+      success: prepared.failures.length === 0,
+      message: `${prepared.transfers.length} drafted, ${prepared.failures.length} failed to draft`,
+    });
+
+    return {
+      success: prepared.failures.length === 0,
+      batchId,
+      batchNumber: batch.batchNumber,
+      totalAmount: prepared.totalSourceAmount,
+      successCount: prepared.transfers.length,
+      failedCount: prepared.failures.length,
+      errors: prepared.failures.map(
+        (f) => `Commission ${f.commissionId}: ${f.reason}`
+      ),
     };
   }
 
