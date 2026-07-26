@@ -36,7 +36,7 @@ export interface WiseWebhookJobData {
   webhookEventId: string;
 }
 
-export const WISE_WEBHOOK_QUEUE = 'money:wise-webhook';
+export const WISE_WEBHOOK_QUEUE = 'money-wise-webhook';
 
 @Processor(WISE_WEBHOOK_QUEUE)
 export class WiseWebhookProcessor
