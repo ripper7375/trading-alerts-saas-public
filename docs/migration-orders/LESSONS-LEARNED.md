@@ -194,3 +194,30 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
 - Root cause: order text is written once, at PRE-DRAFT/DRAFT time, from a snapshot of the ground truth; the ground truth (design docs, schema, other lessons) keeps evolving underneath it (here: a same-repo dated correction, a frozen invariant table paraphrased instead of copied, and schema enum values never cross-checked against the prose). A PORT-variant order's own "Low creativity dial" instruction ("follow the design doc, not this order's own prose") is necessary but not sufficient — nothing forces a re-read of the cited sections before typing the implementation.
 - Rule: for any order whose own text states "ground truth is §X, not this order's prose" (every PORT variant), actually re-read §X (and the live schema/enum values any described mutation touches) immediately before writing each file that implements it — do not implement from the order's paraphrase and only spot-check ground truth when something looks odd. A schema-invalid value (`'FAILED'` here) would be caught by `tsc`; a schema-valid-but-wrong value or an incomplete state table would not be, and would ship as a silent money-correctness bug.
 - Source: Session 4A-W5 (2026-07-26) · Status: ACTIVE
+- Recurrence (Session 4A-W6): five more mismatches in a single order — a wrong SLA default (24h vs.
+  design's 72h), an invented interface shape in File 1's own prose (design §3.3's real
+  `FundableProvider` has completely different members), a quote-direction example that predated and
+  was superseded by a LATER binding decision (F38) recorded in a different document
+  (`DECISION-LOG.md`) than the one the order cited, an undercounted REST endpoint surface (3 vs. the
+  frozen OpenAPI's real 7), and two file-location disagreements with design §8's own module-layout
+  table. The F38 case is new: ground truth itself can be split across documents that disagree with
+  each other by DATE, not just an order paraphrasing one document imperfectly — the more recently
+  dated source (here, `DECISION-LOG.md`) wins, but only re-reading BOTH and checking dates catches
+  it.
+
+### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
+
+- Symptom: 4A-W6's own Hard Invariant #4 and Rules both said "every pre-existing test in
+  `payment-orchestrator.service.spec.ts` MUST pass UNMODIFIED" — the file did not exist anywhere in
+  the tree. Neither did `commission-aggregator.service.spec.ts`, another file this same session had
+  to edit. Both are core, already-shipped, money-moving files with zero prior test coverage.
+- Root cause: an order's own confidence that "existing tests protect the untouched code path" is
+  itself an unverified claim — a `Read`/`Glob` on the literal file the order names is a cheap check
+  that would have caught this before writing a single line of the new branch, but nothing prompts
+  that check specifically (it looks like ordinary Verification/Rules prose, not a claim to audit).
+- Rule: before relying on "existing tests" as a parity oracle for ANY file an order names, actually
+  locate that spec file (`Glob`/`find`) before writing code — do not assume its existence from the
+  order's confident tone. If it doesn't exist, building it first (covering the untouched code path
+  AND the new one) is real, valuable, in-scope work, not a scope-creep detour — it's the safety net
+  the order assumed it already had.
+- Source: Session 4A-W6 (2026-07-26) · Status: ACTIVE

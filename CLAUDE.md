@@ -24,7 +24,84 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W5 CLOSED, executed as PORT — Part 19.5 (Wise) webhook receiver +
+- **Current:** Session 4A-W6 CLOSED, executed as PORT — Part 19.5 (Wise) payout engine (`isFundable`
+  branch), zero traffic cut over — 2026-07-26.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, no Advisor-DRAFT/Davin-approval commit trail,
+  paired with a full content rewrite condensing the order's own prose) — asked Davin directly per
+  the established pattern rather than trusting or silently correcting it; confirmed live as his own
+  authentic edit, including the intentional drop of the original PRE-DRAFT's Admin UI file (deferred
+  to a future UI-BUILD session). **Found and corrected FIVE ground-truth drifts before Step 1**
+  (`LESSONS-LEARNED.md` L27, now a repeat-offender pattern — recorded in full in the order's own
+  Deviations): `WISE_FUNDING_SLA_HOURS` default is 72h, not the 24h the order's Hard Invariant #6
+  and Done-when cited (design §6.2/§7.2 and the frozen OpenAPI both say 72); File 1's own prose
+  invented a `FundableProvider` shape (`isFundable: boolean` + `getPayInDetails()`/`markFunded()`)
+  that doesn't match design §3.3's real interface (`fundingMode`/`prepareBatch`/`completeBatch`/
+  `fundBatchFromBalance`/`cancelBatch`, structural type guard); `wise-quote.service.ts`'s quote
+  direction followed F38's LATER, binding `DECISION-LOG.md` resolution (quote by `targetAmount`,
+  platform absorbs the fee) rather than design §6.2's own now-superseded `sourceAmount` example — a
+  new variant where ground truth itself is split across two documents that disagree by date; File
+  6's admin controller was built against the frozen OpenAPI's real 7-endpoint surface, not the
+  order's own undercounted 3; two files' TARGET paths (`wise/providers/` vs. `disbursement/
+providers/`, `crons/` vs. `wise/services/`) diverge from design §8's suggested module layout —
+  followed the order's own stated paths.
+  **Resolved F43 live** (Davin, this session, due this session per its own registration at 4A-W4):
+  Option (a) — Resend REST called directly from money-service (native `fetch`, no new npm
+  dependency), not operation-service's own `resend` package.
+  **Built all 8 files** (dependency order, committed per file):
+  `wise/providers/provider-capabilities.ts` (File 1, `FundableProvider`/`isFundable()` per design
+  §3.3 verbatim), `wise/services/{wise-quote,wise-transfer,wise-batch-group}.service.ts` (File 2 —
+  the transfer service satisfies Hard Invariant #5's "persist `customerTransactionId` before the
+  Wise call" against `WiseTransfer.wiseTransferId`'s real required-`@unique` schema constraint via
+  a self-referential placeholder, overwritten once Wise responds), `wise/providers/wise-payment.provider.ts`
+  (File 3, `WisePaymentProvider extends PaymentProvider implements FundableProvider`,
+  `base-provider.ts` untouched), the `isFundable` branch in `payment-orchestrator.service.ts`
+  (File 4, Hard Invariant #1 — a fundable provider never sets `Commission.status = 'PAID'` or
+  touches the balance, that stays 4A-W5's reducer's job), `commission-aggregator.service.ts`'s new
+  additive `getAllPayableAffiliatesForProvider()` + the `payment-orchestrator.service.ts`
+  §3.5(a) `affiliateId` empty-string fix (File 5), `wise/controllers/wise-batches.controller.ts`
+  (File 6, full 7-endpoint admin surface), `crons/wise-reconciliation.service.ts` (File 7, hourly,
+  same reducer as 4A-W5 fed synthetic dedupe-safe events, REQUIRED funding-SLA alarm via Resend),
+  and `wise-payout-engine.spec.ts` + `wise-payout.e2e.spec.ts` (File 8, composed integration
+  through real DI-wired services plus an RSA-signed sandbox test payload for the mark-funded →
+  reducer → `Commission=PAID` path, per Davin's live CONFIRM-time verification-method call — same
+  Option-2 class as 4A-W5's own downgrade, live write-scope access still unresolved, #47).
+  **A NEW class of gap found while building, not anticipated by the order or the design doc:** no
+  test file existed anywhere in the tree for `payment-orchestrator.service.ts` OR
+  `commission-aggregator.service.ts` before this session, despite Hard Invariant #4 and this
+  order's own Rules assuming the former already existed as "the parity oracle for non-Wise
+  branches." Built both this session (new `LESSONS-LEARNED.md` **L28**). **Writing the
+  orchestrator's first-ever real `MockPaymentProvider` test surfaced a genuine pre-existing bug,
+  deliberately NOT fixed** (out of scope for a Wise session, and possibly accidentally
+  load-bearing): `MockPaymentProvider.sendPayment()` mints its own `transactionId` instead of
+  echoing the caller's, so `executeBatch`'s existing result-matching never succeeds for `MOCK` —
+  "successful" Mock payments are silently skipped, yet the batch still reports `success: true` and
+  gets marked `COMPLETED`. Since `DISBURSEMENT_PROVIDER` stays `MOCK` in production throughout
+  Part 19.5 specifically as a no-real-money safety rail, this may be accidentally desirable —
+  flagged for Davin/Advisor rather than changed as a drive-by.
+  **A second, more severe compound finding surfaced while PRE-DRAFTing 4A-W7 (see Waiting-on #54):**
+  design §8.1's own file-inventory table names `disbursement.types.ts`/`disbursement.constants.ts`/
+  `providers/provider-factory.ts` as needing a `'WISE'` case — none is in this order's own 8-file
+  list, and none was touched (real DI-construction surgery, not an additive fix: `provider-factory.ts`'s
+  plain function can't build a `WisePaymentProvider` with 7 injected collaborators). Combined with
+  the `MockPaymentProvider` bug above, **4A-W7's own literal Checklist step 4 ("flip
+  `DISBURSEMENT_PROVIDER=MOCK → WISE`, redeploy") would currently be a silent no-op** —
+  `getDefaultProvider()` doesn't recognize `'WISE'` and would keep returning `'MOCK'`, and a smoke
+  payout would silently process through Mock instead of reaching Wise, with the batch still
+  reporting green. Recorded as 4A-W7's own new Entry criterion 0 — **that order must not proceed
+  past it.**
+  **Full verification:** `money-service` test suite 44/44 suites, 366/366 tests (was 33/33, 326/326
+  at 4A-W5's close — +11 suites, +40 tests). `npm run build`/`tsc --noEmit` clean both sides.
+  `base-provider.ts` verified untouched (0 line changes) via `git diff --stat` against the session's
+  start commit. `DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session builds the payout
+  engine only, no provider flip, no money moved (and per the finding above, the flip mechanism
+  itself isn't wired yet regardless).
+  **Artifacts updated:** `4a-w6-wise-payout-engine.migration-order.md` (Status → CONFIRMED,
+  Deviations filled in full, Done-when checked), `DECISION-LOG.md` (F43 resolution + full findings
+  entry), `LESSONS-LEARNED.md` (L27 recurrence note, new **L28**), `migration-stack-analysis.md`
+  (new money-service entries), this file. `4a-w7-wise-cutover.migration-order.md` PRE-DRAFTed
+  (VERIFY-RETIRE, CUTOVER block — carries the new Entry criterion 0 blocker forward).
+- _(superseded-by-above, retained for context)_ Session 4A-W5 CLOSED, executed as PORT — Part 19.5 (Wise) webhook receiver +
   state reducer, money-service's first BullMQ queue, zero traffic cut over — 2026-07-26.
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
   modified-but-uncommitted, `PRE-DRAFT → APPROVED`, no Advisor-DRAFT/Davin-approval commit
@@ -573,8 +650,9 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w5-wise-webhook-reducer.migration-order.md` (CONFIRMED and executed
-  by Executor 2026-07-26). Predecessor `4a-w4-wise-hardening-gate.migration-order.md` stays
+  `docs/migration-orders/4a-w6-wise-payout-engine.migration-order.md` (CONFIRMED and executed by
+  Executor 2026-07-26). Predecessor `4a-w5-wise-webhook-reducer.migration-order.md` stays
+  CONFIRMED/executed (see historical block below). Predecessor `4a-w4-wise-hardening-gate.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor
   `4a-w3b-wise-recipient-ui.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor
@@ -589,7 +667,22 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W5):** webhook receiver + state reducer built and verified clean — all 8
+- **Order status (4A-W6):** payout engine (`isFundable` branch) built and verified clean — all 8
+  files shipped plus 3 extra test files (11 total), `money-service` 44/44 suites, 366/366 tests
+  (was 33/33, 326/326 at 4A-W5's close). Monolith `tsc --noEmit` clean. F43 RESOLVED (Resend REST
+  direct). Five order-text-vs-ground-truth mismatches found and corrected (SLA default,
+  `FundableProvider` shape, quote direction, endpoint count, file locations — see Current above,
+  `LESSONS-LEARNED.md` L27 recurrence). New **L28**: two core files had no test suite at all before
+  this session, contrary to what Hard Invariant #4 assumed — built both. Real
+  `MockPaymentProvider` transactionId bug found, deliberately not fixed (out of scope, possibly
+  load-bearing). **Critical carry-forward finding (Waiting-on #54): 4A-W7's own literal cutover
+  step ("flip `DISBURSEMENT_PROVIDER=MOCK → WISE`") would currently be a silent no-op** —
+  `provider-factory.ts`/`disbursement.constants.ts` were deliberately not touched this session
+  (real DI-construction surgery, not additive), so `getDefaultProvider()` still can't return
+  `'WISE'`. 4A-W7's own PRE-DRAFT carries a new Entry criterion 0 blocking on this. Standing note
+  unchanged: `DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session built the payout
+  engine only, no provider flip, no money moved.
+- **Order status (4A-W5, historical):** webhook receiver + state reducer built and verified clean — all 8
   files shipped plus 2 extra test files (10 total), `money-service` 33/33 suites, 326/326 tests
   (was 29/29, 288/288 at 4A-W4's close). Monolith `tsc --noEmit` clean (unaffected). F40
   RESOLVED (`PROFILE`-level). Four order-text-vs-ground-truth mismatches found and corrected
@@ -868,19 +961,46 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   doc sections and Prisma schema before writing code, not by the order's own CONFIRM checklist.
   Recorded as `LESSONS-LEARNED.md` **L27**. Worth the Advisor's attention on whether order
   drafting should diff against the cited ground truth sections automatically, since this is now
-  a repeat-offender pattern rather than a one-off.
-- **Next session:** Davin's call, per `4a-w5-…`'s own Next-session-handoff note.
-  `4a-w6-wise-payout-engine.migration-order.md` (Wise payout engine + funding gate, PORT
-  variant) is APPROVED at status `APPROVED` — requires Davin present (`EXECUTOR-PROTOCOL.md` §7:
-  money and payments changes escalate). `base-provider.ts` protection & isFundable invariants active. Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
-  `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not blocking 4A-W6.
-  Carry forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped
-  sandbox `WISE_API_TOKEN` gap (#47) is exactly what 4A-W6's own token promotion closes; the
-  OpenAPI's archive-vs-upsert conflict on recipient replacement needs a decision (#49);
-  `railway up` stays unreliable for money-service, use `git push origin main` (#50, L23); the
-  admin list's missing affiliate-name field is a minor UX gap, not blocking (#51); the
-  order-text-vs-ground-truth drift pattern (#53, L27) is worth a re-read discipline check before
-  building 4A-W6's own files. Separately, unchanged from prior sessions: a future RETIRE
+  a repeat-offender pattern rather than a one-off. **(54, NEW — CRITICAL, blocks 4A-W7)**
+  `DISBURSEMENT_PROVIDER=WISE` is not actually constructible yet. Verified live at 4A-W6's close:
+  `money-service/src/disbursement/providers/provider-factory.ts` has no `case 'WISE'` (only
+  `'MOCK'`, and a `throw` for `'RISE'`); `disbursement.constants.ts`'s `SUPPORTED_PROVIDERS` and
+  `getDefaultProvider()` don't recognize `'WISE'` at all, so `getDefaultProvider()` would silently
+  keep returning `'MOCK'` even with the env var set to `'WISE'`. Design §8.1's own file-inventory
+  table names these two files (plus `disbursement.types.ts`) as needing a `'WISE'` entry; none is
+  in 4A-W6's own 8-file order, and none was touched this session — wiring it properly needs real
+  DI-construction surgery (`WisePaymentProvider` has 7 injected collaborators a bare `new` can't
+  resolve), not an additive fix. Combined with item below, this means 4A-W7's own literal cutover
+  checklist ("flip `DISBURSEMENT_PROVIDER=MOCK → WISE`, redeploy, smoke payout") would currently
+  do nothing observable — no error, batch still reports green, zero real money moves. 4A-W7's own
+  PRE-DRAFT carries this as a new, hard-blocking Entry criterion 0. **(55, NEW)** A genuine
+  pre-existing bug, found (not fixed) while building 4A-W6's first-ever real test of the
+  Mock-provider code path: `MockPaymentProvider.sendPayment()` mints its own random
+  `transactionId` instead of echoing back the caller's `PaymentRequest.metadata.transactionId`, so
+  `payment-orchestrator.service.ts`'s existing (unmodified) result-matching
+  (`pendingTransactions.find(t => t.transactionId === paymentResult.transactionId)`) can never
+  succeed for `MOCK` — every "successful" Mock payment is silently skipped (logged via
+  `console.error`, not thrown), yet the batch still reports `success: true` and gets marked
+  `COMPLETED`. Since `DISBURSEMENT_PROVIDER` stays `MOCK` in production throughout Part 19.5
+  specifically as a no-real-money safety rail, this may be accidentally desirable behavior (a
+  "fixed" matcher would start marking commissions `PAID` in production under a provider that sends
+  nothing) — needs a deliberate Davin/Advisor decision, not a drive-by fix inside an unrelated
+  session. Full detail on both in `4a-w6-…`'s own Deviations.
+- **Next session:** Davin's call, per `4a-w6-…`'s own Next-session-handoff note.
+  `4a-w7-wise-cutover.migration-order.md` (REAL MONEY CUTOVER, VERIFY-RETIRE variant) is
+  PRE-DRAFTed at status `PRE-DRAFT` — carries a NEW **Entry criterion 0** that must close before
+  the order can proceed at all (Waiting-on #54: the `DISBURSEMENT_PROVIDER` flip mechanism isn't
+  wired yet). Requires Davin present for every step once it does proceed
+  (`EXECUTOR-PROTOCOL.md` §7). Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
+  `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not blocking. Carry
+  forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped sandbox
+  `WISE_API_TOKEN` gap (#47) is unresolved — 4A-W6 worked around it (Option 2, RSA-signed test
+  payloads) rather than closing it, so 4A-W7 needs a real production-scoped token regardless
+  (different token, per §7.2's two-tokens-promoted-per-session plan); the OpenAPI's
+  archive-vs-upsert conflict on recipient replacement needs a decision (#49); `railway up` stays
+  unreliable for money-service, use `git push origin main` (#50, L23); the admin list's missing
+  affiliate-name field is a minor UX gap, not blocking (#51). Separately, unchanged from prior
+  sessions: a future RETIRE
   session can delete the monolith's now-orphaned `app/api/affiliate/dashboard/*`,
   `app/api/admin/{affiliates,analytics}/*` routes and their `lib/` logic once Davin agrees
   Slice 3 (4A-7b) has been stable long enough — not yet scheduled. `4A-5-RW` (RiseWorks) stays
@@ -947,8 +1067,10 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F41 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, Wise-managed PII; store only `accountTail` last 4 digits and `detailsFingerprint` SHA-256 hash ·
   **F42 fully RESOLVED (2026-07-25, Davin; recorded 4A-W1)** — RiseWorks archived, not
   deleted: dormant in repo AND database, restorable per `replace-rise-with-wise/03-…` ·
-  **F43 OPEN (registered Session 4A-W4)** — funding-SLA alert delivery channel (Slack/Discord
-  webhook vs monolith email proxy), owner Davin, due 4A-W6 ·
+  **F43 fully RESOLVED (Session 4A-W6, Davin)** — Option (a), Resend REST called directly from
+  money-service (native `fetch`, no new dependency); needs `RESEND_API_KEY` +
+  `WISE_FUNDING_ALERT_EMAIL` added to money-service's Railway env before it actually delivers
+  (confirmed absent this session) ·
   F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

@@ -2051,6 +2051,85 @@ only, no provider flip, no money moved, no production Wise webhook subscription.
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W5, money-service Wise webhook
-receiver + state reducer)
+<details>
+<summary><code>money-service</code> — Wise payout engine (isFundable branch), 15 new files, 8 modified (Session 4A-W6)</summary>
+
+Builds the code that **creates** Wise transfer quotes, drafts payout batch groups, and branches
+the shared payment orchestrator on `isFundable(provider)` — the reducer built at 4A-W5 stays the
+ONLY writer of `Commission.status = 'PAID'`; this session drafts/funds batches and never touches
+it. Five order-text-vs-cited-ground-truth mismatches found and corrected (full detail in the
+order's own Deviations, also `LESSONS-LEARNED.md` L27's continuing pattern): `WISE_FUNDING_SLA_HOURS`
+default (72h, not 24h), `provider-capabilities.ts`'s real interface shape (design §3.3, not the
+order's invented one), `wise-quote.service.ts`'s quote direction (F38's binding `targetAmount`, not
+design §6.2's superseded `sourceAmount` example), `wise-batches.controller.ts`'s real 7-endpoint
+OpenAPI surface (not the order's 3), and two file-location disagreements (`wise/` vs `disbursement/`
+for File 1, `crons/` vs `wise/services/` for File 7 — this order's own stated paths were followed).
+F43 (funding-SLA alert channel) decided: Resend REST direct, no new dependency.
+
+New:
+
+- `money-service/src/wise/providers/provider-capabilities.ts` — `FundableProvider`/
+  `RecipientAwareProvider`/`CapabilityUnavailableError`, `isFundable()` structural type guard
+- `money-service/src/wise/providers/wise-payment.provider.ts` — `WisePaymentProvider extends
+PaymentProvider implements FundableProvider`; `base-provider.ts` untouched
+- `money-service/src/wise/services/wise-quote.service.ts` — quotes by `targetAmount` (F38, platform
+  absorbs the fee)
+- `money-service/src/wise/services/wise-transfer.service.ts` — batch-group transfer creation;
+  `customerTransactionId` persisted via a placeholder `wiseTransferId` (itself, until Wise
+  responds) for genuine crash resumability against the schema's required-`@unique` column
+- `money-service/src/wise/services/wise-batch-group.service.ts` — `NEW → COMPLETED/
+AWAITING_MANUAL_FUNDING → FUNDED` lifecycle; `markFunded`/`completeBatch` both idempotent
+- `money-service/src/wise/controllers/wise-batches.controller.ts` — full 7-endpoint
+  `/v1/wise/batches*` admin surface (`AdminGuard`), per the frozen OpenAPI
+- `money-service/src/crons/wise-reconciliation.service.ts` — hourly: non-terminal `WiseTransfer`
+  rows replayed through 4A-W5's reducer as synthetic dedupe-safe events; REQUIRED funding-SLA
+  alarm (F43, Resend REST) for `AWAITING_MANUAL_FUNDING` batches past 72h
+- `money-service/src/disbursement/payment-orchestrator.service.spec.ts` — did **not exist before
+  this session** (Hard Invariant #4 / this order's own Rules assumed it did); built covering both
+  the pre-existing Mock/Rise path and this session's new branch — see order Deviations for the
+  real `MockPaymentProvider` transactionId-matching bug this surfaced (not fixed, flagged)
+- `money-service/src/disbursement/commission-aggregator.service.spec.ts` — also did not exist
+  before this session
+- 8 more `*.spec.ts` files across `wise/providers/`, `wise/services/`, `wise/__tests__/`,
+  `wise/controllers/`, `crons/` — one per File 1–7, plus `wise-payout-engine.spec.ts` (composed
+  integration, real DI-wired services) and `wise-payout.e2e.spec.ts` (RSA-signed sandbox test
+  payload per Davin's Option 2, same technique as 4A-W5's replay suite)
+
+Modified:
+
+- `money-service/src/disbursement/payment-orchestrator.service.ts` — `isFundable` branch in
+  `executeBatch`; fixed the pre-existing (now non-fundable-path-only) `affiliateId` empty-string
+  bug (design §3.5(a)) at its source
+- `money-service/src/disbursement/commission-aggregator.service.ts` — additive
+  `getAllPayableAffiliatesForProvider(provider)`; NOT yet wired into
+  `disbursement-processor.service.ts`'s cron call (that file isn't in this order's own file list —
+  4A-W7's job)
+- `money-service/src/wise/wise-api.client.ts` — `WiseRequestOptions.method` widened to include
+  `'PATCH'` (needed for batch-group completion/cancellation, missing since 4A-W3a)
+- `money-service/src/wise/wise.config.ts` — `fundingMode` (F37, default `MANUAL`) and
+  `fundingSlaHours` (default 72h) getters added
+- `money-service/src/wise/providers/provider-capabilities.ts` — `PrepareBatchInput.paymentBatchId`
+  added (needed to correlate with `WiseBatchGroup.paymentBatchId`, missing from design §3.3's own
+  sketch)
+- `money-service/src/wise/wise.module.ts` — `WiseBatchesController` + `WisePaymentProvider` and its
+  3 new services registered, `WisePaymentProvider` exported
+- `money-service/src/crons/crons.module.ts` / `crons.scheduler.ts` / `crons.scheduler.spec.ts` —
+  new hourly `wise-reconciliation` job (`CRON_ENABLED`-gated, same as every other job); existing
+  test's DI wiring updated for the scheduler's new constructor dependency (zero assertions changed)
+
+**NOT touched, deliberately** (design §8.1's own file-inventory table names these, this order's
+8-file breakdown does not): `disbursement.types.ts`, `disbursement.constants.ts`,
+`providers/provider-factory.ts` — wiring a `'WISE'` case into the plain factory function needs real
+DI-construction surgery (`WisePaymentProvider` has 7 injected collaborators a bare `new` can't
+resolve), genuinely 4A-W7's own architectural decision, not an additive same-session fix.
+
+`base-provider.ts` untouched (0 line changes, verified via `git diff --stat`). `DISBURSEMENT_PROVIDER`
+stays `MOCK` in production — no provider flip, no money moved. Full suite: 44/44 suites, 366/366
+tests (was 33/33·326/326 at 4A-W5's close). Monolith `tsc --noEmit` clean.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W6, money-service Wise payout engine)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

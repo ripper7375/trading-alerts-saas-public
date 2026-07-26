@@ -55,7 +55,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F40  | Wise webhook subscription level (profile vs application) — dependent on F36                                                                                                                                           | RESOLVED — Session 4A-W5 (Davin): Profile-level subscription (`WISE_WEBHOOK_SCOPE = 'PROFILE'`), following Model A          |
 | F41  | Wise recipient PII retention/deletion; interacts with F21                                                                                                                                                             | RESOLVED — Session 4A-W3a (Davin): Option A — Wise-managed PII + local hash/tail only (`accountTail` & SHA-256 fingerprint) |
 | F42  | RiseWorks archival depth (archive vs delete)                                                                                                                                                                          | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                            |
-| F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own | OPEN — due Session 4A-W6 (Davin)                                                                                            |
+| F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own | RESOLVED — Session 4A-W6 (Davin): Option (a), Resend REST direct, no new dependency                                         |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -1342,6 +1342,61 @@ successfully started`, no errors; `railway variables --kv` confirms
   `isProviderAvailable('RISE') === false`. **RiseWorks has never moved money in production**, so
   archiving removes a capability that was never live — and restoring the archive is _not_ the same
   as being able to pay via Rise (that would be new build work).
+- Approved by: Davin
+
+## Session 4A-W6 — Wise payout engine: findings
+
+- Status: RESOLVED (findings, not a flag)
+- Session: 4A-W6 · Date: 2026-07-26
+- Findings (full detail in `4a-w6-…migration-order.md`'s own Deviations):
+  1. Same `LESSONS-LEARNED.md` L11 pattern as every prior session in this series — order file
+     modified-but-uncommitted, `PRE-DRAFT → APPROVED` with no Advisor-DRAFT/Davin-approval commit
+     trail. Resolved by asking Davin directly (provenance, scope, verification method, entry
+     criteria all confirmed live) before marking CONFIRMED.
+  2. Five separate order-text-vs-cited-ground-truth mismatches, extending the L27 pattern first
+     recorded at 4A-W5: `WISE_FUNDING_SLA_HOURS` default (24h in the order vs. 72h in design
+     §6.2/§7.2 and the frozen OpenAPI); `provider-capabilities.ts`'s `FundableProvider` shape
+     (invented in the order's own prose vs. design §3.3's real interface); `wise-quote.service.ts`'s
+     quote direction (design §6.2's now-superseded `sourceAmount` example vs. F38's later, binding
+     `targetAmount` resolution); `wise-batches.controller.ts`'s endpoint count (3 in the order's
+     prose vs. 7 in the frozen OpenAPI); and file-location disagreements between the order's own
+     TARGET paths and design §8's suggested module layout for two files.
+  3. A NEW variant of the L27 class: this order's Hard Invariant #4 and Rules assumed
+     `payment-orchestrator.service.spec.ts` already existed as the non-Wise parity oracle. It did
+     not — no test file existed for `payment-orchestrator.service.ts` OR
+     `commission-aggregator.service.ts` anywhere in the tree, verified live. Built both this
+     session. Recorded as new lesson **L28**.
+  4. Writing the orchestrator's first-ever real Mock-provider test surfaced a genuine pre-existing
+     bug (not fixed, out of scope, possibly accidentally load-bearing since `DISBURSEMENT_PROVIDER`
+     stays `MOCK` in production as a safety rail): `MockPaymentProvider.sendPayment()` mints its own
+     `transactionId` instead of echoing the caller's, so `executeBatch`'s existing result-matching
+     never succeeds for Mock, and "successful" payments are silently skipped rather than marked
+     paid. Flagged for Davin/Advisor to decide deliberately.
+  5. Design §8.1's file-inventory table (`disbursement.types.ts`, `disbursement.constants.ts`,
+     `provider-factory.ts` all need a `'WISE'` entry) is not achievable as an additive same-session
+     fix — `provider-factory.ts`'s plain factory function can't construct a `WisePaymentProvider`
+     without a DI container. Flagged as 4A-W7's own architectural decision (this is also when
+     `disbursement-processor.service.ts`'s cron needs wiring to call
+     `CommissionAggregatorService.getAllPayableAffiliatesForProvider('WISE')`, built additively
+     this session but not yet wired in).
+- Approved by: Davin (session CONFIRMED and executed live)
+
+## F43 — Funding-SLA alert delivery channel
+
+- Status: RESOLVED
+- Session: 4A-W6 · Date: 2026-07-26
+- Decision: **Option (a) — Resend REST called directly from money-service**, using native `fetch`
+  (no new npm dependency; does not import the `resend` package operation-service uses for its own,
+  separate email capability per F29). `wise-reconciliation.service.ts`'s hourly job checks every
+  `WiseBatchGroup` still `AWAITING_MANUAL_FUNDING` past `WISE_FUNDING_SLA_HOURS` (72h default) and
+  POSTs to `https://api.resend.com/emails` with `RESEND_API_KEY`/`WISE_FUNDING_ALERT_EMAIL` read
+  from env. The alert path fails closed (logs, never throws) if either var is unset — confirmed
+  absent (value-blind) on money-service's Railway environment as of this session, so the alert
+  will not actually deliver until Davin adds both.
+- Evidence: Davin, live, 2026-07-26 (this session) — selected "Resend REST directly (recommended)"
+  when re-presented with design §13's own three options ((a) Resend REST — recommended, ~30 lines,
+  no new dependency; (b) passive dashboard only; (c) external monitor; (d) revive the descoped
+  `SVC_TOKEN` leg to call operation-service).
 - Approved by: Davin
 
 ## F37 — Wise funding mode: MANUAL (region-gated)

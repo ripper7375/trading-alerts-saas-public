@@ -172,17 +172,17 @@ Dependency order: provider capability interfaces → Wise domain services → Wi
 
 ## Done when
 
-- [ ] Sandbox E2E happy path green: recipient → batch → pay-in details → `mark-funded` → reducer event → `Commission=PAID` and balance moved.
-- [ ] `prepareBatch` interrupted mid-way and retried creates zero duplicate Wise transfers (`customerTransactionId` reused).
-- [ ] `fundBatchFromBalance` throws `CapabilityUnavailableError` under `MANUAL`.
-- [ ] `mark-funded` is idempotent (second call is a no-op).
-- [ ] **REQUIRED Funding-SLA alarm** fires for a batch in `AWAITING_MANUAL_FUNDING` exceeding 24h.
-- [ ] Fix §3.5(a) verified: Wise batch payment requests carry a **non-empty** `affiliateId`.
-- [ ] `base-provider.ts` is untouched (0 line changes).
-- [ ] All pre-existing orchestrator/aggregator/transaction-service tests pass unmodified.
-- [ ] Full `money-service` test suite green (`npm run test`); monolith `npx tsc --noEmit` clean.
-- [ ] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
-- [ ] Session `4A-W7` order exists at status `PRE-DRAFT`.
+- [x] Sandbox E2E happy path green: recipient → batch → pay-in details → `mark-funded` → reducer event → `Commission=PAID` and balance moved. Built as a hand-constructed RSA-signed sandbox test payload (`wise-payout.e2e.spec.ts`), per Davin's live CONFIRM-time call — live API funding access is read-only-scoped (Waiting-on #47).
+- [x] `prepareBatch` interrupted mid-way and retried creates zero duplicate Wise transfers (`customerTransactionId` reused). Proven at the `WiseTransferService` unit level AND at the composed orchestrator→provider level (`wise-payout-engine.spec.ts`).
+- [x] `fundBatchFromBalance` throws `CapabilityUnavailableError` under `MANUAL`.
+- [x] `mark-funded` is idempotent (second call is a no-op).
+- [x] **REQUIRED Funding-SLA alarm** fires for a batch in `AWAITING_MANUAL_FUNDING` exceeding **72h** (corrected from this order's own "24h" — design §6.2/§7.2 and the frozen OpenAPI both say default 72h, `LESSONS-LEARNED.md` L27).
+- [x] Fix §3.5(a) verified: Wise batch payment requests carry a **non-empty** `affiliateId`.
+- [x] `base-provider.ts` is untouched (0 line changes) — verified via `git diff --stat` against the session's start commit.
+- [x] All pre-existing orchestrator/aggregator/transaction-service tests pass unmodified — see Deviations: no such test files actually existed before this session (verified live at CONFIRM); built them this session and used them as the real parity oracle going forward.
+- [x] Full `money-service` test suite green (`npm run test`: 44/44 suites, 366/366 tests, was 33/33·326/326 at 4A-W5's close); monolith `npx tsc --noEmit` clean.
+- [x] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
+- [x] Session `4A-W7` order exists at status `PRE-DRAFT`.
 
 ---
 
@@ -195,6 +195,28 @@ Dependency order: provider capability interfaces → Wise domain services → Wi
 ## Deviations
 
 _(filled DURING execution — what / why / impact.)_
+
+**Ground-truth drift found and corrected before/during Step 1 (per `LESSONS-LEARNED.md` L27 — re-read the actual cited sections, don't build from this order's paraphrase):**
+
+1. `WISE_FUNDING_SLA_HOURS` default is **72h**, not the 24h this order's Hard Invariant #6 and Done-when cited. Design §6.2 ("default 72"), §7.2's secrets table ("default `72`"), and the frozen OpenAPI's `/wise/funding-queue` description ("default 72") all agree. Built `WiseConfig.fundingSlaHours` and `wise-reconciliation.service.ts` against 72h.
+2. File 1's own prose described `FundableProvider` as having an `isFundable: boolean` property plus `getPayInDetails()`/`markFunded()` methods — none of which exist in design §3.3's actual frozen interface (`fundingMode`, `prepareBatch()`, `completeBatch()`, `fundBatchFromBalance()`, `cancelBatch()`; the `isFundable()` type guard is a structural check on `prepareBatch`, not a boolean flag). Built `provider-capabilities.ts` against §3.3 verbatim.
+3. F38's binding resolution (`DECISION-LOG.md`, dated AFTER design §6.2 was authored) is quote-by-`targetAmount` — the affiliate receives their exact earned commission, platform absorbs the fee. Design §6.2's own example JSON shows `sourceAmount` fixed instead, which predates and is superseded by F38. Built `wise-quote.service.ts` against the DECISION-LOG's binding text.
+4. This order's own File 6 description listed only 3 `/wise/batches*` endpoints (`GET /batches`, `GET /batches/:id/pay-in`, `POST /batches/:id/mark-funded`). The frozen OpenAPI ("law") actually documents 7 (`GET /batches`, `POST /batches` [prepare], `GET /batches/:id`, `POST /batches/:id/complete`, `POST /batches/:id/fund`, `POST /batches/:id/mark-funded`, `POST /batches/:id/cancel`), and there is no `/pay-in` sub-route at all — pay-in details live inside `WiseBatchGroupDetail`. Built the full 7-endpoint controller against the OpenAPI.
+5. Design §8's own module-layout table places `provider-capabilities.ts` (§3.3 itself even titles it `disbursement/providers/provider-capabilities.ts`) and `wise-reconciliation.service.ts` under different paths than this order's own File 1/8 and File 7/8 TARGET lines (`wise/providers/` and `crons/` respectively). Followed this order's own stated paths (the thing actually CONFIRMED/APPROVED) rather than the design doc's suggested locations — a purely organizational choice, no Hard Invariant depends on file location. Noted here so a future session doesn't "fix" the location back to match the design doc without realizing this was deliberate.
+
+**A new class of gap found while building, not anticipated by either the order or the design doc: no test file existed for three of the core files this session had to touch.** `payment-orchestrator.service.spec.ts`, `commission-aggregator.service.spec.ts` did not exist anywhere in the tree before this session — Hard Invariant #4 and this order's own Rules assumed `payment-orchestrator.service.spec.ts` already existed as "the parity oracle for non-Wise (Rise/Mock) branches." Verified live via `find`/`Glob` before writing File 4 — genuinely absent. Built both this session, covering the pre-existing (untouched) code paths as well as this session's own new branch, so future sessions inherit a real safety net where this one had none. Recorded as its own finding since it's a variant of L27 (order text assuming a ground-truth artifact exists when it doesn't) worth the Advisor's attention — proposed as new lesson **L28** below.
+
+**Writing `payment-orchestrator.service.spec.ts`'s first-ever real test of the Mock/Rise path surfaced a genuine pre-existing bug, NOT fixed here (out of scope for a Wise session, and possibly accidentally load-bearing):** `MockPaymentProvider.sendPayment()` mints its own random `transactionId` via `generateTransactionId()` instead of echoing back the caller's `PaymentRequest.metadata.transactionId`. `executeBatch`'s existing (unmodified) result-matching (`pendingTransactions.find(t => t.transactionId === paymentResult.transactionId)`) can therefore never succeed for `MockPaymentProvider` — every "successful" Mock payment is silently skipped (not thrown, just `console.error`'d and `continue`'d), yet the batch still reports `success: true` and gets marked `COMPLETED`. Since `DISBURSEMENT_PROVIDER` stays `MOCK` in production throughout Part 19.5 specifically as a no-real-money safety rail, "fixing" the transactionId match could start marking commissions `PAID` in production under a provider that sends nothing — flagged for Davin/Advisor to decide deliberately rather than fixed as a drive-by. Test added asserting the CURRENT (buggy-looking) behavior explicitly, not the behavior the order assumed.
+
+**Design §8.1's own file-inventory table lists `disbursement.types.ts`, `disbursement.constants.ts`, and `providers/provider-factory.ts` as files needing a `'WISE'` case/union-member/`SUPPORTED_PROVIDERS` entry — none of these appear in this order's own 8-file breakdown, and they were deliberately NOT touched this session.** Reason: `provider-factory.ts`'s `createPaymentProvider()` is a plain function returning `new MockPaymentProvider()`/`new RisePaymentProvider()` with zero dependencies — `WisePaymentProvider` needs 7 injected collaborators (`PrismaService`, `WiseApiClient`, `WiseConfig`, `WiseQuoteService`, `WiseTransferService`, `WiseBatchGroupService`, `WiseStateMapper`, `WiseSignatureVerifier`) that only Nest's DI container can resolve. Wiring `case 'WISE'` into the factory properly is real architectural surgery (either making the factory itself DI-aware, or having the cron caller inject `WisePaymentProvider` directly and branch there) — not an additive fix, and not required for this session's own Done-when (the E2E test constructs `WisePaymentProvider` directly via Nest's testing module, bypassing the factory entirely). Flagged as 4A-W7's own concern: the cron (`disbursement-processor.service.ts`, not in this order's file list either) needs this wiring before `DISBURSEMENT_PROVIDER=WISE` can mean anything in production.
+
+**Small necessary fix found and applied, one line, zero behavior change to existing callers:** `WiseApiClient`'s `WiseRequestOptions.method` union (`'GET' | 'POST' | 'PUT' | 'DELETE'`) was missing `'PATCH'` — built at 4A-W3a before any Wise call needed it. Batch-group completion (`PATCH …/batch-groups/{id}`, design §6.2 step 4) and cancellation both require it. Widened the union; every existing GET/POST/PUT/DELETE caller is unaffected.
+
+**Commission-aggregator's new `getAllPayableAffiliatesForProvider(provider)` (File 5) is additive, not wired into the live cron.** `disbursement-processor.service.ts` (not in this order's file list) still calls the existing `getAllPayableAffiliates()` unconditionally — `DISBURSEMENT_PROVIDER` stays `MOCK` in production this session (order Rules), so there is no functional gap yet. 4A-W7 needs to wire the cron to call the new method when the provider is `WISE`.
+
+**`wise-batches.controller.ts`'s `prepare`/`complete` endpoints are the admin/manual-recovery surface, not the automated production path.** The automated path is `PaymentOrchestratorService.executeBatch` (File 4), which does prepare+complete together inside one cron-triggered call, matching design §6.2's own flow diagram — the OpenAPI's two separate REST steps read more naturally as an admin operational surface (inspect/retry/recover) than as the literal cron mechanism. Both converge on the same idempotent-per-`PaymentBatch` services, so calling either path twice (cron then admin, or vice versa) is safe. Flagged for the Advisor to confirm this reading is correct.
+
+**Verification method downgrade (Davin, live, CONFIRM-time — same class as 4A-W5's Option 2):** the Sandbox E2E (`wise-payout.e2e.spec.ts`) uses a hand-constructed RSA-signed sandbox test payload rather than a payload captured from Wise's real Simulation API, since live write-scope access is still unresolved (Waiting-on #47). Genuinely proves the mark-funded → signature-verify → reducer → balance-move pipeline; does not prove Wise's real Simulation API produces byte-identical payloads.
 
 ---
 
