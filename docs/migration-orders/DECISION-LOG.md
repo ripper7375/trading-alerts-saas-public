@@ -52,7 +52,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F37  | Wise funding mode (`MANUAL`/`API`) given the account-region gate                                                                                                                                                      | RESOLVED — Session 4A-W1 (Davin): `MANUAL`, Thailand is not on Wise's API-funding allowlist                                 |
 | F38  | Wise fee bearer + quote amount direction (`sourceAmount` vs `targetAmount`)                                                                                                                                           | RESOLVED — Session 4A-W2 (Davin): Option A — Platform bears the fee (`feeBearer = 'PLATFORM'`)                              |
 | F39  | Wise recipient-details collection surface (affiliate self-service vs admin-entered)                                                                                                                                   | RESOLVED — Session 4A-W3a (Davin): Option A — Affiliate self-service form (`/affiliate/settings/payout`)                    |
-| F40  | Wise webhook subscription level (profile vs application) — dependent on F36                                                                                                                                           | OPEN — due Session 4A-W5 (technical, follows F36)                                                                           |
+| F40  | Wise webhook subscription level (profile vs application) — dependent on F36                                                                                                                                           | RESOLVED — Session 4A-W5 (Davin): Profile-level subscription (`WISE_WEBHOOK_SCOPE = 'PROFILE'`), following Model A          |
 | F41  | Wise recipient PII retention/deletion; interacts with F21                                                                                                                                                             | RESOLVED — Session 4A-W3a (Davin): Option A — Wise-managed PII + local hash/tail only (`accountTail` & SHA-256 fingerprint) |
 | F42  | RiseWorks archival depth (archive vs delete)                                                                                                                                                                          | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                            |
 | F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own | OPEN — due Session 4A-W6 (Davin)                                                                                            |
@@ -1576,3 +1576,78 @@ successfully started`, no errors; `railway variables --kv` confirms
   (2105/2105 tests, +2 suites/+23 tests over the 4A-W3a baseline).
 - Approved by: Davin (live: status-flip confirmation, flag-less, and the revalidate
   guard-mismatch resolution were all explicit live decisions).
+
+## F40 — Wise webhook subscription level (profile vs application)
+
+- Status: RESOLVED
+- Session: 4A-W5 (decided by Davin ahead of CONFIRM, in the order rewrite) · Date: 2026-07-26
+- Decision: **Profile-level** (`WISE_WEBHOOK_SCOPE = 'PROFILE'`), following from F36 (Model A —
+  Business + personal API token, not a Platform partnership). Application-level subscriptions
+  require a Platform/client-credentials setup this integration doesn't use.
+- Evidence: consistent with F36's resolution (4A-W1) and `02-wise-platform-api-integration-reference.md`
+  §6's subscription table (`POST /v1/profiles/{profileId}/subscriptions`, user/personal token —
+  the application-level path needs a `ClientCredentialsToken`, not available on a personal
+  token). No production subscription is created this session (Safety Gate, 4A-W7 cuts over) —
+  this resolves the scope value the eventual subscription call will use.
+- Approved by: Davin (live, ahead of CONFIRM).
+
+## Session 4A-W5 — Webhook receiver + state reducer, findings
+
+- Status: RESOLVED (session close-out record)
+- Session: 4A-W5 · Date: 2026-07-26
+- CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with no Advisor-DRAFT/Davin-approval commit
+  trail) — but this time paired with a full content rewrite (5→8 files, "Ordered steps" replaced
+  by "Ordered File Breakdown") and, separately, a real dropped safety gate: the committed
+  PRE-DRAFT's sandbox-funding entry criterion ("if unavailable, stop and re-plan," lifted
+  verbatim from `04-rise-to-wise-migration-plan.md`'s own W5 entry criteria) was absent from the
+  rewrite. Re-raised it at CONFIRM because Wise's Simulation API requires a **funded** transfer
+  before state simulation, and Waiting-on #47 (still OPEN) already shows the sandbox
+  `WISE_API_TOKEN` is read-only (`POST /v1/accounts` 403s) — likely blocking transfer
+  creation/funding too. Asked Davin directly rather than trusting the rewrite: confirmed his own
+  edit, confirmed funding availability is genuinely unknown, and chose **Option 2** — downgrade
+  verification from "real payloads captured from Wise's Simulation API" to "hand-constructed
+  RSA-signed sandbox test payloads" (same keypair-substitution technique
+  `wise-signature.verifier.spec.ts` already uses). F40 resolved in the same rewrite (see above).
+- Built all 8 files (dependency order, committed per file): `wise-state.mapper.ts` (File 1),
+  `wise-transfer-state.reducer.ts` (File 2), `wise-event-handlers.ts` (File 5, built ahead of
+  File 3 since the processor depends on it), `wise-webhook.processor.ts` (File 3, money-service's
+  first BullMQ `@Processor`), `wise-webhook.controller.ts` (File 4), `wise.module.ts` wiring
+  (File 6), `wise-state.reducer.spec.ts` (File 7), `wise-webhook.replay.spec.ts` (File 8) — plus
+  two test files beyond the order's own 8-file count (`wise-webhook.processor.spec.ts`,
+  `wise-event-handlers.spec.ts`) to actually fulfill Files 3/8 and 5/8's own per-file
+  "Verification" promises, which the order's file count never allocated a home for.
+- **Four real order-text-vs-ground-truth mismatches found and corrected while building** (full
+  detail in the order's own Deviations):
+  1. Hard Invariant #3 / Rules / Known-wrinkles all said `@SkipThrottle()`. Design §7.5 was
+     corrected 2026-07-25 (rev 2) — after this order's Hard Invariants were drafted — to say the
+     opposite: explicit `@Throttle({ default: { ttl: 60_000, limit: 300 } })`, matching
+     `LESSONS-LEARNED.md` L26 (established one session earlier, 4A-W4). Built with the corrected
+     throttle.
+  2. File 1/8's own state-mapping prose diverged from design §5.2 (the table itself a frozen
+     invariant): `bounced_back` isn't a distinct terminal state (stays `PROCESSING` +
+     `hasActiveIssues`, Commission left `PAID`, admin alert); `cancelled` must revert if it was
+     already `PAID` (order said pure no-op); `charged_back` was missing entirely; so was
+     `incoming_payment_initiated`. Built against the real table.
+  3. File 2/8's text (and File 7/8's own test-case description) said the reversal path sets
+     `Commission.status = 'FAILED'`. `CommissionStatus` has no `FAILED` member — schema-verified
+     (`PENDING`/`APPROVED`/`PAID`/`CANCELLED` only). Design §5.2's own table says `revert PAID →
+APPROVED`; built against that.
+  4. File 5/8's text said `handleBalanceUpdate` updates `WiseBatchGroup.fundingDetected` — no
+     such field exists; the real field is `fundingSource` (enum `WiseFundingSource`). Built
+     against the real field, and scoped the handler to setting it only, never transitioning
+     `status` to `FUNDED` (that's 4A-W6's batch/funding-gate scope, not built yet).
+     Also: File 8/8's own text and the Done-when list said the `X-Test-Notification` ping should
+     process "without DB write" — design §5.5 explicitly says the opposite ("persist, mark
+     processed, 200, do nothing else"). Built and tested against the ground truth (persists).
+- Not fully closed: the replay suite proves the signature/dedupe/reduction pipeline against
+  hand-constructed fixtures, not Wise's real Sandbox Simulation API — closing that gap needs a
+  write-scoped sandbox `WISE_API_TOKEN` (same ask as Waiting-on #47).
+- Evidence: `money-service` test suite 33/33 suites, 326/326 tests (was 29/29, 288/288 at
+  4A-W4's close — +4 suites, +38 tests). `npm run build` clean. Monolith `npx tsc --noEmit`
+  clean (unaffected — no monolith code changed this session). Schema fields verified directly
+  against `money-service/prisma/schema.prisma` (`DisbursementTransactionStatus`,
+  `CommissionStatus`, `WiseFundingSource` enums; `WiseTransfer`/`DisbursementTransaction`
+  field names) before writing the reducer/handlers, not assumed from the order's prose.
+- Approved by: Davin (live: the rewrite's provenance, the Option 2 verification downgrade, and
+  F40's resolution were all explicit live confirmations before CONFIRM completed).
