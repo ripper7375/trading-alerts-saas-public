@@ -95,7 +95,12 @@ APPROVED`, no Advisor-DRAFT/Davin-approval commit trail) — the same `LESSONS-L
   **Artifacts updated:** `4a-w4-wise-hardening-gate.migration-order.md` (Status → CONFIRMED,
   Deviations filled in full, Done-when checked), `DECISION-LOG.md` (F43 registered),
   `01-part-19.5-wise-disbursement-architecture-design.md` (§8.0 job-ID policy filled in),
-  `migration-stack-analysis.md` (new money-service entry), this file.
+  `migration-stack-analysis.md` (new money-service entry), `LESSONS-LEARNED.md` (new **L25**
+  — `enableShutdownHooks()` not optional, new **L26** — global `APP_GUARD` throttler also
+  throttles provider webhooks; both per `replace-rise-with-wise/05-artifact-amendments.md`
+  §10's two pre-drafted entries, renumbered from that doc's stated L12/L13 to the live file's
+  actual next numbers since 5 more sessions' lessons landed since either number was written —
+  the doc's own text explicitly warns to re-check before trusting it), this file.
   `4a-w5-wise-webhook-reducer.migration-order.md` PRE-DRAFTed (PORT).
 - _(superseded-by-above, retained for context)_ Session 4A-W3b CLOSED, executed as UI-BUILD — Part 19.5 (Wise) recipient
   form & admin UI (monolith `app/api/wise/recipients/*`, `app/affiliate/settings/payout`,
