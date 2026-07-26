@@ -63,6 +63,8 @@ export interface PrepareBatchItem {
 }
 
 export interface PrepareBatchInput {
+  /** Local `PaymentBatch.id` — correlates to `WiseBatchGroup.paymentBatchId`. */
+  paymentBatchId: string;
   /** Wise batch-group "name" — the PaymentBatch's own batchNumber, <=100 chars. */
   batchName: string;
   sourceCurrency: string;
