@@ -24,7 +24,71 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W2 CLOSED, executed as INFRA+PORT — Part 19.5 (Wise) additive
+- **Current:** Session 4A-W3a CLOSED, executed as PORT — Part 19.5 (Wise) recipient
+  onboarding backend module (`money-service/src/wise/*`), zero traffic cut over — 2026-07-26.
+  **CONFIRM (two passes):** first pass found 4/6 entry criteria FAILING against live state —
+  F39/F41 still OPEN, `WISE_API_TOKEN` absent from Railway (value-blind check), and all
+  three cited line counts stale by up to +212 lines (the order had been drafted from a
+  mid-session snapshot before 4A-W2's own migration commit landed). Reported in full,
+  execution declined. Second pass, after Davin resolved F39 (Option A — affiliate
+  self-service, `/affiliate/settings/payout`) and F41 (Option A — Wise-managed PII, local
+  `accountTail`/`detailsFingerprint` only), corrected the line counts, and confirmed the
+  split/`APPROVED` status was his own intentional edit (no git commit trail existed for
+  it — same `LESSONS-LEARNED.md` L11 shape as prior recurrences, resolved by asking
+  directly): all 6 criteria re-verified live and passed, order marked CONFIRMED.
+  **Built (Files 1–8/10, dependency order, committed per step):** `wise.config.ts`
+  (`ConfigService`-backed typed settings), `wise.constants.ts`, `wise.types.ts`,
+  `wise-api.client.ts` (native `fetch`, exponential back-off on 429/5xx, PII body
+  redaction — 5 unit tests), `wise-signature.constants.ts` (Wise's real published
+  sandbox/production RSA public keys, copied verbatim from the reference doc),
+  `wise-signature.verifier.ts` (`crypto.verify('RSA-SHA256', ...)` — 6 unit tests, built
+  ahead of 4A-W5), `wise-recipient.service.ts` (SHA-256 `detailsFingerprint` + last-4
+  `accountTail` only, zero raw PII persisted — 14 unit tests),
+  `wise-recipients.controller.ts` + `wise.module.ts` (`/v1/wise/recipients/*` per the
+  frozen OpenAPI, F39 guards: `AffiliateGuard` on every affiliate route, `AdminGuard` only
+  on the admin list, `:id`-scoped routes verify ownership explicitly), registered in
+  `app.module.ts`.
+  **Mid-build correction (`2d954e12`):** reading the frozen OpenAPI while building the
+  controller found `CreateRecipientDto` (File 3/10, mirrors Wise's own `POST /v1/accounts`
+  body) is a DIFFERENT shape than the OpenAPI's actual `POST /wise/recipients` request
+  (`targetCurrency`/`recipientCountry`/`legalType`/`accountHolderName`/`requirementsType`/
+  `details`) — `createRecipient` corrected to take `recipientCountry`/`legalType` as
+  explicit caller-supplied fields instead of guessing from `details`; also added
+  `revalidateRecipient` (required by the frozen `/revalidate` endpoint, absent from File
+  7/10's own method list) and `DELETE /wise/recipients/{id}` (in the OpenAPI, missing from
+  the order's own File 8/10 prose). **Unresolved, flagged for Davin/Advisor:** the OpenAPI
+  says replacing a recipient should archive the old row; `AffiliateWiseRecipient
+.affiliateProfileId` is `@unique` in the 4A-W2 schema (out of scope to change here), so
+  this session upserts in place instead — needs a decision.
+  **File 9 (THB production fixture) blocked, Davin deferred it:** tested the configured
+  token against `api.wise.com` (`railway run`, token never exposed) → `401 invalid_token`
+  — confirmed sandbox-only, not just labeled that way. Carried forward as Waiting-on.
+  **Deploy blocked twice, then fixed:** `railway up` CLI failed both without
+  `--path-as-root` (438MB upload, 413 — couldn't resolve `.gitignore` from the
+  subdirectory) and with it ("Failed to read app source directory" — Root Directory
+  mismatch). Found the working path: `git push origin main` (money-service has a connected
+  GitHub source) — auto-deployed cleanly twice this session, confirmed live both times
+  (all 6 new routes registered, unauthenticated `GET /v1/wise/recipients` and
+  `/requirements` and `/me` all → 401). New `LESSONS-LEARNED.md` L23.
+  **E2E testing against live production** (real minted NextAuth JWE for the existing
+  `affiliate-test@trading-alerts.test` fixture, mirroring 4A-7a's precedent — no new
+  production data written): found and fixed a real bug (`f100296a`) — the discouraged
+  non-quote-scoped requirements fallback 422s without `sourceAmount`
+  (`validation.failure.only.source.or.target.amount`), missed from the reference doc's own
+  example on the first pass. Fixed, redeployed, re-verified: `GET requirements?
+targetCurrency=GBP` → real `200`, 3 groups from Wise sandbox. **Full recipient-creation
+  E2E NOT achieved:** `POST /v1/accounts` confirmed live `403 unauthorized` — isolated via
+  a direct call to Wise sandbox, a genuine token read-only-scope limitation, not a code
+  bug (the entry criterion "read-only is sufficient" holds for reads, not for recipient
+  creation). Davin's call: accept as a confirmed external blocker rather than provide a
+  write-scoped token this session — carried forward as Waiting-on.
+  **Artifacts updated:** `4a-w3a-wise-recipient-backend.migration-order.md` (Status →
+  CONFIRMED, Done-when checked/unchecked accurately, Deviations filled in full),
+  `DECISION-LOG.md` (F39/F41 resolution entries + a full findings entry),
+  `migration-stack-analysis.md` (new `money-service/src/wise/*` entry),
+  `LESSONS-LEARNED.md` (new L23), this file.
+  `4a-w3b-wise-recipient-ui.migration-order.md` already PRE-DRAFTed (from 4A-W2's close).
+- _(superseded-by-above, retained for context)_ Session 4A-W2 CLOSED, executed as INFRA+PORT — Part 19.5 (Wise) additive
   production schema migration, zero traffic cut over — 2026-07-26.
   **CONFIRM found the order file itself mid-edit again:** `git status` showed
   `4a-w2-wise-additive-schema.migration-order.md` modified-but-uncommitted; `git diff` against
@@ -296,16 +360,30 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w2-wise-additive-schema.migration-order.md` (CONFIRMED and executed
-  by Executor 2026-07-26). `docs/migration-orders/4a-w3-wise-recipient-onboarding.migration-order.md`
-  PRE-DRAFTed at this close, status `PRE-DRAFT`. Predecessor
+  `docs/migration-orders/4a-w3a-wise-recipient-backend.migration-order.md` (CONFIRMED and
+  executed by Executor 2026-07-26 — split from the unsplit `4A-W3` PRE-DRAFT into `4A-W3a`
+  backend + `4A-W3b` UI). `docs/migration-orders/4a-w3b-wise-recipient-ui.migration-order.md`
+  stays PRE-DRAFTed, status `PRE-DRAFT`. The unsplit
+  `4a-w3-wise-recipient-onboarding.migration-order.md` is now SUPERSEDED (stub pointing to
+  the split files). Predecessor `4a-w2-wise-additive-schema.migration-order.md` stays
+  CONFIRMED/executed (see historical block below). Predecessor
   `4a-w1-wise-contracts-and-decisions.migration-order.md` stays CONFIRMED/executed (see
   historical block below). Predecessor money-service order
   `4a-7b-money-service-read-apis-cutover.migration-order.md` stays CUT-OVER/closed, superseding
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W2):** additive migration applied to production clean — 5 new tables +
+- **Order status (4A-W3a):** backend module built and deployed clean — 8 of 10 files' worth
+  of scope shipped (Files 1-8 built; File 9 deferred by Davin, File 10's full write-path E2E
+  blocked by token scope, both carried forward). 27/27 money-service test suites green
+  (285/285 tests), monolith `test:ci` re-verified 117/117 (2082/2082) via the pre-push hook.
+  Live-verified in production: all 6 `/v1/wise/recipients/*` routes registered, unauthenticated
+  requests → 401, `GET requirements` → real `200` with live Wise sandbox data. F39/F41
+  RESOLVED. Standing note unchanged: `DISBURSEMENT_PROVIDER` stays `MOCK` in production —
+  this session created recipient endpoints but did not flip the active provider or move any
+  money; the one write-path call attempted (a test recipient creation) 403'd on token scope,
+  never reached Wise as a successful write.
+- **Order status (4A-W2, historical):** additive migration applied to production clean — 5 new tables +
   `WISE` enum value confirmed live via direct query, pre-existing table row counts unchanged,
   `money_svc` grant gap found and fixed (Davin-approved), money-service schema mirrored and
   builds clean, F38 RESOLVED (Option A — platform bears fee), full test suites green both
@@ -475,13 +553,53 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   exists in that package). Worth the Advisor's attention on how order text drifts from its own
   cited sources between drafting and execution — same general shape as L11 (self-contradicting
   order metadata), but on body content rather than the header status field.
-- **Next session:** Davin's call, per `4a-w2-…`'s own Next-session-handoff note.
-  `4a-w3-wise-recipient-onboarding.migration-order.md` (recipient onboarding backend + form) is
-  PRE-DRAFTed at status `PRE-DRAFT`, seeded from `04-rise-to-wise-migration-plan.md` §4
-  "4A-W3" — must carry forward: F39 (who fills the recipient form) and F41 (PII retention) both
-  need resolving with Davin; the real THB account-requirements schema must be fetched from
-  production as a committed fixture; explicit body redaction for `POST /v1/accounts`; read-only
-  `WISE_API_TOKEN` is sufficient, full access not needed until W6. Separately: a
+  **(46, NEW)** THB production account-requirements fixture (File 9 of `4a-w3a-…`) still not
+  fetched — the configured `WISE_API_TOKEN` confirmed sandbox-only (live `401 invalid_token`
+  against `api.wise.com`), Davin deferred rather than provide a production-scoped token this
+  session. Needed before `4A-W3a` can be called fully done; not currently blocking `4A-W3b`
+  (UI work doesn't need the fixture) or `4A-W4`.
+  **(47, NEW — revisits #43's own plan assumption)** The full sandbox GBP recipient-creation
+  E2E proof (`4a-w3a-…`'s own Done-when item) is **not achieved** — confirmed live,
+  `POST /v1/accounts` 403s "unauthorized" with the current read-only-scoped token, isolated via
+  a direct call to Wise sandbox (not a code bug). **#43's plan ("read-only token sufficient for
+  4A-W1/W3/W5") assumed recipient creation doesn't need write scope — this session found that
+  assumption is wrong**: Wise's own permission model treats `POST /v1/accounts` as a write
+  operation, distinct from reads (`GET /v1/profiles`, `GET /v1/account-requirements` both
+  worked fine with the same token). Worth the Advisor rechecking whether `4A-W5` (webhook
+  receiver — receive-only, likely still fine) is affected by the same assumption before it
+  runs. Needs a write-scoped (still sandbox, zero real money) `WISE_API_TOKEN` to close.
+  **(48, NEW)** `refreshRequirementsOnChange` (quote-scoped field-refresh) is built and unit
+  tested but not proven against a real live quote — this session's `GET requirements` uses
+  the discouraged non-quote-scoped Wise fallback (fixed this session, `f100296a`, now
+  confirmed working live) specifically to avoid building quote-creation
+  (`POST /v3/profiles/{id}/quotes`), which isn't in `4a-w3a-…`'s own 10-file scope. A future
+  session (likely `4A-W3b` if the form needs live field-refresh, or `4A-W6`) needs to either
+  build quote creation or confirm the non-quote-scoped path is good enough long-term.
+  **(49, NEW — needs a decision)** `part19.5-wise-disbursement-openapi.yaml`'s `POST
+/wise/recipients` description says replacing an existing recipient should archive the old
+  row, not mutate it — `AffiliateWiseRecipient.affiliateProfileId` is `@unique` in the schema
+  frozen at 4A-W2, so `4a-w3a-…`'s `createRecipient` upserts in place instead (schema change
+  is out of scope for a PORT session). Needs Davin/Advisor to pick one: accept upsert
+  semantics and fix the OpenAPI text, or schema-change to support archive-and-recreate.
+  **(50, NEW)** `railway up` CLI is unreliable for `money-service` from this checkout — 413
+  payload-too-large without `--path-as-root` (can't resolve `.gitignore` from the
+  subdirectory), "Failed to read app source directory" with it (likely a Root Directory
+  dashboard-setting mismatch, not inspectable via this CLI version). Working path found and
+  used this session: `git push origin main` (money-service has a connected GitHub source,
+  auto-deploys cleanly). New `LESSONS-LEARNED.md` L23. Worth Davin checking the Railway
+  dashboard's Root Directory setting for `money-service` directly if `railway up` is ever
+  needed again (e.g. for a deploy that shouldn't go through a git push).
+- **Next session:** Davin's call, per `4a-w3a-…`'s own Next-session-handoff note.
+  `4a-w3b-wise-recipient-ui.migration-order.md` (recipient form & admin UI) is PRE-DRAFTed at
+  status `PRE-DRAFT` — its own entry criteria need re-verifying at CONFIRM per usual (it
+  currently assumes THB is available for the form to render against, which per Waiting-on #46
+  isn't true yet; likely fine since the form is meant to be currency-agnostic and
+  schema-driven, but worth checking explicitly rather than assuming). Carry forward from
+  4A-W3a: THB production fixture still needed (#46); a write-scoped sandbox `WISE_API_TOKEN`
+  is needed to complete the full recipient-creation E2E proof (#47) — **not** blocking for
+  4A-W3b (UI work doesn't call Wise directly, it calls money-service); the OpenAPI's
+  archive-vs-upsert conflict on recipient replacement needs a decision (#49); `railway up`
+  stays unreliable for money-service, use `git push origin main` (#50, L23). Separately: a
   future RETIRE session can delete the monolith's now-orphaned
   `app/api/affiliate/dashboard/*`, `app/api/admin/{affiliates,analytics}/*` routes and their
   `lib/` logic once Davin agrees Slice 3 (4A-7b) has been stable long enough — not yet
@@ -541,11 +659,10 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F37 fully RESOLVED (Session 4A-W1, Davin)** — `WISE_FUNDING_MODE=MANUAL`, Thailand not on
   Wise's API-funding allowlist ·
   **F38 fully RESOLVED (Session 4A-W2, Davin)** — Option A, platform bears the Wise fee
-  (`feeBearer = 'PLATFORM'`), affiliates receive their exact earned commission · **F39 OPEN**
-  (Wise recipient-details collection surface —
-  affiliate self-service vs admin-entered — due 4A-W3, Davin, product) · **F40 OPEN** (Wise
-  webhook subscription level: profile vs application — follows F36, due 4A-W5) · **F41 OPEN**
-  (Wise recipient PII retention/deletion; interacts with F21 — due 4A-W3, Davin) ·
+  (`feeBearer = 'PLATFORM'`), affiliates receive their exact earned commission ·
+  **F39 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, affiliate self-service form (`/affiliate/settings/payout`), admin views summary ·
+  **F40 OPEN** (Wise webhook subscription level: profile vs application — follows F36, due 4A-W5) ·
+  **F41 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, Wise-managed PII; store only `accountTail` last 4 digits and `detailsFingerprint` SHA-256 hash ·
   **F42 fully RESOLVED (2026-07-25, Davin; recorded 4A-W1)** — RiseWorks archived, not
   deleted: dormant in repo AND database, restorable per `replace-rise-with-wise/03-…` ·
   F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)

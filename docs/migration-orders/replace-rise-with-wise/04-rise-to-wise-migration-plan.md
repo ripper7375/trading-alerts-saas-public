@@ -16,7 +16,8 @@ DRAFT order. Every later session is PRE-DRAFTed by the Executor at the close of 
  ┌──────────────────────────────────────────────────────────────────┐
  │  4A-W1  Wise contracts & decisions            CONTRACT   ~2–3h   │
  │  4A-W2  Additive schema migration             INFRA+PORT ~2h     │  ← Part 19.5
- │  4A-W3  BUILD recipient onboarding            PORT+UI    ~4h     │     inserted here
+ │  4A-W3a BUILD recipient backend       PORT       ~2.5h   │     inserted here
+│  4A-W3b BUILD recipient form & UI      UI-BUILD   ~2h     │    (Davin's call,
  │  4A-W4  CC-C/CC-D hardening (money surface)   CONTRACT+INFRA ~2–3h│    (Davin's call,
  │         ↑ NEW rev 2 — closes the plan §13 money gate             │     2026-07-25)
  │  4A-W5  BUILD Wise webhook + reducer          PORT       ~4h     │
@@ -212,10 +213,10 @@ used — if any row has `provider='WISE'`, leave the value; it is inert.
 
 ---
 
-### 4A-W3 — BUILD recipient onboarding
+### 4A-W3a & 4A-W3b — BUILD recipient onboarding (Backend & UI Split)
 
-**Variant:** `TEMPLATE-PORT.md` (low) for the backend + `TEMPLATE-UI-BUILD.md` (high) for the form ·
-**Est:** ~4h — **split into W3a (backend) / W3b (UI) if it exceeds 4h** (`00-SKELETON-AND-RULES.md` §3)
+**4A-W3a (Backend Module)**: `TEMPLATE-PORT.md` (low) · **Est:** ~2.5h
+**4A-W3b (Frontend UI Surface)**: `TEMPLATE-UI-BUILD.md` (high) · **Est:** ~2h
 **Flags:** F39 (resolve — who fills the form), F41 (resolve — PII retention)
 
 **Entry criteria**

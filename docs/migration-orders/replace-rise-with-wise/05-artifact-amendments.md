@@ -98,9 +98,9 @@ database, restorable per
 | F36 | Wise integration model: Business + personal token vs Platform Enterprise partnership | OPEN — due Session 4A-W1 (Davin, commercial) |
 | F37 | Wise funding mode (`MANUAL`/`API`) given the account-region gate | RESOLVED — Session 4A-W1 (Davin): MANUAL, Thailand is not on Wise's API-funding allowlist |
 | F38 | Wise fee bearer + quote amount direction (`sourceAmount` vs `targetAmount`) | OPEN — due Session 4A-W2 (Davin, commercial) |
-| F39 | Wise recipient-details collection surface (affiliate self-service vs admin-entered) | OPEN — due Session 4A-W3 (Davin, product) |
+| F39 | Wise recipient-details collection surface (affiliate self-service vs admin-entered) | OPEN — due Session 4A-W3a (Davin, product) |
 | F40 | Wise webhook subscription level (profile vs application) — dependent on F36 | OPEN — due Session 4A-W5 (technical, follows F36) |
-| F41 | Wise recipient PII retention/deletion; interacts with F21 | OPEN — due Session 4A-W3 (Davin) |
+| F41 | Wise recipient PII retention/deletion; interacts with F21 | OPEN — due Session 4A-W3a (Davin) |
 | F42 | RiseWorks archival depth (archive vs delete) | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable |
 | F43 | Funding-SLA alert delivery channel (money-service has no email capability) | OPEN — registered Session 4A-W4, due Session 4A-W6 (Davin) |
 
@@ -221,8 +221,10 @@ covered by Davin's approval of that order.
   - **4A-W2 — Additive schema** (INFRA+PORT): 5 new tables + the `WISE` enum value, authored in
     `prisma/non-market-data/schema.prisma` and mirrored as a subset into money-service
     (`prisma generate` only — **L1**). Nothing dropped or renamed.
-  - **4A-W3 — BUILD recipient onboarding** (PORT+UI-BUILD): Wise API client, RSA signature
-    verifier, dynamic account-requirements form. Split into W3a/W3b if > 4h.
+  - **4A-W3a — BUILD recipient onboarding backend** (PORT): Wise API client, RSA signature
+    verifier, recipient service (`money-service`), requirements schema endpoint, PII redaction.
+  - **4A-W3b — BUILD recipient onboarding UI** (UI-BUILD): Dynamic schema-driven React form
+    component, admin recipient list page (`monolith`).
   - **4A-W4 — CC-C/CC-D hardening gate for the money surface** (CONTRACT + small INFRA): closes the
     plan §13 gate _"CC-C idempotency + CC-D rate limits before the first Phase 4 write-API
     cutover"_ — because the Wise cutover **is** that cutover in substance. Audits (does **not**
@@ -257,7 +259,7 @@ covered by Davin's approval of that order.
 ```markdown
 | 4A-W1 | F36/F37 decisions; Wise account access; confirm no payment-approval rules |
 | 4A-W2 | Production Prisma migration approval |
-| 4A-W3 | F39 (who fills the recipient form) + F41 (PII retention) |
+| 4A-W3a | F39 (who fills the recipient form) + F41 (PII retention) |
 | 4A-W6 | Promote `WISE_API_TOKEN` to full access; money-path review |
 | 4A-W7 | **Cutover + fund the first real batch in the Wise app** |
 | Every payout cycle (F37 = MANUAL) | **Fund the completed batch in the Wise app** — ongoing, not one-off |
@@ -272,7 +274,8 @@ Must never disagree with the playbook (`00-SKELETON-AND-RULES.md` §5). Insert a
 ```markdown
 | 4A-W1 | Part 19.5 contracts & decisions (Wise) | CONTRACT ([A]: research/spec) | _"read `docs/migration-orders/replace-rise-with-wise/` 00→06 first. Resolve F36/F37 with me. Check my Wise account for Business Payment Approval rules — they break API transfers. No code this session."_ |
 | 4A-W2 | Part 19.5 additive schema migration | INFRA + PORT rules | _"the migration is authored in `prisma/non-market-data/schema.prisma` ONLY. Show me the generated SQL before applying — any DROP/RENAME/ALTER COLUMN aborts the session. money-service gets `prisma generate` only (L1)."_ |
-| 4A-W3 | BUILD Wise recipient onboarding | P4-BUILD (+ UI-BUILD for the form) | _"the recipient form is schema-driven from Wise's account-requirements endpoint — do not hard-code Thai bank fields. No raw bank details in the DB or logs."_ |
+| 4A-W3a | BUILD Wise recipient onboarding backend | PORT (Low dial) | _"the recipient account requirements must be schema-driven from Wise's account-requirements endpoint — do not hard-code Thai bank fields. Store only accountTail and detailsFingerprint (SHA-256); zero raw bank details in DB or logs. Native fetch and crypto only."_ |
+| 4A-W3b | BUILD Wise recipient onboarding UI | UI-BUILD (High dial) | _"dynamic schema-driven React form component rendering input fields from Wise account-requirements response + admin recipient list page."_ |
 | 4A-W4 | CC-C/CC-D hardening gate (money surface) | CONTRACT ([A]: audit/spec) + small INFRA | _"audit only for Stripe/dLocal write paths — do NOT fix them, that's 4A-8's. DO fix the two live defects: add `enableShutdownHooks()` (`PrismaService.onModuleDestroy` is dead code today) and put an explicit generous `@Throttle()` on `/v1/webhooks/dlocal`, verified by replay before and after. Write the BullMQ job-ID policy before the first queue exists. Register F43."_ |
 | 4A-W5 | BUILD Wise webhook + state reducer | P4-BUILD | _"verification is REPLAY with real Wise-signed payloads from the sandbox Simulation API. Dedupe on X-Delivery-Id, order on data.occurred_at. Only this reducer may mark a commission PAID."_ |
 | 4A-W6 | BUILD Wise payout engine + funding gate | P4-BUILD | _"branch the orchestrator on `isFundable` — a drafted Wise batch must NEVER write Commission.status or the affiliate balance. Every existing orchestrator test must still pass unmodified."_ |

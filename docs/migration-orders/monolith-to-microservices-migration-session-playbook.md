@@ -273,8 +273,10 @@ Phase 4 is repetitive by design. Two session _templates_ repeat per slice:
   - **4A-W2 — Additive schema** (INFRA+PORT): 5 new tables + the `WISE` enum value, authored in
     `prisma/non-market-data/schema.prisma` and mirrored as a subset into money-service
     (`prisma generate` only — **L1**). Nothing dropped or renamed.
-  - **4A-W3 — BUILD recipient onboarding** (PORT+UI-BUILD): Wise API client, RSA signature
-    verifier, dynamic account-requirements form. Split into W3a/W3b if > 4h.
+  - **4A-W3a — BUILD recipient onboarding backend** (PORT): Wise API client, RSA signature
+    verifier, recipient service (`money-service`), requirements schema endpoint, PII redaction.
+  - **4A-W3b — BUILD recipient onboarding UI** (UI-BUILD): Dynamic schema-driven React form
+    component, admin recipient list page (`monolith`).
   - **4A-W4 — CC-C/CC-D hardening gate for the money surface** (CONTRACT + small INFRA): closes the
     plan §13 gate _"CC-C idempotency + CC-D rate limits before the first Phase 4 write-API
     cutover"_ — because the Wise cutover **is** that cutover in substance. Audits (does **not**
@@ -471,7 +473,7 @@ review by you → flip.
 | 4A-5                              | Update webhook URLs in provider dashboards                                |
 | 4A-W1                             | F36/F37 decisions; Wise account access; confirm no payment-approval rules |
 | 4A-W2                             | Production Prisma migration approval                                      |
-| 4A-W3                             | F39 (who fills the recipient form) + F41 (PII retention)                  |
+| 4A-W3a                            | F39 (who fills the recipient form) + F41 (PII retention)                  |
 | 4A-W6                             | Promote `WISE_API_TOKEN` to full access; money-path review                |
 | 4A-W7                             | **Cutover + fund the first real batch in the Wise app**                   |
 | Every payout cycle (F37 = MANUAL) | **Fund the completed batch in the Wise app** — ongoing, not one-off       |

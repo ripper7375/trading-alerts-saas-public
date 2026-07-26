@@ -142,3 +142,24 @@
 - Root cause: `migrate dev` (any invocation, `--create-only` or not) first diffs the ACTUAL target database against what replaying the full migration history would produce; on any mismatch its only offered resolution is a destructive reset. This repo has no `SHADOW_DATABASE_URL` configured and no staging Postgres to rehearse against (F34/CC-A gap), so this check runs directly against production every time.
 - Rule: **never run `prisma migrate dev` (in any form) against this production database.** To generate migration SQL for review without touching the database at all, use `prisma migrate diff --from-schema <pre-edit schema snapshot> --to-schema <schema.prisma> --script` (pure datamodel diff, zero DB connection). To apply an already-reviewed migration, use `prisma migrate deploy` (apply-only, no drift check, no reset path). Verify with `migrate status` (read-only) before and after, always through the SAME connection string the apply step used (see L19's recurrence).
 - Source: Session 4A-W2 · Status: ACTIVE
+
+### L23 — `railway up` from a monorepo subdirectory is unreliable; `git push` (GitHub auto-deploy) is the working path for money-service
+
+- Symptom: `cd money-service && railway up` uploaded 438MB and got a Cloudflare 413 (no
+  local `.gitignore` in the subdirectory — adding one made no difference, and the CLI's
+  `.gitignore`-based exclusion apparently only resolves correctly when CWD is the actual
+  git repo root). `railway up ./money-service --path-as-root` (from repo root) uploaded a
+  correctly-scoped 220KB archive, but nixpacks then failed with "Failed to read app source
+  directory" — consistent with the Railway service's dashboard-configured Root Directory
+  expecting an unflattened archive that still contains a `money-service/` prefix.
+- Root cause: unclear from the CLI alone (no way to inspect the dashboard's Root Directory
+  setting from this environment) — likely a mismatch between `--path-as-root`'s flattening
+  behavior and however this specific service's Root Directory is configured.
+- Rule: for `money-service` (confirmed connected to a GitHub source), use `git push origin
+main` and let Railway's auto-deploy trigger — confirmed working twice this session
+  (clean build, correct routes registered, verified live). Don't burn time on `railway up`
+  flag combinations for this service until someone checks the Railway dashboard's Root
+  Directory setting directly. This narrows/updates L7 — L7's `--path-as-root` advice still
+  applies to services where it's the ONLY way to deploy (no connected GitHub source), but
+  isn't universal.
+- Source: Session 4A-W3a · Status: ACTIVE

@@ -1867,5 +1867,53 @@ New:
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W2, Part 19.5 additive schema)
+<details>
+<summary><code>money-service/src/wise/</code> — 12 new files (Session 4A-W3a, recipient onboarding backend)</summary>
+
+Wise recipient onboarding module (`money-service/src/wise/`, 10-file order breakdown + 2 test
+files placed under `__tests__/` per the order's own explicit target paths for Files 9-10). Zero
+traffic cut over — unique paths under `/v1/wise/recipients/*`, nothing points at them from any
+frontend yet (4A-W3b builds that next). `DISBURSEMENT_PROVIDER` stays `MOCK` in production;
+`POST /v1/accounts` (real recipient creation) is blocked by the configured token's read-only
+scope (403, confirmed live) — carried forward as a Waiting-on item, not yet exercised
+end-to-end.
+
+New:
+
+- `wise.config.ts` — typed Wise settings via `ConfigService` (`WISE_PROFILE_ID`,
+  `WISE_API_TOKEN`, `WISE_ENVIRONMENT`, derived `baseUrl`)
+- `wise.constants.ts` — API paths, headers, retry/timeout defaults
+- `wise.types.ts` — Wise API payload/response interfaces (mirrors Wise's own `POST /v1/accounts`
+  shape, distinct from the controller's public request shape — see F39/F41 entries,
+  `DECISION-LOG.md`)
+- `wise-api.client.ts` (+ `.spec.ts`, 5 tests) — native-`fetch` HTTP client, exponential
+  back-off on 429/5xx, PII body redaction for logs
+- `wise-signature.constants.ts` — Wise's published sandbox/production RSA public keys
+  (verbatim from `02-…reference.md` §6.5), built ahead of 4A-W5's webhook receiver
+- `wise-signature.verifier.ts` (+ `__tests__/wise-signature.verifier.spec.ts`, 6 tests) —
+  `crypto.verify('RSA-SHA256', ...)` webhook signature verification
+- `wise-recipient.service.ts` (+ `__tests__/wise-recipient.service.spec.ts`, 14 tests) —
+  `getAccountRequirements`, `refreshRequirementsOnChange`, `createRecipient` (SHA-256
+  `detailsFingerprint` + last-4 `accountTail` only, zero raw PII persisted),
+  `getRecipientByAffiliateProfileId`, `deactivateRecipient`, `revalidateRecipient` (added
+  mid-session — required by the frozen OpenAPI's `/revalidate` endpoint, absent from the
+  order's own File 7/10 method list)
+- `wise-recipients.controller.ts` — `/v1/wise/recipients/*` per
+  `part19.5-wise-disbursement-openapi.yaml` (frozen at 4A-W1): `requirements` (get/refresh),
+  admin list, create, `me`, `:id/revalidate`, `:id` (DELETE, deactivate — in the OpenAPI spec
+  but missing from the order's own endpoint prose, implemented anyway). Guards per F39
+  (self-service): `AffiliateGuard` on every affiliate route, `AdminGuard` only on the admin
+  list; `:id`-scoped routes verify ownership explicitly
+- `wise.module.ts` — wires the above; registered in `app.module.ts`
+
+Modified:
+
+- `money-service/src/app.module.ts` (75→81 lines — `WiseModule` import + registration)
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W3a, Wise recipient onboarding
+backend)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
