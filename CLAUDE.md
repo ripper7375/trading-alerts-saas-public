@@ -24,7 +24,82 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W4 CLOSED, executed as CONTRACT + small INFRA — Part 19.5 (Wise)
+- **Current:** Session 4A-W5 CLOSED, executed as PORT — Part 19.5 (Wise) webhook receiver +
+  state reducer, money-service's first BullMQ queue, zero traffic cut over — 2026-07-26.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, no Advisor-DRAFT/Davin-approval commit
+  trail) — 10th+ recurrence — but this time paired with a full content rewrite (5→8 files,
+  "Ordered steps" replaced by "Ordered File Breakdown") and a real dropped safety gate: the
+  committed PRE-DRAFT's sandbox-funding entry criterion ("if unavailable, stop and re-plan,"
+  lifted verbatim from `04-rise-to-wise-migration-plan.md`'s own W5 entry criteria) was absent
+  from the rewrite. Re-raised it at CONFIRM because Wise's Simulation API requires a **funded**
+  transfer before state simulation, and Waiting-on #47 (still OPEN) already showed the sandbox
+  `WISE_API_TOKEN` is read-only — likely blocking transfer creation/funding too. Stopped and
+  asked Davin directly: confirmed the rewrite was his own edit, confirmed funding availability
+  is genuinely unknown, and chose **Option 2** — verification downgraded from "real payloads
+  captured from Wise's Simulation API" to "hand-constructed RSA-signed sandbox test payloads"
+  (same keypair-substitution technique `wise-signature.verifier.spec.ts` already uses, 4A-W3a).
+  F40 resolved `PROFILE`-level in the same rewrite (Davin, ahead of CONFIRM). All other entry
+  criteria (4A-W4 shutdown-hooks/job-ID-policy re-verify, `wise-signature.verifier.ts`
+  existence/tests, all 4 cited line counts, zero `registerQueue()`/`@Processor()` calls)
+  verified live and passed — a first for this series, zero drift found on any of them. Order
+  marked CONFIRMED, executed.
+  **Four real order-text-vs-ground-truth mismatches found and corrected while building** (full
+  detail in the order's own Deviations, also recorded as `LESSONS-LEARNED.md` **L27**): (1) Hard
+  Invariant #3/Rules/Known-wrinkles all said `@SkipThrottle()` on the webhook route; design
+  §7.5 was corrected 2026-07-25 (rev 2) — one session earlier — to the opposite (explicit
+  generous `@Throttle()`, matching L26); built with the corrected throttle. (2) File 1/8's own
+  state-mapping prose diverged from design §5.2's frozen table: `bounced_back` isn't a distinct
+  terminal state (stays `PROCESSING` + `hasActiveIssues`, Commission left `PAID`, admin alert,
+  not reverted — reverting would flap the balance for a transfer Wise says may still deliver);
+  `cancelled` must revert if it was already `PAID` (order said pure no-op); `charged_back` was
+  missing entirely despite being a real §5.2 row that can follow any state;
+  `incoming_payment_initiated` was also missing. Built the mapper against the real, full table
+  (10 states + unrecognised-fallback). (3) File 2/8's text (and File 7/8's own test-case
+  description) said the reversal path sets `Commission.status = 'FAILED'` — no such enum member
+  exists (`PENDING`/`APPROVED`/`PAID`/`CANCELLED` only, schema-verified); design §5.2's own
+  table says `revert PAID → APPROVED`; built against that. (4) File 5/8's text said
+  `handleBalanceUpdate` updates `WiseBatchGroup.fundingDetected` — no such field exists, the
+  real field is `fundingSource` (enum `WiseFundingSource`); built against the real field, and
+  scoped the handler to setting it only, never transitioning `status` to `FUNDED` (reserved for
+  4A-W6's batch/funding-gate services, not built yet — flipping it here would be scope creep
+  into that session's own job). Separately, File 8/8's own text and Done-when both said the
+  `X-Test-Notification` ping should process "without DB write" — design §5.5 explicitly says
+  the opposite ("persist, mark processed, 200, do nothing else"); built and tested against
+  ground truth (persists).
+  **Built all 8 files** (dependency order, committed per file): `wise-state.mapper.ts` (File 1,
+  pure §5.2 table), `wise-transfer-state.reducer.ts` (File 2, staleness guard + atomic
+  `balanceAppliedAt`/`balanceRevertedAt` locks, the ONLY writer of `Commission.status = 'PAID'`),
+  `wise-event-handlers.ts` (File 5, built ahead of File 3 since the processor depends on it —
+  `handlePayoutFailure`/`handleBalanceUpdate`, neither ever touches Commission or balance),
+  `wise-webhook.processor.ts` (File 3, money-service's first `@Processor`/`WorkerHost`, routes
+  by `eventType`, `onModuleDestroy` → `worker.close()`, `attemptCount`/`processed=false` on
+  `WiseWebhookEvent` itself is the dead-letter surface — no new infrastructure), FILE 4
+  (`wise-webhook.controller.ts`, `POST /v1/webhooks/wise`, store-then-process per §5.5), File 6
+  (`wise.module.ts` — `BullModule.registerQueue`; `app.module.ts` needed no change, `WiseModule`
+  was already imported since 4A-W3a, contrary to the order's own assumption), File 7
+  (`wise-state.reducer.spec.ts`, mapper + reducer unit suite), File 8
+  (`wise-webhook.replay.spec.ts`, RSA-signed replay suite) — plus two test files beyond the
+  order's own 8-file count (`wise-webhook.processor.spec.ts`, `wise-event-handlers.spec.ts`) to
+  actually fulfill Files 3/8 and 5/8's own per-file "Verification" promises, which the order's
+  file count never allocated a home for.
+  **Full verification:** `money-service` test suite 33/33 suites, 326/326 tests (was 29/29,
+  288/288 at 4A-W4's close — +4 suites, +38 tests). `npm run build` clean. Monolith
+  `tsc --noEmit` clean (unaffected — no monolith code changed this session). Schema fields
+  verified directly against `money-service/prisma/schema.prisma` before writing the
+  reducer/handlers, not assumed from the order's prose. `DISBURSEMENT_PROVIDER` stays `MOCK` in
+  production — this session builds the webhook receiver only, no provider flip, no money moved,
+  no production Wise webhook subscription (Safety Gate, 4A-W7 cuts over).
+  **Not fully closed:** the replay suite proves the signature/dedupe/reduction pipeline against
+  hand-constructed fixtures, not Wise's real Sandbox Simulation API — closing that gap needs a
+  write-scoped sandbox `WISE_API_TOKEN` (same ask as Waiting-on #47).
+  **Artifacts updated:** `4a-w5-wise-webhook-reducer.migration-order.md` (Status → CONFIRMED,
+  Deviations filled in full, Done-when checked), `DECISION-LOG.md` (F40 resolution + full
+  findings entry), `LESSONS-LEARNED.md` (new **L27** — order text can drift from its own cited
+  ground truth, silently and more than once, within a single order), `migration-stack-analysis.md`
+  (new `money-service/src/wise/*` webhook entries), this file.
+  `4a-w6-wise-payout-engine.migration-order.md` PRE-DRAFTed (PORT).
+- _(superseded-by-above, retained for context)_ Session 4A-W4 CLOSED, executed as CONTRACT + small INFRA — Part 19.5 (Wise)
   money-service CC-C/CC-D hardening gate, zero traffic cut over, no Wise-specific code —
   2026-07-26.
   **CONFIRM found the order file modified-but-uncommitted again** (header `PRE-DRAFT →
@@ -498,8 +573,10 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w4-wise-hardening-gate.migration-order.md` (CONFIRMED and executed
-  by Executor 2026-07-26). Predecessor `4a-w3b-wise-recipient-ui.migration-order.md` stays
+  `docs/migration-orders/4a-w5-wise-webhook-reducer.migration-order.md` (CONFIRMED and executed
+  by Executor 2026-07-26). Predecessor `4a-w4-wise-hardening-gate.migration-order.md` stays
+  CONFIRMED/executed (see historical block below). Predecessor
+  `4a-w3b-wise-recipient-ui.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor
   `4a-w3a-wise-recipient-backend.migration-order.md` stays CONFIRMED/executed (see historical
   block below — split from the unsplit `4A-W3` PRE-DRAFT into `4A-W3a` backend + `4A-W3b` UI).
@@ -512,7 +589,17 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W4):** CC-C/CC-D hardening gate closed clean — idempotency audit (6
+- **Order status (4A-W5):** webhook receiver + state reducer built and verified clean — all 8
+  files shipped plus 2 extra test files (10 total), `money-service` 33/33 suites, 326/326 tests
+  (was 29/29, 288/288 at 4A-W4's close). Monolith `tsc --noEmit` clean (unaffected). F40
+  RESOLVED (`PROFILE`-level). Four order-text-vs-ground-truth mismatches found and corrected
+  (throttle, state table, `CommissionStatus` enum, `WiseBatchGroup` field name — see Current
+  above, `LESSONS-LEARNED.md` L27). Verification method downgraded from real-Wise-Simulation-API
+  capture to hand-constructed RSA-signed test payloads (Davin's Option 2 — sandbox funding
+  availability unknown, same root cause as Waiting-on #47). Standing note unchanged:
+  `DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session built the webhook receiver
+  only, no provider flip, no money moved, no production Wise webhook subscription.
+- **Order status (4A-W4, historical):** CC-C/CC-D hardening gate closed clean — idempotency audit (6
   endpoints, no "TBD" verdicts) and webhook-dedupe audit (dLocal/Stripe/RiseWorks, real gap
   found in Plan §13's own template) both committed to the order's Deviations; both live defects
   fixed and verified (`enableShutdownHooks()` + a real end-to-end shutdown test;
@@ -765,20 +852,39 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `WiseWebhookEvent.deliveryId` does — so 4A-W5 should build the new Wise webhook receiver on
   `WiseWebhookEvent`'s pattern, not RiseWorks's (already reflected in
   `01-...architecture-design.md` §8.0 and `4a-w5-…`'s own PRE-DRAFT, this session's close).
-- **Next session:** Davin's call, per `4a-w4-…`'s own Next-session-handoff note.
-  `4a-w5-wise-webhook-reducer.migration-order.md` (Wise webhook receiver + state reducer,
-  PORT variant, ~4h) is PRE-DRAFTed at status `PRE-DRAFT` — its entry criteria need
-  re-verifying at CONFIRM per usual, and it needs Davin available for two live decisions: F40
-  (webhook subscription level) and confirming sandbox transfer funding is available to drive
-  Wise's Simulation API (if unavailable, the order's own text says stop and re-plan rather than
-  build against synthetic-only fixtures). Carry forward from 4A-W4: the 3-endpoint idempotency
-  gap (#52) and `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not
-  blocking 4A-W5. Carry forward from 4A-W3a: THB production fixture still needed (#46); a
-  write-scoped sandbox `WISE_API_TOKEN` is needed to complete the full recipient-creation E2E
-  proof (#47) — still not blocking; the OpenAPI's archive-vs-upsert conflict on recipient
-  replacement needs a decision (#49); `railway up` stays unreliable for money-service, use
-  `git push origin main` (#50, L23); the admin list's missing affiliate-name field is a minor
-  UX gap, not blocking (#51). Separately, unchanged from prior sessions: a future RETIRE
+  **(47, updated Session 4A-W5)** The write-scoped-sandbox-token gap now also blocks 4A-W5's own
+  verification depth, not just 4A-W3a's recipient-creation E2E: Wise's Simulation API requires a
+  **funded** transfer before state simulation, and a funded transfer needs a recipient
+  (`POST /v1/accounts`, still 403-blocked on the read-only token per this item). 4A-W5 worked
+  around this with hand-constructed RSA-signed test payloads (Davin's Option 2) rather than
+  real Wise sandbox captures — genuinely proves the signature/dedupe/reduction code paths, but
+  not that Wise's real Simulation API produces byte-identical payloads. Still needs a
+  write-scoped (sandbox, zero real money) `WISE_API_TOKEN` to close for good. **(53, NEW)**
+  4A-W5's own order text disagreed with its own cited ground truth in FOUR separate places
+  within a single order (throttle decorator, state-mapping table completeness, a
+  non-existent `CommissionStatus` enum value, a non-existent `WiseBatchGroup` field name) — a
+  more severe recurrence of the class #45 first flagged (order text drifting from its own cited
+  sources between drafting and execution). All four were caught by re-reading the actual design
+  doc sections and Prisma schema before writing code, not by the order's own CONFIRM checklist.
+  Recorded as `LESSONS-LEARNED.md` **L27**. Worth the Advisor's attention on whether order
+  drafting should diff against the cited ground truth sections automatically, since this is now
+  a repeat-offender pattern rather than a one-off.
+- **Next session:** Davin's call, per `4a-w5-…`'s own Next-session-handoff note.
+  `4a-w6-wise-payout-engine.migration-order.md` (Wise payout engine + funding gate, PORT
+  variant) is PRE-DRAFTed at status `PRE-DRAFT` — builds the quote/transfer/batch-group services
+  and the `isFundable` orchestrator branch, promotes `WISE_API_TOKEN` to full access (closing
+  #47 for good), asserts drafted Wise batches never set `Commission.status = PAID` (reserved for
+  4A-W5's reducer), re-confirms Wise Business Payment Approvals absent, and requires Davin
+  present for payout-path code review (Money and auth changes escalate, per this file's
+  Non-negotiables). Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
+  `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not blocking 4A-W6.
+  Carry forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped
+  sandbox `WISE_API_TOKEN` gap (#47) is exactly what 4A-W6's own token promotion closes; the
+  OpenAPI's archive-vs-upsert conflict on recipient replacement needs a decision (#49);
+  `railway up` stays unreliable for money-service, use `git push origin main` (#50, L23); the
+  admin list's missing affiliate-name field is a minor UX gap, not blocking (#51); the
+  order-text-vs-ground-truth drift pattern (#53, L27) is worth a re-read discipline check before
+  building 4A-W6's own files. Separately, unchanged from prior sessions: a future RETIRE
   session can delete the monolith's now-orphaned `app/api/affiliate/dashboard/*`,
   `app/api/admin/{affiliates,analytics}/*` routes and their `lib/` logic once Davin agrees
   Slice 3 (4A-7b) has been stable long enough — not yet scheduled. `4A-5-RW` (RiseWorks) stays
@@ -840,7 +946,8 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F38 fully RESOLVED (Session 4A-W2, Davin)** — Option A, platform bears the Wise fee
   (`feeBearer = 'PLATFORM'`), affiliates receive their exact earned commission ·
   **F39 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, affiliate self-service form (`/affiliate/settings/payout`), admin views summary ·
-  **F40 OPEN** (Wise webhook subscription level: profile vs application — follows F36, due 4A-W5) ·
+  **F40 fully RESOLVED (Session 4A-W5, Davin)** — Profile-level subscription
+  (`WISE_WEBHOOK_SCOPE = 'PROFILE'`), following Model A ·
   **F41 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, Wise-managed PII; store only `accountTail` last 4 digits and `detailsFingerprint` SHA-256 hash ·
   **F42 fully RESOLVED (2026-07-25, Davin; recorded 4A-W1)** — RiseWorks archived, not
   deleted: dormant in repo AND database, restorable per `replace-rise-with-wise/03-…` ·
