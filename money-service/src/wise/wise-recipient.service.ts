@@ -79,10 +79,16 @@ export class WiseRecipientService {
 
     // Discouraged fallback per 02-…reference.md §4.2 — used only when no
     // quote context exists yet (e.g. a fresh onboarding form before any
-    // quote has been created).
+    // quote has been created). Wise rejects this endpoint with 422
+    // "validation.failure.only.source.or.target.amount" unless EXACTLY one
+    // of sourceAmount/targetAmount is present — confirmed live against
+    // sandbox this session. sourceAmount is a nominal discovery-only value
+    // (no quote, no money moved); the reference doc's own example for this
+    // exact discouraged path already shows `sourceAmount=1000`.
     const params = new URLSearchParams({
       source: sourceCurrency,
       target: targetCurrency,
+      sourceAmount: '1000',
     });
     return this.wiseApiClient.request<AccountRequirementGroup[]>(
       `${ACCOUNT_REQUIREMENTS_URL}?${params.toString()}`,
