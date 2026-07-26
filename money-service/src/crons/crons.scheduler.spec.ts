@@ -21,6 +21,7 @@ import { createPrismaMock, testFactories } from '../test-utils/prisma-mock';
 import { AffiliateCronService } from './affiliate.service';
 import { CronsScheduler } from './crons.scheduler';
 import { SubscriptionCronService } from './subscription.service';
+import { WiseReconciliationService } from './wise-reconciliation.service';
 
 describe('CronsScheduler', () => {
   let scheduler: CronsScheduler;
@@ -75,6 +76,16 @@ describe('CronsScheduler', () => {
         durationMs: 0,
       }),
     };
+    // Session 4A-W6, File 7/8: CronsScheduler gained a 5th constructor
+    // dependency for the new wise-reconciliation job. Wiring only -- no
+    // existing assertion below changed.
+    const wiseReconciliationMock = {
+      reconcile: jest.fn().mockResolvedValue({
+        transfersChecked: 0,
+        transfersFailed: 0,
+        fundingSlaBreaches: 0,
+      }),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -85,6 +96,10 @@ describe('CronsScheduler', () => {
         {
           provide: DisbursementProcessorService,
           useValue: disbursementProcessorMock,
+        },
+        {
+          provide: WiseReconciliationService,
+          useValue: wiseReconciliationMock,
         },
       ],
     }).compile();

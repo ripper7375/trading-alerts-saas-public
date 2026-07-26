@@ -42,6 +42,10 @@ import {
   DowngradeExpiredResult,
   SubscriptionCronService,
 } from './subscription.service';
+import {
+  ReconciliationResult,
+  WiseReconciliationService,
+} from './wise-reconciliation.service';
 
 interface MonthlyReportData {
   affiliateId: string;
@@ -75,7 +79,8 @@ export class CronsScheduler {
     private readonly prisma: PrismaService,
     private readonly subscriptionCron: SubscriptionCronService,
     private readonly affiliateCron: AffiliateCronService,
-    private readonly disbursementProcessor: DisbursementProcessorService
+    private readonly disbursementProcessor: DisbursementProcessorService,
+    private readonly wiseReconciliation: WiseReconciliationService
   ) {}
 
   /**
@@ -359,6 +364,22 @@ export class CronsScheduler {
   }
 
   /**
+   * Job: wise-reconciliation (Session 4A-W6, File 7/8, design §6.5) —
+   * hourly. New job, not in `vercel.json`'s original 8 (this whole part of
+   * money-service was never a Vercel cron in the first place).
+   */
+  async handleWiseReconciliation(): Promise<ReconciliationResult> {
+    logger.info('[CRON] Starting Wise reconciliation...');
+    const result = await this.wiseReconciliation.reconcile();
+    logger.info('[CRON] Wise reconciliation completed', {
+      transfersChecked: result.transfersChecked,
+      transfersFailed: result.transfersFailed,
+      fundingSlaBreaches: result.fundingSlaBreaches,
+    });
+    return result;
+  }
+
+  /**
    * Job: sync-riseworks-accounts — vercel.json "0 3 * * *"
    */
   async handleSyncRiseWorksAccounts(): Promise<AccountSyncResult> {
@@ -465,5 +486,16 @@ export class CronsScheduler {
       return;
     }
     await this.handleSyncRiseWorksAccounts();
+  }
+
+  @Cron('0 * * * *')
+  async scheduledWiseReconciliation(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped wise-reconciliation — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleWiseReconciliation();
   }
 }

@@ -21,11 +21,17 @@ import { RetryHandlerService } from '../disbursement/retry-handler.service';
 import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { TransactionService } from '../disbursement/transaction.service';
 
+import { WiseStateMapper } from '../wise/services/wise-state.mapper';
+import { WiseTransferStateReducer } from '../wise/services/wise-transfer-state.reducer';
+import { WiseApiClient } from '../wise/wise-api.client';
+import { WiseConfig } from '../wise/wise.config';
+
 import { AffiliateCronService } from './affiliate.service';
 import { CronSecretGuard } from './cron-secret.guard';
 import { CronTriggerController } from './cron-trigger.controller';
 import { CronsScheduler } from './crons.scheduler';
 import { SubscriptionCronService } from './subscription.service';
+import { WiseReconciliationService } from './wise-reconciliation.service';
 
 @Module({
   controllers: [CronTriggerController],
@@ -47,6 +53,15 @@ import { SubscriptionCronService } from './subscription.service';
     CronsScheduler,
     // File 5/6
     CronSecretGuard,
+    // Session 4A-W6, File 7/8 -- same house convention as the rest of this
+    // module (own provider instances, not a cross-module import of
+    // WiseModule, matching how TransactionService et al. are duplicated
+    // here rather than imported).
+    WiseConfig,
+    WiseApiClient,
+    WiseStateMapper,
+    WiseTransferStateReducer,
+    WiseReconciliationService,
   ],
 })
 export class CronsModule {}
