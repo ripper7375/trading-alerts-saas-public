@@ -21,6 +21,7 @@
 
 import { Controller, Post, Req, Res } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
@@ -57,6 +58,15 @@ export class DlocalWebhookController {
     private readonly conversionProcessor: ConversionProcessorService
   ) {}
 
+  // Session 4A-W4 (Defect 2, plan §13 CC-D): the app-wide ThrottlerGuard
+  // default (app.module.ts, { ttl: 60000, limit: 100 }) has no per-route
+  // override here, so a legitimate dLocal retry burst can get 429'd and
+  // read by dLocal as a permanent delivery failure. This raises the
+  // ceiling for this route only; the global default is unchanged for
+  // every other route. Standing policy for all future payment-provider
+  // webhooks (Stripe, dLocal, Wise): explicit route-level @Throttle(),
+  // never the bare global default.
+  @Throttle({ default: { ttl: 60_000, limit: 300 } })
   @Post()
   async handleWebhook(
     @Req() request: RawBodyRequest<Request>,
