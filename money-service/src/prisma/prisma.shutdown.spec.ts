@@ -33,7 +33,11 @@ describe('graceful shutdown (4A-W4 Defect 1)', () => {
     const disconnectSpy = jest
       .spyOn(prisma, '$disconnect')
       .mockResolvedValue(undefined);
-    const logSpy = jest.spyOn(logger, 'info').mockImplementation(() => {});
+    // No mockImplementation — let this call through to the real logger so
+    // the cleanup line actually prints (visible proof, not just an
+    // assertion), matching this repo's other spec files' convention of
+    // not suppressing real log output during tests.
+    const logSpy = jest.spyOn(logger, 'info');
 
     // Nest's real listenToShutdownSignals() re-sends the OS signal to this
     // process (process.kill(process.pid, signal)) once destroy hooks finish,

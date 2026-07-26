@@ -173,3 +173,17 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
 - Root cause: the order's prose assumed a REST-ish "verb + path param" shape implies the caller can act on an arbitrary target by ID — true for admin-authored endpoints, false for a self-service-designed one. A UI-BUILD session consuming a PORT session's already-frozen backend inherits that backend's actual permission model, not the order's guess at it.
 - Rule: before wiring any proxy route's own guard (`requireAffiliate()`/`requireAdmin()`), read the live backend controller's own guard decorator AND how the handler derives its target entity (from the caller's token vs. from the path param) — never trust an order's stated guard level alone for an endpoint someone else already built. A mismatch here is a live bug, not a style choice.
 - Source: Session 4A-W3b · Status: ACTIVE
+
+### L25 — `enableShutdownHooks()` is not optional; without it every `onModuleDestroy` is dead code
+
+- Symptom: `PrismaService.onModuleDestroy()` existed in money-service since Session 4A-1 and had never once run — no Railway redeploy had ever actually drained an in-flight query.
+- Root cause: Nest only invokes lifecycle hooks on SIGTERM/SIGINT when `app.enableShutdownHooks()` is called in `main.ts`. Registered-but-never-enabled reads as handled when it isn't.
+- Rule: any service with a lifecycle hook (`onModuleDestroy`/`OnApplicationShutdown`), a queue consumer, or in-flight external calls must call `app.enableShutdownHooks()`. Verify with a real test, not a code read alone — a synthetic `process.emit('SIGTERM', 'SIGTERM')` proves the wiring, but Nest's own shutdown listener re-sends the OS signal via `process.kill(process.pid, signal)` after cleanup, which will kill the test runner unless `process.kill`/`process.exit` are stubbed first.
+- Source: Session 4A-W4 (2 pre-existing defects found by Advisor review 2026-07-25, fixed and verified 2026-07-26) · Status: ACTIVE
+
+### L26 — A global `APP_GUARD` throttler also throttles your provider webhooks
+
+- Symptom: `/v1/webhooks/dlocal` inherited the app-wide `ThrottlerGuard` default (100 req/60s) with no per-route override — a legitimate provider retry burst would 429 and be read as a permanent delivery failure.
+- Root cause: `ThrottlerGuard` registered as `APP_GUARD` applies to every route by default, including ones whose caller is a payment provider you don't control and can't ask to back off.
+- Rule: every payment-provider webhook route needs an **explicit**, generous per-route `@Throttle()` — never the inherited global default, and never `@SkipThrottle()` either (that trades throttling for unbounded flooding). Prove the override actually raises the ceiling with a real burst test against the real guard, not just a metadata-presence check — `@Throttle()` doesn't change the handler body, so an unchanged behavioral test suite proves zero regression but not that the new limit is real.
+- Source: Session 4A-W4 (2026-07-26) · Status: ACTIVE
