@@ -193,7 +193,10 @@ Dependency order: pure state mapping → state reducer logic → queue processor
 - [x] BullMQ job IDs follow `jobId = wise:event:<deliveryId>`.
 - [x] **F40** resolved and recorded in `DECISION-LOG.md` (`WISE_WEBHOOK_SCOPE = 'PROFILE'`).
 - [x] Full `money-service` test suite green (`npm run test`) — 33/33 suites, 326/326 tests (was 29/29, 288/288 at 4A-W4's close). Monolith `npx tsc --noEmit` clean (unaffected — no monolith code changed this session).
-- [x] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
+- [x] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated. Also updated
+      `migration-cutover-table.md` (Slice 2's row — not itemized in this order's own Done-when
+      list, but an explicit `EXECUTOR-PROTOCOL.md` §3 artifact whenever a route's status moves;
+      Wise's webhook route is now noted as BUILT there).
 - [x] Session `4A-W6` order exists at status `PRE-DRAFT`.
 
 ---
