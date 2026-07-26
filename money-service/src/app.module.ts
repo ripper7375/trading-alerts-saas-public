@@ -15,6 +15,7 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
 import { RiseworksModule } from './riseworks/riseworks.module';
+import { WiseModule } from './wise/wise.module';
 
 // F15 (DECISION-LOG.md): the SAME shared Railway Redis instance
 // operation-service's ThrottlerModule already uses (not a dedicated
@@ -64,6 +65,11 @@ import { RiseworksModule } from './riseworks/riseworks.module';
     // Session 4A-7 (this order's own Safety Gate).
     AffiliateModule,
     AdminModule,
+    // Session 4A-W3a (File 8/10): Wise recipient onboarding backend.
+    // Unique paths under /v1/wise/recipients/* — no frontend surface
+    // consumes them yet (4A-W3b builds that next), so registering this
+    // module carries no live traffic risk.
+    WiseModule,
   ],
   providers: [
     {
