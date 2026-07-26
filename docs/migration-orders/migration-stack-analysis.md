@@ -1914,6 +1914,62 @@ Modified:
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W3a, Wise recipient onboarding
-backend)
+<details>
+<summary><code>Wise recipient frontend surface</code> — 10 new files, 3 modified (Session 4A-W3b, monolith UI)</summary>
+
+Server-side proxy layer + affiliate onboarding UI + admin read-only list for Wise recipients,
+against `4A-W3a`'s live `money-service` endpoints. Zero backend change — purely additive
+monolith routes/components/pages. Ships flag-less (Davin, live) — nothing was gated behind a
+`MIGRATE_*`-style flag since F39/F41 are already resolved and no other code reads these routes.
+
+New:
+
+- `lib/money-service/wise-types.ts` — frontend mirror of money-service's `wise.types.ts`
+  (`WiseAccountRequirementGroup`, `WiseRequirementsResponse`, `WiseRecipientSummary`,
+  `WiseRecipientsAdminList`, `CreateWiseRecipientPayload`) — manually kept in sync, no shared
+  package between the two services yet
+- `app/api/wise/recipients/requirements/route.ts` (GET, `requireAffiliate()`)
+- `app/api/wise/recipients/requirements/refresh/route.ts` (POST, `requireAffiliate()` — not in
+  the order's own File 1 route list, added because the Contract section documents it and the
+  form's field-refresh interaction needs it)
+- `app/api/wise/recipients/me/route.ts` (GET, `requireAffiliate()` — infers the real 204-vs-200
+  distinction from `id` presence, since the generic `callMoneyService` wrapper collapses HTTP
+  status into a thrown-or-not shape)
+- `app/api/wise/recipients/route.ts` (POST for affiliate creation `requireAffiliate()`, GET
+  admin list `requireAdmin()`)
+- `app/api/wise/recipients/[id]/revalidate/route.ts` (POST, `requireAffiliate()` — **not**
+  `requireAdmin()` as the order's own File 1 text said; the live backend guard is
+  self-service-only, see `DECISION-LOG.md`'s Session 4A-W3b entry)
+- `components/affiliate/wise-recipient-form.tsx` — 2-step schema-driven form (currency/country
+  select → dynamic fields from `AccountRequirementGroup[]`), client-side
+  minLength/maxLength/validationRegexp validation, graceful 403/500 handling
+- `app/affiliate/settings/layout.tsx` — thin auth-check layout (mirrors
+  `app/affiliate/dashboard/layout.tsx`); the order's own target path
+  (`app/(dashboard)/affiliate/settings/payout`) doesn't exist in the live tree, built at the
+  real `app/affiliate/settings/payout` instead, matching F39's recorded URL
+- `app/affiliate/settings/payout/page.tsx` — current-recipient status card, embeds
+  `WiseRecipientForm`, and a self-service "Re-verify with provider" action (moved here from the
+  admin page — see the guard-mismatch finding, `DECISION-LOG.md`)
+- `app/(dashboard)/admin/disbursement/recipients/page.tsx` — read-only paginated table
+  (affiliate ID, account holder, country, currency, `accountTail`, status, created date), status
+  filter — no actions, per F39 and the revalidate-guard finding
+- `__tests__/api/wise-recipients.test.ts` (17 tests) +
+  `__tests__/components/affiliate/wise-recipient-form.test.tsx` (6 tests) — placed matching this
+  repo's real `__tests__/api/*` / `__tests__/components/<area>/*` layout, not the order's own
+  suggested `__tests__/lib/money-service/wise-routes.test.ts` path (no such directory convention
+  exists here)
+
+Modified:
+
+- `lib/money-service/routes.ts` (164→243 lines — `buildQuery`'s param type widened to accept
+  `boolean`, + 6 new Wise recipient wrappers)
+- `app/affiliate/dashboard/layout.tsx` (+1 nav entry, "Payout Settings")
+- `app/(dashboard)/admin/disbursement/layout.tsx` (+1 nav entry, "Wise Recipients")
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W3b, Wise recipient frontend
+surface)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

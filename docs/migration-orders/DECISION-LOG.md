@@ -1518,3 +1518,60 @@ successfully started`, no errors; `railway variables --kv` confirms
   `10faa233`..`f100296a`.
 - Approved by: Davin (live, mid-session: the write-scope-blocker acceptance and the
   `git push` deploy path were both explicit live decisions, not unilateral calls).
+
+## Session 4A-W3b — Frontend build findings (not flags, technical discoveries)
+
+- Status: RESOLVED (session close-out record)
+- Session: 4A-W3b · Date: 2026-07-26
+- CONFIRM found the order file itself modified-but-uncommitted again (header
+  `PRE-DRAFT → APPROVED`, no Advisor-DRAFT/Davin-approval commit trail) — the same
+  `LESSONS-LEARNED.md` L11 pattern, 8th+ recurrence. Also found two open design questions the
+  PRE-DRAFT had explicitly left for CONFIRM (File 1: flag vs flag-less; File 3: revalidate vs
+  view-only) silently resolved in the rewrite with no visible decision recorded. Stopped and
+  asked Davin directly rather than trusting or silently correcting: confirmed the status flip
+  was his own edit; flag-less confirmed; revalidate-only (later superseded, see finding below)
+  confirmed. All 5 entry criteria (4A-W3a live 401 check, F39/F41 resolved,
+  `routes.ts`/`client.ts`/`admin/disbursement/page.tsx` line counts, `tsc --noEmit`) verified
+  live and PASSED — a first for this series, no drift found this time.
+- Findings, each verified live against the actual money-service source, not assumed:
+  1. **Real auth-semantics mismatch found while building File 1's last route.** The order's
+     File 1 said to guard `POST /api/wise/recipients/[id]/revalidate` with `requireAdmin()`,
+     and File 3 put a "Revalidate" button on the ADMIN page. Reading the live
+     `wise-recipients.controller.ts` (frozen at 4A-W3a) showed `POST
+/wise/recipients/:id/revalidate` is `AffiliateGuard`-scoped self-service only —
+     `revalidateRecipient` derives the recipient from the CALLER's own token
+     (`getAffiliateProfile(request.user.id)`), and `:id` is used only for an ownership check,
+     never to select which recipient to act on. An admin-guarded proxy would either 403 (an
+     admin isn't necessarily an affiliate) or silently revalidate the ADMIN's OWN recipient
+     instead of the target affiliate's. This is a real bug class, not a style choice — escalated
+     per `EXECUTOR-PROTOCOL.md` §5 (auth semantics beyond the order's explicit steps) rather
+     than building it as specified. Davin's live call: move Revalidate to the affiliate's own
+     `/affiliate/settings/payout` page (`requireAffiliate()`-guarded, matching the backend); the
+     admin page stays strictly view-only.
+  2. **Order's own file-path prose was stale against the live tree.** File 2's TARGET said
+     `app/(dashboard)/affiliate/settings/payout/page.tsx` — the live `(dashboard)` route group
+     has no `affiliate/` subtree at all (affiliate pages live at `app/affiliate/*`, their own
+     separate layout). Built at `app/affiliate/settings/payout/page.tsx` instead, matching F39's
+     actual recorded URL (`/affiliate/settings/payout`, this log, Session 4A-W3a) with its own
+     thin layout mirroring `app/affiliate/dashboard/layout.tsx`'s auth check.
+  3. **File 1's own route-handler list omitted `POST /wise/recipients/requirements/refresh`**
+     even though the Contract section documents it and File 2's `refreshRequirementsOnChange`
+     interaction needs it to function — added the wrapper + route as a deviation, not scope
+     creep (the endpoint was already frozen and documented, just missing from one bullet list).
+  4. **`refreshRequirementsOnChange` still can't be proven live** — `GET requirements` still
+     returns `quoteId: null` (4A-W3a's known gap, quote-scoping not yet built). The form wires
+     up the interaction but skips the network call when `quoteId` is null (it's guaranteed to
+     400 against the live Zod schema otherwise), tested against a mocked `quoteId` instead.
+  5. **Admin list endpoint returns raw Prisma rows, not `toSummaryDto()`-mapped** — confirmed
+     via `wise-recipients.controller.ts`'s `list()` method. No raw bank details are exposed
+     (F41's `accountTail`/`detailsFingerprint`-only persistence makes this structurally safe
+     regardless), but the admin page renders `accountHolderName` (present on the raw row) rather
+     than an affiliate display name — the contract has no affiliate-name field at all, admin- or
+     summary-side.
+- Evidence: live code reads (`wise-recipients.controller.ts`, `wise-recipient.service.ts`,
+  `wise.types.ts`), `git diff`/`git log` on the order file and `CLAUDE.md`, a value-blind
+  `curl` returning `401` against `money-service-production.up.railway.app/v1/wise/recipients`,
+  `wc -l` against the three cited files, `tsc --noEmit` clean, full `test:ci` 119/119 suites
+  (2105/2105 tests, +2 suites/+23 tests over the 4A-W3a baseline).
+- Approved by: Davin (live: status-flip confirmation, flag-less, and the revalidate
+  guard-mismatch resolution were all explicit live decisions).

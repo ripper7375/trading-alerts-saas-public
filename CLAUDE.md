@@ -24,7 +24,67 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W3a CLOSED, executed as PORT — Part 19.5 (Wise) recipient
+- **Current:** Session 4A-W3b CLOSED, executed as UI-BUILD — Part 19.5 (Wise) recipient
+  form & admin UI (monolith `app/api/wise/recipients/*`, `app/affiliate/settings/payout`,
+  `app/(dashboard)/admin/disbursement/recipients`), zero traffic cut over — 2026-07-26.
+  **CONFIRM found the order file modified-but-uncommitted again** (header `PRE-DRAFT →
+APPROVED`, no Advisor-DRAFT/Davin-approval commit trail, paired with a matching
+  uncommitted edit to this file) — the same `LESSONS-LEARNED.md` L11 pattern, 8th+
+  recurrence. Also found two open design questions the PRE-DRAFT had explicitly left for
+  CONFIRM (File 1: flag vs flag-less; File 3: revalidate-button scope) silently resolved
+  in the rewrite with no visible decision recorded. Stopped and asked Davin directly:
+  status flip confirmed as his own edit, flag-less confirmed, revalidate-button scope
+  confirmed (later superseded mid-build, see below). All 5 entry criteria (4A-W3a live
+  401 check, F39/F41 resolved, 3 file line counts, `tsc --noEmit`) verified live and
+  PASSED — a first for this series, zero drift found. Order marked CONFIRMED, executed.
+  **Built (Files 1–4/5, dependency order, committed per step):** `lib/money-service/routes.ts`
+  extended with 6 typed Wise recipient wrappers (+`lib/money-service/wise-types.ts`,
+  frontend mirror of money-service's own `wise.types.ts`) and 5 new Next.js route
+  handlers under `app/api/wise/recipients/*` (File 1); `components/affiliate/wise-recipient-form.tsx`
+  (2-step schema-driven form: currency/country → dynamic fields from
+  `AccountRequirementGroup[]`, client-side validation, graceful 403/500 handling) +
+  `app/affiliate/settings/payout/page.tsx` (File 2); `app/(dashboard)/admin/disbursement/recipients/page.tsx`
+  read-only paginated table (File 3); 17 route tests + 6 component tests, all passing
+  (File 4).
+  **Real auth-semantics mismatch found and escalated mid-build (File 1's last route):**
+  the order's own text guarded `POST /api/wise/recipients/[id]/revalidate` with
+  `requireAdmin()` and put a "Revalidate" button on the ADMIN page (File 3) — but the
+  live `wise-recipients.controller.ts` (frozen at 4A-W3a) guards
+  `POST /wise/recipients/:id/revalidate` with `AffiliateGuard` self-service only,
+  deriving the recipient from the CALLER's own token (`:id` is only used for an
+  ownership check, never to select the target). An admin-guarded proxy would either
+  403 or silently revalidate the admin's OWN recipient instead of the target
+  affiliate's — a real bug class, not a style choice. Escalated per
+  `EXECUTOR-PROTOCOL.md` §5 rather than building it as specified; Davin's live call:
+  move Revalidate to the affiliate's own payout settings page
+  (`requireAffiliate()`-guarded, matching the backend); the admin page stays strictly
+  view-only, no actions at all.
+  **Order text vs. live tree drift found:** File 2's TARGET
+  (`app/(dashboard)/affiliate/settings/payout`) doesn't exist — the live `(dashboard)`
+  route group has no `affiliate/` subtree at all (affiliate pages live at
+  `app/affiliate/*`, their own separate layout with its own auth-check). Built at
+  `app/affiliate/settings/payout/page.tsx` instead, matching F39's actual recorded URL
+  (`DECISION-LOG.md`, Session 4A-W3a) with its own thin layout mirroring
+  `app/affiliate/dashboard/layout.tsx`'s auth pattern; added one nav-link entry to that
+  layout so the new page is actually discoverable. Also added one nav-link entry to
+  `app/(dashboard)/admin/disbursement/layout.tsx` for the new admin page.
+  **File 1's own route list omitted `POST /wise/recipients/requirements/refresh`** even
+  though the Contract section documents it and File 2's `refreshRequirementsOnChange`
+  interaction needs it — added the wrapper + route as a deviation (already-frozen,
+  already-documented endpoint, not scope creep). The interaction itself still can't be
+  proven live (`GET requirements` still returns `quoteId: null`, 4A-W3a's known gap) —
+  wired up but skips the network call when `quoteId` is null (guaranteed 400
+  otherwise), tested against a mocked `quoteId` instead.
+  **Full test suite:** `test:ci` 119/119 suites green (2105/2105 tests, +2 suites/+23
+  tests over the 4A-W3a baseline). `tsc --noEmit` clean throughout. `DISBURSEMENT_PROVIDER`
+  stays `MOCK` in production — this session shipped UI only, no provider flip, no money
+  moved; the write path (`POST /wise/recipients`) still 403s in production on the
+  read-only token, handled gracefully in the form's UI per 4A-W3a's carried-forward gap.
+  **Artifacts updated:** `4a-w3b-wise-recipient-ui.migration-order.md` (Status →
+  CONFIRMED, Deviations filled in full), `DECISION-LOG.md` (new Session 4A-W3b findings
+  entry), `migration-stack-analysis.md` (new frontend-surface entry), this file.
+  `4a-w4-wise-hardening-gate.migration-order.md` PRE-DRAFTed (CONTRACT + small INFRA).
+- _(superseded-by-above, retained for context)_ Session 4A-W3a CLOSED, executed as PORT — Part 19.5 (Wise) recipient
   onboarding backend module (`money-service/src/wise/*`), zero traffic cut over — 2026-07-26.
   **CONFIRM (two passes):** first pass found 4/6 entry criteria FAILING against live state —
   F39/F41 still OPEN, `WISE_API_TOKEN` absent from Railway (value-blind check), and all
@@ -360,10 +420,10 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w3a-wise-recipient-backend.migration-order.md` (CONFIRMED and
-  executed by Executor 2026-07-26 — split from the unsplit `4A-W3` PRE-DRAFT into `4A-W3a`
-  backend + `4A-W3b` UI). `docs/migration-orders/4a-w3b-wise-recipient-ui.migration-order.md`
-  stays PRE-DRAFTed, status `PRE-DRAFT`. The unsplit
+  `docs/migration-orders/4a-w3b-wise-recipient-ui.migration-order.md` (CONFIRMED and executed
+  by Executor 2026-07-26). Predecessor `4a-w3a-wise-recipient-backend.migration-order.md` stays
+  CONFIRMED/executed (see historical block below — split from the unsplit `4A-W3` PRE-DRAFT
+  into `4A-W3a` backend + `4A-W3b` UI). The unsplit
   `4a-w3-wise-recipient-onboarding.migration-order.md` is now SUPERSEDED (stub pointing to
   the split files). Predecessor `4a-w2-wise-additive-schema.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor
@@ -373,7 +433,15 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W3a):** backend module built and deployed clean — 8 of 10 files' worth
+- **Order status (4A-W3b):** frontend surface built and verified clean — all 5 files shipped
+  (server-side proxy layer, dynamic recipient form + affiliate payout page, admin read-only
+  list page, 23 new tests, artefact updates). `tsc --noEmit` clean throughout; monolith
+  `test:ci` 119/119 suites (2105/2105 tests). Ships flag-less (Davin, live). Real
+  auth-semantics mismatch found and resolved mid-build (revalidate moved from the admin page
+  to the affiliate's own payout page — see Current above and `DECISION-LOG.md`). Standing
+  note unchanged: `DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session shipped
+  UI only, no provider flip, no money moved.
+- **Order status (4A-W3a, historical):** backend module built and deployed clean — 8 of 10 files' worth
   of scope shipped (Files 1-8 built; File 9 deferred by Davin, File 10's full write-path E2E
   blocked by token scope, both carried forward). 27/27 money-service test suites green
   (285/285 tests), monolith `test:ci` re-verified 117/117 (2082/2082) via the pre-push hook.
@@ -581,6 +649,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   frozen at 4A-W2, so `4a-w3a-…`'s `createRecipient` upserts in place instead (schema change
   is out of scope for a PORT session). Needs Davin/Advisor to pick one: accept upsert
   semantics and fix the OpenAPI text, or schema-change to support archive-and-recreate.
+  **(51, NEW)** `GET /v1/wise/recipients` (admin list)'s live response has no affiliate-name
+  field at all — `wise-recipients.controller.ts`'s `list()` returns raw `AffiliateWiseRecipient`
+  rows (not `toSummaryDto()`-mapped), and neither shape carries a joined affiliate display name.
+  `4a-w3b-…`'s admin page renders `accountHolderName` (the bank recipient's own name) plus a
+  truncated `affiliateProfileId` instead — not a security issue (no raw bank details either
+  way, F41), just a UX gap. A future session could add a small enrichment join (money-service
+  or the monolith's own Prisma) if admins need to search/identify by affiliate name specifically.
   **(50, NEW)** `railway up` CLI is unreliable for `money-service` from this checkout — 413
   payload-too-large without `--path-as-root` (can't resolve `.gitignore` from the
   subdirectory), "Failed to read app source directory" with it (likely a Root Directory
@@ -589,17 +664,17 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   auto-deploys cleanly). New `LESSONS-LEARNED.md` L23. Worth Davin checking the Railway
   dashboard's Root Directory setting for `money-service` directly if `railway up` is ever
   needed again (e.g. for a deploy that shouldn't go through a git push).
-- **Next session:** Davin's call, per `4a-w3a-…`'s own Next-session-handoff note.
-  `4a-w3b-wise-recipient-ui.migration-order.md` (recipient form & admin UI) is PRE-DRAFTed at
-  status `PRE-DRAFT` — its own entry criteria need re-verifying at CONFIRM per usual (it
-  currently assumes THB is available for the form to render against, which per Waiting-on #46
-  isn't true yet; likely fine since the form is meant to be currency-agnostic and
-  schema-driven, but worth checking explicitly rather than assuming). Carry forward from
-  4A-W3a: THB production fixture still needed (#46); a write-scoped sandbox `WISE_API_TOKEN`
-  is needed to complete the full recipient-creation E2E proof (#47) — **not** blocking for
-  4A-W3b (UI work doesn't call Wise directly, it calls money-service); the OpenAPI's
+- **Next session:** Davin's call, per `4a-w3b-…`'s own Next-session-handoff note.
+  `4a-w4-wise-hardening-gate.migration-order.md` (CC-C/CC-D hardening gate for the money
+  surface) is PRE-DRAFTed at status `PRE-DRAFT` — its own entry criteria need re-verifying at
+  CONFIRM per usual, and it **requires Davin present** (`EXECUTOR-PROTOCOL.md` §7) before its
+  Step 4 (adding an explicit `@Throttle()` to the already-cut-over live dLocal webhook route).
+  Carry forward from 4A-W3a: THB production fixture still needed (#46); a write-scoped sandbox
+  `WISE_API_TOKEN` is needed to complete the full recipient-creation E2E proof (#47) — still
+  not blocking, neither 4A-W4 nor 4A-W5 call Wise's write endpoints; the OpenAPI's
   archive-vs-upsert conflict on recipient replacement needs a decision (#49); `railway up`
-  stays unreliable for money-service, use `git push origin main` (#50, L23). Separately: a
+  stays unreliable for money-service, use `git push origin main` (#50, L23); the admin list's
+  missing affiliate-name field is a minor UX gap, not blocking (#51). Separately: a
   future RETIRE session can delete the monolith's now-orphaned
   `app/api/affiliate/dashboard/*`, `app/api/admin/{affiliates,analytics}/*` routes and their
   `lib/` logic once Davin agrees Slice 3 (4A-7b) has been stable long enough — not yet
