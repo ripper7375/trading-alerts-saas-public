@@ -42,7 +42,7 @@ export class WiseApiError extends Error {
 }
 
 export interface WiseRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   headers?: Record<string, string>;
   /** Field names to redact from `body` before it is ever logged (design §7.4). */
