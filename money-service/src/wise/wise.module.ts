@@ -24,21 +24,30 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
+import { WiseBatchesController } from './controllers/wise-batches.controller';
 import { WiseWebhookController } from './controllers/wise-webhook.controller';
+import { WisePaymentProvider } from './providers/wise-payment.provider';
 import { WISE_WEBHOOK_QUEUE } from './queue/wise-webhook.processor';
 import { WiseWebhookProcessor } from './queue/wise-webhook.processor';
 import { WiseApiClient } from './wise-api.client';
 import { WiseConfig } from './wise.config';
+import { WiseBatchGroupService } from './services/wise-batch-group.service';
 import { WiseEventHandlers } from './services/wise-event-handlers';
+import { WiseQuoteService } from './services/wise-quote.service';
 import { WiseRecipientService } from './wise-recipient.service';
 import { WiseRecipientsController } from './wise-recipients.controller';
 import { WiseSignatureVerifier } from './wise-signature.verifier';
 import { WiseStateMapper } from './services/wise-state.mapper';
+import { WiseTransferService } from './services/wise-transfer.service';
 import { WiseTransferStateReducer } from './services/wise-transfer-state.reducer';
 
 @Module({
   imports: [BullModule.registerQueue({ name: WISE_WEBHOOK_QUEUE })],
-  controllers: [WiseRecipientsController, WiseWebhookController],
+  controllers: [
+    WiseRecipientsController,
+    WiseWebhookController,
+    WiseBatchesController,
+  ],
   providers: [
     WiseConfig,
     WiseApiClient,
@@ -48,6 +57,11 @@ import { WiseTransferStateReducer } from './services/wise-transfer-state.reducer
     WiseTransferStateReducer,
     WiseEventHandlers,
     WiseWebhookProcessor,
+    WiseQuoteService,
+    WiseTransferService,
+    WiseBatchGroupService,
+    WisePaymentProvider,
   ],
+  exports: [WisePaymentProvider],
 })
 export class WiseModule {}
