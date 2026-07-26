@@ -24,7 +24,85 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W1 CLOSED, executed as CONTRACT — Part 19.5 (Wise) contracts &
+- **Current:** Session 4A-W2 CLOSED, executed as INFRA+PORT — Part 19.5 (Wise) additive
+  production schema migration, zero traffic cut over — 2026-07-26.
+  **CONFIRM found the order file itself mid-edit again:** `git status` showed
+  `4a-w2-wise-additive-schema.migration-order.md` modified-but-uncommitted; `git diff` against
+  the last commit showed `Status: PRE-DRAFT → APPROVED` with no Advisor-DRAFT/Davin-approval
+  commit trail, and all four of the order's own line-count entry-criteria numbers had shifted
+  `+1` away from both the committed version and the live codebase
+  (`prisma/non-market-data/schema.prisma` 1023→1024, `money-service/prisma/schema.prisma`
+  583→584) — the same `LESSONS-LEARNED.md` L11 pattern, 6th recurrence. Stopped and asked Davin
+  live rather than trusting or silently correcting; Davin confirmed the edit was his own, kept
+  `APPROVED`, and asked for the four numbers corrected back to the `wc -l` baseline (done).
+  **Steps 1–2:** authored the 5 new models (`AffiliateWiseRecipient`, `WiseTransfer`,
+  `WiseBatchGroup`, `WiseWebhookEvent`, `WiseWebhookSubscription`) + 3 new enums + `WISE` enum
+  value + 3 back-relations verbatim from `01-…design.md` §4.1–4.2 in
+  `prisma/non-market-data/schema.prisma`; `prisma validate` clean, diff additions-only.
+  **Near-miss on SQL generation:** the order's literal `prisma migrate dev --create-only`
+  command hit live drift detection against production (pre-existing untracked drift from past
+  `db push` usage, unrelated to this session) and printed "We need to reset the 'public'
+  schema... All data will be lost" — it only stopped short of the confirmation prompt because
+  stdin wasn't a TTY (exit 130). Verified immediately via a real query against production: no
+  data lost. Stopped, reported the near-miss in full, got Davin's explicit go before touching
+  the DB connection again. **Fix:** generated the SQL via `prisma migrate diff --from-schema
+<pre-edit snapshot> --to-schema prisma/non-market-data/schema.prisma --script` instead — pure
+  datamodel diff, zero DB connection, can never propose a reset. Output verified clean (zero
+  `DROP`/`ALTER COLUMN`/`RENAME`), written to
+  `prisma/migrations/20260726000000_wise_disbursement_additive/migration.sql`.
+  **DATABASE_URL vs DIRECT_URL confusion:** post-verification querying via `DATABASE_URL`
+  (matching `lib/db/prisma.ts`'s runtime pattern) showed the new tables didn't exist — traced to
+  `DATABASE_URL` (`turntable.proxy.rlwy.net`) and `DIRECT_URL` (`maglev.proxy.rlwy.net`) being
+  genuinely different databases (different `User`/`Subscription` counts), not two proxy fronts
+  to one instance. Stopped and asked Davin rather than guessing; confirmed live:
+  `maglev`/`DIRECT_URL` is real production, `turntable`/`DATABASE_URL` is this checkout's
+  staging target. New `LESSONS-LEARNED.md` L22 + a recurrence note on L19.
+  **F38 resolved** (Davin, live): **Option A** — the platform bears the Wise fee
+  (`feeBearer = 'PLATFORM'`), affiliates receive their exact earned commission with no fee
+  deduction. Logged in full in `DECISION-LOG.md`.
+  **Step 4 (apply to production, Davin present):** `prisma migrate deploy` against
+  `DIRECT_URL`/production — clean, all 5 tables + `WISE` enum value confirmed via direct query,
+  pre-existing table row counts confirmed unchanged (the applied SQL contains zero
+  `UPDATE`/`DELETE`/`ALTER TABLE` statements capable of touching existing rows in the first
+  place). Monolith's own Prisma client regenerated to match.
+  **Step 5:** hand-mirrored the 5 models + 3 enums into `money-service/prisma/schema.prisma` as
+  a subset — FKs to the 3 pre-existing shared models (`AffiliateProfile`, `PaymentBatch`,
+  `DisbursementTransaction`) kept as bare scalars (no money-service code traverses them yet,
+  same convention as `AffiliateCode<->Commission`); FKs _within_ the new Wise set kept as real
+  relations. `prisma generate` only (never `db push`/`migrate deploy`, L1) — money-service
+  builds clean, generated client confirmed to include all 5 models.
+  **Step 6 (grant check):** proved via `SET ROLE money_svc` + a real
+  INSERT/SELECT/UPDATE/DELETE cycle (rolled back, zero residue) against production — found
+  `money_svc` had **zero** grants on all 5 new tables, exactly the risk register's predicted
+  "most likely silent failure." Role-grant change → escalated to Davin per
+  `EXECUTOR-PROTOCOL.md` §7 rather than just applying the order's own suggested fix; Davin
+  approved. `GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER, TRUNCATE` applied,
+  re-verified clean via the same real-query method (not a grant listing alone).
+  **Step 7:** re-audited `amountRiseUnits`/`payeeRiseId` null-tolerance — the order's own text
+  cited `report-builder.service.ts`/`admin-affiliate-reports.controller.ts`, but neither file
+  references either field (checked); design §3.5(b) actually names 5 different files
+  (`transaction.service.ts`, `payment-orchestrator.service.ts`, one API route, two admin
+  pages) — verified all 5 against the live tree, all still null-safe exactly as the design doc
+  claims, no reader needed editing.
+  **Step 8:** added the archived-block banner (F42) to both schema files — comment-only, both
+  re-validated clean.
+  **Step 9:** fixed one real `tsc` error caused by the schema change (`types/disbursement.ts`'s
+  hand-written `DisbursementProvider` union didn't include `'WISE'` — both dispatch functions in
+  `lib/disbursement/providers/provider-factory.ts` already default to unavailable/throw for any
+  unhandled provider, so this was a type-only, zero-behavior-change fix). `tsc --noEmit` clean;
+  `eslint app components lib hooks --max-warnings 0` clean (0 errors, 0 warnings — a first,
+  naive `eslint .` invocation wrongly scanned `e2e/archive/`, the separate
+  `frontend-and-backend-python-stack/`, and `.next/` build output, producing 9534 unrelated
+  problems; corrected to the project's own `validate:lint` scope); monolith `test:ci` 117/117
+  suites, 2082/2082 tests (matches Session 5-4's baseline exactly); money-service has no `lint`
+  script (order text inaccuracy) — `npm run test` 24/24 suites, 260/260 tests, `npm run build`
+  clean.
+  **Artifacts updated:** `4a-w2-wise-additive-schema.migration-order.md` (Status → CONFIRMED,
+  line counts corrected, Deviations filled in full), `DECISION-LOG.md` (F38 register row +
+  resolution entry), `LESSONS-LEARNED.md` (L19 recurrence, new L22),
+  `migration-stack-analysis.md` (new schema/migration/type-fix entries), this file.
+  `4a-w3-wise-recipient-onboarding.migration-order.md` PRE-DRAFTed (PORT + UI-BUILD).
+- \_(superseded-by-above, retained for context) Session 4A-W1 CLOSED, executed as CONTRACT — Part 19.5 (Wise) contracts &
   decisions, no code, no schema, no money moved — 2026-07-26.
   **CONFIRM found the order file itself mid-edit:** `git status` showed
   `4a-w1-wise-contracts-and-decisions.migration-order.md` as modified-but-uncommitted;
@@ -218,21 +296,28 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w1-wise-contracts-and-decisions.migration-order.md` (CONFIRMED
-  and executed by Executor 2026-07-26). `docs/migration-orders/4a-w2-wise-additive-schema.migration-order.md`
-  PRE-DRAFTed at this close, status `PRE-DRAFT`, requires Davin present (production schema
-  change). Predecessor money-service order
-  `4a-7b-money-service-read-apis-cutover.migration-order.md` stays CUT-OVER/closed (see
-  historical block below), superseding `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit
-  trail). `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` now
-  **REVOKED** (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W1):** all-green — no code written, no schema changed, no money
+  `docs/migration-orders/4a-w2-wise-additive-schema.migration-order.md` (CONFIRMED and executed
+  by Executor 2026-07-26). `docs/migration-orders/4a-w3-wise-recipient-onboarding.migration-order.md`
+  PRE-DRAFTed at this close, status `PRE-DRAFT`. Predecessor
+  `4a-w1-wise-contracts-and-decisions.migration-order.md` stays CONFIRMED/executed (see
+  historical block below). Predecessor money-service order
+  `4a-7b-money-service-read-apis-cutover.migration-order.md` stays CUT-OVER/closed, superseding
+  `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
+  `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
+  (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
+- **Order status (4A-W2):** additive migration applied to production clean — 5 new tables +
+  `WISE` enum value confirmed live via direct query, pre-existing table row counts unchanged,
+  `money_svc` grant gap found and fixed (Davin-approved), money-service schema mirrored and
+  builds clean, F38 RESOLVED (Option A — platform bears fee), full test suites green both
+  sides. Standing note unchanged: `DISBURSEMENT_PROVIDER` stays `MOCK` in production until
+  `4A-W7` cuts over — **no real affiliate payout goes out through money-service before then;
+  any order that would create a real payment batch before 4A-W7 is out of order, stop and ask
+  Davin.**
+- **Order status (4A-W1, historical):** all-green — no code written, no schema changed, no money
   touched, `git diff --stat` shows documentation/order-file changes only. F36/F37 RESOLVED,
-  F38–F41 registered OPEN, F42 RESOLVED, Business Payment Approval confirmed absent,
-  `WISE_PROFILE_ID` (sandbox business) captured, OpenAPI + state table frozen. Standing note:
-  `DISBURSEMENT_PROVIDER` stays `MOCK` in production until `4A-W7` cuts over — **no real
-  affiliate payout goes out through money-service before then; any order that would create a
-  real payment batch before 4A-W7 is out of order, stop and ask Davin.**
+  F38–F41 registered OPEN (F38 now RESOLVED at 4A-W2, see above), F42 RESOLVED, Business Payment
+  Approval confirmed absent, `WISE_PROFILE_ID` (sandbox business) captured, OpenAPI + state
+  table frozen.
 - **Order status (4A-7b, historical):** CUT-OVER — both `MIGRATE_READ_APIS_MONEY_AFFILIATE` and
   `MIGRATE_READ_APIS_MONEY_ADMIN` are `true` in Vercel production, redeployed and
   smoke-tested clean (see the 4A-7b historical block below for the CONFIRM-time gap
@@ -376,19 +461,31 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   by Davin outside this chat; only the response body (profile IDs `29617747`
   personal/`29617748` business, types) was shared back — no token value entered this
   transcript. **(44, NEW)** THB cannot be exercised end-to-end in Wise's sandbox (UK-region,
-  stable only for GBP/USD/EUR) — recorded in `4a-w1-…`'s Deviations and carried into the
-  `4A-W2` PRE-DRAFT. Consequence: `4A-W3` must fetch the real THB account-requirements schema
-  from **production** (read-only, no money); `4A-W6`'s E2E runs on a sandbox-supported
-  currency pair; `4A-W7`'s single smoke payout is the first real proof of the THB route.
-- **Next session:** Davin's call, per `4a-w1-…`'s own Next-session-handoff note.
-  `4a-w2-wise-additive-schema.migration-order.md` (Part 19.5's additive Prisma migration — 5
-  new tables + the `WISE` enum value) is PRE-DRAFTed at status `PRE-DRAFT` — **requires Davin
-  present** (production schema change, `EXECUTOR-PROTOCOL.md` §7) and must run from the
-  monolith only, never `db push`/`migrate deploy` from money-service (L1). Separately: a
+  stable only for GBP/USD/EUR) — recorded in `4a-w1-…`'s Deviations, unchanged at 4A-W2 (no
+  Wise API calls happen in a schema-only session). Consequence unchanged: `4A-W3` must fetch
+  the real THB account-requirements schema from **production** (read-only, no money); `4A-W6`'s
+  E2E runs on a sandbox-supported currency pair; `4A-W7`'s single smoke payout is the first
+  real proof of the THB route. **(45, NEW)** `4a-w2-…`'s own order text contained two
+  inaccuracies caught during execution, neither blocking: Step 7 cited
+  `report-builder.service.ts`/`admin-affiliate-reports.controller.ts` as needing a
+  null-tolerance re-check, but neither file references `amountRiseUnits`/`payeeRiseId` at all
+  (checked) — design §3.5(b), the order's own cited source, actually names 5 different files,
+  which were the ones actually re-audited. Step 9 said money-service has its own `lint` script;
+  it doesn't (`npm run` lists `build`/`start*`/`test*`/`prisma:generate` only, no ESLint config
+  exists in that package). Worth the Advisor's attention on how order text drifts from its own
+  cited sources between drafting and execution — same general shape as L11 (self-contradicting
+  order metadata), but on body content rather than the header status field.
+- **Next session:** Davin's call, per `4a-w2-…`'s own Next-session-handoff note.
+  `4a-w3-wise-recipient-onboarding.migration-order.md` (recipient onboarding backend + form) is
+  PRE-DRAFTed at status `PRE-DRAFT`, seeded from `04-rise-to-wise-migration-plan.md` §4
+  "4A-W3" — must carry forward: F39 (who fills the recipient form) and F41 (PII retention) both
+  need resolving with Davin; the real THB account-requirements schema must be fetched from
+  production as a committed fixture; explicit body redaction for `POST /v1/accounts`; read-only
+  `WISE_API_TOKEN` is sufficient, full access not needed until W6. Separately: a
   future RETIRE session can delete the monolith's now-orphaned
   `app/api/affiliate/dashboard/*`, `app/api/admin/{affiliates,analytics}/*` routes and their
   `lib/` logic once Davin agrees Slice 3 (4A-7b) has been stable long enough — not yet
-  scheduled. `4A-5-RW` (RiseWorks) is now REVOKED (Waiting-on #37), not pending. `Session 6-1`
+  scheduled. `4A-5-RW` (RiseWorks) stays REVOKED (Waiting-on #37), not pending. `Session 6-1`
   (Phase 6 Gap Matrix, `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was
   PRE-DRAFTed at 5-4's close, a separate track — Davin to decide ordering against Slice 4
   (4A-8), the Slice-3-RETIRE session, and the now-active `4A-W*` series.
@@ -442,8 +539,10 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F36 fully RESOLVED (Session 4A-W1, Davin)** — Wise integration Model A (Business +
   personal API token); funding stays `MANUAL` regardless (Thailand region gate) ·
   **F37 fully RESOLVED (Session 4A-W1, Davin)** — `WISE_FUNDING_MODE=MANUAL`, Thailand not on
-  Wise's API-funding allowlist · **F38 OPEN** (Wise fee bearer + quote amount direction — due
-  4A-W2, Davin, commercial) · **F39 OPEN** (Wise recipient-details collection surface —
+  Wise's API-funding allowlist ·
+  **F38 fully RESOLVED (Session 4A-W2, Davin)** — Option A, platform bears the Wise fee
+  (`feeBearer = 'PLATFORM'`), affiliates receive their exact earned commission · **F39 OPEN**
+  (Wise recipient-details collection surface —
   affiliate self-service vs admin-entered — due 4A-W3, Davin, product) · **F40 OPEN** (Wise
   webhook subscription level: profile vs application — follows F36, due 4A-W5) · **F41 OPEN**
   (Wise recipient PII retention/deletion; interacts with F21 — due 4A-W3, Davin) ·

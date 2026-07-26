@@ -50,7 +50,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F46  | Schema-vs-transport failure classification at the first authenticated read           | RESOLVED — 2026-07-25 (Davin, pre-registered ahead of Session 4A-7a)                                                   |
 | F36  | Wise integration model: Business + personal token vs Platform Enterprise partnership | RESOLVED — Session 4A-W1 (Davin): Model A — Business + personal token                                                  |
 | F37  | Wise funding mode (`MANUAL`/`API`) given the account-region gate                     | RESOLVED — Session 4A-W1 (Davin): `MANUAL`, Thailand is not on Wise's API-funding allowlist                            |
-| F38  | Wise fee bearer + quote amount direction (`sourceAmount` vs `targetAmount`)          | OPEN — due Session 4A-W2 (Davin, commercial)                                                                           |
+| F38  | Wise fee bearer + quote amount direction (`sourceAmount` vs `targetAmount`)          | RESOLVED — Session 4A-W2 (Davin): Option A — Platform bears the fee (`feeBearer = 'PLATFORM'`)                         |
 | F39  | Wise recipient-details collection surface (affiliate self-service vs admin-entered)  | OPEN — due Session 4A-W3 (Davin, product)                                                                              |
 | F40  | Wise webhook subscription level (profile vs application) — dependent on F36          | OPEN — due Session 4A-W5 (technical, follows F36)                                                                      |
 | F41  | Wise recipient PII retention/deletion; interacts with F21                            | OPEN — due Session 4A-W3 (Davin)                                                                                       |
@@ -1391,4 +1391,21 @@ successfully started`, no errors; `railway variables --kv` confirms
   (`04-rise-to-wise-migration-plan.md` §5), since Wise account settings can change between now and
   then.
 - Evidence: Davin, live, 2026-07-26.
+- Approved by: Davin
+
+## F38 — Wise fee bearer + quote amount direction
+
+- Status: RESOLVED
+- Session: 4A-W2 · Date: 2026-07-26
+- Decision: **Option A — the platform bears the Wise fee.** `WiseTransfer.feeBearer = 'PLATFORM'`;
+  quotes are taken by `targetAmount`, so the affiliate receives their exact earned commission
+  amount with no fee deduction — the platform absorbs `feeAmount` as a cost. `WISE_FEE_BEARER`
+  (design §7.2, low-sensitivity) is set to `PLATFORM` accordingly. Option B (affiliate bears the
+  fee, quote by `sourceAmount`, `feeBearer = 'AFFILIATE'`) was not chosen.
+- Evidence: Davin, live, 2026-07-26 (this session) — selected Option A when re-presented with the
+  two options from `05-artifact-amendments.md` §2b's flag-register entry and
+  `01-…architecture-design.md` §4's `feeBearer` field definition. No schema change required by this
+  decision — `WiseTransfer.feeBearer` is already a free-text field (`"PLATFORM" | "AFFILIATE"`),
+  set at write-time by application code, not by the migration. Consumed starting Session 4A-W4+
+  when the actual transfer-creation code is built.
 - Approved by: Davin

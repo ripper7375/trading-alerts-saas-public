@@ -1831,7 +1831,41 @@ known-wrinkles list).
 
 </details>
 
+<details>
+<summary>Part 19.5 (Wise) additive schema — 5 new tables + 1 new migration + 1 type fix (Session 4A-W2)</summary>
+
+Additive-only production schema migration for the Wise disbursement provider (F42 replaces
+RiseWorks). Zero traffic cut over — `DISBURSEMENT_PROVIDER` stays `MOCK` in production until
+4A-W7. Real-query grant check found `money_svc` had zero grants on the 5 new tables (predicted
+risk, `04-…plan.md` §5); fixed live with Davin's explicit approval (role-grant change,
+`EXECUTOR-PROTOCOL.md` §7).
+
+Modified:
+
+- `prisma/non-market-data/schema.prisma` (1023→1236 lines — `DisbursementProvider` gains `WISE`
+  - archival comment on `RISE`; 3 back-relations on `AffiliateProfile`/`PaymentBatch`/
+    `DisbursementTransaction`; 5 new models + 3 new enums per design §4.1–4.2; archived-block
+    banner added per `03-…runbook.md` §2.3)
+- `money-service/prisma/schema.prisma` (583→801 lines — same `DisbursementProvider` change; 5
+  new models + 3 new enums hand-mirrored as a subset — FKs to the 3 pre-existing shared models
+  kept as bare scalars, no relation object, since no money-service code traverses them yet
+  (4A-W4+ builds `src/wise/`); FKs _within_ the new Wise set kept as real relations; archived
+  banner added above `AffiliateRiseAccount`)
+- `types/disbursement.ts` (`DisbursementProvider` union gains `'WISE'` — required by the schema
+  enum change to keep `tsc --noEmit` green; both dispatch functions in
+  `lib/disbursement/providers/provider-factory.ts` already default to unavailable/throw for any
+  unhandled provider, so this is type-only, zero behavior change)
+
+New:
+
+- `prisma/migrations/20260726000000_wise_disbursement_additive/migration.sql` (3 `CREATE TYPE`,
+  1 `ALTER TYPE ... ADD VALUE`, 5 `CREATE TABLE`, 19 `CREATE INDEX`, 5 `ADD CONSTRAINT` FK —
+  generated via `prisma migrate diff` schema-to-schema, not `migrate dev`, see
+  `LESSONS-LEARNED.md` L22; applied via `migrate deploy`)
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-23 (Phase 5 Exit)
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W2, Part 19.5 additive schema)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
