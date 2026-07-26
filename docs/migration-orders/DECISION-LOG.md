@@ -1283,3 +1283,34 @@ successfully started`, no errors; `railway variables --kv` confirms
 - Authored by: Advisor (Claude Cowork). Normally the Executor writes Decision-Log entries at session
   close; this one is pre-registered at Davin's direct instruction so 4A-7a can act on it at CONFIRM
   time rather than discovering it mid-session.
+
+## Session 4A-7b — Slice 3 read-API cutover executed; CONFIRM-time gap found and fixed (Vercel prod missing `MONEY_SERVICE_URL` + both flags)
+
+- Status: RESOLVED (scoping/technical finding, not a new flag — F44/F45 stay as resolved in 4A-7a;
+  this entry records the CONFIRM-time gap and the cutover execution itself)
+- Session: 4A-7b · Date: 2026-07-26
+- Decision: at CONFIRM, re-verifying entry criterion #2 ("both flags exist and are OFF in
+  production") against live Vercel state — not trusting 4A-7a's close-out claim — found
+  `MONEY_SERVICE_URL`, `MIGRATE_READ_APIS_MONEY_AFFILIATE`, and `MIGRATE_READ_APIS_MONEY_ADMIN` did
+  not exist in the Vercel project at all, in any environment. 4A-7a's "added to `.env.example`"
+  was accurate but never carried into the real environment. Reported to Davin live rather than
+  silently fixing or silently treating "absent" as "off" (they are not equivalent here —
+  `lib/money-service/client.ts:15`'s `?? 'http://localhost:3002'` fallback means "absent" would
+  have hard-failed 100% of a flipped group's traffic, not degraded gracefully). Davin approved the
+  fix live: add all 3 vars to Vercel production (URL pointed at money-service's real Railway
+  address, both flags `false`), redeploy once to establish a genuine OFF baseline, re-verify, then
+  proceed with the order's checklist as written.
+- Execution: OFF baseline redeployed and re-verified clean (value-blind); order marked CONFIRMED;
+  Group (a) `MIGRATE_READ_APIS_MONEY_AFFILIATE` flipped `true` + redeployed; Group (b)
+  `MIGRATE_READ_APIS_MONEY_ADMIN` flipped `true` + redeployed; each confirmed clean (build health,
+  unauthenticated smoke test, log check) before the next. No code changed at any point — 3 env var
+  writes + 3 redeploys only, matching this VERIFY-RETIRE order's near-zero creativity dial.
+- Full detail (exact deployment IDs, smoke-test results per route): this order's own Deviations
+  section and `migration-cutover-table.md`'s Slice 3 row.
+- **Open item carried forward:** no real authenticated request has yet been observed reaching
+  money-service post-cutover in either group — this session verified deploy health and guard
+  behavior, not a live authenticated round trip (minting a production auth token was judged out of
+  scope — touches secrets/auth semantics beyond this order's explicit steps). Same class of gap as
+  the still-open Slice 1/Slice 2 monitoring caveats.
+- Approved by: Davin (live, 2026-07-26 — both the fix-vs-session-swap call and the cutover
+  checklist execution itself, per this order's own required per-group approval).

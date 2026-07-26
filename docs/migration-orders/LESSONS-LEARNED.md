@@ -63,6 +63,7 @@
 - Source: Session 4A-6 · Status: ACTIVE
 - Recurrence (Session 4A-3): same pattern — PRE-DRAFT note block vs. an uncommitted `APPROVED` status-line edit, no Advisor-DRAFT/Davin-approval commit history, and the paired evidence file (manual-trigger idempotency checklist) showed 0/8 boxes checked despite the claimed-done state. Resolved by asking Davin directly rather than trusting the file; this is now a 2nd occurrence, worth the Advisor's attention on how order status edits get made outside the Advisor→Davin pipeline.
 - Recurrence (Session 5-1): same pattern — order file arrived untracked (`??`) with `Status: APPROVED` header while 4/4 entry criteria checkboxes were `[ ]` unchecked. Resolved by asking Davin live ("Go") to confirm before execution. (3rd occurrence).
+- Recurrence (Session 4A-7b): same pattern again — the order's own "Updated" note read "updated to DRAFT for authorization" while the header field one line above it claimed `Status: APPROVED`, and the edit was uncommitted with no PRE-DRAFT→DRAFT→APPROVED history. Resolved by asking Davin directly rather than trusting the file; he confirmed live approval and corrected the note. (4th occurrence — worth the Advisor's attention on why order-status edits keep arriving outside the normal pipeline with self-contradicting text.)
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 
@@ -125,3 +126,10 @@
 - Root cause: `core.autocrlf=true` on Windows checkouts converts tracked LF files to CRLF on disk; prettier's default `endOfLine: "lf"` then flags nearly every file. No `.gitattributes` normalizes this. Every session's actual historical exit-suite report (`type-check`/`validate:lint`/`build`/`test:ci`) already omitted `validate:format`/`validate:policies` — this isn't a new regression, just never verified as failing until this session actually ran the full chain instead of the split scripts.
 - Rule: on this repo, treat `tsc --noEmit` + `eslint --max-warnings 0` + `next build` + the relevant test suites as the real green bar, not the literal `npm run validate` chain, until a dedicated session adds `.gitattributes` line-ending normalization and re-baselines `validate:format`/`validate:policies`. Don't run `prettier --write` repo-wide as a drive-by fix inside an unrelated session.
 - Source: Session 4A-7a · Status: ACTIVE
+
+### L21 — A prior session's "added to X" doesn't mean the real target environment has it — verify the exact target, not the doc
+
+- Symptom: 4A-7a's close-out said `MONEY_SERVICE_URL` + both Slice-3 flags were "added to `.env.example`" — true, but 4A-7b's CONFIRM found none of the 3 existed in Vercel production at all, only in the checked-in example file.
+- Root cause: `.env.example` documents what an environment needs; it is not proof any real environment has it. A close-out's "added" doesn't specify which target it means, and the next session assumed the strongest reading.
+- Rule: before any flag flip or cutover, value-blind-list (`vercel env ls`/equivalent) the exact vars the code path reads, in the exact target environment, and treat ".env.example coverage" and "present in the real target" as two separate facts that both need checking. Here the gap was not benign: the code's fallback (`?? 'http://localhost:3002'`) would have hard-failed 100% of the flipped group's traffic against an unreachable address, since the flag itself removes the monolith fallback.
+- Source: Session 4A-7b · Status: ACTIVE

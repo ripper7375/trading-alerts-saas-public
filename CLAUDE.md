@@ -24,7 +24,39 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-7a CLOSED, executed as UI-BUILD (+CONTRACT) — money-service
+- **Current:** Session 4A-7b CLOSED, executed as VERIFY-RETIRE — money-service Slice 3
+  read-API CUTOVER, both flag groups flipped ON in production — 2026-07-26.
+  **CONFIRM found entry criterion #2 FAILED, not just unverified:** value-blind
+  `vercel env ls` (all environments) showed `MONEY_SERVICE_URL`,
+  `MIGRATE_READ_APIS_MONEY_AFFILIATE`, and `MIGRATE_READ_APIS_MONEY_ADMIN` did not exist
+  anywhere in Vercel — 4A-7a's close-out claim of "added to `.env.example`" was accurate
+  but never carried into the real environment. This was not benign: `MONEY_SERVICE_URL`
+  absent means `lib/money-service/client.ts:15`'s `?? 'http://localhost:3002'` fallback
+  would have hard-failed 100% of a flipped group's traffic against an unreachable local
+  address, with no graceful degradation (the flag itself disables the monolith
+  fallback). Stopped and reported to Davin rather than silently fixing or silently
+  proceeding; Davin approved the fix live. **Fix executed:** added all 3 vars to Vercel
+  production (`MONEY_SERVICE_URL` set to money-service's real Railway address, both
+  flags `false`), redeployed to establish a genuine OFF baseline
+  (`trading-alerts-saas-frontend-bt69dabys.vercel.app`), re-verified value-blind, then
+  smoke-tested both route groups unauthenticated before touching the checklist.
+  Order then marked CONFIRMED. **Cutover executed:** Group (a)
+  `MIGRATE_READ_APIS_MONEY_AFFILIATE=true` + redeploy, confirmed clean, then Group (b)
+  `MIGRATE_READ_APIS_MONEY_ADMIN=true` + redeploy, confirmed clean. Unauthenticated
+  smoke test after each flip: all 4 affiliate routes → 500, confirmed as the
+  pre-existing L12 bug (`error.message`-vs-`.code`, present identically in all 4 route
+  files — the flag check runs after `requireAffiliate()`, so it can't be caused by the
+  flip); all 8 admin routes → 401, guards correct, no L12-class bug on this group. No
+  code changed anywhere this session — 3 env var writes + 3 redeploys only, per this
+  VERIFY-RETIRE order's near-zero creativity dial. **Not fully closed:** no real
+  authenticated request has yet been observed reaching money-service post-cutover in
+  either group (see Waiting-on #40) — same open-monitoring-caveat class as Slices 1/2.
+  **Artifacts updated:** `4a-7b-money-service-read-apis-cutover.migration-order.md`
+  (Status → CONFIRMED, entry criteria checked, Deviations recorded in full),
+  `DECISION-LOG.md` (new Session 4A-7b entry), `migration-cutover-table.md` (Slice 3 row
+  → `CUT-OVER`), this file.
+- \_(superseded-by-above, retained for context) Session 4A-7a CLOSED, executed as
+  UI-BUILD (+CONTRACT) — money-service
   Slice 3 read-API transport BUILD, zero traffic cut over — 2026-07-25.
   **CONFIRM:** re-verified Blocker-1's httpOnly evidence live (all four points held
   exactly at their cited lines); re-verified Session 4A-6's 12 GET routes still 401
@@ -135,17 +167,22 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-7a-money-service-frontend-transport.migration-order.md`
-  (CONFIRMED and executed by Executor 2026-07-25). Predecessor
-  `4a-7-money-service-read-apis-cutover.migration-order.md` stays SUPERSEDED (file
+  `docs/migration-orders/4a-7b-money-service-read-apis-cutover.migration-order.md`
+  (CONFIRMED and executed by Executor 2026-07-26). Predecessors
+  `4a-7-money-service-read-apis-cutover.migration-order.md` and
+  `4a-7a-money-service-frontend-transport.migration-order.md` stay SUPERSEDED (files
   retained as audit trail). `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md`
   unchanged, still PRE-DRAFT, gated on RiseWorks's reply.
-- **Order status (4A-7a):** BUILT, zero traffic cut over — flags default OFF in every
-  environment. **What shipped:** transport module (`lib/money-service/client.ts`,
-  `routes.ts`, `flags.ts`), flag wiring into all 12 existing Slice-3 route handlers,
-  F44/F45 resolved and logged, end-to-end proxy+auth-bridge proof (see Current above).
-  `4a-7b-money-service-read-apis-cutover.migration-order.md` (VERIFY-RETIRE, the actual
-  flag-flip cutover) PRE-DRAFTed — Davin's call on when it runs.
+- **Order status (4A-7b):** CUT-OVER — both `MIGRATE_READ_APIS_MONEY_AFFILIATE` and
+  `MIGRATE_READ_APIS_MONEY_ADMIN` are `true` in Vercel production, redeployed and
+  smoke-tested clean (see Current above for the CONFIRM-time gap found/fixed and the
+  monitoring caveat carried to Waiting-on #40). CC-F freeze on the monolith's own
+  affiliate/admin route + `lib/` logic stays until a future RETIRE session.
+- **Order status (4A-7a, historical):** BUILT, zero traffic cut over — flags default
+  OFF in every environment at the time. **What shipped:** transport module
+  (`lib/money-service/client.ts`, `routes.ts`, `flags.ts`), flag wiring into all 12
+  existing Slice-3 route handlers, F44/F45 resolved and logged, end-to-end
+  proxy+auth-bridge proof. Superseded by 4A-7b's cutover above.
 - **Prior order (4A-5, historical):** dLocal CUT-OVER, all-green (monitoring caveat
   above). RiseWorks portion not started. **What shipped (dLocal only):**
   - Two live-escalated bugfixes (full detail in Current above): dLocal webhook
@@ -252,15 +289,38 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   CONFIRM: Railway deployment `b401bc62` ran continuously 2026-07-22 10:12 UTC →
   2026-07-24 05:34 UTC, spanning the natural 2026-07-23 UTC 00:00–04:00 window. All five
   hourly `[CRON]` ticks fired and completed with `errorCount: 0`, zero duplicate
-  `PaymentBatch`/`DisbursementTransaction` rows. Slice 1 is fully stable.
-- **Next session:** Davin's call.
-  `docs/migration-orders/4a-7b-money-service-read-apis-cutover.migration-order.md`
-  (VERIFY-RETIRE, PRE-DRAFTed this close) is ready whenever Davin wants to actually flip
-  the Slice 3 read-API flags — affiliate-dashboard group first, admin group last, per
-  its own Checklist. `4A-5-RW` (RiseWorks) stays PRE-DRAFT, gated on RiseWorks's reply
-  (Waiting-on #37). `Session 6-1` (Phase 6 Gap Matrix,
+  `PaymentBatch`/`DisbursementTransaction` rows. Slice 1 is fully stable. **(40, NEW)**
+  Slice 3's read-API cutover (4A-7b, 2026-07-26) is live in production for both flag
+  groups, but no real authenticated request has yet been directly observed reaching
+  money-service through either group — this session's verification was build health,
+  unauthenticated-guard smoke tests, and absence-of-errors in logs, not a live
+  authenticated round trip (minting a production auth token was judged out of this
+  VERIFY-RETIRE session's scope — touches secrets/auth semantics beyond the order's
+  explicit steps). Same open-monitoring-caveat class as #36 (resolved) and #38 (still
+  open) — spot-check Railway money-service logs + Vercel function logs the next time a
+  real affiliate or admin actually loads their dashboard, before calling Slice 3 fully
+  stable.
+- **Next session:** Davin's call. Slice 3 (4A-7b) is CUT-OVER; a future RETIRE session
+  can delete the monolith's now-orphaned `app/api/affiliate/dashboard/*`,
+  `app/api/admin/{affiliates,analytics}/*` routes and their `lib/` logic once Davin
+  agrees Slice 3 has been stable long enough (see that order's own Next-session-handoff
+  note) — not yet scheduled. `4A-5-RW` (RiseWorks) stays PRE-DRAFT, gated on RiseWorks's
+  reply (Waiting-on #37). `Session 6-1` (Phase 6 Gap Matrix,
   `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was PRE-DRAFTed at
-  5-4's close, a separate track — Davin to decide ordering against 4A-7b/4A-8+.
+  5-4's close, a separate track — Davin to decide ordering against Slice 4 (4A-8) and
+  the Slice-3-RETIRE session. **`4a-w1-wise-contracts-and-decisions.migration-order.md`
+  (still `Status: DRAFT`, unchanged this session) re-confirmed still valid at 4A-7b's
+  close:** its entry criterion "4A-7 (Slice 3) is CUT-OVER, or Davin has explicitly
+  deferred it" is now genuinely TRUE (it was conditional/deferred when 4A-W1 was
+  drafted 2026-07-25) — unblocked, not just still-acceptable. Its 5 cited codebase
+  line-counts (`base-provider.ts` 174, `provider-factory.ts` 105,
+  `payment-orchestrator.service.ts` 333, `app.module.ts` 75,
+  `non-market-data/schema.prisma` 1023) spot-checked live this session: zero drift, all
+  exact matches. The Wise docset (`docs/migration-orders/replace-rise-with-wise/`, files
+  `00`–`07` + the OpenAPI spec) all present and readable. Remaining entry criteria
+  (Wise business/sandbox account access, Davin's live availability for F36/F37) are
+  Davin-side and can only be checked at that session's own CONFIRM. Still requires the
+  Advisor to promote DRAFT → APPROVED before it can run — this session did not do that.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
