@@ -529,6 +529,7 @@ model AffiliateProfile {
   affiliateCodes    AffiliateCode[]
   commissions       Commission[]
   riseAccount       AffiliateRiseAccount?  // Part 19: RiseWorks account for payouts
+  wiseRecipient     AffiliateWiseRecipient?  // Part 19.5: Wise recipient for payouts
 
   @@index([userId])
   @@index([status])
@@ -658,7 +659,10 @@ model Notification {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// RISEWORKS DISBURSEMENT SYSTEM (Part 19)
+// RISEWORKS DISBURSEMENT SYSTEM (Part 19) — ARCHIVED 2026-07-25 (Part 19.5, F42)
+// Provider deactivated, NOT removed. Tables, rows, enum value and relations are
+// retained verbatim so RiseWorks can be restored. Superseded by the WISE* models
+// below. Do not drop, rename or backfill anything in this block.
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 enum RiseWorksKycStatus {
@@ -687,8 +691,9 @@ enum DisbursementTransactionStatus {
 }
 
 enum DisbursementProvider {
-  RISE
+  RISE      // ARCHIVED 2026-07-25 (Part 19.5, F42) — rows retained, provider deactivated
   MOCK
+  WISE      // Part 19.5 — active provider
 }
 
 enum AuditLogStatus {
@@ -765,6 +770,7 @@ model PaymentBatch {
   // Relationships
   transactions    DisbursementTransaction[]
   auditLogs       DisbursementAuditLog[]
+  wiseBatchGroup  WiseBatchGroup?  // Part 19.5: Wise-side half of this batch
 
   @@index([status])
   @@index([scheduledAt])
@@ -819,6 +825,7 @@ model DisbursementTransaction {
   // Relationships
   webhookEvents     RiseWorksWebhookEvent[]
   auditLogs         DisbursementAuditLog[]
+  wiseTransfer      WiseTransfer?  // Part 19.5: Wise-side half of this transaction
 
   @@index([batchId])
   @@index([commissionId])
@@ -886,6 +893,212 @@ model DisbursementAuditLog {
   @@index([batchId])
   @@index([action])
   @@index([createdAt])
+}
+
+// ── Part 19.5 · WISE DISBURSEMENT ─────────────────────────────────────────────
+
+enum WiseRecipientStatus {
+  DRAFT              // local record created, not yet sent to Wise
+  PENDING_DETAILS    // affiliate must supply/repair bank details
+  ACTIVE             // recipientId exists at Wise and is usable
+  INVALID            // Wise rejected it, or a payout bounced on details
+  ARCHIVED           // superseded by a newer recipient for the same affiliate
+}
+
+enum WiseBatchGroupStatus {
+  NEW                        // Wise: open for transfers
+  COMPLETED                  // Wise: closed, fundable, payInDetails available
+  AWAITING_MANUAL_FUNDING    // LOCAL: COMPLETED + WISE_FUNDING_MODE=MANUAL, human owes an action
+  FUNDED                     // LOCAL: funding observed (API call OK, or marked/detected)
+  MARKED_FOR_CANCELLATION    // Wise
+  PROCESSING_CANCEL          // Wise
+  CANCELLED                  // Wise
+}
+
+enum WiseFundingSource {
+  API_BALANCE        // POST …/batch-payments/{id}/payments
+  MANUAL_ADMIN       // an admin asserted it, with evidence
+  MANUAL_DETECTED    // inferred from a balances#credit / balances#update event
+}
+
+/// One Wise recipient (beneficiary) per affiliate. PII-minimising by design:
+/// the authoritative bank details live at Wise, never here. See §7.4.
+model AffiliateWiseRecipient {
+  id                  String   @id @default(cuid())
+
+  affiliateProfileId  String   @unique
+  affiliateProfile    AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+
+  wiseRecipientId     String?  @unique     // Wise numeric account id, stringified. Null while DRAFT.
+  wiseProfileId       String                // which Wise profile owns it (audit; supports profile change)
+
+  accountHolderName   String
+  targetCurrency      String                // ISO-4217, e.g. "THB"
+  recipientCountry    String                // ISO-3166-1 alpha-2
+  legalType           String                // "PRIVATE" | "BUSINESS"
+  requirementsType    String                // Wise requirement group, e.g. "thailand", "sort_code", "aba"
+
+  accountTail         String?               // last 4 of the account number, for admin display ONLY
+  detailsFingerprint  String?               // SHA-256 of the canonicalised submitted details — change detection, never reversible
+
+  status              WiseRecipientStatus @default(DRAFT)
+  lastValidatedAt     DateTime?
+  invalidReason       String?
+  metadata            Json?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  transfers           WiseTransfer[]
+
+  @@index([wiseRecipientId])
+  @@index([status])
+  @@index([targetCurrency])
+}
+
+/// The Wise-side half of a DisbursementTransaction. 1:1.
+model WiseTransfer {
+  id                        String   @id @default(cuid())
+
+  disbursementTransactionId String   @unique
+  disbursementTransaction   DisbursementTransaction @relation(fields: [disbursementTransactionId], references: [id])
+
+  affiliateWiseRecipientId  String?
+  affiliateWiseRecipient    AffiliateWiseRecipient? @relation(fields: [affiliateWiseRecipientId], references: [id])
+
+  wiseBatchGroupId          String?               // local WiseBatchGroup.id; null for quick-pay
+  wiseBatchGroup            WiseBatchGroup? @relation(fields: [wiseBatchGroupId], references: [id])
+
+  // ── provider identifiers ──
+  wiseTransferId            String   @unique      // Wise transfer id (numeric, stringified)
+  wiseQuoteId               String                // Wise v2 quote UUID — one quote per transfer, never reused
+  customerTransactionId     String   @unique      // OUR UUID v4 = Wise's idempotency key
+  reference                 String?               // what the affiliate sees on their statement
+
+  // ── money (audit-grade; keep all six) ──
+  sourceCurrency            String
+  sourceValue               Decimal
+  targetCurrency            String
+  targetValue               Decimal
+  rate                      Decimal
+  feeAmount                 Decimal  @default(0)
+  feeBearer                 String                // "PLATFORM" | "AFFILIATE" (F38)
+
+  // ── Wise lifecycle (String, not enum — Wise adds states; see §5.1) ──
+  currentState              String   @default("created")
+  previousState             String?
+  lastEventOccurredAt       DateTime?             // data.occurred_at of the newest applied event — the ordering guard
+  stateHistory              Json?                 // append-only [{state, occurredAt, deliveryId}]
+
+  // ── payout failure detail (transfers#payout-failure) ──
+  payoutFailureCode         String?
+  payoutFailureDescription  String?
+  hasActiveIssues           Boolean  @default(false)
+
+  // ── at-most-once accounting guards (§5.3) ──
+  balanceAppliedAt          DateTime?             // pending→paid applied exactly once
+  balanceRevertedAt         DateTime?             // paid→pending reverted exactly once
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([wiseBatchGroupId])
+  @@index([currentState])
+  @@index([lastEventOccurredAt])
+  @@index([payoutFailureCode])
+}
+
+/// The Wise-side half of a PaymentBatch. 1:1. Carries the funding gate.
+model WiseBatchGroup {
+  id                  String   @id @default(cuid())
+
+  paymentBatchId      String   @unique
+  paymentBatch        PaymentBatch @relation(fields: [paymentBatchId], references: [id])
+
+  wiseBatchGroupId    String   @unique          // Wise batch-group UUID
+  wiseProfileId       String
+  wiseVersion         Int                        // Wise optimistic-concurrency version
+  wiseName            String                     // ≤100 chars; we send PaymentBatch.batchNumber
+
+  sourceCurrency      String
+  transferCount       Int      @default(0)
+  totalSourceAmount   Decimal  @default(0)
+
+  status              WiseBatchGroupStatus @default(NEW)
+
+  // ── funding gate ──
+  payInDetails        Json?                      // verbatim Wise payInDetails[] once COMPLETED
+  fundingSource       WiseFundingSource?
+  fundedAt            DateTime?
+  fundedByUserId      String?                    // who asserted/triggered it
+  fundingEvidence     Json?                      // admin note, bank ref, balances#credit event id
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  errorMessage        String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  transfers           WiseTransfer[]
+
+  @@index([status])
+  @@index([wiseBatchGroupId])
+  @@index([createdAt])
+}
+
+/// Every inbound Wise webhook delivery. THE dedupe + replay table.
+model WiseWebhookEvent {
+  id                 String   @id @default(cuid())
+
+  deliveryId         String   @unique      // X-Delivery-Id — the dedupe key (§5.4)
+  subscriptionId     String?
+  eventType          String                // transfers#state-change | transfers#payout-failure | …
+  schemaVersion      String?               // "4.0.0" | "2.0.0"
+
+  // ── denormalised for cheap lookup; nullable because not every event has them ──
+  resourceType       String?               // "transfer"
+  wiseResourceId     String?               // transfer id / profile id / balance id
+  currentState       String?
+  previousState      String?
+  occurredAt         DateTime?             // data.occurred_at — the ORDERING key
+  sentAt             DateTime?
+
+  payload            Json                  // verbatim body
+  rawSignature       String?               // X-Signature-SHA256 as received
+  signatureVerified  Boolean  @default(false)
+  isTestNotification Boolean  @default(false)
+
+  processed          Boolean  @default(false)
+  processedAt        DateTime?
+  skippedReason      String?               // "stale-order" | "unknown-transfer" | "unhandled-type" | …
+  errorMessage       String?
+  attemptCount       Int      @default(0)
+
+  receivedAt         DateTime @default(now())
+
+  @@index([eventType])
+  @@index([wiseResourceId])
+  @@index([processed])
+  @@index([occurredAt])
+  @@index([receivedAt])
+}
+
+/// Wise webhook subscriptions we own, so cutover/rollback is auditable.
+model WiseWebhookSubscription {
+  id                String   @id @default(cuid())
+  wiseSubscriptionId String  @unique
+  scopeDomain       String                 // "application" | "profile"
+  scopeId           String                 // clientKey or profileId
+  eventType         String
+  schemaVersion     String
+  deliveryUrl       String
+  environment       String                 // "sandbox" | "production"
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  deletedAt         DateTime?
+
+  @@index([eventType])
+  @@index([active])
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

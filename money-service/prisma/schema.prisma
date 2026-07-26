@@ -138,8 +138,9 @@ enum DisbursementTransactionStatus {
 }
 
 enum DisbursementProvider {
-  RISE
+  RISE      // ARCHIVED 2026-07-25 (Part 19.5, F42) — rows retained, provider deactivated
   MOCK
+  WISE      // Part 19.5 — active provider
 }
 
 enum AuditLogStatus {
@@ -147,6 +148,39 @@ enum AuditLogStatus {
   FAILURE
   WARNING
   INFO
+}
+
+// Part 19.5 · WISE DISBURSEMENT — hand-mirrored from prisma/non-market-data/schema.prisma
+// Session 4A-W2. Convention: FKs to models already in THIS subset (AffiliateProfile,
+// PaymentBatch, DisbursementTransaction) are bare scalars, no relation object — no
+// money-service code traverses them yet (the actual src/wise/ module is built starting
+// 4A-W4), same convention this file already applies to AffiliateCode<->Commission
+// above. FKs *within* the new Wise set itself (WiseTransfer<->AffiliateWiseRecipient,
+// WiseTransfer<->WiseBatchGroup) are kept as real relations since they're load-bearing
+// to the feature these models exist for. Promote the bare-scalar FKs to real relations
+// once real traversal code exists and can be grepped, not guessed (L37).
+enum WiseRecipientStatus {
+  DRAFT
+  PENDING_DETAILS
+  ACTIVE
+  INVALID
+  ARCHIVED
+}
+
+enum WiseBatchGroupStatus {
+  NEW
+  COMPLETED
+  AWAITING_MANUAL_FUNDING
+  FUNDED
+  MARKED_FOR_CANCELLATION
+  PROCESSING_CANCEL
+  CANCELLED
+}
+
+enum WiseFundingSource {
+  API_BALANCE
+  MANUAL_ADMIN
+  MANUAL_DETECTED
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -395,6 +429,13 @@ model Notification {
   @@index([createdAt])
 }
 
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RISEWORKS DISBURSEMENT SYSTEM (Part 19) — ARCHIVED 2026-07-25 (Part 19.5, F42)
+// Provider deactivated, NOT removed. Tables, rows, enum value and relations are
+// retained verbatim so RiseWorks can be restored. Superseded by the WISE* models
+// below. Do not drop, rename or backfill anything in this block.
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 model AffiliateRiseAccount {
   id String @id @default(cuid())
 
@@ -580,4 +621,181 @@ model SystemConfig {
 
   @@index([category])
   @@index([key])
+}
+
+/// One Wise recipient (beneficiary) per affiliate. PII-minimising by design:
+/// the authoritative bank details live at Wise, never here. See design §7.4.
+/// No `affiliateProfile` relation object — scalar FK only (see convention
+/// note above).
+model AffiliateWiseRecipient {
+  id                 String @id @default(cuid())
+
+  affiliateProfileId String @unique
+
+  wiseRecipientId String? @unique
+  wiseProfileId   String
+
+  accountHolderName String
+  targetCurrency    String
+  recipientCountry  String
+  legalType         String
+  requirementsType  String
+
+  accountTail        String?
+  detailsFingerprint String?
+
+  status          WiseRecipientStatus @default(DRAFT)
+  lastValidatedAt DateTime?
+  invalidReason   String?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transfers WiseTransfer[]
+
+  @@index([wiseRecipientId])
+  @@index([status])
+  @@index([targetCurrency])
+}
+
+/// The Wise-side half of a DisbursementTransaction. 1:1. No
+/// `disbursementTransaction` relation object — scalar FK only (see
+/// convention note above); `wiseTransfer` back-relation therefore not added
+/// to DisbursementTransaction above either.
+model WiseTransfer {
+  id String @id @default(cuid())
+
+  disbursementTransactionId String @unique
+
+  affiliateWiseRecipientId String?
+  affiliateWiseRecipient   AffiliateWiseRecipient? @relation(fields: [affiliateWiseRecipientId], references: [id])
+
+  wiseBatchGroupId String?
+  wiseBatchGroup   WiseBatchGroup? @relation(fields: [wiseBatchGroupId], references: [id])
+
+  wiseTransferId         String  @unique
+  wiseQuoteId            String
+  customerTransactionId  String  @unique
+  reference              String?
+
+  sourceCurrency String
+  sourceValue    Decimal
+  targetCurrency String
+  targetValue    Decimal
+  rate           Decimal
+  feeAmount      Decimal @default(0)
+  feeBearer      String
+
+  currentState         String    @default("created")
+  previousState        String?
+  lastEventOccurredAt  DateTime?
+  stateHistory         Json?
+
+  payoutFailureCode        String?
+  payoutFailureDescription String?
+  hasActiveIssues          Boolean @default(false)
+
+  balanceAppliedAt  DateTime?
+  balanceRevertedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([wiseBatchGroupId])
+  @@index([currentState])
+  @@index([lastEventOccurredAt])
+  @@index([payoutFailureCode])
+}
+
+/// The Wise-side half of a PaymentBatch. 1:1. Carries the funding gate. No
+/// `paymentBatch` relation object — scalar FK only (see convention note
+/// above).
+model WiseBatchGroup {
+  id String @id @default(cuid())
+
+  paymentBatchId String @unique
+
+  wiseBatchGroupId String @unique
+  wiseProfileId    String
+  wiseVersion      Int
+  wiseName         String
+
+  sourceCurrency    String
+  transferCount     Int     @default(0)
+  totalSourceAmount Decimal @default(0)
+
+  status WiseBatchGroupStatus @default(NEW)
+
+  payInDetails    Json?
+  fundingSource   WiseFundingSource?
+  fundedAt        DateTime?
+  fundedByUserId  String?
+  fundingEvidence Json?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  errorMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transfers WiseTransfer[]
+
+  @@index([status])
+  @@index([wiseBatchGroupId])
+  @@index([createdAt])
+}
+
+/// Every inbound Wise webhook delivery. THE dedupe + replay table.
+model WiseWebhookEvent {
+  id String @id @default(cuid())
+
+  deliveryId     String  @unique
+  subscriptionId String?
+  eventType      String
+  schemaVersion  String?
+
+  resourceType   String?
+  wiseResourceId String?
+  currentState   String?
+  previousState  String?
+  occurredAt     DateTime?
+  sentAt         DateTime?
+
+  payload            Json
+  rawSignature       String?
+  signatureVerified  Boolean @default(false)
+  isTestNotification Boolean @default(false)
+
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  skippedReason String?
+  errorMessage  String?
+  attemptCount  Int       @default(0)
+
+  receivedAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([wiseResourceId])
+  @@index([processed])
+  @@index([occurredAt])
+  @@index([receivedAt])
+}
+
+/// Wise webhook subscriptions we own, so cutover/rollback is auditable.
+model WiseWebhookSubscription {
+  id                 String  @id @default(cuid())
+  wiseSubscriptionId String  @unique
+  scopeDomain        String
+  scopeId            String
+  eventType          String
+  schemaVersion      String
+  deliveryUrl        String
+  environment        String
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  deletedAt          DateTime?
+
+  @@index([eventType])
+  @@index([active])
 }

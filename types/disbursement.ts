@@ -6,7 +6,7 @@
  */
 
 // Provider Types
-export type DisbursementProvider = 'RISE' | 'MOCK';
+export type DisbursementProvider = 'RISE' | 'MOCK' | 'WISE';
 
 // Status Types
 export type PaymentBatchStatus =
