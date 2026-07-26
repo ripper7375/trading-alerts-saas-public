@@ -154,7 +154,7 @@ Register **F43** (Funding-SLA alert delivery channel — money-service has no em
 - [x] `app.enableShutdownHooks()` added to `money-service/src/main.ts`; `PrismaService.onModuleDestroy` observed firing.
 - [x] Explicit `@Throttle({ default: { ttl: 60_000, limit: 300 } })` added to `dlocal-webhook.controller.ts`; replayed dLocal webhook payload processes identically before and after.
 - [x] BullMQ job-ID policy (`jobId = wise:event:<deliveryId>`) documented in design §8 and order Deviations.
-- [ ] Flag **F43** registered OPEN in `DECISION-LOG.md` (owner Davin, due 4A-W6).
+- [x] Flag **F43** registered OPEN in `DECISION-LOG.md` (owner Davin, due 4A-W6).
 - [ ] Full `money-service` test suite green; monolith `tsc --noEmit` clean.
 - [ ] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
 - [ ] `4a-w5-wise-webhook-reducer.migration-order.md` exists at status `PRE-DRAFT`.
@@ -213,6 +213,10 @@ _(filled DURING execution — what / why / impact.)_
   - Transfer execution jobs: `jobId = wise:transfer:<customerTransactionId>`.
   - Rationale recorded in the design doc: BullMQ dedupes enqueues on `jobId` at the Redis level, so a deterministic id (not random/auto-incrementing) makes a retried enqueue a no-op instead of a second job — this is 4A-W5's CC-C idempotency guarantee for its queue, composing with Step 3's shutdown-hook fix (`Worker.close()` drains the in-flight job before exit, so nothing gets silently dropped and re-enqueued under a fresh id).
 - No code changes for this step — `app.module.ts` confirmed to still have zero `registerQueue()`/`@Processor()` calls (only `BullModule.forRoot`, re-verified alongside Step 3), so this is policy-only, ready for 4A-W5 to consume.
+
+### F43 Registration (Step 6)
+
+- Registered **F43** in `DECISION-LOG.md`'s flag register: Status `OPEN`, Owner Davin, Due Session `4A-W6`, Context — when a Wise batch group remains unfunded near the 14-day Wise expiration window, deliver an alert via Slack webhook, Discord webhook, or the monolith's own email proxy (money-service has no email capability of its own). Updated the register's own numbering note to reflect F43 is no longer deferred.
 
 ---
 
