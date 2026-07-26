@@ -2005,6 +2005,52 @@ provider flip, no money moved.
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W4, money-service CC-C/CC-D
-hardening gate)
+<details>
+<summary><code>money-service/src/wise/</code> — Wise webhook receiver + state reducer, 9 new files, 2 modified (Session 4A-W5)</summary>
+
+money-service's first BullMQ queue consumer. `POST /v1/webhooks/wise` verifies (RSA-SHA256),
+persists (`WiseWebhookEvent`, dedupe on `deliveryId`), enqueues (`money:wise-webhook`), and a
+`@Processor` reduces transfer state changes per the design doc's frozen §5.2 table — the ONLY
+code path authorized to set `Commission.status = 'PAID'`. Route is live but production-unsubscribed
+(Safety Gate, 4A-W7 cuts over); `DISBURSEMENT_PROVIDER` stays `MOCK`. Full state-table/throttle
+corrections vs. the order's own prose live in the order's Deviations, not duplicated here.
+
+New:
+
+- `money-service/src/wise/services/wise-state.mapper.ts` — pure §5.2 table mapper (10 states +
+  unrecognised-fallback)
+- `money-service/src/wise/services/wise-transfer-state.reducer.ts` — at-most-once reducer
+  (staleness guard + atomic `balanceAppliedAt`/`balanceRevertedAt` locks)
+- `money-service/src/wise/services/wise-event-handlers.ts` — `transfers#payout-failure` +
+  `balances#update` (best-effort funding detection only, no `status` transition)
+- `money-service/src/wise/queue/wise-webhook.processor.ts` — first `@Processor`/`WorkerHost`,
+  event-type router, `onModuleDestroy` → `worker.close()`
+- `money-service/src/wise/controllers/wise-webhook.controller.ts` — `POST /v1/webhooks/wise`,
+  explicit `@Throttle()` (not `@SkipThrottle()`), store-then-process per design §5.5
+- `money-service/src/wise/__tests__/wise-state.reducer.spec.ts` — mapper + reducer unit suite
+- `money-service/src/wise/__tests__/wise-webhook.processor.spec.ts` — processor unit suite
+  (beyond the order's own 8-file count — fulfills File 3/8's own verification promise)
+- `money-service/src/wise/__tests__/wise-event-handlers.spec.ts` — event-handler unit suite
+  (beyond the order's own 8-file count — fulfills File 5/8's own verification promise)
+- `money-service/src/wise/__tests__/wise-webhook.replay.spec.ts` — RSA-signed sandbox test-payload
+  replay suite (hand-constructed per Davin's Option 2, not captured from Wise's real Simulation
+  API — see order Deviations)
+
+Modified:
+
+- `money-service/src/wise/wise.types.ts` — Wise webhook envelope types added
+  (`WiseWebhookEnvelope`, `WiseTransferStateChangeData`, `WisePayoutFailureData`,
+  `WiseBalanceUpdateData`)
+- `money-service/src/wise/wise.module.ts` — `BullModule.registerQueue({ name:
+'money:wise-webhook' })`, new controller + 5 new providers wired in
+
+`DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session builds the webhook receiver
+only, no provider flip, no money moved, no production Wise webhook subscription.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W5, money-service Wise webhook
+receiver + state reducer)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
