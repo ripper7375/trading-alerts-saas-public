@@ -89,7 +89,10 @@ describe('WiseRecipientService', () => {
     });
 
     it('computes a deterministic SHA-256 detailsFingerprint over canonicalized details', async () => {
-      await service.createRecipient('aff-profile-1', payload);
+      await service.createRecipient('aff-profile-1', payload, {
+        recipientCountry: 'GB',
+        legalType: 'PRIVATE',
+      });
 
       const upsertArgs = prismaMock.affiliateWiseRecipient.upsert.mock
         .calls[0][0] as {
@@ -112,7 +115,10 @@ describe('WiseRecipientService', () => {
     });
 
     it('extracts the last-4-digit accountTail from accountNumber', async () => {
-      await service.createRecipient('aff-profile-1', payload);
+      await service.createRecipient('aff-profile-1', payload, {
+        recipientCountry: 'GB',
+        legalType: 'PRIVATE',
+      });
 
       const upsertArgs = prismaMock.affiliateWiseRecipient.upsert.mock
         .calls[0][0] as { create: { accountTail: string | null } };
@@ -121,7 +127,10 @@ describe('WiseRecipientService', () => {
     });
 
     it('never persists the raw details object anywhere in the Prisma call', async () => {
-      await service.createRecipient('aff-profile-1', payload);
+      await service.createRecipient('aff-profile-1', payload, {
+        recipientCountry: 'GB',
+        legalType: 'PRIVATE',
+      });
 
       const upsertArgs =
         prismaMock.affiliateWiseRecipient.upsert.mock.calls[0][0];
@@ -133,7 +142,10 @@ describe('WiseRecipientService', () => {
     });
 
     it('redacts the details object when calling the Wise API client', async () => {
-      await service.createRecipient('aff-profile-1', payload);
+      await service.createRecipient('aff-profile-1', payload, {
+        recipientCountry: 'GB',
+        legalType: 'PRIVATE',
+      });
 
       expect(requestMock).toHaveBeenCalledWith(
         '/v1/accounts?refund=false',
@@ -142,6 +154,83 @@ describe('WiseRecipientService', () => {
           redactBodyFields: ['details'],
         })
       );
+    });
+
+    it('stores the caller-supplied recipientCountry/legalType, not a guess from details', async () => {
+      await service.createRecipient(
+        'aff-profile-1',
+        {
+          ...payload,
+          details: { ...payload.details, country: 'THIS-SHOULD-BE-IGNORED' },
+        },
+        { recipientCountry: 'TH', legalType: 'BUSINESS' }
+      );
+
+      const upsertArgs = prismaMock.affiliateWiseRecipient.upsert.mock
+        .calls[0][0] as {
+        create: { recipientCountry: string; legalType: string };
+      };
+
+      expect(upsertArgs.create.recipientCountry).toBe('TH');
+      expect(upsertArgs.create.legalType).toBe('BUSINESS');
+    });
+  });
+
+  describe('revalidateRecipient', () => {
+    it('returns null when no recipient exists', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue(
+        null as never
+      );
+
+      expect(await service.revalidateRecipient('aff-1')).toBeNull();
+      expect(requestMock).not.toHaveBeenCalled();
+    });
+
+    it('returns null when the recipient has no wiseRecipientId yet', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue({
+        ...persistedRecipient,
+        wiseRecipientId: null,
+      } as never);
+
+      expect(await service.revalidateRecipient('aff-profile-1')).toBeNull();
+      expect(requestMock).not.toHaveBeenCalled();
+    });
+
+    it('marks the recipient ACTIVE when Wise reports it active', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue(
+        persistedRecipient as never
+      );
+      requestMock.mockResolvedValue({ ...wiseResponse, active: true });
+      prismaMock.affiliateWiseRecipient.update.mockResolvedValue({
+        ...persistedRecipient,
+        status: 'ACTIVE',
+      } as never);
+
+      const result = await service.revalidateRecipient('aff-profile-1');
+
+      expect(requestMock).toHaveBeenCalledWith('/v1/accounts/999');
+      expect(result?.status).toBe('ACTIVE');
+    });
+
+    it('marks the recipient INVALID when Wise reports it inactive', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue(
+        persistedRecipient as never
+      );
+      requestMock.mockResolvedValue({ ...wiseResponse, active: false });
+      prismaMock.affiliateWiseRecipient.update.mockResolvedValue({
+        ...persistedRecipient,
+        status: 'INVALID',
+      } as never);
+
+      const result = await service.revalidateRecipient('aff-profile-1');
+
+      const updateArgs = prismaMock.affiliateWiseRecipient.update.mock
+        .calls[0][0] as {
+        data: { status: string; invalidReason: string | null };
+      };
+      expect(updateArgs.data.status).toBe('INVALID');
+      expect(updateArgs.data.invalidReason).toBeTruthy();
+      expect(result?.status).toBe('INVALID');
     });
   });
 

@@ -8,14 +8,16 @@
  * hash) persist locally; full bank details live at Wise, keyed by
  * `wiseRecipientId`.
  *
- * Deviation (recorded in the order's Deviations section at session close):
- * `CreateRecipientDto` (File 3/10, frozen by the order text) carries no
- * explicit country field, but `AffiliateWiseRecipient.recipientCountry` is
- * non-nullable. `extractCountry` best-effort-derives it from
- * `details.country`/`details.address.country` (common Wise
- * account-requirements field names, not Thailand-specific — Hard
- * Invariant #1 still holds), falling back to `''` rather than a fabricated
- * value. Flagged for the Advisor/Davin, not silently resolved.
+ * `recipientCountry`/`legalType` are accepted as explicit caller-supplied
+ * fields (not derived by guessing from `details`) — matches the frozen
+ * `part19.5-wise-disbursement-openapi.yaml` `POST /wise/recipients` request
+ * body (`targetCurrency`, `recipientCountry`, `legalType`,
+ * `accountHolderName`, `requirementsType`, `details`), which is a
+ * DIFFERENT shape than `CreateRecipientDto` (File 3/10) — that DTO mirrors
+ * Wise's OWN `POST /v1/accounts` body instead
+ * (`02-…reference.md` §4.3: `currency`, `type`, `profile`,
+ * `accountHolderName`, `details`). `wise-recipients.controller.ts` (File
+ * 8/10) is the translation layer between the two.
  */
 
 import { createHash } from 'crypto';
@@ -105,14 +107,13 @@ export class WiseRecipientService {
 
   async createRecipient(
     affiliateProfileId: string,
-    payload: CreateRecipientDto
+    payload: CreateRecipientDto,
+    recipientMeta: { recipientCountry: string; legalType: string }
   ): Promise<RecipientSummaryDto> {
     const detailsFingerprint = createHash('sha256')
       .update(JSON.stringify(this.canonicalize(payload.details)))
       .digest('hex');
     const accountTail = this.extractAccountTail(payload.details);
-    const legalType = this.extractLegalType(payload.details);
-    const recipientCountry = this.extractCountry(payload.details);
 
     const response = await this.wiseApiClient.request<WiseRecipientResponse>(
       `${ACCOUNTS_URL}?refund=false`,
@@ -128,8 +129,8 @@ export class WiseRecipientService {
       wiseProfileId: String(payload.profile),
       accountHolderName: payload.accountHolderName,
       targetCurrency: payload.currency,
-      recipientCountry,
-      legalType,
+      recipientCountry: recipientMeta.recipientCountry,
+      legalType: recipientMeta.legalType,
       requirementsType: payload.type,
       accountTail,
       detailsFingerprint,
@@ -143,6 +144,40 @@ export class WiseRecipientService {
     });
 
     return this.toSummaryDto(recipient);
+  }
+
+  /**
+   * "Re-read the recipient from Wise and refresh local status"
+   * (`part19.5-wise-disbursement-openapi.yaml`
+   * `POST /wise/recipients/{recipientId}/revalidate`) — not in File 7/10's
+   * own original method list, added while building File 8/10's controller
+   * since the frozen OpenAPI contract requires this endpoint to exist and
+   * do something real, not a stub.
+   */
+  async revalidateRecipient(
+    affiliateProfileId: string
+  ): Promise<RecipientSummaryDto | null> {
+    const recipient = await this.prisma.affiliateWiseRecipient.findUnique({
+      where: { affiliateProfileId },
+    });
+    if (!recipient || !recipient.wiseRecipientId) return null;
+
+    const response = await this.wiseApiClient.request<WiseRecipientResponse>(
+      `${ACCOUNTS_URL}/${recipient.wiseRecipientId}`
+    );
+
+    const updated = await this.prisma.affiliateWiseRecipient.update({
+      where: { affiliateProfileId },
+      data: {
+        status: response.active ? 'ACTIVE' : 'INVALID',
+        invalidReason: response.active
+          ? null
+          : 'Wise reports this recipient as inactive',
+        lastValidatedAt: new Date(),
+      },
+    });
+
+    return this.toSummaryDto(updated);
   }
 
   async getRecipientByAffiliateProfileId(
@@ -200,23 +235,6 @@ export class WiseRecipientService {
       }
     }
     return null;
-  }
-
-  private extractLegalType(details: Record<string, unknown>): string {
-    const legalType = details['legalType'];
-    return typeof legalType === 'string' ? legalType : '';
-  }
-
-  private extractCountry(details: Record<string, unknown>): string {
-    if (typeof details['country'] === 'string') {
-      return details['country'] as string;
-    }
-    const address = details['address'];
-    if (address && typeof address === 'object') {
-      const country = (address as Record<string, unknown>)['country'];
-      if (typeof country === 'string') return country;
-    }
-    return '';
   }
 
   private canonicalize(value: unknown): unknown {

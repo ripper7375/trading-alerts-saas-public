@@ -33,7 +33,8 @@ export class WiseApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
-    public readonly body?: unknown
+    public readonly body?: unknown,
+    public readonly correlationId?: string
   ) {
     super(message);
     this.name = 'WiseApiError';
@@ -119,7 +120,8 @@ export class WiseApiClient {
           throw new WiseApiError(
             `Wise API request failed: ${response.status}`,
             response.status,
-            await this.safeReadJson(response)
+            await this.safeReadJson(response),
+            correlationId
           );
         }
 
