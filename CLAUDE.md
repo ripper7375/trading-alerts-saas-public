@@ -871,12 +871,8 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   a repeat-offender pattern rather than a one-off.
 - **Next session:** Davin's call, per `4a-w5-…`'s own Next-session-handoff note.
   `4a-w6-wise-payout-engine.migration-order.md` (Wise payout engine + funding gate, PORT
-  variant) is PRE-DRAFTed at status `PRE-DRAFT` — builds the quote/transfer/batch-group services
-  and the `isFundable` orchestrator branch, promotes `WISE_API_TOKEN` to full access (closing
-  #47 for good), asserts drafted Wise batches never set `Commission.status = PAID` (reserved for
-  4A-W5's reducer), re-confirms Wise Business Payment Approvals absent, and requires Davin
-  present for payout-path code review (Money and auth changes escalate, per this file's
-  Non-negotiables). Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
+  variant) is APPROVED at status `APPROVED` — requires Davin present (`EXECUTOR-PROTOCOL.md` §7:
+  money and payments changes escalate). `base-provider.ts` protection & isFundable invariants active. Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
   `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not blocking 4A-W6.
   Carry forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped
   sandbox `WISE_API_TOKEN` gap (#47) is exactly what 4A-W6's own token promotion closes; the

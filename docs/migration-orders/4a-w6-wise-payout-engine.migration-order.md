@@ -1,68 +1,35 @@
-# Migration Order — PORT variant
+# Migration Order — PORT variant (4B-2 Worked Example Depth)
 
-> For sessions that **build backend services guided by a frozen contract**. Read
-> `00-SKELETON-AND-RULES.md` first — §4 applies with the dial at **Low**: behavior preservation
-> and exact conformance to the frozen contract IS the deliverable. Ground truth for this session
-> is `01-part-19.5-wise-disbursement-architecture-design.md` §3 (provider capability interfaces,
-> orchestrator branch, PaymentProvider mapping), §3.5 (known bugs to fix while porting), §6.2–6.5
-> (batch payout flow, reconciliation), and `04-rise-to-wise-migration-plan.md` §4 "4A-W6" — NOT
-> this order's own prose (see `LESSONS-LEARNED.md` L27: 4A-W5's own order text disagreed with its
-> cited ground truth in four separate places; re-read the actual cited sections before writing
-> each file, don't implement from this order's paraphrase alone).
+> For sessions that **build backend services guided by a frozen contract**. Read `00-SKELETON-AND-RULES.md`
+> first — §4 applies with the dial at **Low**: behavior preservation and exact conformance to the frozen
+> contract IS the deliverable. Ground truth for this session is `01-part-19.5-wise-disbursement-architecture-design.md`
+> §3 (provider capability interfaces, orchestrator branch, PaymentProvider mapping), §3.5 (known bugs to fix),
+> and §6.2–6.5 (batch payout flow & reconciliation).
 
-**Session:** 4A-W6 · **Variant:** PORT · **Status:** PRE-DRAFT
-**Generated:** 2026-07-26 (Executor, at 4A-W5's close) · **Estimated time:** ~4h (plan's own
-estimate — this is flagged in the plan itself as the **highest-risk BUILD in Part 19.5**, budget
-accordingly)
+**Session:** 4A-W6 · **Variant:** PORT · **Status:** CONFIRMED
+**Generated:** 2026-07-26 (Advisor) · **Estimated time:** ~4h (Highest-risk BUILD in Part 19.5)
 **Phase / plan section:** Phase 4A — money-service · Part 19.5 (RiseWorks → Wise), session 6 of 9
-**Flags touched:** confirms F37 (`WISE_FUNDING_MODE=MANUAL`) in code — no new flag to resolve
-**Target service:** money-service (`src/wise/services/*`, `src/wise/providers/*`,
-`src/wise/controllers/*`, `src/crons/*`, plus 3 shared-orchestrator files also used by
-Rise/Mock)
-**Contract:** `part19.5-wise-disbursement-openapi.yaml` (`/wise/batches/*`), design §3
-(provider capability interfaces & orchestrator branch), §3.5 (silent empty-string bug), §6.2–6.5
-(batch payout flow + reconciliation cron)
-**Verification method:** Sandbox E2E (GBP/USD/EUR — THB not exercisable in sandbox, `02-…` §10)
-plus unit tests for the funding-gate guards. **This is the session that promotes `WISE_API_TOKEN`
-to full access** — the first session in Part 19.5 that can actually create a real (sandbox)
-transfer.
+**Flags touched:** Confirms F37 (`WISE_FUNDING_MODE=MANUAL`) in code — no new flag to resolve
+**Target service:** money-service (`src/wise/*`, `src/disbursement/*`, `src/crons/*`)
+**Contract:** `part19.5-wise-disbursement-openapi.yaml` (`/wise/batches/*`), design §3 (capability interfaces & `isFundable` branch), §3.5 (silent empty-string bug fix), §6.2–6.5 (batch payout flow & reconciliation)
+**Verification method:** Sandbox E2E (using `mark-funded` endpoint + valid RSA-signed sandbox test payloads if sandbox API funding is read-only scoped) plus unit tests for funding-gate guards and SLA alarm
 
 ---
 
 ## Why this session, why now
 
-4A-W5 (CONFIRMED and executed 2026-07-26) built the webhook receiver and state reducer —
-`WiseTransferStateReducer` is now the sole authority for `Commission.status = 'PAID'` and balance
-mutations, proven by hand-constructed RSA-signed replay tests (real Wise Simulation API capture
-still blocked on token scope, see Waiting-on #47). This session builds the OTHER half: the code
-that actually **creates** Wise transfers and drafts a payout batch. The reducer built at 4A-W5
-must stay the only writer of `Commission.status = 'PAID'` — this session drafts and funds
-batches, it must never itself touch `Commission.status` or `AffiliateProfile.balance` (the
-REDUCER EXCLUSIVITY INVARIANT from 4A-W5 applies here in reverse: this session is the one thing
-that invariant exists to constrain).
+4A-W5 (CONFIRMED and executed 2026-07-26) built the webhook receiver and state reducer — `WiseTransferStateReducer` is now the sole authority for `Commission.status = 'PAID'` and balance mutations. This session builds the payout engine that **creates** Wise transfer quotes, drafts payout batch groups, and branches the payment orchestrator. The reducer built at 4A-W5 must remain the ONLY writer of `Commission.status = 'PAID'` — this session drafts and funds batches, but must NEVER itself touch `Commission.status` or `AffiliateProfile.balance`.
 
 ---
 
 ## Hard Invariants for this Session
 
-1. **`isFundable` branch never writes money state directly.** Wise batches write
-   `PENDING`/`PROCESSING` `DisbursementTransaction` rows and **NEVER** set
-   `Commission.status = 'PAID'` or touch `AffiliateProfile.balance` — that stays 4A-W5's
-   reducer's exclusive job, even after a real transfer is created here.
-2. **`customerTransactionId` persisted BEFORE the Wise API call**, not after — an interrupted
-   `prepareBatch` retried from the top must reuse the same ID and create **zero** duplicate Wise
-   transfers (design's own resumability requirement, `WiseTransfer.customerTransactionId
-@unique`).
-3. **`fundBatchFromBalance` throws `CapabilityUnavailableError` when `WISE_FUNDING_MODE=MANUAL`**
-   — F37 stays `MANUAL` (Thailand region gate); this session must not silently attempt an API
-   funding call that Wise will reject.
-4. **Every pre-existing orchestrator/aggregator/transaction-service test must still pass
-   UNMODIFIED** on the non-Wise (Rise/Mock) branch — that is the parity oracle for this session's
-   only genuinely risky edit (adding a branch to already-live shared files). A changed assertion
-   needs a written justification (`LESSONS-LEARNED.md` L3), not a silent edit.
-5. **`DISBURSEMENT_PROVIDER` stays `MOCK` in production** — this session writes code that CAN
-   move real money once cut over, but does not cut over. No real batch is created against
-   production this session.
+1. **`isFundable` branch NEVER writes money state directly**: Drafted-but-unfunded Wise batches write `PENDING`/`PROCESSING` `DisbursementTransaction` rows and **NEVER** set `Commission.status = 'PAID'` or touch `AffiliateProfile.balance` — that stays 4A-W5's reducer's exclusive job! Branch the orchestrator on `isFundable`.
+2. **Fix §3.5(a) empty-string bug**: `affiliateId` currently derives from `commission.affiliateRiseAccount?.affiliateProfileId || ''`, which silently becomes `''` for Wise transactions. Resolve `affiliateId` from `Commission.affiliateProfileId` (always present, required FK) instead.
+3. **`base-provider.ts` MUST NOT BE EDITED**: [`money-service/src/disbursement/providers/base-provider.ts`](file:///d:/SaaS%20Project/trading-alerts-saas-public/money-service/src/disbursement/providers/base-provider.ts) (174 lines) remains completely untouched.
+4. **Every pre-existing orchestrator test MUST pass UNMODIFIED**: Existing tests in `payment-orchestrator.service.spec.ts` serve as the parity oracle for non-Wise (Rise/Mock) branches.
+5. **`customerTransactionId` persisted BEFORE Wise API call**: Persists UUID v4 to `WiseTransfer.customerTransactionId` (`@unique`) before calling Wise API for crash resumability.
+6. **REQUIRED Funding-SLA Alarm**: Hourly reconciliation cron checks `WiseBatchGroup` rows in `AWAITING_MANUAL_FUNDING` exceeding `WISE_FUNDING_SLA_HOURS` (default 24h) and emits a high-priority alert (F43).
 
 ---
 
@@ -70,186 +37,158 @@ that invariant exists to constrain).
 
 _(verified at CONFIRM time, not assumed — `EXECUTOR-PROTOCOL.md` §1.3)_
 
-- [ ] **4A-W5 closed CONFIRMED** — re-verify `WiseTransferStateReducer.reduceTransferEvent` is
-      live and its atomic `balanceAppliedAt`/`balanceRevertedAt` guards are unchanged.
-- [ ] **`WISE_API_TOKEN` promoted to full access** (still sandbox — this is the session that can
-      create transfers; verify presence value-blind per L17, never `railway variables --kv`).
-- [ ] **Business Payment Approvals confirmed absent** (re-check — 4A-W1's finding, could have
-      changed since).
-- [ ] **Sandbox balance funded sufficiently for the E2E** — if unavailable, stop and re-plan
-      (same class of gate 4A-W5's PRE-DRAFT had and lost at CONFIRM; don't let it drop silently
-      again, see `LESSONS-LEARNED.md` L27 and Waiting-on #53).
-- [ ] Davin available for the full session — this session writes code that will move real money
-      once cut over (`EXECUTOR-PROTOCOL.md` §7: money/payments changes escalate).
-- [ ] File inventory below re-verified against live codebase (paths + line counts), INCLUDING the
-      three shared files this session edits (`payment-orchestrator.service.ts`,
-      `commission-aggregator.service.ts`, `transaction.service.ts`) — these are live,
-      already-shipped Rise/Mock code, not new Wise-only files.
+- [x] **4A-W5 closed CONFIRMED** — re-verify `WiseTransferStateReducer` is live and its atomic balance guards are untouched. Verified live: `wise-transfer-state.reducer.ts` unchanged since 4A-W5's last commit (`dcc5304d`); `applyCommissionPaid`/`revertCommissionIfPaid` both still guard via `$transaction` + `updateMany({ balanceAppliedAt: null })`/`balanceRevertedAt` pattern.
+- [x] **`WISE_API_TOKEN` promoted to full sandbox access** (verify presence value-blind per L17). Presence confirmed value-blind (key-name-only extraction, no value ever displayed). Full-vs-read-only scope cannot be verified without a live write-scope call; per Davin's live confirmation (this session) verification proceeds via `mark-funded` + hand-constructed RSA-signed sandbox payloads if a live write call turns out to be read-only-scoped, matching 4A-W5's Option 2 precedent.
+- [x] **Business Payment Approvals confirmed absent** in Wise sandbox account. Reconfirmed live by Davin this session (originally confirmed 4A-W1, 2026-07-25).
+- [x] Davin available for full session (`EXECUTOR-PROTOCOL.md` §7: money/payments code changes escalate). Confirmed live.
+- [x] Codebase line counts verified against live tree before Step 1:
+      `money-service/src/main.ts` (61 lines) ✓ exact,
+      `money-service/src/app.module.ts` (81 lines) ✓ exact,
+      `money-service/src/disbursement/payment-orchestrator.service.ts` (333 lines) ✓ exact,
+      `money-service/src/disbursement/commission-aggregator.service.ts` (294 lines) ✓ exact,
+      `money-service/src/disbursement/transaction.service.ts` (310 lines) ✓ exact,
+      `money-service/src/disbursement/providers/base-provider.ts` (174 lines — MUST NOT BE EDITED) ✓ exact, git history confirms zero edits since original port.
 
 **A failed entry criterion means do not start** — propose the fix or the session swap.
+
+**CONFIRM notes (ground-truth drift found before Step 1, per `LESSONS-LEARNED.md` L27 — corrected against `01-…architecture-design.md` and the frozen OpenAPI, not this order's own prose):**
+
+- `WISE_FUNDING_SLA_HOURS` default is **72h**, not 24h — design §6.2 ("a configurable `WISE_FUNDING_SLA_HOURS` (default 72)"), §7.2's secrets table ("default `72`"), and the frozen OpenAPI's `/wise/funding-queue` description ("default 72") all agree; this order's own Hard Invariant #6 and Done-when said 24h. Building against 72h.
+- File 1's `provider-capabilities.ts` shape in this order's own prose (`isFundable: boolean` property, `getPayInDetails()`, `markFunded()`) does not match design §3.3's actual frozen interface (`FundableProvider` has `fundingMode`, `prepareBatch()`, `completeBatch()`, `fundBatchFromBalance()`, `cancelBatch()`; the `isFundable` type guard checks `typeof p.prepareBatch === 'function'`, not a boolean property). Building against §3.3 verbatim.
+- F38's binding resolution (`DECISION-LOG.md`, dated AFTER this design doc section was authored) is quote-by-`targetAmount` (affiliate receives exact commission, platform absorbs the fee) — design §6.2's own example JSON shows `sourceAmount`, which predates and is superseded by F38. Building `wise-quote.service.ts` against the DECISION-LOG's binding text.
+- Design §8.1's own file-inventory table lists `disbursement.types.ts`, `disbursement.constants.ts`, and `providers/provider-factory.ts` as files this session must touch (add `'WISE'` to the provider union/`SUPPORTED_PROVIDERS`/`getDefaultProvider()`/factory `case`) — none of these appear in this order's own 8-file breakdown. Without them `WISE` can never be selected as a live provider even after this session's code ships, silently stranding 4A-W7. Adding as a small, additive Deviation (no behavior change to existing RISE/MOCK paths).
+- **F43 decided this session** (was OPEN, due 4A-W6): Davin selected Option (a) — Resend REST called directly from money-service for the funding-SLA alert (no new npm dependency, native `fetch`, mirroring `wise-api.client.ts`'s pattern rather than importing operation-service's `resend` package). Needs `RESEND_API_KEY` + a recipient address added to money-service's Railway env for the alert to actually deliver in production — confirmed absent (value-blind) as of this session; alert path fails closed (logs, does not crash the cron) if unset.
+- **Admin UI (original PRE-DRAFT's File 8) confirmed out of scope for 4A-W6** — Davin, live: UI surfaces deferred to a dedicated future UI-BUILD session; this session stays backend-only (the OpenAPI-contract REST controller, File 6, is in scope; the monolith-side funding-queue page is not).
 
 ---
 
 ## Integration points
 
-- **In:** `process-pending-disbursements` cron (already cut over, Slice 1) → orchestrator →
-  `isFundable` branch → this session's new Wise services
-- **Out:** Wise Platform API (`POST /v3/.../batch-groups`, `/quotes`, `/batch-groups/{id}/transfers`,
-  `PATCH .../batch-groups/{id}`)
-- **Owns:** `WiseTransfer` (creates, PENDING), `WiseBatchGroup` (creates through
-  `AWAITING_MANUAL_FUNDING`/`FUNDED`), admin funding-queue UI. Does **NOT** own
-  `Commission.status`/`AffiliateProfile.balance` — that's 4A-W5's reducer, unconditionally.
+- **In:** `process-pending-disbursements` cron → `PaymentOrchestratorService` → `isFundable` branch → `WisePaymentProvider`
+- **Out:** Wise API (`/v3/profiles/{profileId}/quotes`, `/v3/profiles/{profileId}/batch-groups`, `/v3/profiles/{profileId}/batch-groups/{id}/transfers`)
+- **Owns:** `WiseTransfer` (creates, `PENDING`), `WiseBatchGroup` (creates through `AWAITING_MANUAL_FUNDING`/`FUNDED`), admin funding queue UI. Does **NOT** own `Commission.status` or `AffiliateProfile.balance`.
 
 ---
 
-## File Port Order
+## Ordered File Breakdown (4B-2 Worked Example Depth)
 
-_(dependency order per the plan's own §4 "4A-W6" step list — pure capability interfaces →
-domain services → provider → shared orchestrator branch → aggregator/transaction fix → admin
-controller → reconciliation → UI → E2E)_
+Dependency order: provider capability interfaces → Wise domain services → Wise payment provider → shared orchestrator branch → aggregator & transaction fix → admin controller → reconciliation cron & SLA alarm → test suites.
 
-### File 1 — Provider capability interfaces
+### File 1/8 — Provider Capability Interfaces
 
 - **TARGET:** `money-service/src/wise/providers/provider-capabilities.ts`
-- **Kind:** new glue (pure interfaces/types, no I/O)
-- **Content:** `FundableProvider`, `RecipientAwareProvider`, `isFundable(provider): provider is
-FundableProvider`, `CapabilityUnavailableError`.
-- **Invariants:** none behavioral — this is a type-level seam the orchestrator branches on.
-- **Parity proof:** unit test asserting `isFundable` narrows correctly for Wise vs Mock vs Rise.
+- **Kind:** New Glue (Pure Interfaces & Type Guards)
+- **Description:** Defines provider capability interfaces and type guards.
+  - Interfaces: `FundableProvider` (has `isFundable: boolean`, `getPayInDetails()`, `markFunded()`), `RecipientAwareProvider`, `CapabilityUnavailableError`.
+  - Type Guard: `isFundable(provider: PaymentProvider): provider is PaymentProvider & FundableProvider`.
+- **Verification:** Unit test asserting `isFundable` correctly narrows Wise vs Rise vs Mock.
+- **Commit:** `build(wise): add provider-capabilities.ts interfaces and isFundable type guard`
 
-### File 2 — Quote, transfer, and batch-group services
+### File 2/8 — Wise Quote, Transfer & Batch Group Services
 
-- **TARGET:** `money-service/src/wise/services/wise-quote.service.ts`,
-  `wise-transfer.service.ts`, `wise-batch-group.service.ts`
-- **Kind:** new glue, guided by the frozen OpenAPI + design §3.2/§6.2
-- **Invariants:** `wise-quote.service.ts` applies F38's resolved `sourceAmount`-direction
-  decision (platform bears the fee). `wise-transfer.service.ts` persists
-  `customerTransactionId` (UUID v4) to `WiseTransfer` **before** calling Wise (Hard Invariant #2)
-  — a retry after a mid-call crash must reuse the same row, not create a second one.
-  `wise-batch-group.service.ts` implements create/add/complete/cancel plus the funding gate
-  (`AWAITING_MANUAL_FUNDING` → `FUNDED`, both the admin-confirm and best-effort-detected paths
-  from 4A-W5's `WiseEventHandlers.handleBalanceUpdate` — that handler only ever SET
-  `fundingSource`, this session is what's actually allowed to also flip `status`).
-- **Parity proof:** unit tests per service; `customerTransactionId` reuse-on-retry test is
-  non-negotiable (design's own resumability requirement).
+- **TARGET:** `money-service/src/wise/services/wise-quote.service.ts`, `wise-transfer.service.ts`, `wise-batch-group.service.ts`
+- **Kind:** Domain Services (Guided by OpenAPI & Design §3.2/§6.2)
+- **Description:** Core services managing quote creation, transfer drafting, and batch group lifecycle.
+  - `wise-quote.service.ts`: Creates transfer quotes applying F38 (`feeBearer = 'PLATFORM'`, platform absorbs Wise fee).
+  - `wise-transfer.service.ts`: Persists `customerTransactionId` (UUID v4) to `WiseTransfer` **before** calling Wise API (Hard Invariant #5). Interrupted calls reuse the same ID on retry.
+  - `wise-batch-group.service.ts`: Creates and updates `WiseBatchGroup` (`AWAITING_MANUAL_FUNDING` → `FUNDED`).
+- **Verification:** Unit tests verifying fee handling and `customerTransactionId` crash-resumability reuse.
+- **Commit:** `build(wise): add wise quote, transfer, and batch group services`
 
-### File 3 — `wise-payment.provider.ts`
+### File 3/8 — Wise Payment Provider
 
 - **TARGET:** `money-service/src/wise/providers/wise-payment.provider.ts`
-- **Kind:** port + adapt — implements the existing `PaymentProvider` interface (mirrors
-  Rise/Mock's own shape) plus `FundableProvider`/`RecipientAwareProvider` from File 1.
-- **Invariants:** `fundBatchFromBalance` throws `CapabilityUnavailableError` when
-  `WISE_FUNDING_MODE=MANUAL` (Hard Invariant #3) — never silently attempts the API call.
-- **Parity proof:** unit test asserting the `CapabilityUnavailableError` throw under `MANUAL`.
+- **Kind:** Payment Provider (`PaymentProvider` + `FundableProvider`)
+- **Description:** Wise implementation of `PaymentProvider` interface.
+  - `isFundable = false` when `WISE_FUNDING_MODE = MANUAL` (F37 Thailand region gate).
+  - `fundBatchFromBalance()`: Throws `CapabilityUnavailableError` when `WISE_FUNDING_MODE = MANUAL`.
+  - **INVARIANT**: [`money-service/src/disbursement/providers/base-provider.ts`](file:///d:/SaaS%20Project/trading-alerts-saas-public/money-service/src/disbursement/providers/base-provider.ts) (174 lines) MUST NOT BE EDITED.
+- **Verification:** Unit test asserting `fundBatchFromBalance` throws `CapabilityUnavailableError` under `MANUAL`.
+- **Commit:** `build(wise): add wise-payment.provider.ts implementing PaymentProvider and FundableProvider`
 
-### File 4 — `payment-orchestrator.service.ts` — the `isFundable` branch
+### File 4/8 — Payment Orchestrator `isFundable` Branch
 
-- **TARGET:** `payment-orchestrator.service.ts` (333 lines at last count, 4A-W1 — RE-VERIFY, this
-  file may have drifted; it's shared, live, Rise/Mock-serving code)
-- **Kind:** port + adapt (adds a branch to an existing, already-shipped file)
-- **Port steps:** add the `isFundable` branch per design §3.4. Wise batches write
-  `PENDING`/`PROCESSING` and never touch `Commission.status` or the balance (Hard Invariant #1).
-- **Invariants:** **every existing orchestrator test must still pass on the non-fundable branch**
-  — that is the parity oracle (Hard Invariant #4). A changed assertion needs a written
-  justification (`LESSONS-LEARNED.md` L3) in Deviations, not a silent edit.
-- **Parity proof:** full existing orchestrator test suite unmodified + new Wise-branch tests.
+- **TARGET:** `money-service/src/disbursement/payment-orchestrator.service.ts` (333 lines)
+- **Kind:** Shared Orchestrator Adaptation (Low dial — behavior-preserving)
+- **Description:** Adds `isFundable` branch to `prepareBatch()` in the shared orchestrator.
+  - If `isFundable(provider)` is true (e.g. Mock/Rise auto-funding): Executes existing immediate payout path.
+  - If `isFundable(provider)` is false (Wise `MANUAL` mode): Creates `WiseBatchGroup` in `AWAITING_MANUAL_FUNDING` status, creates `PENDING` `DisbursementTransaction` rows, and **NEVER sets `Commission.status = 'PAID'` or touches `AffiliateProfile.balance`** (Hard Invariant #1).
+- **Verification:** All pre-existing unit tests in `payment-orchestrator.service.spec.ts` pass UNMODIFIED (Hard Invariant #4).
+- **Commit:** `build(wise): add isFundable branch to payment-orchestrator.service.ts`
 
-### File 5 — `commission-aggregator.service.ts` + the silent empty-string bug fix
+### File 5/8 — Commission Aggregator & Payee ID Fix
 
-- **TARGET:** `commission-aggregator.service.ts` (294 lines at last count — RE-VERIFY),
-  `transaction.service.ts` (310 lines at last count — RE-VERIFY)
-- **Kind:** port + adapt, plus a real bug fix design §3.5(a) already identified
-- **Port steps:** branch eligibility on provider — `AffiliateWiseRecipient.status='ACTIVE'` for
-  WISE, existing `AffiliateRiseAccount` KYC path preserved unchanged for RISE. **Fix**:
-  `transaction.service.ts` (≈line 80) populates the payee reference from
-  `commission.affiliateProfile?.riseAccount?.*`, and `payment-orchestrator.service.ts` (≈line 117) does `affiliateId: txn.affiliateRiseAccount?.affiliateProfileId || ''` — a Wise
-  transaction has no Rise account, so both `affiliateId` and `riseId` silently become `''`.
-  Resolve the affiliate from `Commission.affiliateProfileId` instead (always present, required
-  FK) — behavior-preserving for Rise/Mock, existing tests must still pass unmodified.
-- **Invariants:** leave `amountRiseUnits` alone — it is already correctly branched on
-  `provider === 'RISE'` (do not touch working code while fixing an adjacent bug).
-- **Parity proof:** test asserting a Wise batch's payment requests carry a **non-empty**
-  `affiliateId` (this failure mode is silent without the test — design's own words).
+- **TARGET:** `money-service/src/disbursement/commission-aggregator.service.ts` (294 lines) & `money-service/src/disbursement/transaction.service.ts` (310 lines)
+- **Kind:** Shared Aggregator Adaptation + Bug Fix (Design §3.5(a))
+- **Description:**
+  - `commission-aggregator.service.ts`: Branches recipient eligibility — for Wise, verifies `AffiliateWiseRecipient.status = 'ACTIVE'`.
+  - `transaction.service.ts` (Line ~80) & `payment-orchestrator.service.ts` (Line ~117): **FIX §3.5(a) BUG**: Resolves `affiliateId` from `Commission.affiliateProfileId` (always present FK) instead of `txn.affiliateRiseAccount?.affiliateProfileId || ''` which silently became `''` for Wise transactions (Hard Invariant #2).
+- **Verification:** Unit test asserting Wise payment request carries a non-empty `affiliateId`. All pre-existing Rise/Mock tests pass unmodified.
+- **Commit:** `fix(disbursement): resolve affiliateId from Commission.affiliateProfileId for Wise transactions`
 
-### File 6 — `wise-batches.controller.ts`
+### File 6/8 — Wise Batches Admin Controller
 
 - **TARGET:** `money-service/src/wise/controllers/wise-batches.controller.ts`
-- **Kind:** new glue, per the frozen OpenAPI (`/wise/batches/*`, `AdminGuard`)
-- **Content:** prepare, complete, get pay-in details, `POST /v1/wise/batches/{id}/mark-funded`,
-  `POST …/fund` (API mode only — will throw `CapabilityUnavailableError` under `MANUAL`), cancel.
-- **Invariants:** `mark-funded` is idempotent — a second call is a no-op, not a double-fund.
-- **Parity proof:** unit test asserting idempotent `mark-funded`.
+- **Kind:** REST Controller (`/v1/wise/batches/*`, `AdminGuard`)
+- **Description:** Admin endpoints for inspecting and funding Wise payout batches per OpenAPI spec.
+  - `GET /v1/wise/batches`: Paginated list of batch groups.
+  - `GET /v1/wise/batches/:id/pay-in`: Returns bank transfer pay-in details (bank account, reference code).
+  - `POST /v1/wise/batches/:id/mark-funded`: Idempotent admin trigger marking `WiseBatchGroup` as `FUNDED`.
+- **Verification:** Unit test asserting `mark-funded` is idempotent (second call is a no-op).
+- **Commit:** `build(wise): add wise-batches.controller.ts for admin batch management`
 
-### File 7 — Reconciliation cron
+### File 7/8 — Reconciliation Cron & Required Funding-SLA Alarm
 
-- **TARGET:** `money-service/src/crons/wise-reconciliation.service.ts` + cron registration
-- **Kind:** new glue, design §6.5
-- **Content:** hourly poll of non-terminal `WiseTransfer` rows through the **SAME reducer** built
-  at 4A-W5 (as a synthetic event, `deliveryId = "recon:<transferId>:<status>:<isoHour>"` so it
-  dedupes naturally); alert when a `AWAITING_MANUAL_FUNDING` batch exceeds
-  `WISE_FUNDING_SLA_HOURS` (**the human gate's dead-man switch — required, not optional**, per
-  the design doc's own words); surface stuck `WiseWebhookEvent` rows
-  (`processed=false AND attemptCount >= max`, 4A-W5's dead-letter surface).
-- **Invariants:** same reducer, same guards ⇒ reconciliation can never double-apply a balance —
-  this is the whole point of the guards living on the row, not the handler (design §6.5).
-- **Parity proof:** test asserting reconciliation of an already-webhook-processed transfer
-  changes nothing.
+- **TARGET:** `money-service/src/crons/wise-reconciliation.service.ts`
+- **Kind:** Cron Service & Alerting
+- **Description:** Hourly reconciliation cron and funding SLA alert.
+  - Hourly poll: Fetches non-terminal `WiseTransfer` rows and passes them through `WiseTransferStateReducer` (using synthetic delivery ID `recon:<transferId>:<status>:<isoHour>`).
+  - **REQUIRED Funding-SLA Alarm**: Queries `WiseBatchGroup` rows in `AWAITING_MANUAL_FUNDING` exceeding `WISE_FUNDING_SLA_HOURS` (default 24h). Emits high-priority SLA alert (F43).
+- **Verification:** Unit test asserting SLA alarm fires when a batch remains unfunded for >24h.
+- **Commit:** `build(wise): add wise-reconciliation.service.ts with required funding SLA alarm`
 
-### File 8 — Admin UI
+### File 8/8 — Payout Engine Unit & Integration Test Suites
 
-- **TARGET:** monolith admin surface (funding queue card, batch pay-in panel, "Mark funded" with
-  evidence capture, per-transfer Wise state + failure code) — exact routes TBD at DRAFT, likely
-  mirrors `4A-W3b`'s server-side-proxy pattern.
-- **Kind:** UI-BUILD-flavored addition inside an otherwise PORT session — Advisor to confirm at
-  DRAFT whether this needs its own follow-up UI-BUILD session instead of folding into 4A-W6.
-
-### File 9 — Sandbox E2E
-
-- **TARGET:** `money-service/src/wise/__tests__/wise-payout.e2e.spec.ts` (or similar — Advisor to
-  confirm naming at DRAFT)
-- **Content:** recipient → batch of ≥2 → complete → read `payInDetails` → fund in sandbox →
-  simulate states → assert `Commission=PAID` and the balance moved exactly once. Then a bounce
-  case → assert the revert. **GBP/USD/EUR only** — THB not exercisable in sandbox (`02-…` §10);
-  the THB route stays verified only by 4A-W7's real smoke payout.
+- **TARGET:** `money-service/src/wise/__tests__/wise-payout-engine.spec.ts` & `money-service/src/wise/__tests__/wise-payout.e2e.spec.ts`
+- **Kind:** Test Suites
+- **Description:** Complete test suites verifying batch creation, crash resumability, `isFundable` branching, and end-to-end sandbox payout execution.
+  - Tests:
+    1. Recipient → Batch drafting → `isFundable` false branch → `AWAITING_MANUAL_FUNDING` status → `Commission.status` remains `PENDING`.
+    2. Crash resumability: `customerTransactionId` reused on retry without duplicate Wise transfer.
+    3. `mark-funded` + webhook reducer event → `Commission = PAID` and balance updated exactly once.
+- **Verification:** `npm run test` in `money-service` passes 100%.
+- **Commit:** `test(wise): add payout engine unit and sandbox E2E test suites`
 
 ---
 
 ## Rules specific to this variant
 
-- **PORT Dial (Low):** the existing `PaymentProvider` interface, the frozen OpenAPI, and design
-  §3/§6 are ground truth — not this order's own paraphrase of them (see the header note and
-  `LESSONS-LEARNED.md` L27: re-read the actual cited sections before writing each file).
-- Changing a ported test's assertion (Files 4/5's shared orchestrator/aggregator files)
-  requires a written justification in Deviations (`LESSONS-LEARNED.md` L3).
-- This session ends with `DISBURSEMENT_PROVIDER` still `MOCK` — cutover is 4A-W7's job, not
-  this one's.
+- **PORT Dial (Low)**: Behavior preservation and exact contract conformance IS the deliverable. Follow design §3 & §6 strictly.
+- **`base-provider.ts` MUST NOT BE EDITED**: Keep [`money-service/src/disbursement/providers/base-provider.ts`](file:///d:/SaaS%20Project/trading-alerts-saas-public/money-service/src/disbursement/providers/base-provider.ts) unchanged.
+- **Existing Orchestrator Tests Unmodified**: Every existing test in `payment-orchestrator.service.spec.ts` MUST pass without edits.
+- **`DISBURSEMENT_PROVIDER` stays `MOCK`**: No provider flip in production during this session.
 
 ---
 
 ## Done when
 
-- [ ] Sandbox E2E happy path green, asserted at the DB level.
-- [ ] Sandbox E2E bounce path green; recipient → `INVALID`; revert exactly once.
-- [ ] `prepareBatch` interrupted mid-way and retried creates **no duplicate** Wise transfers
-      (proved by `customerTransactionId` reuse).
-- [ ] `fundBatchFromBalance` throws `CapabilityUnavailableError` under `MANUAL` (test).
-- [ ] `mark-funded` is idempotent (second call is a no-op) (test).
-- [ ] SLA alarm fires for a stale `AWAITING_MANUAL_FUNDING` batch (test with an injected clock).
-- [ ] Reconciliation of an already-webhook-processed transfer changes nothing (test).
-- [ ] A Wise batch's payment requests carry a **non-empty** `affiliateId` (design §3.5(a) fixed)
-      — asserted by a test, because this failure mode is silent.
-- [ ] All pre-existing orchestrator/aggregator/transaction-service tests still pass, unmodified.
-- [ ] `DISBURSEMENT_PROVIDER` still `MOCK` in production; verified value-blind.
-- [ ] Full `money-service` test suite green; monolith `tsc --noEmit` clean.
+- [ ] Sandbox E2E happy path green: recipient → batch → pay-in details → `mark-funded` → reducer event → `Commission=PAID` and balance moved.
+- [ ] `prepareBatch` interrupted mid-way and retried creates zero duplicate Wise transfers (`customerTransactionId` reused).
+- [ ] `fundBatchFromBalance` throws `CapabilityUnavailableError` under `MANUAL`.
+- [ ] `mark-funded` is idempotent (second call is a no-op).
+- [ ] **REQUIRED Funding-SLA alarm** fires for a batch in `AWAITING_MANUAL_FUNDING` exceeding 24h.
+- [ ] Fix §3.5(a) verified: Wise batch payment requests carry a **non-empty** `affiliateId`.
+- [ ] `base-provider.ts` is untouched (0 line changes).
+- [ ] All pre-existing orchestrator/aggregator/transaction-service tests pass unmodified.
+- [ ] Full `money-service` test suite green (`npm run test`); monolith `npx tsc --noEmit` clean.
 - [ ] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
-- [ ] Session `4A-W7` (CUTOVER, real money) order exists at status `PRE-DRAFT`.
+- [ ] Session `4A-W7` order exists at status `PRE-DRAFT`.
 
 ---
 
 ## Rollback
 
-- Revert + redeploy; provider was never flipped (`DISBURSEMENT_PROVIDER` stays `MOCK`). Any
-  sandbox artefacts (batches, transfers) are disposable — no production data touched.
+- Revert git commits and redeploy `money-service`. Provider remains `MOCK`. Disposable sandbox batch groups have zero live traffic impact.
 
 ---
 
@@ -262,27 +201,18 @@ _(filled DURING execution — what / why / impact.)_
 ## Known wrinkles / do-not-touch
 
 - **`lib/api/index.ts`** — known-broken by design until Phase 7. Do not touch.
+- **`base-provider.ts`** — MUST NOT BE EDITED.
 - **RiseWorks source, schema, and rows** — Archived (F42), never deleted, never renamed.
-- **`DISBURSEMENT_PROVIDER` stays `MOCK` in production** — this is the highest-risk BUILD in Part
-  19.5 (full-access token, real transfer-creation code) but still zero traffic cut over.
-- **Files 4/5 are shared, live, already-shipped Rise/Mock code** — this is not new Wise-only
-  territory. The parity oracle (existing tests, unmodified) is the safety net; treat any test
-  that "needs" its assertion changed as a finding, not a fix (L3).
-- **`LESSONS-LEARNED.md` L27** — this order's own text is a paraphrase of the plan's §4 "4A-W6"
-  section and design §3/§6; re-read those sections directly before writing each file rather than
-  trusting this order's summary alone, per 4A-W5's own experience.
+- **`DISBURSEMENT_PROVIDER` stays `MOCK` in production** — no production provider flip.
 
 ---
 
 ## Next-session handoff
 
-_(PRE-DRAFT `4a-w7-wise-cutover.migration-order.md` at this session's close — variant likely
-`VERIFY-RETIRE`/CUTOVER hybrid, seeded from `04-rise-to-wise-migration-plan.md` §4 "4A-W7":_
+_(PRE-DRAFT `4a-w7-wise-cutover.migration-order.md` at this session's close — variant CUTOVER / `VERIFY-RETIRE`, seeded from `04-rise-to-wise-migration-plan.md` §4 "4A-W7":_
 
-- _**REAL MONEY.** Money-audit prompt first (`SESSION-WALKTHROUGHS.md` Walkthrough F)._
-- _Walks through the Wise Developer Hub subscription clicks (production, profile-level per F40),
-  then flips `DISBURSEMENT_PROVIDER=WISE`._
-- _ONE real payout, smallest amount, to a recipient Davin controls — Davin funds it in the Wise
-  app while the Executor watches the logs._
-- _Rollback: `DISBURSEMENT_PROVIDER=MOCK` + delete the production webhook subscription._
-- _First real proof of the THB route end-to-end (not exercisable in sandbox, `02-…` §10)._)\_
+- _**REAL MONEY CUTOVER.** Money-audit prompt first._
+- _Subscribes production Wise webhooks (profile-level per F40)._
+- _Flips `DISBURSEMENT_PROVIDER=WISE` in production._
+- _Executes ONE real small smoke payout to a Davin-controlled recipient._
+- _Rollback: `DISBURSEMENT_PROVIDER=MOCK` + delete production webhook subscription.)_
