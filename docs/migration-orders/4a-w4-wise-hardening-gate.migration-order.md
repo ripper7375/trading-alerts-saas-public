@@ -153,7 +153,7 @@ Register **F43** (Funding-SLA alert delivery channel — money-service has no em
 - [x] dLocal webhook dedupe mechanism evidenced with exact code line citations.
 - [x] `app.enableShutdownHooks()` added to `money-service/src/main.ts`; `PrismaService.onModuleDestroy` observed firing.
 - [x] Explicit `@Throttle({ default: { ttl: 60_000, limit: 300 } })` added to `dlocal-webhook.controller.ts`; replayed dLocal webhook payload processes identically before and after.
-- [ ] BullMQ job-ID policy (`jobId = wise:event:<deliveryId>`) documented in design §8 and order Deviations.
+- [x] BullMQ job-ID policy (`jobId = wise:event:<deliveryId>`) documented in design §8 and order Deviations.
 - [ ] Flag **F43** registered OPEN in `DECISION-LOG.md` (owner Davin, due 4A-W6).
 - [ ] Full `money-service` test suite green; monolith `tsc --noEmit` clean.
 - [ ] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
@@ -205,6 +205,14 @@ _(filled DURING execution — what / why / impact.)_
 - **Regression + effect proof, new test:** `money-service/src/dlocal/dlocal-webhook.throttle.spec.ts` boots a real `NestApplication` with the real `ThrottlerGuard` as `APP_GUARD` and the same global default as production (`app.module.ts`'s `{ ttl: 60000, limit: 100 }`), then sends a 150-request sequential burst of a signed dLocal payload through `/webhooks/dlocal` — **zero 429s, all 150 return 200** (the payment-not-found fast path, signature mocked true). A control test in the same file — an undecorated sibling route on the identical global default — confirms the 150-burst genuinely _does_ 429 past 100 in this test environment, proving the "zero 429s" result on the dLocal route isn't just throttling being silently inert. (First attempt used `Promise.all` for concurrency and hit spurious `ECONNRESET` from the ephemeral test server's socket pool, unrelated to throttling — switched to a sequential loop, which is also the more faithful model of how dLocal's own retry bursts actually arrive.)
 - Did **not** replay an actual recorded production signature (no real `DLOCAL_WEBHOOK_SECRET` value was available or appropriate to bring into this session, L17) — `verifyWebhookSignature` is mocked exactly as the existing `dlocal-webhook.controller.spec.ts` already does, isolating the throttling behavior from signature verification, which is separately and already covered.
 - `npm run build` clean; full `money-service` suite 29/29 suites, 288/288 tests (was 28/286 after Step 3 — +1 suite/+2 tests, this new spec).
+
+### BullMQ Job-ID Derivation Policy (Step 5)
+
+- Documented as a binding policy in `docs/migration-orders/replace-rise-with-wise/01-part-19.5-wise-disbursement-architecture-design.md` §8.0 (which already anticipated this session's two prerequisites in outline — this session fills in the exact policy text):
+  - Webhook processing jobs: `jobId = wise:event:<deliveryId>` (the `X-Delivery-Id` header — same value as `WiseWebhookEvent.deliveryId`'s `@unique` column, built at 4A-W2).
+  - Transfer execution jobs: `jobId = wise:transfer:<customerTransactionId>`.
+  - Rationale recorded in the design doc: BullMQ dedupes enqueues on `jobId` at the Redis level, so a deterministic id (not random/auto-incrementing) makes a retried enqueue a no-op instead of a second job — this is 4A-W5's CC-C idempotency guarantee for its queue, composing with Step 3's shutdown-hook fix (`Worker.close()` drains the in-flight job before exit, so nothing gets silently dropped and re-enqueued under a fresh id).
+- No code changes for this step — `app.module.ts` confirmed to still have zero `registerQueue()`/`@Processor()` calls (only `BullModule.forRoot`, re-verified alongside Step 3), so this is policy-only, ready for 4A-W5 to consume.
 
 ---
 
