@@ -155,9 +155,9 @@ Register **F43** (Funding-SLA alert delivery channel — money-service has no em
 - [x] Explicit `@Throttle({ default: { ttl: 60_000, limit: 300 } })` added to `dlocal-webhook.controller.ts`; replayed dLocal webhook payload processes identically before and after.
 - [x] BullMQ job-ID policy (`jobId = wise:event:<deliveryId>`) documented in design §8 and order Deviations.
 - [x] Flag **F43** registered OPEN in `DECISION-LOG.md` (owner Davin, due 4A-W6).
-- [ ] Full `money-service` test suite green; monolith `tsc --noEmit` clean.
-- [ ] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
-- [ ] `4a-w5-wise-webhook-reducer.migration-order.md` exists at status `PRE-DRAFT`.
+- [x] Full `money-service` test suite green; monolith `tsc --noEmit` clean.
+- [x] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
+- [x] `4a-w5-wise-webhook-reducer.migration-order.md` exists at status `PRE-DRAFT`.
 
 ---
 

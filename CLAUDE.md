@@ -24,7 +24,80 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W3b CLOSED, executed as UI-BUILD — Part 19.5 (Wise) recipient
+- **Current:** Session 4A-W4 CLOSED, executed as CONTRACT + small INFRA — Part 19.5 (Wise)
+  money-service CC-C/CC-D hardening gate, zero traffic cut over, no Wise-specific code —
+  2026-07-26.
+  **CONFIRM found the order file modified-but-uncommitted again** (header `PRE-DRAFT →
+APPROVED`, no Advisor-DRAFT/Davin-approval commit trail) — the same `LESSONS-LEARNED.md` L11
+  pattern, 9th recurrence (see L11's own recurrence log for the 8th, at 4A-W3b). Unlike the
+  W1/W2 recurrences, none of the order's own cited line-count evidence had drifted this time
+  (`main.ts` 51, `app.module.ts` 81, `dlocal-webhook.controller.ts` 415 — all exact live
+  matches), and unlike 4A-W3b no open design question had been silently resolved in the
+  rewrite — the one new substantive addition (a `Contract:` line citing
+  `07-migration-process-change-proposal.md` P1/P2/P3) checked out against that doc's actual
+  content (P1/P2/P3 are literally "insert this session" / "fix shutdown" / "fix throttling").
+  Stopped and asked Davin directly per the established pattern; confirmed live as his own
+  authentic edit. All other entry criteria (4A-W3a/b both CONFIRMED, both defects still live,
+  Davin present and explicitly approving Step 4 before it started) verified live and passed.
+  Order marked CONFIRMED, executed.
+  **Step 1 (idempotency audit, no fixes):** audited all 6 cited money write endpoints. Verdicts:
+  Stripe checkout (`app/api/checkout/route.ts`) — no key; subscription cancel — n/a, idempotent
+  by construction; `GET /api/invoices` — n/a, read-only (no write path exists under
+  `app/api/invoices/*`, correcting the order's own cautious `GET/POST` framing); dLocal payment
+  creation (`app/api/payments/dlocal/create/route.ts`) — no key; admin code distribution
+  (`app/api/admin/affiliates/[id]/distribute-codes/route.ts`) — no key; payment batch execution
+  (`app/api/disbursement/batches/[batchId]/execute/route.ts`) — has an indirect guard
+  (`PaymentBatch.status` state machine + `DisbursementTransaction.commissionId`/`.transactionId`
+  both `@unique`), not a request-level key but a real DB-enforced one. No fixes applied — audit
+  only, per this session's own scope rule; Stripe/dLocal write-path fixes stay 4A-8's.
+  **Step 2 (webhook dedupe audit) found a real gap in Plan §13's own cited template:** dLocal
+  and Stripe webhooks both dedupe via downstream business-state checks (a status field that
+  transitions once), not a webhook-delivery-ID table — no `DlocalWebhookEvent` model exists at
+  all, and Stripe's `event.id` is never persisted or checked. Plan §13 names
+  `RiseWorksWebhookEvent` as the dedupe template, but that model's own `hash`/`signature`
+  fields carry **no unique constraint** (only non-unique indexes) — RiseWorks's actual dedup is
+  the same business-state-check shape, not a lookup by hash. The only model in either schema
+  with a real DB-enforced dedupe key is `WiseWebhookEvent.deliveryId String @unique` (built
+  4A-W2, not yet wired to a live receiver). Flagged for 4A-W5 to inherit `WiseWebhookEvent`'s
+  pattern rather than `RiseWorksWebhookEvent`'s; flagged for 4A-8's outbox/idempotency work to
+  see the broader gap (see Waiting-on #52).
+  **Step 3 (graceful shutdown fix, Defect 1):** added `app.enableShutdownHooks()` to
+  `money-service/src/main.ts`; added a previously-missing observable log line to
+  `PrismaService.onModuleDestroy()`. Verified with a new test
+  (`money-service/src/prisma/prisma.shutdown.spec.ts`) that boots a real `NestApplication`,
+  calls the real `enableShutdownHooks()`, and delivers a synthetic in-process `SIGTERM` — the
+  first unstubbed attempt genuinely killed the Jest worker mid-test, because Nest's own
+  `listenToShutdownSignals()` re-sends the OS signal via `process.kill(process.pid, signal)`
+  after cleanup finishes (confirmed by reading `@nestjs/core`'s own source); stubbed
+  `process.kill`/`process.exit` to observe the hook firing without dying. Documented the BullMQ
+  worker drain policy (`worker.close()` on shutdown) 4A-W5's first queue consumer must follow.
+  **Step 4 (dLocal webhook throttling fix, Defect 2 — Davin present, live approval given per
+  `EXECUTOR-PROTOCOL.md` §7 before touching this already-cut-over live money route):** added
+  `@Throttle({ default: { ttl: 60_000, limit: 300 } })` to `handleWebhook`. Verified two ways:
+  the existing 12-test behavioral suite passes unchanged (decorator is metadata-only); and a new
+  real-`ThrottlerGuard` burst test (`dlocal-webhook.throttle.spec.ts`) proves the actual effect —
+  150 sequential requests through the real guard hit zero 429s on this route, while a control
+  route on the identical global default does 429 past 100 in the same run (proving throttling
+  is genuinely active, not silently inert). First attempt used `Promise.all` and hit spurious
+  `ECONNRESET` from the ephemeral test server's socket pool; switched to sequential requests,
+  which also better mirrors how a real dLocal retry burst actually arrives.
+  **Step 5:** documented the BullMQ job-ID derivation policy (`jobId = wise:event:<deliveryId>`,
+  `jobId = wise:transfer:<customerTransactionId>`) in
+  `01-part-19.5-wise-disbursement-architecture-design.md` §8.0 (which had already anticipated
+  this session's two prerequisites in outline) and this order's Deviations.
+  **Step 6:** registered **F43** (funding-SLA alert delivery channel) OPEN in
+  `DECISION-LOG.md`, owner Davin, due 4A-W6.
+  **Full verification:** `money-service` test suite 29/29 suites, 288/288 tests (was 27/285 at
+  4A-W3a's close — +2 suites/+3 tests: the shutdown spec and the throttle spec). `npm run build`
+  clean. Monolith `tsc --noEmit` clean (unaffected — no monolith code changed this session,
+  audit-only reads). `DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session hardened
+  shared infrastructure only, no provider flip, no money moved.
+  **Artifacts updated:** `4a-w4-wise-hardening-gate.migration-order.md` (Status → CONFIRMED,
+  Deviations filled in full, Done-when checked), `DECISION-LOG.md` (F43 registered),
+  `01-part-19.5-wise-disbursement-architecture-design.md` (§8.0 job-ID policy filled in),
+  `migration-stack-analysis.md` (new money-service entry), this file.
+  `4a-w5-wise-webhook-reducer.migration-order.md` PRE-DRAFTed (PORT).
+- _(superseded-by-above, retained for context)_ Session 4A-W3b CLOSED, executed as UI-BUILD — Part 19.5 (Wise) recipient
   form & admin UI (monolith `app/api/wise/recipients/*`, `app/affiliate/settings/payout`,
   `app/(dashboard)/admin/disbursement/recipients`), zero traffic cut over — 2026-07-26.
   **CONFIRM found the order file modified-but-uncommitted again** (header `PRE-DRAFT →
@@ -420,20 +493,30 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w3b-wise-recipient-ui.migration-order.md` (CONFIRMED and executed
-  by Executor 2026-07-26). Predecessor `4a-w3a-wise-recipient-backend.migration-order.md` stays
-  CONFIRMED/executed (see historical block below — split from the unsplit `4A-W3` PRE-DRAFT
-  into `4A-W3a` backend + `4A-W3b` UI). The unsplit
-  `4a-w3-wise-recipient-onboarding.migration-order.md` is now SUPERSEDED (stub pointing to
-  the split files). Predecessor `4a-w2-wise-additive-schema.migration-order.md` stays
+  `docs/migration-orders/4a-w4-wise-hardening-gate.migration-order.md` (CONFIRMED and executed
+  by Executor 2026-07-26). Predecessor `4a-w3b-wise-recipient-ui.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor
+  `4a-w3a-wise-recipient-backend.migration-order.md` stays CONFIRMED/executed (see historical
+  block below — split from the unsplit `4A-W3` PRE-DRAFT into `4A-W3a` backend + `4A-W3b` UI).
+  The unsplit `4a-w3-wise-recipient-onboarding.migration-order.md` is now SUPERSEDED (stub
+  pointing to the split files). Predecessor `4a-w2-wise-additive-schema.migration-order.md`
+  stays CONFIRMED/executed (see historical block below). Predecessor
   `4a-w1-wise-contracts-and-decisions.migration-order.md` stays CONFIRMED/executed (see
   historical block below). Predecessor money-service order
   `4a-7b-money-service-read-apis-cutover.migration-order.md` stays CUT-OVER/closed, superseding
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W3b):** frontend surface built and verified clean — all 5 files shipped
+- **Order status (4A-W4):** CC-C/CC-D hardening gate closed clean — idempotency audit (6
+  endpoints, no "TBD" verdicts) and webhook-dedupe audit (dLocal/Stripe/RiseWorks, real gap
+  found in Plan §13's own template) both committed to the order's Deviations; both live defects
+  fixed and verified (`enableShutdownHooks()` + a real end-to-end shutdown test;
+  `@Throttle()` on the dLocal webhook + a real-guard burst test); BullMQ job-ID policy
+  documented for 4A-W5; F43 registered OPEN. `money-service` 29/29 suites, 288/288 tests;
+  monolith `tsc --noEmit` clean. Standing note unchanged: `DISBURSEMENT_PROVIDER` stays `MOCK`
+  in production — this session hardened shared infrastructure only, no provider flip, no money
+  moved.
+- **Order status (4A-W3b, historical):** frontend surface built and verified clean — all 5 files shipped
   (server-side proxy layer, dynamic recipient form + affiliate payout page, admin read-only
   list page, 23 new tests, artefact updates). `tsc --noEmit` clean throughout; monolith
   `test:ci` 119/119 suites (2105/2105 tests). Ships flag-less (Davin, live). Real
@@ -664,24 +747,40 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   auto-deploys cleanly). New `LESSONS-LEARNED.md` L23. Worth Davin checking the Railway
   dashboard's Root Directory setting for `money-service` directly if `railway up` is ever
   needed again (e.g. for a deploy that shouldn't go through a git push).
-- **Next session:** Davin's call, per `4a-w3b-…`'s own Next-session-handoff note.
-  `4a-w4-wise-hardening-gate.migration-order.md` (CC-C/CC-D hardening gate for the money
-  surface) is PRE-DRAFTed at status `PRE-DRAFT` — its own entry criteria need re-verifying at
-  CONFIRM per usual, and it **requires Davin present** (`EXECUTOR-PROTOCOL.md` §7) before its
-  Step 4 (adding an explicit `@Throttle()` to the already-cut-over live dLocal webhook route).
-  Carry forward from 4A-W3a: THB production fixture still needed (#46); a write-scoped sandbox
-  `WISE_API_TOKEN` is needed to complete the full recipient-creation E2E proof (#47) — still
-  not blocking, neither 4A-W4 nor 4A-W5 call Wise's write endpoints; the OpenAPI's
-  archive-vs-upsert conflict on recipient replacement needs a decision (#49); `railway up`
-  stays unreliable for money-service, use `git push origin main` (#50, L23); the admin list's
-  missing affiliate-name field is a minor UX gap, not blocking (#51). Separately: a
-  future RETIRE session can delete the monolith's now-orphaned
-  `app/api/affiliate/dashboard/*`, `app/api/admin/{affiliates,analytics}/*` routes and their
-  `lib/` logic once Davin agrees Slice 3 (4A-7b) has been stable long enough — not yet
-  scheduled. `4A-5-RW` (RiseWorks) stays REVOKED (Waiting-on #37), not pending. `Session 6-1`
-  (Phase 6 Gap Matrix, `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was
-  PRE-DRAFTed at 5-4's close, a separate track — Davin to decide ordering against Slice 4
-  (4A-8), the Slice-3-RETIRE session, and the now-active `4A-W*` series.
+  **(52, NEW)** 4A-W4's idempotency audit (Step 1) found no idempotency key at all on 3
+  customer/admin-facing money write endpoints: Stripe checkout session creation
+  (`app/api/checkout/route.ts`), dLocal payment creation
+  (`app/api/payments/dlocal/create/route.ts`), and admin code distribution
+  (`app/api/admin/affiliates/[id]/distribute-codes/route.ts`) — a double form-submit or retry on
+  any of these creates a duplicate row/session/code batch (full detail and exact line citations
+  in `4a-w4-…`'s Deviations). Explicitly out of scope to fix this session (stays 4A-8's job per
+  this order's own scope rule) — flagging so 4A-8 has the full list rather than re-discovering
+  it. Separately, the same audit found Plan §13's own dedupe template
+  (`RiseWorksWebhookEvent`) carries no unique constraint on its `hash`/`signature` fields — only
+  `WiseWebhookEvent.deliveryId` does — so 4A-W5 should build the new Wise webhook receiver on
+  `WiseWebhookEvent`'s pattern, not RiseWorks's (already reflected in
+  `01-...architecture-design.md` §8.0 and `4a-w5-…`'s own PRE-DRAFT, this session's close).
+- **Next session:** Davin's call, per `4a-w4-…`'s own Next-session-handoff note.
+  `4a-w5-wise-webhook-reducer.migration-order.md` (Wise webhook receiver + state reducer,
+  PORT variant, ~4h) is PRE-DRAFTed at status `PRE-DRAFT` — its entry criteria need
+  re-verifying at CONFIRM per usual, and it needs Davin available for two live decisions: F40
+  (webhook subscription level) and confirming sandbox transfer funding is available to drive
+  Wise's Simulation API (if unavailable, the order's own text says stop and re-plan rather than
+  build against synthetic-only fixtures). Carry forward from 4A-W4: the 3-endpoint idempotency
+  gap (#52) and `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not
+  blocking 4A-W5. Carry forward from 4A-W3a: THB production fixture still needed (#46); a
+  write-scoped sandbox `WISE_API_TOKEN` is needed to complete the full recipient-creation E2E
+  proof (#47) — still not blocking; the OpenAPI's archive-vs-upsert conflict on recipient
+  replacement needs a decision (#49); `railway up` stays unreliable for money-service, use
+  `git push origin main` (#50, L23); the admin list's missing affiliate-name field is a minor
+  UX gap, not blocking (#51). Separately, unchanged from prior sessions: a future RETIRE
+  session can delete the monolith's now-orphaned `app/api/affiliate/dashboard/*`,
+  `app/api/admin/{affiliates,analytics}/*` routes and their `lib/` logic once Davin agrees
+  Slice 3 (4A-7b) has been stable long enough — not yet scheduled. `4A-5-RW` (RiseWorks) stays
+  REVOKED (Waiting-on #37), not pending. `Session 6-1` (Phase 6 Gap Matrix,
+  `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was PRE-DRAFTed at 5-4's
+  close, a separate track — Davin to decide ordering against Slice 4 (4A-8), the
+  Slice-3-RETIRE session, and the now-active `4A-W*` series.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -740,6 +839,8 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F41 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, Wise-managed PII; store only `accountTail` last 4 digits and `detailsFingerprint` SHA-256 hash ·
   **F42 fully RESOLVED (2026-07-25, Davin; recorded 4A-W1)** — RiseWorks archived, not
   deleted: dormant in repo AND database, restorable per `replace-rise-with-wise/03-…` ·
+  **F43 OPEN (registered Session 4A-W4)** — funding-SLA alert delivery channel (Slack/Discord
+  webhook vs monolith email proxy), owner Davin, due 4A-W6 ·
   F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

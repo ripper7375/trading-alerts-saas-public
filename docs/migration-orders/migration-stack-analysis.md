@@ -1970,6 +1970,41 @@ Modified:
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W3b, Wise recipient frontend
-surface)
+<details>
+<summary><code>money-service</code> CC-C/CC-D hardening gate — 2 new spec files, 3 modified (Session 4A-W4)</summary>
+
+Audit-only for Stripe/dLocal idempotency (no fixes — that stays 4A-8's job) plus 2 single-line
+INFRA fixes on already-cut-over code, per plan §13's CC-C/CC-D money gate closing before 4A-W5
+gives money-service its first BullMQ consumer. No Wise-specific code. Full audit matrix and
+webhook-dedupe findings live in the order's own Deviations section, not duplicated here.
+
+New:
+
+- `money-service/src/prisma/prisma.shutdown.spec.ts` — proves `app.enableShutdownHooks()` +
+  `PrismaService.onModuleDestroy()` fire end-to-end on a real (stubbed-only-at-the-network-edge)
+  NestJS shutdown signal, not just via a hand-called hook
+- `money-service/src/dlocal/dlocal-webhook.throttle.spec.ts` — real-`ThrottlerGuard` burst test
+  proving the route-level `@Throttle()` override actually raises this route's ceiling above the
+  app-wide default, with a control route in the same file proving the global default really is
+  enforced (not silently inert)
+
+Modified:
+
+- `money-service/src/main.ts` (51→61 lines) — `app.enableShutdownHooks()` added before
+  `app.listen()`
+- `money-service/src/prisma/prisma.service.ts` — observable log line added to
+  `onModuleDestroy()` (was silent)
+- `money-service/src/dlocal/dlocal-webhook.controller.ts` (415→425 lines) —
+  `@Throttle({ default: { ttl: 60_000, limit: 300 } })` added to `handleWebhook` (Davin present,
+  live approval per `EXECUTOR-PROTOCOL.md` §7 — already-cut-over live money route)
+
+`DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session touched shared infra only, no
+provider flip, no money moved.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W4, money-service CC-C/CC-D
+hardening gate)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
