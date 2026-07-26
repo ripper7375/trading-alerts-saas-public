@@ -57,6 +57,41 @@ below because they appear in in-scope files, but its code was not read).
 | --------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `RISE_WEBHOOK_SECRET` | RiseWorks webhook signature verification — `app/api/webhooks/riseworks/route.ts` | **not found in any of the 5 files — gap** — **confirmed-live ✓** |
 
+## Payments — Wise (Part 19.5, added Session 4A-W1, 2026-07-26)
+
+RiseWorks's replacement disbursement provider. Design:
+`docs/migration-orders/replace-rise-with-wise/01-part-19.5-wise-disbursement-architecture-design.md`
+§7.2. Full profile IDs are non-sensitive by Wise's own model (needed to construct API paths) but
+are still catalogued only, never printed alongside a token in the same command — see the
+`WISE_API_TOKEN` promotion plan below.
+
+| Name                                        | Consumed by                                                                                           | Sensitivity                              | Introduced                              |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------- | --------------------------------------- |
+| `WISE_API_TOKEN`                            | Bearer auth on every Wise API call — `money-service/src/wise/client/wise-api.client.ts` (built 4A-W3) | **CRITICAL — can move real money**       | 4A-W1 (read-only) → 4A-W6 (full access) |
+| `WISE_PROFILE_ID`                           | Business profile id; appears in `/v3/profiles/{id}/...` paths                                         | low                                      | 4A-W1                                   |
+| `WISE_ENV`                                  | `sandbox` \| `production` — selects base URL **and** signature public key                             | low                                      | 4A-W1                                   |
+| `WISE_FUNDING_MODE`                         | `MANUAL` \| `API` (F37 — resolved `MANUAL`, Thailand region gate)                                     | low                                      | 4A-W1                                   |
+| `WISE_SOURCE_CURRENCY`                      | Balance currency payouts are funded from (F37/F38 input) — resolved `USD`                             | low                                      | 4A-W1                                   |
+| `WISE_FEE_BEARER`                           | `PLATFORM` \| `AFFILIATE` (F38, still OPEN — due 4A-W2)                                               | low                                      | 4A-W2                                   |
+| `WISE_FUNDING_SLA_HOURS`                    | Dead-man-switch threshold for `AWAITING_MANUAL_FUNDING` batches — default `72`                        | low                                      | 4A-W6                                   |
+| `WISE_WEBHOOK_PUBLIC_KEY_PEM`               | Optional override of the built-in published Wise PEMs (key-rotation escape hatch)                     | low (public)                             | 4A-W3                                   |
+| `ALLOW_ARCHIVED_PROVIDERS`                  | Gate required to construct the archived `RisePaymentProvider` (F42)                                   | low (default unset)                      | 4A-W8                                   |
+| `NEXT_PUBLIC_SHOW_ARCHIVED_DISBURSEMENT_UI` | Frontend flag to show the archived RiseWorks admin UI behind a banner                                 | low                                      | 4A-W8                                   |
+| `DISBURSEMENT_PROVIDER`                     | **Existing var** (Part 19) — value flips `MOCK` → `WISE` at cutover                                   | medium — controls which provider is live | existing, flips 4A-W7                   |
+
+**`WISE_API_TOKEN` promotion plan (recommendation: two tokens, promoted per session):**
+
+- **4A-W1 / 4A-W3 / 4A-W5 — read-only sandbox token.** Sufficient for `GET /v1/profiles`
+  (bootstrap identity), recipient/account-requirements development, and webhook signature/replay
+  work. A leak during this window cannot move money.
+- **4A-W6 onward — full-access token.** Only 4A-W6 (the payout engine) needs to create quotes,
+  recipients, transfers and batch groups. Promote at the start of that session, not before.
+- **Verify presence value-blind only** — never `railway variables --kv` or any command that prints
+  the value (Session 4A-5 leaked `DLOCAL_WEBHOOK_SECRET` into a transcript this way;
+  `LESSONS-LEARNED.md` L17). This session's own `GET /v1/profiles` sandbox call was run by Davin
+  outside this chat; only the response body (profile IDs, types) was shared back — no token value
+  entered this transcript.
+
 ## Cron
 
 | Name          | Consumed by                                                            | Found in                                                         |

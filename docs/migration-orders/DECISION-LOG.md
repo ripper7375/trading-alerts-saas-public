@@ -20,40 +20,47 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 
 ## Flag register status (details in plan §11)
 
-| Flag | Topic                                                                          | Status                                                                                                                 |
-| ---- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| F1   | OpenAPI coverage from live routes                                              | RESOLVED — fully closed, Session 0-3                                                                                   |
-| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28                                        | RESOLVED — Session 0-1                                                                                                 |
-| F3   | Where does the monolith's Postgres live?                                       | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
-| F4   | Full model census for schema split                                             | RESOLVED — Session 2-2                                                                                                 |
-| F5   | Prisma file-layout strategy                                                    | RESOLVED — Session 2-2                                                                                                 |
-| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled                               | OPEN — due Session 3-1 (Davin)                                                                                         |
-| F7   | HS256 shared secret vs JWKS + rotation timing                                  | OPEN — due Session 3-1 (Davin)                                                                                         |
-| F8   | Realtime/websocket architecture                                                | OPEN — due Session 4B-17                                                                                               |
-| F9   | @trading-alerts/types packaging mechanics                                      | OPEN — due Session 4B-1                                                                                                |
-| F10  | Next.js 15→16 breaking-change audit                                            | RESOLVED — Session 5-1                                                                                                 |
-| F11  | Frontend gap matrix                                                            | OPEN — due Session 6-1 (Davin triage)                                                                                  |
-| F12  | Whole-plan duration estimate                                                   | OPEN — revisit after F1–F5                                                                                             |
-| F13  | Observability/tracing backend                                                  | OPEN — due by first Phase 4 cutover                                                                                    |
-| F14  | Tier-update: outbox vs direct call                                             | OPEN — due Session 4A-8                                                                                                |
-| F15  | Redis topology/namespacing                                                     | RESOLVED — Session 4A-1 (Davin)                                                                                        |
-| F16  | Public URL scheme + /v1 versioning                                             | RESOLVED — Session 4A-1 (Davin)                                                                                        |
-| F17  | Staging data strategy                                                          | RESOLVED — Session 0-5 (Davin)                                                                                         |
-| F18  | RPO/RTO targets                                                                | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
-| F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                      | RESOLVED — Session 2-1                                                                                                 |
-| F20  | Production migration history unbaselined                                       | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
-| F21  | 24h Account-Deletion GDPR gap                                                  | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
-| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live)  | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
-| F35  | money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built | RESOLVED — Session 4A-2 (Davin)                                                                                        |
-| F44  | Read-API (Slice 3) shadow-run mechanism, given CC-A/F34 still not built        | RESOLVED — Session 4A-7a (Davin)                                                                                       |
-| F45  | Browser → money-service transport, given NextAuth's cookies are `httpOnly`     | RESOLVED — Session 4A-7a (Davin) · auth-semantics decision, EXECUTOR-PROTOCOL §7                                       |
-| F46  | Schema-vs-transport failure classification at the first authenticated read     | RESOLVED — 2026-07-25 (Davin, pre-registered ahead of Session 4A-7a)                                                   |
+| Flag | Topic                                                                                | Status                                                                                                                 |
+| ---- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| F1   | OpenAPI coverage from live routes                                                    | RESOLVED — fully closed, Session 0-3                                                                                   |
+| F2   | Pin next@16.2.10 / @nestjs/core@11.1.28                                              | RESOLVED — Session 0-1                                                                                                 |
+| F3   | Where does the monolith's Postgres live?                                             | RESOLVED — Session 1-1 (on Railway, different instance than railway-gateway)                                           |
+| F4   | Full model census for schema split                                                   | RESOLVED — Session 2-2                                                                                                 |
+| F5   | Prisma file-layout strategy                                                          | RESOLVED — Session 2-2                                                                                                 |
+| F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled                                     | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F7   | HS256 shared secret vs JWKS + rotation timing                                        | OPEN — due Session 3-1 (Davin)                                                                                         |
+| F8   | Realtime/websocket architecture                                                      | OPEN — due Session 4B-17                                                                                               |
+| F9   | @trading-alerts/types packaging mechanics                                            | OPEN — due Session 4B-1                                                                                                |
+| F10  | Next.js 15→16 breaking-change audit                                                  | RESOLVED — Session 5-1                                                                                                 |
+| F11  | Frontend gap matrix                                                                  | OPEN — due Session 6-1 (Davin triage)                                                                                  |
+| F12  | Whole-plan duration estimate                                                         | OPEN — revisit after F1–F5                                                                                             |
+| F13  | Observability/tracing backend                                                        | OPEN — due by first Phase 4 cutover                                                                                    |
+| F14  | Tier-update: outbox vs direct call                                                   | OPEN — due Session 4A-8                                                                                                |
+| F15  | Redis topology/namespacing                                                           | RESOLVED — Session 4A-1 (Davin)                                                                                        |
+| F16  | Public URL scheme + /v1 versioning                                                   | RESOLVED — Session 4A-1 (Davin)                                                                                        |
+| F17  | Staging data strategy                                                                | RESOLVED — Session 0-5 (Davin)                                                                                         |
+| F18  | RPO/RTO targets                                                                      | RESOLVED — Session 1-1 (RPO gap: automated-backup cadence unverified, dashboard-only)                                  |
+| F19  | Prisma 6.19.2→7.8.0 breaking-change audit                                            | RESOLVED — Session 2-1                                                                                                 |
+| F20  | Production migration history unbaselined                                             | RESOLVED — Session 2-3 (drop_watchlists stripped-and-orphaned per Davin; other 5 baselined; FK audit applied)          |
+| F21  | 24h Account-Deletion GDPR gap                                                        | OPEN — found Session 2-3, requires Davin's product decision (hard-delete vs anonymize), scheduled for a future session |
+| F22  | lib/affiliate/constants.ts breaks `npm run build` (pre-existing, likely live)        | RESOLVED — Session 2-4 (same-session follow-up, Davin's explicit go-ahead)                                             |
+| F35  | money-service crons Slice 1 shadow-run mechanism, given CC-A/F34 not yet built       | RESOLVED — Session 4A-2 (Davin)                                                                                        |
+| F44  | Read-API (Slice 3) shadow-run mechanism, given CC-A/F34 still not built              | RESOLVED — Session 4A-7a (Davin)                                                                                       |
+| F45  | Browser → money-service transport, given NextAuth's cookies are `httpOnly`           | RESOLVED — Session 4A-7a (Davin) · auth-semantics decision, EXECUTOR-PROTOCOL §7                                       |
+| F46  | Schema-vs-transport failure classification at the first authenticated read           | RESOLVED — 2026-07-25 (Davin, pre-registered ahead of Session 4A-7a)                                                   |
+| F36  | Wise integration model: Business + personal token vs Platform Enterprise partnership | RESOLVED — Session 4A-W1 (Davin): Model A — Business + personal token                                                  |
+| F37  | Wise funding mode (`MANUAL`/`API`) given the account-region gate                     | RESOLVED — Session 4A-W1 (Davin): `MANUAL`, Thailand is not on Wise's API-funding allowlist                            |
+| F38  | Wise fee bearer + quote amount direction (`sourceAmount` vs `targetAmount`)          | OPEN — due Session 4A-W2 (Davin, commercial)                                                                           |
+| F39  | Wise recipient-details collection surface (affiliate self-service vs admin-entered)  | OPEN — due Session 4A-W3 (Davin, product)                                                                              |
+| F40  | Wise webhook subscription level (profile vs application) — dependent on F36          | OPEN — due Session 4A-W5 (technical, follows F36)                                                                      |
+| F41  | Wise recipient PII retention/deletion; interacts with F21                            | OPEN — due Session 4A-W3 (Davin)                                                                                       |
+| F42  | RiseWorks archival depth (archive vs delete)                                         | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                       |
 
-> **Note on numbering.** F36–F43 (Part 19.5 / Wise) are registered at Session **4A-W1** — their
-> paste-ready rows live in
-> `replace-rise-with-wise/05-artifact-amendments.md` §2a. F44–F46 are registered here ahead of
-> Session 4A-7a because that session needs them at CONFIRM time. So this register is intentionally
-> non-contiguous (F35 → F44) until 4A-W1 runs.
+> **Note on numbering (updated 4A-W1, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
+> Session **4A-W1**, closing the register's F35→F44 gap. **F43** is deliberately not registered yet
+> — the order's own scope defers it to Session **4A-W4** (it needs the `4A-W4` audit findings to be
+> meaningful). F44–F46 were registered ahead of Session 4A-7a because that session needed them at
+> CONFIRM time.
 >
 > ⚠️ **Flags are `F<n>`; CLAUDE.md "Waiting on" items are `#<n>`.** They are different sequences and
 > they overlap numerically — `F37` (Wise funding mode) and `#37` (the revoked RiseWorks-reply
@@ -1314,3 +1321,74 @@ successfully started`, no errors; `railway variables --kv` confirms
   the still-open Slice 1/Slice 2 monitoring caveats.
 - Approved by: Davin (live, 2026-07-26 — both the fix-vs-session-swap call and the cutover
   checklist execution itself, per this order's own required per-group approval).
+
+## F42 — RiseWorks archival depth: archive, never delete
+
+- Status: RESOLVED
+- Session: 4A-W1 (decided ahead of it, in the Advisor consultation) · Date: 2026-07-25
+- Decision: RiseWorks is **deactivated, not removed**. No source file, test, Prisma model, enum
+  value, database row, admin page or document is deleted. "Inactive" is implemented as five
+  independent kill-switches (module unregistered from `AppModule`; provider factory gated behind
+  `ALLOW_ARCHIVED_PROVIDERS`; `DISBURSEMENT_PROVIDER=WISE`; no inbound provider traffic;
+  eligibility filter branched). Restore path documented and dry-run-verified at 4A-W8.
+- Evidence: Davin, live, 2026-07-25 — "I want I keep Riseworks but make it inactive (achieve) but
+  could be restored when needed." Mechanics:
+  `docs/migration-orders/replace-rise-with-wise/03-riseworks-archive-and-restore-runbook.md`.
+  Material context found while designing: `RisePaymentProvider` was **never completed** —
+  `lib/disbursement/providers/rise/rise-provider.ts` throws "coming in Part 19B" from
+  `sendPayment`/`sendBatchPayment`/`getPaymentStatus`/`getPayeeInfo`, `siwe-auth.ts` is a
+  placeholder, and `provider-factory.ts` already throws for `'RISE'` with
+  `isProviderAvailable('RISE') === false`. **RiseWorks has never moved money in production**, so
+  archiving removes a capability that was never live — and restoring the archive is _not_ the same
+  as being able to pay via Rise (that would be new build work).
+- Approved by: Davin
+
+## F37 — Wise funding mode: MANUAL (region-gated)
+
+- Status: RESOLVED
+- Session: 4A-W1 · Date: 2026-07-26
+- Decision: `WISE_FUNDING_MODE=MANUAL`. Money cannot leave the Wise balance under program
+  control. money-service drafts a batch group, completes it, surfaces Wise's `payInDetails`, and a
+  human funds it; funding is then recorded via `POST /v1/wise/batches/{id}/mark-funded` (or
+  inferred, best-effort, from a `balances#update` event). `fundBatchFromBalance` throws
+  `CapabilityUnavailableError` in this mode. The `API` mode is designed and documented but not
+  built in Phase 1.
+- Evidence: Wise documents that personal API tokens cannot fund transfers or read balance
+  statements "except for accounts based in the US, Canada, Australia, New Zealand, Singapore, and
+  Malaysia" (<https://docs.wise.com/guides/developer/auth-and-security/personal-api-token>,
+  <https://docs.wise.com/guides/product/send-money/use-cases/payouts-smbs>). Davin re-confirmed
+  live at this session's CONFIRM (2026-07-26) that the account region is still **Thailand**.
+  `POST /v3/profiles/{id}/batch-payments/{groupId}/payments` is additionally SCA-protected for
+  UK/EEA profiles (<https://docs.wise.com/api-reference/batch-group/batchgroupfund>).
+- Approved by: Davin
+
+## F36 — Wise integration model: Model A (Business + personal API token)
+
+- Status: RESOLVED
+- Session: 4A-W1 · Date: 2026-07-26
+- Decision: **Model A — Wise Business account + personal API token** (self-serve; static Bearer
+  token). Davin's 2026-07-25 position via the Advisor consultation was "not sure yet — design for
+  both"; asked again live at this session's execution, Davin chose Model A explicitly. Consequence:
+  funding stays `MANUAL` under the Thailand regional gate regardless (Model A cannot fund via API
+  outside the US/CA/AU/NZ/SG/MY allowlist) — F36 and F37 independently both land on the same
+  practical outcome (a human funds every payout cycle), but F36 additionally fixes the webhook
+  subscription level as **profile-level** (`POST /v1/profiles/{profileId}/subscriptions`, not
+  application-level) for F40 to resolve against, and rules out the OAuth/SCA client-credentials
+  path Model B would have required. No Wise Platform Enterprise partnership is being pursued.
+- Evidence: Davin, live, 2026-07-26 (this session) — selected "Model A — Business + personal token"
+  when re-presented with the Model A/B table from `01-…architecture-design.md` §2.
+- Approved by: Davin
+
+## Session 4A-W1 — Business Payment Approval rules: confirmed absent
+
+- Status: RESOLVED (finding, not a flag)
+- Session: 4A-W1 · Date: 2026-07-26
+- Decision/finding: Davin confirmed, live, no Business Payment Approval rule is configured on the
+  Wise business account. This was the session's hard gate (Wise documents approval rules as
+  incompatible with API-created transfers — every transfer fails with "Quote cannot be accepted
+  with this request due to missing approval" until removed). Absent means no action is needed
+  before 4A-W6; this must be re-checked at 4A-W6 and 4A-W7 per the risk register
+  (`04-rise-to-wise-migration-plan.md` §5), since Wise account settings can change between now and
+  then.
+- Evidence: Davin, live, 2026-07-26.
+- Approved by: Davin

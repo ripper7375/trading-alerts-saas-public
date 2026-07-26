@@ -263,6 +263,45 @@ Phase 4 is repetitive by design. Two session _templates_ repeat per slice:
 - **Sessions 4A-4/5 — Slice 2 (RiseWorks + dLocal webhooks):** BUILD (replay tests with
   recorded signed payloads) then CUTOVER (you update provider dashboard URLs).
 - **Sessions 4A-6/7 — Slice 3 (read APIs):** BUILD then ⏸ 48h ➜ CUTOVER.
+- **Sessions 4A-W1…W8 — Part 19.5: RiseWorks → Wise disbursement** _(inserted 2026-07-25, Davin's
+  call; suffix numbering per 00-SKELETON-AND-RULES §5 — nothing renumbered)_. Governing docset:
+  `docs/migration-orders/replace-rise-with-wise/`.
+  - **4A-W1 — Contracts & decisions** (CONTRACT): resolve **F36** (integration model — resolved
+    Model A, Business + personal token) / **F37** (funding mode — resolved `MANUAL`, region-gated);
+    register F38–F41; freeze the OpenAPI spec + the Wise-state mapping table; check for Business
+    Payment Approval rules (confirmed absent). No code. Executed 2026-07-26.
+  - **4A-W2 — Additive schema** (INFRA+PORT): 5 new tables + the `WISE` enum value, authored in
+    `prisma/non-market-data/schema.prisma` and mirrored as a subset into money-service
+    (`prisma generate` only — **L1**). Nothing dropped or renamed.
+  - **4A-W3 — BUILD recipient onboarding** (PORT+UI-BUILD): Wise API client, RSA signature
+    verifier, dynamic account-requirements form. Split into W3a/W3b if > 4h.
+  - **4A-W4 — CC-C/CC-D hardening gate for the money surface** (CONTRACT + small INFRA): closes the
+    plan §13 gate _"CC-C idempotency + CC-D rate limits before the first Phase 4 write-API
+    cutover"_ — because the Wise cutover **is** that cutover in substance. Audits (does **not**
+    fix) idempotency keys on every existing money write endpoint; verifies the dLocal webhook
+    dedupe table; adds `enableShutdownHooks()` (**pre-existing defect** — `PrismaService.onModuleDestroy`
+    is dead code today); replaces the implicit global throttle on `/v1/webhooks/dlocal` with an
+    explicit generous per-route limit (**pre-existing defect** on live money traffic); writes the
+    BullMQ job-ID policy before the first queue exists; registers **F43**.
+    **F14/outbox and the Stripe/dLocal write-path fixes stay 4A-8's.**
+  - **4A-W5 — BUILD Wise webhook + reducer** (PORT): `/v1/webhooks/wise`, `X-Delivery-Id` dedupe,
+    `occurred_at` ordering, store-then-process via BullMQ, at-most-once accounting.
+    **Verification is REPLAY with real Wise-signed payloads captured from the sandbox Simulation
+    API — not a 48h shadow-run.**
+  - **4A-W6 — BUILD payout engine + funding gate** (PORT): quote/transfer/batch-group services,
+    the `isFundable` orchestrator branch, admin funding gate, reconciliation cron.
+  - **4A-W7 — CUTOVER to Wise** (VERIFY-RETIRE) ⚠️ **REAL MONEY**: subscribe production webhooks,
+    flip `DISBURSEMENT_PROVIDER` (archive switch **A3** — the flip _is_ the cutover mechanism), ONE
+    small smoke payout with Davin funding live. **No code changes in this session** — A1/A2 moved to
+    W8 per `TEMPLATE-VERIFY-RETIRE.md`'s near-zero dial.
+  - **4A-W8 — Archive RiseWorks** (VERIFY-RETIRE, **ARCHIVE not RETIRE — nothing is deleted**):
+    archive switches A1/A2, banners, flag-gated UI, schema comments, dormancy verification, restore
+    dry-run, inventories.
+  - **⚠️ CC-C/CC-D:** the requirements are **plan §13's**, written at Phase 0 and _"enforced
+    throughout Phase 4"_ — 4A-8 audits and completes them, it does not author them. `4A-W4` closes
+    the gate for the Wise scope before any money code; **4A-8 keeps its number, slot and scope**
+    (F14 outbox + Stripe/dLocal write paths) and then _verifies_ rather than rebuilds.
+  - **REVOKED:** `4A-5-RW` (RiseWorks webhook cutover) — will never run.
 - **Session 4A-8 — CC-C hardening gate:** idempotency keys on write endpoints, webhook dedupe
   tables verified/added, outbox decision (**F14**) implemented, rate limits (CC-D) on money
   routes. _Required before slice 4._
@@ -421,18 +460,24 @@ review by you → flip.
 
 ## Quick reference: where YOU are required
 
-| Session               | Your input                                               |
-| --------------------- | -------------------------------------------------------- |
-| 0-4, 0-5              | Dashboard access; F17 staging-data decision              |
-| 1-1, 1-2              | DB credentials; F18 RPO/RTO; maintenance-window approval |
-| 2-1                   | Production deploy approval (Prisma 7.8.0)                |
-| 3-1                   | F6/F7 auth strategy sign-off                             |
-| 4A-1                  | F16 URL scheme decision                                  |
-| Every CUTOVER session | Review shadow-diff → approve flag-flip                   |
-| 4A-5                  | Update webhook URLs in provider dashboards               |
-| 4A-9/10               | Explicit approval — real payments cut over               |
-| 6-1                   | Product triage of the gap matrix                         |
-| All ⏸ WAITs          | Patience — do not skip the clock                         |
+| Session                           | Your input                                                                |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| 0-4, 0-5                          | Dashboard access; F17 staging-data decision                               |
+| 1-1, 1-2                          | DB credentials; F18 RPO/RTO; maintenance-window approval                  |
+| 2-1                               | Production deploy approval (Prisma 7.8.0)                                 |
+| 3-1                               | F6/F7 auth strategy sign-off                                              |
+| 4A-1                              | F16 URL scheme decision                                                   |
+| Every CUTOVER session             | Review shadow-diff → approve flag-flip                                    |
+| 4A-5                              | Update webhook URLs in provider dashboards                                |
+| 4A-W1                             | F36/F37 decisions; Wise account access; confirm no payment-approval rules |
+| 4A-W2                             | Production Prisma migration approval                                      |
+| 4A-W3                             | F39 (who fills the recipient form) + F41 (PII retention)                  |
+| 4A-W6                             | Promote `WISE_API_TOKEN` to full access; money-path review                |
+| 4A-W7                             | **Cutover + fund the first real batch in the Wise app**                   |
+| Every payout cycle (F37 = MANUAL) | **Fund the completed batch in the Wise app** — ongoing, not one-off       |
+| 4A-9/10                           | Explicit approval — real payments cut over                                |
+| 6-1                               | Product triage of the gap matrix                                          |
+| All ⏸ WAITs                       | Patience — do not skip the clock                                          |
 
 ---
 

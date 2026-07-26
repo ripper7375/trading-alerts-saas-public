@@ -4,7 +4,7 @@
 > `00-SKELETON-AND-RULES.md` first — §4 applies with the dial at **Medium**. The deliverable is a
 > decision plus a frozen contract, not code.
 
-**Session:** 4A-W1 · **Variant:** CONTRACT · **Status:** DRAFT
+**Session:** 4A-W1 · **Variant:** CONTRACT · **Status:** CONFIRMED (2026-07-26, Executor — entry criteria re-verified live, all pass; see Deviations)
 **Generated:** 2026-07-25 (Advisor) · **Estimated time:** 2–3h
 **Phase / plan section:** Phase 4A — money-service · **Part 19.5** (new): RiseWorks → Wise
 disbursement. Inserted between 4A-7 (Slice 3 cutover) and 4A-8 (CC-C hardening gate) per Davin's
@@ -57,27 +57,32 @@ roadmap and get PRE-DRAFTed one at a time.
 
 _(verified at CONFIRM time, not assumed — `EXECUTOR-PROTOCOL.md` §1.3)_
 
-- [ ] **Session 4A-7 (Slice 3 read-APIs cutover) is CUT-OVER, or Davin has explicitly deferred it.**
+- [x] **Session 4A-7 (Slice 3 read-APIs cutover) is CUT-OVER, or Davin has explicitly deferred it.**
       Davin's sequencing decision was "Wise work after 4A-7". If 4A-7 has not run, confirm with him
-      before starting rather than assuming the deferral.
-- [ ] The docset exists and is readable: `docs/migration-orders/replace-rise-with-wise/`
+      before starting rather than assuming the deferral. — PASS: 4A-7b cut over both flag groups in
+      production, 2026-07-26 (this order's own CONFIRM found the criterion transitioned from
+      conditional/deferred at drafting time to genuinely true).
+- [x] The docset exists and is readable: `docs/migration-orders/replace-rise-with-wise/`
       `00-README-PART-19.5-DOCSET.md`, `01-part-19.5-wise-disbursement-architecture-design.md`,
       `02-wise-platform-api-integration-reference.md`,
       `03-riseworks-archive-and-restore-runbook.md`, `04-rise-to-wise-migration-plan.md`,
       `05-artifact-amendments.md`, `06-part-19.5-file-inventory-PLANNED.md`,
-      `07-migration-process-change-proposal.md`, `part19.5-wise-disbursement-openapi.yaml`.
-- [ ] **A Wise business account exists and Davin can log into it.**
-- [ ] **A Wise sandbox account exists** (`https://wise-sandbox.com`) with a sandbox API token
+      `07-migration-process-change-proposal.md`, `part19.5-wise-disbursement-openapi.yaml`. —
+      PASS: all 9 present and read in full this session.
+- [x] **A Wise business account exists and Davin can log into it.** — PASS (Davin, live).
+- [x] **A Wise sandbox account exists** (`https://wise-sandbox.com`) with a sandbox API token
       available for a read-only call. If it does not exist, creating it is step 0 — flag the extra
-      time rather than skipping the step.
-- [ ] **Davin is available.** F36 and F37 are his decisions and cannot be inferred.
-- [ ] The codebase claims in the design doc still hold — spot-check at least these five paths and
+      time rather than skipping the step. — PASS: `GET /v1/profiles` succeeded (see Deviations #5).
+- [x] **Davin is available.** F36 and F37 are his decisions and cannot be inferred. — PASS.
+- [x] The codebase claims in the design doc still hold — spot-check at least these five paths and
       line counts, and report any drift:
       `money-service/src/disbursement/providers/base-provider.ts` (174),
       `money-service/src/disbursement/providers/provider-factory.ts` (105),
       `money-service/src/disbursement/payment-orchestrator.service.ts` (333),
       `money-service/src/app.module.ts` (75),
-      `prisma/non-market-data/schema.prisma` (1023).
+      `prisma/non-market-data/schema.prisma` (1023). — PASS, zero drift (see Deviations #1, #7 —
+      the order file's own numbers were themselves found drifted at CONFIRM and corrected by Davin
+      before this criterion could be marked passed).
 
 **A failed entry criterion means do not start** — propose the fix or the session swap
 (`EXECUTOR-PROTOCOL.md` §1.4).
@@ -206,25 +211,25 @@ playbook and `SESSION-PROMPT-SCRIPT.md` agree about which sessions exist
 
 ## Done when
 
-- [ ] **F36** has a `DECISION-LOG.md` entry — resolved, or explicitly recorded OPEN with
-      "design for both" as the standing instruction.
-- [ ] **F37** is RESOLVED with the region evidence and the chosen `WISE_FUNDING_MODE`.
-- [ ] **F38, F39, F40, F41** appear in the flag register as OPEN with owners and due sessions.
-- [ ] **F42** is RESOLVED; the `4A-5-RW` order file is marked **REVOKED** and retained.
-- [ ] Business Payment Approval status recorded as **present** or **absent**, with Davin's decision
-      if present.
-- [ ] `GET /v1/profiles` succeeded against sandbox; `WISE_PROFILE_ID` recorded; **no token value
-      appears anywhere** in the transcript, logs or artefacts.
-- [ ] `WISE_SOURCE_CURRENCY` decided and the corresponding balance's existence confirmed.
-- [ ] The OpenAPI spec is corrected against the live codebase, route-collision-checked, and marked
+- [x] **F36** has a `DECISION-LOG.md` entry — resolved, or explicitly recorded OPEN with
+      "design for both" as the standing instruction. — RESOLVED (Model A), not left OPEN.
+- [x] **F37** is RESOLVED with the region evidence and the chosen `WISE_FUNDING_MODE`. — `MANUAL`.
+- [x] **F38, F39, F40, F41** appear in the flag register as OPEN with owners and due sessions.
+- [x] **F42** is RESOLVED; the `4A-5-RW` order file is marked **REVOKED** and retained.
+- [x] Business Payment Approval status recorded as **present** or **absent**, with Davin's decision
+      if present. — Absent.
+- [x] `GET /v1/profiles` succeeded against sandbox; `WISE_PROFILE_ID` recorded; **no token value
+      appears anywhere** in the transcript, logs or artefacts. — `29617748` (business).
+- [x] `WISE_SOURCE_CURRENCY` decided and the corresponding balance's existence confirmed. — `USD`.
+- [x] The OpenAPI spec is corrected against the live codebase, route-collision-checked, and marked
       frozen; the §5.2 state table is marked invariant.
-- [ ] All `WISE_*` variables are in the Session 0-4 secret matrix, with the read-only → full token
+- [x] All `WISE_*` variables are in the Session 0-4 secret matrix, with the read-only → full token
       promotion plan written down.
-- [ ] The THB sandbox limitation is recorded in Deviations and carried into the W2 PRE-DRAFT.
-- [ ] CLAUDE.md, DECISION-LOG.md, the playbook and `SESSION-PROMPT-SCRIPT.md` all updated and
+- [x] The THB sandbox limitation is recorded in Deviations and carried into the W2 PRE-DRAFT.
+- [x] CLAUDE.md, DECISION-LOG.md, the playbook and `SESSION-PROMPT-SCRIPT.md` all updated and
       mutually consistent.
-- [ ] `4a-w2-…migration-order.md` exists at status `PRE-DRAFT`.
-- [ ] **Nothing was built, migrated, deployed or paid.** `git diff --stat` shows changes to
+- [x] `4a-w2-…migration-order.md` exists at status `PRE-DRAFT`.
+- [x] **Nothing was built, migrated, deployed or paid.** `git diff --stat` shows changes to
       documentation and order files only.
 
 ---
@@ -267,6 +272,51 @@ plan — `00-SKELETON-AND-RULES.md` §1.1.)_
 - The THB-not-testable-in-sandbox finding and its consequences for W3/W6/W7.
 - Any drift between the design doc's cited paths/line counts and the live codebase.
 - Any place where Wise's live documentation contradicts `02-wise-platform-api-integration-reference.md`.
+
+**Actual entries, filled during execution (2026-07-26):**
+
+1. **CONFIRM-time finding: the order file itself was mid-edit, uncommitted.** `git status`
+   showed this file modified-but-uncommitted; `git diff` against the last commit (`b5f5dbea`)
+   showed the header flipped `DRAFT → APPROVED` with no Advisor/Davin approval commit trail,
+   and — independently — all five entry-criteria line-count numbers shifted by exactly `+1`
+   away from both the committed version and the live codebase (174→175, 105→106, 333→334,
+   75→76, 1023→1024), plus a sixth non-entry-criterion number in the Next-session handoff
+   (`transaction.service.ts` 310→311). This matches `LESSONS-LEARNED.md` L11's pattern
+   (self-contradicting/uncommitted order status, 4 prior recurrences) — stopped and reported
+   to Davin rather than trusting or silently correcting. Davin confirmed live: the
+   `DRAFT→APPROVED` edit was his own intentional approval; he separately restored all five
+   line-count numbers to the correct `wc -l` baseline before saying go. Re-verified live
+   post-fix: `git diff` showed only the Status field changed, all five numbers matched `wc -l`
+   exactly. No new LESSONS-LEARNED entry — this is L11's existing pattern, not a new one.
+2. **Business Payment Approval rules: absent.** Davin confirmed live, no rule configured on
+   the Wise business account. No action needed before 4A-W6; must be re-checked at 4A-W6 and
+   4A-W7 per the risk register (`04-…plan.md` §5), since account settings can change.
+3. **F36 resolved to Model A**, not left OPEN as "design for both." Davin's 2026-07-25
+   position (recorded in `00-README-…md` §3) was undecided; asked again live this session, he
+   chose **Model A — Business + personal API token** explicitly. This does not change F37's
+   outcome (Thailand's regional gate forces `MANUAL` funding under either model on a
+   non-allowlisted account), but it does fix F40's webhook subscription level as
+   **profile-level** and rules out pursuing a Wise Platform Enterprise partnership.
+4. **F37 resolved: `MANUAL`.** Davin re-confirmed live the account region is still Thailand.
+5. **Sandbox identity bootstrapped without any token entering this session.** Per this
+   order's own "no token values, anywhere" rule, Davin ran `GET https://api.wise-sandbox.com/v1/profiles`
+   himself outside this chat and pasted back only the response body. Business profile:
+   `id: 29617748`, `type: business` (a sibling personal profile `29617747` also exists on the
+   same sandbox account — not the one recorded as `WISE_PROFILE_ID`).
+6. **`WISE_SOURCE_CURRENCY` = `USD`**, balance confirmed by Davin to exist on the account.
+7. **No drift found** between the design doc's cited paths/line counts and the live codebase
+   once the order file's own numbers were corrected back to baseline (see item 1) — all five
+   entry-criterion paths exist, all five line counts match exactly (174/105/333/75/1023).
+8. **No Wise live-documentation contradiction found** — `02-…integration-reference.md` was
+   read in full; nothing in it was checked against Wise's live docs this session beyond what
+   the reference file itself already cites with source URLs (no new endpoint was called
+   except the read-only `GET /v1/profiles` in item 5).
+9. **THB cannot be tested end-to-end in sandbox** (Wise's sandbox is UK-region, stable only
+   for GBP/USD/EUR — `02-…md` §10). Consequences: `4A-W3` must fetch the real THB
+   account-requirements schema from **production** (read-only, no money); `4A-W6`'s E2E runs
+   on a sandbox-supported currency pair (GBP/USD/EUR); `4A-W7`'s single smoke payout is the
+   first real proof of the THB route. Carried into the `4A-W2` PRE-DRAFT below and into
+   CLAUDE.md Waiting-on #44.
 
 ---
 

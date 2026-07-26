@@ -14,7 +14,14 @@ info:
     without an explicit Deviation.
 
     ## Status
-    DRAFT — frozen as contract law at session 4A-W1, implemented across 4A-W3 … 4A-W6.
+    CONTRACT (frozen at 4A-W1) — implemented across 4A-W3 … 4A-W6. Verified 2026-07-26 against
+    the live money-service tree: guard names (`JwtAuthGuard`, `AdminGuard`, `AffiliateGuard`),
+    the global `/v1` prefix excluding `health`/`health-auth` (`main.ts`, 51 lines), and a
+    route-collision check against every registered controller (`admin/affiliates/reports`,
+    `affiliate/dashboard`, `admin/affiliates`, `admin/analytics`, `webhooks/riseworks`,
+    `webhooks/dlocal`, `cron-trigger`, `health`) — zero drift, zero collisions with the
+    `/webhooks/wise`, `/wise/recipients*`, `/wise/batches*`, `/wise/funding-queue`, `/wise/health`,
+    `/wise/reconcile` paths this spec declares.
 
     ## Base path and versioning
     F16 resolved the URL scheme as `<money.domain>/v1`. money-service sets a global `/v1` prefix

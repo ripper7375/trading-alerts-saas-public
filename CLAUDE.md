@@ -24,7 +24,58 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-7b CLOSED, executed as VERIFY-RETIRE — money-service Slice 3
+- **Current:** Session 4A-W1 CLOSED, executed as CONTRACT — Part 19.5 (Wise) contracts &
+  decisions, no code, no schema, no money moved — 2026-07-26.
+  **CONFIRM found the order file itself mid-edit:** `git status` showed
+  `4a-w1-wise-contracts-and-decisions.migration-order.md` as modified-but-uncommitted;
+  `git diff` against the last commit revealed the header had been flipped `DRAFT → APPROVED`
+  with no Advisor/Davin approval commit trail, and — independently — all five of the order's
+  own cited line-count entry-criteria numbers had each shifted by exactly `+1` away from both
+  the committed version and the live codebase (`base-provider.ts` 174→175,
+  `provider-factory.ts` 105→106, `payment-orchestrator.service.ts` 333→334, `app.module.ts`
+  75→76, `non-market-data/schema.prisma` 1023→1024 — plus a sixth, non-entry-criterion number
+  in the handoff section, `transaction.service.ts` 310→311). This is the same shape as
+  `LESSONS-LEARNED.md` L11's four prior recurrences (self-contradicting/uncommitted order
+  status) — stopped and reported to Davin rather than trusting or silently correcting either
+  field. Davin confirmed live: the `DRAFT→APPROVED` edit was his own intentional approval, and
+  he separately restored all five line-count numbers to the correct `wc -l` baseline before
+  saying go. Re-verified live: paths exist, line counts hold exactly (174/105/333/75/1023),
+  zero drift against the design doc. Order then marked CONFIRMED and executed.
+  **Steps executed:** read the full docset (`00`→`07`, `01`, `02`, `04` in full per the
+  order's own reading order; `03`/`05`/`06` read in full rather than skimmed, since `05`'s
+  paste-ready blocks were needed verbatim and `02`/`03`/`06` fed the OpenAPI freeze/secret
+  matrix directly). Business Payment Approval rules: **confirmed absent** on the Wise business
+  account (Davin, live) — no action needed before 4A-W6. **F36 resolved: Model A** (Business +
+  personal API token) — Davin's 2026-07-25 "design for both" superseded by an explicit live
+  choice this session; funding stays `MANUAL` regardless (Thailand region gate), and F36 also
+  fixes the webhook subscription level as profile-level for F40. **F37 resolved: `MANUAL`** —
+  Thailand region re-confirmed live. Sandbox identity bootstrapped: `GET /v1/profiles`
+  (Davin ran it himself, response body shared back, token never entered this session) →
+  business `WISE_PROFILE_ID` = `29617748` (type `business`; a sibling personal profile
+  `29617747` also exists and was **not** recorded as the business ID). `WISE_SOURCE_CURRENCY`
+  = `USD`, balance confirmed to exist on the account (Davin). F38–F41 registered OPEN in
+  `DECISION-LOG.md`'s flag register with owners/due sessions (F43 deliberately **not**
+  registered — stays deferred to 4A-W4 per the order's own scope). F42 recorded RESOLVED
+  (RiseWorks archive-not-delete) with the full entry from the docset template.
+  `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` marked **REVOKED**
+  (file retained). `part19.5-wise-disbursement-openapi.yaml` reviewed against live
+  money-service code — guard names (`JwtAuthGuard`/`AdminGuard`/`AffiliateGuard`), the global
+  `/v1` prefix excluding `health`/`health-auth` (`main.ts`, 51 lines), and a route-collision
+  check against all 8 registered controllers: zero drift, zero collisions — `info.description`
+  marked `Status: CONTRACT (frozen at 4A-W1)`. The §5.2 Wise-state mapping table in
+  `01-…architecture-design.md` marked invariant. `docs/secret-matrix.md` extended with all
+  `WISE_*` variables and the token promotion plan (read-only 4A-W1/W3/W5, full access only from
+  4A-W6). THB-not-testable-in-sandbox limitation recorded in this order's Deviations and
+  carried into the `4A-W2` PRE-DRAFT.
+  **Artifacts updated:** `4a-w1-wise-contracts-and-decisions.migration-order.md` (Status →
+  CONFIRMED, Deviations filled), `DECISION-LOG.md` (flag-register rows F36–F42 + full
+  resolution entries for F36/F37/F42 + the payment-approval finding),
+  `4a-5-rw-…migration-order.md` (REVOKED), `part19.5-wise-disbursement-openapi.yaml` (frozen),
+  `01-…architecture-design.md` (§5.2 invariant marker), `docs/secret-matrix.md` (Wise section),
+  `monolith-to-microservices-migration-session-playbook.md` (Part 19.5 session block + quick-
+  reference rows), `SESSION-PROMPT-SCRIPT.md` (4A-W1…W8 rows), this file.
+  `4a-w2-wise-additive-schema.migration-order.md` PRE-DRAFTed (INFRA+PORT).
+- \_(superseded-by-above, retained for context) Session 4A-7b CLOSED, executed as VERIFY-RETIRE — money-service Slice 3
   read-API CUTOVER, both flag groups flipped ON in production — 2026-07-26.
   **CONFIRM found entry criterion #2 FAILED, not just unverified:** value-blind
   `vercel env ls` (all environments) showed `MONEY_SERVICE_URL`,
@@ -167,17 +218,26 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-7b-money-service-read-apis-cutover.migration-order.md`
-  (CONFIRMED and executed by Executor 2026-07-26). Predecessors
-  `4a-7-money-service-read-apis-cutover.migration-order.md` and
-  `4a-7a-money-service-frontend-transport.migration-order.md` stay SUPERSEDED (files
-  retained as audit trail). `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md`
-  unchanged, still PRE-DRAFT, gated on RiseWorks's reply.
-- **Order status (4A-7b):** CUT-OVER — both `MIGRATE_READ_APIS_MONEY_AFFILIATE` and
+  `docs/migration-orders/4a-w1-wise-contracts-and-decisions.migration-order.md` (CONFIRMED
+  and executed by Executor 2026-07-26). `docs/migration-orders/4a-w2-wise-additive-schema.migration-order.md`
+  PRE-DRAFTed at this close, status `PRE-DRAFT`, requires Davin present (production schema
+  change). Predecessor money-service order
+  `4a-7b-money-service-read-apis-cutover.migration-order.md` stays CUT-OVER/closed (see
+  historical block below), superseding `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit
+  trail). `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` now
+  **REVOKED** (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
+- **Order status (4A-W1):** all-green — no code written, no schema changed, no money
+  touched, `git diff --stat` shows documentation/order-file changes only. F36/F37 RESOLVED,
+  F38–F41 registered OPEN, F42 RESOLVED, Business Payment Approval confirmed absent,
+  `WISE_PROFILE_ID` (sandbox business) captured, OpenAPI + state table frozen. Standing note:
+  `DISBURSEMENT_PROVIDER` stays `MOCK` in production until `4A-W7` cuts over — **no real
+  affiliate payout goes out through money-service before then; any order that would create a
+  real payment batch before 4A-W7 is out of order, stop and ask Davin.**
+- **Order status (4A-7b, historical):** CUT-OVER — both `MIGRATE_READ_APIS_MONEY_AFFILIATE` and
   `MIGRATE_READ_APIS_MONEY_ADMIN` are `true` in Vercel production, redeployed and
-  smoke-tested clean (see Current above for the CONFIRM-time gap found/fixed and the
-  monitoring caveat carried to Waiting-on #40). CC-F freeze on the monolith's own
-  affiliate/admin route + `lib/` logic stays until a future RETIRE session.
+  smoke-tested clean (see the 4A-7b historical block below for the CONFIRM-time gap
+  found/fixed and the monitoring caveat carried to Waiting-on #40). CC-F freeze on the
+  monolith's own affiliate/admin route + `lib/` logic stays until a future RETIRE session.
 - **Order status (4A-7a, historical):** BUILT, zero traffic cut over — flags default
   OFF in every environment at the time. **What shipped:** transport module
   (`lib/money-service/client.ts`, `routes.ts`, `flags.ts`), flag wiring into all 12
@@ -210,11 +270,12 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   unchanged/unverified this session. **(31, RESOLVED Session 4A-5)** Session 4A-5's real
   signed-payload replay requirement — done: real dLocal webhook traffic verified against
   the fixed signature-verification code, correct `Payment`/`Subscription` writes,
-  second replay confirmed idempotent (Davin, live). **(37, NEW)** `4A-5-RW` (RiseWorks
-  webhook cutover) is PRE-DRAFT and blocked on RiseWorks actually replying with
-  webhook/API settings — including resolving the open `event`/`event_type` field-name
-  question in that order's own Entry criteria. Do not approve/execute it without that
-  information present, per its own Gate note. **(38, still OPEN, audited Session 4A-7a —
+  second replay confirmed idempotent (Davin, live). **(37, CLOSED BY REVOCATION, Session
+  4A-W1)** `4A-5-RW` (RiseWorks webhook cutover) is now **REVOKED**, not merely still
+  PRE-DRAFT — RiseWorks is being replaced by Wise (Part 19.5, F42 RESOLVED), so its blocking
+  entry criterion (RiseWorks replying with webhook/API settings) is moot. Closed by
+  revocation, not resolution — no reply from RiseWorks was ever received or needed.
+  **(38, still OPEN, audited Session 4A-7a —
   narrowed and corrected)** dLocal's cutover flipped the dashboard URL, but the
   completion/replay-guard execution path against a live database record has still never
   been exercised by a real HTTP request in production. 4A-7a walked every Railway
@@ -299,28 +360,38 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   explicit steps). Same open-monitoring-caveat class as #36 (resolved) and #38 (still
   open) — spot-check Railway money-service logs + Vercel function logs the next time a
   real affiliate or admin actually loads their dashboard, before calling Slice 3 fully
-  stable.
-- **Next session:** Davin's call. Slice 3 (4A-7b) is CUT-OVER; a future RETIRE session
-  can delete the monolith's now-orphaned `app/api/affiliate/dashboard/*`,
-  `app/api/admin/{affiliates,analytics}/*` routes and their `lib/` logic once Davin
-  agrees Slice 3 has been stable long enough (see that order's own Next-session-handoff
-  note) — not yet scheduled. `4A-5-RW` (RiseWorks) stays PRE-DRAFT, gated on RiseWorks's
-  reply (Waiting-on #37). `Session 6-1` (Phase 6 Gap Matrix,
-  `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was PRE-DRAFTed at
-  5-4's close, a separate track — Davin to decide ordering against Slice 4 (4A-8) and
-  the Slice-3-RETIRE session. **`4a-w1-wise-contracts-and-decisions.migration-order.md`
-  (still `Status: DRAFT`, unchanged this session) re-confirmed still valid at 4A-7b's
-  close:** its entry criterion "4A-7 (Slice 3) is CUT-OVER, or Davin has explicitly
-  deferred it" is now genuinely TRUE (it was conditional/deferred when 4A-W1 was
-  drafted 2026-07-25) — unblocked, not just still-acceptable. Its 5 cited codebase
-  line-counts (`base-provider.ts` 174, `provider-factory.ts` 105,
-  `payment-orchestrator.service.ts` 333, `app.module.ts` 75,
-  `non-market-data/schema.prisma` 1023) spot-checked live this session: zero drift, all
-  exact matches. The Wise docset (`docs/migration-orders/replace-rise-with-wise/`, files
-  `00`–`07` + the OpenAPI spec) all present and readable. Remaining entry criteria
-  (Wise business/sandbox account access, Davin's live availability for F36/F37) are
-  Davin-side and can only be checked at that session's own CONFIRM. Still requires the
-  Advisor to promote DRAFT → APPROVED before it can run — this session did not do that.
+  stable. **(41, NEW)** Part 19.5 (Wise) replaces RiseWorks as the disbursement provider —
+  `docs/migration-orders/replace-rise-with-wise/` is the governing docset (`00`–`07` + the
+  OpenAPI spec). Sessions `4A-W1…4A-W8` are inserted between 4A-7 and 4A-8 (Davin,
+  2026-07-25); `4A-W1` executed 2026-07-26. **(42, NEW — commercial, shapes everything
+  downstream)** The Wise business account is registered in **Thailand**, not on Wise's
+  API-funding allowlist (US, CA, AU, NZ, SG, MY) for personal API tokens, and F36 resolved to
+  **Model A** (personal token, not a Platform partnership) — so **every payout cycle needs
+  one manual funding action by Davin in the Wise app**, indefinitely, unless F36 is revisited.
+  The architecture handles this (funding is a batch _state_, not a method call) and a
+  funding-SLA alarm (F43, registered at 4A-W4) prevents silent stalls. **(43, NEW)**
+  `WISE_API_TOKEN` is a money-moving secret. Plan: **read-only** token for 4A-W1/W3/W5,
+  promoted to **full access** only at 4A-W6. Verify presence **value-blind** — never
+  `railway variables --kv` (L17). This session's own sandbox `GET /v1/profiles` call was run
+  by Davin outside this chat; only the response body (profile IDs `29617747`
+  personal/`29617748` business, types) was shared back — no token value entered this
+  transcript. **(44, NEW)** THB cannot be exercised end-to-end in Wise's sandbox (UK-region,
+  stable only for GBP/USD/EUR) — recorded in `4a-w1-…`'s Deviations and carried into the
+  `4A-W2` PRE-DRAFT. Consequence: `4A-W3` must fetch the real THB account-requirements schema
+  from **production** (read-only, no money); `4A-W6`'s E2E runs on a sandbox-supported
+  currency pair; `4A-W7`'s single smoke payout is the first real proof of the THB route.
+- **Next session:** Davin's call, per `4a-w1-…`'s own Next-session-handoff note.
+  `4a-w2-wise-additive-schema.migration-order.md` (Part 19.5's additive Prisma migration — 5
+  new tables + the `WISE` enum value) is PRE-DRAFTed at status `PRE-DRAFT` — **requires Davin
+  present** (production schema change, `EXECUTOR-PROTOCOL.md` §7) and must run from the
+  monolith only, never `db push`/`migrate deploy` from money-service (L1). Separately: a
+  future RETIRE session can delete the monolith's now-orphaned
+  `app/api/affiliate/dashboard/*`, `app/api/admin/{affiliates,analytics}/*` routes and their
+  `lib/` logic once Davin agrees Slice 3 (4A-7b) has been stable long enough — not yet
+  scheduled. `4A-5-RW` (RiseWorks) is now REVOKED (Waiting-on #37), not pending. `Session 6-1`
+  (Phase 6 Gap Matrix, `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was
+  PRE-DRAFTed at 5-4's close, a separate track — Davin to decide ordering against Slice 4
+  (4A-8), the Slice-3-RETIRE session, and the now-active `4A-W*` series.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -368,6 +439,16 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   isn't ready: `CRON_ENABLED` gate + manual-trigger verification, not a literal parallel
   staging run; 4A-3 flipped the gate and emptied `vercel.json`'s crons, Slice 1 is now
   CUT-OVER (monitoring caveat, Waiting-on #36) ·
+  **F36 fully RESOLVED (Session 4A-W1, Davin)** — Wise integration Model A (Business +
+  personal API token); funding stays `MANUAL` regardless (Thailand region gate) ·
+  **F37 fully RESOLVED (Session 4A-W1, Davin)** — `WISE_FUNDING_MODE=MANUAL`, Thailand not on
+  Wise's API-funding allowlist · **F38 OPEN** (Wise fee bearer + quote amount direction — due
+  4A-W2, Davin, commercial) · **F39 OPEN** (Wise recipient-details collection surface —
+  affiliate self-service vs admin-entered — due 4A-W3, Davin, product) · **F40 OPEN** (Wise
+  webhook subscription level: profile vs application — follows F36, due 4A-W5) · **F41 OPEN**
+  (Wise recipient PII retention/deletion; interacts with F21 — due 4A-W3, Davin) ·
+  **F42 fully RESOLVED (2026-07-25, Davin; recorded 4A-W1)** — RiseWorks archived, not
+  deleted: dormant in repo AND database, restorable per `replace-rise-with-wise/03-…` ·
   F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

@@ -24,7 +24,12 @@
 > is a repeat of the exact gap Session 4A-6/4A-3 already flagged elsewhere in this repo
 > (status claims outrunning verified evidence) — don't reproduce it here.
 
-**Session:** 4A-5-RW · **Variant:** VERIFY-RETIRE · **Status:** PRE-DRAFT
+**Session:** 4A-5-RW · **Variant:** VERIFY-RETIRE · **Status:** REVOKED (2026-07-26, Session
+4A-W1 — RiseWorks is being replaced by Wise per Part 19.5, Davin's decision 2026-07-25; F42
+RESOLVED. This cutover will never run. Waiting-on #37 (RiseWorks replying with webhook/API
+settings) is closed by revocation, not resolution — moot now that RiseWorks stays archived and
+non-live. File retained as audit trail per `EXECUTOR-PROTOCOL.md` §3 — no content below this line
+was executed or is still applicable.)
 **Generated:** 2026-07-24 (split from 4A-5) · **Estimated time:** <1h (if entry criteria hold)
 **Phase / plan section:** Phase 4A — money-service, blueprint §5.5 Slice 2 (of 5), CUTOVER half
 **Target service:** money-service / RiseWorks provider dashboard only
@@ -61,7 +66,7 @@ of Slice 2, opened once Riseworks actually sends webhook/API settings back.
       event confirms the field-name mismatch, that is a genuine bug, not a cutover
       task — per this variant's own rule below, STOP and open a BUILD session to fix
       `riseworks-webhook.controller.ts`'s parsing (`webhookData.event ||
-    'unknown'`) and the processor's `switch (eventType)` before any cutover
+  'unknown'`) and the processor's `switch (eventType)` before any cutover
       proceeds. Do not patch it inline here.
 - [ ] Confirm which webhook spec version Riseworks is actually giving you (v1 vs v2 —
       both are referenced in their docs) and get the current event schema + signature
