@@ -203,7 +203,11 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   table. The F38 case is new: ground truth itself can be split across documents that disagree with
   each other by DATE, not just an order paraphrasing one document imperfectly — the more recently
   dated source (here, `DECISION-LOG.md`) wins, but only re-reading BOTH and checking dates catches
-  it.
+  it. A sixth surfaced at session close, at Davin's explicit request: design §10's own testing
+  strategy named an unhappy-path scenario (`bounced_back` → `funds_refunded`, recipient →
+  `INVALID`) for this exact session that neither the order's File 8 test list nor its Done-when
+  carried forward — building the test against it late also surfaced that the "recipient →
+  `INVALID`" half was never actually implemented in code at all (see this order's own Deviations).
 
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 

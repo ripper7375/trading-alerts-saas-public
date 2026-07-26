@@ -90,7 +90,7 @@ providers/`, `crons/` vs. `wise/services/`) diverge from design §8's suggested 
   payout would silently process through Mock instead of reaching Wise, with the batch still
   reporting green. Recorded as 4A-W7's own new Entry criterion 0 — **that order must not proceed
   past it.**
-  **Full verification:** `money-service` test suite 44/44 suites, 366/366 tests (was 33/33, 326/326
+  **Full verification:** `money-service` test suite 44/44 suites, 367/367 tests (was 33/33, 326/326
   at 4A-W5's close — +11 suites, +40 tests). `npm run build`/`tsc --noEmit` clean both sides.
   `base-provider.ts` verified untouched (0 line changes) via `git diff --stat` against the session's
   start commit. `DISBURSEMENT_PROVIDER` stays `MOCK` in production — this session builds the payout
@@ -668,7 +668,7 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
 - **Order status (4A-W6):** payout engine (`isFundable` branch) built and verified clean — all 8
-  files shipped plus 3 extra test files (11 total), `money-service` 44/44 suites, 366/366 tests
+  files shipped plus 3 extra test files (11 total), `money-service` 44/44 suites, 367/367 tests
   (was 33/33, 326/326 at 4A-W5's close). Monolith `tsc --noEmit` clean. F43 RESOLVED (Resend REST
   direct). Five order-text-vs-ground-truth mismatches found and corrected (SLA default,
   `FundableProvider` shape, quote direction, endpoint count, file locations — see Current above,
@@ -985,7 +985,20 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   specifically as a no-real-money safety rail, this may be accidentally desirable behavior (a
   "fixed" matcher would start marking commissions `PAID` in production under a provider that sends
   nothing) — needs a deliberate Davin/Advisor decision, not a drive-by fix inside an unrelated
-  session. Full detail on both in `4a-w6-…`'s own Deviations.
+  session. Full detail on both in `4a-w6-…`'s own Deviations. **(56, NEW)** Added at session
+  close, at Davin's explicit request: a bounce-path (unhappy) sandbox E2E test
+  (`outgoing_payment_sent → bounced_back → funds_refunded`, revert exactly once, replay-safe) —
+  design §10's own testing strategy named this scenario for W6 but neither this order's File 8
+  test list nor its Done-when did (another L27-class gap). Writing it surfaced a real, unbuilt
+  gap: design §10 also expects the recipient to move to `INVALID` on this path, but no code
+  anywhere (`wise-transfer-state.reducer.ts`, `wise-event-handlers.ts`) ever touches
+  `AffiliateWiseRecipient.status` on any transfer event — never built in 4A-W5 or 4A-W6. Needs a
+  deliberate decision (auto-invalidate after 1 failure vs. N vs. admin-alert-only) before building
+  it; not decided here. **(57, NEW)** Slice 4 overlap (design §14 point 6, its own instruction:
+  "flag this in the handoff, not at merge time") — Sessions 4A-9/10 will move
+  `app/api/disbursement/batches/[batchId]/execute` to money-service, the SAME code path 4A-W6's
+  `isFundable` branch changed the behavior of (`payment-orchestrator.service.ts`'s `executeBatch`).
+  Whichever of {4A-W7, 4A-9/10} runs second must re-read the other's Deviations first.
 - **Next session:** Davin's call, per `4a-w6-…`'s own Next-session-handoff note.
   `4a-w7-wise-cutover.migration-order.md` (REAL MONEY CUTOVER, VERIFY-RETIRE variant) is
   PRE-DRAFTed at status `PRE-DRAFT` — carries a NEW **Entry criterion 0** that must close before

@@ -191,4 +191,151 @@ describe('Wise payout sandbox E2E (mark-funded + RSA-signed reducer event)', () 
     expect(prismaMock.commission.update).not.toHaveBeenCalled();
     expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
   });
+
+  it('unhappy path: outgoing_payment_sent (PAID) -> bounced_back (no revert, alert only) -> funds_refunded (revert exactly once)', async () => {
+    prismaMock.$transaction.mockImplementation(
+      (fn: (tx: typeof prismaMock) => unknown) =>
+        Promise.resolve(fn(prismaMock))
+    );
+    prismaMock.wiseWebhookEvent.update.mockResolvedValue({} as never);
+    prismaMock.wiseTransfer.update.mockResolvedValue(wiseTransfer as never);
+    prismaMock.wiseTransfer.findUniqueOrThrow.mockResolvedValue(
+      wiseTransfer as never
+    );
+    prismaMock.disbursementTransaction.update.mockResolvedValue({
+      id: 'dtx-1',
+      commissionId: 'comm-1',
+    } as never);
+    prismaMock.disbursementTransaction.findUniqueOrThrow.mockResolvedValue({
+      id: 'dtx-1',
+      commissionId: 'comm-1',
+    } as never);
+
+    // Step 1: outgoing_payment_sent -> Commission=PAID (design section 5.2).
+    prismaMock.wiseTransfer.findUnique.mockResolvedValue(wiseTransfer as never);
+    prismaMock.wiseTransfer.updateMany.mockResolvedValue({ count: 1 } as never);
+    prismaMock.commission.update.mockResolvedValue({
+      id: 'comm-1',
+      affiliateProfileId: 'aff-1',
+      commissionAmount: 100,
+    } as never);
+
+    const sentBody = transferStateChangeBody(
+      4567890,
+      'outgoing_payment_sent',
+      '2026-07-27T01:00:00.000Z'
+    );
+    const sentSignature = signBody(sentBody, mockKeyPair.privateKey);
+    expect(
+      signatureVerifier.verifySignature(sentBody, sentSignature, 'sandbox')
+    ).toBe(true);
+    await reducer.reduceTransferEvent({
+      id: 'evt-sent',
+      payload: JSON.parse(sentBody),
+    } as never);
+
+    expect(prismaMock.commission.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'PAID' }),
+      })
+    );
+
+    // Step 2: bounced_back -- Wise says it may still deliver or go to
+    // funds_refunded. Design section 5.2: stays PAID, hasActiveIssues=true,
+    // admin alert, deliberately NOT reverted here.
+    prismaMock.commission.update.mockClear();
+    prismaMock.affiliateProfile.update.mockClear();
+    const paidTransfer = {
+      ...wiseTransfer,
+      lastEventOccurredAt: new Date('2026-07-27T01:00:00.000Z'),
+      balanceAppliedAt: new Date('2026-07-27T01:00:00.000Z'),
+    };
+    prismaMock.wiseTransfer.findUnique.mockResolvedValue(paidTransfer as never);
+
+    const bouncedBody = transferStateChangeBody(
+      4567890,
+      'bounced_back',
+      '2026-07-27T02:00:00.000Z'
+    );
+    const bouncedSignature = signBody(bouncedBody, mockKeyPair.privateKey);
+    expect(
+      signatureVerifier.verifySignature(
+        bouncedBody,
+        bouncedSignature,
+        'sandbox'
+      )
+    ).toBe(true);
+    await reducer.reduceTransferEvent({
+      id: 'evt-bounced',
+      payload: JSON.parse(bouncedBody),
+    } as never);
+
+    expect(prismaMock.commission.update).not.toHaveBeenCalled(); // left PAID
+    expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+
+    // Step 3: funds_refunded -- terminal-unhappy. Revert PAID -> APPROVED,
+    // balance reverted exactly once (balanceAppliedAt set, balanceRevertedAt
+    // still null -> guard passes).
+    const bouncedTransfer = {
+      ...paidTransfer,
+      lastEventOccurredAt: new Date('2026-07-27T02:00:00.000Z'),
+    };
+    prismaMock.wiseTransfer.findUnique.mockResolvedValue(
+      bouncedTransfer as never
+    );
+
+    const refundedBody = transferStateChangeBody(
+      4567890,
+      'funds_refunded',
+      '2026-07-27T03:00:00.000Z'
+    );
+    const refundedSignature = signBody(refundedBody, mockKeyPair.privateKey);
+    expect(
+      signatureVerifier.verifySignature(
+        refundedBody,
+        refundedSignature,
+        'sandbox'
+      )
+    ).toBe(true);
+    const refundedEvent = {
+      id: 'evt-refunded',
+      payload: JSON.parse(refundedBody),
+    } as never;
+    await reducer.reduceTransferEvent(refundedEvent);
+
+    expect(prismaMock.commission.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'comm-1' },
+        data: expect.objectContaining({ status: 'APPROVED', paidAt: null }),
+      })
+    );
+    expect(prismaMock.affiliateProfile.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          pendingCommissions: { increment: 100 },
+          paidCommissions: { decrement: 100 },
+        }),
+      })
+    );
+
+    // Step 4: replaying the SAME funds_refunded event again must not
+    // double-revert -- the guard lives on the row (balanceRevertedAt), not
+    // the handler.
+    prismaMock.commission.update.mockClear();
+    prismaMock.affiliateProfile.update.mockClear();
+    prismaMock.wiseTransfer.updateMany.mockResolvedValue({ count: 0 } as never); // already reverted
+    await reducer.reduceTransferEvent(refundedEvent);
+
+    expect(prismaMock.commission.update).not.toHaveBeenCalled();
+    expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+
+    // KNOWN GAP (flagged, not fixed -- see this order's Deviations): design
+    // section 10's own testing-strategy line for this exact scenario says
+    // "assert revert exactly once, recipient -> INVALID". No code anywhere
+    // in wise-transfer-state.reducer.ts or wise-event-handlers.ts touches
+    // AffiliateWiseRecipient.status on any transfer state change -- this
+    // was never built in 4A-W5 or 4A-W6. Asserting the REAL (gap-having)
+    // behavior here, not the design doc's aspirational one.
+    expect(prismaMock.affiliateWiseRecipient.update).not.toHaveBeenCalled();
+  });
 });

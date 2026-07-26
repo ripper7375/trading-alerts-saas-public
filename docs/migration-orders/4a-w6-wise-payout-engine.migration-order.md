@@ -180,7 +180,7 @@ Dependency order: provider capability interfaces → Wise domain services → Wi
 - [x] Fix §3.5(a) verified: Wise batch payment requests carry a **non-empty** `affiliateId`.
 - [x] `base-provider.ts` is untouched (0 line changes) — verified via `git diff --stat` against the session's start commit.
 - [x] All pre-existing orchestrator/aggregator/transaction-service tests pass unmodified — see Deviations: no such test files actually existed before this session (verified live at CONFIRM); built them this session and used them as the real parity oracle going forward.
-- [x] Full `money-service` test suite green (`npm run test`: 44/44 suites, 366/366 tests, was 33/33·326/326 at 4A-W5's close); monolith `npx tsc --noEmit` clean.
+- [x] Full `money-service` test suite green (`npm run test`: 44/44 suites, 367/367 tests, was 33/33·326/326 at 4A-W5's close); monolith `npx tsc --noEmit` clean.
 - [x] `CLAUDE.md`, `DECISION-LOG.md`, `migration-stack-analysis.md` updated.
 - [x] Session `4A-W7` order exists at status `PRE-DRAFT`.
 
@@ -218,6 +218,8 @@ _(filled DURING execution — what / why / impact.)_
 
 **Verification method downgrade (Davin, live, CONFIRM-time — same class as 4A-W5's Option 2):** the Sandbox E2E (`wise-payout.e2e.spec.ts`) uses a hand-constructed RSA-signed sandbox test payload rather than a payload captured from Wise's real Simulation API, since live write-scope access is still unresolved (Waiting-on #47). Genuinely proves the mark-funded → signature-verify → reducer → balance-move pipeline; does not prove Wise's real Simulation API produces byte-identical payloads.
 
+**Bounce-path (unhappy) sandbox E2E added at session close, at Davin's request.** Design §10's testing strategy explicitly lists this scenario for W6 ("unhappy: simulate `bounced_back` then `funds_refunded` → assert revert exactly once, recipient → `INVALID`") but neither this order's own File 8 test list nor its Done-when mentioned it — another instance of the L27 pattern (ground truth in a doc the order didn't fully carry forward). Added `wise-payout.e2e.spec.ts`'s second test: `outgoing_payment_sent` (Commission→PAID) → `bounced_back` (stays PAID, `hasActiveIssues=true`, alert logged, no revert — design §5.2) → `funds_refunded` (revert `PAID→APPROVED`, balance reverted exactly once, replay-safe). **Found a real, unbuilt gap while writing it, NOT fixed here:** design §10's own line also expects the recipient to move to `INVALID` on this path — no code anywhere in `wise-transfer-state.reducer.ts` or `wise-event-handlers.ts` ever touches `AffiliateWiseRecipient.status` on any transfer state change; this was never built in 4A-W5 or 4A-W6. The test asserts the REAL (gap-having) behavior explicitly (`affiliateWiseRecipient.update` never called) rather than the design doc's aspirational one. Needs a deliberate decision (a future session, likely 4A-W7 or a dedicated fix): should a bounce/refund automatically invalidate the recipient after one failure, after N failures, or just surface an admin alert for a human to review and invalidate manually? Not decided here — building it under time pressure without that decision would risk over-eager invalidation (a recipient can have other successful transfers).
+
 ---
 
 ## Known wrinkles / do-not-touch
@@ -238,3 +240,5 @@ _(PRE-DRAFT `4a-w7-wise-cutover.migration-order.md` at this session's close — 
 - _Flips `DISBURSEMENT_PROVIDER=WISE` in production._
 - _Executes ONE real small smoke payout to a Davin-controlled recipient._
 - _Rollback: `DISBURSEMENT_PROVIDER=MOCK` + delete production webhook subscription.)_
+
+**Slice 4 overlap (design §14 point 6, carried forward explicitly per that section's own instruction "flag this in the handoff, not at merge time"):** Sessions 4A-9/10 will move the remaining monolith write APIs to money-service, including `app/api/disbursement/batches/[batchId]/execute` — the same batch-execute code path this session's `isFundable` branch changed the behavior of (`payment-orchestrator.service.ts`'s `executeBatch`). Whichever of {4A-W7, 4A-9/10} runs second must re-read the other's Deviations before touching that path, not discover the overlap at merge time.
