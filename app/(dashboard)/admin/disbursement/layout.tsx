@@ -57,6 +57,12 @@ const disbursementNavItems: NavItem[] = [
     href: '/admin/disbursement/accounts',
   },
   {
+    id: 'recipients',
+    icon: '🏦',
+    label: 'Wise Recipients',
+    href: '/admin/disbursement/recipients',
+  },
+  {
     id: 'audit',
     icon: '📋',
     label: 'Audit Logs',
@@ -108,21 +114,21 @@ export default async function DisbursementLayout({
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Top Bar */}
-      <header className="bg-gray-800 border-b border-gray-700 px-4 sm:px-6 py-4">
+      <header className="border-b border-gray-700 bg-gray-800 px-4 py-4 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
-            <h1 className="text-lg sm:text-xl font-bold">Disbursement Admin</h1>
-            <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs px-2 py-0.5">
+            <h1 className="text-lg font-bold sm:text-xl">Disbursement Admin</h1>
+            <Badge className="bg-green-600 px-2 py-0.5 text-xs text-white hover:bg-green-600">
               RiseWorks
             </Badge>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
-            <span className="text-gray-400 text-sm hidden sm:inline">
+            <span className="hidden text-sm text-gray-400 sm:inline">
               {userName}
             </span>
             <Link
               href="/admin"
-              className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+              className="text-sm text-blue-400 transition-colors hover:text-blue-300"
             >
               ← Admin Panel
             </Link>
@@ -132,14 +138,14 @@ export default async function DisbursementLayout({
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-16 sm:w-64 bg-gray-800 min-h-[calc(100vh-65px)] p-2 sm:p-4 shrink-0">
+        <aside className="min-h-[calc(100vh-65px)] w-16 shrink-0 bg-gray-800 p-2 sm:w-64 sm:p-4">
           <nav className="space-y-1 sm:space-y-2">
             {disbursementNavItems.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-2 sm:px-4 py-3 rounded-lg',
+                  'flex items-center gap-3 rounded-lg px-2 py-3 sm:px-4',
                   'text-gray-300 hover:bg-gray-700 hover:text-white',
                   'transition-colors'
                 )}
@@ -151,15 +157,15 @@ export default async function DisbursementLayout({
           </nav>
 
           {/* Divider */}
-          <div className="border-t border-gray-700 my-4" />
+          <div className="my-4 border-t border-gray-700" />
 
           {/* System Info */}
-          <div className="hidden sm:block px-4 py-3 bg-gray-700/50 rounded-lg">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">
+          <div className="hidden rounded-lg bg-gray-700/50 px-4 py-3 sm:block">
+            <p className="mb-2 text-xs uppercase tracking-wide text-gray-400">
               Payment Provider
             </p>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
               <span className="text-sm text-gray-300">RiseWorks (USDC)</span>
             </div>
           </div>
@@ -168,7 +174,7 @@ export default async function DisbursementLayout({
           <div className="mt-4 hidden sm:block">
             <Link
               href="/dashboard"
-              className="block px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+              className="block px-4 py-2 text-sm text-gray-400 transition-colors hover:text-white"
             >
               ← Back to App
             </Link>
@@ -176,7 +182,7 @@ export default async function DisbursementLayout({
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
