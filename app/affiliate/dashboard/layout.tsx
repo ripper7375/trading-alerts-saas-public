@@ -34,6 +34,7 @@ const navLinks = [
   { href: '/affiliate/dashboard/codes', label: 'My Codes' },
   { href: '/affiliate/dashboard/commissions', label: 'Commissions' },
   { href: '/affiliate/dashboard/profile', label: 'Profile' },
+  { href: '/affiliate/settings/payout', label: 'Payout Settings' },
 ];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
