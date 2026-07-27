@@ -20,6 +20,7 @@ import { PaymentOrchestratorService } from '../disbursement/payment-orchestrator
 import { RetryHandlerService } from '../disbursement/retry-handler.service';
 import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { TransactionService } from '../disbursement/transaction.service';
+import { OutboxPublisherCron } from '../outbox/outbox-publisher.cron';
 import { OutboxService } from '../outbox/outbox.service';
 
 import { WiseStateMapper } from '../wise/services/wise-state.mapper';
@@ -54,6 +55,9 @@ import { WiseReconciliationService } from './wise-reconciliation.service';
     // Session 4A-8, Step 2 (F14) -- SubscriptionCronService's downgrade
     // path now writes an OutboxEvent atomically with the tier change.
     OutboxService,
+    // Session 4A-8, Step 3 (F14) -- gated OFF by default, see the file's
+    // own header for why (Slice 5 / 4A-11-12 owns the real consumer).
+    OutboxPublisherCron,
     // File 3/6
     TransactionLoggerService,
     TransactionService,
