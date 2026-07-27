@@ -5,7 +5,6 @@ import compression from 'compression';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
-import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   // rawBody: true (Session 4A-4, Slice 2 webhooks) — dLocal/RiseWorks HMAC
@@ -57,44 +56,6 @@ async function bootstrap() {
 
   const port = process.env['PORT'] ?? 3002;
   await app.listen(port);
-
-  try {
-    const prisma = app.get(PrismaService);
-    await prisma.affiliateWiseRecipient.upsert({
-      where: { affiliateProfileId: 'cms06bhve0002hgv2oipl7l7p' },
-      update: {
-        wiseProfileId: '19918292',
-        wiseRecipientId: '1513584827',
-        accountHolderName: 'Dhapanart Kevalee',
-        targetCurrency: 'THB',
-        recipientCountry: 'TH',
-        legalType: 'PRIVATE',
-        requirementsType: 'thailand',
-        accountTail: '3045',
-        detailsFingerprint:
-          '96fefaf751c91db1bb63582ebabf1396e5260da68f2a8a0fc19818947fe588c6',
-        status: 'ACTIVE',
-        lastValidatedAt: new Date(),
-      },
-      create: {
-        affiliateProfileId: 'cms06bhve0002hgv2oipl7l7p',
-        wiseProfileId: '19918292',
-        wiseRecipientId: '1513584827',
-        accountHolderName: 'Dhapanart Kevalee',
-        targetCurrency: 'THB',
-        recipientCountry: 'TH',
-        legalType: 'PRIVATE',
-        requirementsType: 'thailand',
-        accountTail: '3045',
-        detailsFingerprint:
-          '96fefaf751c91db1bb63582ebabf1396e5260da68f2a8a0fc19818947fe588c6',
-        status: 'ACTIVE',
-        lastValidatedAt: new Date(),
-      },
-    });
-  } catch (e) {
-    // Ignore seeding error if already present
-  }
 }
 
 bootstrap();
