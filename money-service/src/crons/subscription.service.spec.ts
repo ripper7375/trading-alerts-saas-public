@@ -10,6 +10,7 @@
  */
 import { Test } from '@nestjs/testing';
 
+import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, testFactories } from '../test-utils/prisma-mock';
 
@@ -18,13 +19,18 @@ import { SubscriptionCronService } from './subscription.service';
 describe('SubscriptionCronService', () => {
   let service: SubscriptionCronService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let outboxServiceMock: { recordInTransaction: jest.Mock };
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
+    outboxServiceMock = {
+      recordInTransaction: jest.fn().mockResolvedValue(undefined),
+    };
     const moduleRef = await Test.createTestingModule({
       providers: [
         SubscriptionCronService,
         { provide: PrismaService, useValue: prismaMock },
+        { provide: OutboxService, useValue: outboxServiceMock },
       ],
     }).compile();
     service = moduleRef.get(SubscriptionCronService);
@@ -32,6 +38,12 @@ describe('SubscriptionCronService', () => {
     prismaMock.subscription.update.mockResolvedValue({} as never);
     prismaMock.user.update.mockResolvedValue({} as never);
     prismaMock.notification.create.mockResolvedValue({} as never);
+    // downgradeExpiredSubscriptions now wraps its writes in a transaction
+    // (4A-8, F14) -- mirror the tx callback receiving the same mock (same
+    // convention as dlocal-webhook.controller.spec.ts).
+    prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+      (cb as (tx: unknown) => unknown)(prismaMock)
+    );
   });
 
   describe('checkExpiringSubscriptions', () => {
@@ -428,6 +440,65 @@ describe('SubscriptionCronService', () => {
           priority: 'HIGH',
         },
       });
+    });
+
+    it('should record a TIER_DOWNGRADED outbox event in the same transaction (4A-8, F14)', async () => {
+      const mockUser = testFactories.createUser({
+        id: 'user-outbox',
+        email: 'outbox@test.com',
+      });
+
+      const mockSubscriptions = [
+        {
+          id: 'sub-outbox',
+          userId: 'user-outbox',
+          status: 'ACTIVE',
+          dLocalPaymentId: 'dlocal-outbox',
+          planType: 'MONTHLY',
+          expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        },
+      ];
+
+      prismaMock.subscription.findMany.mockResolvedValue(
+        mockSubscriptions as never
+      );
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
+
+      await service.downgradeExpiredSubscriptions();
+
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+        prismaMock,
+        expect.objectContaining({
+          aggregateType: 'User',
+          aggregateId: 'user-outbox',
+          eventType: 'TIER_DOWNGRADED',
+        })
+      );
+    });
+
+    it('should not touch the transaction or the outbox on a dry run', async () => {
+      const mockUser = testFactories.createUser({
+        id: 'user-dry',
+        email: 'dry@test.com',
+      });
+
+      prismaMock.subscription.findMany.mockResolvedValue([
+        {
+          id: 'sub-dry',
+          userId: 'user-dry',
+          status: 'ACTIVE',
+          dLocalPaymentId: 'dlocal-dry',
+          planType: 'MONTHLY',
+          expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        },
+      ] as never);
+      prismaMock.user.findMany.mockResolvedValue([mockUser] as never);
+
+      await service.downgradeExpiredSubscriptions({ dryRun: true });
+
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
     });
 
     it('should not process active subscriptions', async () => {

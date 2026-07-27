@@ -1101,6 +1101,39 @@ model WiseWebhookSubscription {
   @@index([active])
 }
 
+enum OutboxEventStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+/// Transactional Outbox (Session 4A-8, F14): money-service's own domain
+/// table (no FK to any model here) for tier-update / billing state change
+/// events, written atomically with the domain-state change itself. Mirrored
+/// verbatim into money-service/prisma/schema.prisma (money-service is the
+/// only reader/writer; this monolith copy exists only because money-service
+/// has no migration authority of its own, L1).
+model OutboxEvent {
+  id String @id @default(cuid())
+
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+
+  status      OutboxEventStatus @default(PENDING)
+  processedAt DateTime?
+  attemptCount Int              @default(0)
+  lastError   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+  @@index([aggregateType, aggregateId])
+  @@index([createdAt])
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SYSTEM CONFIGURATION (Dynamic Settings)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

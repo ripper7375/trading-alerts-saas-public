@@ -20,6 +20,7 @@ import { PaymentOrchestratorService } from '../disbursement/payment-orchestrator
 import { RetryHandlerService } from '../disbursement/retry-handler.service';
 import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { TransactionService } from '../disbursement/transaction.service';
+import { OutboxService } from '../outbox/outbox.service';
 
 import { WiseStateMapper } from '../wise/services/wise-state.mapper';
 import { WiseTransferStateReducer } from '../wise/services/wise-transfer-state.reducer';
@@ -50,6 +51,9 @@ import { WiseReconciliationService } from './wise-reconciliation.service';
     CodeGeneratorService,
     SubscriptionCronService,
     AffiliateCronService,
+    // Session 4A-8, Step 2 (F14) -- SubscriptionCronService's downgrade
+    // path now writes an OutboxEvent atomically with the tier change.
+    OutboxService,
     // File 3/6
     TransactionLoggerService,
     TransactionService,

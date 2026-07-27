@@ -34,6 +34,7 @@ import { Test } from '@nestjs/testing';
 import type { Request, Response } from 'express';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
+import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -65,6 +66,7 @@ describe('DlocalWebhookController', () => {
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let threeDayValidatorMock: { markThreeDayPlanUsed: jest.Mock };
   let conversionProcessorMock: { processAffiliateConversion: jest.Mock };
+  let outboxServiceMock: { recordInTransaction: jest.Mock };
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -73,6 +75,9 @@ describe('DlocalWebhookController', () => {
     };
     conversionProcessorMock = {
       processAffiliateConversion: jest.fn(),
+    };
+    outboxServiceMock = {
+      recordInTransaction: jest.fn().mockResolvedValue(undefined),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -87,6 +92,7 @@ describe('DlocalWebhookController', () => {
           provide: ConversionProcessorService,
           useValue: conversionProcessorMock,
         },
+        { provide: OutboxService, useValue: outboxServiceMock },
       ],
     }).compile();
 
@@ -217,6 +223,14 @@ describe('DlocalWebhookController', () => {
       })
     );
     expect(threeDayValidatorMock.markThreeDayPlanUsed).not.toHaveBeenCalled();
+    expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+      prismaMock,
+      expect.objectContaining({
+        aggregateType: 'User',
+        aggregateId: 'user-1',
+        eventType: 'TIER_UPGRADED',
+      })
+    );
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.json).toHaveBeenCalledWith({ received: true });
   });
@@ -522,6 +536,9 @@ describe('DlocalWebhookController', () => {
       conversionProcessorMock.processAffiliateConversion
     ).not.toHaveBeenCalled();
     expect(prismaMock.notification.create).not.toHaveBeenCalled();
+    // 4A-8, F14: a replay of an already-COMPLETED payment must not emit a
+    // second outbox event for a tier change that already happened.
+    expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
   });
 
   it('should return 500 when an unexpected error is thrown', async () => {

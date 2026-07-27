@@ -11,6 +11,7 @@ import { Module } from '@nestjs/common';
 
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
+import { OutboxService } from '../outbox/outbox.service';
 
 import { DlocalWebhookController } from './dlocal-webhook.controller';
 import { ThreeDayValidatorService } from './three-day-validator.service';
@@ -21,6 +22,7 @@ import { ThreeDayValidatorService } from './three-day-validator.service';
     ThreeDayValidatorService,
     ConversionProcessorService,
     AffiliateConfigService,
+    OutboxService,
   ],
 })
 export class DlocalModule {}

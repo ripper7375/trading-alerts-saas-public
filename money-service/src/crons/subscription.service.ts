@@ -13,6 +13,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { logger } from '../common/logger.util';
+import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -66,7 +67,10 @@ export interface DowngradeExpiredOptions {
 
 @Injectable()
 export class SubscriptionCronService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outboxService: OutboxService
+  ) {}
 
   /**
    * Check for expiring dLocal subscriptions and mark them for reminders
@@ -271,27 +275,42 @@ export class SubscriptionCronService {
           }
 
           if (!dryRun) {
-            // Downgrade user to FREE tier
-            await this.prisma.user.update({
-              where: { id: subscription.userId },
-              data: { tier: 'FREE' },
-            });
+            // Same transaction as the tier write itself (4A-8, F14) -- the
+            // outbox event can never diverge from the domain-state change.
+            await this.prisma.$transaction(async (tx) => {
+              // Downgrade user to FREE tier
+              await tx.user.update({
+                where: { id: subscription.userId },
+                data: { tier: 'FREE' },
+              });
 
-            // Mark subscription as expired/canceled
-            await this.prisma.subscription.update({
-              where: { id: subscription.id },
-              data: { status: 'CANCELED' },
-            });
+              // Mark subscription as expired/canceled
+              await tx.subscription.update({
+                where: { id: subscription.id },
+                data: { status: 'CANCELED' },
+              });
 
-            // Create notification for user
-            await this.prisma.notification.create({
-              data: {
-                userId: subscription.userId,
-                type: 'SUBSCRIPTION',
-                title: 'Subscription Expired',
-                body: 'Your PRO subscription has expired. You have been downgraded to the FREE tier. Renew anytime to regain PRO access.',
-                priority: 'HIGH',
-              },
+              // Create notification for user
+              await tx.notification.create({
+                data: {
+                  userId: subscription.userId,
+                  type: 'SUBSCRIPTION',
+                  title: 'Subscription Expired',
+                  body: 'Your PRO subscription has expired. You have been downgraded to the FREE tier. Renew anytime to regain PRO access.',
+                  priority: 'HIGH',
+                },
+              });
+
+              await this.outboxService.recordInTransaction(tx, {
+                aggregateType: 'User',
+                aggregateId: subscription.userId,
+                eventType: 'TIER_DOWNGRADED',
+                payload: {
+                  tier: 'FREE',
+                  subscriptionId: subscription.id,
+                  reason: 'EXPIRED',
+                },
+              });
             });
           }
 

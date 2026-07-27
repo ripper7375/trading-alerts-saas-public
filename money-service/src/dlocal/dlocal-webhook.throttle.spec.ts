@@ -29,6 +29,7 @@ import type { Request, Response } from 'express';
 import request from 'supertest';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
+import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -68,6 +69,10 @@ class UnthrottledControlController {
     {
       provide: ConversionProcessorService,
       useValue: { processAffiliateConversion: jest.fn() },
+    },
+    {
+      provide: OutboxService,
+      useValue: { recordInTransaction: jest.fn().mockResolvedValue(undefined) },
     },
   ],
 })

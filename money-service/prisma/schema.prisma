@@ -799,3 +799,38 @@ model WiseWebhookSubscription {
   @@index([eventType])
   @@index([active])
 }
+
+enum OutboxEventStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+/// Transactional Outbox (Session 4A-8, F14): every tier-update / billing
+/// state change money-service makes gets one row here, written in the SAME
+/// Prisma transaction as the domain-state write itself (see
+/// outbox.service.ts's `recordInTransaction`) -- so the two can never
+/// diverge (a committed domain change always has a corresponding event
+/// row, and vice versa). `OutboxPublisherCron` (Step 3) is the only
+/// consumer, polling for `PENDING` rows; nothing else should read or write
+/// `status` outside that cron.
+model OutboxEvent {
+  id String @id @default(cuid())
+
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+
+  status      OutboxEventStatus @default(PENDING)
+  processedAt DateTime?
+  attemptCount Int              @default(0)
+  lastError   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+  @@index([aggregateType, aggregateId])
+  @@index([createdAt])
+}

@@ -26,6 +26,7 @@ import type { Request, Response } from 'express';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { logger } from '../common/logger.util';
+import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import {
@@ -55,7 +56,8 @@ export class DlocalWebhookController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly threeDayValidator: ThreeDayValidatorService,
-    private readonly conversionProcessor: ConversionProcessorService
+    private readonly conversionProcessor: ConversionProcessorService,
+    private readonly outboxService: OutboxService
   ) {}
 
   // Session 4A-W4 (Defect 2, plan §13 CC-D): the app-wide ThrottlerGuard
@@ -269,6 +271,20 @@ export class DlocalWebhookController {
         await tx.payment.update({
           where: { id: payment.id },
           data: { subscriptionId: subscription.id },
+        });
+      }
+
+      // 5. Outbox event for the tier change (4A-8, F14) -- same transaction
+      // as the tier write itself, so the two can never diverge. Guarded by
+      // `alreadyCompleted` (captured before this transaction started) so a
+      // webhook replay of an already-COMPLETED payment doesn't emit a
+      // second event for a tier change that already happened.
+      if (!alreadyCompleted) {
+        await this.outboxService.recordInTransaction(tx, {
+          aggregateType: 'User',
+          aggregateId: payment.userId,
+          eventType: 'TIER_UPGRADED',
+          payload: { tier: 'PRO', paymentId: payment.id, provider: 'DLOCAL' },
         });
       }
     });
