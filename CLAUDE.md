@@ -26,7 +26,95 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W7 CONFIRMED & executed (Wise cutover live, SCB THB payout funded & pending SWIFT settlement); Session 4A-W8 (`4a-w8-riseworks-archival.migration-order.md`) APPROVED — 2026-07-27.
+- **Current:** Session 4A-8 (Slice 4 Security & Idempotency Hardening Gate) CONFIRMED and executed
+  — 2026-07-27, run concurrently with the still-open Wise track below (Davin's explicit choice:
+  the DRAFT was generated and approved the same day 4A-W7 was still mid-close, jumping ahead of
+  `4A-W8` in the originally-intended `4A-7 → 4A-W1…W8 → 4A-8` sequence — not a violation, a
+  deliberate reordering; 4A-W8 (RiseWorks archival) is still pending, unaffected by this session).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `DRAFT → APPROVED` with all 4 entry-criteria checkboxes flipped
+  `[ ] → [x]`, no Advisor-DRAFT/Davin-approval commit trail) — asked Davin directly rather than
+  trusting or silently correcting it; confirmed live as his own authentic Chat-UI edit, committed
+  together with the CONFIRMED transition (`c7871fe3`).
+  **CONFIRM also found the DRAFT's own Step 1 targeting money-service NestJS controllers that
+  don't exist** (`money-service/src/stripe/stripe-checkout.controller.ts`,
+  `.../dlocal/dlocal-payment.controller.ts`) — `migration-cutover-table.md`'s own Slice 4 row
+  confirms Stripe checkout / dLocal create / admin code-dist / batch-execute all stay on
+  **monolith** Next.js routes until 4A-9; money-service has no write endpoints of its own yet.
+  The real audited gaps (4A-W4's own citations) are `app/api/checkout/route.ts`,
+  `app/api/payments/dlocal/create/route.ts`, `app/api/admin/affiliates/[id]/distribute-codes/route.ts`.
+  Reported in full before executing; Davin + the Advisor re-scoped Step 1 live to the real files
+  and confirmed `POST /api/subscription/cancel` correctly stays excluded (4A-W4: idempotent by
+  construction). Order re-CONFIRMED against the corrected file, executed.
+  **Step 1 built:** `lib/idempotency/idempotency-guard.ts` (new, monolith-side — Redis
+  SET-NX-EX lock, fail-open on Redis errors, mirrors `lib/rate-limit.ts`'s own convention) used by
+  `app/api/payments/dlocal/create/route.ts` (also fixed `providerPaymentId`'s `''` placeholder to
+  a random UUID — that column is `@unique` **table-wide, not per-user**, so a bare `''` risked a
+  genuine cross-user insert collision; found while touching this exact line) and
+  `lib/admin/code-distribution.ts`'s `distributeCodesAdmin` (`DuplicateDistributionError` → 409).
+  `lib/stripe/stripe.ts`'s `createCheckoutSession` gained an optional Stripe SDK `idempotencyKey`
+  (derived from a 60s window bucket in `app/api/checkout/route.ts`), omitted entirely — not just
+  `undefined` — when absent, so every existing caller/test sees zero behavior change (24+28 stripe
+  tests unchanged, 6 new ones added for the key path and a previously-untested coupon-creation
+  branch found along the way). `money-service/src/common/idempotency/` (new,
+  `IdempotencyStore` + `IdempotencyInterceptor`, 24h TTL response cache keyed on `Idempotency-Key`,
+  `ConflictException` on a still-in-flight duplicate, fails open on Redis errors) built as
+  forward-looking infrastructure for 4A-9 — not attached to any route yet.
+  **Step 2 (F14, Transactional Outbox) found its own file-list gap mid-session:** the order named
+  only `money-service/prisma/schema.prisma` for the new `OutboxEvent` model, but it's a genuinely
+  new money-service-owned table (no FK to anything) — per L1 (money-service has no migration
+  authority of its own), it needed the SAME two-schema treatment 4A-W2 used for the Wise models:
+  mirrored into `prisma/non-market-data/schema.prisma`, a zero-DB-connection `prisma migrate diff
+--script` generated and committed
+  (`prisma/migrations/20260727000000_outbox_event_additive/`), then **applied to production**
+  (Davin present, explicit live approval per `EXECUTOR-PROTOCOL.md` §7 before touching production
+  schema — asked directly rather than assuming session-level "proceed" covered a DB migration).
+  **`money_svc` had zero grants on the new table immediately after** — same predicted-and-confirmed
+  gap class as 4A-W2's own Step 6 — granted `SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER,
+TRUNCATE`, verified via a real INSERT/SELECT/UPDATE/DELETE cycle as `money_svc` (rolled back, zero
+  residue), same method as 4A-W2. `OutboxService.recordInTransaction(tx, ...)` wired into both
+  existing tier-write call sites: `dlocal-webhook.controller.ts`'s already-transactional
+  `handlePaymentCompleted` (guarded by the existing `alreadyCompleted` replay flag so a webhook
+  replay doesn't double-emit) and `crons/subscription.service.ts`'s `downgradeExpiredSubscriptions`
+  — **this one was NOT previously transactional** (3 separate calls); now wrapped in
+  `$transaction`, a deliberate in-scope behavior change (breaks that file's own header comment's
+  prior "byte-identical to 4A-2's ported source" claim, recorded as such).
+  **Step 3's own literal delivery target ("to `operation-service`") doesn't exist:**
+  operation-service has no tier/billing module or endpoint at all (auth/email/security/2FA only),
+  and `04-rise-to-wise-migration-plan.md`'s own roadmap assigns the real consumer side ("Slice 5,
+  tier-update event path") to a later, separate session pair (**4A-11/12**), not 4A-8. Escalated
+  to Davin rather than scope-creep into building that endpoint or ship a cron that fails every 5s
+  tick forever in production; his call — build `OutboxPublisherCron` in full (poll every 5s,
+  exponential backoff 1s/2s/4s within one delivery attempt, dead-letter to `status = FAILED` after
+  5 attempts across ticks, atomic `updateMany WHERE status=PENDING` claim guards against
+  double-processing across replicas) but **gate it OFF by default**
+  (`OUTBOX_PUBLISHER_ENABLED` must be `'true'`) — same "build now, cut over later" shape as every
+  other piece of infra this migration has built ahead of its own cutover session.
+  `publishPendingEvents()` itself is ungated, ready for 4A-11/12 (or a manual trigger) to call once
+  `OUTBOX_PUBLISHER_TARGET_URL` is configured.
+  **Step 4 (CC-C/CC-D verify) found one real gap:** `RiseworksWebhookController` had no
+  route-level `@Throttle()` override, unlike dLocal's and Wise's webhook controllers — the same
+  429-storm-on-legitimate-retry-burst risk 4A-W4 fixed for dLocal, whose fix explicitly
+  established "all future payment-provider webhooks get an explicit override" as standing policy.
+  Fixed to match (`ttl: 60_000, limit: 300`); zero live-traffic risk (RiseWorks route is
+  archived/dormant per F42, dashboard still points at the monolith). All other controllers'
+  reliance on the bare global default (100/60s) confirmed correct as-is (policy is scoped to
+  payment-provider webhooks, not general dashboard/admin API traffic). BullMQ audit: the only
+  producer/consumer pair (`wise-webhook.processor.ts`) already uses a deterministic `jobId`
+  (`wise:event:<deliveryId>`) plus a DB-unique-constraint catch before enqueueing, worker already
+  drains on `onModuleDestroy` (L25) — no further gap found.
+  **Full verification:** `money-service` 49/49 suites, 400/400 tests (was 45/372 at session
+  start). `nest build` clean throughout. Monolith `tsc --noEmit` clean (both Prisma clients
+  regenerated). 6 commits, one per step, each with its own test run — none batched.
+  **Artifacts updated:** `4a-8-security-hardening-gate.migration-order.md` (Status → CONFIRMED,
+  Done-when all checked, Deviations filled in full — 7 entries), `DECISION-LOG.md` (F14 →
+  RESOLVED, full findings entry), `LESSONS-LEARNED.md` (L27 recurrence — 2 more file-existence-
+  level order/ground-truth mismatches in one session), `migration-cutover-table.md` (Slice 4 row
+  annotated — still MONOLITH, gate closed), `migration-stack-analysis.md` (new entry, 8 new files
+  - 12 modified), this file. `4a-9-...migration-order.md` PRE-DRAFTed (Standard Loop, ⚠ REAL
+    MONEY per the plan's own roadmap — fast-path does NOT apply, needs full Advisor DRAFT → Davin
+    APPROVED).
+- _(concurrent Wise track, unaffected by 4A-8, retained for context)_ Session 4A-W7 CONFIRMED & executed (Wise cutover live, SCB THB payout funded & pending SWIFT settlement); Session 4A-W8 (`4a-w8-riseworks-archival.migration-order.md`) APPROVED — 2026-07-27.
   **CONFIRM found the order rewritten (uncommitted, no Advisor-DRAFT/Davin-approval commit trail —
   the by-now-usual `LESSONS-LEARNED.md` L11 pattern) folding the predecessor PRE-DRAFT's blocking
   Entry Criterion 0 into an in-session "Step 1" code edit, and pulling RiseWorks archive switches
@@ -755,6 +843,9 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
+  `docs/migration-orders/4a-8-security-hardening-gate.migration-order.md` (CONFIRMED and executed
+  by Executor 2026-07-27 — closed clean, see Current above and Order status below). Run
+  concurrently with, not superseding, the still-open Wise track's own current order:
   `docs/migration-orders/4a-w7-wise-cutover.migration-order.md` (CONFIRMED and executed by Executor
   2026-07-27 — funding in progress, not yet fully closed; see Current above). Predecessor
   `4a-w6-wise-payout-engine.migration-order.md` stays CONFIRMED/executed (see historical block
@@ -774,6 +865,14 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
+- **Order status (4A-8):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
+  Idempotency hardened on the 3 real live monolith write paths (Stripe checkout, dLocal create,
+  admin code distribution); reusable `IdempotencyInterceptor` built in money-service, unattached,
+  ready for 4A-9. F14 RESOLVED: `OutboxEvent` live in production with verified `money_svc` grants,
+  `OutboxService` wired into both tier-write call sites, `OutboxPublisherCron` built but gated OFF
+  (real consumer is Slice 5 / 4A-11-12, not built). CC-D gap fixed on RiseWorks's webhook
+  throttle. `money-service` 49/49 suites, 400/400 tests; monolith `tsc --noEmit` clean. See
+  Current above for full detail.
 - **Order status (4A-W7):** production cutover executed, not yet fully closed — `DISBURSEMENT_PROVIDER
 =WISE` live and DI-verified, all 3 production webhooks subscribed and signature-verified against
   Wise's real key, single-affiliate THB smoke payout drafted with funding in progress. Real
@@ -1126,14 +1225,35 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `targetAmount` in the recipient's local currency. First surfaced because this was the first-ever
   non-USD case run through this code. Not blocking 4A-W8 (RiseWorks archival), but must not be
   lost — needs its own dedicated PORT session before any further non-USD Wise payout.
-- **Next session:** Davin's call. `4a-w7-wise-cutover.migration-order.md` is CONFIRMED and executed
+  **(60, NEW)** `money-service`'s `OutboxPublisherCron` (built 4A-8, F14) is gated OFF
+  (`OUTBOX_PUBLISHER_ENABLED` unset) and has no real delivery target configured
+  (`OUTBOX_PUBLISHER_TARGET_URL` unset) — by design, since operation-service has no tier/billing
+  receiving endpoint yet. Whichever session builds Slice 5 (4A-11/12) needs to: (a) build that
+  endpoint on operation-service, (b) set `OUTBOX_PUBLISHER_TARGET_URL` to point at it, (c) flip
+  `OUTBOX_PUBLISHER_ENABLED=true`, (d) verify the first real tier-update event actually flows
+  end-to-end before trusting it. Until then, `OutboxEvent` rows accumulate in production
+  (`status = PENDING`) every time a real dLocal payment completes or a subscription expires —
+  harmless (no consumer expected yet) but worth a periodic row-count sanity check so it isn't
+  silently forgotten.
+- **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
+  **Slice 4 track (this file's own numbering):** `4a-8-security-hardening-gate.migration-order.md`
+  is CONFIRMED, executed, and fully closed (see Current/Order status above) —
+  `4a-9-…migration-order.md` (Slice 4 Write APIs cutover) is next, PRE-DRAFTed at this session's
+  close. Slice 4 moves REAL MONEY (Stripe checkout, dLocal create, batch execute) — per the
+  plan's own roadmap this does NOT get the VERIFY-RETIRE fast-path; it needs a full
+  Advisor DRAFT → Davin APPROVED cycle before CONFIRM, same bar as any other REAL MONEY session.
+  4A-8's own Step 1 closed the 3-endpoint idempotency gap Waiting-on #52 flagged (Stripe checkout,
+  dLocal create, admin code distribution all now have a guard) — **#52 is RESOLVED.**
+  `RiseWorksWebhookEvent`'s own missing unique constraint (also flagged under #52) was NOT
+  touched this session (out of 4A-8's re-scoped Step 1, which was specifically the 3 write-path
+  idempotency keys, not webhook-dedupe schema work) — likely moot once 4A-W8 archives RiseWorks,
+  otherwise still open. **Wise track (unaffected by 4A-8):**
+  `4a-w7-wise-cutover.migration-order.md` is CONFIRMED and executed
   — not yet fully closed (funding in progress, `Commission=PAID` not yet observed, see Current
   above). Once that lands, close 4A-W7 for real (Deviations, monitoring-window check) before
-  starting `4a-w8-riseworks-archival.migration-order.md` (PRE-DRAFTed this session's close,
+  starting `4a-w8-riseworks-archival.migration-order.md` (PRE-DRAFTed at 4A-W7's own close,
   VERIFY-RETIRE/ARCHIVE block, entry-gated on 4A-W7 actually finishing, carries `DECISION-LOG.md`
-  F47 forward explicitly so it doesn't get lost). Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
-  `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not blocking. Carry
-  forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped sandbox
+  F47 forward explicitly so it doesn't get lost). Carry forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped sandbox
   `WISE_API_TOKEN` gap (#47) is unresolved — 4A-W6 worked around it (Option 2, RSA-signed test
   payloads) rather than closing it, so 4A-W7 needs a real production-scoped token regardless
   (different token, per §7.2's two-tokens-promoted-per-session plan); the OpenAPI's
@@ -1213,7 +1333,10 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   Railway production as of 4A-W7 — the alert path actually delivers now ·
   **F47 OPEN (registered Session 4A-W7)** — `wise-quote.service.ts`'s `targetAmount` currency-unit
   bug, found live during the first-ever non-USD Wise payout; full detail in `DECISION-LOG.md` ·
-  F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  **F14 fully RESOLVED (Session 4A-8, Davin)** — Transactional Outbox pattern; `OutboxEvent` live
+  in production with verified `money_svc` grants, `OutboxPublisherCron` built but gated OFF
+  pending Slice 5's (4A-11/12) real operation-service consumer (Waiting-on #60) ·
+  F8–F13 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 

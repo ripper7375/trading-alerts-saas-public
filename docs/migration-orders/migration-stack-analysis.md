@@ -2131,5 +2131,57 @@ tests (was 33/33·326/326 at 4A-W5's close). Monolith `tsc --noEmit` clean.
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-26 (Session 4A-W6, money-service Wise payout engine)
+<details>
+<summary><code>money-service</code> + monolith — Slice 4 Hardening Gate: idempotency + Transactional Outbox (F14), 8 new files, 12 modified (Session 4A-8)</summary>
+
+Step 1's file list was re-scoped before execution (order named nonexistent money-service
+controllers; the real audited gaps are monolith Next.js routes, see the order's own Deviations).
+`OutboxEvent` needed the same two-schema treatment as 4A-W2's Wise models (not itemized in the
+order's own file list either) — migration applied to production, `money_svc` grants verified live.
+
+New:
+
+- `lib/idempotency/idempotency-guard.ts` — Redis SET-NX-EX lock, fail-open on Redis errors
+  (monolith-side dedupe guard for dLocal create / admin code distribution)
+- `money-service/src/common/idempotency/idempotency.store.ts` + `idempotency.interceptor.ts` —
+  reusable 24h-TTL response cache keyed on `Idempotency-Key`; not attached to any route yet
+  (money-service has no write endpoints until 4A-9)
+- `money-service/src/outbox/outbox.service.ts` — atomic `OutboxEvent` write via the caller's own
+  transaction client (F14)
+- `money-service/src/outbox/outbox-publisher.cron.ts` — polls every 5s, exponential backoff
+  within an attempt, dead-letters after 5 attempts across ticks; **gated OFF**
+  (`OUTBOX_PUBLISHER_ENABLED`) — real delivery target is Slice 5 (4A-11/12), not built
+- `prisma/migrations/20260727000000_outbox_event_additive/` — applied to production
+- Matching `*.spec.ts` for every file above, plus `__tests__/lib/idempotency/idempotency-guard.test.ts`
+
+Modified:
+
+- `lib/stripe/stripe.ts` / `app/api/checkout/route.ts` — optional Stripe SDK `idempotencyKey`,
+  derived from a 60s window bucket; omitted entirely (not `undefined`) when absent, so existing
+  callers see zero behavior change
+- `app/api/payments/dlocal/create/route.ts` — idempotency lock before `Payment.create`; also
+  fixed `providerPaymentId`'s `''` placeholder to a random UUID (the column is `@unique`
+  table-wide, not per-user — found while touching this exact line)
+- `lib/admin/code-distribution.ts` / `app/api/admin/affiliates/[id]/distribute-codes/route.ts` —
+  idempotency lock in `distributeCodesAdmin`, `DuplicateDistributionError` → 409
+- `money-service/prisma/schema.prisma` + `prisma/non-market-data/schema.prisma` — `OutboxEvent`
+  model + `OutboxEventStatus` enum, mirrored (money-service is the only reader/writer)
+- `money-service/src/dlocal/dlocal-webhook.controller.ts` — outbox write inside the existing
+  tier-upgrade transaction, guarded by the existing `alreadyCompleted` replay flag
+- `money-service/src/crons/subscription.service.ts` — `downgradeExpiredSubscriptions` was NOT
+  previously transactional; now wrapped in `$transaction` for the atomic outbox write (deliberate
+  behavior change, see order Deviations)
+- `money-service/src/riseworks/riseworks-webhook.controller.ts` — added the same route-level
+  `@Throttle` override dLocal/Wise already have (CC-D audit gap found, zero live traffic)
+- `money-service/src/dlocal/dlocal.module.ts`, `crons/crons.module.ts` — new providers registered
+
+`money-service`: 49/49 suites, 400/400 tests (was 45/372 at session start). `nest build` clean.
+Monolith `tsc --noEmit` clean (both Prisma clients regenerated). `DISBURSEMENT_PROVIDER` untouched
+— this session hardened shared infra and the Outbox pattern only.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-27 (Session 4A-8, Slice 4 Hardening Gate)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

@@ -208,6 +208,19 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   `INVALID`) for this exact session that neither the order's File 8 test list nor its Done-when
   carried forward — building the test against it late also surfaced that the "recipient →
   `INVALID`" half was never actually implemented in code at all (see this order's own Deviations).
+- Recurrence (Session 4A-8): a new shape of the same class, at the file-existence/module-ownership
+  level rather than a descriptive detail. Two separate instances in one order: (1) the DRAFT's own
+  Step 1 named `money-service/src/stripe/stripe-checkout.controller.ts` and
+  `money-service/src/dlocal/dlocal-payment.controller.ts` — neither exists; the real audited gaps
+  (4A-W4's own citations) are monolith Next.js routes, since money-service has no write endpoints
+  until 4A-9. (2) Step 2's file list named only `money-service/prisma/schema.prisma` for the new
+  `OutboxEvent` model, omitting that a genuinely-new money-service-owned table still needs the
+  monolith-side mirror + real migration (L1: money-service has no migration authority of its own)
+  — the exact two-schema process 4A-W2 already established, just not cited here. Both were caught
+  by cross-checking the order's own cited ground truth (`migration-cutover-table.md`'s Slice 4
+  row; L1 itself) rather than trusting the file list as accurate, before writing any code against
+  it — re-scoped live (Step 1, before CONFIRM) or escalated live (Step 2's production migration,
+  mid-session) rather than silently building against nonexistent files.
 
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 
