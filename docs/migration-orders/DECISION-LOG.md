@@ -56,6 +56,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F41  | Wise recipient PII retention/deletion; interacts with F21                                                                                                                                                             | RESOLVED — Session 4A-W3a (Davin): Option A — Wise-managed PII + local hash/tail only (`accountTail` & SHA-256 fingerprint) |
 | F42  | RiseWorks archival depth (archive vs delete)                                                                                                                                                                          | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                            |
 | F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own | RESOLVED — Session 4A-W6 (Davin): Option (a), Resend REST direct, no new dependency                                         |
+| F47  | Wise quote `targetAmount`/currency-unit correctness for non-USD payouts (interacts with F38's already-RESOLVED fee-bearer decision)                                                                                   | OPEN — found Session 4A-W7, due before any further non-USD Wise payout                                                      |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -1380,6 +1381,44 @@ successfully started`, no errors; `railway variables --kv` confirms
      `CommissionAggregatorService.getAllPayableAffiliatesForProvider('WISE')`, built additively
      this session but not yet wired in).
 - Approved by: Davin (session CONFIRMED and executed live)
+
+## F47 — Wise quote `targetAmount`/currency-unit correctness for non-USD payouts
+
+- Status: OPEN
+- Session: 4A-W7 · Date: 2026-07-27
+- Found while: drafting the session's own single-affiliate THB smoke payout — the first time any
+  Wise payout code has ever run against a non-USD recipient (every prior test used USD/GBP sandbox
+  fixtures).
+- **The bug:** `money-service/src/wise/services/wise-quote.service.ts`'s `createQuote` is called
+  from `wise-payment.provider.ts`'s `prepareBatch` with `targetAmount: item.amount` — `item.amount`
+  is the `Commission.commissionAmount`, always denominated in **USD** (`DEFAULT_CURRENCY`, the only
+  currency commissions are ever computed/stored in). When `targetCurrency` is anything other than
+  USD (here, THB), this passes the raw USD number as if it were ALREADY a target-currency amount —
+  i.e., a `$50` commission became a quote request for **50 THB** (≈ $1.49), not $50-worth of THB
+  (≈ 1,394–1,679 THB depending on payment method). Live-verified: my own script's call reproduced
+  this exact bug (`{"targetAmount":50,"targetCurrency":"THB",...}`) before separately failing on an
+  unrelated 422 (see below). This would have silently shorted every non-USD affiliate to roughly
+  1–3% of their real earned commission had the 422 not also been present.
+- **A second, independent problem, found reconciling the numbers on the transfer that DID
+  eventually complete (created out-of-band, not through this app's own code — see this session's
+  own Deviations):** that transfer used `providedAmountType: "SOURCE"` with `sourceAmount: 50.00`
+  fixed (spend exactly $50 total including fees, convert the remainder). For the `BANK_TRANSFER`
+  payment method actually used, the fee was $8.49 (17%), so the recipient received THB worth only
+  ~$41.51, not $50. **This does not satisfy F38's own resolved intent** ("platform bears the fee,
+  affiliate receives their exact earned commission") — under this shape, the AFFILIATE bears the
+  fee, not the platform. F38 remains RESOLVED as a decision (platform-absorbs-fee is still the
+  intended design); this flag is about the fact that NEITHER the app's current code NOR the
+  transfer that actually worked correctly implements that decision for a non-USD target currency.
+- **What a correct fix needs:** for a non-USD `targetCurrency`, the commission's USD amount must
+  first be converted to a target-currency amount at or after quote-request time (Wise's own rate),
+  THEN passed as a genuinely fixed `targetAmount` in the SAME shape F38 already established for the
+  USD case — so the affiliate's received THB is provably worth their full earned USD commission,
+  fee absorbed by the platform on the source side. This is a real implementation change to
+  `wise-quote.service.ts`/`wise-payment.provider.ts`, not a config flip — scope it as its own PORT
+  session before any further non-USD affiliate is paid through this path.
+- Owner: Davin/Advisor — due before the next non-USD Wise payout (the smoke payout itself is not
+  blocked on this, since it's explicitly a one-off test amount, not a real affiliate's earned
+  commission).
 
 ## F43 — Funding-SLA alert delivery channel
 

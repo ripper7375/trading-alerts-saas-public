@@ -225,3 +225,26 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   AND the new one) is real, valuable, in-scope work, not a scope-creep detour — it's the safety net
   the order assumed it already had.
 - Source: Session 4A-W6 (2026-07-26) · Status: ACTIVE
+
+### L29 — A quote/conversion amount field's currency isn't proven correct until a real non-default-currency case actually runs through it
+
+- Symptom: `wise-quote.service.ts`'s `createQuote` passes `Commission.commissionAmount` (always
+  USD) straight through as `targetAmount` with `targetCurrency` set to the recipient's local
+  currency. For every prior test (sandbox GBP/USD fixtures, all 4A-W5/W6 unit and E2E coverage),
+  this either matched or was never exercised against a currency where the bug would show — a `$50`
+  commission became a request for `50 THB` (≈$1.49) the first time a real non-USD recipient
+  (Thailand) was used, four sessions after the code was written and fully test-suite-green the
+  whole time.
+- Root cause: `commissionAmount`'s currency (USD, fixed by `DEFAULT_CURRENCY`) and the Wise API
+  parameter it gets passed into (`targetAmount`, meaning "amount in `targetCurrency`") are silently
+  different currencies whenever `targetCurrency !== 'USD'`. No test ever ran a same-code-path
+  conversion between two different real currencies — sandbox fixtures used currencies where the
+  units happened not to expose the mismatch, or mocked the Wise API response entirely.
+- Rule: any field whose name implies "amount in currency X" must be checked against what currency
+  the VALUE being passed in was actually computed/stored in — a same-named variable flowing across
+  a currency boundary is a real bug class, not a style nit, and unit tests using a single currency
+  (or mocks) cannot catch it. Before trusting a cross-currency amount conversion as correct, prove
+  it with a real non-default-currency case against the real API, not just green tests in the
+  system's own default currency.
+- Source: Session 4A-W7 (2026-07-27), found live during the first-ever real non-USD Wise payout
+  attempt · Status: ACTIVE · See `DECISION-LOG.md` F47.
