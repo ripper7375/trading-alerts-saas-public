@@ -15,6 +15,11 @@ import {
   distributeCodesAdmin,
   DuplicateDistributionError,
 } from '@/lib/admin/code-distribution';
+import { shouldUseMoneyServiceForAdminWrite } from '@/lib/money-service/flags';
+import {
+  forwardWriteRequestToMoneyService,
+  MoneyServiceError,
+} from '@/lib/money-service/write-routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -70,6 +75,20 @@ export async function POST(
       );
     }
 
+    // Session 4A-10a: money-service's AdminAffiliatesController.distributeCodes
+    // (Session 4A-9 PORT) already re-implements this route in full, including
+    // its own idempotency mechanism (IdempotencyInterceptor, a deliberate
+    // divergence from this route's DuplicateDistributionError -- see 4A-9's
+    // Deviations) -- forward the raw request instead of running this logic
+    // twice.
+    if (shouldUseMoneyServiceForAdminWrite()) {
+      const data = await forwardWriteRequestToMoneyService(
+        request,
+        `/v1/admin/affiliates/${encodeURIComponent(id)}/distribute-codes`
+      );
+      return NextResponse.json(data);
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const validation = distributeSchema.safeParse(body);
@@ -93,6 +112,10 @@ export async function POST(
         { error: error.message },
         { status: error.statusCode }
       );
+    }
+
+    if (error instanceof MoneyServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
     }
 
     if (error instanceof DuplicateDistributionError) {

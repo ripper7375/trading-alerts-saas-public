@@ -17,6 +17,11 @@ import {
   createPaymentProvider,
   isProviderAvailable,
 } from '@/lib/disbursement/providers/provider-factory';
+import { shouldUseMoneyServiceForDisbursementWrite } from '@/lib/money-service/flags';
+import {
+  forwardWriteRequestToMoneyService,
+  MoneyServiceError,
+} from '@/lib/money-service/write-routes';
 
 interface RouteContext {
   params: Promise<{ batchId: string }>;
@@ -35,7 +40,7 @@ interface RouteContext {
  * @returns 500 - Server error
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   context: RouteContext
 ): Promise<NextResponse> {
   try {
@@ -43,6 +48,18 @@ export async function POST(
     await requireAdmin();
 
     const { batchId } = await context.params;
+
+    // Session 4A-10a: money-service's DisbursementBatchesController.execute
+    // (Session 4A-9 PORT) already re-implements this route in full, delegating
+    // to the same PaymentOrchestratorService/provider-factory logic -- forward
+    // the raw request instead of running this logic twice.
+    if (shouldUseMoneyServiceForDisbursementWrite()) {
+      const data = await forwardWriteRequestToMoneyService(
+        request,
+        `/v1/disbursement/batches/${encodeURIComponent(batchId)}/execute`
+      );
+      return NextResponse.json(data);
+    }
 
     // Get batch to check status and provider
     const batchManager = new BatchManager(prisma);
@@ -127,6 +144,10 @@ export async function POST(
         { error: error.message },
         { status: error.statusCode }
       );
+    }
+
+    if (error instanceof MoneyServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
     }
 
     // Handle specific error types
