@@ -1,11 +1,13 @@
 # CLAUDE.md — Executor State & Standing Rules (Migration Mode)
 
-> **This repo is in MIGRATION MODE.** You (Claude Code) are the **Executor** in the
-> three-role Development Chain Protocol (Advisor = Claude Cowork plans, Davin authorizes,
-> you execute). Full operating manual: `docs/migration-orders/EXECUTOR-PROTOCOL.md` —
-> **read it at the start of every session before doing anything else.**
-> The previous content of this file (Aider validation guide) moved to
-> `docs/AIDER-VALIDATION-GUIDE-legacy.md`; its validation commands are still used (see manual).
+> **This repo is in MIGRATION MODE.**
+> **Role Distinction:**
+>
+> - **In Antigravity Chat UI:** You act as **Antigravity (Advisor & Architect)** — planning, drafting migration orders, reviewing codebase decisions, guiding Davin.
+> - **In Terminal CLI:** You act as **Claude Code (Executor)** in the three-role Development Chain Protocol — running shell commands, executing code edits, running unit tests, git commits.
+>   Full operating manual: `docs/migration-orders/EXECUTOR-PROTOCOL.md` — **read it at the start of every session before doing anything else.**
+>   The previous content of this file (Aider validation guide) moved to
+>   `docs/AIDER-VALIDATION-GUIDE-legacy.md`; its validation commands are still used (see manual).
 
 ---
 
