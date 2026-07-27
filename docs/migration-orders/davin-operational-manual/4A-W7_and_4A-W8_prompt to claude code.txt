@@ -1,0 +1,21 @@
+⚠️ REAL MONEY CUTOVER: Requires Davin present live for every step (EXECUTOR-PROTOCOL.md §7). ---> Any requirements for me to manually run test to prove that previous builds work flawlessly in production before actually cutting over ? 
+
+=======================================================
+
+Playbook for when 1,394.22 THB arrives in SCB:
+
+1. In your Session 4A-W7 Claude Code session (Close out 4A-W7):
+
+Pass this prompt to 4A-W7:
+
+The 1,394.22 THB payout has landed in my SCB account. Please verify in the production database that Wise's webhook arrived, Commission.status moved to PAID, and update migration-cutover-table.md to mark 4A-W7 fully COMPLETED.
+
+
+2. In your Fresh Session 4A-W8 Claude Code session (Execute 4A-W8):
+
+Once 4A-W7 is closed, pass this prompt to 4A-W8:
+
+Session 4A-W7 is now fully closed (Commission.status = PAID verified in production DB). Please re-run CONFIRM verification on docs/migration-orders/4a-w8-riseworks-archival.migration-order.md, mark it CONFIRMED, and proceed with 4A-W8 execution.
+
+
+Save these 2 prompts, and you are 100% prepared for when the SWIFT payment clears!

@@ -1,0 +1,35 @@
+Step-by-Step Execution Plan
+
+=====================================
+
+Step 1 (Done): Both order files are now officially marked APPROVED:
+
+4a-10a-money-service-write-transport.migration-order.md
+ (APPROVED)
+4a-10-money-service-write-apis-cutover.migration-order.md
+ (APPROVED)
+
+=========================================
+
+Step 2 — Execute Session 4A-10a (Build Transport):
+
+In terminal CLI, pass 4a-10a-money-service-write-transport.migration-order.md to Claude Code to CONFIRM and execute Session 4A-10a (building lib/money-service/write-routes.ts & wiring feature flags into monolith routes).
+
+==============================================
+
+Step 3 — Conduct Manual Staging Smoke Tests:
+
+After Session 4A-10a completes building the transport layer, perform the 5 manual smoke tests in Staging/Sandbox:
+
+3.1) Stripe Checkout Smoke Test
+3.2) dLocal Payment Creation Smoke Test
+3.3) Admin Code Distribution Smoke Test
+3.4) Disbursement Batch Execution Smoke Test
+3.5) 0ms Rollback Rehearsal
+
+=============================================
+
+Step 4 — Execute Session 4A-10b (Production Cutover):
+
+Pass your successful staging test results + 4a-10-money-service-write-apis-cutover.migration-order.md to Claude Code to CONFIRM and execute Session 4A-10b (flipping production feature flags false -> true in Railway).
+
