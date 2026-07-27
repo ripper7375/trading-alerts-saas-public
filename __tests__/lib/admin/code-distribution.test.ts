@@ -11,10 +11,15 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 
 import { prismaMock, testFactories } from '../../setup';
 import { distributeCodes } from '@/lib/affiliate/code-generator'; // Part 17A
+import { acquireIdempotencyLock } from '@/lib/idempotency/idempotency-guard';
 
 // Mock the Part 17A code-generator
 jest.mock('@/lib/affiliate/code-generator', () => ({
   distributeCodes: jest.fn(),
+}));
+
+jest.mock('@/lib/idempotency/idempotency-guard', () => ({
+  acquireIdempotencyLock: jest.fn(),
 }));
 
 // Import will fail initially (RED phase) - this is expected!
@@ -22,11 +27,15 @@ import {
   distributeCodesAdmin,
   suspendAffiliate,
   reactivateAffiliate,
+  DuplicateDistributionError,
 } from '@/lib/admin/code-distribution';
 
 describe('Admin Code Distribution', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: not a duplicate, so existing tests exercise the same
+    // success/error paths they did before the idempotency guard was added.
+    (acquireIdempotencyLock as jest.Mock).mockResolvedValue(true);
   });
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -106,6 +115,33 @@ describe('Admin Code Distribution', () => {
       await expect(
         distributeCodesAdmin('nonexistent', 10, 'Bonus')
       ).rejects.toThrow('Affiliate not found');
+    });
+
+    it('should collapse a duplicate distribution request (4A-8, CC-C)', async () => {
+      const mockAffiliate = testFactories.createAffiliateProfile({
+        id: 'aff-1',
+        status: 'ACTIVE',
+      });
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(
+        mockAffiliate as never
+      );
+      (acquireIdempotencyLock as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        distributeCodesAdmin('aff-1', 10, 'Bonus for performance')
+      ).rejects.toThrow(DuplicateDistributionError);
+      expect(distributeCodes).not.toHaveBeenCalled();
+    });
+
+    it('should check for duplicates only after validating count and affiliate status', async () => {
+      (acquireIdempotencyLock as jest.Mock).mockResolvedValue(false);
+
+      // Invalid count should fail on its own validation, never reaching the
+      // idempotency check at all.
+      await expect(distributeCodesAdmin('aff-1', 0, 'Bonus')).rejects.toThrow(
+        'Count must be between 1 and 50'
+      );
+      expect(acquireIdempotencyLock).not.toHaveBeenCalled();
     });
   });
 

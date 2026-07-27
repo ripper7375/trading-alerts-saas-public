@@ -22,6 +22,7 @@ const mockPaymentMethodsList = jest.fn();
 const mockCustomersRetrieve = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
 const mockBillingPortalSessionsCreate = jest.fn();
+const mockCouponsCreate = jest.fn();
 
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
@@ -29,6 +30,9 @@ jest.mock('stripe', () => {
       sessions: {
         create: mockCheckoutSessionsCreate,
       },
+    },
+    coupons: {
+      create: mockCouponsCreate,
     },
     subscriptions: {
       cancel: mockSubscriptionsCancel,
@@ -107,6 +111,62 @@ describe('Stripe Client Functions', () => {
       const client1 = getStripeClient();
       const client2 = getStripeClient();
       expect(client1).toBe(client2);
+    });
+  });
+
+  describe('buildCheckoutIdempotencyKey', () => {
+    it('returns the same key for the same user/affiliate within the window', async () => {
+      const { buildCheckoutIdempotencyKey } =
+        await import('@/lib/stripe/stripe');
+
+      const key1 = buildCheckoutIdempotencyKey('user-123', 'AFFILIATE10');
+      const key2 = buildCheckoutIdempotencyKey('user-123', 'AFFILIATE10');
+
+      expect(key1).toBe(key2);
+    });
+
+    it('returns different keys for different users', async () => {
+      const { buildCheckoutIdempotencyKey } =
+        await import('@/lib/stripe/stripe');
+
+      const keyA = buildCheckoutIdempotencyKey('user-a', undefined);
+      const keyB = buildCheckoutIdempotencyKey('user-b', undefined);
+
+      expect(keyA).not.toBe(keyB);
+    });
+
+    it('returns different keys for different affiliate codes for the same user', async () => {
+      const { buildCheckoutIdempotencyKey } =
+        await import('@/lib/stripe/stripe');
+
+      const keyNoCode = buildCheckoutIdempotencyKey('user-123', undefined);
+      const keyWithCode = buildCheckoutIdempotencyKey(
+        'user-123',
+        'AFFILIATE10'
+      );
+
+      expect(keyNoCode).not.toBe(keyWithCode);
+    });
+
+    it('changes once the idempotency window elapses', async () => {
+      const { buildCheckoutIdempotencyKey, CHECKOUT_IDEMPOTENCY_WINDOW_MS } =
+        await import('@/lib/stripe/stripe');
+
+      const realNow = Date.now;
+      try {
+        Date.now = () => 0;
+        const keyAtStart = buildCheckoutIdempotencyKey('user-123', undefined);
+
+        Date.now = () => CHECKOUT_IDEMPOTENCY_WINDOW_MS + 1;
+        const keyAfterWindow = buildCheckoutIdempotencyKey(
+          'user-123',
+          undefined
+        );
+
+        expect(keyAtStart).not.toBe(keyAfterWindow);
+      } finally {
+        Date.now = realNow;
+      }
     });
   });
 
@@ -208,6 +268,101 @@ describe('Stripe Client Functions', () => {
         expect.objectContaining({
           allow_promotion_codes: true,
         })
+      );
+    });
+
+    it('should create a coupon and apply it when an affiliate discount is given', async () => {
+      jest.resetModules();
+      mockCouponsCreate.mockResolvedValue({ id: 'coupon_test_1' });
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_discount' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel',
+        'AFFILIATE10',
+        15
+      );
+
+      expect(mockCouponsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ percent_off: 15 }),
+        undefined
+      );
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          discounts: [{ coupon: 'coupon_test_1' }],
+        })
+      );
+    });
+
+    it('should not pass a second argument to Stripe when no idempotency key is given (existing callers unaffected)', async () => {
+      jest.resetModules();
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_noop' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel'
+      );
+
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledTimes(1);
+      expect(mockCheckoutSessionsCreate.mock.calls[0]).toHaveLength(1);
+    });
+
+    it('should forward the idempotency key to Stripe when provided (4A-8, CC-C)', async () => {
+      jest.resetModules();
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_idem' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel',
+        undefined,
+        undefined,
+        'idem-key-abc'
+      );
+
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ customer_email: 'user@example.com' }),
+        { idempotencyKey: 'idem-key-abc' }
+      );
+    });
+
+    it('should derive the coupon idempotency key from the session key when both apply', async () => {
+      jest.resetModules();
+      mockCouponsCreate.mockResolvedValue({ id: 'coupon_test_2' });
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_both' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel',
+        'AFFILIATE10',
+        15,
+        'idem-key-xyz'
+      );
+
+      expect(mockCouponsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ percent_off: 15 }),
+        { idempotencyKey: 'idem-key-xyz:coupon' }
+      );
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          discounts: [{ coupon: 'coupon_test_2' }],
+        }),
+        { idempotencyKey: 'idem-key-xyz' }
       );
     });
 
@@ -415,9 +570,8 @@ describe('Stripe Client Functions', () => {
       };
       mockBillingPortalSessionsCreate.mockResolvedValue(mockPortalSession);
 
-      const { createBillingPortalSession } = await import(
-        '@/lib/stripe/stripe'
-      );
+      const { createBillingPortalSession } =
+        await import('@/lib/stripe/stripe');
       const result = await createBillingPortalSession(
         'cus_test_123',
         'https://example.com/settings'

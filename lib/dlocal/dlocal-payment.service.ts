@@ -12,6 +12,7 @@ import type {
   PaymentStatus,
 } from '@/types/dlocal';
 import { logger } from '@/lib/logger';
+import { acquireIdempotencyLock } from '@/lib/idempotency/idempotency-guard';
 
 const DLOCAL_API_URL =
   process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
@@ -34,6 +35,28 @@ function generateSignature(body: string): string {
  */
 function generateOrderId(userId: string): string {
   return `order-${userId}-${Date.now()}`;
+}
+
+/** 30s: absorbs a double-click/client retry without blocking a deliberate later attempt. */
+const CREATE_PAYMENT_IDEMPOTENCY_TTL_SECONDS = 30;
+
+/**
+ * Idempotency guard for payment creation (Session 4A-8, CC-C audit fix).
+ * Returns `true` the first time this exact (userId, planType, currency)
+ * combination is seen within the window -- the caller should proceed.
+ * Returns `false` on every duplicate within the window -- the caller
+ * should treat this as a repeat submit and must NOT create a second
+ * Payment row or call dLocal again.
+ */
+export async function acquireCreatePaymentLock(
+  userId: string,
+  planType: string,
+  currency: string
+): Promise<boolean> {
+  return acquireIdempotencyLock(
+    `idempotency:dlocal-create:${userId}:${planType}:${currency}`,
+    CREATE_PAYMENT_IDEMPOTENCY_TTL_SECONDS
+  );
 }
 
 /**

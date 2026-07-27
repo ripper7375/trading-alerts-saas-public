@@ -7,9 +7,25 @@
  * @module lib/admin/code-distribution
  */
 
+import { createHash } from 'crypto';
+
 import { prisma } from '@/lib/db/prisma';
 import { distributeCodes } from '@/lib/affiliate/code-generator';
 import type { AffiliateStatus } from '@/lib/affiliate/constants';
+import { acquireIdempotencyLock } from '@/lib/idempotency/idempotency-guard';
+
+/** 30s: absorbs a double-click/client retry without blocking a deliberate follow-up distribution. */
+const DISTRIBUTE_CODES_IDEMPOTENCY_TTL_SECONDS = 30;
+
+/** Thrown when a duplicate distribution request is collapsed by the idempotency guard (4A-8, CC-C). */
+export class DuplicateDistributionError extends Error {
+  constructor() {
+    super(
+      'Duplicate distribution request -- an identical request for this affiliate is already being processed. Please wait a moment before retrying.'
+    );
+    this.name = 'DuplicateDistributionError';
+  }
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -63,6 +79,20 @@ export async function distributeCodesAdmin(
   // Only active affiliates can receive codes
   if (affiliate.status !== 'ACTIVE') {
     throw new Error('Can only distribute codes to active affiliates');
+  }
+
+  // Idempotency guard (4A-8, CC-C audit fix): collapse a double-click or
+  // client retry into a single distribution instead of issuing `count`
+  // codes twice for the same admin action.
+  const requestKey = createHash('sha256')
+    .update(`admin-distribute:${affiliateId}:${count}:${_reason}`)
+    .digest('hex');
+  const acquiredLock = await acquireIdempotencyLock(
+    `idempotency:${requestKey}`,
+    DISTRIBUTE_CODES_IDEMPOTENCY_TTL_SECONDS
+  );
+  if (!acquiredLock) {
+    throw new DuplicateDistributionError();
   }
 
   // Use Part 17A function - NO DUPLICATION

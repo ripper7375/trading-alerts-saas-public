@@ -17,11 +17,16 @@
  * - 403: Not allowed (already has subscription, etc.)
  */
 
+import { randomUUID } from 'crypto';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth/auth-options';
-import { createPayment } from '@/lib/dlocal/dlocal-payment.service';
+import {
+  createPayment,
+  acquireCreatePaymentLock,
+} from '@/lib/dlocal/dlocal-payment.service';
 import { convertUSDToLocal } from '@/lib/dlocal/currency-converter.service';
 import { isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
 import { PRICING, getPlanDuration } from '@/lib/dlocal/constants';
@@ -176,12 +181,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       localAmount,
     });
 
+    // Idempotency guard (4A-8, CC-C audit fix): collapse a double-click or
+    // client retry into a single dLocal charge attempt instead of creating
+    // a second Payment row / initiating a second charge for the same plan.
+    const acquiredLock = await acquireCreatePaymentLock(
+      userId,
+      planType,
+      currency
+    );
+    if (!acquiredLock) {
+      return NextResponse.json(
+        {
+          error: 'Duplicate request',
+          message:
+            'A payment request for this plan is already being processed. Please wait a moment before retrying.',
+          code: 'DUPLICATE_PAYMENT_REQUEST',
+        },
+        { status: 409 }
+      );
+    }
+
     // Create payment record FIRST (before calling dLocal)
     const payment = await prisma.payment.create({
       data: {
         userId,
         provider: 'DLOCAL',
-        providerPaymentId: '', // Will be updated after dLocal response
+        // Unique placeholder, not '': providerPaymentId is @unique across
+        // the WHOLE table (not per-user), so a bare '' would collide with
+        // any other concurrent pending payment from a DIFFERENT user
+        // (pre-existing bug, found while adding this guard -- fixed as
+        // part of the same write path, see this order's Deviations).
+        providerPaymentId: `pending-${randomUUID()}`, // Will be updated after dLocal response
         providerStatus: 'PENDING',
         amount: localAmount,
         amountUSD: usdAmount,

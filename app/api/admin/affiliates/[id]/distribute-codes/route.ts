@@ -11,7 +11,10 @@ import { z } from 'zod';
 
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
-import { distributeCodesAdmin } from '@/lib/admin/code-distribution';
+import {
+  distributeCodesAdmin,
+  DuplicateDistributionError,
+} from '@/lib/admin/code-distribution';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -89,6 +92,13 @@ export async function POST(
       return NextResponse.json(
         { error: error.message },
         { status: error.statusCode }
+      );
+    }
+
+    if (error instanceof DuplicateDistributionError) {
+      return NextResponse.json(
+        { error: error.message, code: 'DUPLICATE_DISTRIBUTION_REQUEST' },
+        { status: 409 }
       );
     }
 

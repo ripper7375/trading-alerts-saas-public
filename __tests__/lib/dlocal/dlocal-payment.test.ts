@@ -11,12 +11,18 @@ import {
   getPaymentStatus,
   mapDLocalStatus,
   extractUserIdFromOrderId,
+  acquireCreatePaymentLock,
 } from '@/lib/dlocal/dlocal-payment.service';
+import { acquireIdempotencyLock } from '@/lib/idempotency/idempotency-guard';
 import type { PaymentStatus } from '@/types/dlocal';
 
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+
+jest.mock('@/lib/idempotency/idempotency-guard', () => ({
+  acquireIdempotencyLock: jest.fn(),
+}));
 
 describe('dLocal Payment Service', () => {
   beforeEach(() => {
@@ -237,6 +243,47 @@ describe('dLocal Payment Service', () => {
     it('should return null for order ID with missing parts', () => {
       expect(extractUserIdFromOrderId('order')).toBeNull();
       expect(extractUserIdFromOrderId('order-user')).toBeNull();
+    });
+  });
+
+  describe('acquireCreatePaymentLock', () => {
+    it('delegates to the shared idempotency guard with a deterministic key', async () => {
+      (acquireIdempotencyLock as jest.Mock).mockResolvedValue(true);
+
+      const acquired = await acquireCreatePaymentLock(
+        'user-123',
+        'MONTHLY',
+        'INR'
+      );
+
+      expect(acquired).toBe(true);
+      expect(acquireIdempotencyLock).toHaveBeenCalledWith(
+        'idempotency:dlocal-create:user-123:MONTHLY:INR',
+        30
+      );
+    });
+
+    it('reports a duplicate when the guard denies the lock', async () => {
+      (acquireIdempotencyLock as jest.Mock).mockResolvedValue(false);
+
+      const acquired = await acquireCreatePaymentLock(
+        'user-123',
+        'MONTHLY',
+        'INR'
+      );
+
+      expect(acquired).toBe(false);
+    });
+
+    it('uses a separate key per plan/currency combination', async () => {
+      (acquireIdempotencyLock as jest.Mock).mockResolvedValue(true);
+
+      await acquireCreatePaymentLock('user-123', 'THREE_DAY', 'THB');
+
+      expect(acquireIdempotencyLock).toHaveBeenCalledWith(
+        'idempotency:dlocal-create:user-123:THREE_DAY:THB',
+        30
+      );
     });
   });
 });

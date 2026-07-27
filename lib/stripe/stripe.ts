@@ -7,6 +7,8 @@
  * @module lib/stripe/stripe
  */
 
+import { createHash } from 'crypto';
+
 import Stripe from 'stripe';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -59,6 +61,34 @@ export const STRIPE_PRO_PRICE_ID = process.env['STRIPE_PRO_PRICE_ID'];
 export const PRO_TIER_PRICE = 29;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// IDEMPOTENCY (Session 4A-8, CC-C)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * 60s idempotency window -- collapses a double-click/client retry into the
+ * same Stripe request (Stripe caches and returns the original session
+ * instead of creating a second one for 24h against this key) without
+ * blocking a deliberate later checkout attempt (e.g. retrying after
+ * cancelling).
+ */
+export const CHECKOUT_IDEMPOTENCY_WINDOW_MS = 60_000;
+
+/**
+ * Deterministic Stripe idempotency key for a checkout attempt. Pure/no I/O
+ * so the caller (app/api/checkout/route.ts) can derive it before calling
+ * `createCheckoutSession`.
+ */
+export function buildCheckoutIdempotencyKey(
+  userId: string,
+  affiliateCode: string | undefined
+): string {
+  const windowBucket = Math.floor(Date.now() / CHECKOUT_IDEMPOTENCY_WINDOW_MS);
+  return createHash('sha256')
+    .update(`checkout:${userId}:${affiliateCode ?? 'none'}:${windowBucket}`)
+    .digest('hex');
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -74,6 +104,13 @@ export const PRO_TIER_PRICE = 29;
  *   (from the affiliate code; validated by the caller). When > 0, a
  *   one-time Stripe coupon is created and attached to the session so the
  *   customer actually pays the discounted price.
+ * @param idempotencyKey - Optional Stripe idempotency key (4A-8, CC-C).
+ *   When provided, Stripe itself dedupes retried requests carrying the same
+ *   key for 24h, returning the original session instead of creating a
+ *   second one -- protects against double-click / client-retry double
+ *   billing on this write path. Omitted entirely (not just `undefined`)
+ *   when absent so existing callers/tests that don't pass one see no
+ *   behavior change.
  * @returns Stripe Checkout Session
  */
 export async function createCheckoutSession(
@@ -82,7 +119,8 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string,
   affiliateCode?: string,
-  discountPercent?: number
+  discountPercent?: number,
+  idempotencyKey?: string
 ): Promise<Stripe.Checkout.Session> {
   if (!STRIPE_PRO_PRICE_ID) {
     throw new Error('STRIPE_PRO_PRICE_ID environment variable is not set');
@@ -119,19 +157,27 @@ export async function createCheckoutSession(
     // coupon. Note: Stripe does not allow `discounts` together with
     // `allow_promotion_codes`, so promotion codes are disabled when an
     // affiliate discount is applied.
-    const coupon = await getStripeClient().coupons.create({
-      percent_off: discountPercent,
-      duration: 'once',
-      name: `Affiliate ${affiliateCode}`,
-      metadata: { affiliateCode },
-    });
+    const coupon = await getStripeClient().coupons.create(
+      {
+        percent_off: discountPercent,
+        duration: 'once',
+        name: `Affiliate ${affiliateCode}`,
+        metadata: { affiliateCode },
+      },
+      idempotencyKey
+        ? { idempotencyKey: `${idempotencyKey}:coupon` }
+        : undefined
+    );
     sessionParams.discounts = [{ coupon: coupon.id }];
   } else {
     sessionParams.allow_promotion_codes = true; // Allow Stripe coupon codes
   }
 
-  const session =
-    await getStripeClient().checkout.sessions.create(sessionParams);
+  const session = idempotencyKey
+    ? await getStripeClient().checkout.sessions.create(sessionParams, {
+        idempotencyKey,
+      })
+    : await getStripeClient().checkout.sessions.create(sessionParams);
   return session;
 }
 

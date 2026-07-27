@@ -11,7 +11,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
-import { createCheckoutSession } from '@/lib/stripe/stripe';
+import {
+  buildCheckoutIdempotencyKey,
+  createCheckoutSession,
+} from '@/lib/stripe/stripe';
 import { prisma } from '@/lib/db/prisma';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -128,13 +131,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const cancelUrl = `${baseUrl}/pricing?upgrade=cancelled`;
 
     // Create Stripe Checkout session
+    const idempotencyKey = buildCheckoutIdempotencyKey(
+      userId,
+      normalizedAffiliateCode
+    );
     const checkoutSession = await createCheckoutSession(
       userId,
       email,
       successUrl,
       cancelUrl,
       normalizedAffiliateCode,
-      discountPercent
+      discountPercent,
+      idempotencyKey
     );
 
     // Return session details
