@@ -2234,7 +2234,46 @@ any new route this session.
 
 </details>
 
+<details>
+<summary>FRONTEND — 2 new files + 5 modified (Session 4A-10a, money-service Slice 4 write-API transport)</summary>
+
+Monolith-side write transport, mirroring 4A-7a's Slice-3 read transport pattern (F45 server-side
+proxy). Every one of the 5 modified route handlers still runs its existing monolith auth check
+unchanged; the new code only adds a flag-gated branch that forwards the raw request to
+money-service's already-full-4A-9-PORTed controller instead, and all 4 flags
+(`MIGRATE_WRITE_APIS_MONEY_STRIPE`/`_DLOCAL`/`_ADMIN`/`_DISBURSEMENT`) default OFF everywhere, so
+production behavior is bit-identical until 4A-10b flips them.
+
+New:
+
+- `lib/money-service/write-routes.ts` (`forwardWriteRequestToMoneyService()` — forwards raw
+  request body + `Idempotency-Key` header with the caller's session token as Bearer auth, reusing
+  `routes.ts`'s `getMoneyServiceToken()`)
+- `__tests__/lib/money-service/write-routes.test.ts` (11 tests — flag defaults/env reads, token
+  forwarding, `Idempotency-Key` propagation, bodyless-request handling, method override, error
+  propagation)
+
+Modified:
+
+- `lib/money-service/flags.ts` — 4 new `shouldUseMoneyServiceFor*Write()` readers
+  (Stripe/dLocal/Admin/Disbursement), all default `false`
+- `app/api/checkout/route.ts` (flag-gated branch added, existing logic otherwise unchanged)
+- `app/api/subscription/cancel/route.ts` (flag-gated branch added; `POST()` gained a `request`
+  parameter it previously didn't take)
+- `app/api/payments/dlocal/create/route.ts` (flag-gated branch added, existing logic otherwise
+  unchanged)
+- `app/api/admin/affiliates/[id]/distribute-codes/route.ts` (flag-gated branch added, existing
+  logic otherwise unchanged)
+- `app/api/disbursement/batches/[batchId]/execute/route.ts` (flag-gated branch added; unused
+  `_request` param renamed to `request`)
+
+Monolith `test:ci`: 121/121 suites, 2133/2133 tests (was 120/120, 2122/2122 at 4A-9's era close).
+`tsc --noEmit`/`eslint app components lib hooks --max-warnings 0` clean. `money-service`
+unchanged this session (transport-only BUILD, no money-service source touched).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-27 (Session 4A-9, Slice 4 write-API PORT)
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-27 (Session 4A-10a, Slice 4 write-API monolith transport)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

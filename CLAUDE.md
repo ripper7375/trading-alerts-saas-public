@@ -26,7 +26,55 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-9 (Slice 4 Write-APIs PORT) CONFIRMED and executed — 2026-07-27, all 10
+- **Current:** Session 4A-10a (Slice 4 monolith Write Transport BUILD) CONFIRMED and executed —
+  2026-07-27, all 4 Ordered Steps shipped, zero production traffic cut over (all 4 flags default
+  `false`). Closes the hard-blocking gap 4A-10's own PRE-DRAFT found before it could even reach
+  CONFIRM (Waiting-on #61, `LESSONS-LEARNED.md` L31): none of the 5 monolith write routes had any
+  `MIGRATE_WRITE_APIS_MONEY_*` flag-check or forwarding call to money-service.
+  **CONFIRM found this session's own order file (and its sibling
+  `4a-10-money-service-write-apis-cutover.migration-order.md`, since renamed to 4A-10b) both
+  uncommitted with `Status: APPROVED` and no Advisor-DRAFT/Davin-approval commit trail** — the
+  by-now-familiar `LESSONS-LEARNED.md` L11 pattern, this time on a genuinely new file (no prior
+  committed version to diff against) rather than an in-place edit. Confirmed live as Davin's own
+  authentic Chat UI work before proceeding; both files' provenance and CONFIRMED status committed
+  together (`8967df12`).
+  **Built:** `lib/money-service/flags.ts` extended with 4 new `shouldUseMoneyServiceFor*Write()`
+  readers (Stripe/dLocal/Admin/Disbursement, all default `false`); new
+  `lib/money-service/write-routes.ts` (`forwardWriteRequestToMoneyService()`) — forwards a route's
+  raw request body + `Idempotency-Key` header to money-service with the caller's session token as
+  Bearer auth, reusing `routes.ts`'s `getMoneyServiceToken()` (the same F45 cookie-read bridge
+  Slice 3's read transport already uses, not a new auth mechanism). All 5 monolith write routes
+  (`checkout`, `subscription/cancel`, `payments/dlocal/create`,
+  `admin/affiliates/[id]/distribute-codes`, `disbursement/batches/[batchId]/execute`) wired: each
+  flag check sits immediately after that route's own existing auth check (unchanged), and on a
+  flag-ON forward returns money-service's response directly rather than layering forwarding on top
+  of the monolith's own (now-redundant) business logic — verified correct by reading all 5
+  money-service controllers first and confirming each is already a full 4A-9 PORT (same auth,
+  validation, provider calls) before writing any monolith-side branch, per `LESSONS-LEARNED.md`
+  L27 discipline, not assumed from the order's prose.
+  **Two safe signature widenings, recorded as Deviations:** `subscription/cancel/route.ts`'s
+  `POST()` gained a `request: NextRequest` parameter (previously took none — needed for the
+  forwarding helper); `disbursement`'s execute route's already-present but unused `_request`
+  renamed to `request`. Both zero-risk (Next.js always passes the request object regardless of
+  whether the handler declares a parameter for it) and covered by the existing
+  `__tests__/api/disbursement/execute.test.ts` (5/5, unmodified, still green).
+  **Full verification:** monolith `test:ci` 121/121 suites, 2133/2133 tests (was 120/120,
+  2122/2122 at 4A-9's era close — +1 suite/+11 tests for the new `write-routes.test.ts`, zero
+  regressions elsewhere). `tsc --noEmit` and `eslint app components lib hooks --max-warnings 0`
+  both clean throughout (the real green bar per L20 — literal `validate:policies` re-confirmed
+  mis-scoped into `node_modules`/`railway-gateway`, a pre-existing tooling gap unrelated to this
+  session, not a new regression). `money-service` untouched — zero files changed, this was a
+  monolith-only BUILD. 4 commits, one per Ordered Step, each with its own `tsc`/`eslint`/test
+  pass — none batched.
+  **Artifacts updated:** `4a-10a-money-service-write-transport.migration-order.md` (Status →
+  CONFIRMED, entry criteria + Done-when all checked, Deviations filled in full — 5 entries),
+  `4a-10-money-service-write-apis-cutover.migration-order.md` (now 4A-10b — its own Entry
+  Criterion 1, "Session 4A-10a CONFIRMED and closed," is now genuinely satisfied; its remaining
+  entry criteria — 48h soak window ending 2026-07-29 12:52 UTC, staging/sandbox smoke tests,
+  Davin live per-group approval — are unaffected and still open), `migration-cutover-table.md`
+  (Slice 4 row annotated), this file. 4A-10b was already APPROVED at this session's start (the
+  Advisor's same-day split) — no new PRE-DRAFT needed; it is the literal next session.
+- _(superseded-by-above, retained for context)_ Session 4A-9 (Slice 4 Write-APIs PORT) CONFIRMED and executed — 2026-07-27, all 10
   files/steps shipped, zero production traffic cut over (BUILD only).
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
   modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite — rough 8-item
@@ -924,9 +972,16 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-8-security-hardening-gate.migration-order.md` (CONFIRMED and executed
-  by Executor 2026-07-27 — closed clean, see Current above and Order status below). Run
-  concurrently with, not superseding, the still-open Wise track's own current order:
+  `docs/migration-orders/4a-10a-money-service-write-transport.migration-order.md` (CONFIRMED and
+  executed by Executor 2026-07-27 — closed clean, see Current above and Order status below). Its
+  own next-session handoff, `docs/migration-orders/4a-10-money-service-write-apis-cutover.migration-order.md`
+  (now 4A-10b, CUTOVER), is APPROVED but NOT yet executed — still gated on its own remaining entry
+  criteria (48h code-freeze soak window ending 2026-07-29 12:52 UTC, staging/sandbox manual smoke
+  tests, Davin live per-group approval). Predecessor
+  `4a-9-money-service-write-apis-port.migration-order.md` stays CONFIRMED/executed (see historical
+  block below). Predecessor `4a-8-security-hardening-gate.migration-order.md` stays
+  CONFIRMED/executed (see historical block below). Run concurrently with, not superseding, the
+  still-open Wise track's own current order:
   `docs/migration-orders/4a-w7-wise-cutover.migration-order.md` (CONFIRMED and executed by Executor
   2026-07-27 — funding in progress, not yet fully closed; see Current above). Predecessor
   `4a-w6-wise-payout-engine.migration-order.md` stays CONFIRMED/executed (see historical block
@@ -946,6 +1001,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
+- **Order status (4A-10a):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
+  All 5 monolith write routes wired with `MIGRATE_WRITE_APIS_MONEY_*` flag checks + forwarding to
+  their already-full-PORT money-service controllers (4A-9); new
+  `lib/money-service/write-routes.ts` transport helper + 4 new flag readers in `flags.ts`. All 4
+  flags default `false` — zero traffic cut over. Monolith `test:ci` 121/121 suites, 2133/2133
+  tests; `tsc --noEmit`/`eslint` clean; `money-service` untouched. See Current above for full
+  detail, including the two safe `POST()` signature widenings recorded as Deviations.
 - **Order status (4A-9):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
   All 10 files/10 steps shipped in `money-service`: Stripe checkout/subscription/webhook
   controllers + services (new `stripe.module.ts`), dLocal payment-creation controller (+ its 2
@@ -1331,6 +1393,10 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   constructible). **4A-10 cannot execute until a new BUILD session ships the monolith-side
   transport + flag-check layer for these 5 routes** (mirroring 4A-7a's own Slice-3 scope) —
   recorded as 4A-10's own new Entry Criterion 0, hard-blocking.
+  **RESOLVED (Session 4A-10a, 2026-07-27):** the transport + flag-check layer shipped and was
+  CONFIRMED — see Current above and item #63 below. 4A-10 (now 4A-10b)'s Entry Criterion 0 no
+  longer applies to a fresh CONFIRM of that order; its own remaining entry criteria (soak window,
+  smoke tests, Davin approval) are unaffected and still gate its execution.
   **(62, NEW)** Slice 4's 48h clock: a **code-freeze SOAK window** (not a mirror-run/shadow-diff —
   see #61, no traffic mechanism exists to reach money-service's new controllers at all) —
   **Started:** 2026-07-27 12:52 UTC · **Ends:** 2026-07-29 12:52 UTC. **What holds during it:** the
@@ -1354,25 +1420,33 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   end-to-end before trusting it. Until then, `OutboxEvent` rows accumulate in production
   (`status = PENDING`) every time a real dLocal payment completes or a subscription expires —
   harmless (no consumer expected yet) but worth a periodic row-count sanity check so it isn't
-  silently forgotten.
+  silently forgotten. **(63, NEW)** Session 4A-10a (monolith write-transport BUILD) CONFIRMED and
+  closed 2026-07-27, resolving #61 (see above) — all 5 monolith write routes now have
+  `MIGRATE_WRITE_APIS_MONEY_*` flag-check + forwarding wiring to their money-service PORTs, all 4
+  flags still default `false`, zero traffic cut over. `4a-10-money-service-write-apis-cutover.migration-order.md`
+  (now 4A-10b) is the literal next session — still gated on its OWN remaining, unaffected entry
+  criteria: the 48h code-freeze soak window (ends 2026-07-29 12:52 UTC — not yet elapsed as of
+  4A-10a's close), staging/sandbox manual smoke tests per its own checklist (not yet run), and
+  Davin's live per-group approval. Do not treat 4A-10a's close as authorization to flip any of the
+  4 flags — that is 4A-10b's own, separate act.
 - **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
   **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
-  is CONFIRMED, executed, and fully closed (see Current/Order status above) — Slice 4's write
-  APIs are now BUILT in `money-service` with zero traffic cut over. `4a-10-…migration-order.md`
-  (Slice 4 cutover, TEMPLATE-VERIFY-RETIRE) exists (Advisor-generated, Executor-finalized same
-  day) but is **BLOCKED on its own new Entry Criterion 0** (Waiting-on #61): the monolith-side
-  flag-check/forwarding transport for all 5 write routes was never built (4A-9's own scope was
-  money-service's side only) — flipping any flag today is a silent no-op. **The real next
-  session is a new BUILD** (mirroring 4A-7a's Slice-3 transport scope: monolith-side
-  `MIGRATE_WRITE_APIS_MONEY_*` flag checks + forwarding wired into all 5 existing route
-  handlers), not yet numbered/PRE-DRAFTed. Once that ships and is CONFIRMED, 4A-10 can proceed:
-  flag one route group at a time
-  (`MIGRATE_WRITE_APIS_MONEY_STRIPE`/`_DLOCAL`/`_ADMIN`/`_DISBURSEMENT`), Davin present for each
-  live approval, same shape as 4A-7a/4A-7b's read-API split. **That order must explicitly carry
-  forward the email-silence consequence 4A-9 flagged**: once the Stripe flag flips, Stripe-
-  originated tier-upgrade/cancellation/payment emails go silent (deferred to `OutboxEvent`s,
-  same as dLocal's since 4A-5) — not a regression to discover mid-CONFIRM, already known and
-  accepted, but the order should say so explicitly rather than assume the next reader remembers.
+  is CONFIRMED, executed, and fully closed (see Order status above) — Slice 4's write APIs are
+  BUILT in `money-service`. `4a-10a-money-service-write-transport.migration-order.md` (the
+  monolith-side transport BUILD, mirroring 4A-7a's Slice-3 scope) is now ALSO CONFIRMED, executed,
+  and fully closed (see Current/Order status above) — all 5 monolith write routes have
+  `MIGRATE_WRITE_APIS_MONEY_*` flag-check + forwarding wiring, resolving Waiting-on #61. **The
+  real next session is `4a-10-money-service-write-apis-cutover.migration-order.md` (now 4A-10b)**
+  — already APPROVED, no longer blocked on Entry Criterion 0, but still gated on its own remaining
+  entry criteria: the 48h code-freeze soak window (ends 2026-07-29 12:52 UTC), staging/sandbox
+  manual smoke tests per its own checklist, and Davin present for live per-group approval. Flag
+  one route group at a time (`MIGRATE_WRITE_APIS_MONEY_STRIPE`/`_DLOCAL`/`_ADMIN`/`_DISBURSEMENT`),
+  Davin present for each live approval, same shape as 4A-7a/4A-7b's read-API split. **That order
+  must explicitly carry forward the email-silence consequence 4A-9 flagged**: once the Stripe flag
+  flips, Stripe-originated tier-upgrade/cancellation/payment emails go silent (deferred to
+  `OutboxEvent`s, same as dLocal's since 4A-5) — not a regression to discover mid-CONFIRM, already
+  known and accepted, but the order should say so explicitly rather than assume the next reader
+  remembers.
   4A-8's own Step 1 closed the 3-endpoint idempotency gap Waiting-on #52 flagged (Stripe checkout,
   dLocal create, admin code distribution all now have a guard) — **#52 is RESOLVED.**
   `RiseWorksWebhookEvent`'s own missing unique constraint (also flagged under #52) was NOT
