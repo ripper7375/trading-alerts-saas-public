@@ -106,6 +106,15 @@ TRUNCATE`, verified via a real INSERT/SELECT/UPDATE/DELETE cycle as `money_svc` 
   **Full verification:** `money-service` 49/49 suites, 400/400 tests (was 45/372 at session
   start). `nest build` clean throughout. Monolith `tsc --noEmit` clean (both Prisma clients
   regenerated). 6 commits, one per step, each with its own test run — none batched.
+  **Pushed and deployed** (Davin's explicit go, separate from the session-level "proceed" —
+  production deploy touching already-live money routes is its own escalation point): the pre-push
+  hook ran the FULL monolith suite as a final gate (120/120 suites, 2122/2122 tests) before
+  `git push origin main` (`a1df0460..7eb22a41`) went through. money-service (Railway) redeployed
+  clean — `Nest application successfully started`, every module (including the new
+  `OutboxPublisherCron`/`OutboxService` providers and the `RiseworksModule` throttle fix)
+  initialized with zero DI errors, `/health` → `200`. Monolith (Vercel) deployment recorded
+  `state: success` via the GitHub deployments API, production URL responds `302` (normal
+  unauthenticated redirect). Both confirmed live, not just pushed.
   **Artifacts updated:** `4a-8-security-hardening-gate.migration-order.md` (Status → CONFIRMED,
   Done-when all checked, Deviations filled in full — 7 entries), `DECISION-LOG.md` (F14 →
   RESOLVED, full findings entry), `LESSONS-LEARNED.md` (L27 recurrence — 2 more file-existence-
