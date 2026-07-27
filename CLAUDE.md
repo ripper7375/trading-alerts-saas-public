@@ -24,9 +24,7 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W7 CONFIRMED and executed as VERIFY-RETIRE (CUTOVER block) — Part 19.5
-  (Wise) production cutover, `DISBURSEMENT_PROVIDER=WISE` live, single-affiliate THB smoke payout
-  drafted and funding initiated — 2026-07-27. **Not yet fully closed** — see below.
+- **Current:** Session 4A-W7 CONFIRMED & executed (Wise cutover live, SCB THB payout funded & pending SWIFT settlement); Session 4A-W8 (`4a-w8-riseworks-archival.migration-order.md`) APPROVED — 2026-07-27.
   **CONFIRM found the order rewritten (uncommitted, no Advisor-DRAFT/Davin-approval commit trail —
   the by-now-usual `LESSONS-LEARNED.md` L11 pattern) folding the predecessor PRE-DRAFT's blocking
   Entry Criterion 0 into an in-session "Step 1" code edit, and pulling RiseWorks archive switches

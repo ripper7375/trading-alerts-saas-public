@@ -6,8 +6,8 @@
 > RETIRE pattern — F42 (RESOLVED, Davin) prohibits deleting anything RiseWorks-related. If any step
 > below implies deletion, that step is wrong — stop and ask Davin.
 
-**Session:** 4A-W8 · **Variant:** VERIFY-RETIRE (ARCHIVE block) · **Status:** PRE-DRAFT
-**Generated:** 2026-07-27 (Executor, at 4A-W7's close) · **Estimated time:** ~1–2h
+**Session:** 4A-W8 · **Variant:** VERIFY-RETIRE (ARCHIVE block) · **Status:** APPROVED
+**Approved:** 2026-07-27 (Davin) · **Estimated time:** ~1–2h
 **Phase / plan section:** Phase 4A — money-service · Part 19.5 (RiseWorks → Wise), session 8 of 9
 **Ground truth:** `03-riseworks-archive-and-restore-runbook.md` §2.1–2.5 (the full checklist below
 is adapted from that section verbatim, not paraphrased — read it in full before executing) and
@@ -61,7 +61,7 @@ _(verified at CONFIRM time, not assumed — `EXECUTOR-PROTOCOL.md` §1.3)_
 
 - [ ] **4A-W7 fully closed, not just executed.** Specifically: the smoke payout's real
       `transfers#state-change` webhook has actually landed (not a hand-signed replay), `Commission
-    .status = PAID` observed exactly once, and the funding cycle monitoring window (order's own
+  .status = PAID` observed exactly once, and the funding cycle monitoring window (order's own
       Step 7) has passed clean. Archiving Rise is low-risk regardless (see below), but this order
       should not START until Wise is proven, not just wired.
 - [ ] `money-service` test suite green (baseline to diff against after this session's own edits).
