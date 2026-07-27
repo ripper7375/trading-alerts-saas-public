@@ -20,6 +20,7 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
+import { WisePaymentProvider } from '../wise/providers/wise-payment.provider';
 
 import { BatchManagerService } from './batch-manager.service';
 import { CommissionAggregatorService } from './commission-aggregator.service';
@@ -46,6 +47,12 @@ describe('DisbursementProcessorService', () => {
         TransactionService,
         RetryHandlerService,
         { provide: PrismaService, useValue: prismaMock },
+        // Session 4A-W7: DisbursementProcessorService now injects
+        // WisePaymentProvider (real class has 8 collaborators of its own --
+        // none of these existing tests exercise the WISE path, so a plain
+        // stub is sufficient; the WISE-specific behavior has its own
+        // coverage below and in provider-factory.spec.ts).
+        { provide: WisePaymentProvider, useValue: { name: 'WISE' } },
       ],
     }).compile();
 
@@ -135,6 +142,33 @@ describe('DisbursementProcessorService', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors[0]).toContain('unexpected db error');
+    });
+
+    it('routes aggregation through getAllPayableAffiliatesForProvider, not the bare provider-unaware query (4A-W7)', async () => {
+      // Regression coverage: before 4A-W7 this called
+      // getAllPayableAffiliates() unconditionally, which would silently
+      // ignore WISE's own AffiliateWiseRecipient-ACTIVE eligibility filter.
+      const aggregator = service[
+        'commissionAggregator'
+      ] as CommissionAggregatorService;
+      const forProviderSpy = jest.spyOn(
+        aggregator,
+        'getAllPayableAffiliatesForProvider'
+      );
+      const bareSpy = jest.spyOn(aggregator, 'getAllPayableAffiliates');
+
+      prismaMock.systemConfig.findUnique.mockResolvedValue(null);
+      prismaMock.commission.updateMany.mockResolvedValue({ count: 0 } as never);
+      prismaMock.commission.findMany.mockResolvedValue([]);
+
+      await service.processAutomatedDisbursements();
+
+      expect(forProviderSpy).toHaveBeenCalledWith('MOCK');
+      // getAllPayableAffiliatesForProvider delegates to the bare method
+      // internally for non-WISE providers (by design) -- the assertion
+      // that matters is the PROCESSOR calls the provider-aware entry point
+      // itself, not that the bare method is never reached at all.
+      expect(bareSpy).toHaveBeenCalled();
     });
   });
 

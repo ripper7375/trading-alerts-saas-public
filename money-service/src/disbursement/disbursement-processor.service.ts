@@ -16,6 +16,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { WisePaymentProvider } from '../wise/providers/wise-payment.provider';
 
 import { BatchManagerService } from './batch-manager.service';
 import { CommissionAggregatorService } from './commission-aggregator.service';
@@ -56,7 +57,8 @@ export class DisbursementProcessorService {
     private readonly logger: TransactionLoggerService,
     private readonly commissionAggregator: CommissionAggregatorService,
     private readonly batchManager: BatchManagerService,
-    private readonly paymentOrchestrator: PaymentOrchestratorService
+    private readonly paymentOrchestrator: PaymentOrchestratorService,
+    private readonly wisePaymentProvider: WisePaymentProvider
   ) {}
 
   /**
@@ -135,9 +137,15 @@ export class DisbursementProcessorService {
         });
       }
 
-      // Get all payable affiliates
+      // Get provider (fetched before aggregation -- 4A-W7: WISE needs its
+      // own AffiliateWiseRecipient-aware aggregation, not the generic query)
+      const providerType = getDefaultProvider();
+
+      // Get all payable affiliates, eligibility-filtered per provider
       const aggregates =
-        await this.commissionAggregator.getAllPayableAffiliates();
+        await this.commissionAggregator.getAllPayableAffiliatesForProvider(
+          providerType
+        );
 
       if (aggregates.length === 0) {
         await this.logger.log({
@@ -162,9 +170,6 @@ export class DisbursementProcessorService {
 
       affiliatesProcessed = aggregates.length;
 
-      // Get provider
-      const providerType = getDefaultProvider();
-
       // Create batch
       const batch = await this.batchManager.createBatch(
         aggregates,
@@ -175,7 +180,12 @@ export class DisbursementProcessorService {
 
       // Execute batch
       try {
-        const paymentProvider = createPaymentProvider(providerType);
+        const paymentProvider = createPaymentProvider(
+          providerType,
+          providerType === 'WISE'
+            ? { wiseProvider: this.wisePaymentProvider }
+            : undefined
+        );
         const result = await this.paymentOrchestrator.executeBatch(
           batch.id,
           paymentProvider

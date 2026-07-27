@@ -25,6 +25,7 @@ import { WiseStateMapper } from '../wise/services/wise-state.mapper';
 import { WiseTransferStateReducer } from '../wise/services/wise-transfer-state.reducer';
 import { WiseApiClient } from '../wise/wise-api.client';
 import { WiseConfig } from '../wise/wise.config';
+import { WiseModule } from '../wise/wise.module';
 
 import { AffiliateCronService } from './affiliate.service';
 import { CronSecretGuard } from './cron-secret.guard';
@@ -34,6 +35,14 @@ import { SubscriptionCronService } from './subscription.service';
 import { WiseReconciliationService } from './wise-reconciliation.service';
 
 @Module({
+  // Session 4A-W7: WiseModule already exports a fully DI-constructed
+  // WisePaymentProvider (its 8 collaborators resolved by Nest, not
+  // hand-wired) -- imported here rather than duplicating that whole
+  // subtree the way WiseConfig/WiseApiClient/etc. are duplicated below,
+  // since NestJS de-dupes a shared module import across the app (WiseModule
+  // is already imported once in AppModule; this doesn't re-register its
+  // BullMQ queue).
+  imports: [WiseModule],
   controllers: [CronTriggerController],
   providers: [
     // File 2/6

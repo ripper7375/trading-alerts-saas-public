@@ -28,6 +28,15 @@ export interface ProviderFactoryConfig {
     teamId: string;
     webhookSecret: string;
   };
+  /**
+   * Wise provider instance, already constructed by Nest's DI container
+   * (`WisePaymentProvider` has 8 injected collaborators — this plain
+   * factory function has no DI context of its own to build one). The
+   * caller (`DisbursementProcessorService`, which imports `WiseModule`)
+   * supplies it here rather than this file importing anything from
+   * `wise/*` directly.
+   */
+  wiseProvider?: PaymentProvider;
 }
 
 /**
@@ -59,6 +68,14 @@ export function createPaymentProvider(
         'RISE provider is not yet implemented. Use MOCK provider for development or wait for Phase C implementation.'
       );
 
+    case 'WISE':
+      if (!config?.wiseProvider) {
+        throw new Error(
+          'WISE provider requires a DI-constructed WisePaymentProvider instance passed via config.wiseProvider — this factory has no DI context to build one itself.'
+        );
+      }
+      return config.wiseProvider;
+
     default:
       // This should never happen due to isValidProvider check, but TypeScript likes exhaustive checks
       throw new Error(`Unknown payment provider: ${provider}`);
@@ -82,6 +99,8 @@ export function isProviderAvailable(provider: DisbursementProvider): boolean {
     case 'RISE':
       // Will return true after Phase C implementation
       return false;
+    case 'WISE':
+      return true;
     default:
       return false;
   }
@@ -99,6 +118,10 @@ export function getAvailableProviders(): DisbursementProvider[] {
 
   if (isProviderAvailable('RISE')) {
     providers.push('RISE');
+  }
+
+  if (isProviderAvailable('WISE')) {
+    providers.push('WISE');
   }
 
   return providers;
