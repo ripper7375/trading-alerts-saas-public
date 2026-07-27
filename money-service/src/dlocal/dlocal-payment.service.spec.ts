@@ -7,7 +7,15 @@
  */
 import crypto from 'crypto';
 
+const mockRedisSet = jest.fn();
+jest.mock('ioredis', () => {
+  return jest.fn().mockImplementation(() => ({
+    set: mockRedisSet,
+  }));
+});
+
 import {
+  acquireCreatePaymentLock,
   createPayment,
   verifyWebhookSignature,
   getPaymentStatus,
@@ -292,6 +300,55 @@ describe('dLocal Payment Service', () => {
     it('should return null for order ID with missing parts', () => {
       expect(extractUserIdFromOrderId('order')).toBeNull();
       expect(extractUserIdFromOrderId('order-user')).toBeNull();
+    });
+  });
+
+  describe('acquireCreatePaymentLock (Session 4A-9, File 5/10)', () => {
+    beforeEach(() => {
+      mockRedisSet.mockReset();
+    });
+
+    it('returns true (proceed) on the first attempt for a given key', async () => {
+      mockRedisSet.mockResolvedValue('OK');
+
+      const acquired = await acquireCreatePaymentLock(
+        'user-1',
+        'MONTHLY',
+        'USD'
+      );
+
+      expect(acquired).toBe(true);
+      expect(mockRedisSet).toHaveBeenCalledWith(
+        'dlocal-create:user-1:MONTHLY:USD',
+        '1',
+        'EX',
+        30,
+        'NX'
+      );
+    });
+
+    it('returns false (duplicate) when the key is already held', async () => {
+      mockRedisSet.mockResolvedValue(null);
+
+      const acquired = await acquireCreatePaymentLock(
+        'user-1',
+        'MONTHLY',
+        'USD'
+      );
+
+      expect(acquired).toBe(false);
+    });
+
+    it('fails open (returns true) on a Redis error', async () => {
+      mockRedisSet.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const acquired = await acquireCreatePaymentLock(
+        'user-1',
+        'MONTHLY',
+        'USD'
+      );
+
+      expect(acquired).toBe(true);
     });
   });
 });

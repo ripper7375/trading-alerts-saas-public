@@ -12,7 +12,10 @@
 
 import crypto from 'crypto';
 
+import Redis from 'ioredis';
+
 import { logger } from '../common/logger.util';
+import { MONEY_KEY_PREFIX } from '../queue/queue.constants';
 
 import type {
   DLocalPaymentRequest,
@@ -25,6 +28,56 @@ const DLOCAL_API_URL =
 const DLOCAL_API_KEY = process.env['DLOCAL_API_KEY'] || '';
 const DLOCAL_SECRET_KEY = process.env['DLOCAL_SECRET_KEY'] || '';
 const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || '';
+
+/** 30s: absorbs a double-click/client retry without blocking a deliberate later attempt. */
+const CREATE_PAYMENT_IDEMPOTENCY_TTL_SECONDS = 30;
+
+let lockRedisClient: Redis | null = null;
+
+function getLockRedisClient(): Redis {
+  if (!lockRedisClient) {
+    lockRedisClient = new Redis(
+      process.env['REDIS_URL'] ?? 'redis://localhost:6379',
+      { keyPrefix: `${MONEY_KEY_PREFIX}idempotency:` }
+    );
+  }
+  return lockRedisClient;
+}
+
+/**
+ * Idempotency guard for payment creation (Session 4A-9, File 5/10 --
+ * ported from lib/dlocal/dlocal-payment.service.ts's own 4A-8 addition,
+ * lib/idempotency/idempotency-guard.ts's Redis SET-NX-EX + fail-open
+ * logic inlined here since money-service has no equivalent shared
+ * helper). Returns `true` the first time this exact
+ * (userId, planType, currency) combination is seen within the window --
+ * the caller should proceed. Returns `false` on every duplicate within
+ * the window -- the caller must NOT create a second Payment row or call
+ * dLocal again. Fails open (returns `true`) on a Redis error -- a dedupe
+ * guard must never be the reason a legitimate payment can't go through.
+ */
+export async function acquireCreatePaymentLock(
+  userId: string,
+  planType: string,
+  currency: string
+): Promise<boolean> {
+  const key = `dlocal-create:${userId}:${planType}:${currency}`;
+  try {
+    const result = await getLockRedisClient().set(
+      key,
+      '1',
+      'EX',
+      CREATE_PAYMENT_IDEMPOTENCY_TTL_SECONDS,
+      'NX'
+    );
+    return result === 'OK';
+  } catch (error) {
+    logger.error('[Idempotency] Redis lock check failed, failing open', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return true;
+  }
+}
 
 /**
  * Generates HMAC signature for dLocal API requests
