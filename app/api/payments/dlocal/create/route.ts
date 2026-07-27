@@ -32,6 +32,11 @@ import { isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
 import { PRICING, getPlanDuration } from '@/lib/dlocal/constants';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
+import { shouldUseMoneyServiceForDlocalWrite } from '@/lib/money-service/flags';
+import {
+  forwardWriteRequestToMoneyService,
+  MoneyServiceError,
+} from '@/lib/money-service/write-routes';
 import type { DLocalCountry, DLocalCurrency } from '@/types/dlocal';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +57,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Session 4A-10a: money-service's DlocalPaymentController (Session 4A-9
+    // PORT) already re-implements this route in full, including its
+    // acquireCreatePaymentLock idempotency guard -- forward the raw request
+    // instead of running this logic twice.
+    if (shouldUseMoneyServiceForDlocalWrite()) {
+      const data = await forwardWriteRequestToMoneyService(
+        request,
+        '/v1/payments/dlocal/create'
+      );
+      return NextResponse.json(data);
     }
 
     const userId = session.user.id;
@@ -270,6 +287,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       planDuration: getPlanDuration(planType),
     });
   } catch (error) {
+    if (error instanceof MoneyServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
+
     logger.error('Failed to create payment', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
