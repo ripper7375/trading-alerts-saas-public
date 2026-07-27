@@ -5,7 +5,7 @@
 > IS the deliverable. The current monolith code is ground truth, the OpenAPI contract is the law.
 
 **Session:** 4A-9 (BUILD) · **Variant:** PORT · **Status:** CONFIRMED
-**Generated:** 2026-07-27 (Advisor) · **Revised:** 2026-07-27 (Advisor/Davin Ground-Truth Re-alignment) · **Confirmed:** 2026-07-27 (Executor — status-edit authenticity confirmed live by Davin; AdminGuard path citation re-verified and corrected, all other Ground-Truth Re-alignment items re-verified live and hold) · **Flags touched:** `MIGRATE_WRITE_APIS_MONEY_STRIPE`, `MIGRATE_WRITE_APIS_MONEY_DLOCAL`, `MIGRATE_WRITE_APIS_MONEY_ADMIN`, `MIGRATE_WRITE_APIS_MONEY_DISBURSEMENT` (new flags, defined for 4A-10 cutover) · **Estimated time:** ~3–4h
+**Generated:** 2026-07-27 (Advisor) · **Revised:** 2026-07-27 (Advisor/Davin Ground-Truth Re-alignment) · **Flags touched:** `MIGRATE_WRITE_APIS_MONEY_STRIPE`, `MIGRATE_WRITE_APIS_MONEY_DLOCAL`, `MIGRATE_WRITE_APIS_MONEY_ADMIN`, `MIGRATE_WRITE_APIS_MONEY_DISBURSEMENT` (new flags, defined for 4A-10 cutover) · **Estimated time:** ~3–4h
 **Target service:** money-service
 **Contract:** OpenAPI specs for money domain (`docs/trading_alerts_openapi.yaml` / NestJS controllers under `/v1/*`).
 **Contract Rule:** ⚠️ **REAL MONEY.** Per `04-rise-to-wise-migration-plan.md`'s roadmap, Slice 4 does NOT get the VERIFY-RETIRE fast-path — requires full Advisor DRAFT → Davin APPROVED cycle before CONFIRM. **Every write endpoint MUST explicitly specify its idempotency key mechanism in this order — a write endpoint without one is a blocker, not a TODO.**
@@ -27,7 +27,7 @@ This session is **BUILD ONLY** — zero production traffic cut over. Cutover (fl
 - [x] Session 4A-8 CONFIRMED and closed (`money-service` test suite green 49/49 suites, 400/400 tests, `OutboxEvent` live, `IdempotencyInterceptor` ready).
 - [x] Monolith test suites green (`__tests__/lib/stripe/stripe.test.ts`, `__tests__/lib/dlocal/dlocal-payment.test.ts`, `__tests__/lib/admin/code-distribution.test.ts`, `__tests__/api/disbursement/*`). Note: HTTP controller tests for `checkout`, `subscription/cancel`, and `stripe webhook` do not exist in monolith; new NestJS controller specs will be authored as part of porting.
 - [x] File inventory below verified against live codebase (paths + line counts re-verified on 2026-07-27).
-- [x] Davin present for session authorization (confirmed live, this exchange).
+- [x] Davin present for session authorization.
 
 ---
 
@@ -94,7 +94,7 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
   - Call `StripeService.cancelSubscription` and downgrade user tier in Prisma transaction (creating `OutboxEvent` for `operation-service`).
 - **Invariants:**
   - Immediately set user tier to `FREE`.
-  - Call `sendCancellationEmail` (via `OutboxEvent` / email queue).
+  - Emit `OutboxEvent({ eventType: 'SUBSCRIPTION_CANCELLED' })` for `operation-service` email dispatch (following dLocal 4A-5 precedent).
   - Return `{ success: true, message: 'Subscription cancelled successfully', tier: 'FREE' }`.
 - **Idempotency Key Mechanism:** **Idempotent by construction** (audited in 4A-W4: re-running sets `tier: 'FREE'` / `status: 'CANCELED'` again; repeat Stripe cancel calls catch 400 "already canceled" gracefully). Optional `Idempotency-Key` header accepted if sent by client.
 - **Parity proof:** Write `stripe-subscription.controller.spec.ts` unit tests asserting tier downgrade, outbox event creation, and repeat cancellation safety.
@@ -104,18 +104,20 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
 
 ### File 4/10
 
-- **SOURCE:** `app/api/webhooks/stripe/route.ts` (149 lines) → **TARGET:** `money-service/src/stripe/stripe-webhook.controller.ts`
+- **SOURCE:** `app/api/webhooks/stripe/route.ts` (149 lines) + `lib/stripe/webhook-handlers.ts` (592 lines) → **TARGET:** `money-service/src/stripe/stripe-webhook.service.ts` & `stripe-webhook.controller.ts`
 - **Kind:** port + adapt
 - **Port steps:**
+  - Build `StripeWebhookService` porting business logic handlers from `lib/stripe/webhook-handlers.ts`.
   - Build NestJS `@Controller('v1/webhooks/stripe')`.
   - Add `@POST()`, `@Throttle({ default: { ttl: 60000, limit: 300 } })`, raw body parser for signature verification.
-  - Delegate event processing (`checkout.session.completed`, `customer.subscription.deleted`, `invoice.payment_failed`) to handler methods.
+  - Inject `ConversionProcessorService` (`money-service/src/affiliate/conversion-processor.service.ts` built in 4A-4) for affiliate commission crediting — **reuse as-is, do NOT rewrite**.
+  - For transactional email triggers: follow established dLocal precedent (4A-5). Write domain state synchronously and emit `OutboxEvent` (`TIER_UPGRADED`, `SUBSCRIPTION_CANCELLED`, `PAYMENT_FAILED`, `PAYMENT_SUCCEEDED`, `COMMISSION_CREDITED`) via `OutboxService` for `operation-service` processing.
 - **Invariants:**
   - Raw body signature verification via `stripe.webhooks.constructEvent(body, signature, secret)`.
   - Deduplicate side effects via downstream business-state checks (`Subscription.upsert` by `userId`, affiliate code status check before commission credit).
 - **Idempotency Key Mechanism:** `Stripe-Signature` header verification + event ID deduplication on business state (`affiliateCode.status !== 'ACTIVE'`).
 - **Parity proof:** Write `stripe-webhook.controller.spec.ts` unit tests with RSA/HMAC-signed payload fixtures.
-- **Commit:** `migrate(money-write-apis): port StripeWebhookController to money-service`
+- **Commit:** `migrate(money-write-apis): port StripeWebhookController and StripeWebhookService to money-service`
 
 ---
 
@@ -163,7 +165,7 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
 - **Kind:** port + adapt
 - **Port steps:**
   - Build `AdminCodeDistributionService` wrapping bonus code generation & distribution logic.
-  - Add `@POST(':id/distribute-codes')` to `AdminAffiliatesController` with `@UseGuards(JwtAuthGuard, AdminGuard)`, `@UseInterceptors(IdempotencyInterceptor)`. (Note: Uses `AdminGuard` from `money-service/src/admin/admin.guard.ts` — re-verified live 2026-07-27, not `auth/guards/`.)
+  - Add `@POST(':id/distribute-codes')` to `AdminAffiliatesController` with `@UseGuards(JwtAuthGuard, AdminGuard)`, `@UseInterceptors(IdempotencyInterceptor)`. (Note: Uses `AdminGuard` from `money-service/src/admin/admin.guard.ts`).
 - **Invariants:**
   - `count` bounded strictly between 1 and 50.
   - Requires Admin role (`@UseGuards(JwtAuthGuard, AdminGuard)`).
@@ -180,7 +182,7 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
 - **Kind:** port + adapt
 - **Port steps:**
   - Build NestJS `@Controller('v1/disbursement/batches')`.
-  - Add `@POST(':batchId/execute')`, `@UseGuards(JwtAuthGuard, AdminGuard)`, `@UseInterceptors(IdempotencyInterceptor)`. (Note: Uses `AdminGuard` from `money-service/src/admin/admin.guard.ts` via relative cross-module import — re-verified live 2026-07-27, not `auth/guards/`.)
+  - Add `@POST(':batchId/execute')`, `@UseGuards(JwtAuthGuard, AdminGuard)`, `@UseInterceptors(IdempotencyInterceptor)`. (Note: Uses `AdminGuard` from `money-service/src/admin/admin.guard.ts`).
   - Delegate execution to `PaymentOrchestrator.executeBatch`.
 - **Invariants:**
   - Batch status check: reject with 400 if `batch.status` is not `PENDING` or `QUEUED`.
@@ -255,7 +257,7 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
 - `lib/api/index.ts` — standing do-not-touch (Phase 7).
 - `POST /v1/stripe/subscriptions/cancel` — idempotent by construction (4A-W4 audit); optional header accepted, no mandatory lock required.
 - `payment-orchestrator.service.ts` — re-read 4A-W6 Deviations before editing `executeBatch` integration.
-- `AdminGuard` — use `money-service/src/admin/admin.guard.ts` (built 4A-6, exported as `AdminGuard`, imported by `admin-affiliates.controller.ts` today as `./admin.guard`); do not introduce `@Roles()` / `RolesGuard`.
+- `AdminGuard` — use `money-service/src/admin/admin.guard.ts` (built 4A-6); do not introduce `@Roles()` / `RolesGuard`.
 
 ---
 
