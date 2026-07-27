@@ -183,13 +183,32 @@ enum WiseFundingSource {
   MANUAL_DETECTED
 }
 
+/// Session 4A-9 (File 3/10, File 4/10): mirrors the monolith's real
+/// TrialStatus enum (prisma/non-market-data/schema.prisma) verbatim —
+/// needed because StripeSubscriptionController/StripeWebhookService write
+/// User.trialStatus. Additive only, no migration -- the column already
+/// exists in the shared Postgres table (L1/L32).
+enum TrialStatus {
+  NOT_STARTED
+  ACTIVE
+  EXPIRED
+  CONVERTED
+  CANCELLED
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /// NARROW subset (see header) — only fields the 8 crons + Slice 2 webhooks
-/// read/write. hasUsedThreeDayPlan/threeDayPlanUsedAt added Session 4A-4
-/// (File 1/4) — read/written by three-day-validator.service.ts.
+/// (+ Slice 4 write APIs, Session 4A-9) read/write.
+/// hasUsedThreeDayPlan/threeDayPlanUsedAt added Session 4A-4 (File 1/4) —
+/// read/written by three-day-validator.service.ts. trialStatus/
+/// trialConvertedAt/trialCancelledAt/hasUsedFreeTrial added Session 4A-9
+/// (File 3/10, File 4/10) — read/written by StripeSubscriptionController
+/// and StripeWebhookService, mirrored from the monolith's real columns
+/// (already exist in the shared Postgres table; additive schema-subset
+/// change only, no migration, per L1/L32).
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -198,6 +217,11 @@ model User {
 
   hasUsedThreeDayPlan Boolean   @default(false)
   threeDayPlanUsedAt  DateTime?
+
+  trialStatus      TrialStatus @default(NOT_STARTED)
+  trialConvertedAt DateTime?
+  trialCancelledAt DateTime?
+  hasUsedFreeTrial Boolean     @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
