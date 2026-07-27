@@ -24,7 +24,112 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-W6 CLOSED, executed as PORT — Part 19.5 (Wise) payout engine (`isFundable`
+- **Current:** Session 4A-W7 CONFIRMED and executed as VERIFY-RETIRE (CUTOVER block) — Part 19.5
+  (Wise) production cutover, `DISBURSEMENT_PROVIDER=WISE` live, single-affiliate THB smoke payout
+  drafted and funding initiated — 2026-07-27. **Not yet fully closed** — see below.
+  **CONFIRM found the order rewritten (uncommitted, no Advisor-DRAFT/Davin-approval commit trail —
+  the by-now-usual `LESSONS-LEARNED.md` L11 pattern) folding the predecessor PRE-DRAFT's blocking
+  Entry Criterion 0 into an in-session "Step 1" code edit, and pulling RiseWorks archive switches
+  A1/A2 forward into this session against `03-riseworks-archive-and-restore-runbook.md`'s own Rev 2
+  correction (which explicitly moved A1/A2 to 4A-W8 because `TEMPLATE-VERIFY-RETIRE.md` forbids code
+  at dial-near-zero). Stopped and asked Davin directly per the established pattern rather than
+  trusting or silently correcting; confirmed live as his own authentic edit — Step 1 DI approach
+  agreed live (import `WiseModule` into `CronsModule`, let Nest construct `WisePaymentProvider`),
+  Step 6 corrected back to A3-only (A1/A2 stay in W8, matching Rev 2).
+  **Found and fixed a live, unrelated production incident before proceeding:** `railway status`
+  showed money-service **Crashed** — `WISE_WEBHOOK_QUEUE = 'money:wise-webhook'` (wired 4A-W5)
+  crash-loops BullMQ, which rejects colons in queue names, since no deploy had ever actually booted
+  the real queue against real Redis (every prior session's tests mock it). This had been silently
+  breaking the ALREADY-cut-over dLocal webhooks (Slice 2), Slice 1 crons, and Slice 3 read APIs
+  since 2026-07-26 21:06 — discovered only because this CONFIRM checked runtime state directly
+  rather than trusting 4A-W6's own "payout engine & reconciliation cron live" claim. Davin fixed the
+  queue name (`money-wise-webhook`); Executor committed/pushed (`243887a3`), verified clean boot.
+  **Entry criteria re-verification found THREE of Davin's "confirmed" claims did not hold against
+  live state, checked twice each:** `RESEND_API_KEY`/`WISE_FUNDING_ALERT_EMAIL` absent (value-blind,
+  confirmed absent twice before Davin actually set them); `WISE_ENVIRONMENT=sandbox` not
+  `production`; `WISE_API_TOKEN` returned `401 invalid_token` against BOTH sandbox and production
+  hosts. All three were then genuinely fixed by Davin and re-verified live (token now `200`s against
+  `api.wise.com`, business profile `19918292` matches `WISE_PROFILE_ID` exactly) — not silently
+  trusted the second time either, independently re-checked.
+  **Step 1 build (DI wiring) surfaced three real gaps beyond the order's own 2-file description**
+  (all fixed, `LESSONS-LEARNED.md` L27-class recurrence): `disbursement.types.ts`'s hand-written
+  `DisbursementProvider` union was still `'RISE' | 'MOCK'` (Prisma's own generated enum has had
+  `'WISE'` since 4A-W2) — widened; `WisePaymentProvider`'s 8 DI-injected collaborators can't be
+  built by a plain non-DI factory function — `CronsModule` now imports `WiseModule` (already
+  exports a fully-resolved `WisePaymentProvider`), `provider-factory.ts`'s new `'WISE'` case accepts
+  it via `config.wiseProvider` rather than importing `wise/*` itself; `disbursement-processor
+.service.ts`'s cron was still calling the bare `getAllPayableAffiliates()` unconditionally —
+  4A-W6's own `getAllPayableAffiliatesForProvider('WISE')` existed but was never wired into the only
+  call site that creates a `PaymentBatch` — fixed. `money-service` 45/45 suites, 372/372 tests (was
+  44/44, 367/367). `tsc --noEmit`/`nest build` clean. Committed `7d1e5044` — initially NOT pushed
+  (caught before Step 4's verification: `origin/main` was still at the crash-fix commit, meaning the
+  env flip would have run against pre-Step-1 code and silently no-op'd to `MOCK` — exactly the
+  failure mode Entry Criterion 0 existed to prevent). Pushed, redeployed, clean boot confirmed
+  (`CronsModule`/`WiseModule` both initialize with zero DI errors).
+  **Step 3 (webhook subscription) executed via scripted API call**, not the Developer Hub UI:
+  `03-…reference.md`'s own cited path (`POST /v1/profiles/{id}/subscriptions`) is stale — 404'd even
+  on a safe GET; the real path is `POST /v3/profiles/{id}/subscriptions`. All 3 events subscribed
+  (`transfers#state-change`, `transfers#payout-failure`, `balances#update`, profile-level,
+  `4.0.0`). **Verified via the `WiseWebhookEvent` table directly, not log absence** —
+  `wise-webhook.controller.ts`'s test-notification success path is deliberately silent (no
+  `logger.*` call), so `railway logs` showing nothing proved nothing; all 3 test events found
+  `processed: true, signatureVerified: true` — first-ever real signature verification against
+  Wise's actual production key, not a hand-signed fixture.
+  **Step 5 (smoke payout) required real production data that didn't exist yet:** zero
+  `AffiliateWiseRecipient` rows and zero `Commission` rows existed anywhere in production at
+  session start. The existing `affiliate-test@trading-alerts.test` fixture (real, from 2026-07-25,
+  the only `AffiliateProfile` row in production) was reused rather than fabricating a new user — no
+  synthetic account created. A synthetic $50.00 `APPROVED` `Commission` was inserted (tagged
+  `paymentReference: '4A-W7-SMOKE-TEST'` for traceability), self-referential (`userId` = the same
+  test user) rather than inventing a second fake user. **Declined to submit the Wise recipient's
+  bank account number/bank code myself** — entering bank/account numbers into any field is
+  hard-prohibited regardless of authorization; Davin created the recipient live via the production
+  API himself (`1513584827`), verified live by the Executor (`GET /v1/accounts/1513584827` → `200`,
+  `active: true`, every field matched) before it was linked in the DB (`accountTail`/
+  `detailsFingerprint` only, per F41 — no raw account number ever entered this session).
+  **A genuine production-code incident found and self-corrected by Davin mid-session:** the first
+  attempt to link the recipient edited `money-service/src/main.ts`'s `bootstrap()` to run an
+  `AffiliateWiseRecipient.upsert()` on **every future application startup**, silently swallowing
+  any error — flagged immediately as permanent hardcoded-PII-adjacent code with a real forward
+  data-corruption risk (any future legitimate recipient update would be silently stomped back to
+  today's values on the next restart). Davin reverted it (`94fbd7fc`) once its one-time job was
+  done; the row itself was verified correct independent of the mechanism.
+  **A real batch-draft attempt via the app's own code (`WisePaymentProvider.prepareBatch`) failed
+  live with a genuine `422`** from Wise (real quote + real batch group created, transfer rejected) —
+  investigating it surfaced **F47** (new, OPEN, see `DECISION-LOG.md`): `wise-quote.service.ts`
+  passes the USD `commissionAmount` straight through as `targetAmount` in the recipient's LOCAL
+  currency — for THB this meant a `$50` commission requested `50 THB` (≈$1.49), not $50-worth of
+  THB. This is the first time any Wise payout code has run against a non-USD recipient; it would
+  have silently shorted every non-USD affiliate to ~1–3% of their real commission. **The transfer
+  that eventually did complete** (`a2528bbb-.../2272181669`, $50 USD pay-in → 1,394.22 THB) was
+  created **out-of-band, not through this bug** — and reconciling its numbers surfaced a SECOND,
+  independent gap: it used `sourceAmount`-fixed ($50 total including fees), meaning the recipient
+  received THB worth only ~$41.51, not $50 — which does **not** actually satisfy F38's own resolved
+  "platform absorbs the fee" design intent either. Neither problem was fixed in this session
+  (near-zero-dial VERIFY-RETIRE, not the place for quote-logic redesign) — both fully documented in
+  `DECISION-LOG.md` F47 and `LESSONS-LEARNED.md` L29, scoped as a dedicated future PORT session.
+  **The local DB was synced to match the real, externally-created Wise resources** (not duplicated —
+  the existing `PaymentBatch`/`WiseBatchGroup`/placeholder-`WiseTransfer` rows from the app's own
+  failed attempt were corrected in place to point at the real `a2528bbb-…`/`2272181669`, using
+  values pulled directly from Wise's API, not from chat-summarized numbers) — verified independently
+  after Davin reported it complete, per this session's own established practice of checking every
+  claim against live state before trusting it.
+  **Not yet closed:** funding is in progress (Davin wiring $50 USD, reference `B2812234`) but not
+  yet confirmed landed; `Commission.status` is still `APPROVED`, not `PAID` — the real
+  `transfers#state-change` webhook proving the reducer's exactly-once path works end-to-end on a
+  genuine (not hand-signed) production payload has not fired yet. RiseWorks archive switches A1/A2
+  correctly deferred to 4A-W8 (PRE-DRAFTed this session's close, carrying F47 forward explicitly).
+  **Full verification:** `money-service` 45/45 suites, 372/372 tests. `tsc --noEmit`/`nest build`
+  clean. Production money-service confirmed `Online` with clean boot logs (zero DI errors) after
+  every redeploy this session.
+  **Artifacts updated:\*\* `4a-w7-wise-cutover.migration-order.md` (Status → CONFIRMED, Deviations to
+  be filled at true close), `DECISION-LOG.md` (F47 registered + full entry, F43 update — alert
+  channel now confirmed live), `LESSONS-LEARNED.md` (new L29), `migration-cutover-table.md` (new
+  Slice 2W row, Slice 2's stale "zero Wise traffic" note corrected), this file.
+  `4a-w8-riseworks-archival.migration-order.md` PRE-DRAFTed (VERIFY-RETIRE, ARCHIVE block),
+  entry-gated on 4A-W7 actually finishing (funding confirmed, `Commission=PAID` observed, monitoring
+  window clean) — not just executed.
+- _(superseded-by-above, retained for context)_ Session 4A-W6 CLOSED, executed as PORT — Part 19.5 (Wise) payout engine (`isFundable`
   branch), zero traffic cut over — 2026-07-26.
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
   modified-but-uncommitted, `PRE-DRAFT → APPROVED`, no Advisor-DRAFT/Davin-approval commit trail,
@@ -650,8 +755,10 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-w6-wise-payout-engine.migration-order.md` (CONFIRMED and executed by
-  Executor 2026-07-26). Predecessor `4a-w5-wise-webhook-reducer.migration-order.md` stays
+  `docs/migration-orders/4a-w7-wise-cutover.migration-order.md` (CONFIRMED and executed by Executor
+  2026-07-27 — funding in progress, not yet fully closed; see Current above). Predecessor
+  `4a-w6-wise-payout-engine.migration-order.md` stays CONFIRMED/executed (see historical block
+  below). Predecessor `4a-w5-wise-webhook-reducer.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor `4a-w4-wise-hardening-gate.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Predecessor
   `4a-w3b-wise-recipient-ui.migration-order.md` stays
@@ -667,7 +774,15 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
-- **Order status (4A-W6):** payout engine (`isFundable` branch) built and verified clean — all 8
+- **Order status (4A-W7):** production cutover executed, not yet fully closed — `DISBURSEMENT_PROVIDER
+=WISE` live and DI-verified, all 3 production webhooks subscribed and signature-verified against
+  Wise's real key, single-affiliate THB smoke payout drafted with funding in progress. Real
+  production crash found and fixed ahead of the cutover (unrelated BullMQ queue-name bug, live
+  since 4A-W5). Three of Davin's "confirmed" entry-criteria claims initially didn't hold against
+  live state, then were genuinely fixed and re-verified. F47 (new, OPEN) found live — a real
+  currency-unit bug in the Wise quote logic, first surfaced by this session's own THB payout being
+  the first non-USD case ever run through it. See Current above for full detail.
+- **Order status (4A-W6, historical):** payout engine (`isFundable` branch) built and verified clean — all 8
   files shipped plus 3 extra test files (11 total), `money-service` 44/44 suites, 367/367 tests
   (was 33/33, 326/326 at 4A-W5's close). Monolith `tsc --noEmit` clean. F43 RESOLVED (Resend REST
   direct). Five order-text-vs-ground-truth mismatches found and corrected (SLA default,
@@ -999,12 +1114,24 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `app/api/disbursement/batches/[batchId]/execute` to money-service, the SAME code path 4A-W6's
   `isFundable` branch changed the behavior of (`payment-orchestrator.service.ts`'s `executeBatch`).
   Whichever of {4A-W7, 4A-9/10} runs second must re-read the other's Deviations first.
-- **Next session:** Davin's call, per `4a-w6-…`'s own Next-session-handoff note.
-  `4a-w7-wise-cutover.migration-order.md` (REAL MONEY CUTOVER, VERIFY-RETIRE variant) is
-  PRE-DRAFTed at status `PRE-DRAFT` — carries a NEW **Entry criterion 0** that must close before
-  the order can proceed at all (Waiting-on #54: the `DISBURSEMENT_PROVIDER` flip mechanism isn't
-  wired yet). Requires Davin present for every step once it does proceed
-  (`EXECUTOR-PROTOCOL.md` §7). Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
+  **(58, NEW)** 4A-W7's smoke payout funding is in progress (Davin wiring $50 USD, reference
+  `B2812234`) but not yet confirmed landed as of this session's close — `Commission.status` is
+  still `APPROVED`, not `PAID`. Spot-check for the real `transfers#state-change` webhook landing
+  (via `WiseWebhookEvent`, not log absence — the success path is silent by design) and confirm
+  `Commission=PAID`/balance moved exactly once before treating 4A-W7 as fully closed or starting
+  4A-W8. **(59, NEW)** `DECISION-LOG.md` **F47** (distinct from this list's own old item #47, which
+  was a different, already-resolved sandbox-token gap — always cite `DECISION-LOG.md F47`
+  explicitly to avoid confusion) — a real currency-unit bug in `wise-quote.service.ts`, found live
+  during 4A-W7's own THB smoke payout: the USD commission amount is passed straight through as
+  `targetAmount` in the recipient's local currency. First surfaced because this was the first-ever
+  non-USD case run through this code. Not blocking 4A-W8 (RiseWorks archival), but must not be
+  lost — needs its own dedicated PORT session before any further non-USD Wise payout.
+- **Next session:** Davin's call. `4a-w7-wise-cutover.migration-order.md` is CONFIRMED and executed
+  — not yet fully closed (funding in progress, `Commission=PAID` not yet observed, see Current
+  above). Once that lands, close 4A-W7 for real (Deviations, monitoring-window check) before
+  starting `4a-w8-riseworks-archival.migration-order.md` (PRE-DRAFTed this session's close,
+  VERIFY-RETIRE/ARCHIVE block, entry-gated on 4A-W7 actually finishing, carries `DECISION-LOG.md`
+  F47 forward explicitly so it doesn't get lost). Carry forward from 4A-W4: the 3-endpoint idempotency gap (#52) and
   `RiseWorksWebhookEvent`'s missing unique constraint stay flagged for 4A-8, not blocking. Carry
   forward from 4A-W3a/4A-W5: THB production fixture still needed (#46); the write-scoped sandbox
   `WISE_API_TOKEN` gap (#47) is unresolved — 4A-W6 worked around it (Option 2, RSA-signed test
@@ -1080,10 +1207,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F41 fully RESOLVED (Session 4A-W3a, Davin)** — Option A, Wise-managed PII; store only `accountTail` last 4 digits and `detailsFingerprint` SHA-256 hash ·
   **F42 fully RESOLVED (2026-07-25, Davin; recorded 4A-W1)** — RiseWorks archived, not
   deleted: dormant in repo AND database, restorable per `replace-rise-with-wise/03-…` ·
-  **F43 fully RESOLVED (Session 4A-W6, Davin)** — Option (a), Resend REST called directly from
-  money-service (native `fetch`, no new dependency); needs `RESEND_API_KEY` +
-  `WISE_FUNDING_ALERT_EMAIL` added to money-service's Railway env before it actually delivers
-  (confirmed absent this session) ·
+  **F43 fully RESOLVED (Session 4A-W6, Davin; delivery channel confirmed LIVE Session 4A-W7)** —
+  Option (a), Resend REST called directly from money-service (native `fetch`, no new dependency);
+  `RESEND_API_KEY` + `WISE_FUNDING_ALERT_EMAIL` confirmed present (value-blind) on money-service's
+  Railway production as of 4A-W7 — the alert path actually delivers now ·
+  **F47 OPEN (registered Session 4A-W7)** — `wise-quote.service.ts`'s `targetAmount` currency-unit
+  bug, found live during the first-ever non-USD Wise payout; full detail in `DECISION-LOG.md` ·
   F8–F14 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

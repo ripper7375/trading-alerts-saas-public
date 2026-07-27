@@ -1430,8 +1430,9 @@ successfully started`, no errors; `railway variables --kv` confirms
   `WiseBatchGroup` still `AWAITING_MANUAL_FUNDING` past `WISE_FUNDING_SLA_HOURS` (72h default) and
   POSTs to `https://api.resend.com/emails` with `RESEND_API_KEY`/`WISE_FUNDING_ALERT_EMAIL` read
   from env. The alert path fails closed (logs, never throws) if either var is unset — confirmed
-  absent (value-blind) on money-service's Railway environment as of this session, so the alert
-  will not actually deliver until Davin adds both.
+  absent (value-blind) as of 4A-W6's close. **Update (Session 4A-W7, 2026-07-27):** both
+  `RESEND_API_KEY` and `WISE_FUNDING_ALERT_EMAIL` are now confirmed present (value-blind) on
+  money-service's Railway production environment — the alert path is live.
 - Evidence: Davin, live, 2026-07-26 (this session) — selected "Resend REST directly (recommended)"
   when re-presented with design §13's own three options ((a) Resend REST — recommended, ~30 lines,
   no new dependency; (b) passive dashboard only; (c) external monitor; (d) revive the descoped
