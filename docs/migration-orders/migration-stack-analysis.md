@@ -2181,7 +2181,60 @@ Monolith `tsc --noEmit` clean (both Prisma clients regenerated). `DISBURSEMENT_P
 
 </details>
 
+<details>
+<summary><code>money-service</code> — Slice 4 write-API PORT (Stripe, dLocal create, admin code dist, disbursement execute), 21 new files, 8 modified (Session 4A-9)</summary>
+
+New:
+
+- `money-service/src/stripe/stripe.service.ts` + `.spec.ts` — checkout session creation,
+  subscription cancellation, webhook event construction (`ConfigService`-backed)
+- `money-service/src/stripe/stripe-checkout.controller.ts` + `.spec.ts` — `POST /v1/stripe/checkout`
+- `money-service/src/stripe/stripe-subscription.controller.ts` + `.spec.ts` —
+  `POST /v1/stripe/subscriptions/cancel`
+- `money-service/src/stripe/stripe-webhook.controller.ts` + `.spec.ts` — `POST /v1/webhooks/stripe`
+- `money-service/src/stripe/stripe-webhook.service.ts` + `.spec.ts` — ported from
+  `lib/stripe/webhook-handlers.ts` (order's own SOURCE list omitted this file; found and
+  re-scoped live with Davin, see the order's Deviations)
+- `money-service/src/stripe/stripe.module.ts` — new feature module, registered in `AppModule`
+- `money-service/src/dlocal/currency-converter.service.ts` + `.spec.ts` — ported from
+  `lib/dlocal/currency-converter.service.ts` (a second direct dependency the order's file list
+  omitted)
+- `money-service/src/dlocal/payment-methods.service.ts` + `.spec.ts` — ported from
+  `lib/dlocal/payment-methods.service.ts`
+- `money-service/src/dlocal/dlocal-payment.controller.ts` + `.spec.ts` —
+  `POST /v1/payments/dlocal/create`
+- `money-service/src/admin/admin-code-distribution.service.ts` + `.spec.ts` — reuses
+  `CodeGeneratorService` (4A-2)
+- `money-service/src/disbursement/controllers/disbursement-batches.controller.ts` + `.spec.ts` —
+  `POST /v1/disbursement/batches/:batchId/execute`
+- `money-service/src/disbursement/disbursement.module.ts` — new feature module, registered in
+  `AppModule`
+
+Modified:
+
+- `money-service/src/dlocal/dlocal-payment.service.ts` — added `acquireCreatePaymentLock` (4A-8's
+  30s Redis lock); existing `createPayment`/`generateSignature` (4A-4) untouched
+- `money-service/src/admin/admin-affiliates.controller.ts` — added
+  `POST /v1/admin/affiliates/:id/distribute-codes`
+- `money-service/src/admin/admin.module.ts` — new providers (needed immediately, not deferred to
+  the module-glue step, since this controller was already live in `AppModule`)
+- `money-service/src/dlocal/dlocal.module.ts` — `DlocalPaymentController` + `IdempotencyInterceptor`/
+  `IdempotencyStore` registered
+- `money-service/src/app.module.ts` — `StripeModule`/`DisbursementModule` imported
+- `money-service/prisma/schema.prisma` — `User` model gained `trialStatus`/`trialConvertedAt`/
+  `trialCancelledAt`/`hasUsedFreeTrial` + `TrialStatus` enum (additive, `prisma generate` only —
+  fields already exist in the monolith's real schema and shared Postgres table)
+- `money-service/package.json` — `stripe@^14.10.0` added (pinned to match the monolith's own
+  version after an initial unpinned install grabbed v22.3.2, an 8-major gap — see order Deviations)
+
+`money-service`: 59/59 suites, 506/506 tests (was 49/49, 400/400 at 4A-8's close). `nest build`
+clean. Monolith untouched (zero files changed), `tsc --noEmit` clean. `DISBURSEMENT_PROVIDER` and
+all 4 new `MIGRATE_WRITE_APIS_MONEY_*` flags untouched/unflipped — zero production traffic reaches
+any new route this session.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-27 (Session 4A-8, Slice 4 Hardening Gate)
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-27 (Session 4A-9, Slice 4 write-API PORT)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

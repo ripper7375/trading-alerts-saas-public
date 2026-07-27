@@ -26,7 +26,75 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-8 (Slice 4 Security & Idempotency Hardening Gate) CONFIRMED and executed
+- **Current:** Session 4A-9 (Slice 4 Write-APIs PORT) CONFIRMED and executed — 2026-07-27, all 10
+  files/steps shipped, zero production traffic cut over (BUILD only).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite — rough 8-item
+  Executor list → polished 10-file Advisor order — no Advisor-DRAFT/Davin-approval commit trail)
+  — confirmed live as Davin's own authentic Chat UI edit before proceeding. Also found and the
+  Advisor/Davin corrected before execution: a stale 4A-8 test-count citation (372/372 → the real
+  49/49 suites, 400/400 tests), monolith test-path citations that didn't exist
+  (`__tests__/stripe|payments|admin|disbursement` → the real `__tests__/lib/*` and
+  `__tests__/api/disbursement/*` locations), a real route-level test-coverage gap (no test existed
+  for the checkout/cancel/webhook routes, only their underlying `lib/` services — File 9/10
+  re-scoped to author new controller specs, not just port existing ones), a fabricated
+  `RolesGuard`/`@Roles('ADMIN')` mechanism (→ the real `AdminGuard`), `lib/admin/code-distribution.ts`'s
+  stale line count (112 → 193, an 81-line outlier unlike every other file's harmless ±1 drift), and
+  a missing Step 0 (stripe npm dependency). The correction pass itself then introduced one NEW
+  wrong citation (`AdminGuard` at a path that doesn't exist) — found and fixed during this same
+  CONFIRM pass.
+  **A real architecture gap found mid-session, escalated and resolved live with Davin before
+  writing code:** File 4/10's SOURCE list omitted `lib/stripe/webhook-handlers.ts` entirely (592
+  lines) — the file holding ALL real tier/subscription/affiliate-commission logic and 5
+  customer-facing email sends; the cited `route.ts` is a thin dispatcher. money-service has zero
+  email-sending capability. Davin approved: reuse `ConversionProcessorService` (4A-4, already used
+  by the live dLocal webhook) for commission crediting, and follow the established dLocal (Slice
+  2, 4A-5) precedent for the email question — write domain state synchronously, emit `OutboxEvent`s
+  (`TIER_UPGRADED`/`SUBSCRIPTION_CANCELLED`/`PAYMENT_FAILED`/`PAYMENT_SUCCEEDED`/
+  `COMMISSION_CREDITED`) for `operation-service` to eventually consume (Slice 5 / 4A-11-12) instead
+  of building a new direct-email capability. Not a new regression — once 4A-10 cuts this over,
+  Stripe-originated emails go silent the exact same way dLocal's already are, pending Slice 5.
+  **Two more direct-dependency omissions found the same way** (File 6/10):
+  `lib/dlocal/currency-converter.service.ts` and `lib/dlocal/payment-methods.service.ts`, both
+  directly imported by the dLocal create route and cited nowhere in the order — ported verbatim
+  with their existing monolith test suites. `LESSONS-LEARNED.md` L27 recurrence.
+  **Schema-subset gap found and fixed additively** (`prisma generate` only, zero migration, zero
+  production DB touch — L1/L32): money-service's `User` model was missing
+  `trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial` (+ `TrialStatus` enum),
+  needed by Files 3/10 and 4/10 — all four already exist in the monolith's real schema and the
+  shared Postgres table.
+  **Dependency-version gap found and fixed:** Step 0's `npm install stripe` (unpinned) grabbed
+  v22.3.2 instead of matching the monolith's pinned `^14.10.0` — an 8-major-version jump that
+  changed real Stripe SDK TypeScript shapes, caught by a genuine compile error. Reinstalled at
+  `^14.10.0`. New `LESSONS-LEARNED.md` **L30**.
+  **File 7/10's own idempotency mechanism deliberately diverges from the SOURCE**, per the order's
+  own explicit spec: the standard `IdempotencyInterceptor` (client `Idempotency-Key` header, 24h
+  TTL) replaces `lib/admin/code-distribution.ts`'s internal 30s Redis lock +
+  `DuplicateDistributionError` — a real difference in mechanism (client-header-based vs.
+  server-side hash-based), not just a naming change.
+  **All 10 files built and unit tested:** `money-service/src/stripe/*` (new module —
+  `StripeService`, `StripeCheckoutController`, `StripeSubscriptionController`,
+  `StripeWebhookController`+`StripeWebhookService`), `dlocal-payment.service.ts` extended
+  (`acquireCreatePaymentLock`), `DlocalPaymentController` (+ its 2 omitted dependencies),
+  `AdminCodeDistributionService` added to the already-live `AdminAffiliatesController`,
+  `DisbursementBatchesController` (new `disbursement.module.ts`, mirrors `CronsModule`'s provider
+  list + imports `WiseModule` for `WisePaymentProvider`), all 4 modules registered in `AppModule`.
+  **Full verification:** `money-service` 59/59 suites, 506/506 tests (was 49/49, 400/400 at 4A-8's
+  close — +10 suites, +106 tests). `nest build` clean throughout. Monolith untouched (zero files
+  changed, confirmed via `git status`), `tsc --noEmit` clean. Zero flags flipped, zero URLs/
+  dashboards changed — genuinely zero production traffic reaches any of the 4 new/extended
+  modules this session.
+  **Artifacts updated:** `4a-9-money-service-write-apis-port.migration-order.md` (Status →
+  CONFIRMED, Deviations filled in full — 8 entries, Done-when all checked), `DECISION-LOG.md`
+  (new Session 4A-9 findings entry), `LESSONS-LEARNED.md` (L27 recurrence, new **L30**),
+  `migration-cutover-table.md` (Slice 4 row → BUILT), `migration-stack-analysis.md` (new
+  money-service entry, 21 new files + 8 modified), this file.
+  `4a-10-...migration-order.md` PRE-DRAFT still owed at next session open (Slice 4 cutover,
+  TEMPLATE-VERIFY-RETIRE) — not yet drafted this close given the size of this session's own
+  build; flag one route group at a time, Davin present for each live approval, and note the
+  email-silence consequence above explicitly in its own text so it isn't rediscovered as a
+  surprise regression during that session's CONFIRM.
+- _(superseded-by-above, retained for context)_ Session 4A-8 (Slice 4 Security & Idempotency Hardening Gate) CONFIRMED and executed
   — 2026-07-27, run concurrently with the still-open Wise track below (Davin's explicit choice:
   the DRAFT was generated and approved the same day 4A-W7 was still mid-close, jumping ahead of
   `4A-W8` in the originally-intended `4A-7 → 4A-W1…W8 → 4A-8` sequence — not a violation, a
@@ -874,6 +942,16 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
+- **Order status (4A-9):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
+  All 10 files/10 steps shipped in `money-service`: Stripe checkout/subscription/webhook
+  controllers + services (new `stripe.module.ts`), dLocal payment-creation controller (+ its 2
+  previously-omitted service dependencies), admin code distribution (added to the already-live
+  `AdminAffiliatesController`), disbursement batch-execution controller (new
+  `disbursement.module.ts`). Zero traffic cut over — no flags flipped, no URLs/dashboards
+  changed. `money-service` 59/59 suites, 506/506 tests; `nest build` clean; monolith untouched.
+  See Current above for the full list of gaps found and corrected mid-session (missing
+  webhook-handlers.ts SOURCE, two missing dLocal service dependencies, a schema-subset gap, a
+  Stripe SDK version mismatch).
 - **Order status (4A-8):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
   Idempotency hardened on the 3 real live monolith write paths (Stripe checkout, dLocal create,
   admin code distribution); reusable `IdempotencyInterceptor` built in money-service, unattached,
@@ -1245,18 +1323,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   harmless (no consumer expected yet) but worth a periodic row-count sanity check so it isn't
   silently forgotten.
 - **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
-  **Slice 4 track (this file's own numbering):** `4a-8-security-hardening-gate.migration-order.md`
-  is CONFIRMED, executed, and fully closed (see Current/Order status above) —
-  `4a-9-…migration-order.md` (Slice 4 Write APIs cutover) is next, PRE-DRAFTed at this session's
-  close. Slice 4 moves REAL MONEY (Stripe checkout, dLocal create, batch execute) — per the
-  plan's own roadmap this does NOT get the VERIFY-RETIRE fast-path; it needs a full
-  Advisor DRAFT → Davin APPROVED cycle before CONFIRM, same bar as any other REAL MONEY session.
+  **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
+  is CONFIRMED, executed, and fully closed (see Current/Order status above) — Slice 4's write
+  APIs are now BUILT in `money-service` with zero traffic cut over. `4a-10-…migration-order.md`
+  (Slice 4 cutover, TEMPLATE-VERIFY-RETIRE) is next — **not yet drafted** (owed at next session
+  open, given the size of 4A-9's own build); flag one route group at a time
+  (`MIGRATE_WRITE_APIS_MONEY_STRIPE`/`_DLOCAL`/`_ADMIN`/`_DISBURSEMENT`), Davin present for each
+  live approval, same shape as 4A-7a/4A-7b's read-API split. **That order must explicitly carry
+  forward the email-silence consequence 4A-9 flagged**: once the Stripe flag flips, Stripe-
+  originated tier-upgrade/cancellation/payment emails go silent (deferred to `OutboxEvent`s,
+  same as dLocal's since 4A-5) — not a regression to discover mid-CONFIRM, already known and
+  accepted, but the order should say so explicitly rather than assume the next reader remembers.
   4A-8's own Step 1 closed the 3-endpoint idempotency gap Waiting-on #52 flagged (Stripe checkout,
   dLocal create, admin code distribution all now have a guard) — **#52 is RESOLVED.**
   `RiseWorksWebhookEvent`'s own missing unique constraint (also flagged under #52) was NOT
   touched this session (out of 4A-8's re-scoped Step 1, which was specifically the 3 write-path
   idempotency keys, not webhook-dedupe schema work) — likely moot once 4A-W8 archives RiseWorks,
-  otherwise still open. **Wise track (unaffected by 4A-8):**
+  otherwise still open. **Wise track (unaffected by 4A-8/4A-9):**
   `4a-w7-wise-cutover.migration-order.md` is CONFIRMED and executed
   — not yet fully closed (funding in progress, `Commission=PAID` not yet observed, see Current
   above). Once that lands, close 4A-W7 for real (Deviations, monitoring-window check) before

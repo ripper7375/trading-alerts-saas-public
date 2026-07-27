@@ -222,6 +222,18 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   it — re-scoped live (Step 1, before CONFIRM) or escalated live (Step 2's production migration,
   mid-session) rather than silently building against nonexistent files.
 
+- Recurrence (Session 4A-9): the most severe form yet — an order omitted an entire dependency
+  FILE from its SOURCE list, not just a detail within a cited file. File 4/10's SOURCE named only
+  `app/api/webhooks/stripe/route.ts` (a thin dispatcher); ALL real business logic (tier upgrade,
+  subscription upsert, affiliate commission crediting, 5 email triggers) lives in
+  `lib/stripe/webhook-handlers.ts` (592 lines), never mentioned anywhere in the order. File 6/10
+  had the same shape at smaller scale: `app/api/payments/dlocal/create/route.ts` directly imports
+  `lib/dlocal/currency-converter.service.ts` and `payment-methods.service.ts`, neither cited. Both
+  found by actually reading the SOURCE file's own import statements before writing any target
+  code, not by trusting the order's file list as complete. Rule extension: for any PORT order
+  targeting a Next.js API route, read the route's own imports first — thin route handlers commonly
+  delegate real logic to sibling `lib/` files an order's file-count summary can silently omit.
+
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 
 - Symptom: 4A-W6's own Hard Invariant #4 and Rules both said "every pre-existing test in
@@ -261,3 +273,20 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   system's own default currency.
 - Source: Session 4A-W7 (2026-07-27), found live during the first-ever real non-USD Wise payout
   attempt · Status: ACTIVE · See `DECISION-LOG.md` F47.
+
+### L30 — Porting a dependency into money-service needs the monolith's PINNED version, not `npm install <pkg>`'s latest
+
+- Symptom: Session 4A-9's Step 0 (`cd money-service && npm install stripe`) pulled `stripe@22.3.2`
+  (latest) while the monolith pins `stripe@^14.10.0` — an 8-major-version gap. Surfaced as a real
+  `tsc` compile error (`Subscription.current_period_end` moved off the SDK's top-level type in
+  later major versions), not a silent bug — but a subtler API-version mismatch could easily have
+  shipped clean and only misbehaved against Stripe's real API at runtime.
+- Root cause: `npm install <pkg>` with no version specifier always resolves to the latest tag;
+  nothing prompts a check against what version the code being ported was actually written
+  against and tested with.
+- Rule: when a PORT session installs any dependency into money-service that the monolith already
+  depends on, check the monolith's `package.json` for its pinned version FIRST and install that
+  exact version/range (`npm install <pkg>@<same-range-as-monolith>`) — never a bare
+  `npm install <pkg>`. Behavior preservation (the PORT variant's whole premise) starts at the SDK
+  version, not just the code that calls it.
+- Source: Session 4A-9 (2026-07-27) · Status: ACTIVE

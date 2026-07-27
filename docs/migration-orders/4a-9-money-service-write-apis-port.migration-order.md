@@ -233,10 +233,10 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
 
 ## Slice-level verification (done when)
 
-- [ ] All 10 ported files/modules exist in `money-service`, unit tested, `nest build` clean.
-- [ ] `money-service` full test suite 100% green; monolith test suites still green (source untouched).
-- [ ] Every write endpoint verified to have its idempotency key mechanism active and tested.
-- [ ] Zero production traffic reaches any of these new `money-service` routes (no feature flags flipped ON).
+- [x] All 10 ported files/modules exist in `money-service`, unit tested, `nest build` clean.
+- [x] `money-service` full test suite 100% green (59/59 suites, 506/506 tests, up from 49/49, 400/400); monolith test suites still green (source untouched, `tsc --noEmit` clean).
+- [x] Every write endpoint verified to have its idempotency key mechanism active and tested (see Deviations #1/#2 for the two mechanisms that changed from the SOURCE's own approach, both signed off live).
+- [x] Zero production traffic reaches any of these new `money-service` routes (no feature flags flipped ON, no URLs/dashboards changed).
 
 ---
 
@@ -264,6 +264,64 @@ _(Dependency order: dependencies/leaf services → stateful adapters → NestJS 
 ## Deviations
 
 _(filled during execution — what / why / impact)_
+
+1. **File 4/10's SOURCE list omitted `lib/stripe/webhook-handlers.ts` entirely** (592 lines).
+   The cited `app/api/webhooks/stripe/route.ts` is a thin dispatcher; ALL real business logic
+   (tier upgrade, subscription upsert/status-mapping, affiliate commission crediting, 5
+   customer-facing email triggers) lives in the omitted file. Found before writing any code,
+   reported to Davin, who approved live: reuse `ConversionProcessorService` (built 4A-4,
+   already used by the live dLocal webhook) for commission crediting rather than reimplement
+   it, and replace the SOURCE's direct email sends with `OutboxEvent`s
+   (`TIER_UPGRADED`/`SUBSCRIPTION_CANCELLED`/`PAYMENT_FAILED`/`PAYMENT_SUCCEEDED`/
+   `COMMISSION_CREDITED`) written in the same transaction as the domain-state write — following
+   the established dLocal (Slice 2, 4A-5) precedent, not a new architecture. File 3/10's
+   `sendCancellationEmail` call was replaced the same way. Impact: zero production behavior
+   change this session (zero traffic cut over); once 4A-10 cuts this over, Stripe-originated
+   emails go silent the same way dLocal's already are, pending Slice 5 (4A-11/12)'s outbox
+   consumer — a pre-existing characteristic of this migration's architecture, not a new
+   regression introduced here.
+2. \*\*`lib/admin/code-distribution.ts`'s own internal 30s Redis lock (`acquireIdempotencyLock`
+   - `DuplicateDistributionError`) was NOT ported for File 7/10.\*\* Per the order's own explicit
+     spec, duplicate-submit protection there is the standard `IdempotencyInterceptor`
+     (client-supplied `Idempotency-Key` header, 24h TTL) instead. Real difference in mechanism:
+     the SOURCE's lock fires on ANY duplicate admin action within 30s regardless of client
+     headers; the interceptor only dedupes when the admin UI actually sends a matching header.
+     Followed the order's literal instruction rather than the SOURCE's literal mechanism.
+3. **File 6/10's dependency graph was incomplete.** `app/api/payments/dlocal/create/route.ts`
+   directly imports `lib/dlocal/currency-converter.service.ts` and
+   `lib/dlocal/payment-methods.service.ts`, neither cited anywhere in the order. Both ported
+   verbatim (`money-service/src/dlocal/currency-converter.service.ts`,
+   `payment-methods.service.ts`), along with their existing monolith test suites
+   (`__tests__/lib/dlocal/currency-converter.test.ts`, `payment-methods.test.ts`), assertions
+   unchanged.
+4. **File 5/10's own Port steps overstated the gap.** `createPayment()`/`generateSignature()`
+   already existed in `money-service/src/dlocal/dlocal-payment.service.ts` (ported byte-for-byte
+   in 4A-4). Only `acquireCreatePaymentLock` (4A-8's 30s Redis lock) was actually missing —
+   added additively; the two existing functions were not touched.
+5. **Schema gap: money-service's `User` model subset was missing 4 fields** (`trialStatus`,
+   `trialConvertedAt`, `trialCancelledAt`, `hasUsedFreeTrial`, + the `TrialStatus` enum) that
+   `StripeSubscriptionController` (File 3/10) and `StripeWebhookService` (File 4/10) need to
+   write. All four already exist in the monolith's real schema
+   (`prisma/non-market-data/schema.prisma`) and the shared Postgres table — money-service's
+   subset simply never mirrored them. Added additively to `money-service/prisma/schema.prisma`,
+   `prisma generate` only — no migration, no `db push`, no production DB touch (L1/L32).
+6. **Dependency-version gap:** Step 0's `npm install stripe` (unpinned) pulled latest (v22.3.2)
+   instead of matching the monolith's pinned `stripe@^14.10.0` — an 8-major-version gap that
+   changed real Stripe SDK TypeScript shapes (`Subscription.current_period_end` moved off the
+   top-level type in later versions), surfacing as a genuine compile error while building File
+   4/10. Reinstalled at `^14.10.0` to match the monolith exactly, preserving the order's own
+   Invariant (`apiVersion: '2024-11-20.acacia'` behavior parity).
+7. **AdminGuard path citation, corrected during CONFIRM (before execution):** the Advisor's
+   Ground-Truth Re-alignment pass introduced a new incorrect citation
+   (`money-service/src/auth/guards/admin.guard.ts`, which doesn't exist) for Files 7/10 and
+   8/10's `AdminGuard`. Corrected to the real path (`money-service/src/admin/admin.guard.ts`,
+   built 4A-6), verified live via the actual import in `admin-affiliates.controller.ts`.
+8. **`AdminModule` required immediate provider updates, not deferred to File 10/10.** Unlike
+   this order's other new controllers (whose module wiring is entirely File 10/10's job), File
+   7/10 extends the ALREADY-REGISTERED `AdminAffiliatesController` — `admin.module.ts` needed
+   `AdminCodeDistributionService`/`CodeGeneratorService`/`IdempotencyInterceptor`/
+   `IdempotencyStore` added as part of File 7/10 itself, or the module's DI graph would have
+   broken immediately (it's already live in `AppModule`).
 
 ---
 

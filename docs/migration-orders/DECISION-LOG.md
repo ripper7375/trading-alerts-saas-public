@@ -1787,3 +1787,58 @@ status=PENDING`) guards against double-processing across replicas. **Gated OFF b
   migration applied and grant-verified live, see above.
 - Approved by: Davin (live: DRAFT→APPROVED status edit confirmed authentic; Step 1 re-scoping
   onto the real monolith files; the production migration + grants; the Step 3 gated-OFF design).
+
+## Session 4A-9 — Slice 4 write-API PORT: findings (not flags, technical discoveries + one architecture decision)
+
+- **Status edit provenance (LESSONS-LEARNED L11, 9th+ recurrence):** the order arrived with an
+  uncommitted `PRE-DRAFT → APPROVED` status edit and a full content rewrite (rough 8-item
+  Executor list → polished 10-file Advisor order), no Advisor-DRAFT/Davin-approval commit trail.
+  Confirmed live by Davin as his own authentic Chat UI edit before CONFIRM proceeded.
+- **CONFIRM found and the Advisor/Davin corrected before execution:** a stale 4A-8 test-count
+  citation (372/372 → 49/49 suites, 400/400 tests), monolith test-path citations that didn't
+  exist (`__tests__/stripe|payments|admin|disbursement` → the real `__tests__/lib/*` and
+  `__tests__/api/disbursement/*` locations), a genuine route-level test-coverage gap (no test
+  existed for the checkout/cancel/webhook routes — only their underlying `lib/` services), a
+  fabricated `RolesGuard`/`@Roles('ADMIN')` mechanism (→ the real `AdminGuard`), an overstated
+  File 5/10 rewrite scope, `lib/admin/code-distribution.ts`'s stale line count (112 → 193 —
+  outlier, not the systemic ±1 pattern seen on every other file), and a missing Step 0 (stripe
+  npm dependency). The Advisor's own correction pass then introduced one NEW wrong citation
+  (`AdminGuard` at `auth/guards/admin.guard.ts`, which doesn't exist) — found and corrected during
+  this same CONFIRM pass to the real path (`admin/admin.guard.ts`).
+- **Architecture decision (Davin, live, this session):** File 4/10's SOURCE list omitted
+  `lib/stripe/webhook-handlers.ts` entirely — the file holding ALL real tier/subscription/
+  commission business logic, including 5 customer-facing email sends the monolith's Stripe
+  webhook currently makes directly. money-service has no email-sending capability. Davin approved
+  the Executor's recommendation: reuse `ConversionProcessorService` (built 4A-4, already used by
+  the live dLocal webhook) for commission crediting rather than reimplement it, and follow the
+  established dLocal (Slice 2, 4A-5) precedent for the email question — write domain state
+  synchronously, emit `OutboxEvent`s (`TIER_UPGRADED`/`SUBSCRIPTION_CANCELLED`/`PAYMENT_FAILED`/
+  `PAYMENT_SUCCEEDED`/`COMMISSION_CREDITED`) for `operation-service` to eventually consume (Slice
+  5 / 4A-11-12), rather than building a new direct-email capability into money-service. This is
+  consistent with, not a departure from, dLocal's already-live production behavior — Stripe-
+  originated tier-upgrade/cancellation emails will go silent the same way dLocal's already are
+  once 4A-10 cuts this over, pending Slice 5's outbox consumer. Zero behavior change THIS
+  session (zero traffic cut over).
+- **Two more direct-dependency omissions found the same way** (File 6/10):
+  `lib/dlocal/currency-converter.service.ts` and `lib/dlocal/payment-methods.service.ts`, both
+  imported directly by `app/api/payments/dlocal/create/route.ts` and cited nowhere in the order.
+  Ported verbatim alongside their existing monolith test suites. See `LESSONS-LEARNED.md` L27's
+  new recurrence.
+- **Schema-subset gap found and fixed additively:** money-service's `User` model was missing
+  `trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial` (+ the `TrialStatus`
+  enum) — all four already exist in the monolith's real schema and the shared Postgres table,
+  needed by Files 3/10 and 4/10. `prisma generate` only, zero migration, zero production DB
+  touch (L1/L32) — same class of subset-completeness gap as prior sessions, not a new column.
+- **Dependency-version gap found and fixed:** Step 0's `npm install stripe` (unpinned) grabbed
+  v22.3.2 instead of matching the monolith's pinned `^14.10.0` — an 8-major-version SDK jump that
+  changed real TypeScript shapes (`Subscription.current_period_end`), caught by a genuine
+  compile error while building File 4/10. Reinstalled at `^14.10.0`. New `LESSONS-LEARNED.md`
+  **L30**.
+- Evidence: `money-service` 59/59 suites, 506/506 tests (was 49/49, 400/400 at 4A-8's close).
+  `nest build` clean. Monolith untouched (`git status` clean on `lib/`/`app/`/`types/`/
+  `__tests__/`), `tsc --noEmit` clean. Zero flags flipped, zero URLs/dashboards changed — this
+  session is BUILD only, confirmed by the order's own Slice-level verification checklist, all
+  four items now checked.
+- Approved by: Davin (live: the DRAFT→APPROVED status-edit provenance; the webhook-handlers.ts
+  re-scope and its OutboxEvent-vs-email architecture call; the Ground-Truth Re-alignment content,
+  including the corrected `AdminGuard` path found during this same CONFIRM pass).
