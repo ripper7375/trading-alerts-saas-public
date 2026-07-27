@@ -14,6 +14,7 @@
 import { Controller, Post, Req, Res, Logger } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import { WebhookVerifier } from '../disbursement/providers/rise/webhook-verifier';
@@ -29,6 +30,14 @@ export class RiseworksWebhookController {
     private readonly eventProcessor: WebhookEventProcessorService
   ) {}
 
+  // Session 4A-8, Step 4 (CC-D audit): this route had no per-route
+  // override, relying on the app-wide ThrottlerGuard default (100 req/60s)
+  // -- the same gap 4A-W4 fixed on the dLocal webhook (a legitimate
+  // provider retry burst gets 429'd and read as a permanent delivery
+  // failure) and the standing policy that fix established for "all future
+  // payment-provider webhooks." Zero live-traffic risk either way (route
+  // archived/dormant per F42, dashboard still pointed at the monolith).
+  @Throttle({ default: { ttl: 60_000, limit: 300 } })
   @Post()
   async handleWebhook(
     @Req() request: RawBodyRequest<Request>,
