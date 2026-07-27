@@ -16,6 +16,11 @@ import {
   createCheckoutSession,
 } from '@/lib/stripe/stripe';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseMoneyServiceForStripeWrite } from '@/lib/money-service/flags';
+import {
+  forwardWriteRequestToMoneyService,
+  MoneyServiceError,
+} from '@/lib/money-service/write-routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST /api/checkout
@@ -54,6 +59,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         },
         { status: 401 }
       );
+    }
+
+    // Session 4A-10a: when the flag is on, money-service's StripeCheckoutController
+    // (Session 4A-9 PORT) already re-implements every check below (already-PRO,
+    // affiliate code validation, Stripe session creation) against the same schema --
+    // forward the raw request there instead of running this logic twice.
+    if (shouldUseMoneyServiceForStripeWrite()) {
+      const data = await forwardWriteRequestToMoneyService(
+        request,
+        '/v1/stripe/checkout'
+      );
+      return NextResponse.json(data);
     }
 
     const { id: userId, email, tier } = session.user;
@@ -151,6 +168,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       url: checkoutSession.url,
     });
   } catch (error) {
+    if (error instanceof MoneyServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
+
     console.error('[Checkout] Error creating checkout session:', error);
 
     // Handle specific Stripe errors

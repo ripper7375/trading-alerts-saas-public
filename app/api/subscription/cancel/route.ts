@@ -7,13 +7,18 @@
  * @module app/api/subscription/cancel/route
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { sendCancellationEmail } from '@/lib/email/subscription-emails';
 import { cancelSubscription } from '@/lib/stripe/stripe';
+import { shouldUseMoneyServiceForStripeWrite } from '@/lib/money-service/flags';
+import {
+  forwardWriteRequestToMoneyService,
+  MoneyServiceError,
+} from '@/lib/money-service/write-routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST /api/subscription/cancel
@@ -41,7 +46,7 @@ import { cancelSubscription } from '@/lib/stripe/stripe';
  *   "code": "NO_SUBSCRIPTION"
  * }
  */
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authenticate user
     const session = await getServerSession(authOptions);
@@ -55,6 +60,17 @@ export async function POST(): Promise<NextResponse> {
         },
         { status: 401 }
       );
+    }
+
+    // Session 4A-10a: money-service's StripeSubscriptionController (Session
+    // 4A-9 PORT) already re-implements this route in full, including the
+    // OutboxEvent emission the monolith path below has no equivalent for.
+    if (shouldUseMoneyServiceForStripeWrite()) {
+      const data = await forwardWriteRequestToMoneyService(
+        request,
+        '/v1/stripe/subscriptions/cancel'
+      );
+      return NextResponse.json(data);
     }
 
     const userId = session.user.id;
@@ -141,6 +157,10 @@ export async function POST(): Promise<NextResponse> {
       tier: 'FREE',
     });
   } catch (error) {
+    if (error instanceof MoneyServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
+
     console.error('[Cancel] Error cancelling subscription:', error);
     return NextResponse.json(
       {
