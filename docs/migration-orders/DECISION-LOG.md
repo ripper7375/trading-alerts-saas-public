@@ -1842,3 +1842,36 @@ status=PENDING`) guards against double-processing across replicas. **Gated OFF b
 - Approved by: Davin (live: the DRAFT→APPROVED status-edit provenance; the webhook-handlers.ts
   re-scope and its OutboxEvent-vs-email architecture call; the Ground-Truth Re-alignment content,
   including the corrected `AdminGuard` path found during this same CONFIRM pass).
+
+## Session 4A-9 (close-out addendum) — 4A-10 PRE-DRAFT review: no shadow-run mechanism, no cutover transport
+
+- **Context:** same day as 4A-9's own close, reviewing the 4A-10 PRE-DRAFT
+  (`4a-10-money-service-write-apis-cutover.migration-order.md`, Advisor-generated) before it goes
+  to Davin for approval.
+- **Finding 1 (architecture decision, Davin live):** the PRE-DRAFT's Entry Criterion 1 claimed a
+  "48h mirror-run window" — verified live that no shadow-traffic mechanism exists for Slice 4 at
+  all (zero references to `money-service`/any `MIGRATE_WRITE_APIS_MONEY_*` flag anywhere in
+  `lib/`/`app/`/`money-service/src/`; 4A-9 was BUILD-only, zero traffic). A literal "mirror-run"
+  claim would report 48h of silence as a clean diff — nothing would ever be observed, since
+  nothing reaches the new controllers. Davin's live call: reframe as a **code-freeze SOAK
+  window** (calendar/CC-F-freeze buffer only, no diff claim), matching Slice 3's own F44
+  precedent (no real shadow-run infra exists in this repo, F34/CC-A gap). Order text corrected
+  accordingly (Entry Criterion 1, Checklist Step 1).
+- **Finding 2 (CRITICAL, hard-blocking, found independently while finalizing the same order):**
+  Checklist Step 3 ("Flip Feature Flags") would currently be a silent no-op. None of the 5
+  monolith write routes have any `MIGRATE_WRITE_APIS_MONEY_*` flag check or forwarding call to
+  money-service — `lib/money-service/routes.ts`/`flags.ts` (built 4A-7a) only cover Slice 3's
+  read APIs and some Wise-track wrappers. Flipping any of the 4 flags in Railway right now would
+  change nothing; the monolith routes would keep executing their existing Prisma logic
+  unconditionally. Same failure shape as 4A-W6/W7's own Waiting-on #54
+  (`DISBURSEMENT_PROVIDER=WISE` not actually constructible before that gap was closed). Recorded
+  as 4A-10's own new Entry Criterion 0, hard-blocking — a new BUILD session (monolith-side
+  transport + flag-check layer for the 5 write routes, mirroring 4A-7a's own Slice-3 scope) must
+  ship and be CONFIRMED before 4A-10 can execute.
+- Evidence: `grep -ln "money-service\|MONEY_SERVICE_URL\|MIGRATE_WRITE_APIS_MONEY"` across all 5
+  monolith write routes plus `app/api/webhooks/stripe/route.ts` → zero matches. `grep -rl
+"MIGRATE_WRITE_APIS_MONEY" lib/ app/ money-service/src/` → zero matches anywhere.
+- Approved by: Davin (live, Finding 1's reframe, via `AskUserQuestion` — "Reframe as code-freeze
+  soak" selected over keeping the literal wording or building a real shadow-traffic mechanism
+  first). Finding 2 is a factual/structural gap, not a decision — recorded as a hard-blocking
+  entry criterion for Davin and the Advisor to plan the missing BUILD session against.

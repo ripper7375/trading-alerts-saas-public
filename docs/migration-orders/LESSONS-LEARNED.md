@@ -290,3 +290,28 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   `npm install <pkg>`. Behavior preservation (the PORT variant's whole premise) starts at the SDK
   version, not just the code that calls it.
 - Source: Session 4A-9 (2026-07-27) · Status: ACTIVE
+
+### L31 — A cutover order's "flip the flag" step needs the flag to actually be READ somewhere; a BUILD session that only ships the new side leaves the flip a no-op
+
+- Symptom (2nd occurrence): 4A-W6 built `WisePaymentProvider` but never wired `'WISE'` into
+  `provider-factory.ts`/`disbursement.constants.ts` — 4A-W7's own literal cutover step
+  ("flip `DISBURSEMENT_PROVIDER=MOCK → WISE`") would have silently done nothing
+  (Waiting-on #54). Recurred at Slice 4: 4A-9 built all 10 money-service-side write
+  controllers, but the monolith's 5 existing write routes have zero flag-check/forwarding code
+  to money-service at all (`lib/money-service/routes.ts`/`flags.ts`, built 4A-7a, only cover
+  Slice 3's reads) — 4A-10's own "Flip Feature Flags" checklist step would be a silent no-op,
+  found while finalizing that PRE-DRAFT, before any flag was ever touched.
+- Root cause: a PORT/BUILD session that only ships the NEW side (money-service's controllers,
+  or a new provider class) can look 100% complete by its own Done-when checklist while the OLD
+  side (the monolith route, or the provider-factory dispatch) never got the matching flag-check/
+  dispatch-case added — nothing in either session's own scope forces a check that flipping the
+  named flag would actually change which code path runs.
+- Rule: before treating any BUILD/PORT session as sufficient prerequisite for its own named
+  cutover flag, grep the ENTIRE codebase (not just the new side) for that flag's exact name —
+  if it comes back with zero reads outside documentation/config, the cutover step is currently a
+  no-op regardless of how complete the new side is. A PORT session that builds a new endpoint
+  set behind a flag must also build (or explicitly hand off as a separate, scoped follow-up) the
+  OLD side's flag-check/dispatch wiring — mirroring how 4A-7a built the monolith-side
+  `lib/money-service/routes.ts`/`flags.ts` transport BEFORE 4A-7b's own cutover, not after.
+- Source: Session 4A-W7 (2026-07-27, Waiting-on #54) · Recurrence: Session 4A-9 (2026-07-27,
+  found while finalizing 4A-10's PRE-DRAFT, before execution) · Status: ACTIVE
