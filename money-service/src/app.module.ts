@@ -10,11 +10,13 @@ import Redis from 'ioredis';
 import { AdminModule } from './admin/admin.module';
 import { AffiliateModule } from './affiliate/affiliate.module';
 import { CronsModule } from './crons/crons.module';
+import { DisbursementModule } from './disbursement/disbursement.module';
 import { DlocalModule } from './dlocal/dlocal.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
 import { RiseworksModule } from './riseworks/riseworks.module';
+import { StripeModule } from './stripe/stripe.module';
 import { WiseModule } from './wise/wise.module';
 
 // F15 (DECISION-LOG.md): the SAME shared Railway Redis instance
@@ -70,6 +72,15 @@ import { WiseModule } from './wise/wise.module';
     // consumes them yet (4A-W3b builds that next), so registering this
     // module carries no live traffic risk.
     WiseModule,
+    // Session 4A-9: Slice 4 write-API PORT (Stripe checkout/subscription/
+    // webhook, disbursement batch execution). Unique paths under
+    // /v1/stripe/*, /v1/payments/dlocal/create (added to the existing
+    // DlocalModule), /v1/admin/affiliates/:id/distribute-codes (added to
+    // the existing AdminModule), and /v1/disbursement/batches/:id/execute —
+    // ZERO live traffic: no feature flag flipped, no URL change, no
+    // dashboard/client repointed. Cutover is Session 4A-10.
+    StripeModule,
+    DisbursementModule,
   ],
   providers: [
     {
