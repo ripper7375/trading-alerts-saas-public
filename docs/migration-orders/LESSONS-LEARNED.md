@@ -315,3 +315,10 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   `lib/money-service/routes.ts`/`flags.ts` transport BEFORE 4A-7b's own cutover, not after.
 - Source: Session 4A-W7 (2026-07-27, Waiting-on #54) · Recurrence: Session 4A-9 (2026-07-27,
   found while finalizing 4A-10's PRE-DRAFT, before execution) · Status: ACTIVE
+
+### L32 — A PORT session moves code that reads config; it does not move the config itself into the new service's real environment
+
+- Symptom: 4A-10b flipped `MIGRATE_WRITE_APIS_MONEY_STRIPE`/`_DLOCAL` true in production and both failed on real, live requests — not on the transport/auth/flag mechanism (proven working end-to-end both times via `money-service` logs), but because `STRIPE_PRO_PRICE_ID` was never set on `money-service`'s Railway production (`.env.example` had it; the real environment didn't — L21's exact class), and because `money-service`'s configured dLocal API credentials are genuinely invalid (`403 Invalid credentials` from dLocal itself). Two-for-two on the first two groups tested, not one-off bad luck.
+- Root cause: 4A-9 (the PORT session) copied the CODE that reads `STRIPE_SECRET_KEY`/`STRIPE_PRO_PRICE_ID`/`DLOCAL_API_KEY`/etc. into `money-service`, and someone separately added SOME of the corresponding Railway variables afterward — but nothing in either session's scope was "verify every config value the newly-ported code needs is present AND correct in the new service's real target environment," so partial/wrong configuration shipped silently behind an off-by-default flag until a live cutover attempt exercised it.
+- Rule: before any cutover session flips a flag for newly-PORTed code, enumerate every config value the ported code reads (grep the new service's source, not just its `.env.example`) and value-blind-verify (L17 method) each one is present on the real target environment — and where feasible, verify CORRECTNESS too (e.g., a real sandbox API call), not just presence, since a present-but-wrong credential (dLocal here) is invisible to a presence check alone.
+- Source: Session 4A-10b (2026-07-28) · Status: ACTIVE

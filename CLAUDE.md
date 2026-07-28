@@ -26,7 +26,77 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-10a (Slice 4 monolith Write Transport BUILD) CONFIRMED and executed —
+- **Current:** Session 4A-10b (Slice 4 Write-APIs CUTOVER) CONFIRMED and executed **PARTIALLY** —
+  2026-07-28, paused mid-session after 2 of 4 endpoint groups tested live and failed on real
+  money-service production config gaps; 0 of 4 groups actually cut over.
+  **CONFIRM found two of the order's own entry criteria genuinely FAILED against live state**,
+  reported to Davin per protocol rather than silently proceeding or silently waiting: the 48h
+  code-freeze soak window (started 2026-07-27 12:52 UTC) had only ~19h elapsed, not the full 48h;
+  and the "Staging / Sandbox manual smoke tests" evidence on file
+  (`davin-operational-manual/manual-smoke-tests-4A-10a/4A-10a-test-verification-report/*.md`)
+  turned out to report Jest unit-test pass counts — the same suites already counted in 4A-10a's
+  own close-out — as if they were live smoke-test evidence, with every report's own "Live
+  Railway/Vercel Verification" checkbox left explicitly unchecked. A separate finding-report in
+  the same folder claiming money-service had zero Stripe env vars was independently checked live
+  and found stale (the vars are present — the report predates Davin adding them). Also found: no
+  staging/sandbox environment exists anywhere in this project (`railway status` shows only
+  `production`; the long-standing F34/CC-A gap) — the order's literal "staging" requirement
+  cannot be executed as written. Davin, live, explicitly re-scoped all of this rather than having
+  it silently reinterpreted: waived the remaining soak-window time (the CC-F freeze itself was
+  independently verified intact via `git log` — zero commits to any of the 5 route files since
+  4A-10a), and substituted a real live-testing method in place of nonexistent staging — Davin
+  runs a real authenticated request against production immediately after each flag flip, the
+  Executor cross-checks `money-service` Railway logs in parallel, per the order's own Rule ("any
+  red result = abort immediately, revert flag"). Before any flip, a live-state ambiguity was
+  found and resolved rather than assumed: Vercel showed 5 production redeploys in the 3h before
+  the session, and the smoke-test docs marked 3 of the 4 flag-enable steps "(DONE)" — suggesting
+  the flags may have already been toggled outside any CONFIRMed order. Davin checked the Vercel
+  dashboard live and confirmed all 4 were `false` before this session's own flips began.
+  **Group A (Stripe) executed and FAILED, reverted:** flag flipped `true`, redeployed, Davin ran
+  a real authenticated request against production `/api/checkout`. Result:
+  `STRIPE_CONFIG_ERROR`/"Stripe is not properly configured". Cross-checked against `money-service`
+  logs: the request genuinely reached `StripeCheckoutController.createCheckout` →
+  `StripeService.createCheckoutSession` (proving the 4A-9/4A-10a transport+auth+flag mechanism
+  works end-to-end for real) but threw because `STRIPE_PRO_PRICE_ID` is absent from
+  `money-service`'s Railway production — present in `money-service/.env.example` (line 34) and in
+  `docs/secret-matrix.md`'s monolith-side entry, never carried into money-service's real
+  environment when 4A-9 ported the Stripe module (an L21-class gap). Flag reverted to `false`,
+  redeployed, confirmed live via the production alias. Real checkout traffic was exposed to this
+  failure for roughly the redeploy-to-redeploy window (~5–10 min).
+  **Group B (dLocal) executed and FAILED, reverted:** flag flipped `true`, redeployed. First
+  attempt used the smoke-test doc's own example payload (`paymentMethod: "P2P"` for `country:
+"TH"`) and got a real, correctly-formed rejection from `money-service/src/dlocal/payment-methods
+.service.ts`'s ported `isValidPaymentMethod` (Thailand's real default method is `TrueMoney`, not
+  `P2P` — the doc's own example was wrong, confirmed live via `money-service` logs that the
+  response genuinely came from money-service). Retested with `TrueMoney`: `money-service` logs
+  showed real progress (`Exchange rate fetched`, `Creating payment`, `Payment record created`)
+  then a real failure — `dLocal API error {"status":403,"error":"{\"code\":3001,\"message\":
+\"Invalid credentials\"}"}` — money-service's configured dLocal API credentials
+  (`DLOCAL_API_KEY`/`DLOCAL_SECRET_KEY`/`DLOCAL_LOGIN`, all present per a boolean check) are
+  genuinely wrong against dLocal's real API, not just untested. A real `Payment` row
+  (`status: PENDING`) was created in production before the dLocal call failed — orphaned, needs
+  cleanup. Flag reverted to `false`, redeployed, confirmed live.
+  **Groups C (Admin) and D (Disbursement) NOT attempted** — given two-for-two real config
+  failures on the first two groups (a pattern, not one-off bad luck — the transport/flag/auth
+  mechanism is proven solid both times, only money-service's real Railway configuration was
+  wrong), Davin's live call was to pause here rather than risk repeating the same live-production
+  exposure window on two more groups blind. New `LESSONS-LEARNED.md` **L32**: a PORT session
+  moving code that reads config does not move the config itself into the new service's real
+  environment — verify every config value the ported code needs, value-blind, on the real target
+  before any cutover attempt, not just presence in `.env.example`.
+  Two client-tooling issues cost real time mid-session, also worth carrying forward: native
+  Windows `curl.exe` mangles JSON `-d` bodies through PowerShell's quoting (switched to
+  `Invoke-RestMethod` with a `ConvertTo-Json` body instead), and `Invoke-RestMethod`/
+  `Invoke-WebRequest` silently drops a `Cookie` header passed via `-Headers` in Windows PowerShell
+  5.1 (`Cookie` is a .NET "restricted header" — fixed via an explicit `WebRequestSession` +
+  `System.Net.Cookie` object instead).
+  **Artifacts updated:** `4a-10-money-service-write-apis-cutover.migration-order.md` (Status →
+  CONFIRMED, entry criteria reconciled with 3 re-scoped items, Deviations filled in full — 11
+  entries, Next-session handoff corrected to reflect this order's own unfinished state rather
+  than jumping ahead to 4A-11), `migration-cutover-table.md` (Slice 4 row annotated, status stays
+  BUILT), `LESSONS-LEARNED.md` (new L32), this file. No code files changed this session — flag
+  flips + doc/order updates only.
+- _(superseded-by-above, retained for context)_ Session 4A-10a (Slice 4 monolith Write Transport BUILD) CONFIRMED and executed —
   2026-07-27, all 4 Ordered Steps shipped, zero production traffic cut over (all 4 flags default
   `false`). Closes the hard-blocking gap 4A-10's own PRE-DRAFT found before it could even reach
   CONFIRM (Waiting-on #61, `LESSONS-LEARNED.md` L31): none of the 5 monolith write routes had any
@@ -972,12 +1042,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
 - **Current order:**
-  `docs/migration-orders/4a-10a-money-service-write-transport.migration-order.md` (CONFIRMED and
-  executed by Executor 2026-07-27 — closed clean, see Current above and Order status below). Its
-  own next-session handoff, `docs/migration-orders/4a-10-money-service-write-apis-cutover.migration-order.md`
-  (now 4A-10b, CUTOVER), is APPROVED but NOT yet executed — still gated on its own remaining entry
-  criteria (48h code-freeze soak window ending 2026-07-29 12:52 UTC, staging/sandbox manual smoke
-  tests, Davin live per-group approval). Predecessor
+  `docs/migration-orders/4a-10-money-service-write-apis-cutover.migration-order.md` (4A-10b,
+  CUTOVER) — CONFIRMED and executed by Executor 2026-07-28, **PARTIALLY** — 2 of 4 endpoint groups
+  attempted and reverted after real live config failures, session paused; see Current above and
+  Order status below. This order is NOT closed — the next session continues it (config audit/fix,
+  retry Groups A/B, then attempt C/D), per the order's own corrected Next-session handoff.
+  Predecessor `4a-10a-money-service-write-transport.migration-order.md` stays CONFIRMED/executed,
+  fully closed clean 2026-07-27 (see Order status below). Predecessor
   `4a-9-money-service-write-apis-port.migration-order.md` stays CONFIRMED/executed (see historical
   block below). Predecessor `4a-8-security-hardening-gate.migration-order.md` stays
   CONFIRMED/executed (see historical block below). Run concurrently with, not superseding, the
@@ -1001,6 +1072,14 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `4a-7-…`/`4a-7a-…` (both SUPERSEDED, retained as audit trail).
   `4a-5-rw-money-service-riseworks-webhook-cutover.migration-order.md` stays **REVOKED**
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
+- **Order status (4A-10b):** CONFIRMED, executed PARTIALLY, NOT closed. 2 of 4 groups
+  (Stripe, dLocal) tested live and reverted after real money-service config failures
+  (`STRIPE_PRO_PRICE_ID` missing; dLocal API credentials invalid — real `403` from dLocal
+  itself). Both flags confirmed back at `false` in production. Transport/auth/flag mechanism
+  proven correct end-to-end for both groups via live logs — the failures are pure configuration,
+  not code. Groups C (Admin) and D (Disbursement) not attempted. One orphaned `Payment` row
+  (`status: PENDING`) left in production from the dLocal test, needs cleanup. See Current above
+  and the order's own Deviations (11 entries) for full detail.
 - **Order status (4A-10a):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
   All 5 monolith write routes wired with `MIGRATE_WRITE_APIS_MONEY_*` flag checks + forwarding to
   their already-full-PORT money-service controllers (4A-9); new
@@ -1428,7 +1507,44 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   criteria: the 48h code-freeze soak window (ends 2026-07-29 12:52 UTC — not yet elapsed as of
   4A-10a's close), staging/sandbox manual smoke tests per its own checklist (not yet run), and
   Davin's live per-group approval. Do not treat 4A-10a's close as authorization to flip any of the
-  4 flags — that is 4A-10b's own, separate act.
+  4 flags — that is 4A-10b's own, separate act. **PARTIALLY SUPERSEDED (Session 4A-10b,
+  2026-07-28):** the soak-window and staging-test criteria were live re-scoped by Davin and 2 of
+  4 groups were actually attempted — see #64 below for what that attempt found.
+  **(64, NEW — blocks 4A-10b's own completion)** Session 4A-10b (2026-07-28) flipped
+  `MIGRATE_WRITE_APIS_MONEY_STRIPE` and `_DLOCAL` true in production, one at a time, each with a
+  real live authenticated test immediately after. Both failed on real `money-service` production
+  configuration gaps, not on the 4A-9/4A-10a transport/auth/flag mechanism (proven correct
+  end-to-end both times via live `money-service` logs): (a) Stripe — `StripeCheckoutController`
+  was reached correctly but threw because `STRIPE_PRO_PRICE_ID` is absent from money-service's
+  real Railway environment (present in `.env.example` and `docs/secret-matrix.md`'s
+  monolith-side entry, never carried into money-service's own config when 4A-9 ported the Stripe
+  module). (b) dLocal — `DlocalPaymentController` was reached correctly, progressed through
+  exchange-rate lookup and `Payment` row creation, then dLocal's own API rejected money-service's
+  configured credentials with a real `403 Invalid credentials` (code 3001) —
+  `DLOCAL_API_KEY`/`DLOCAL_SECRET_KEY`/`DLOCAL_LOGIN` are present but at least one is wrong. Both
+  flags reverted to `false` and redeployed, confirmed live. A real `Payment` row
+  (`status: PENDING`, no completing dLocal payment) was left behind in production from the
+  dLocal test and needs cleanup (delete or explicitly tag as a test artifact). Groups C (Admin)
+  and D (Disbursement) were not attempted — Davin's live call was to pause rather than risk the
+  same live-production exposure window twice more blind, given this was 2-for-2 on real config
+  gaps rather than one-off bad luck. New `LESSONS-LEARNED.md` **L32** generalizes the root cause:
+  a PORT session moves code that reads config, not the config itself — the next session must
+  value-blind-verify every config value Groups C/D's own code reads is present (and ideally
+  correct) on money-service's real Railway environment BEFORE attempting either flag, not
+  discover gaps one flip at a time. **(65, NEW)** Two Windows-PowerShell-specific client-tooling
+  gotchas cost real diagnostic time during 4A-10b's live testing, worth any future session's
+  awareness: native `curl.exe` invoked from PowerShell mangles a JSON `-d` body regardless of
+  single- or double-quote/backslash escaping attempted (switch to `Invoke-RestMethod`/
+  `Invoke-WebRequest` with a PowerShell hashtable piped through `ConvertTo-Json` instead); and
+  `Invoke-RestMethod`/`Invoke-WebRequest` in Windows PowerShell 5.1 silently drops a `Cookie`
+  header passed via the generic `-Headers` parameter (.NET's `HttpWebRequest` treats `Cookie` as
+  a "restricted header") — the fix is an explicit
+  `Microsoft.PowerShell.Commands.WebRequestSession` object with a `System.Net.Cookie` added to
+  its `.Cookies` collection, passed via `-WebSession` instead of `-Headers`. Also: Windows
+  PowerShell 5.1's `Invoke-RestMethod` throws a bare `WebException` on any non-2xx response and
+  hides the actual response body by default — retrieve it via
+  `$\_.Exception.Response.GetResponseStream()`wrapped in a`System.IO.StreamReader`inside a
+ `try`/`catch`, not from the exception message alone.
 - **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
   **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
   is CONFIRMED, executed, and fully closed (see Order status above) — Slice 4's write APIs are
@@ -1436,17 +1552,24 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   monolith-side transport BUILD, mirroring 4A-7a's Slice-3 scope) is now ALSO CONFIRMED, executed,
   and fully closed (see Current/Order status above) — all 5 monolith write routes have
   `MIGRATE_WRITE_APIS_MONEY_*` flag-check + forwarding wiring, resolving Waiting-on #61. **The
-  real next session is `4a-10-money-service-write-apis-cutover.migration-order.md` (now 4A-10b)**
-  — already APPROVED, no longer blocked on Entry Criterion 0, but still gated on its own remaining
-  entry criteria: the 48h code-freeze soak window (ends 2026-07-29 12:52 UTC), staging/sandbox
-  manual smoke tests per its own checklist, and Davin present for live per-group approval. Flag
-  one route group at a time (`MIGRATE_WRITE_APIS_MONEY_STRIPE`/`_DLOCAL`/`_ADMIN`/`_DISBURSEMENT`),
-  Davin present for each live approval, same shape as 4A-7a/4A-7b's read-API split. **That order
-  must explicitly carry forward the email-silence consequence 4A-9 flagged**: once the Stripe flag
-  flips, Stripe-originated tier-upgrade/cancellation/payment emails go silent (deferred to
-  `OutboxEvent`s, same as dLocal's since 4A-5) — not a regression to discover mid-CONFIRM, already
-  known and accepted, but the order should say so explicitly rather than assume the next reader
-  remembers.
+  real next session is a CONTINUATION of `4a-10-money-service-write-apis-cutover.migration-order.md`
+  (4A-10b)** — CONFIRMED and partially executed 2026-07-28 (see Current/Order status above), NOT
+  closed. Before anything else: (1) audit and fix `money-service`'s real Railway production
+  config for Stripe (`STRIPE_PRO_PRICE_ID`) and dLocal (`DLOCAL_API_KEY`/`DLOCAL_SECRET_KEY`/
+  `DLOCAL_LOGIN` — current values return real `403 Invalid credentials` from dLocal), per
+  `LESSONS-LEARNED.md` L32 also proactively check Groups C/D's own config needs the same way
+  rather than discovering gaps one flag at a time; (2) clean up the orphaned `Payment` row from
+  the dLocal test; (3) retry Groups A/B live (same method: Davin runs a real authenticated
+  request via the `Invoke-RestMethod`+`WebRequestSession` PowerShell pattern established this
+  session, Executor cross-checks `money-service` logs); (4) attempt Groups C (Admin) and D
+  (Disbursement) — D per the order's own Deviation 8, no live batch execution, code/guard/log
+  verification only. Only once all 4 groups are genuinely cut over does `migration-cutover-table.md`'s
+  Slice 4 row move to CUT-OVER and 4A-11 (Slice 5 / Outbox Email Worker Build) get PRE-DRAFTed.
+  **That eventual full close-out must still explicitly carry forward the email-silence
+  consequence 4A-9 flagged**: once the Stripe flag flips for real, Stripe-originated
+  tier-upgrade/cancellation/payment emails go silent (deferred to `OutboxEvent`s, same as
+  dLocal's since 4A-5) — not a regression to discover mid-CONFIRM, already known and accepted,
+  but the order should say so explicitly rather than assume the next reader remembers.
   4A-8's own Step 1 closed the 3-endpoint idempotency gap Waiting-on #52 flagged (Stripe checkout,
   dLocal create, admin code distribution all now have a guard) — **#52 is RESOLVED.**
   `RiseWorksWebhookEvent`'s own missing unique constraint (also flagged under #52) was NOT
