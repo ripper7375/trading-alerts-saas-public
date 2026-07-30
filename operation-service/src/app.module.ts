@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
+import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 // Module order follows railway-gateway's own app.module.ts (reference-notes
@@ -28,6 +29,7 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     HealthModule,
     AuthModule,
+    OutboxModule,
   ],
   providers: [
     {
